@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-02R",
+  "status": "COMPLETE",
+  "authority": "VALIDATOR_RECOVERY_ROOT",
+  "waveBaseCommit": "47d13805196fd9ab51d0f08c5de44db7fa26a71b",
+  "payloadCommit": "ab4b56ddcde3fbee035dda050853338d877f6de7",
+  "currentPayloadHead": "ab4b56ddcde3fbee035dda050853338d877f6de7",
+  "partialCommit": "235fbd499e0fb5e2f247ea0efa0bb92ea58eff32",
+  "partialDisposition": "PRESERVED_EXACT_AUTHORIZED_THREE_MEMBER_DELTA",
+  "authorityRoots": [
+    {"type":"ORIGINAL_01_SOURCE","commit":"c52c80f8186b985d07619a7ad0ed7abc0572675c"},
+    {"type":"INVALID_01C_PROVENANCE","commit":"ae129eaab0dde192f3dca17c7504b7b9aaef5d17","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
+    {"type":"AUTHORITATIVE_01R_RESEAL","commit":"fb93fd120d1f5ec81760070be67ed65429ae4c03"},
+    {"type":"FOCUSED_01F_AUTHORITY","commit":"06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c"},
+    {"type":"INVALID_01V_PROVENANCE","commit":"8502ce701a4070f7be449681ffecbffc36b20056","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
+    {"type":"SOLE_01W_TOPOLOGY_AUTHORITY","commit":"47d13805196fd9ab51d0f08c5de44db7fa26a71b"},
+    {"type":"VALIDATOR_02R_RECOVERY_AUTHORITY","payloadCommit":"ab4b56ddcde3fbee035dda050853338d877f6de7"}
+  ],
+  "orderedCommits": [
+    {"commit":"235fbd499e0fb5e2f247ea0efa0bb92ea58eff32","parent":"47d13805196fd9ab51d0f08c5de44db7fa26a71b","pathHashes":[{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/readiness-dispositions.json","sha256":"ceb55b11c04bfc1345f38abd64187bb4c1dac0155cec96707c9f559ff61af73c"},{"path":"frontend/tests/visual-routes.spec.ts","sha256":"68f8decb6368a21bc31ef422a74693fef24f6c26eb8f890f9c3f64418cd63e49"},{"path":"frontend/tests/visualReconciliationEvidence.test.ts","sha256":"5a16f968e5163cab7be18c66442963fc2efe9f6412518c9cac2944d5cb201662"}]},
+    {"commit":"8826abf1ef016d63144049377f4e537237c47d51","parent":"235fbd499e0fb5e2f247ea0efa0bb92ea58eff32","pathHashes":[{"path":".planning/ROADMAP.md","sha256":"a2beedb0c613013594aaf5c8d4d6587aa803ce086f462ca026f0bfcc5e0b0b7e"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-02-PLAN.md","sha256":"0ae9244b0cf82bb0e3c736422de62db99b83b2eafcde9cd6a8b55d4bc00d48cf"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-02R-PLAN.md","sha256":"2bd89fbd3244969b0032c92561d676fa2144dcdcb699b7f968bd17958ee11a29"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-03-PLAN.md","sha256":"dcc51311066d534c71c8397f808e5a8692f44a18b839f98a24de2ed370c74ec6"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-04-PLAN.md","sha256":"286812b295398fc7dae3c12a8316ee31cb202d14589db61bc7e96357730f7b24"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-05-PLAN.md","sha256":"abbacfe1255c4309707c2ea842cb3efa2fbc625a298708434bb5142363b1cb39"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-06-PLAN.md","sha256":"133cf50708fcf12da90fca23d710fde2f438283fd64ef3376028cf3b9173c32f"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-07-PLAN.md","sha256":"de1ed25057b2c1ee9df1a1d7990007fe2f849df15cc266516751faa386d21099"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-RESEARCH.md","sha256":"aa41c1dfc7f1ddff676e366ff08b2d4def997ecac09132fe62d7a2b2299af477"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-VALIDATION.md","sha256":"53ce9a728bbe15dba9ad67ed92aba5d5223e513a65f74f02dac2c8dec35596ff"}]},
+    {"commit":"ab4b56ddcde3fbee035dda050853338d877f6de7","parent":"8826abf1ef016d63144049377f4e537237c47d51","pathHashes":[{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-02R-SUMMARY.md","sha256":"c5c5f6ddf8800cf5e1c6e3f0579f3fdaa8a4da96081d1a66e12c48961f2b8ac0"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-02R-validator-recovery-manifest.json","sha256":"575a2ddb12195982b60e2afa3fc94ef48b15d12d81d1fcd90ac504332a82ed55"},{"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-02R-validator-recovery.json","sha256":"c17bfb421e429a72a399b5154ed2d6dfdf770055355d8f3c4468361aa7590942"},{"path":"frontend/tests/validatePhase271Reseal.test.ts","sha256":"64ee3fbd6f8dbeff1ca93e1bcead7e1c75ae7455f0043582c233ea62251331f2"},{"path":"frontend/tests/validatePhase271Reseal.ts","sha256":"30352cfde1fad076ffc6530b2994dd10e66a9348918c54e4bf8a07ca435efacb"},{"path":"frontend/tests/validateVisualReconciliation.test.ts","sha256":"8419392e3a5122c2637072fee1dbe6f7a18a7dc243d87f8adba5df0998367ffa"},{"path":"frontend/tests/validateVisualReconciliation.ts","sha256":"c17a91843fe2ed5d41497bb992affaaa3c996e9a4ef1d68d5645c447f5297884"}]}
+  ],
+  "validatorPins": [
+    {"path":"frontend/tests/validatePhase271Reseal.ts","sha256":"30352cfde1fad076ffc6530b2994dd10e66a9348918c54e4bf8a07ca435efacb","gitBlobId":"85628c5dc32c5f26bbd74910d6699e645f95bc56"},
+    {"path":"frontend/tests/validatePhase271Reseal.test.ts","sha256":"64ee3fbd6f8dbeff1ca93e1bcead7e1c75ae7455f0043582c233ea62251331f2","gitBlobId":"d3209d0667ecf7c5b7b02015fb006523252b226c"},
+    {"path":"frontend/tests/validateVisualReconciliation.ts","sha256":"c17a91843fe2ed5d41497bb992affaaa3c996e9a4ef1d68d5645c447f5297884","gitBlobId":"cca7634ada36a29bc5cf0b119287791194ae078a"},
+    {"path":"frontend/tests/validateVisualReconciliation.test.ts","sha256":"8419392e3a5122c2637072fee1dbe6f7a18a7dc243d87f8adba5df0998367ffa","gitBlobId":"654467a4e7a540c4d47b23fe86f9b13c13869b5c"}
+  ],
+  "blockers": []
+}

@@ -23,6 +23,10 @@ public partial class PurchaseLineSupplierDecision
 
     public DateOnly ProposedDeliveryDate { get; set; }
 
+    public byte[]? ReceivingWarehouseId { get; set; }
+
+    public string? PurchasingTerms { get; set; }
+
     public byte[] ConfirmedBy { get; set; } = null!;
 
     public DateTime ConfirmedAt { get; set; }

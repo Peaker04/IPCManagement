@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "classification": "ATTEMPT_NOT_GATE",
+  "sourceRef": "1d2ae2278d8503fb25c995c7e112fe3439227157",
+  "command": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore --filter FullyQualifiedName!~Integration&FullyQualifiedName!~Migration_&FullyQualifiedName!~Phase42AggregateVerificationTests",
+  "exitCode": 1,
+  "totals": {
+    "executed": 1226,
+    "passed": 1211,
+    "failed": 15,
+    "skipped": 0
+  },
+  "failureInventory": [
+    "SQLite fixtures missing IsOperationalActive columns",
+    "BusinessEvidencePolicy migration count expected 76 but current source reports 77",
+    "existing MRX exception-order expectation mismatch",
+    "Roslyn semantic-model compilation reports generated-regex partial implementation unavailable"
+  ],
+  "disposition": "Not a D09 pass and not proof that failures are caused by package servicing. No failing owner was edited to weaken or bypass mandatory CI. Exact CI remains blocked by missing disposable MySQL/runtime prerequisites and inherited dirty-source reconciliation."
+}

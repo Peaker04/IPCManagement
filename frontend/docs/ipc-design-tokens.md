@@ -1,6 +1,10 @@
 # IPC Design Tokens
 
-This reference is the source of truth for Phase 01.4 UI deep hardening. It documents the existing IPC CSS variables, `ipc-*` classes, and shared primitives already present in `frontend/src/styles/index.css` and `frontend/src/components/common`.
+This token reference originated in Phase 01.4 UI deep hardening. It is not a second component or execution
+contract. Current authority is [UI-PHILOSOPHY](../../docs/UI-PHILOSOPHY.md),
+[UI conformance](../../docs/UI-CONFORMANCE-MATRIX.md) and [DESIGN](../../docs/DESIGN.md).
+Resolve current tokens from `frontend/src/styles/index.css` and inspect the actual primitive API before use;
+phase-local examples and restrictions below do not override current Button/Form/Dialog or business contracts.
 
 The goal is consistency in dense operational screens, not a second design system.
 
@@ -46,7 +50,7 @@ Prefer these shared primitives before adding page-local color maps:
 | --- | --- | --- |
 | `InlineAlert` | `warning`, `danger`, `info`; default icons; action slot | Local status, validation, demo-data notes, and selective workflow feedback. Keep existing `alert()` and `prompt()` flows as-is. |
 | `StatusBadge` | `neutral`, `success`, `warning`, `danger`; semantic dot | Compact state labels in tables, queues, rails, and command metadata. Use neutral for non-urgent informational chips unless an `InlineAlert` or `ContextStrip` is more appropriate. |
-| `DataTableShell` | `.ipc-table-shell w-full overflow-x-auto` | Wrap wide operational tables. Table overflow belongs inside this shell, not on the document body. |
+| `TableViewport` / `PaginatedTableFrame` | Canonical viewport / pagination composition adapter, required `ariaLabel` | Local table overflow; data/filter/pagination semantics stay with route/API owner. `DataTableShell` is retired (PB-08). |
 | `CommandBar` | Leading context plus action grouping | Page-level controls, filters, and route actions. Keep command sets wrapping cleanly on mobile. |
 | `SectionPanel` | `default`, `danger`, `dark`; title, badge, description, footer | Operational sections and table panels. Use `tone="dark"` only where the current operation-surface styling intentionally requires it. |
 | `ContextStrip` and lane primitives | `info`, `success`, `warning`, `danger`, neutral structure | Dense route context, workflow queues, exceptions, documents, stock movements, and swimlanes. |
@@ -89,22 +93,52 @@ Rules:
 Use this structure for operational tables:
 
 ```tsx
-<DataTableShell>
-  <table className="ipc-data-table min-w-[720px]">
-    ...
+<TableViewport ariaLabel="Nhu cầu nguyên liệu">
+  <table className="ipc-data-table">
+    {/* Semantic thead/tbody and source-line rows for the declared work object. */}
   </table>
-</DataTableShell>
+</TableViewport>
 ```
+
+For paginated composition use `PaginatedTableFrame` with its required `ariaLabel`; it delegates to
+`TableViewport`, not a new data/pagination owner. Verify real columns/headers, skeleton and pagination at the
+callsite; this abbreviated example is not a complete table or acceptance fixture.
 
 Rules:
 
-- Keep document-level horizontal overflow absent. Wide tables scroll inside `DataTableShell`.
+- Keep document-level horizontal overflow absent. Wide tables scroll inside `TableViewport`.
 - Add explicit `min-w-*` only to the table that needs it.
 - Pair growing tables/lists with `PaginationBar`, local paging, or an equivalent containment rule before they can exceed a small operational batch.
 - Use `.ipc-numeric-cell` for quantities, money, percentages, and deltas that need right alignment and tabular figures.
-- Use sticky headers from `.ipc-table-shell .ipc-data-table thead` for dense scan tables.
+- Use `TableViewport` sticky-header/frozen-identifier contract and the current semantic CSS owner; do not copy retired `.ipc-table-shell` selectors.
 - Use `StatusBadge` inside table cells for status, not ad hoc red/amber/green pill classes.
 - Do not remove first-column left alignment unless the table is a fixed schedule matrix.
+
+## Async Boundary Geometry
+
+`QueryViewBoundary` and equivalent async surfaces must declare a semantic geometry role rather than inheriting
+one generic minimum height:
+
+| Role | Expected geometry | Examples |
+| --- | --- | --- |
+| `compact` | content height; no large min-height | select, filter, action row, metadata |
+| `section` | bounded placeholder matching a short form/list | summary panel, small list |
+| `table` | skeleton/placeholder matching the accepted row block | operational table |
+| `workspace` | may grow only for a real editor/matrix/canvas | weekly matrix, visual editor |
+
+Rules:
+
+- Never wrap one select/filter in the default table/workspace minimum height.
+- Do not use `flex-1`, `h-full`, viewport height, or `min-h-[...]` merely to fill desktop space.
+- One prerequisite/empty/error state gets one explanatory surface; do not keep an empty work panel above it.
+- Heading, scope control, state and content for one work object stay adjacent and preserve order across viewports.
+- If a generic primitive default creates blank surface, fix/extend the primitive API. Do not scatter page-local
+  `min-h-0` overrides across callsites.
+- Placeholder geometry must match the content that will replace it. Layout stability does not justify a 380px
+  placeholder around a 32–40px control.
+
+See [`docs/DESIGN.md`](../../docs/DESIGN.md) and rules `V1`–`V10` in
+[`docs/DASHBOARD-UI-RULES.md`](../../docs/DASHBOARD-UI-RULES.md).
 
 ## Panels And Page Structure
 
@@ -117,7 +151,8 @@ Operational pages should be composed from:
 - `.ipc-section-header`, `.ipc-section-title`, and `.ipc-section-description` for panel heading rhythm.
 - `.ipc-context-strip` and `.ipc-context-item.is-*` for compact route facts.
 
-Avoid landing-page sections, oversized hero layouts, decorative gradients, and low-density marketing composition.
+Avoid landing-page sections, oversized hero layouts, decorative gradients, low-density marketing composition,
+or large blank operational cards created by generic `min-height`/flex growth.
 
 ## Motion
 
@@ -133,7 +168,9 @@ Existing motion classes and keyframes are centralized in `index.css`: `ipc-fade-
 
 ## Responsive Rules
 
-- The minimum supported viewport width is 320px.
+- The minimum supported layout width remains 320px; this design requirement does not authorize extra browser
+  runs or prove mobile conformance. Resolve the exact task viewport matrix from MEMORY/checkpoint under the UI
+  execution harness; missing matrix blocks browser certification, and mobile/tablet runs require Kỳ's request.
 - Command bars collapse to full-width rows at small widths through `.ipc-command-bar`, `.ipc-command-bar-main`, and `.ipc-command-bar-actions`.
 - Compact view switchers use `.ipc-view-switcher.is-compact` and allow buttons to wrap.
 - Lane items, role inbox cards, approval records, document cards, and table shells must use `min-width: 0` where nested in grids or flex containers.
@@ -143,10 +180,10 @@ Existing motion classes and keyframes are centralized in `index.css`: `ipc-fade-
 
 Before adding page-local classes, check:
 
-1. Can `InlineAlert`, `StatusBadge`, `DataTableShell`, `CommandBar`, or `SectionPanel` handle this state?
+1. Can `InlineAlert`, `StatusBadge`, `TableViewport`, `CommandBar`, or `SectionPanel` handle this state under current conformance?
 2. Is the color already represented by `--ipc-primary`, success, warning, danger, or slate tokens?
 3. Is this a local info note better represented by `InlineAlert variant="info"` or `.ipc-context-item.is-info`?
-4. Does the table overflow stay inside `DataTableShell` at 320px?
+4. Does table overflow stay inside `TableViewport` at the viewport sizes approved for this task?
 5. Is focus visible for every keyboard-reachable command?
 6. Is motion static unless the state is truly urgent?
 7. Are existing `alert()` and `prompt()` flows preserved?

@@ -44,6 +44,26 @@ public class WarehouseRepository : IWarehouseRepository
             .AsNoTracking()
             .FirstOrDefaultAsync(warehouse => warehouse.WarehouseId == id);
 
+    public async Task<IReadOnlyList<Warehouse>> GetOperationalCandidatesAsync(int limit)
+    {
+        if (limit < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        }
+
+        return await _context.Warehouses
+            .FromSqlRaw(
+                """
+                SELECT `warehouseId`, `warehouseCode`, `warehouseName`, `warehouseType`, `note`,
+                       `IsOperationalActive`, `OperationalSingletonKey`
+                FROM `warehouses`
+                WHERE `IsOperationalActive` = TRUE
+                """)
+            .AsNoTracking()
+            .Take(limit)
+            .ToListAsync();
+    }
+
     private static string EscapeLikePattern(string value)
         => value
             .Replace("\\", "\\\\")

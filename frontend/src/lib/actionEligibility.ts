@@ -15,7 +15,12 @@ export const resolveWorkflowGateAction = (lanes: WorkflowLane[]): string => {
   const highestPriorityLane = lanes.reduce((current, lane) =>
     tonePriority[lane.tone] > tonePriority[current.tone] ? lane : current);
 
-  return highestPriorityLane.nextAction || 'Mở công đoạn';
+  const action = highestPriorityLane.nextAction || 'Mở công đoạn';
+  if (action === 'CANCELLED') return 'Đã hủy';
+  if (action === 'PENDING') return 'Đang xử lý';
+  if (action === 'COMPLETED') return 'Đã hoàn tất';
+  if (action === 'ARCHIVED') return 'Đã lưu trữ';
+  return action;
 };
 
 export const resolveApprovalAvailability = (

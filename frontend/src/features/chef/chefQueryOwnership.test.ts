@@ -8,8 +8,8 @@ import receiptsSource from './receipts/useKitchenReceipts.ts?raw'
 const queryOwners = [productionSource, receiptsSource, exceptionsSource, journalSource].join('\n')
 
 describe('Chef query ownership contract', () => {
-  it('classifies all six query owners through QueryView', () => {
-    expect(queryOwners.match(/toChefView\(/g)).toHaveLength(6)
+  it('classifies all seven query owners through QueryView', () => {
+    expect(queryOwners.match(/toChefView\(/g)).toHaveLength(7)
     expect(queryOwners).not.toMatch(/(?:catalogQuery|dailyQuery|returnsQuery|documentsQuery|movementsQuery|query)\.data\s*\?\?\s*\[\]/)
   })
 

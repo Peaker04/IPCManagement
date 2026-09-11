@@ -5,6 +5,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
@@ -19,7 +20,7 @@ public class WorkflowReportPaginationTests
         {
             command.CommandText = """
                 CREATE TABLE units (unitId BLOB PRIMARY KEY, unitCode TEXT NOT NULL, unitName TEXT NOT NULL, baseUnitCode TEXT, convertRateToBase REAL NOT NULL);
-                CREATE TABLE warehouses (warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL, warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT);
+                CREATE TABLE warehouses (warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL, warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT, IsOperationalActive INTEGER NOT NULL DEFAULT 0, OperationalSingletonKey INTEGER);
                 CREATE TABLE ingredients (ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL, ingredientName TEXT NOT NULL, unitId BLOB NOT NULL, warehouseId BLOB NOT NULL, referencePrice REAL NOT NULL, isFreshDaily INTEGER NOT NULL, isActive INTEGER NOT NULL);
                 CREATE TABLE currentstock (warehouseId BLOB NOT NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL, currentQty REAL NOT NULL, lastUpdated TEXT NOT NULL, rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (warehouseId, ingredientId));
                 """;
@@ -79,7 +80,8 @@ public class WorkflowReportPaginationTests
         await context.SaveChangesAsync();
         (await context.Currentstocks.CountAsync()).Should().Be(3);
 
-        var result = await new StockMovementReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
+        var service = new StockMovementReportService(context);
+        var result = await service.GetCurrentStockPageAsync(new CurrentStockPageQueryDto
         {
             PageNumber = 1,
             PageSize = 2,
@@ -93,5 +95,20 @@ public class WorkflowReportPaginationTests
         result.HasNext.Should().BeTrue();
         result.Items.Should().HaveCount(2);
         result.Items.Select(row => row.IngredientName).Should().ContainInOrder("Nguyên liệu 1", "Nguyên liệu 2");
+
+        var searched = await new StockMovementReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
+        {
+            PageNumber = 1,
+            PageSize = 20,
+            SearchKeyword = "Nguyên liệu 3",
+        });
+
+        searched.TotalCount.Should().Be(1);
+        searched.Items.Should().ContainSingle().Which.IngredientName.Should().Be("Nguyên liệu 3");
+
+        var aggregate = await service.GetCurrentStockAsync(new WorkflowReportQueryDto { Limit = 2 });
+
+        aggregate.Should().HaveCount(2);
+        aggregate.Select(row => row.IngredientName).Should().ContainInOrder("Nguyên liệu 1", "Nguyên liệu 2");
     }
 }

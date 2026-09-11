@@ -182,8 +182,17 @@ public class PurchasingReportService : IPurchasingReportService
     public async Task<PurchasePlanPageDto> GetPurchasePlanPageAsync(PurchasePlanPageQueryDto query)
     {
         var rows = await BuildPurchasePlanRowsAsync(query, null);
-        var totalCount = rows.Count;
-        var items = rows
+        var searchKeyword = query.SearchKeyword?.Trim();
+        var filteredRows = string.IsNullOrWhiteSpace(searchKeyword)
+            ? rows
+            : rows.Where(row =>
+                    (row.IngredientName?.Contains(searchKeyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (row.SupplierName?.Contains(searchKeyword, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    row.PeriodKey.Contains(searchKeyword, StringComparison.OrdinalIgnoreCase) ||
+                    row.Warnings.Any(warning => warning.Contains(searchKeyword, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        var totalCount = filteredRows.Count;
+        var items = filteredRows
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToList();
@@ -194,8 +203,8 @@ public class PurchasingReportService : IPurchasingReportService
             TotalCount = totalCount,
             PageNumber = query.PageNumber,
             PageSize = query.PageSize,
-            TotalShortageQty = rows.Sum(row => row.ShortageQty),
-            TotalEstimatedAmount = rows.Sum(row => row.EstimatedAmount),
+            TotalShortageQty = filteredRows.Sum(row => row.ShortageQty),
+            TotalEstimatedAmount = filteredRows.Sum(row => row.EstimatedAmount),
         };
     }
 

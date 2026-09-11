@@ -10,4 +10,6 @@ public interface IWarehouseRepository
         string? searchKeyword = null);
 
     Task<Warehouse?> GetByIdAsync(byte[] id);
+
+    Task<IReadOnlyList<Warehouse>> GetOperationalCandidatesAsync(int limit);
 }

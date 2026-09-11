@@ -32,6 +32,36 @@ public class RefreshTokenRepository : IRefreshTokenRepository
             .ExecuteDeleteAsync();
     }
 
+    public async Task PrepareForLoginAsync(
+        byte[] userId,
+        string deviceInfo,
+        int activeTokensToRetain)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(activeTokensToRetain);
+
+        var now = DateTime.UtcNow;
+        await _context.Refreshtokens
+            .Where(token => token.UserId.SequenceEqual(userId) &&
+                (token.ExpiresAt < now || token.IsRevoked || token.IsUsed || token.DeviceInfo == deviceInfo))
+            .ExecuteDeleteAsync();
+
+        var surplusTokenIds = await _context.Refreshtokens
+            .AsNoTracking()
+            .Where(token => token.UserId.SequenceEqual(userId) &&
+                token.ExpiresAt >= now && !token.IsRevoked && !token.IsUsed)
+            .OrderByDescending(token => token.CreatedAt)
+            .Skip(activeTokensToRetain)
+            .Select(token => token.TokenId)
+            .ToListAsync();
+
+        if (surplusTokenIds.Count > 0)
+        {
+            await _context.Refreshtokens
+                .Where(token => surplusTokenIds.Contains(token.TokenId))
+                .ExecuteDeleteAsync();
+        }
+    }
+
     public Task SaveChangesAsync()
         => _context.SaveChangesAsync();
 }

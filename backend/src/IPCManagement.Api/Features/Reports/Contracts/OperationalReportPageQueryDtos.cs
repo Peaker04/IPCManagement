@@ -13,6 +13,7 @@ public sealed class IssueVsReturnPageQueryDto : WorkflowReportPageQueryDto
 
 public sealed class DataQualityPageQueryDto : WorkflowReportPageQueryDto
 {
+    public string? SearchKeyword { get; set; }
 }
 
 public sealed class DataQualityPageDto : DataQualityReportDto

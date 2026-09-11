@@ -211,9 +211,14 @@
 }
 
 .ipc-dashboard-signal-copy small,
-.ipc-dashboard-gate-copy small,
 .ipc-dashboard-task-copy small {
   color: var(--ipc-slate-500);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.ipc-dashboard-gate-copy small {
+  color: var(--ipc-slate-600);
   font-size: 0.75rem;
   line-height: 1.35;
 }

@@ -13,6 +13,8 @@ public partial class Warehouse
 
     public string WarehouseType { get; set; } = null!;
 
+    public bool IsOperationalActive { get; set; }
+
     public string? Note { get; set; }
 
     public virtual ICollection<Ingredient> Ingredients { get; set; } = new List<Ingredient>();

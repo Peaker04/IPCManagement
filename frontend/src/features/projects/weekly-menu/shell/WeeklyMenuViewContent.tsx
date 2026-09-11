@@ -27,6 +27,7 @@ interface WeeklyMenuViewContentProps {
   scope: WeeklyMenuScope;
   hasCommittedWeek: boolean;
   committedRows: ImportedLayoutRow[];
+  dishNamesById?: ReadonlyMap<string, string>;
   scheduleWorkflow: WeeklyScheduleEditorWorkflow;
   productionPlanWorkflow: WeeklyProductionPlanWorkflow;
   demandWorkflow: MaterialDemandWorkflow;
@@ -47,6 +48,7 @@ export function WeeklyMenuViewContent({
   scope,
   hasCommittedWeek,
   committedRows,
+  dishNamesById,
   scheduleWorkflow,
   productionPlanWorkflow,
   demandWorkflow,
@@ -56,7 +58,7 @@ export function WeeklyMenuViewContent({
   dishMaterialsWorkflow,
 }: WeeklyMenuViewContentProps) {
   if (activeView === 'schedule') {
-    return <div {...panelProps('schedule')}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={hasCommittedWeek} rows={committedRows} /></div>;
+    return <div {...panelProps('schedule')}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={hasCommittedWeek} rows={committedRows} dishNamesById={dishNamesById} /></div>;
   }
   if (activeView === 'production-plan') {
     return <div {...panelProps('production-plan')}><ProductionPlanSection workflow={productionPlanWorkflow} /></div>;

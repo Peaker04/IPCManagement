@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { getDayLabel, getTodayDayCode } from './dateUtils';
 import {
+  BUSINESS_TIME_ZONE,
+  formatDateOnly,
+  formatDateTime,
+  formatDateVN,
   formatPercent,
   formatQuantity,
   formatQuantityWithUnit,
@@ -68,3 +72,48 @@ describe('number formatter BVA', () => {
     expect(formatPercent(12.345)).toBe('12,3%');
   });
 });
+
+describe('date-only formatter BVA', () => {
+  it.each([
+    ['2026-07-20', '20/07/2026'],
+    ['2026-07-20T08:30:00+07:00', '20/07/2026'],
+  ])('formats %s without changing the date parts', (value, expected) => {
+    expect(formatDateOnly(value)).toBe(expected);
+  });
+
+  it('returns the original value when the date-only shape is incomplete', () => {
+    expect(formatDateOnly('2026-07')).toBe('2026-07');
+    expect(formatDateOnly('not-a-date')).toBe('not-a-date');
+    expect(formatDateOnly('2026-02-30')).toBe('2026-02-30');
+  });
+});
+
+describe('timestamp formatter BVA', () => {
+  it('uses the canonical Vietnam business timezone', () => {
+    expect(BUSINESS_TIME_ZONE).toBe('Asia/Ho_Chi_Minh')
+  })
+
+  it.each([
+    ['2026-01-01T00:00:00Z', '07:00:00 01/01/2026'],
+    ['2026-12-31T18:00:00Z', '01:00:00 01/01/2027'],
+    ['2026-07-20T08:30:45+07:00', '08:30:45 20/07/2026'],
+  ])('formats instant %s in Vietnam business time', (value, expected) => {
+    expect(formatDateTime(value)).toBe(expected)
+  })
+
+  it('formats display dates across a UTC-to-Vietnam day boundary independent of host timezone', () => {
+    const originalTimeZone = process.env.TZ
+    process.env.TZ = 'UTC'
+    try {
+      expect(formatDateVN(new Date('2026-07-19T18:00:00Z'))).toContain('20/07/2026')
+    } finally {
+      process.env.TZ = originalTimeZone
+    }
+  })
+
+  it('guards missing and invalid values', () => {
+    expect(formatDateTime()).toBe('Chưa xác định')
+    expect(formatDateTime('not-a-date')).toBe('not-a-date')
+    expect(formatDateTime(new Date(Number.NaN))).toBe('Chưa xác định')
+  })
+})

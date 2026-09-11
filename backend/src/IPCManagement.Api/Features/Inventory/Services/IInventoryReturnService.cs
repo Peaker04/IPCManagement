@@ -10,4 +10,6 @@ public interface IInventoryReturnService
     Task<InventoryReturnDto?> GetByIdAsync(string id);
     Task<InventoryReturnCreatedDto?> CreateAsync(CreateInventoryReturnRequest dto, string? userId);
     Task<bool> ConfirmReceiptAsync(string id, ConfirmInventoryReturnReceiptRequest dto, string? userId);
+    Task<IReadOnlyList<InventoryReturnAllocationBalanceDto>> GetAllocationBalancesAsync(InventoryReturnAllocationBalanceQuery query, string? userId, CancellationToken cancellationToken = default);
+    Task<InventoryAllocationDispositionDto> CreateAllocationDispositionAsync(CreateInventoryAllocationDispositionRequest request, string? userId, CancellationToken cancellationToken = default);
 }

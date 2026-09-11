@@ -82,9 +82,9 @@ internal static class WeeklyMenuImportValidationPolicy
         {
             AddIssue(
                 validation,
-                "warning",
-                "UNKNOWN_DISH",
-                $"Món '{row.DishName}' chưa có trong catalog; hệ thống sẽ tạo món mới nếu commit.",
+                "error",
+                "DISH_NOT_FOUND",
+                $"Món '{row.DishName}' chưa có trong ngân hàng món ăn. Vui lòng chọn đúng tên món đã có rồi kiểm tra lại.",
                 plan.SheetName,
                 row.SourceRowNumber,
                 row.SourceColumn,

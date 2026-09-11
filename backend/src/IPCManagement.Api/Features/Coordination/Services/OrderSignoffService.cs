@@ -39,6 +39,10 @@ public sealed class OrderSignoffService : IOrderSignoffService
             return null;
         }
 
+        await EnsureMenusPublishedAsync(
+            _context.Mealquantityplanlines.Where(line => line.QuantityPlanId == planIdBytes),
+            CancellationToken.None);
+
         var oldStatus = OrderStatus.Normalize(plan.Status);
         if (!OrderStatus.CanTransition(oldStatus, OrderStatus.Completed))
         {
@@ -117,6 +121,21 @@ public sealed class OrderSignoffService : IOrderSignoffService
                     return null;
                 }
 
+                await EnsureMenusPublishedAsync(
+                    _context.Mealquantityplanlines.Where(line =>
+                        line.QuantityPlan.ServiceDate == serviceDate &&
+                        line.ShiftName == shiftName),
+                    cancellationToken);
+
+                var mixedShiftPlan = plans.FirstOrDefault(plan =>
+                    plan.Mealquantityplanlines.Any(line => line.ShiftName != shiftName));
+                if (mixedShiftPlan is not null)
+                {
+                    throw new BusinessRuleException(
+                        $"Không thể hoàn tất riêng ca {shiftName} vì kế hoạch {mixedShiftPlan.PlanCode} chứa nhiều ca. " +
+                        "Hãy tách kế hoạch theo ca hoặc dùng luồng hoàn tất toàn ngày.");
+                }
+
                 var invalidPlan = plans.FirstOrDefault(plan =>
                     !OrderStatus.CanTransition(plan.Status, OrderStatus.Completed));
                 if (invalidPlan is not null)
@@ -188,5 +207,26 @@ public sealed class OrderSignoffService : IOrderSignoffService
                 return statuses.Count > 0 && statuses.All(status =>
                     string.Equals(OrderStatus.Normalize(status), OrderStatus.Completed, StringComparison.Ordinal));
             });
+    }
+
+    private async Task EnsureMenusPublishedAsync(
+        IQueryable<MealQuantityPlanLine> lines,
+        CancellationToken cancellationToken)
+    {
+        var hasUnpublishedMenu = await lines
+            .AsNoTracking()
+            .AnyAsync(line =>
+                line.MenuSchedule.Status != "ACTIVE" ||
+                (line.MenuSchedule.MenuVersionId != null &&
+                 !_context.Menuversions.Any(version =>
+                     version.MenuVersionId == line.MenuSchedule.MenuVersionId &&
+                     (version.Status == "ACTIVE" || version.Status == "PUBLISHED"))),
+                cancellationToken);
+        if (hasUnpublishedMenu)
+        {
+            throw new BusinessRuleException(
+                "Không thể hoàn tất ca khi thực đơn chưa được phát hành. " +
+                "Hãy phát hành phiên bản thực đơn trước khi tiếp tục.");
+        }
     }
 }

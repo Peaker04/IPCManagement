@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using NSubstitute;
 using Xunit;
@@ -20,6 +21,7 @@ public class InventoryReceiptServiceTests
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
     private readonly ImmediateTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
     private readonly InventoryReceiptService _service;
 
     public InventoryReceiptServiceTests()
@@ -28,12 +30,32 @@ public class InventoryReceiptServiceTests
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
         _transactionRunner = new ImmediateTransactionRunner();
+        _operationalWarehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
 
         _service = new InventoryReceiptService(
             _receiptRepository,
             _unitOfWork,
             _stockLedgerService,
-            _transactionRunner);
+            _transactionRunner,
+            _operationalWarehouseResolver);
+    }
+
+    [Fact]
+    public async Task GetPagedAsync_Should_ForwardPurchaseOrderPredicateBeforeRepositoryPagination()
+    {
+        var request = new InventoryReceiptFilterRequestDto
+        {
+            PageNumber = 3,
+            PageSize = 20,
+            PurchaseOrderOnly = true
+        };
+        _receiptRepository.GetPagedAsync(request)
+            .Returns((Array.Empty<InventoryReceipt>(), 0));
+
+        await _service.GetPagedAsync(request);
+
+        await _receiptRepository.Received(1).GetPagedAsync(Arg.Is<InventoryReceiptFilterRequestDto>(value =>
+            value.PageNumber == 3 && value.PageSize == 20 && value.PurchaseOrderOnly));
     }
 
     [Fact]
@@ -42,6 +64,8 @@ public class InventoryReceiptServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var supplierId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
@@ -136,8 +160,22 @@ public class InventoryReceiptServiceTests
                 warehouseId BLOB,
                 supplierId BLOB,
                 purchaseRequestId BLOB,
+                purchaseOrderId BLOB,
                 createdBy BLOB,
-                createdAt TEXT
+                createdAt TEXT,
+                status TEXT NOT NULL DEFAULT 'DRAFT',
+                qualityStatus TEXT NOT NULL DEFAULT 'PENDING_INSPECTION',
+                concurrencyVersion INTEGER NOT NULL DEFAULT 0,
+                qualityCheckedBy BLOB,
+                qualityCheckedAt TEXT,
+                managerApprovedBy BLOB,
+                managerApprovedAt TEXT,
+                managerApprovalReason TEXT,
+                postedBy BLOB,
+                postedAt TEXT,
+                rejectedBy BLOB,
+                rejectedAt TEXT,
+                rejectionReason TEXT
             );
 
             CREATE TABLE inventoryreceiptlines (
@@ -154,7 +192,10 @@ public class InventoryReceiptServiceTests
                 expiredDate TEXT,
                 packageQuantitySnapshot REAL,
                 packageBaseUnitIdSnapshot BLOB,
-                packagePolicyVersionSnapshot TEXT
+                packagePolicyVersionSnapshot TEXT,
+                acceptedQuantity REAL,
+                rejectedQuantity REAL,
+                qualityReason TEXT
             );
 
             CREATE TABLE auditlogs (
@@ -167,7 +208,8 @@ public class InventoryReceiptServiceTests
                 fieldName TEXT,
                 oldValue TEXT,
                 newValue TEXT,
-                reason TEXT
+                reason TEXT,
+                correlationId TEXT
             );
         """;
         command.ExecuteNonQuery();
@@ -191,13 +233,6 @@ public class InventoryReceiptServiceTests
     public async Task CreateFromPurchaseRequestAsync_Should_Throw_When_PurchaseRequest_NotFound()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(
-            _receiptRepository,
-            _unitOfWork,
-            _stockLedgerService,
-            new EfTransactionRunner(context),
-            context);
-
         var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
             PurchaseRequestId = Guid.NewGuid().ToString(),
@@ -205,6 +240,13 @@ public class InventoryReceiptServiceTests
             WarehouseId = Guid.NewGuid().ToString(),
             Lines = new List<CreateInventoryReceiptFromPurchaseLineRequest> { new() }
         };
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            CreateOperationalWarehouseResolver(GuidHelper.ParseGuidString(dto.WarehouseId)!),
+            context);
 
         var action = () => service.CreateFromPurchaseRequestAsync(dto, Guid.NewGuid().ToString());
         await action.Should().ThrowAsync<ArgumentException>().WithMessage("Không tìm thấy phiếu mua.");
@@ -214,18 +256,18 @@ public class InventoryReceiptServiceTests
     public async Task CreateFromPurchaseRequestAsync_Should_CreateReceipt_UpdateStock_And_ChangeStatus()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(
-            _receiptRepository,
-            _unitOfWork,
-            _stockLedgerService,
-            new EfTransactionRunner(context),
-            context);
-
         var userId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var purchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var purchaseLineId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var supplierId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var warehouseId = IPCManagement.Api.Helpers.GuidHelper.NewId();
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            CreateOperationalWarehouseResolver(warehouseId),
+            context);
         var ingredientId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var unitId = IPCManagement.Api.Helpers.GuidHelper.NewId();
 
@@ -313,19 +355,19 @@ public class InventoryReceiptServiceTests
     public async Task CreateFromPurchaseRequestAsync_Should_Track_ReceivedQuantity_ByPurchaseLine()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(
-            _receiptRepository,
-            _unitOfWork,
-            _stockLedgerService,
-            new EfTransactionRunner(context),
-            context);
-
         var userId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var purchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var firstPurchaseLineId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var secondPurchaseLineId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var supplierId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var warehouseId = IPCManagement.Api.Helpers.GuidHelper.NewId();
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            CreateOperationalWarehouseResolver(warehouseId),
+            context);
         var ingredientId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var unitId = IPCManagement.Api.Helpers.GuidHelper.NewId();
 
@@ -396,4 +438,11 @@ public class InventoryReceiptServiceTests
             receipt.Inventoryreceiptlines.Count == 2 &&
             receipt.Inventoryreceiptlines.All(line => line.PurchaseRequestLineId != null)));
     }
+    private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(byte[] warehouseId)
+    {
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
+        return resolver;
+    }
+
 }

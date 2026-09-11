@@ -23,7 +23,7 @@ describe('authStorage boundaries', () => {
     window.sessionStorage.clear();
   });
 
-  it('persists token in session storage and user in local storage without legacy refresh token leakage', () => {
+  it('persists token and user in tab-scoped session storage without legacy persistent auth leakage', () => {
     window.localStorage.setItem('refreshToken', 'legacy-refresh');
     window.localStorage.setItem('token', 'legacy-access');
 
@@ -44,15 +44,26 @@ describe('authStorage boundaries', () => {
     expect(window.sessionStorage.getItem('token')).toBe('session-token');
     expect(window.localStorage.getItem('token')).toBeNull();
     expect(window.localStorage.getItem('refreshToken')).toBeNull();
+    expect(window.localStorage.getItem('user')).toBeNull();
+    expect(window.sessionStorage.getItem('user')).not.toBeNull();
     expect(readStoredAuthSnapshot().user?.isAdminFullAccess).toBe(true);
   });
 
   it('removes malformed stored user instead of returning a partial identity', () => {
-    window.localStorage.setItem('user', JSON.stringify({ id: 'u1', username: 'broken' }));
+    window.sessionStorage.setItem('user', JSON.stringify({ id: 'u1', username: 'broken' }));
 
     const snapshot = readStoredAuthSnapshot();
 
     expect(snapshot.user).toBeNull();
+    expect(window.sessionStorage.getItem('user')).toBeNull();
+  });
+
+  it('removes legacy persistent user metadata during startup', () => {
+    window.localStorage.setItem('user', JSON.stringify({
+      id: 'legacy', username: 'legacy', fullName: 'Legacy User', role: 'staff',
+    }));
+
+    expect(readStoredAuthSnapshot().user).toBeNull();
     expect(window.localStorage.getItem('user')).toBeNull();
   });
 

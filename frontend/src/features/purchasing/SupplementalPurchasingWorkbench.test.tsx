@@ -8,8 +8,11 @@ const mocks = vi.hoisted(() => ({
   decisionPanel: vi.fn(),
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/api/warehouseApi', () => ({
   useGetSupplementalMaterialRequestsQuery: mocks.getSupplementalRequests,
+}));
+
+vi.mock('@/api/purchasingApi', () => ({
   useGetPurchaseRequestsQuery: mocks.getPurchaseRequests,
   useGetPurchaseOrdersQuery: mocks.getPurchaseOrders,
 }));
@@ -125,6 +128,7 @@ describe('SupplementalPurchasingWorkbench', () => {
     expect(screen.getByText('PR-SUP-001')).toBeInTheDocument();
     expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
     expect(mocks.decisionPanel).toHaveBeenCalledWith(expect.objectContaining({
+      panelId: 'supplemental-purchase-decision-panel',
       week: '2026-07-20',
       selectedStage: 'submitted',
       serviceDate: expect.objectContaining({
@@ -133,6 +137,15 @@ describe('SupplementalPurchasingWorkbench', () => {
       }),
       selectedLine: expect.objectContaining({ purchaseRequestLineId: 'purchase-line-1' }),
     }));
+  });
+
+  it('renders an explicit empty state instead of an active blank tab', () => {
+    mocks.getSupplementalRequests.mockReturnValue(readyQuery({ ...supplementalPage(0), items: [] }));
+
+    render(<SupplementalPurchasingWorkbench week="2026-07-20" />);
+
+    expect(screen.getByText('Chưa có nhu cầu mua bổ sung cần xử lý')).toBeInTheDocument();
+    expect(screen.getByText(/Kho chưa chuyển yêu cầu thiếu hàng nào/)).toBeInTheDocument();
   });
 
   it('renders query-level forbidden without offering a retry', () => {

@@ -1,17 +1,22 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/common';
 
 const mocks = vi.hoisted(() => ({
   rules: vi.fn(),
   employees: vi.fn(),
+  createRule: vi.fn(),
+  updateRule: vi.fn(),
+  deleteRule: vi.fn(),
+  deleteState: { isLoading: false },
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/features/admin/adminWorkflowApi', () => ({
   useGetApprovalRulesQuery: mocks.rules,
-  useCreateApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
-  useUpdateApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
-  useDeleteApprovalRuleMutation: () => [vi.fn(), { isLoading: false }],
+  useCreateApprovalRuleMutation: () => [mocks.createRule, { isLoading: false }],
+  useUpdateApprovalRuleMutation: () => [mocks.updateRule, { isLoading: false }],
+  useDeleteApprovalRuleMutation: () => [mocks.deleteRule, mocks.deleteState],
 }));
 
 vi.mock('@/features/admin/adminApi', () => ({
@@ -80,6 +85,10 @@ const renderPage = () => render(
 describe('ApprovalRulesPage query state boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.deleteState.isLoading = false;
+    mocks.createRule.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
+    mocks.updateRule.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
+    mocks.deleteRule.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
     mocks.rules.mockReturnValue(readyQuery(rulesResponse()));
     mocks.employees.mockReturnValue(readyQuery(employeesResponse()));
   });
@@ -154,5 +163,92 @@ describe('ApprovalRulesPage query state boundary', () => {
 
     expect(screen.getByText('Danh sách nhân viên bị giới hạn')).toBeInTheDocument();
     expect(screen.getByText(/1\/201 nhân viên/)).toBeInTheDocument();
+  });
+
+  it('renders document, role, and employee labels in closed select triggers', async () => {
+    const user = userEvent.setup();
+    mocks.employees.mockReturnValue(readyQuery(employeesResponse([
+      { userId: 'employee-1', fullName: 'Nguyễn An', username: 'nguyenan' },
+    ])));
+
+    renderPage();
+    await user.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' });
+    const triggers = within(dialog).getAllByRole('combobox');
+    expect(triggers[0]).toHaveTextContent('Đơn mua thêm (PR)');
+    expect(triggers[0]).not.toHaveTextContent('purchase-request');
+    expect(triggers[1]).toHaveTextContent('Quản lý');
+    expect(triggers[1]).not.toHaveTextContent('quanly');
+    expect(triggers[2]).toHaveTextContent('Gửi chung cho cả vai trò');
+    expect(triggers[2]).not.toHaveTextContent('__empty_approver_user__');
+
+    await user.click(triggers[2]);
+    await user.click(await screen.findByRole('option', { name: 'Nguyễn An (nguyenan)' }));
+    expect(triggers[2]).toHaveTextContent('Nguyễn An (nguyenan)');
+    expect(triggers[2]).not.toHaveTextContent('employee-1');
+  });
+
+  it('requires explicit confirmation before deleting a rule and preserves the busy copy', async () => {
+    mocks.rules.mockReturnValue(readyQuery(rulesResponse([approvalRule])));
+
+    const view = renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
+
+    expect(screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' })).toBeInTheDocument();
+    expect(mocks.deleteRule).not.toHaveBeenCalled();
+
+    mocks.deleteState.isLoading = true;
+    view.rerender(<ToastProvider><ApprovalRulesPage /></ToastProvider>);
+    expect(screen.getByRole('button', { name: 'Đang xóa...' })).toBeDisabled();
+
+    mocks.deleteState.isLoading = false;
+    view.rerender(<ToastProvider><ApprovalRulesPage /></ToastProvider>);
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa quy tắc' }));
+
+    await waitFor(() => expect(mocks.deleteRule).toHaveBeenCalledWith('rule-1'));
+  });
+
+  it('associates missing rule-name validation with the field', () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình' }));
+
+    const input = screen.getByLabelText('Tên quy tắc');
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription('Thiếu tên quy tắc Vui lòng nhập tên để dễ nhận biết luồng phê duyệt.');
+    expect(mocks.createRule).not.toHaveBeenCalled();
+  });
+
+  it('keeps a save failure inside the rule form dialog', async () => {
+    mocks.createRule.mockReturnValue({ unwrap: vi.fn().mockRejectedValue({ data: { message: 'Tên quy tắc đã tồn tại.' } }) });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
+    fireEvent.change(screen.getByLabelText('Tên quy tắc'), { target: { value: 'Duyệt đề xuất mua' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' });
+    await waitFor(() => expect(within(dialog).getByRole('alert')).toHaveTextContent('Chưa thể lưu quy tắc'));
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Tên quy tắc đã tồn tại.');
+  });
+
+  it('uses passing semantic text tokens for exact rule-list contrast targets', () => {
+    mocks.rules.mockReturnValue(readyQuery(rulesResponse([approvalRule])));
+    const { container } = renderPage();
+
+    expect(container.querySelector('.text-slate-400')).toBeNull();
+    expect(container.querySelector('.text-red-500')).toBeNull();
+  });
+
+  it('keeps a delete failure inside the confirmation dialog', async () => {
+    mocks.rules.mockReturnValue(readyQuery(rulesResponse([approvalRule])));
+    mocks.deleteRule.mockReturnValue({ unwrap: vi.fn().mockRejectedValue({ data: { message: 'Quy tắc đang được sử dụng.' } }) });
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa quy tắc' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' });
+    await waitFor(() => expect(dialog).toHaveTextContent('Chưa thể xóa quy tắc'));
+    expect(dialog).toHaveTextContent('Quy tắc đang được sử dụng.');
   });
 });

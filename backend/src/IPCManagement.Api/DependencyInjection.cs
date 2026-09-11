@@ -14,6 +14,10 @@ using IPCManagement.Api.Features.Planning.Services;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Features.SampleData.Services;
+using IPCManagement.Api.Infrastructure.LifecycleOutbox;
+using IPCManagement.Api.Infrastructure.Lifecycle;
+using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Features.Reconciliation.Services;
 
 namespace IPCManagement.Api;
 
@@ -30,7 +34,7 @@ public static class DependencyInjection
         // câu lệnh treo giữ kết nối vô hạn.
         var commandTimeoutSeconds = configuration.GetValue<int?>("Database:CommandTimeoutSeconds") ?? 30;
 
-        services.AddDbContext<IpcManagementContext>(options =>
+        return services.AddBackendServicesCore(configuration, options =>
             options.UseMySql(
                 connectionString,
                 ServerVersion.AutoDetect(connectionString),
@@ -40,14 +44,42 @@ public static class DependencyInjection
                     .EnableRetryOnFailure()
                     .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                     .CommandTimeout(commandTimeoutSeconds)));
+    }
+
+    internal static IServiceCollection AddBackendServicesCore(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        Action<DbContextOptionsBuilder> configureProvider)
+    {
+        services.AddDbContext<IpcManagementContext>(configureProvider);
 
         // Configurations
         services.Configure<PaginationOptions>(configuration.GetSection(PaginationOptions.SectionName));
+        services.Configure<LifecycleOutboxOptions>(configuration.GetSection(LifecycleOutboxOptions.SectionName));
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<SystemOperationRequestContext>();
+        services.AddScoped<SystemOperationModeGuard>();
+        services.AddScoped<SystemOperationModeFilter>();
+        services.AddScoped<SystemOperationModeService>();
+        services.AddScoped<SystemOperationModeInitializer>();
+        services.AddScoped<ReconciliationBatchService>();
+        services.AddScoped<ReconciliationQuantityImportService>();
+        services.AddScoped<ReconciliationToleranceInitializer>();
+        services.AddScoped<ReconciliationActualService>();
+        services.AddScoped<ReconciliationCompletionService>();
         services.AddScoped<IEfTransactionRunner>(serviceProvider =>
-            new EfTransactionRunner(serviceProvider.GetRequiredService<IpcManagementContext>()));
+            new EfTransactionRunner(
+                serviceProvider.GetRequiredService<IpcManagementContext>(),
+                serviceProvider.GetRequiredService<SystemOperationRequestContext>(),
+                serviceProvider.GetRequiredService<SystemOperationModeGuard>()));
+        services.AddScoped<ILifecycleTransitionRecorder, LifecycleTransitionRecorder>();
+        services.AddScoped<ILifecycleOutboxProcessor, LifecycleOutboxProcessor>();
+        services.AddScoped<ILifecycleOutboxAdminService, LifecycleOutboxAdminService>();
+        services.AddScoped<ILifecycleOutboxConsumer, LifecyclePayloadValidationConsumer>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddHostedService<LifecycleOutboxWorker>();
 
         // Security
         services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -87,10 +119,13 @@ public static class DependencyInjection
         services.AddScoped<IDishBomService, DishBomService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
+        services.AddScoped<IMaterialRequestCompletionTransitionService, MaterialRequestCompletionTransitionService>();
         services.AddScoped<IInventoryIssueService, InventoryIssueService>();
         services.AddScoped<ISupplementalMaterialRequestService, SupplementalMaterialRequestService>();
         services.AddScoped<IInventoryReturnService, InventoryReturnService>();
+        services.AddScoped<ILegacyLineageDispositionService, LegacyLineageDispositionService>();
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
+        services.AddScoped<IServiceRunService, ServiceRunService>();
         services.AddScoped<IStockLedgerService, StockLedgerService>();
         services.AddScoped<ICustomerContractService, CustomerContractService>();
         services.AddScoped<IPortionRuleService, PortionRuleService>();
@@ -102,13 +137,15 @@ public static class DependencyInjection
         services.AddScoped<WeeklyMenuCustomerResolver>();
         services.AddScoped<WeeklyMenuAuditActorResolver>();
         services.AddScoped<WeeklyMenuImportResultBuilder>();
-        services.AddScoped<WeeklyMenuImportPersistence>();
+        services.AddScoped<IWeeklyMenuImportPersistence, WeeklyMenuImportPersistence>();
+        services.AddScoped<WeeklyMenuImportPreviewTicketStore>();
         services.AddScoped<IWeeklyMenuQueryService, WeeklyMenuQueryService>();
         services.AddScoped<IWeeklyMenuTemplateService, WeeklyMenuTemplateService>();
         services.AddScoped<ICustomerImportMappingService, CustomerImportMappingService>();
         services.AddScoped<IWeeklyMenuImportService, WeeklyMenuImportService>();
         services.AddScoped<IWeeklyMenuImportHistoryService, WeeklyMenuImportHistoryService>();
         services.AddScoped<IWeeklyMenuBulkEditService, WeeklyMenuBulkEditService>();
+        services.AddScoped<IMenuAmendmentService, MenuAmendmentService>();
         services.AddScoped<ISampleBomImportService, SampleBomImportService>();
         services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
@@ -129,6 +166,8 @@ public static class DependencyInjection
         services.AddScoped<IStockLedgerReportService, StockLedgerReportService>();
         services.AddScoped<IDataQualityReportService, DataQualityReportService>();
         services.AddScoped<IDataQualityCommandService, DataQualityCommandService>();
+        services.AddScoped<IDataQualityDispositionService, DataQualityDispositionService>();
+        services.AddScoped<IUnitNormalizationReviewService, UnitNormalizationReviewService>();
         services.AddScoped<IOperationalKpiReportService, OperationalKpiReportService>();
         services.AddSingleton<IWorkflowReportAggregateCache, WorkflowReportAggregateCache>();
         services.AddScoped<ISupplierService, SupplierService>();

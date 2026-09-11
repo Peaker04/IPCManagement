@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppDispatch } from '../../../app/hooks';
+import React, { useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAppDispatch } from '@/lib/reduxHooks';
 import { setCredentials } from '../authSlice';
 import { useLoginMutation } from '../authApi';
 import { normalizeUserRole, type AppRole } from '../roleUtils';
 import { ROUTES } from '@/lib/routeConfig';
-import { ChefHat } from 'lucide-react';
+import { ChefHat, Eye, EyeOff } from 'lucide-react';
 import { FieldRow } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 // Explicit local-only fallback for UI smoke/demo runs without a backend.
 const isDevLoginFallbackEnabled =
@@ -19,10 +21,10 @@ const getDevAccount = (value: string) => {
 
   const devAccounts: Record<string, { fullName: string; role: AppRole; permissions: string[] }> = {
     admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] },
-    quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] },
+    quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'coordination.order.lock', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] },
     dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination.read', 'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff', 'demand.generate'] },
-    beptruong: { fullName: 'Phạm Bếp Trưởng', role: 'beptruong', permissions: ['production:read'] },
-    thukho: { fullName: 'Hoàng Thủ Kho', role: 'thukho', permissions: ['warehouse:read', 'inventory:read'] },
+    beptruong: { fullName: 'Phạm Bếp Trưởng', role: 'beptruong', permissions: ['production.read'] },
+    thukho: { fullName: 'Hoàng Thủ Kho', role: 'thukho', permissions: ['warehouse.read', 'inventory.read'] },
     thumua: { fullName: 'Đinh Thu Mua', role: 'thumua', permissions: ['purchase.read', 'purchase.generate'] },
     staff: { fullName: 'Nguyễn Thị Thu Mua', role: 'staff', permissions: [] },
   };
@@ -38,6 +40,32 @@ const getDevFallbackToken = (value: string) => {
   return `dev-login-fallback-token-${value}`;
 };
 
+const isUnauthorizedLoginError = (error: unknown) =>
+  typeof error === 'object'
+  && error !== null
+  && 'status' in error
+  && error.status === 401;
+
+const safeReturnPath = (value: unknown) => {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    return ROUTES.DASHBOARD;
+  }
+
+  try {
+    const parsed = new URL(value, window.location.origin);
+    const routePath = decodeURIComponent(parsed.pathname).toLowerCase();
+    if (parsed.origin !== window.location.origin
+      || routePath === ROUTES.LOGIN
+      || routePath.startsWith(`${ROUTES.LOGIN}/`)) {
+      return ROUTES.DASHBOARD;
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return ROUTES.DASHBOARD;
+  }
+};
+
 const DevLoginFallbackHint = () => {
   if (import.meta.env.PROD || !isDevLoginFallbackEnabled) {
     return null;
@@ -45,8 +73,8 @@ const DevLoginFallbackHint = () => {
 
   return (
     <div className="ipc-auth-footer">
-      <p className="ipc-auth-hint">Fallback dev: <b>admin/admin</b>, <b>quanly/quanly</b>, <b>dieuphoi/dieuphoi</b></p>
-      <p className="ipc-auth-hint text-xs mt-1"><b>beptruong/beptruong</b>, <b>thukho/thukho</b>, <b>thumua/thumua</b></p>
+      <p className="ipc-auth-hint">Chế độ kiểm thử cục bộ đang bật.</p>
+      <p className="ipc-auth-hint text-xs mt-1">Hãy dùng tài khoản kiểm thử được cấp cho phiên làm việc này.</p>
     </div>
   );
 };
@@ -54,21 +82,33 @@ const DevLoginFallbackHint = () => {
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [error, setError] = useState('');
+  const [missingFields, setMissingFields] = useState({ username: false, password: false });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const submissionInFlight = useRef(false);
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = safeReturnPath((location.state as { from?: unknown } | null)?.from);
   const [login] = useLoginMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password.trim()) {
-      setError('Vui lòng nhập đầy đủ tài khoản và mật khẩu.');
+    if (submissionInFlight.current) return;
+
+    const usernameMissing = !username.trim();
+    const passwordMissing = !password.trim();
+    if (usernameMissing || passwordMissing) {
+      setMissingFields({ username: usernameMissing, password: passwordMissing });
+      setError('');
       return;
     }
 
+    setMissingFields({ username: false, password: false });
     setError('');
+    submissionInFlight.current = true;
     setIsSubmitting(true);
 
     try {
@@ -91,13 +131,15 @@ const LoginPage = () => {
             token: loginData.accessToken,
           })
         );
-        navigate(ROUTES.DASHBOARD);
+        navigate(returnPath, { replace: true });
       } else {
         setError(result.message || 'Đăng nhập thất bại.');
       }
-    } catch {
+    } catch (error) {
       if (!isDevLoginFallbackEnabled) {
-        setError('Không thể đăng nhập. Vui lòng kiểm tra tài khoản hoặc kết nối máy chủ.');
+        setError(isUnauthorizedLoginError(error)
+          ? 'Tài khoản hoặc mật khẩu không đúng.'
+          : 'Không thể đăng nhập. Vui lòng kiểm tra kết nối máy chủ.');
         return;
       }
 
@@ -118,17 +160,24 @@ const LoginPage = () => {
             token: getDevFallbackToken(username),
           })
         );
-        navigate(ROUTES.DASHBOARD);
+        navigate(returnPath, { replace: true });
       } else {
         setError('Tài khoản hoặc mật khẩu không đúng.');
       }
     } finally {
+      submissionInFlight.current = false;
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="ipc-auth-shell">
+    <main
+      aria-label="Đăng nhập IPC"
+      className="ipc-auth-shell"
+      data-ui-owner="uio-l"
+      data-ui-floorplan="uif-l"
+      data-ui-region="uir-l"
+    >
       <div className="ipc-auth-card">
         <div className="ipc-auth-header">
           <span className="ipc-auth-mark">
@@ -139,40 +188,69 @@ const LoginPage = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="ipc-auth-form">
-          {error && <div className="ipc-auth-alert">{error}</div>}
+          {error && <div className="ipc-auth-alert" role="alert">{error}</div>}
 
           <FieldRow label="Tài khoản" htmlFor="username">
-            <input
+            <Input
               type="text"
               id="username"
+              name="username"
+              autoComplete="username"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              aria-invalid={missingFields.username || undefined}
+              aria-describedby={missingFields.username ? 'username-required-error' : undefined}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                setMissingFields((current) => ({ ...current, username: false }));
+              }}
               placeholder="Nhập tên đăng nhập"
-              className="ipc-input"
               disabled={isSubmitting}
             />
+            {missingFields.username && <p id="username-required-error" className="mt-1 text-xs text-red-700">Vui lòng nhập đầy đủ tài khoản và mật khẩu.</p>}
           </FieldRow>
 
           <FieldRow label="Mật khẩu" htmlFor="password">
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Nhập mật khẩu"
-              className="ipc-input"
-              disabled={isSubmitting}
-            />
+            <div className="relative">
+              <Input
+                type={isPasswordVisible ? 'text' : 'password'}
+                id="password"
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                aria-invalid={missingFields.password || undefined}
+                aria-describedby={missingFields.password ? 'password-required-error' : undefined}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  setMissingFields((current) => ({ ...current, password: false }));
+                }}
+                placeholder="Nhập mật khẩu"
+                disabled={isSubmitting}
+                className="pr-11"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-xs"
+                className="absolute inset-y-0 right-0 z-10 my-auto text-slate-600 hover:text-slate-900"
+                aria-label={isPasswordVisible ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-pressed={isPasswordVisible}
+                onClick={() => setIsPasswordVisible((current) => !current)}
+                disabled={isSubmitting}
+              >
+                {isPasswordVisible ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+              </Button>
+            </div>
+            {missingFields.password && <p id="password-required-error" className="mt-1 text-xs text-red-700">Vui lòng nhập đầy đủ tài khoản và mật khẩu.</p>}
           </FieldRow>
 
-          <button type="submit" className="ipc-button ipc-button-primary w-full" disabled={isSubmitting}>
+          <Button type="submit" variant="default" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
-          </button>
+          </Button>
         </form>
 
         <DevLoginFallbackHint />
       </div>
-    </div>
+    </main>
   );
 };
 

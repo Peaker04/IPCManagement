@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-02",
+  "validatorAuthority": "27.1-01W",
+  "waveBaseCommit": "47d13805196fd9ab51d0f08c5de44db7fa26a71b",
+  "roots": [
+    {"type":"ORIGINAL_01_SOURCE","path":"evidence/terminal-markers/27.1-01.json","sha256":"b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02","commit":"c52c80f8186b985d07619a7ad0ed7abc0572675c"},
+    {"type":"INVALID_01C_PROVENANCE","path":"evidence/terminal-markers/27.1-01C-correction.json","sha256":"22f1e4ff032acb6b87eb7148049be1a1707cda7bbfa1d82a61a1b80333c0d0e0","commit":"ae129eaab0dde192f3dca17c7504b7b9aaef5d17","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
+    {"type":"AUTHORITATIVE_01R_RESEAL","path":"evidence/terminal-markers/27.1-01R-reseal.json","sha256":"ecb024f20d60ce8d3e6e80aab1afe6e7d7a6bdc40a5664527034cf6db3516951","commit":"fb93fd120d1f5ec81760070be67ed65429ae4c03"},
+    {"type":"FOCUSED_01F_AUTHORITY","path":"evidence/terminal-markers/27.1-01F-focused-launcher.json","sha256":"5cccd2a3c68e396c3696543f09cbfc486a9a907917d2ba23a73a89b4261ba325","commit":"06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c"},
+    {"type":"INVALID_01V_PROVENANCE","path":"evidence/terminal-markers/27.1-01V-topology-validator.json","sha256":"a6365b003ef01289c8e4f896a2d02623df407d3e8100e23b433982e072fa42fc","commit":"8502ce701a4070f7be449681ffecbffc36b20056","disposition":"SUPERSEDED_PROTOCOL_INVALID"},
+    {"type":"SOLE_01W_TOPOLOGY_AUTHORITY","path":"evidence/terminal-markers/27.1-01W-topology-validator.json","sha256":"e320de600790450c5a3129ea2f45497419966d1546a0ba220f5ae40c078e72c5","commit":"47d13805196fd9ab51d0f08c5de44db7fa26a71b"}
+  ],
+  "identitySets": {
+    "readiness-chef": [
+      {"identity":"chef-dashboard-desktop","displayOrdinal":4,"disposition":"fixture-drift","owner":"frontend/tests/visual-routes.spec.ts","cause":"generic API fallback returned an array for paged inventory returns, crashing the Chef route before its semantic owner rendered","beforeSha256":["e9997cb06768dbfec834732b9691258eabc827fad263369166818010af4c57df","e9997cb06768dbfec834732b9691258eabc827fad263369166818010af4c57df"],"afterSha256":["9f3224d3561f796410ef7276db3534ff4279ed5739a1b4b34652685ce724da04","9f3224d3561f796410ef7276db3534ff4279ed5739a1b4b34652685ce724da04"],"semanticOwner":"Kế hoạch điều phối trong ngày"},
+      {"identity":"chef-dashboard-mobile","displayOrdinal":13,"disposition":"fixture-drift","owner":"frontend/tests/visual-routes.spec.ts","cause":"same paged-response fixture mismatch","beforeSha256":["2e7b69000e7186940274c7c096035c1fc6b9c00e3eafbb7ff6bf12b2ae8e44be","2e7b69000e7186940274c7c096035c1fc6b9c00e3eafbb7ff6bf12b2ae8e44be"],"afterSha256":["d234de166ddcf12be81df377fa5ccc8fb5f21d9e8c64cce41b445ff6de6c5d42","d234de166ddcf12be81df377fa5ccc8fb5f21d9e8c64cce41b445ff6de6c5d42"],"semanticOwner":"Kế hoạch điều phối trong ngày"}
+    ],
+    "readiness-purchasing": [
+      {"identity":"purchasing-desktop","displayOrdinal":7,"disposition":"fixture-drift","owner":"frontend/tests/visual-routes.spec.ts","cause":"generic API fallback returned an array for paged supplemental requests rendered by the inactive preserved panel","beforeSha256":["e9997cb06768dbfec834732b9691258eabc827fad263369166818010af4c57df","e9997cb06768dbfec834732b9691258eabc827fad263369166818010af4c57df"],"afterSha256":["36fd1f25a0bd791bd2195d2c514685f8a590f80ca3ebfd3eab07e99d31ba877c","36fd1f25a0bd791bd2195d2c514685f8a590f80ca3ebfd3eab07e99d31ba877c"],"semanticOwner":"Sáu giai đoạn thu mua"},
+      {"identity":"purchasing-mobile","displayOrdinal":16,"disposition":"fixture-drift","owner":"frontend/tests/visual-routes.spec.ts","cause":"same paged-response fixture mismatch","beforeSha256":["2e7b69000e7186940274c7c096035c1fc6b9c00e3eafbb7ff6bf12b2ae8e44be","2e7b69000e7186940274c7c096035c1fc6b9c00e3eafbb7ff6bf12b2ae8e44be"],"afterSha256":["ab7e4d0d79abccb4f37ba6719df6b10992b85192d49421af8cd06c282240cc8e","ab7e4d0d79abccb4f37ba6719df6b10992b85192d49421af8cd06c282240cc8e"],"semanticOwner":"Sáu giai đoạn thu mua"}
+    ]
+  },
+  "locks":{"adminData":"LOCKED","purchasingRollout":"LOCKED","snapshotsChanged":false,"productionChanged":false},
+  "gitReconciliation":{"phaseBaseCommit":"c52c80f8186b985d07619a7ad0ed7abc0572675c","waveBaseCommit":"47d13805196fd9ab51d0f08c5de44db7fa26a71b","waveAuthorizedPaths":["frontend/tests/visual-routes.spec.ts","frontend/tests/visualReconciliationEvidence.test.ts",".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/readiness-dispositions.json"]}
+}

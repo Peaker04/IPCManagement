@@ -56,6 +56,8 @@ public class StockMovementViewDto
     public decimal AfterQty { get; set; }
     public string? RefTable { get; set; }
     public string? RefId { get; set; }
+    /// <summary>Trạng thái bếp xác nhận đối với phiếu xuất kho; null với biến động không cần bếp ký nhận.</summary>
+    public string? KitchenReceiptStatus { get; set; }
     public string? Reason { get; set; }
     public string? Note { get; set; }
 }
@@ -227,6 +229,9 @@ public class KitchenIssueReportDto
     public string IssueCode { get; set; } = string.Empty;
     public DateOnly IssueDate { get; set; }
     public string? ShiftName { get; set; }
+    public string? SourceCustomerName { get; set; }
+    public string? SourceShiftName { get; set; }
+    public decimal? SourcePriceTierAmount { get; set; }
     public string WarehouseId { get; set; } = string.Empty;
     public string? WarehouseName { get; set; }
     public string MaterialRequestId { get; set; } = string.Empty;
@@ -246,6 +251,11 @@ public class KitchenIssueReportDto
 public class IssueVsReturnUsageReportDto
 {
     public string IssueId { get; set; } = string.Empty;
+    /// <summary>
+    /// Canonical grain of this projection. Two lines in one issue may use the same
+    /// ingredient and unit, so IssueId + IngredientId is not a safe allocation key.
+    /// </summary>
+    public string IssueLineId { get; set; } = string.Empty;
     public string IssueCode { get; set; } = string.Empty;
     public DateOnly IssueDate { get; set; }
     public string? ShiftName { get; set; }
@@ -258,6 +268,57 @@ public class IssueVsReturnUsageReportDto
     public decimal WastedQty { get; set; }
     public decimal UsedQty { get; set; }
     public decimal VarianceQty { get; set; }
+    /// <summary>
+    /// Count only, never an inferred quantity: these old return rows have no
+    /// SourceIssueLineId and therefore cannot be assigned to this report line.
+    /// </summary>
+    public int LegacyUnattributedReturnLineCount { get; set; }
+}
+
+/// <summary>
+/// Shadow reconciliation at the immutable demand source-line grain. Quantities
+/// are deliberately not collapsed by ingredient name or document header.
+/// </summary>
+public class SupplyLineReconciliationDto
+{
+    public string MaterialRequestId { get; set; } = string.Empty;
+    public string MaterialRequestLineId { get; set; } = string.Empty;
+    public string MaterialRequestCode { get; set; } = string.Empty;
+    public DateOnly RequestDate { get; set; }
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public decimal DemandQty { get; set; }
+    public decimal PurchaseRequestAllocatedQty { get; set; }
+    public decimal PurchaseOrderAllocatedQty { get; set; }
+    public decimal PostedAcceptedReceiptQty { get; set; }
+    public decimal IssuedQty { get; set; }
+    public decimal KitchenAcknowledgedQty { get; set; }
+    public decimal ReturnedQty { get; set; }
+    public decimal WastedQty { get; set; }
+    public decimal SupplementalRequestedQty { get; set; }
+    public decimal SupplementalFulfilledQty { get; set; }
+    public decimal SupplementalPurchaseAllocatedQty { get; set; }
+    /// <summary>Demand not currently held by kitchen after acknowledged returns.</summary>
+    public decimal DeltaQty { get; set; }
+    public string Disposition { get; set; } = string.Empty;
+    /// <summary>Legacy records are surfaced as exceptions and never allocated here.</summary>
+    public int LegacyLineageExceptionCount { get; set; }
+    /// <summary>Per-source disposition state; no ingredient-name inference is used.</summary>
+    public IReadOnlyList<LegacyLineageDispositionReportDto> LegacyLineageDispositions { get; set; } = [];
+}
+
+public class LegacyLineageDispositionReportDto
+{
+    public string LegacyLineType { get; set; } = string.Empty;
+    public string LegacyLineId { get; set; } = string.Empty;
+    public string? DispositionId { get; set; }
+    public string Status { get; set; } = "UNDISPOSITIONED";
+    public string? TargetLineId { get; set; }
+    public string? Reason { get; set; }
+    public string? ReviewReason { get; set; }
+    public long? Version { get; set; }
 }
 
 public class AuditChangeReportDto
@@ -273,6 +334,18 @@ public class AuditChangeReportDto
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     public string? Reason { get; set; }
+    public string? CorrelationId { get; set; }
+    public string? SourceFamily { get; set; }
+    public string? MaterialRequestId { get; set; }
+    public string? MaterialRequestLineId { get; set; }
+    public string? ReconciliationBatchId { get; set; }
+    public string? ReconciliationBatchLineId { get; set; }
+    public string? EventId { get; set; }
+    public string? EventType { get; set; }
+    public string? EventRole { get; set; }
+    public string? EventCode { get; set; }
+    public int? EventLineCount { get; set; }
+    public string? EventStatus { get; set; }
 }
 
 public class DataQualityReportDto
@@ -305,6 +378,11 @@ public class DataQualityIssueDto
     public string SlaLabel { get; set; } = string.Empty;
     public string EntityName { get; set; } = string.Empty;
     public string? EntityId { get; set; }
+    public string? SourceFamily { get; set; }
+    public string? MaterialRequestId { get; set; }
+    public string? MaterialRequestLineId { get; set; }
+    public string? ReconciliationBatchId { get; set; }
+    public string? ReconciliationBatchLineId { get; set; }
     public string EntityCode { get; set; } = string.Empty;
     public string EntityLabel { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;

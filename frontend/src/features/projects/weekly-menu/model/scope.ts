@@ -1,7 +1,7 @@
 import type { DemandLine } from '@/types/workflow'
 import type { CatalogDish, CatalogIngredient } from '@/api/dishCatalogApi'
-import type { WeeklyMenuState } from '../../../coordination/types'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { WeeklyMenuState } from '@/types/coordination'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix'
 import {
   formatImportDate,
@@ -9,7 +9,6 @@ import {
   formatMenuDishName,
   importSlotLabels,
   normalizeDishMatchKey,
-  normalizeMaterialGroupKey,
 } from './formatters'
 import type {
   MaterialSummary,
@@ -33,16 +32,9 @@ export const SECTIONS = [
   { label: 'MENU CHAY - CA CHIỀU', slotType: 'afternoonVegetarian' as const, category: 'vegetarian' as const, shift: 'afternoon' as const },
 ] as const
 
-const isLegacyFruitLabel = (value?: string) => normalizeDishMatchKey(value).includes('TRAI CAY')
-
 export const resolveImportedSlotLabel = (
   row: WeeklyMenuImportResult['rows'][number],
-  occurrence: number,
-) => {
-  const label = row.slotLabel || importSlotLabels[row.slot] || row.slot
-  if (row.slot === 'fruit' && occurrence > 1 && isLegacyFruitLabel(label)) return 'Sữa chua'
-  return label
-}
+) => importSlotLabels[row.slot] || row.slotLabel || row.slot
 
 export const getNormalizedSlotType = (row: WeeklyMenuImportResult['rows'][number]) => {
   const shift = row.dbShiftName === 'MORNING' ? 'morning' : 'afternoon'
@@ -67,7 +59,7 @@ export const buildImportedLayoutRows = (
       firstIndex: index,
       sourceSection: row.sourceSection,
       slot: row.slot,
-      slotLabel: resolveImportedSlotLabel(row, occurrence),
+      slotLabel: resolveImportedSlotLabel(row),
       cells: {},
     }
 
@@ -218,20 +210,25 @@ export const getQuickServingKey = (serviceDate: string, shiftName: QuickServingS
 
 export const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[] => {
   const groups = new Map<string, {
-    id: string; ingredientId?: string; material: string; unit: string; required: number; available: number; reserved: number
+    id: string; ingredientId?: string; unitId?: string; serviceDate?: string; priceTierAmount?: number
+    material: string; unit: string; required: number; available: number; reserved: number
     sources: Set<string>; materialRequestIds: Set<string>; sourceDocumentCodes: Set<string>; hasCancelled: boolean
   }>()
 
   lines.forEach((line) => {
-    const key = line.ingredientId
-      ? `${line.ingredientId}__${line.unit}`
-      : `${normalizeMaterialGroupKey(line.material)}__${line.unit}`
+    const hasStableIdentity = Boolean(line.serviceDate && line.ingredientId && line.unitId)
+    const key = hasStableIdentity
+      ? `${line.serviceDate}__${line.ingredientId}__${line.unitId}__${line.priceTierAmount ?? 'no-tier'}`
+      : `source__${line.id}`
     const current = groups.get(key) ?? {
-      id: `material-${key}`, ingredientId: line.ingredientId, material: line.material, unit: line.unit, required: 0, available: 0, reserved: 0,
+      id: `material-${key}`, ingredientId: line.ingredientId, unitId: line.unitId, serviceDate: line.serviceDate,
+      priceTierAmount: line.priceTierAmount, material: line.material, unit: line.unit, required: 0, available: 0, reserved: 0,
       sources: new Set<string>(), materialRequestIds: new Set<string>(), sourceDocumentCodes: new Set<string>(), hasCancelled: false,
     }
     current.required += line.required
-    current.available = Math.max(current.available, line.available)
+    // Demand generation allocates stock to each BOM source line, so the
+    // daily aggregate must add those allocations instead of selecting one.
+    current.available += line.available
     current.reserved += line.reserved
     if (line.source) current.sources.add(line.source)
     if (line.materialRequestId) current.materialRequestIds.add(line.materialRequestId)
@@ -245,6 +242,9 @@ export const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[
     return {
       id: group.id,
       ingredientId: group.ingredientId,
+      unitId: group.unitId,
+      serviceDate: group.serviceDate,
+      priceTierAmount: group.priceTierAmount,
       materialRequestId: group.materialRequestIds.size === 1 ? Array.from(group.materialRequestIds)[0] : undefined,
       sourceDocumentCode: group.sourceDocumentCodes.size === 1 ? Array.from(group.sourceDocumentCodes)[0] : undefined,
       material: group.material,

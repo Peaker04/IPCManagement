@@ -1,0 +1,1234 @@
+{
+  "schemaVersion": "phase28-admin-residual-handoff/v1",
+  "source": {
+    "root": ".artifacts/phase28-ui-audit/baseline-recovery/attempt-3",
+    "residualCount": 1258,
+    "residualSha256": "b8fa28d6f612c719912c89620a5729b83b0264be4fc8b57aadeb9c2ddc98fa6a"
+  },
+  "adminOwners": [
+    "AdminDataPage",
+    "ApprovalRulesPage",
+    "AdvancedDisplaySettings"
+  ],
+  "count": 152,
+  "sha256": "55b48a6c2ae84dd1b6aca529e1076af9e3b251d587c9d06d7e72d673ac3ad3a3",
+  "serialization": "JSON.stringify(keys sorted by JSON.stringify lexical order)",
+  "keys": [
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"button-name\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|error-no-data|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|initial-loading|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"button-name\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|populated|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"button-name\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-cleanup|truly-empty|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-data-quality|initial-loading|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-data-quality|initial-loading|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-data-quality|initial-loading|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-data-quality|initial-loading|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-data-quality|initial-loading|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-data-quality|initial-loading|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-data-quality|initial-loading|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|initial-loading|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|initial-loading|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|initial-loading|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|initial-loading|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|initial-loading|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|initial-loading|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|initial-loading|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":0,\"ids\":[],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"target-size\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|populated|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"button-name\",\"color-contrast\"],\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-entities|truly-empty|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":4}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|initial-loading|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|initial-loading|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|initial-loading|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|initial-loading|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|initial-loading|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|initial-loading|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|initial-loading|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":0,\"ids\":[],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "RESP-01",
+      "expected": "at most 2px document overflow",
+      "actual": "{\"overflowPx\":130}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "RESP-02",
+      "expected": "no audited-zoom clipping",
+      "actual": "{\"overflowPx\":130,\"textZoomPercent\":200}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"target-size\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|populated|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1280x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1280x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1365x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1365x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1366x768|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1366x768|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1440x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1440x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1920x1080|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|1920x1080|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":0,\"ids\":[],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|320x900@200%|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|320x900|AdminDataPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"target-size\"],\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin-data|admin-imports|truly-empty|administrator|320x900|AdminDataPage",
+      "ruleId": "HIER-02",
+      "expected": "zero unnamed controls",
+      "actual": "{\"unnamed\":12}",
+      "severity": "high",
+      "lowestOwner": "AdminDataPage"
+    },
+    {
+      "identity": "/admin/advanced-settings|advanced-settings-form|populated|administrator|1280x900|AdvancedDisplaySettings",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical axe violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"nested-interactive\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdvancedDisplaySettings"
+    },
+    {
+      "identity": "/admin/advanced-settings|advanced-settings-form|populated|administrator|1365x900|AdvancedDisplaySettings",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical axe violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"nested-interactive\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdvancedDisplaySettings"
+    },
+    {
+      "identity": "/admin/advanced-settings|advanced-settings-form|populated|administrator|1366x768|AdvancedDisplaySettings",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical axe violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"nested-interactive\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdvancedDisplaySettings"
+    },
+    {
+      "identity": "/admin/advanced-settings|advanced-settings-form|populated|administrator|1440x900|AdvancedDisplaySettings",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical axe violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"nested-interactive\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdvancedDisplaySettings"
+    },
+    {
+      "identity": "/admin/advanced-settings|advanced-settings-form|populated|administrator|1920x1080|AdvancedDisplaySettings",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical axe violations and unnamed controls",
+      "actual": "{\"seriousCount\":2,\"ids\":[\"color-contrast\",\"nested-interactive\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdvancedDisplaySettings"
+    },
+    {
+      "identity": "/admin/advanced-settings|advanced-settings-form|populated|administrator|320x900@200%|AdvancedDisplaySettings",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical axe violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdvancedDisplaySettings"
+    },
+    {
+      "identity": "/admin/advanced-settings|advanced-settings-form|populated|administrator|320x900|AdvancedDisplaySettings",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical axe violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "AdvancedDisplaySettings"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|error-no-data|administrator|320x900|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|populated|administrator|1280x900|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|populated|administrator|1365x900|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|populated|administrator|1366x768|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|populated|administrator|1440x900|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|populated|administrator|1920x1080|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|populated|administrator|320x900@200%|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|populated|administrator|320x900|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|truly-empty|administrator|320x900@200%|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    },
+    {
+      "identity": "/admin/rules|approval-rules|truly-empty|administrator|320x900|ApprovalRulesPage",
+      "ruleId": "A11Y-01",
+      "expected": "zero serious/critical violations and unnamed controls",
+      "actual": "{\"seriousCount\":1,\"ids\":[\"color-contrast\"],\"unnamed\":0}",
+      "severity": "high",
+      "lowestOwner": "ApprovalRulesPage"
+    }
+  ]
+}

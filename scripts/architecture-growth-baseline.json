@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "thresholds": {
+    "controllerLines": 250,
+    "controllerActions": 12,
+    "controllerPlanLines": 400,
+    "controllerPlanActions": 20,
+    "serviceLines": 600,
+    "servicePlanLines": 1000,
+    "frontendLines": 600,
+    "testLines": 1500
+  },
+  "findings": [
+    {
+      "id": "service:MaterialDemandService",
+      "kind": "service",
+      "name": "MaterialDemandService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
+      ],
+      "lines": 1384,
+      "level": "PLAN_REQUIRED"
+    },
+    {
+      "id": "service:PurchaseHistoryReconciliationService",
+      "kind": "service",
+      "name": "PurchaseHistoryReconciliationService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/SampleData/Services/PurchaseHistoryReconciliationService.cs"
+      ],
+      "lines": 1152,
+      "level": "PLAN_REQUIRED"
+    }
+  ]
+}

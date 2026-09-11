@@ -15,6 +15,9 @@ public class PurchaseOrderLineDto
     public bool ManufactureDateRequired { get; set; }
     public bool ExpiryDateRequired { get; set; }
     public string? BlockerReason { get; set; }
+    public string? ActiveReceiptId { get; set; }
+    public string? ActiveReceiptCode { get; set; }
+    public string? ActiveReceiptStatus { get; set; }
 }
 
 public class PurchaseOrderDto

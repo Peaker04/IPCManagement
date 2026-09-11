@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-06",
+  "validatorAuthority": "27.1-03R",
+  "waveBaseCommit": "0f62f3abfb65797a533b78d201e2f2e715c11d26",
+  "identitySet": "purchasing-phase09",
+  "rows": [
+    {
+      "identity": "purchasing-phase09-1365x900",
+      "displayOrdinal": 18,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1365x900-chromium-win32.png",
+      "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "9219db86bbac1d1a08fade472c3fa280acf5dbe5c71c40d1240ea4fd21182937",
+        "9219db86bbac1d1a08fade472c3fa280acf5dbe5c71c40d1240ea4fd21182937"
+      ],
+      "afterSha256": [
+        "9219db86bbac1d1a08fade472c3fa280acf5dbe5c71c40d1240ea4fd21182937",
+        "9219db86bbac1d1a08fade472c3fa280acf5dbe5c71c40d1240ea4fd21182937"
+      ],
+      "oldSnapshotSha256": "18bfa648b59650860ef656929c8f8022a522d198501f7230565c68cc3c924508",
+      "newSnapshotSha256": "9219db86bbac1d1a08fade472c3fa280acf5dbe5c71c40d1240ea4fd21182937",
+      "geometry": {
+        "documentHorizontalOverflow": false,
+        "viewport": "1365x900"
+      }
+    },
+    {
+      "identity": "purchasing-phase09-1280x900",
+      "displayOrdinal": 19,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1280x900-chromium-win32.png",
+      "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "97b18ddef5f5e1b47c9fd8ef62aa923f1b61277792d826874809ab33c7a144bf",
+        "97b18ddef5f5e1b47c9fd8ef62aa923f1b61277792d826874809ab33c7a144bf"
+      ],
+      "afterSha256": [
+        "97b18ddef5f5e1b47c9fd8ef62aa923f1b61277792d826874809ab33c7a144bf",
+        "97b18ddef5f5e1b47c9fd8ef62aa923f1b61277792d826874809ab33c7a144bf"
+      ],
+      "oldSnapshotSha256": "31c6870978a5d030de98a02edd32cb14c7c998466f891af85eef35255791689a",
+      "newSnapshotSha256": "97b18ddef5f5e1b47c9fd8ef62aa923f1b61277792d826874809ab33c7a144bf",
+      "geometry": {
+        "documentHorizontalOverflow": false,
+        "viewport": "1280x900"
+      }
+    },
+    {
+      "identity": "purchasing-phase09-768x1024",
+      "displayOrdinal": 20,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-768x1024-chromium-win32.png",
+      "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "3d5d13b21fe88698f824a382d835af957547d7e08f34363ff419220afe6d3d16",
+        "3d5d13b21fe88698f824a382d835af957547d7e08f34363ff419220afe6d3d16"
+      ],
+      "afterSha256": [
+        "3d5d13b21fe88698f824a382d835af957547d7e08f34363ff419220afe6d3d16",
+        "3d5d13b21fe88698f824a382d835af957547d7e08f34363ff419220afe6d3d16"
+      ],
+      "oldSnapshotSha256": "30fe0dfd84ab7010fc5412b410c2d626641d3ab273a310ed7485f904cd2c7e99",
+      "newSnapshotSha256": "3d5d13b21fe88698f824a382d835af957547d7e08f34363ff419220afe6d3d16",
+      "geometry": {
+        "documentHorizontalOverflow": false,
+        "viewport": "768x1024"
+      }
+    },
+    {
+      "identity": "purchasing-phase09-390x844",
+      "displayOrdinal": 21,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-390x844-chromium-win32.png",
+      "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "206d9493d8828a7172494dea09355343a95f354d25e95527b1c61175c03dae44",
+        "206d9493d8828a7172494dea09355343a95f354d25e95527b1c61175c03dae44"
+      ],
+      "afterSha256": [
+        "206d9493d8828a7172494dea09355343a95f354d25e95527b1c61175c03dae44",
+        "206d9493d8828a7172494dea09355343a95f354d25e95527b1c61175c03dae44"
+      ],
+      "oldSnapshotSha256": "f88f7c3ed36efe99a56aed676e068b0517a1d4f823a5193378bb8db2303b9dce",
+      "newSnapshotSha256": "206d9493d8828a7172494dea09355343a95f354d25e95527b1c61175c03dae44",
+      "geometry": {
+        "documentHorizontalOverflow": false,
+        "viewport": "390x844"
+      }
+    }
+  ],
+  "locks": {
+    "purchasingRollout": "LOCKED",
+    "productionChanged": false,
+    "fixtureChanged": false,
+    "harnessChanged": false,
+    "thresholdsChanged": false,
+    "viewportsChanged": false
+  },
+  "gitReconciliation": {
+    "phaseBaseCommit": "c52c80f8186b985d07619a7ad0ed7abc0572675c",
+    "waveBaseCommit": "0f62f3abfb65797a533b78d201e2f2e715c11d26",
+    "waveAuthorizedPaths": [
+      "frontend/tests/purchasingPhase09VisualRegression.test.ts",
+      ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/purchasing-phase09-dispositions.json",
+      "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1365x900-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1280x900-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-768x1024-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-390x844-chromium-win32.png"
+    ]
+  }
+}

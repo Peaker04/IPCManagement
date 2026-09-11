@@ -1,0 +1,41 @@
+import { describe, expect, it } from 'vitest';
+import { routeMeasuredFinding, validateUiAuditFinding } from './uiAuditContract';
+import { expandUiAuditInventory, identityKey, parseProductionRouteSet, UI_AUDIT_ROUTES, UI_AUDIT_VIEWPORTS } from './uiAuditInventory';
+import { regionFixtureRegistry, ruleFixtureRegistry, validateUiAuditRegistries } from './uiAuditFixtureRegistry';
+import { uiAuditOracleRegistry, UI_AUDIT_RULE_IDS } from './uiAuditOracleRegistry';
+import { computeRunFingerprint, isLedgerRequest } from './uiAuditEvidence';
+
+describe('Phase 28 closed UI audit inventory', () => {
+  it('matches exactly 14 AppRouter page routes and excludes the wildcard', () => {
+    expect(parseProductionRouteSet()).toEqual([...UI_AUDIT_ROUTES].sort());
+    expect(UI_AUDIT_ROUTES).toHaveLength(14); expect(UI_AUDIT_VIEWPORTS).toHaveLength(7);
+  });
+  it('closes rule fixtures and every six-part region fixture exactly once', () => {
+    expect(() => validateUiAuditRegistries()).not.toThrow();
+    expect(UI_AUDIT_RULE_IDS).toHaveLength(32);
+    expect(new Set(regionFixtureRegistry.map(({ key }) => key)).size).toBe(expandUiAuditInventory().length);
+  });
+  it('executes clean and bad INV-01 tracer through shared registries', () => {
+    const fixtures = ruleFixtureRegistry.filter(({ ruleId }) => ruleId === 'INV-01');
+    expect(uiAuditOracleRegistry['INV-01'].evaluate(fixtures.find(({ kind }) => kind === 'known-clean')!.input)).toEqual([]);
+    expect(uiAuditOracleRegistry['INV-01'].evaluate(fixtures.find(({ kind }) => kind === 'known-bad')!.input)).toMatchObject([{ ruleId: 'INV-01', verdict: 'FAIL' }]);
+  });
+  it('classifies every API and non-static request while excluding only same-origin static assets', () => {
+    expect(isLedgerRequest('http://phase28.local/assets/app.js','GET','script')).toBe(false);
+    expect(isLedgerRequest('http://phase28.local/api/users','GET','fetch')).toBe(true);
+    expect(isLedgerRequest('https://other.example/data','GET','fetch')).toBe(true);
+    expect(isLedgerRequest('http://phase28.local/assets/app.js','POST','script')).toBe(true);
+    expect(computeRunFingerprint('commit-a')).toBe(computeRunFingerprint('commit-a'));
+    expect(computeRunFingerprint('commit-a')).not.toBe(computeRunFingerprint('commit-b'));
+  });
+  it('fails closed for duplicate identities and incomplete verdict evidence', () => {
+    const rows = expandUiAuditInventory(); expect(identityKey(rows[0])).toContain('|');
+    expect(() => validateUiAuditFinding({ ruleId: 'INV-01', identity: 'x', verdict: 'FAIL', measured: {} })).toThrow(/requires/);
+    expect(() => validateUiAuditFinding({ ruleId: 'INV-01', identity: 'x', verdict: 'PASS', measured: { productionRouteMeasured: false } })).toThrow(/productionRouteMeasured=true/);
+  });
+  it('requires a production route measurement before a clean result can become PASS', () => {
+    const common = { ruleId: 'A11Y-01', identity: '/login|login-form|populated|anonymous|1920x1080|login-form', passed: true, measured: { seriousCount: 0 }, expected: 'zero serious violations', actual: 'zero serious violations', lowestOwner: 'LoginPage' };
+    expect(routeMeasuredFinding({ ...common, productionRouteMeasured: true })).toMatchObject({ verdict: 'PASS', measured: { productionRouteMeasured: true } });
+    expect(routeMeasuredFinding({ ...common, productionRouteMeasured: false })).toMatchObject({ verdict: 'NEEDS_EVIDENCE', measured: { productionRouteMeasured: false } });
+  });
+});

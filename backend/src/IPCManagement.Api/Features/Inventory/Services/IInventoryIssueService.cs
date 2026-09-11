@@ -7,7 +7,7 @@ namespace IPCManagement.Api.Features.Inventory.Services;
 public interface IInventoryIssueService
 {
     Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(InventoryIssueFilterRequestDto request);
-    Task<InventoryIssueDto?> GetByIdAsync(string id);
+    Task<InventoryIssueDto?> GetByIdAsync(string id, string sourceFamily = InventoryIssueSourceFamilies.Default);
     Task<InventoryIssueCreatedDto?> CreateAsync(CreateInventoryIssueRequest dto, string? userId);
     Task<InventoryIssueDto?> ConfirmReceiptAsync(string id, ConfirmInventoryIssueReceiptRequest dto, string? userId);
 }

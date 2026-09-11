@@ -233,7 +233,7 @@ public class ProductionPlanService : IProductionPlanService
         }
         if (planDtos.SelectMany(plan => plan.Lines).Any(line => line.SuggestedPurchaseQty > 0))
         {
-            warnings.Add("Một số nguyên liệu còn thiếu, cần đối chiếu tồn kho hoặc thu mua trước khi bếp nhận.");
+            warnings.Add("KHSX có nhu cầu mua ban đầu; blocker cấp vật tư hiện tại xem tại Ca phục vụ.");
         }
         if (plans.Any(plan => plan.SentToKitchenAt is null))
         {

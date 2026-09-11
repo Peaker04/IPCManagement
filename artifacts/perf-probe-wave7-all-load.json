@@ -1,0 +1,3395 @@
+{
+  "startedAt": "2026-08-21T10:53:17.247Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "profile": "mock=huge",
+  "navigation": "context nguội theo route; tab được kích hoạt và xác minh aria-selected trước t_0",
+  "throttle": {
+    "cpuRate": 4,
+    "downKbps": 500,
+    "upKbps": 500,
+    "latencyMs": 400
+  },
+  "thresholds": {
+    "CGR_MAX": 0.1,
+    "CLS_MAX": 0.1,
+    "SCROLL_GROWTH_MAX_RATIO": 0.5,
+    "INP_MAX": 200,
+    "INP_MAX_LAB_4X": 500,
+    "OVERFLOW_TOLERANCE_PX": 1,
+    "PRESENTATION_DOMINANT_SHARE": 0.6,
+    "REPEATS": 5
+  },
+  "load": [
+    {
+      "id": "dashboard",
+      "route": "dashboard",
+      "tab": null,
+      "url": "http://127.0.0.1:4173/?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 6044.700000000186,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": ".ipc-content-shell .ipc-table-viewport",
+        "anchorSelector": ".ipc-content-shell tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 6956.100000000093,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": ".ipc-content-shell .ipc-table-viewport",
+        "anchorSelector": ".ipc-content-shell tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0001,
+      "clsWindow": 0.0001,
+      "clsSources": [
+        {
+          "value": 0.00006333691004372428,
+          "startTime": 6835.399999999907,
+          "sources": [
+            {
+              "node": null,
+              "from": {
+                "x": 285,
+                "y": 187.59375,
+                "w": 599.3125,
+                "h": 22
+              },
+              "to": {
+                "x": 285,
+                "y": 190.59375,
+                "w": 599.3125,
+                "h": 22
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1016.953125,
+                "y": 80.59375,
+                "w": 376.046875,
+                "h": 36
+              },
+              "to": {
+                "x": 1012.828125,
+                "y": 80.59375,
+                "w": 380.171875,
+                "h": 36
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 5940,
+        "element": "h2#dashboard-shift-status",
+        "size": 5832
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "schedule",
+      "route": "weekly-menu",
+      "tab": "schedule",
+      "url": "http://127.0.0.1:4173/weekly-menu?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 8436.299999999814,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#schedule-panel .ipc-table-viewport",
+        "anchorSelector": "#schedule-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 430.6875,
+        "anchorHeight": 48,
+        "clientHeight": 97,
+        "scrollHeight": 97,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9319.600000000093,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#schedule-panel .ipc-table-viewport",
+        "anchorSelector": "#schedule-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 430.6875,
+        "anchorHeight": 48,
+        "clientHeight": 97,
+        "scrollHeight": 97,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000026056737075617283,
+          "startTime": 7220,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 885.015625,
+                "y": 12.796875,
+                "w": 528.984375,
+                "h": 30
+              },
+              "to": {
+                "x": 881.96875,
+                "y": 12.796875,
+                "w": 532.03125,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 8368,
+        "element": "td.p-4.text-center.text-sm",
+        "size": 5925
+      },
+      "deltaTop": 0,
+      "cgrDenominator": 900,
+      "cgr": 0,
+      "growthDenominator": 97,
+      "growthRatio": 0,
+      "growthFrameSelector": "#schedule-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "DAT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    },
+    {
+      "id": "demand",
+      "route": "weekly-menu",
+      "tab": "demand",
+      "url": "http://127.0.0.1:4173/weekly-menu?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 8372,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#demand-panel .ipc-table-viewport",
+        "anchorSelector": "#demand-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 613.1875,
+        "anchorHeight": 48,
+        "clientHeight": 518,
+        "scrollHeight": 518,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9246.69999999972,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#demand-panel .ipc-table-viewport",
+        "anchorSelector": "#demand-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 613.1875,
+        "anchorHeight": 48,
+        "clientHeight": 518,
+        "scrollHeight": 518,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000026056737075617283,
+          "startTime": 7102.600000000093,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 885.015625,
+                "y": 12.796875,
+                "w": 528.984375,
+                "h": 30
+              },
+              "to": {
+                "x": 881.96875,
+                "y": 12.796875,
+                "w": 532.03125,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 8112,
+        "element": "td.p-4.text-center.text-sm",
+        "size": 5925
+      },
+      "deltaTop": 0,
+      "cgrDenominator": 900,
+      "cgr": 0,
+      "growthDenominator": 518,
+      "growthRatio": 0,
+      "growthFrameSelector": "#demand-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "DAT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    },
+    {
+      "id": "production-plan",
+      "route": "weekly-menu",
+      "tab": "production-plan",
+      "url": "http://127.0.0.1:4173/weekly-menu?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 8633.900000000373,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#production-plan-panel .ipc-table-viewport",
+        "anchorSelector": "#production-plan-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9519.900000000373,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#production-plan-panel .ipc-table-viewport",
+        "anchorSelector": "#production-plan-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000026056737075617283,
+          "startTime": 7154.4000000003725,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 885.015625,
+                "y": 12.796875,
+                "w": 528.984375,
+                "h": 30
+              },
+              "to": {
+                "x": 881.96875,
+                "y": 12.796875,
+                "w": 532.03125,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 8384,
+        "element": "td.p-4.text-center.text-sm",
+        "size": 5925
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "purchase-summary",
+      "route": "weekly-menu",
+      "tab": "purchase-summary",
+      "url": "http://127.0.0.1:4173/weekly-menu?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 8615.900000000373,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#purchase-summary-panel .ipc-table-viewport",
+        "anchorSelector": "#purchase-summary-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 540.1875,
+        "anchorHeight": 48,
+        "clientHeight": 94,
+        "scrollHeight": 94,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9492.600000000093,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#purchase-summary-panel .ipc-table-viewport",
+        "anchorSelector": "#purchase-summary-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 540.1875,
+        "anchorHeight": 48,
+        "clientHeight": 94,
+        "scrollHeight": 94,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000026056737075617283,
+          "startTime": 7244.100000000093,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 885.015625,
+                "y": 12.796875,
+                "w": 528.984375,
+                "h": 30
+              },
+              "to": {
+                "x": 881.96875,
+                "y": 12.796875,
+                "w": 532.03125,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 8324,
+        "element": "td.p-4.text-center.text-sm",
+        "size": 5925
+      },
+      "deltaTop": 0,
+      "cgrDenominator": 900,
+      "cgr": 0,
+      "growthDenominator": 94,
+      "growthRatio": 0,
+      "growthFrameSelector": "#purchase-summary-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "DAT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    },
+    {
+      "id": "cost",
+      "route": "weekly-menu",
+      "tab": "cost",
+      "url": "http://127.0.0.1:4173/weekly-menu?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 8666.200000000186,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#cost-panel .ipc-table-viewport",
+        "anchorSelector": "#cost-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 544.1875,
+        "anchorHeight": 48,
+        "clientHeight": 518,
+        "scrollHeight": 518,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9533,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#cost-panel .ipc-table-viewport",
+        "anchorSelector": "#cost-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 544.1875,
+        "anchorHeight": 48,
+        "clientHeight": 518,
+        "scrollHeight": 518,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000026056737075617283,
+          "startTime": 7273,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 885.015625,
+                "y": 12.796875,
+                "w": 528.984375,
+                "h": 30
+              },
+              "to": {
+                "x": 881.96875,
+                "y": 12.796875,
+                "w": 532.03125,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 8364,
+        "element": "td.p-4.text-center.text-sm",
+        "size": 5925
+      },
+      "deltaTop": 0,
+      "cgrDenominator": 900,
+      "cgr": 0,
+      "growthDenominator": 518,
+      "growthRatio": 0,
+      "growthFrameSelector": "#cost-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "DAT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    },
+    {
+      "id": "dish-materials",
+      "route": "weekly-menu",
+      "tab": "dish-materials",
+      "url": "http://127.0.0.1:4173/weekly-menu?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 8517.599999999627,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#dish-materials-panel .ipc-table-viewport",
+        "anchorSelector": "#dish-materials-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 553.984375,
+        "anchorHeight": 48,
+        "clientHeight": 518,
+        "scrollHeight": 518,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9430.599999999627,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#dish-materials-panel .ipc-table-viewport",
+        "anchorSelector": "#dish-materials-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 553.984375,
+        "anchorHeight": 48,
+        "clientHeight": 518,
+        "scrollHeight": 518,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000026056737075617283,
+          "startTime": 7151.0999999996275,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 885.015625,
+                "y": 12.796875,
+                "w": 528.984375,
+                "h": 30
+              },
+              "to": {
+                "x": 881.96875,
+                "y": 12.796875,
+                "w": 532.03125,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 8184,
+        "element": "td.p-4.text-center.text-sm",
+        "size": 5925
+      },
+      "deltaTop": 0,
+      "cgrDenominator": 900,
+      "cgr": 0,
+      "growthDenominator": 518,
+      "growthRatio": 0,
+      "growthFrameSelector": "#dish-materials-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "DAT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    },
+    {
+      "id": "coordination",
+      "route": "coordination",
+      "tab": null,
+      "url": "http://127.0.0.1:4173/meal-orders?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 6118.899999999907,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": ".ipc-content-shell .ipc-table-viewport",
+        "anchorSelector": ".ipc-content-shell tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 6965.5,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": ".ipc-content-shell .ipc-table-viewport",
+        "anchorSelector": ".ipc-content-shell tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0069,
+      "clsWindow": 0.0069,
+      "clsSources": [
+        {
+          "value": 0.006455154749657064,
+          "startTime": 6611.199999999721,
+          "sources": [
+            {
+              "node": "aside.ipc-inline-alert-enter.flex.flex-wrap",
+              "from": {
+                "x": 265,
+                "y": 307.59375,
+                "w": 1138,
+                "h": 67
+              },
+              "to": {
+                "x": 265,
+                "y": 228.59375,
+                "w": 1138,
+                "h": 67
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.0004452980324074074,
+          "startTime": 6958.5999999996275,
+          "sources": [
+            {
+              "node": "div.grid.gap-1",
+              "from": {
+                "x": 468,
+                "y": 84.59375,
+                "w": 230,
+                "h": 59
+              },
+              "to": {
+                "x": 495,
+                "y": 84.59375,
+                "w": 230,
+                "h": 59
+              }
+            },
+            {
+              "node": "p.font-sans.mt-1.5.max-w-[40ch]",
+              "from": {
+                "x": 704.625,
+                "y": 381.59375,
+                "w": 258.75,
+                "h": 32
+              },
+              "to": {
+                "x": 714,
+                "y": 381.59375,
+                "w": 240,
+                "h": 32
+              }
+            },
+            {
+              "node": "span.text-sm.opacity-80",
+              "from": {
+                "x": 474.46875,
+                "y": 236.59375,
+                "w": 281.265625,
+                "h": 20
+              },
+              "to": {
+                "x": 477.8125,
+                "y": 236.59375,
+                "w": 283.84375,
+                "h": 20
+              }
+            },
+            {
+              "node": "button#base-ui-_r_2_.group/button.inline-flex.max-w-full",
+              "from": {
+                "x": 418,
+                "y": 106.59375,
+                "w": 32,
+                "h": 32
+              },
+              "to": {
+                "x": 445,
+                "y": 106.59375,
+                "w": 32,
+                "h": 32
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 6720,
+        "element": "p.font-sans.mt-1.5.max-w-[40ch]",
+        "size": 8128
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "reports-price",
+      "route": "reports",
+      "tab": "reports-price",
+      "url": "http://127.0.0.1:4173/reports?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 7380.899999999907,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#reports-price-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-price-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8256.299999999814,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#reports-price-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-price-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0027,
+      "clsWindow": 0.0027,
+      "clsSources": [
+        {
+          "value": 0.002666923868312757,
+          "startTime": 7198.199999999721,
+          "sources": [
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 489,
+                "y": 80.59375,
+                "w": 208,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 529,
+                "y": 80.59375,
+                "w": 248,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1034.875,
+                "y": 90.359375,
+                "w": 358.125,
+                "h": 36
+              },
+              "to": {
+                "x": 1029.15625,
+                "y": 90.359375,
+                "w": 363.84375,
+                "h": 36
+              }
+            },
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 705,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 785,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab",
+              "from": {
+                "x": 1204.25,
+                "y": 219.140625,
+                "w": 142.421875,
+                "h": 36
+              },
+              "to": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1074.8125,
+                "y": 219.140625,
+                "w": 129.4375,
+                "h": 36
+              },
+              "to": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7900,
+        "element": "div.font-sans.text-body",
+        "size": 10234
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "reports-demand",
+      "route": "reports",
+      "tab": "reports-demand",
+      "url": "http://127.0.0.1:4173/reports?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0"
+      ],
+      "t0": {
+        "t": 7516.600000000093,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#reports-demand-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-demand-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9203.899999999907,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#reports-demand-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-demand-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 404.1875,
+        "anchorHeight": 52.09375,
+        "clientHeight": 455,
+        "scrollHeight": 455,
+        "overflowY": "auto",
+        "rowsData": 8,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          52.09,
+          52.09,
+          53,
+          52.09,
+          52.09,
+          53,
+          52.09,
+          52.09
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 8,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0042,
+      "clsWindow": 0.0027,
+      "clsSources": [
+        {
+          "value": 0.002666923868312757,
+          "startTime": 7201.700000000186,
+          "sources": [
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 489,
+                "y": 80.59375,
+                "w": 208,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 529,
+                "y": 80.59375,
+                "w": 248,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1034.875,
+                "y": 90.359375,
+                "w": 358.125,
+                "h": 36
+              },
+              "to": {
+                "x": 1029.15625,
+                "y": 90.359375,
+                "w": 363.84375,
+                "h": 36
+              }
+            },
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 705,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 785,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab",
+              "from": {
+                "x": 1204.25,
+                "y": 219.140625,
+                "w": 142.421875,
+                "h": 36
+              },
+              "to": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1074.8125,
+                "y": 219.140625,
+                "w": 129.4375,
+                "h": 36
+              },
+              "to": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.0014983482831790124,
+          "startTime": 9192.80000000028,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 953.859375,
+                "y": 12.796875,
+                "w": 460.140625,
+                "h": 30
+              },
+              "to": {
+                "x": 937.203125,
+                "y": 12.796875,
+                "w": 476.796875,
+                "h": 30
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1029.15625,
+                "y": 90.359375,
+                "w": 363.84375,
+                "h": 36
+              },
+              "to": {
+                "x": 1025.25,
+                "y": 90.359375,
+                "w": 367.75,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab",
+              "from": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              },
+              "to": {
+                "x": 1233.484375,
+                "y": 219.140625,
+                "w": 145.15625,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-purchase-tab.ipc-view-tab",
+              "from": {
+                "x": 534.734375,
+                "y": 219.140625,
+                "w": 140.765625,
+                "h": 36
+              },
+              "to": {
+                "x": 540.9375,
+                "y": 219.140625,
+                "w": 144.8125,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              },
+              "to": {
+                "x": 1101.015625,
+                "y": 219.140625,
+                "w": 132.46875,
+                "h": 36
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7064,
+        "element": "div.ipc-exception-lane-title",
+        "size": 3240
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "reports-stock",
+      "route": "reports",
+      "tab": "reports-stock",
+      "url": "http://127.0.0.1:4173/reports?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0"
+      ],
+      "t0": {
+        "t": 7553.899999999907,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#reports-stock-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-stock-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9034.5,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#reports-stock-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-stock-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 404.1875,
+        "anchorHeight": 48,
+        "clientHeight": 94,
+        "scrollHeight": 94,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0033,
+      "clsWindow": 0.0027,
+      "clsSources": [
+        {
+          "value": 0.002666923868312757,
+          "startTime": 7195.899999999907,
+          "sources": [
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 489,
+                "y": 80.59375,
+                "w": 208,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 529,
+                "y": 80.59375,
+                "w": 248,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1034.875,
+                "y": 90.359375,
+                "w": 358.125,
+                "h": 36
+              },
+              "to": {
+                "x": 1029.15625,
+                "y": 90.359375,
+                "w": 363.84375,
+                "h": 36
+              }
+            },
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 705,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 785,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab",
+              "from": {
+                "x": 1204.25,
+                "y": 219.140625,
+                "w": 142.421875,
+                "h": 36
+              },
+              "to": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1074.8125,
+                "y": 219.140625,
+                "w": 129.4375,
+                "h": 36
+              },
+              "to": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.0006340472186053242,
+          "startTime": 9029.899999999907,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 953.859375,
+                "y": 12.796875,
+                "w": 460.140625,
+                "h": 30
+              },
+              "to": {
+                "x": 937.203125,
+                "y": 12.796875,
+                "w": 476.796875,
+                "h": 30
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1029.15625,
+                "y": 90.359375,
+                "w": 363.84375,
+                "h": 36
+              },
+              "to": {
+                "x": 1025.25,
+                "y": 90.359375,
+                "w": 367.75,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab",
+              "from": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              },
+              "to": {
+                "x": 1233.484375,
+                "y": 219.140625,
+                "w": 145.15625,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-purchase-tab.ipc-view-tab",
+              "from": {
+                "x": 534.734375,
+                "y": 219.140625,
+                "w": 140.765625,
+                "h": 36
+              },
+              "to": {
+                "x": 540.9375,
+                "y": 219.140625,
+                "w": 144.8125,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              },
+              "to": {
+                "x": 1101.015625,
+                "y": 219.140625,
+                "w": 132.46875,
+                "h": 36
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7056,
+        "element": "div.ipc-exception-lane-title",
+        "size": 3240
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "reports-data-quality",
+      "route": "reports",
+      "tab": "reports-data-quality",
+      "url": "http://127.0.0.1:4173/reports?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 7414.5,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#reports-data-quality-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-data-quality-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 482.734375,
+        "anchorHeight": 48,
+        "clientHeight": 438,
+        "scrollHeight": 438,
+        "overflowY": "auto",
+        "rowsData": 0,
+        "rowsSkeleton": 8,
+        "rowHeights": [
+          48,
+          48,
+          48,
+          48,
+          48,
+          48,
+          48,
+          48
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9152.799999999814,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#reports-data-quality-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-data-quality-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 482.734375,
+        "anchorHeight": 48,
+        "clientHeight": 102,
+        "scrollHeight": 102,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 8,
+      "clsSum": 0.0033,
+      "clsWindow": 0.0027,
+      "clsSources": [
+        {
+          "value": 0.002666923868312757,
+          "startTime": 7048.699999999721,
+          "sources": [
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 489,
+                "y": 80.59375,
+                "w": 208,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 529,
+                "y": 80.59375,
+                "w": 248,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1034.875,
+                "y": 90.359375,
+                "w": 358.125,
+                "h": 36
+              },
+              "to": {
+                "x": 1029.15625,
+                "y": 90.359375,
+                "w": 363.84375,
+                "h": 36
+              }
+            },
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 705,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 785,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab",
+              "from": {
+                "x": 1204.25,
+                "y": 219.140625,
+                "w": 142.421875,
+                "h": 36
+              },
+              "to": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1074.8125,
+                "y": 219.140625,
+                "w": 129.4375,
+                "h": 36
+              },
+              "to": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.0006340472186053242,
+          "startTime": 9146.69999999972,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 953.859375,
+                "y": 12.796875,
+                "w": 460.140625,
+                "h": 30
+              },
+              "to": {
+                "x": 937.203125,
+                "y": 12.796875,
+                "w": 476.796875,
+                "h": 30
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1029.15625,
+                "y": 90.359375,
+                "w": 363.84375,
+                "h": 36
+              },
+              "to": {
+                "x": 1025.25,
+                "y": 90.359375,
+                "w": 367.75,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab.is-active",
+              "from": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              },
+              "to": {
+                "x": 1233.484375,
+                "y": 219.140625,
+                "w": 145.15625,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-purchase-tab.ipc-view-tab",
+              "from": {
+                "x": 534.734375,
+                "y": 219.140625,
+                "w": 140.765625,
+                "h": 36
+              },
+              "to": {
+                "x": 540.9375,
+                "y": 219.140625,
+                "w": 144.8125,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              },
+              "to": {
+                "x": 1101.015625,
+                "y": 219.140625,
+                "w": 132.46875,
+                "h": 36
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 6904,
+        "element": "div.ipc-exception-lane-title",
+        "size": 3240
+      },
+      "deltaTop": 0,
+      "cgrDenominator": 900,
+      "cgr": 0,
+      "growthDenominator": 438,
+      "growthRatio": -0.7671,
+      "growthFrameSelector": "#reports-data-quality-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "DAT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    },
+    {
+      "id": "admin-bom-import",
+      "route": "admin-data",
+      "tab": "admin-bom-import",
+      "url": "http://127.0.0.1:4173/admin-data?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 7751.199999999721,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-bom-import-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-bom-import-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8623.399999999907,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-bom-import-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-bom-import-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000025444878472222224,
+          "startTime": 7058,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 912.765625,
+                "y": 12.796875,
+                "w": 501.234375,
+                "h": 30
+              },
+              "to": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7452,
+        "element": "p.text-sm.font-medium.text-slate-700",
+        "size": 3604
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "admin-contracts",
+      "route": "admin-data",
+      "tab": "admin-contracts",
+      "url": "http://127.0.0.1:4173/admin-data?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0"
+      ],
+      "t0": {
+        "t": 8043.700000000186,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-contracts-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-contracts-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9937.299999999814,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#admin-contracts-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-contracts-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 409.1875,
+        "anchorHeight": 66.546875,
+        "clientHeight": 335,
+        "scrollHeight": 335,
+        "overflowY": "auto",
+        "rowsData": 2,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          66.55,
+          66.55
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 2,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0007,
+      "clsWindow": 0.0007,
+      "clsSources": [
+        {
+          "value": 0.000671619556568287,
+          "startTime": 9921.200000000186,
+          "sources": [
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 792.625,
+                "y": 80.59375,
+                "w": 600.375,
+                "h": 36
+              },
+              "to": {
+                "x": 775.703125,
+                "y": 80.59375,
+                "w": 617.296875,
+                "h": 36
+              }
+            },
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              },
+              "to": {
+                "x": 894.515625,
+                "y": 12.796875,
+                "w": 519.484375,
+                "h": 30
+              }
+            },
+            {
+              "node": null,
+              "from": {
+                "x": 289,
+                "y": 591.546875,
+                "w": 325.984375,
+                "h": 21
+              },
+              "to": {
+                "x": 289,
+                "y": 594.546875,
+                "w": 325.984375,
+                "h": 18
+              }
+            },
+            {
+              "node": null,
+              "from": {
+                "x": 289,
+                "y": 519.5625,
+                "w": 325.984375,
+                "h": 21
+              },
+              "to": {
+                "x": 289,
+                "y": 522.5625,
+                "w": 325.984375,
+                "h": 18
+              }
+            },
+            {
+              "node": "button#admin-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 744.375,
+                "y": 199.59375,
+                "w": 130.3125,
+                "h": 36
+              },
+              "to": {
+                "x": 752.59375,
+                "y": 199.59375,
+                "w": 132.46875,
+                "h": 36
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.000025444878472222224,
+          "startTime": 7143.5,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 912.765625,
+                "y": 12.796875,
+                "w": 501.234375,
+                "h": 30
+              },
+              "to": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7556,
+        "element": "p.text-sm.font-medium.text-slate-700",
+        "size": 3604
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "admin-cleanup",
+      "route": "admin-data",
+      "tab": "admin-cleanup",
+      "url": "http://127.0.0.1:4173/admin-data?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 7881.5,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-cleanup-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-cleanup-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8752,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-cleanup-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-cleanup-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000025444878472222224,
+          "startTime": 7079.200000000186,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 912.765625,
+                "y": 12.796875,
+                "w": 501.234375,
+                "h": 30
+              },
+              "to": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7520,
+        "element": "p.text-sm.font-medium.text-slate-700",
+        "size": 3604
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "admin-inventory",
+      "route": "admin-data",
+      "tab": "admin-inventory",
+      "url": "http://127.0.0.1:4173/admin-data?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 8035,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-inventory-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-inventory-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8905.700000000186,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-inventory-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-inventory-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000025444878472222224,
+          "startTime": 7138.800000000279,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 912.765625,
+                "y": 12.796875,
+                "w": 501.234375,
+                "h": 30
+              },
+              "to": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7532,
+        "element": "p.text-sm.font-medium.text-slate-700",
+        "size": 3604
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "admin-statistics",
+      "route": "admin-data",
+      "tab": "admin-statistics",
+      "url": "http://127.0.0.1:4173/admin-data?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 8100.5,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-statistics-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-statistics-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8982.700000000186,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-statistics-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-statistics-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000025444878472222224,
+          "startTime": 7170,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 912.765625,
+                "y": 12.796875,
+                "w": 501.234375,
+                "h": 30
+              },
+              "to": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7628,
+        "element": "p.text-sm.font-medium.text-slate-700",
+        "size": 3604
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "admin-employees",
+      "route": "admin-data",
+      "tab": "admin-employees",
+      "url": "http://127.0.0.1:4173/admin-data?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0"
+      ],
+      "t0": {
+        "t": 7815.299999999814,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-employees-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-employees-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9465.100000000093,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#admin-employees-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-employees-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 387.1875,
+        "anchorHeight": 105,
+        "clientHeight": 518,
+        "scrollHeight": 772,
+        "overflowY": "auto",
+        "rowsData": 7,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 7,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [
+        {
+          "value": 0.000025444878472222224,
+          "startTime": 7071.600000000093,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 912.765625,
+                "y": 12.796875,
+                "w": 501.234375,
+                "h": 30
+              },
+              "to": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.00002411566840277778,
+          "startTime": 8319.399999999907,
+          "sources": [
+            {
+              "node": "p.text-sm.font-medium.text-slate-700",
+              "from": {
+                "x": 738.734375,
+                "y": 446.59375,
+                "w": 189.53125,
+                "h": 20
+              },
+              "to": {
+                "x": 750.640625,
+                "y": 446.59375,
+                "w": 166.6875,
+                "h": 20
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7436,
+        "element": "p.text-sm.font-medium.text-slate-700",
+        "size": 3604
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "admin-audit",
+      "route": "admin-data",
+      "tab": "admin-audit",
+      "url": "http://127.0.0.1:4173/admin-data?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0"
+      ],
+      "t0": {
+        "t": 8112.199999999721,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#admin-audit-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-audit-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 10700.799999999814,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#admin-audit-panel .ipc-table-viewport",
+        "anchorSelector": "#admin-audit-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 478.1875,
+        "anchorHeight": 52.09375,
+        "clientHeight": 518,
+        "scrollHeight": 777,
+        "overflowY": "auto",
+        "rowsData": 8,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          52.09,
+          100.19,
+          100.19,
+          100.19,
+          100.19,
+          100.19,
+          100.19,
+          69.64
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 8,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0007,
+      "clsWindow": 0.0007,
+      "clsSources": [
+        {
+          "value": 0.0006803423595036008,
+          "startTime": 9815.69999999972,
+          "sources": [
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 792.625,
+                "y": 80.59375,
+                "w": 600.375,
+                "h": 36
+              },
+              "to": {
+                "x": 775.703125,
+                "y": 80.59375,
+                "w": 617.296875,
+                "h": 36
+              }
+            },
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              },
+              "to": {
+                "x": 894.515625,
+                "y": 12.796875,
+                "w": 519.484375,
+                "h": 30
+              }
+            },
+            {
+              "node": "div.flex.gap-2.items-end",
+              "from": {
+                "x": 1207.0625,
+                "y": 313.09375,
+                "w": 182.9375,
+                "h": 32
+              },
+              "to": {
+                "x": 1196.921875,
+                "y": 313.09375,
+                "w": 193.078125,
+                "h": 32
+              }
+            },
+            {
+              "node": "button#base-ui-_r_8_.group/button.inline-flex.max-w-full",
+              "from": {
+                "x": 1267.890625,
+                "y": 375.59375,
+                "w": 135.109375,
+                "h": 36
+              },
+              "to": {
+                "x": 1262.03125,
+                "y": 375.59375,
+                "w": 140.96875,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#admin-audit-tab.ipc-view-tab.is-active",
+              "from": {
+                "x": 744.375,
+                "y": 199.59375,
+                "w": 130.3125,
+                "h": 36
+              },
+              "to": {
+                "x": 752.59375,
+                "y": 199.59375,
+                "w": 132.46875,
+                "h": 36
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.000025444878472222224,
+          "startTime": 7116.100000000093,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 912.765625,
+                "y": 12.796875,
+                "w": 501.234375,
+                "h": 30
+              },
+              "to": {
+                "x": 909.625,
+                "y": 12.796875,
+                "w": 504.375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7500,
+        "element": "p.text-sm.font-medium.text-slate-700",
+        "size": 3604
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "warehouse-movement",
+      "route": "warehouse",
+      "tab": "warehouse-movement",
+      "url": "http://127.0.0.1:4173/warehouse?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 7707.700000000186,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#warehouse-movement-panel .ipc-table-viewport",
+        "anchorSelector": "#warehouse-movement-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 1731.1875,
+        "anchorHeight": 49,
+        "clientHeight": 429,
+        "scrollHeight": 429,
+        "overflowY": "auto",
+        "rowsData": 8,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          49,
+          49,
+          49,
+          49,
+          49,
+          49,
+          49,
+          49
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9906.799999999814,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#warehouse-movement-panel .ipc-table-viewport",
+        "anchorSelector": "#warehouse-movement-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 1180.1875,
+        "anchorHeight": 48,
+        "clientHeight": 94,
+        "scrollHeight": 94,
+        "overflowY": "auto",
+        "rowsData": 1,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          48
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 1,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0817,
+      "clsWindow": 0.0817,
+      "clsSources": [
+        {
+          "value": 0.02869439139660494,
+          "startTime": 8585.5,
+          "sources": [
+            {
+              "node": "section.ipc-section-panel.rounded-md.border",
+              "from": {
+                "x": 264,
+                "y": 198.59375,
+                "w": 1140,
+                "h": 562.546875
+              },
+              "to": {
+                "x": 264,
+                "y": 265.59375,
+                "w": 1140,
+                "h": 562.546875
+              }
+            },
+            {
+              "node": "section.font-sans.text-body.mt-4",
+              "from": {
+                "x": 263,
+                "y": 777.140625,
+                "w": 1141,
+                "h": 122.859375
+              },
+              "to": {
+                "x": 263,
+                "y": 844.140625,
+                "w": 1141,
+                "h": 55.859375
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.026726618227023317,
+          "startTime": 8630.700000000186,
+          "sources": [
+            {
+              "node": "section.ipc-section-panel.rounded-md.border",
+              "from": {
+                "x": 264,
+                "y": 265.59375,
+                "w": 1140,
+                "h": 562.546875
+              },
+              "to": {
+                "x": 264,
+                "y": 332.59375,
+                "w": 1140,
+                "h": 562.546875
+              }
+            },
+            {
+              "node": "section.font-sans.text-body.mt-4",
+              "from": {
+                "x": 263,
+                "y": 844.140625,
+                "w": 1141,
+                "h": 55.859375
+              },
+              "to": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 792.03125,
+                "y": 80.59375,
+                "w": 600.96875,
+                "h": 36
+              },
+              "to": {
+                "x": 813.875,
+                "y": 80.59375,
+                "w": 579.125,
+                "h": 36
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.025949862825788754,
+          "startTime": 9023.200000000186,
+          "sources": [
+            {
+              "node": "section.ipc-section-panel.rounded-md.border",
+              "from": {
+                "x": 264,
+                "y": 332.59375,
+                "w": 1140,
+                "h": 562.546875
+              },
+              "to": {
+                "x": 264,
+                "y": 265.59375,
+                "w": 1140,
+                "h": 562.546875
+              }
+            },
+            {
+              "node": "section.font-sans.text-body.mt-4",
+              "from": {
+                "x": 0,
+                "y": 0,
+                "w": 0,
+                "h": 0
+              },
+              "to": {
+                "x": 263,
+                "y": 844.140625,
+                "w": 1141,
+                "h": 55.859375
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7572,
+        "element": "p.font-sans.mt-1.text-slate-600",
+        "size": 12036
+      },
+      "deltaTop": -551,
+      "cgrDenominator": 900,
+      "cgr": 0.6122,
+      "growthDenominator": 429,
+      "growthRatio": -0.7809,
+      "growthFrameSelector": "#warehouse-movement-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "TRUOT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    },
+    {
+      "id": "warehouse-demand",
+      "route": "warehouse",
+      "tab": "warehouse-demand",
+      "url": "http://127.0.0.1:4173/warehouse?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 7817.899999999907,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#warehouse-demand-panel .ipc-table-viewport",
+        "anchorSelector": "#warehouse-demand-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8732.80000000028,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#warehouse-demand-panel .ipc-table-viewport",
+        "anchorSelector": "#warehouse-demand-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0724,
+      "clsWindow": 0.0724,
+      "clsSources": [
+        {
+          "value": 0.03618744588048697,
+          "startTime": 8511.600000000093,
+          "sources": [
+            {
+              "node": "div.font-sans.text-body.relative",
+              "from": {
+                "x": 264,
+                "y": 397.140625,
+                "w": 1140,
+                "h": 420
+              },
+              "to": {
+                "x": 264,
+                "y": 464.140625,
+                "w": 1140,
+                "h": 420
+              }
+            },
+            {
+              "node": "section.ipc-section-panel.rounded-md.border",
+              "from": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 193.140625
+              },
+              "to": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 260.140625
+              }
+            },
+            {
+              "node": "section.font-sans.text-body.mt-4",
+              "from": {
+                "x": 263,
+                "y": 209.140625,
+                "w": 1141,
+                "h": 150
+              },
+              "to": {
+                "x": 263,
+                "y": 276.140625,
+                "w": 1141,
+                "h": 150
+              }
+            },
+            {
+              "node": "div.ipc-view-switcher.is-compact",
+              "from": {
+                "x": 264,
+                "y": 359.140625,
+                "w": 295.28125,
+                "h": 38
+              },
+              "to": {
+                "x": 264,
+                "y": 426.140625,
+                "w": 295.28125,
+                "h": 38
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.03618744588048697,
+          "startTime": 8551.200000000186,
+          "sources": [
+            {
+              "node": "div.font-sans.text-body.relative",
+              "from": {
+                "x": 264,
+                "y": 397.140625,
+                "w": 1140,
+                "h": 420
+              },
+              "to": {
+                "x": 264,
+                "y": 464.140625,
+                "w": 1140,
+                "h": 420
+              }
+            },
+            {
+              "node": "section.ipc-section-panel.rounded-md.border",
+              "from": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 193.140625
+              },
+              "to": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 260.140625
+              }
+            },
+            {
+              "node": "section.font-sans.text-body.mt-4",
+              "from": {
+                "x": 263,
+                "y": 209.140625,
+                "w": 1141,
+                "h": 150
+              },
+              "to": {
+                "x": 263,
+                "y": 276.140625,
+                "w": 1141,
+                "h": 150
+              }
+            },
+            {
+              "node": "div.ipc-view-switcher.is-compact",
+              "from": {
+                "x": 264,
+                "y": 359.140625,
+                "w": 295.28125,
+                "h": 38
+              },
+              "to": {
+                "x": 264,
+                "y": 426.140625,
+                "w": 295.28125,
+                "h": 38
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7516,
+        "element": "p.font-sans.mt-1.text-slate-600",
+        "size": 12036
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "warehouse-exceptions",
+      "route": "warehouse",
+      "tab": "warehouse-exceptions",
+      "url": "http://127.0.0.1:4173/warehouse?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 7739.5,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#warehouse-exceptions-panel .ipc-table-viewport",
+        "anchorSelector": "#warehouse-exceptions-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8654.900000000373,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#warehouse-exceptions-panel .ipc-table-viewport",
+        "anchorSelector": "#warehouse-exceptions-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0737,
+      "clsWindow": 0.0737,
+      "clsSources": [
+        {
+          "value": 0.03683449074074074,
+          "startTime": 8492.400000000373,
+          "sources": [
+            {
+              "node": "div.font-sans.text-body.relative",
+              "from": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 900
+              },
+              "to": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 900
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.03683449074074074,
+          "startTime": 8535.100000000093,
+          "sources": [
+            {
+              "node": "div.font-sans.text-body.relative",
+              "from": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 900
+              },
+              "to": {
+                "x": 264,
+                "y": 0,
+                "w": 1140,
+                "h": 900
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7480,
+        "element": "p.font-sans.mt-1.text-slate-600",
+        "size": 12036
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "chef-production",
+      "route": "chef",
+      "tab": "chef-production",
+      "url": "http://127.0.0.1:4173/chef-dashboard?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 7815.799999999814,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#chef-production-panel .ipc-table-viewport",
+        "anchorSelector": "#chef-production-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8679.899999999907,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#chef-production-panel .ipc-table-viewport",
+        "anchorSelector": "#chef-production-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [],
+      "lcp": {
+        "startTime": 7680,
+        "element": "div.font-sans.text-body",
+        "size": 12155
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "chef-documents",
+      "route": "chef",
+      "tab": "chef-documents",
+      "url": "http://127.0.0.1:4173/chef-dashboard?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 7940.800000000279,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#chef-documents-panel .ipc-table-viewport",
+        "anchorSelector": "#chef-documents-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 8809,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#chef-documents-panel .ipc-table-viewport",
+        "anchorSelector": "#chef-documents-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [],
+      "lcp": {
+        "startTime": 7716,
+        "element": "div.font-sans.text-body",
+        "size": 12155
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "approval-queue",
+      "route": "approvals",
+      "tab": "approval-queue",
+      "url": "http://127.0.0.1:4173/approvals?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 6199.0999999996275,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#approval-queue-panel .ipc-table-viewport",
+        "anchorSelector": "#approval-queue-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 7112.5,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#approval-queue-panel .ipc-table-viewport",
+        "anchorSelector": "#approval-queue-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0001,
+      "clsWindow": 0.0001,
+      "clsSources": [
+        {
+          "value": 0.00012265397269375857,
+          "startTime": 6967.799999999814,
+          "sources": [
+            {
+              "node": "span.ipc-command-meta",
+              "from": {
+                "x": 438.015625,
+                "y": 84.59375,
+                "w": 207.84375,
+                "h": 28
+              },
+              "to": {
+                "x": 471.796875,
+                "y": 84.59375,
+                "w": 207.84375,
+                "h": 28
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.000024899832015174896,
+          "startTime": 7098.899999999907,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 906.1875,
+                "y": 12.796875,
+                "w": 507.8125,
+                "h": 30
+              },
+              "to": {
+                "x": 903.15625,
+                "y": 12.796875,
+                "w": 510.84375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 6088,
+        "element": "p.mt-1.text-sm.text-slate-600",
+        "size": 6460
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "approval-history",
+      "route": "approvals",
+      "tab": "approval-history",
+      "url": "http://127.0.0.1:4173/approvals?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 6259,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#approval-history-panel .ipc-table-viewport",
+        "anchorSelector": "#approval-history-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 7093,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": "#approval-history-panel .ipc-table-viewport",
+        "anchorSelector": "#approval-history-panel tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0.0001,
+      "clsWindow": 0.0001,
+      "clsSources": [
+        {
+          "value": 0.00012265397269375857,
+          "startTime": 6842.799999999814,
+          "sources": [
+            {
+              "node": "span.ipc-command-meta",
+              "from": {
+                "x": 438.015625,
+                "y": 84.59375,
+                "w": 207.84375,
+                "h": 28
+              },
+              "to": {
+                "x": 471.796875,
+                "y": 84.59375,
+                "w": 207.84375,
+                "h": 28
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.000024899832015174896,
+          "startTime": 6975.399999999907,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 906.1875,
+                "y": 12.796875,
+                "w": 507.8125,
+                "h": 30
+              },
+              "to": {
+                "x": 903.15625,
+                "y": 12.796875,
+                "w": 510.84375,
+                "h": 30
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 6044,
+        "element": "p.mt-1.text-sm.text-slate-600",
+        "size": 6460
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    },
+    {
+      "id": "approval-rules",
+      "route": "approval-rules",
+      "tab": null,
+      "url": "http://127.0.0.1:4173/admin/rules?mock=huge",
+      "notes": [
+        "mốc neo vắng tại t_0",
+        "khung cuộn vắng tại t_0",
+        "không có dữ liệu: 0 hàng tại t_settled"
+      ],
+      "t0": {
+        "t": 5995.600000000093,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": ".ipc-content-shell .ipc-table-viewport",
+        "anchorSelector": ".ipc-content-shell tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 6825.600000000093,
+        "scopeFound": true,
+        "frameFound": false,
+        "frameSelector": ".ipc-content-shell .ipc-table-viewport",
+        "anchorSelector": ".ipc-content-shell tbody tr:first-child",
+        "anchorFound": false,
+        "anchorTop": null,
+        "anchorHeight": null,
+        "clientHeight": null,
+        "scrollHeight": null,
+        "overflowY": null,
+        "rowsData": 0,
+        "rowsSkeleton": 0,
+        "rowHeights": [],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 0,
+      "rowsSkeletonAtT0": 0,
+      "clsSum": 0,
+      "clsWindow": 0,
+      "clsSources": [],
+      "lcp": {
+        "startTime": 6256,
+        "element": "span.ipc-command-meta",
+        "size": 5491
+      },
+      "deltaTop": null,
+      "cgr": null,
+      "growthDenominator": null,
+      "growthRatio": null,
+      "gradable": false,
+      "verdicts": {
+        "cgr": "N/A",
+        "cls": "N/A",
+        "growth": "N/A"
+      }
+    }
+  ],
+  "inp": [],
+  "overflow": [],
+  "integrityViolations": [],
+  "counts": {
+    "loadRows": 27,
+    "loadGradable": 7,
+    "inpCells": 0,
+    "inpValueBearing": 0,
+    "overflowRuns": 0,
+    "overflowFailing": 0
+  }
+}

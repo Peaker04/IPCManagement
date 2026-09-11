@@ -2,6 +2,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,13 +27,6 @@ public class DemandReportService : IDemandReportService
 
         var lines = _context.Materialrequestlines
             .AsNoTracking()
-            .Include(item => item.Request)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Customer)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Dish)
             .AsQueryable();
 
         if (ingredientId is not null)
@@ -104,13 +98,6 @@ public class DemandReportService : IDemandReportService
 
         var lines = _context.Materialrequestlines
             .AsNoTracking()
-            .Include(item => item.Request)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Customer)
-            .Include(item => item.PlanLine)
-                .ThenInclude(item => item.Dish)
             .AsQueryable();
 
         if (ingredientId is not null)
@@ -198,12 +185,23 @@ public class DemandReportService : IDemandReportService
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
+        var searchKeyword = query.SearchKeyword?.Trim();
 
-        var lines = _context.Materialrequestlines.AsNoTracking().AsQueryable();
+        var lines = _context.Materialrequestlines
+            .AsNoTracking()
+            .Where(item => item.Request.Status != "CANCELLED")
+            .AsQueryable();
 
         if (ingredientId is not null)
         {
             lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(searchKeyword))
+        {
+            lines = lines.Where(item =>
+                item.Ingredient.IngredientName.Contains(searchKeyword) ||
+                item.Ingredient.IngredientCode.Contains(searchKeyword));
         }
 
         if (dateFrom is not null)
@@ -229,17 +227,26 @@ public class DemandReportService : IDemandReportService
         var grouped = lines.GroupBy(item => new
         {
             item.Request.RequestDate,
+            item.PlanLine.CustomerId,
+            CustomerCode = item.PlanLine.Customer.CustomerCode,
+            CustomerName = item.PlanLine.Customer.CustomerName,
+            item.PriceTierAmount,
             item.IngredientId,
             IngredientName = item.Ingredient.IngredientName,
             item.UnitId,
             UnitName = item.Unit.UnitName,
         });
 
-        var activeGrouped = grouped.Where(group => group.Any(item => item.Request.Status != "CANCELLED"));
-        var totalCount = await activeGrouped.CountAsync();
-        var shortageCount = await activeGrouped.CountAsync(group =>
-            group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m) > 0);
-        var items = await activeGrouped
+        var totalCount = await grouped.CountAsync();
+        var shortageCount = await grouped.CountAsync(group => group.Sum(item =>
+            item.Request.Status == "EXPORTED"
+                ? item.TotalRequiredQty - (item.Inventoryissuelines
+                    .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
+                    ? item.TotalRequiredQty - (item.Inventoryissuelines
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
+                    : 0m
+                : item.SuggestedPurchaseQty) > 0m);
+        var items = await grouped
             .OrderByDescending(group => group.Key.RequestDate)
             .ThenBy(group => group.Key.IngredientName)
             .Skip((query.PageNumber - 1) * query.PageSize)
@@ -247,20 +254,57 @@ public class DemandReportService : IDemandReportService
             .Select(group => new IngredientDemandAggregateDto
             {
                 RequestDate = group.Key.RequestDate,
+                CustomerId = GuidHelper.ToGuidString(group.Key.CustomerId),
+                CustomerCode = group.Key.CustomerCode,
+                CustomerName = group.Key.CustomerName,
+                PriceTierAmount = group.Key.PriceTierAmount,
                 IngredientId = GuidHelper.ToGuidString(group.Key.IngredientId),
                 IngredientName = group.Key.IngredientName,
                 UnitId = GuidHelper.ToGuidString(group.Key.UnitId),
                 UnitName = group.Key.UnitName,
                 TotalRequiredQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.TotalRequiredQty : 0m),
-                CurrentStockQty = (decimal)group
-                    .Where(item => item.Request.Status != "CANCELLED")
-                    .Max(item => (double)item.CurrentStockQty),
+                // CurrentStockQty is the quantity allocated to each BOM source line after
+                // MaterialDemandService consumes the shared stock pool. It is additive at
+                // the daily ingredient/unit grain, not a repeated snapshot value.
+                CurrentStockQty = group.Sum(item =>
+                    item.Request.Status != "CANCELLED" ? item.CurrentStockQty : 0m),
                 SuggestedPurchaseQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
+                FulfilledQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.Inventoryissuelines
+                        .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m
+                    : item.Request.Status != "CANCELLED" ? item.CurrentStockQty : 0m),
+                PendingKitchenReceiptQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.Inventoryissuelines
+                        .Where(issueLine => issueLine.Issue.ReceivedAt == null)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m
+                    : 0m),
+                UnissuedQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.TotalRequiredQty - (item.Inventoryissuelines
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
+                        ? item.TotalRequiredQty - (item.Inventoryissuelines
+                            .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
+                        : 0m
+                    : item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
+                OutstandingQty = group.Sum(item => item.Request.Status == "EXPORTED"
+                    ? item.TotalRequiredQty - (item.Inventoryissuelines
+                        .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m
+                        ? item.TotalRequiredQty - (item.Inventoryissuelines
+                            .Where(issueLine => issueLine.Issue.ReceivedAt != null)
+                            .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
+                        : 0m
+                    : item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
                 LineCount = group.Count(item => item.Request.Status != "CANCELLED"),
                 // Cancelled history must not mark a successfully regenerated active group as stale.
                 HasCancelledLine = false,
             })
             .ToListAsync();
+
+        foreach (var item in items)
+        {
+            item.FulfillmentStatus = DemandFulfillmentStatus.Resolve(item.FulfilledQty, item.OutstandingQty);
+        }
 
         return new IngredientDemandAggregatePageDto
         {
@@ -319,6 +363,8 @@ public class DemandReportService : IDemandReportService
             {
                 MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
                 MaterialRequestCode = item.RequestCode,
+                CustomerCode = item.Materialrequestlines.Select(line => line.PlanLine.Customer.CustomerCode).FirstOrDefault() ?? string.Empty,
+                CustomerName = item.Materialrequestlines.Select(line => line.PlanLine.Customer.CustomerName).FirstOrDefault() ?? string.Empty,
                 RequestDate = item.RequestDate,
                 RequestScope = item.RequestScope,
                 Status = item.Status,
@@ -331,6 +377,7 @@ public class DemandReportService : IDemandReportService
                       item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty),
                 HasExistingPurchaseRequest = item.Materialrequestlines.Any(line =>
                     line.Purchaserequestlines.Any(purchaseLine => purchaseLine.PurchaseRequest.Status != "CANCELLED")),
+                ConcurrencyVersion = item.Inventoryissues.LongCount(),
             })
             .ToListAsync();
 

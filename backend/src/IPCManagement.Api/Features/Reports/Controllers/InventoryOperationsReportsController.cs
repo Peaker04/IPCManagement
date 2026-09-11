@@ -51,4 +51,10 @@ public class InventoryOperationsReportsController : ControllerBase
     public async Task<IActionResult> GetIssueVsReturnPageAsync([FromQuery] IssueVsReturnPageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<IssueVsReturnUsageReportDto>>.SuccessResult(
             await _reportService.GetIssueVsReturnPageAsync(query)));
+
+    [HttpGet("supply-line-reconciliation")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SupplyLineReconciliationDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSupplyLineReconciliationAsync([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<IReadOnlyList<SupplyLineReconciliationDto>>.SuccessResult(
+            await _reportService.GetSupplyLineReconciliationAsync(query)));
 }

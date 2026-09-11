@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -31,97 +30,22 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private const string PurchasePriceExceptionTargetType = "purchase-price-exception";
     private const string MaterialDemandTargetType = "material-demand";
     private const string InventoryIssueTargetType = "inventory-issue";
+    private const string InventoryReceiptTargetType = "inventory-receipt";
     private const string OrderAdjustmentTargetType = "order-adjustment";
     private const int DefaultPageSize = 20;
     private const int MaxPageSize = 50;
 
-    private sealed record ApprovalInboxCursor(DateOnly DueDate, string TargetCode, string InboxItemId);
-
     private readonly IpcManagementContext _context;
-    private readonly IApprovalRoutingService _routingService;
+    private readonly ApprovalInboxSlaEnricher _slaEnricher;
+    private readonly ApprovalInboxDemandSource _demandSource;
+    private readonly ApprovalInboxAdjustmentSource _adjustmentSource;
 
     public ApprovalInboxService(IpcManagementContext context, IApprovalRoutingService routingService)
     {
         _context = context;
-        _routingService = routingService;
-    }
-
-    private sealed record SlaTarget(ApprovalInboxItemDto Item, byte[] TargetId, DateTime? DocCreationTime, decimal? Amount = null);
-
-    private bool IsInMemoryProvider => string.Equals(
-        _context.Database.ProviderName,
-        "Microsoft.EntityFrameworkCore.InMemory",
-        StringComparison.Ordinal);
-
-    // SLA được tính theo LÔ cho cả trang inbox: một truy vấn rule cho mỗi loại chứng từ
-    // và một truy vấn submit-time cho toàn bộ target, thay vì 2-3 truy vấn mỗi chứng từ.
-    private async Task PopulateSlaBatchAsync(
-        string targetType,
-        IReadOnlyList<SlaTarget> targets,
-        CancellationToken cancellationToken)
-    {
-        if (targets.Count == 0)
-        {
-            return;
-        }
-
-        var rules = await _routingService.GetActiveRulesAsync(targetType) ?? [];
-        if (rules.All(rule => !rule.SlaHours.HasValue))
-        {
-            return;
-        }
-
-        var submitByTarget = await LoadSubmitTimesAsync(
-            targetType,
-            targets.Select(target => target.TargetId).ToList(),
-            cancellationToken);
-
-        foreach (var target in targets)
-        {
-            var rule = ApprovalRoutingService.MatchRule(rules, target.Amount);
-            if (rule?.SlaHours is null)
-            {
-                continue;
-            }
-
-            var baseTime = submitByTarget.TryGetValue(Convert.ToBase64String(target.TargetId), out var submitTime)
-                ? submitTime
-                : target.DocCreationTime ?? DateTime.UtcNow;
-            target.Item.SlaHours = rule.SlaHours;
-            target.Item.SlaDeadline = baseTime.AddHours(rule.SlaHours.Value);
-        }
-    }
-
-    private async Task<Dictionary<string, DateTime>> LoadSubmitTimesAsync(
-        string targetType,
-        IReadOnlyList<byte[]> targetIds,
-        CancellationToken cancellationToken)
-    {
-        var query = _context.Approvalhistories
-            .AsNoTracking()
-            .Where(h => h.TargetType == targetType && (h.Decision == "SUBMIT" || h.Decision == "Submit"));
-
-        if (IsInMemoryProvider)
-        {
-            // InMemory không so sánh byte[] theo giá trị trong Contains — lọc phía client.
-            var wanted = targetIds.Select(Convert.ToBase64String).ToHashSet(StringComparer.Ordinal);
-            var allRows = await query
-                .Select(h => new { h.TargetId, h.ActionAt })
-                .ToListAsync(cancellationToken);
-            return allRows
-                .Where(row => wanted.Contains(Convert.ToBase64String(row.TargetId)))
-                .GroupBy(row => Convert.ToBase64String(row.TargetId), StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => g.Min(row => row.ActionAt), StringComparer.Ordinal);
-        }
-
-        var ids = targetIds.ToList();
-        var rows = await query
-            .Where(h => ids.Contains(h.TargetId))
-            .Select(h => new { h.TargetId, h.ActionAt })
-            .ToListAsync(cancellationToken);
-        return rows
-            .GroupBy(row => Convert.ToBase64String(row.TargetId), StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.Min(row => row.ActionAt), StringComparer.Ordinal);
+        _slaEnricher = new ApprovalInboxSlaEnricher(context, routingService);
+        _demandSource = new ApprovalInboxDemandSource(context, _slaEnricher);
+        _adjustmentSource = new ApprovalInboxAdjustmentSource(context, _slaEnricher);
     }
 
     public async Task<IReadOnlyList<ApprovalInboxItemDto>> GetPendingAsync(
@@ -130,7 +54,9 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         CancellationToken cancellationToken = default)
     {
         var limit = NormalizeLimit(query.Limit, 100, 200);
-        return (await BuildPendingItemsAsync(user, limit, null, cancellationToken))
+        return ApprovalInboxQueryPolicy.Apply(
+                await BuildPendingItemsAsync(user, limit, null, query.TargetType, cancellationToken),
+                query)
             .OrderBy(item => item.DueDate ?? DateOnly.MaxValue)
             .ThenBy(item => item.TargetCode)
             .ThenBy(item => item.InboxItemId)
@@ -145,8 +71,19 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     {
         var limit = NormalizeLimit(query.Limit, DefaultPageSize, MaxPageSize);
         var cursor = DecodeCursor(query.Cursor);
-        var candidates = await BuildPendingItemsAsync(user, Math.Min(limit * 4 + 1, 200), cursor, cancellationToken);
-        var ordered = candidates
+        var hasFilters = !string.IsNullOrWhiteSpace(query.TargetType) ||
+            !string.IsNullOrWhiteSpace(query.TargetId) ||
+            !string.IsNullOrWhiteSpace(query.Week) ||
+            !string.IsNullOrWhiteSpace(query.Date) ||
+            !string.IsNullOrWhiteSpace(query.SearchKeyword);
+        var candidateLimit = hasFilters ? 200 : Math.Min(limit * 4 + 1, 200);
+        var candidates = await BuildPendingItemsAsync(
+            user,
+            candidateLimit,
+            cursor,
+            query.TargetType,
+            cancellationToken);
+        var ordered = ApprovalInboxQueryPolicy.Apply(candidates, query)
             .OrderBy(item => item.DueDate ?? DateOnly.MaxValue)
             .ThenBy(item => item.TargetCode)
             .ThenBy(item => item.InboxItemId)
@@ -168,192 +105,49 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         ClaimsPrincipal user,
         int limit,
         ApprovalInboxCursor? cursor,
+        string? targetType,
         CancellationToken cancellationToken)
     {
-        var permissions = ResolveUserPermissions(user);
+        var permissions = ApprovalInboxUserPolicy.ResolvePermissions(user);
         var inbox = new List<ApprovalInboxItemDto>();
 
-        if (permissions.Contains(AuthorizationPolicies.MaterialDemandApprove))
+        if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, MaterialDemandTargetType) &&
+            permissions.Contains(AuthorizationPolicies.MaterialDemandApprove))
         {
-            inbox.AddRange(await BuildMaterialDemandItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await _demandSource.BuildItemsAsync(limit, cursor, cancellationToken));
         }
 
-        if (permissions.Contains(AuthorizationPolicies.PurchaseRequestApprove))
+        if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, PurchaseRequestTargetType) &&
+            permissions.Contains(AuthorizationPolicies.PurchaseRequestApprove))
         {
             inbox.AddRange(await BuildPurchaseRequestItemsAsync(limit, cursor, cancellationToken));
         }
 
-        if (permissions.Contains(AuthorizationPolicies.PurchasePriceExceptionApprove))
+        if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, PurchasePriceExceptionTargetType) &&
+            permissions.Contains(AuthorizationPolicies.PurchasePriceExceptionApprove))
         {
             inbox.AddRange(await BuildPriceAlertItemsAsync(limit, cursor, cancellationToken));
         }
 
-        if (permissions.Contains(AuthorizationPolicies.InventoryIssueApprove))
+        if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, InventoryIssueTargetType) &&
+            permissions.Contains(AuthorizationPolicies.InventoryIssueApprove))
         {
             inbox.AddRange(await BuildInventoryIssueItemsAsync(limit, cursor, cancellationToken));
         }
 
-        if (permissions.Contains(AuthorizationPolicies.InventoryAdjustmentApprove))
+        if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, InventoryReceiptTargetType) &&
+            permissions.Contains(AuthorizationPolicies.InventoryReceiptApprove))
         {
-            inbox.AddRange(await BuildOrderAdjustmentItemsAsync(limit, cursor, cancellationToken));
+            inbox.AddRange(await BuildInventoryReceiptItemsAsync(limit, cursor, cancellationToken));
+        }
+
+        if (ApprovalInboxQueryPolicy.ShouldBuildTarget(targetType, OrderAdjustmentTargetType) &&
+            permissions.Contains(AuthorizationPolicies.InventoryAdjustmentApprove))
+        {
+            inbox.AddRange(await _adjustmentSource.BuildItemsAsync(limit, cursor, cancellationToken));
         }
 
         return inbox;
-    }
-
-    private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildMaterialDemandItemsAsync(
-        int limit,
-        ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
-    {
-        var requestQuery = _context.Materialrequests
-            .AsNoTracking()
-            .Where(item => item.Status == "DRAFT");
-        if (cursor is not null)
-        {
-            requestQuery = requestQuery.Where(item =>
-                item.RequestDate > cursor.DueDate ||
-                (item.RequestDate == cursor.DueDate && item.RequestCode.CompareTo(cursor.TargetCode) > 0));
-        }
-
-        var requests = await requestQuery
-            .OrderBy(item => item.RequestDate)
-            .ThenBy(item => item.RequestCode)
-            .Take(limit)
-            .ToListAsync(cancellationToken);
-        if (requests.Count == 0)
-        {
-            return [];
-        }
-
-        // Nạp trước theo LÔ: plans, users, lines và danh mục tên — 5 truy vấn cho cả trang
-        // thay vì 3+ truy vấn cho mỗi request (N+1 cũ).
-        var planById = (await LoadByIdsAsync(
-                _context.Productionplans.AsNoTracking(),
-                plan => plan.PlanId,
-                requests.Select(item => item.PlanId).ToList(),
-                cancellationToken))
-            .GroupBy(plan => Convert.ToBase64String(plan.PlanId), StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        var userNameById = (await LoadByIdsAsync(
-                _context.Users.AsNoTracking(),
-                user => user.UserId,
-                requests.Select(item => item.CreatedBy).ToList(),
-                cancellationToken))
-            .GroupBy(user => Convert.ToBase64String(user.UserId), StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First().FullName, StringComparer.Ordinal);
-        var linesByRequest = (await LoadByIdsAsync(
-                _context.Materialrequestlines.AsNoTracking(),
-                line => line.RequestId,
-                requests.Select(item => item.RequestId).ToList(),
-                cancellationToken))
-            .GroupBy(line => Convert.ToBase64String(line.RequestId), StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
-        var allLines = linesByRequest.Values.SelectMany(lines => lines).ToList();
-        var ingredientNames = (await LoadByIdsAsync(
-                _context.Ingredients.AsNoTracking(),
-                item => item.IngredientId,
-                allLines.Select(line => line.IngredientId).DistinctBy(Convert.ToBase64String).ToList(),
-                cancellationToken))
-            .GroupBy(item => Convert.ToBase64String(item.IngredientId), StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First().IngredientName, StringComparer.Ordinal);
-        var unitNames = (await LoadByIdsAsync(
-                _context.Units.AsNoTracking(),
-                item => item.UnitId,
-                allLines.Select(line => line.UnitId).DistinctBy(Convert.ToBase64String).ToList(),
-                cancellationToken))
-            .GroupBy(item => Convert.ToBase64String(item.UnitId), StringComparer.Ordinal)
-            .ToDictionary(group => group.Key, group => group.First().UnitName, StringComparer.Ordinal);
-
-        var result = new List<ApprovalInboxItemDto>();
-        var slaTargets = new List<SlaTarget>();
-        foreach (var request in requests)
-        {
-            var plan = planById[Convert.ToBase64String(request.PlanId)];
-            var submittedBy = userNameById[Convert.ToBase64String(request.CreatedBy)];
-            var requestLines = linesByRequest.GetValueOrDefault(Convert.ToBase64String(request.RequestId)) ?? [];
-
-            var materials = requestLines
-                .GroupBy(line => new
-                {
-                    IngredientId = Convert.ToBase64String(line.IngredientId),
-                    UnitId = Convert.ToBase64String(line.UnitId)
-                })
-                .Select(group => new ApprovalInboxMaterialDto
-                {
-                    Name = ingredientNames[group.Key.IngredientId],
-                    Quantity = DecimalPolicy.RoundQuantity(group.Sum(line => line.SuggestedPurchaseQty)),
-                    Unit = unitNames[group.Key.UnitId]
-                })
-                .OrderBy(material => material.Name)
-                .ToList();
-            var targetId = GuidHelper.ToGuidString(request.RequestId);
-            var itemDto = new ApprovalInboxItemDto
-            {
-                InboxItemId = $"material-demand-{targetId}",
-                TargetType = MaterialDemandTargetType,
-                TargetId = targetId,
-                TargetCode = request.RequestCode,
-                ItemType = MaterialDemandTargetType,
-                Title = "Duyệt nhu cầu nguyên liệu",
-                Source = request.RequestCode,
-                OwnerRole = "Quản lý",
-                SubmittedBy = submittedBy,
-                DueDate = request.RequestDate,
-                Status = "PENDING",
-                Reason = "Nhu cầu nguyên liệu đã tính, chờ quản lý duyệt trước khi mua hàng.",
-                NextAction = "Duyệt nhu cầu",
-                Tone = "warning",
-                Route = $"/approvals?targetType={MaterialDemandTargetType}&targetId={targetId}&serviceDate={request.RequestDate:yyyy-MM-dd}&scope={Uri.EscapeDataString(request.RequestScope)}",
-                WeekStartDate = plan.WeekStartDate,
-                ServiceDate = request.RequestDate,
-                Scope = request.RequestScope,
-                LineCount = requestLines.Count,
-                TotalQuantity = DecimalPolicy.RoundQuantity(requestLines.Sum(line => line.SuggestedPurchaseQty)),
-                TotalValue = null,
-                SubmittedAt = plan.CreatedAt,
-                SourceDocumentCode = plan.PlanCode,
-                Materials = materials
-            };
-            slaTargets.Add(new SlaTarget(itemDto, request.RequestId, plan.CreatedAt));
-            result.Add(itemDto);
-        }
-
-        await PopulateSlaBatchAsync(MaterialDemandTargetType, slaTargets, cancellationToken);
-        return result;
-    }
-
-    // Tải entity theo danh sách khóa nhị phân trong MỘT truy vấn. Provider quan hệ dùng
-    // Contains (dịch thành IN); InMemory so sánh byte[] theo tham chiếu nên lọc phía client.
-    private async Task<List<TEntity>> LoadByIdsAsync<TEntity>(
-        IQueryable<TEntity> source,
-        Expression<Func<TEntity, byte[]>> idSelector,
-        IReadOnlyCollection<byte[]> ids,
-        CancellationToken cancellationToken) where TEntity : class
-    {
-        if (ids.Count == 0)
-        {
-            return [];
-        }
-
-        if (IsInMemoryProvider)
-        {
-            var wanted = ids.Select(Convert.ToBase64String).ToHashSet(StringComparer.Ordinal);
-            var selector = idSelector.Compile();
-            return (await source.ToListAsync(cancellationToken))
-                .Where(entity => wanted.Contains(Convert.ToBase64String(selector(entity))))
-                .ToList();
-        }
-
-        var idList = ids.ToList();
-        var containsCall = Expression.Call(
-            typeof(Enumerable),
-            nameof(Enumerable.Contains),
-            [typeof(byte[])],
-            Expression.Constant(idList),
-            idSelector.Body);
-        var predicate = Expression.Lambda<Func<TEntity, bool>>(containsCall, idSelector.Parameters[0]);
-        return await source.Where(predicate).ToListAsync(cancellationToken);
     }
 
     private static int NormalizeLimit(int value, int fallback, int maximum)
@@ -415,7 +209,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 item.Status == "SENTTOSUPPLIER" &&
                 !_context.Approvalhistories.Any(history =>
                     history.TargetType == PurchaseRequestTargetType &&
-                    history.TargetId == item.PurchaseRequestId));
+                    history.TargetId == item.PurchaseRequestId &&
+                    (history.Decision == "APPROVE" || history.Decision == "REJECT")));
         if (cursor is not null)
         {
             requestQuery = requestQuery.Where(item =>
@@ -430,7 +225,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .ToListAsync(cancellationToken);
 
         var result = new List<ApprovalInboxItemDto>();
-        var slaTargets = new List<SlaTarget>();
+        var slaTargets = new List<ApprovalInboxSlaTarget>();
         foreach (var request in requests)
         {
             if (await HasPriceWarningAsync(request, cancellationToken))
@@ -457,17 +252,17 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 Route = "/approvals",
                 Materials = request.Purchaserequestlines
                     .OrderBy(line => line.Ingredient.IngredientName)
-                    .Select(MapPurchaseMaterial)
+                    .Select(ApprovalInboxPurchaseMapper.MapMaterial)
                     .ToList()
             };
             var baseDocDate = new DateTime(request.RequestDate.Year, request.RequestDate.Month, request.RequestDate.Day, 0, 0, 0, DateTimeKind.Utc);
             // Giá trị đơn tính từ lines đã Include — không cần SumAsync riêng theo từng request.
             var amount = request.Purchaserequestlines.Sum(line => line.PurchaseQty * line.EstimatedUnitPrice);
-            slaTargets.Add(new SlaTarget(itemDto, request.PurchaseRequestId, baseDocDate, amount));
+            slaTargets.Add(new ApprovalInboxSlaTarget(itemDto, request.PurchaseRequestId, baseDocDate, amount));
             result.Add(itemDto);
         }
 
-        await PopulateSlaBatchAsync(PurchaseRequestTargetType, slaTargets, cancellationToken);
+        await _slaEnricher.PopulateAsync(PurchaseRequestTargetType, slaTargets, cancellationToken);
         return result;
     }
 
@@ -533,7 +328,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .ThenBy(item => item.ProposalVersion)
             .ToList();
         var result = new List<ApprovalInboxItemDto>(exceptions.Count);
-        var slaTargets = new List<SlaTarget>();
+        var slaTargets = new List<ApprovalInboxSlaTarget>();
         foreach (var priceException in exceptions)
         {
             var decision = priceException.PurchaseLineSupplierDecision;
@@ -586,13 +381,75 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 DateTimeKind.Utc);
             if (cursor is null || IsAfterCursor(itemDto, cursor))
             {
-                slaTargets.Add(new SlaTarget(itemDto, priceException.PurchasePriceExceptionId, baseDocDate));
+                slaTargets.Add(new ApprovalInboxSlaTarget(itemDto, priceException.PurchasePriceExceptionId, baseDocDate));
                 result.Add(itemDto);
             }
         }
 
-        await PopulateSlaBatchAsync(PurchasePriceExceptionTargetType, slaTargets, cancellationToken);
+        await _slaEnricher.PopulateAsync(PurchasePriceExceptionTargetType, slaTargets, cancellationToken);
         return result;
+    }
+
+    private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildInventoryReceiptItemsAsync(
+        int limit,
+        ApprovalInboxCursor? cursor,
+        CancellationToken cancellationToken)
+    {
+        var receiptQuery = _context.Inventoryreceipts
+            .AsNoTracking()
+            .Include(item => item.CreatedByNavigation)
+            .Include(item => item.Supplier)
+            .Include(item => item.Inventoryreceiptlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(item => item.Inventoryreceiptlines)
+                .ThenInclude(line => line.Unit)
+            .Where(item => item.Status == "PENDING_APPROVAL" &&
+                (item.QualityStatus == "ACCEPTED" || item.QualityStatus == "PARTIALLY_ACCEPTED"));
+        if (cursor is not null)
+        {
+            receiptQuery = receiptQuery.Where(item =>
+                item.ReceiptDate > cursor.DueDate ||
+                (item.ReceiptDate == cursor.DueDate && item.ReceiptCode.CompareTo(cursor.TargetCode) > 0));
+        }
+
+        var receipts = await receiptQuery.OrderBy(item => item.ReceiptDate).ThenBy(item => item.ReceiptCode)
+            .Take(limit).ToListAsync(cancellationToken);
+        return receipts.Select(receipt =>
+        {
+            var targetId = GuidHelper.ToGuidString(receipt.ReceiptId);
+            var lines = receipt.Inventoryreceiptlines.ToList();
+            return new ApprovalInboxItemDto
+            {
+                InboxItemId = $"{InventoryReceiptTargetType}-{targetId}",
+                TargetType = InventoryReceiptTargetType,
+                TargetId = targetId,
+                TargetCode = receipt.ReceiptCode,
+                ItemType = "receipt",
+                Title = "Duyệt phiếu nhập kho",
+                Source = receipt.Supplier.SupplierName,
+                OwnerRole = "Quản lý",
+                SubmittedBy = receipt.CreatedByNavigation.FullName,
+                DueDate = receipt.ReceiptDate,
+                Status = receipt.Status,
+                Reason = receipt.QualityStatus == "PARTIALLY_ACCEPTED"
+                    ? "Phiếu nhập có dòng chấp nhận một phần, cần Quản lý duyệt trước khi ghi sổ kho."
+                    : "Phiếu nhập đã kiểm tra chất lượng, chờ Quản lý duyệt trước khi ghi sổ kho.",
+                NextAction = "Duyệt phiếu nhập",
+                Tone = "warning",
+                Route = $"/approvals?targetType={InventoryReceiptTargetType}&targetId={targetId}",
+                LineCount = lines.Count,
+                TotalQuantity = DecimalPolicy.RoundQuantity(lines.Sum(line => line.AcceptedQuantity ?? 0m)),
+                TotalValue = DecimalPolicy.RoundMoney(lines.Sum(line => (line.AcceptedQuantity ?? 0m) * line.UnitPrice)),
+                SubmittedAt = receipt.CreatedAt,
+                SupplierName = receipt.Supplier.SupplierName,
+                Materials = lines.Select(line => new ApprovalInboxMaterialDto
+                {
+                    Name = line.Ingredient.IngredientName,
+                    Quantity = line.AcceptedQuantity ?? 0m,
+                    Unit = line.Unit.UnitName
+                }).OrderBy(item => item.Name).ToList()
+            };
+        }).ToList();
     }
 
     private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildInventoryIssueItemsAsync(
@@ -609,10 +466,17 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .Include(item => item.Inventoryissuelines)
                 .ThenInclude(line => line.Unit)
             .Where(item =>
+                item.MaterialRequestId != null &&
+                item.MaterialRequest != null &&
+                item.ReconciliationBatchId == null &&
                 item.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
+                item.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId != null &&
+                    line.ReconciliationBatchLineId == null) &&
                 !_context.Approvalhistories.Any(history =>
                     history.TargetType == InventoryIssueTargetType &&
-                    history.TargetId == item.IssueId));
+                    history.TargetId == item.IssueId &&
+                    (history.Decision == "APPROVE" || history.Decision == "REJECT")));
         if (cursor is not null)
         {
             issueQuery = issueQuery.Where(item =>
@@ -627,9 +491,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .ToListAsync(cancellationToken);
 
         var resultList = new List<ApprovalInboxItemDto>();
-        var slaTargets = new List<SlaTarget>();
+        var slaTargets = new List<ApprovalInboxSlaTarget>();
         foreach (var item in issues)
         {
+            if (item.MaterialRequest is not { } materialRequest) continue;
+
             var itemDto = new ApprovalInboxItemDto
             {
                 InboxItemId = "issue-" + GuidHelper.ToGuidString(item.IssueId),
@@ -638,7 +504,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 TargetCode = item.IssueCode,
                 ItemType = "issue",
                 Title = "Duyệt phiếu xuất kho",
-                Source = item.MaterialRequest.RequestCode,
+                Source = materialRequest.RequestCode,
                 OwnerRole = "Kho / Quản lý",
                 SubmittedBy = item.IssuedByNavigation.FullName,
                 DueDate = item.IssueDate,
@@ -657,89 +523,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                     })
                     .ToList()
             };
-            slaTargets.Add(new SlaTarget(itemDto, item.IssueId, item.CreatedAt));
+            slaTargets.Add(new ApprovalInboxSlaTarget(itemDto, item.IssueId, item.CreatedAt));
             resultList.Add(itemDto);
         }
-        await PopulateSlaBatchAsync(InventoryIssueTargetType, slaTargets, cancellationToken);
+        await _slaEnricher.PopulateAsync(InventoryIssueTargetType, slaTargets, cancellationToken);
         return resultList;
-    }
-
-    private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildOrderAdjustmentItemsAsync(
-        int limit,
-        ApprovalInboxCursor? cursor,
-        CancellationToken cancellationToken)
-    {
-        var adjustmentQuery = _context.Quantityadjustments
-            .AsNoTracking()
-            .Include(item => item.AdjustedByNavigation)
-            .Include(item => item.QuantityPlanLine)
-                .ThenInclude(line => line.Customer)
-            .Include(item => item.QuantityPlanLine)
-                .ThenInclude(line => line.Menu)
-            .Where(item => !_context.Approvalhistories.Any(history =>
-                history.TargetType == OrderAdjustmentTargetType &&
-                history.TargetId == item.AdjustmentId));
-        if (cursor is not null)
-        {
-            var cursorDateTime = cursor.DueDate.ToDateTime(TimeOnly.MinValue);
-            adjustmentQuery = adjustmentQuery.Where(item =>
-                item.AdjustedAt.Date > cursorDateTime.Date ||
-                (item.AdjustedAt.Date == cursorDateTime.Date && item.AdjustedAt > cursorDateTime));
-        }
-
-        var adjustments = await adjustmentQuery
-            .OrderBy(item => item.AdjustedAt)
-            .Take(limit)
-            .ToListAsync(cancellationToken);
-
-        var resultList = new List<ApprovalInboxItemDto>();
-        var slaTargets = new List<SlaTarget>();
-        foreach (var item in adjustments)
-        {
-            var itemDto = new ApprovalInboxItemDto
-            {
-                InboxItemId = "adjustment-" + GuidHelper.ToGuidString(item.AdjustmentId),
-                TargetType = OrderAdjustmentTargetType,
-                TargetId = GuidHelper.ToGuidString(item.AdjustmentId),
-                TargetCode = item.QuantityPlanLine.Customer.CustomerCode + "-" + item.QuantityPlanLine.ShiftName,
-                ItemType = "adjustment",
-                Title = "Duyệt điều chỉnh suất ăn",
-                Source = item.QuantityPlanLine.Customer.CustomerName,
-                OwnerRole = "Kho / Quản lý",
-                SubmittedBy = item.AdjustedByNavigation.FullName,
-                DueDate = DateOnly.FromDateTime(item.AdjustedAt),
-                Status = "PENDING",
-                Reason = item.Reason ?? "Điều chỉnh số suất cần duyệt.",
-                NextAction = "Duyệt điều chỉnh",
-                Tone = "warning",
-                Route = "/approvals",
-                Materials =
-                [
-                    new ApprovalInboxMaterialDto
-                    {
-                        Name = item.QuantityPlanLine.Menu.MenuName,
-                        Quantity = item.NewServings,
-                        Unit = "suất"
-                    }
-                ]
-            };
-            slaTargets.Add(new SlaTarget(itemDto, item.AdjustmentId, item.AdjustedAt));
-            resultList.Add(itemDto);
-        }
-        await PopulateSlaBatchAsync(OrderAdjustmentTargetType, slaTargets, cancellationToken);
-        return resultList;
-    }
-
-    private static HashSet<string> ResolveUserPermissions(ClaimsPrincipal user)
-    {
-        var roleNames = user.FindAll(ClaimTypes.Role)
-            .Select(claim => claim.Value)
-            .Where(role => !string.IsNullOrWhiteSpace(role))
-            .ToList();
-
-        return roleNames
-            .SelectMany(AuthorizationPolicies.ResolvePermissions)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private Task<bool> HasPriceWarningAsync(PurchaseRequest request, CancellationToken cancellationToken)
@@ -767,11 +555,4 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                    string.Equals(priceException.Status, "APPROVED", StringComparison.Ordinal));
     }
 
-    private static ApprovalInboxMaterialDto MapPurchaseMaterial(PurchaseRequestLine line)
-        => new()
-        {
-            Name = line.Ingredient.IngredientName,
-            Quantity = DecimalPolicy.RoundQuantity(line.PurchaseQty),
-            Unit = line.Unit.UnitName
-        };
 }

@@ -78,7 +78,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
                         priceTier.ToString("0.##", CultureInfo.InvariantCulture),
                         customerCode ?? string.Empty,
                         line.Ingredient.IngredientName,
-                        line.Unit.UnitCode,
+                        BomUnitDisplayPolicy.Format(line.Unit),
                         line.GrossQtyPerServing.ToString("0.######", CultureInfo.InvariantCulture),
                         line.WasteRatePercent.ToString("0.##", CultureInfo.InvariantCulture),
                         line.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
@@ -90,8 +90,31 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
             }
         }
 
-        var scope = customerCode is null ? "Global" : $"Customer {customerCode}";
-        return BomTemplateWorkbookBuilder.Build(priceTier, $"{scope} / {templateType}", today, rows);
+        var ingredientNames = await _context.Ingredients
+            .AsNoTracking()
+            .Where(item => item.IsActive ?? true)
+            .Select(item => item.IngredientName)
+            .Distinct()
+            .OrderBy(name => name)
+            .ToListAsync(cancellationToken);
+        var units = await _context.Units
+            .AsNoTracking()
+            .OrderBy(item => item.UnitName)
+            .ToListAsync(cancellationToken);
+        var unitOptions = units
+            .Select(BomUnitDisplayPolicy.Format)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.Create(CultureInfo.GetCultureInfo("vi-VN"), ignoreCase: true))
+            .ToList();
+
+        var scope = customerCode is null ? "Dùng chung" : $"Khách hàng {customerCode}";
+        return BomTemplateWorkbookBuilder.Build(
+            priceTier,
+            $"{scope} / {templateType}",
+            today,
+            rows,
+            ingredientNames,
+            unitOptions);
     }
 
     private async Task<string?> ResolveCustomerCodeAsync(byte[]? customerId, CancellationToken cancellationToken)

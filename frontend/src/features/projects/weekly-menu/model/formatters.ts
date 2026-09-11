@@ -1,15 +1,15 @@
-import { formatQuantityWithUnit } from '@/lib/formatters'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import type { WeeklyMenuImportJobStatus } from './types'
 
 export const importSlotLabels: Record<string, string> = {
-  main: 'Món chính',
-  sub1: 'Phụ 1',
-  sub2: 'Phụ 2',
+  main: 'Món mặn 1',
+  sub1: 'Món mặn 2',
+  sub2: 'Món mặn 2',
   rau: 'Rau',
   canh: 'Canh',
-  fruit: 'Trái cây',
-  dessert: 'Sữa chua',
+  fruit: 'Tráng miệng',
+  dessert: 'Tráng miệng',
 }
 
 export const normalizeDishMatchKey = (value?: string) =>
@@ -103,12 +103,7 @@ export const formatQuantityVariance = (value: number, unit: string) => {
 
 export const formatImportDate = (value?: string | null) => {
   if (!value) return 'Chưa xác định'
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
-  if (dateOnlyMatch) return `${Number(dateOnlyMatch[3])}/${Number(dateOnlyMatch[2])}/${dateOnlyMatch[1]}`
-
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return value
-  return parsed.toLocaleDateString('vi-VN')
+  return formatDateOnly(value)
 }
 
 export const formatFileSize = (bytes?: number) => {
@@ -144,11 +139,21 @@ export const isValidWeekStartDate = (value: string) => {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])).getDay() === 1
 }
 
+export const normalizeWeekStartDate = (value: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return value
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  const delta = date.getDay() === 0 ? 1 : 1 - date.getDay()
+  date.setDate(date.getDate() + delta)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 export const getStoredWeekStartDate = () => {
   const stored = window.localStorage.getItem(LAST_WEEKLY_MENU_WEEK_KEY) ?? ''
   if (stored && !isValidWeekStartDate(stored)) {
-    window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY)
-    return ''
+    const normalized = normalizeWeekStartDate(stored)
+    window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, normalized)
+    return normalized
   }
   return stored
 }

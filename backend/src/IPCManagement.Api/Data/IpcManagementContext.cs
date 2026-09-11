@@ -36,6 +36,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<CustomerContract> Customercontracts { get; set; }
 
+    public virtual DbSet<CustomerWeekMenuTier> Customerweekmenutiers { get; set; }
+
     public virtual DbSet<Dish> Dishes { get; set; }
 
     public virtual DbSet<DishBom> Dishboms { get; set; }
@@ -54,9 +56,19 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<InventoryReceiptLine> Inventoryreceiptlines { get; set; }
 
+    public virtual DbSet<PurchaseReceiptActiveLine> Purchasereceiptactivelines { get; set; }
+
+    public virtual DbSet<ReceiptCorrection> Receiptcorrections { get; set; }
+
+    public virtual DbSet<ReceiptCorrectionLine> Receiptcorrectionlines { get; set; }
+
     public virtual DbSet<InventoryReturn> Inventoryreturns { get; set; }
 
     public virtual DbSet<InventoryReturnLine> Inventoryreturnlines { get; set; }
+
+    public virtual DbSet<InventoryAllocationDisposition> Inventoryallocationdispositions { get; set; }
+
+    public virtual DbSet<LegacyLineageDisposition> Legacylinedispositions { get; set; }
 
     public virtual DbSet<MaterialRequest> Materialrequests { get; set; }
 
@@ -70,6 +82,13 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<MenuItem> Menuitems { get; set; }
 
+    public virtual DbSet<MenuAmendment> Menuamendments { get; set; }
+
+    public virtual DbSet<MenuAmendmentLine> Menuamendmentlines { get; set; }
+    public virtual DbSet<MenuAmendmentReconciliationCase> Menuamendmentreconciliationcases { get; set; }
+    public virtual DbSet<MenuAmendmentReconciliationCorrection> Menuamendmentreconciliationcorrections { get; set; }
+    public virtual DbSet<MenuAmendmentReconciliationRemediation> Menuamendmentreconciliationremediations { get; set; }
+
     public virtual DbSet<MenuSchedule> Menuschedules { get; set; }
 
     public virtual DbSet<MenuVersion> Menuversions { get; set; }
@@ -79,6 +98,13 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<ProductionPlan> Productionplans { get; set; }
 
     public virtual DbSet<ProductionPlanLine> Productionplanlines { get; set; }
+
+    public virtual DbSet<ServiceRun> Serviceruns { get; set; }
+    public virtual DbSet<ServiceRunSourceLine> Servicerunsourcelines { get; set; }
+    public virtual DbSet<ServiceRunDecisionItem> Servicerundecisionitems { get; set; }
+    public virtual DbSet<ServiceRunAdjustment> Servicerunadjustments { get; set; }
+    public virtual DbSet<ServiceRunVarianceDeclaration> Servicerunvariancedeclarations { get; set; }
+    public virtual DbSet<ServiceRunVarianceWaiver> Servicerunvariancewaivers { get; set; }
 
     public virtual DbSet<PurchaseRequest> Purchaserequests { get; set; }
 
@@ -127,6 +153,23 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<ApprovalRule> Approvalrules { get; set; }
 
     public virtual DbSet<ApprovalAssignment> Approvalassignments { get; set; }
+
+    public virtual DbSet<LifecycleTransition> Lifecycletransitions { get; set; }
+
+    public virtual DbSet<LifecycleOutboxMessage> Lifecycleoutboxmessages { get; set; }
+    public virtual DbSet<LifecycleOutboxDelivery> Lifecycleoutboxdeliveries { get; set; }
+    public virtual DbSet<DataQualityDisposition> Dataqualitydispositions { get; set; }
+
+    public virtual DbSet<SystemOperationMode> Systemoperationmodes { get; set; }
+    public virtual DbSet<ReconciliationBatch> Reconciliationbatches { get; set; }
+    public virtual DbSet<ReconciliationBatchLine> Reconciliationbatchlines { get; set; }
+    public virtual DbSet<ReconciliationBatchContributor> Reconciliationbatchcontributors { get; set; }
+    public virtual DbSet<ReconciliationTolerance> Reconciliationtolerances { get; set; }
+    public virtual DbSet<ReconciliationActual> Reconciliationactuals { get; set; }
+    public virtual DbSet<ReconciliationActualRevision> Reconciliationactualrevisions { get; set; }
+    public virtual DbSet<ReconciliationDisposition> Reconciliationdispositions { get; set; }
+
+    public virtual DbSet<LifecycleCommandReceipt> Lifecyclecommandreceipts { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

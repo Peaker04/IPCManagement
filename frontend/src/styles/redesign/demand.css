@@ -381,7 +381,8 @@ details[open] > summary .lucide-chevron-down {
 
   .ipc-demand-document-lineage .ipc-document-zone-owner dt,
   .ipc-demand-document-lineage .ipc-document-zone-owner dd {
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .ipc-demand-weekly-documents .ipc-document-rail {

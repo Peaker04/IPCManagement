@@ -7,6 +7,14 @@ Part of the IPCManagement monorepo.
 
 React 19 frontend for the Industrial & Production Catering Management System. Provides the user interface for menu planning, workflow management, and reporting.
 
+UI work starts at the project's [UI/UX philosophy and application rules](../docs/UI-PHILOSOPHY.md) and follows the
+[UI/UX and FE–BE–Database standardization contract](../docs/UI-UX-FE-BE-DATABASE-STANDARDIZATION.md). The detailed
+rule IDs are in [DASHBOARD-UI-RULES.md](../docs/DASHBOARD-UI-RULES.md); implementation tokens and shared primitives
+are indexed in [ipc-design-tokens.md](docs/ipc-design-tokens.md). Data-bearing changes must preserve the shared
+query-state, formatter, pagination, permission, grain, and mutation evidence rules.
+For the audit/fix/browser-evidence loop and safe session handoff, follow the canonical
+[UI/UX execution harness](../docs/UI-UX-EXECUTION-HARNESS.md).
+
 ## Tech Stack
 
 | Library | Version | Purpose |
@@ -88,8 +96,8 @@ npm run test:visual:update  # Update visual snapshots
 
 ```
 frontend/src/
-├── app/                    # Redux store, hooks và composition pages đa-feature
-├── api/                    # RTK Query base API và endpoint modules dùng chung
+├── app/                    # Redux store, app layout và composition pages đa-feature
+├── api/                    # Một RTK Query slice, compatibility barrel, shared types/tags/documents
 ├── features/               # Feature modules
 │   ├── auth/              # Authentication
 │   ├── admin/             # Admin panel
@@ -108,6 +116,34 @@ frontend/src/
 ```
 
 ## Key Exports
+
+### Typography
+
+CSS tokens in `src/styles/index.css` own all raw font families and the semantic type scale.
+React callers select one of the static roles from the shared helper; semantic HTML remains
+owned by the caller and layout, color, truncation, and state classes stay outside the helper.
+Inter Variable is self-hosted from the pinned `@fontsource-variable/inter` dependency with
+Vietnamese, Latin Extended, and Latin WOFF2 subsets; `index.html` must not load Google Fonts.
+
+```tsx
+import { typography } from '@/lib/typography'
+import { cn } from '@/lib/utils'
+
+<h2 className={cn(typography.sectionTitle, 'text-slate-800')}>Nguyên liệu cần mua</h2>
+<span className={typography.numeric}>1.250 kg</span>
+```
+
+Do not construct Tailwind typography classes dynamically and do not add raw `font-family`
+stacks outside the primitive tokens. A new semantic role needs at least two callers with the
+same meaning and geometry; otherwise keep the reviewed exception local and document it in
+`tests/typographyContract.test.ts`.
+
+Button, Input, Badge, Card, table and command primitives use component-level `--text-*`
+tokens in the same CSS owner; do not add those component contracts to the seven-role public
+helper. Raw JSX `font-mono` is prohibited: identifiers and audit values use
+`typography.code`. `tests/fixtures/TypographyFixture.tsx` is the canonical fixture for
+Vietnamese copy, long document IDs, tabular numbers and focus-boundary checks. Local-only
+and `font-src 'self'` browser evidence is indexed in `docs/EVIDENCE-INDEX.md`.
 
 ### State Management
 
@@ -130,6 +166,39 @@ import { RoleGuard } from './routes/RoleGuard';
 import { workflowApi } from './api/workflowApi';
 import { coordinationApi } from './features/coordination/coordinationApi';
 ```
+
+`apiSlice.ts` là production `createApi` duy nhất. `workflowApi.ts` chỉ đăng ký rồi re-export
+compatibility contract: 75 endpoint key và 75 public generated hook trên cùng slice/cache namespace.
+Implementation endpoint thuộc bảy feature owner (`admin`, `approvals`, `chef`, `purchasing`,
+`reports`, `warehouse`, dashboard) cùng neutral `workflowDocumentsApi`; cache dùng một registry
+`workflowCacheTags` gồm 22 ID. Không tạo feature-local `createApi` hoặc đổi public hook/cache tag
+khi chuyển ownership.
+
+`MainLayout` thuộc `src/app/layout`. Projects chỉ dùng Coordination transport/read projection và
+action contract ở boundary thấp hơn, không import feature internals. Dependency-cruiser khóa R1–R6;
+baseline 54 violation hiện là `[]`, strict graph có 0 violation trên 342 module/1.169 dependency.
+
+Hai page model lớn giữ facade công khai nhưng đã chia owner bên trong:
+
+- `useAdminDataPageModel` composition bảy panel-model owner;
+- `useReportsPageModel` composition năm report view-model owner.
+
+Các owner hook vẫn được gọi vô điều kiện theo thứ tự cũ để giữ React hook order, RTK Query cache
+timing, URL/permission/reset contract và UI behavior.
+
+## Phase 17 verification snapshot
+
+Gate ngày 29/07/2026 trên HEAD `1ca2bbb`:
+
+- frontend: 80 file, 433/433 test; lint, dependency-cruiser và production build pass;
+- one-api-slice/public/cache contract: 75 endpoint, 75 hook, 22 cache ID;
+- `npm run check:api-contract`: OpenAPI và generated TypeScript deterministic, không drift;
+- headed Chrome: 3 viewport, 30 app route, 3 Shipyard capture, 96 tab interaction,
+  48 warm revisit với 0 request mới, 64 API response đều 2xx, không console/page/request error,
+  overflow, CLS hoặc long task.
+
+Evidence authoritative:
+`.artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json`.
 
 ## Related Documentation
 

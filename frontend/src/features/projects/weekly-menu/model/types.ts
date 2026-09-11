@@ -1,5 +1,5 @@
 import type { CatalogDish } from '@/api/dishCatalogApi'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 
 export interface MaterialSummaryEntry {

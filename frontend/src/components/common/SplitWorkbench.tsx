@@ -8,15 +8,16 @@ interface SplitWorkbenchProps {
   className?: string;
   primaryClassName?: string;
   detailClassName?: string;
+  wideDetailRail?: boolean;
 }
 
 /**
  * SplitWorkbench — bố cục dọc: bảng/nội dung chính trải toàn chiều rộng,
  * panel phụ (chứng từ, chi tiết ô) xếp xuống bên dưới dạng dải ngang.
  */
-export function SplitWorkbench({ children, detail, detailLabel, className, primaryClassName, detailClassName }: SplitWorkbenchProps) {
+export function SplitWorkbench({ children, detail, detailLabel, className, primaryClassName, detailClassName, wideDetailRail = false }: SplitWorkbenchProps) {
   return (
-    <div className={cn('ipc-split-workbench', className)}>
+    <div className={cn('ipc-split-workbench', wideDetailRail && 'ipc-split-workbench--wide-detail-rail', className)}>
       {/* Phần chính: bảng trải full width */}
       <div className={cn('ipc-split-primary', primaryClassName)}>{children}</div>
 

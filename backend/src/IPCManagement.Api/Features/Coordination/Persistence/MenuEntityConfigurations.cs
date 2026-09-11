@@ -119,6 +119,7 @@ internal sealed class MenuScheduleConfiguration : IEntityTypeConfiguration<MenuS
         entity.HasIndex(e => new { e.WeekStartDate, e.ServiceDate, e.ShiftName, e.CustomerId }, "ixMenuSchedulesWeek");
         entity.HasIndex(e => e.MenuId, "menuId");
         entity.HasIndex(e => new { e.CustomerId, e.ServiceDate, e.ShiftName }, "uqMenuSchedulesCustomerDateShift").IsUnique();
+        entity.HasIndex(e => new { e.CustomerId, e.WeekStartDate }, "ixMenuSchedulesCustomerWeek");
         entity.Property(e => e.MenuScheduleId).HasMaxLength(16).IsFixedLength().HasColumnName("menuScheduleId");
         entity.Property(e => e.BomRatePercent).HasPrecision(5, 2).HasDefaultValueSql("'100.00'").HasColumnName("bomRatePercent");
         entity.Property(e => e.CustomerId).HasMaxLength(16).IsFixedLength().HasColumnName("customerId");
@@ -132,12 +133,37 @@ internal sealed class MenuScheduleConfiguration : IEntityTypeConfiguration<MenuS
         entity.HasOne(d => d.Customer).WithMany(p => p.Menuschedules)
             .HasForeignKey(d => d.CustomerId).OnDelete(DeleteBehavior.ClientSetNull)
             .HasConstraintName("menuschedules_ibfk_1");
+        entity.HasOne(d => d.CustomerWeekMenuTier).WithMany(p => p.Menuschedules)
+            .HasForeignKey(d => new { d.CustomerId, d.WeekStartDate })
+            .HasPrincipalKey(p => new { p.CustomerId, p.WeekStartDate })
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("menuschedules_customerweek_tier_fk");
         entity.HasOne(d => d.Menu).WithMany(p => p.Menuschedules)
             .HasForeignKey(d => d.MenuId).OnDelete(DeleteBehavior.ClientSetNull)
             .HasConstraintName("menuschedules_ibfk_2");
         entity.HasOne(d => d.MenuVersion).WithMany(p => p.Menuschedules)
             .HasForeignKey(d => d.MenuVersionId).OnDelete(DeleteBehavior.SetNull)
             .HasConstraintName("menuschedules_ibfk_3");
+    }
+}
+
+internal sealed class CustomerWeekMenuTierConfiguration : IEntityTypeConfiguration<CustomerWeekMenuTier>
+{
+    public void Configure(EntityTypeBuilder<CustomerWeekMenuTier> entity)
+    {
+        entity.HasKey(e => e.TierId).HasName("PRIMARY");
+        entity.ToTable("customerweekmenutiers");
+        entity.HasAlternateKey(e => new { e.CustomerId, e.WeekStartDate })
+            .HasName("uqCustomerWeekMenuTiersScope");
+        entity.Property(e => e.TierId).HasMaxLength(16).IsFixedLength().HasColumnName("tierId");
+        entity.Property(e => e.CustomerId).HasMaxLength(16).IsFixedLength().HasColumnName("customerId");
+        entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+        entity.Property(e => e.PriceTierAmount).HasPrecision(18, 2).HasColumnName("priceTierAmount");
+        entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("createdAt");
+        entity.HasOne(d => d.Customer).WithMany(p => p.Customerweekmenutiers)
+            .HasForeignKey(d => d.CustomerId)
+            .OnDelete(DeleteBehavior.ClientSetNull)
+            .HasConstraintName("customerweekmenutiers_ibfk_1");
     }
 }
 

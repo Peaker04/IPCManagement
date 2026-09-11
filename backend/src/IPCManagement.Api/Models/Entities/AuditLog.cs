@@ -25,5 +25,7 @@ public partial class AuditLog
 
     public string? Reason { get; set; }
 
+    public string? CorrelationId { get; set; }
+
     public virtual User ChangedByNavigation { get; set; } = null!;
 }

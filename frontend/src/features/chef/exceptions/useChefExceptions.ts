@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useCreateInventoryReturnMutation, useCreateSupplementalMaterialRequestMutation, useGetInventoryReturnsQuery, type KitchenIssueRow } from '@/api/workflowApi'
+import { useCreateInventoryReturnMutation, useCreateSupplementalMaterialRequestMutation, useGetInventoryReturnsQuery } from '@/api/warehouseApi'
+import type { KitchenIssueRow } from '@/api/workflowApiTypes'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/types'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
@@ -20,7 +21,6 @@ export function useChefExceptions(
   const [createSupplemental, supplementalState] = useCreateSupplementalMaterialRequestMutation()
   const returnsQuery = useGetInventoryReturnsQuery({
     returnDate: scope.serviceDate,
-    shiftName: scope.activeShift,
     pageNumber: 1,
     pageSize: 100,
   }, { skip: !enabled })
@@ -30,6 +30,14 @@ export function useChefExceptions(
       : null,
   })
   const persistedReturnPage = returnsView.phase === 'ready' ? returnsView.data : undefined
+  const persistedReturns = (persistedReturnPage?.items ?? []).filter((item) => {
+    const normalizedShift = item.shiftName?.trim().toUpperCase()
+    const isFullDay = !normalizedShift || normalizedShift === 'FULLDAY'
+    return item.returnDate.slice(0, 10) === scope.serviceDate
+      && (normalizedShift === scope.apiShiftName
+        || item.shiftName === scope.activeShift
+        || (isFullDay && scope.apiShiftName === 'MORNING'))
+  })
 
   const requestSupplemental = async (data: SupplementalRequest) => {
     const material = productionPlan.receivedMaterials.find((item) => item.id === data.ingredientId) as ChefMaterial | undefined
@@ -43,6 +51,7 @@ export function useChefExceptions(
     }
     try {
       const response = await createSupplemental({
+        commandId: crypto.randomUUID(),
         issueId: material.issueId,
         issueLineId: material.id,
         requestedQty: data.requestedQty,
@@ -96,13 +105,14 @@ export function useChefExceptions(
       : `Bếp trả nguyên liệu thừa ${data.ingredientName} sau ca ${scope.activeShift}.`)
     try {
       const response = await createReturn({
+        commandId: crypto.randomUUID(),
         returnDate: scope.serviceDate,
         shiftName: issueRow.shiftName,
         returnType,
         warehouseId: material.warehouseId,
         issueId: material.issueId!,
         reason,
-        lines: [{ ingredientId: material.ingredientId, quantity: data.returnedQty, unitId: material.unitId }],
+        lines: [{ sourceIssueLineId: material.id, ingredientId: material.ingredientId, quantity: data.returnedQty, unitId: material.unitId }],
       }).unwrap()
       setReturns((current) => [...current, { ...data, serviceDate: scope.serviceDate, shift: scope.activeShift }])
       onFeedback({
@@ -123,7 +133,7 @@ export function useChefExceptions(
 
   return {
     activeReturns: persistedReturnPage
-      ? persistedReturnPage.items.flatMap((item) => item.lines.map((line) => ({
+      ? persistedReturns.flatMap((item) => item.lines.map((line) => ({
           ingredientId: line.ingredientId,
           ingredientName: line.ingredientName || line.ingredientId,
           unit: line.unitName || '',

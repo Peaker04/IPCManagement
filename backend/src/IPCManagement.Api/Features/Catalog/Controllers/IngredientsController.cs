@@ -51,7 +51,7 @@ public class IngredientsController : ControllerBase
     public async Task<IActionResult> CreateAsync([FromBody] CreateIngredientRequest dto)
     {
         var result = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = result.IngredientId },
+        return CreatedAtAction("GetById", new { id = result.IngredientId },
             ApiResponse<IngredientDto>.SuccessResult(result, "Tạo nguyên liệu thành công."));
     }
 

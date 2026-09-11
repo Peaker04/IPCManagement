@@ -13,7 +13,10 @@ internal static class DishCatalogMapper
         DishName = dish.DishName,
         DishType = dish.DishType,
         DishGroup = dish.DishGroup,
-        IsActive = dish.IsActive ?? true
+        IsActive = dish.IsActive ?? true,
+        SourceImportBatch = dish.SourceImportBatch,
+        SourceFileName = dish.SourceFileName,
+        SourceChecksum = dish.SourceChecksum
     };
 
     internal static DishCatalogDto ToCatalogDto(Dish dish) => new()
@@ -24,6 +27,9 @@ internal static class DishCatalogMapper
         DishType = dish.DishType,
         DishGroup = dish.DishGroup,
         IsActive = dish.IsActive ?? true,
+        SourceImportBatch = dish.SourceImportBatch,
+        SourceFileName = dish.SourceFileName,
+        SourceChecksum = dish.SourceChecksum,
         MenuSlots = dish.Menuitems
             .Where(item => !string.IsNullOrWhiteSpace(item.DishSlot))
             .OrderBy(item => item.DisplayOrder)

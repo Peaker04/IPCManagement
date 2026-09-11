@@ -10,12 +10,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
-import { SectionPanel, TableViewport } from '@/components/common'
+import { Button } from '@/components/ui/button'
+import { EmptyState, SectionPanel, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Dish } from '@/lib/types'
 
+type ChefDisplayDish = Dish & {
+  dishId?: string
+  customerCode?: string | null
+  customerName?: string | null
+  priceTierAmount?: number
+  portions?: number
+  planCodes?: string[]
+  hasBom?: boolean
+}
+
 interface ActiveDishesGridProps {
-  dishes: Dish[]
+  dishes: ChefDisplayDish[]
   expandedDishId: string | null
   onDishExpand: (dishId: string | null) => void
 }
@@ -24,20 +35,23 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
   return (
     <SectionPanel
       title="Bảng món đang nấu"
-      description={`${dishes.length} món trong lệnh sản xuất. Mở từng món để xem định lượng nguyên liệu.`}
+      description={`${dishes.length} dòng món theo khách hàng và đơn giá trong ngày đã chọn. Mở từng dòng để xem đúng BOM.`}
       className="ipc-chef-dishes-panel"
     >
       <div className="space-y-2">
         {dishes.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-slate-500 text-sm">Không có món ăn nào được lên lịch hôm nay</p>
-          </div>
+          <EmptyState
+            title="Không có món ăn nào được lên lịch hôm nay"
+            className="!min-h-0 !py-8"
+          />
         ) : (
           <div className="ipc-chef-dish-list">
             {dishes.map((dish) => (
               <div key={dish.id} className="ipc-chef-dish-card">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  textWrap="wrap"
                   aria-expanded={expandedDishId === dish.id}
                   aria-controls={`dish-bom-${dish.id}`}
                   onClick={() =>
@@ -52,9 +66,15 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                     />
                     <div className="min-w-0 flex-1">
                       <h4 className="font-semibold text-slate-900 truncate">{dish.name}</h4>
-                      {dish.code && (
-                        <p className="text-xs text-slate-500">{dish.code}</p>
-                      )}
+                      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+                        {dish.code ? <span>{dish.code}</span> : null}
+                        {dish.customerName || dish.customerCode ? (
+                          <span>Khách: {dish.customerName ?? dish.customerCode}</span>
+                        ) : null}
+                        {dish.priceTierAmount ? <span>Đơn giá: {dish.priceTierAmount / 1000}k</span> : null}
+                        {dish.portions !== undefined ? <span>{formatQuantity(dish.portions)} suất</span> : null}
+                        {dish.hasBom === false ? <span className="font-semibold text-amber-700">Thiếu BOM phù hợp</span> : null}
+                      </p>
                     </div>
                   </div>
                   <ChevronDown
@@ -62,7 +82,7 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                       expandedDishId === dish.id ? 'rotate-180' : ''
                     }`}
                   />
-                </button>
+                </Button>
 
                 {/* Expanded BOM Table */}
                 {expandedDishId === dish.id && (

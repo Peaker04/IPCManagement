@@ -1,0 +1,43 @@
+{
+  "startedAt": "2026-08-21T11:29:29.996Z",
+  "baseUrl": "http://127.0.0.1:4173",
+  "profile": "mock=huge",
+  "navigation": "context nguội theo route; tab được kích hoạt và xác minh aria-selected trước t_0",
+  "throttle": {
+    "cpuRate": 4,
+    "downKbps": 500,
+    "upKbps": 500,
+    "latencyMs": 400
+  },
+  "thresholds": {
+    "CGR_MAX": 0.1,
+    "CLS_MAX": 0.1,
+    "SCROLL_GROWTH_MAX_RATIO": 0.5,
+    "INP_MAX": 200,
+    "INP_MAX_LAB_4X": 500,
+    "OVERFLOW_TOLERANCE_PX": 1,
+    "PRESENTATION_DOMINANT_SHARE": 0.6,
+    "REPEATS": 5
+  },
+  "load": [],
+  "inp": [
+    {
+      "route": "purchasing",
+      "tab": "purchasing-workflow",
+      "interaction": "workflow-submit",
+      "value": null,
+      "verdict": "N/A",
+      "naReason": "selector không khớp: button[data-inp-action$=\"submit-purchase-request\"], button[data-inp-action=\"confirm-supplier\"]"
+    }
+  ],
+  "overflow": [],
+  "integrityViolations": [],
+  "counts": {
+    "loadRows": 0,
+    "loadGradable": 0,
+    "inpCells": 1,
+    "inpValueBearing": 0,
+    "overflowRuns": 0,
+    "overflowFailing": 0
+  }
+}

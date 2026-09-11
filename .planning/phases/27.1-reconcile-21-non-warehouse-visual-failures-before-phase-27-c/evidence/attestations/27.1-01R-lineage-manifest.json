@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-01R",
+  "status": "READY_TO_SEAL",
+  "roots": [
+    { "type": "ORIGINAL_SOURCE", "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01.json", "sha256": "b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02", "commit": "c52c80f8186b985d07619a7ad0ed7abc0572675c", "disposition": "IMMUTABLE_SOURCE" },
+    { "type": "HISTORICAL_CORRECTION_PROVENANCE", "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01C-correction.json", "sha256": "22f1e4ff032acb6b87eb7148049be1a1707cda7bbfa1d82a61a1b80333c0d0e0", "commit": "ae129eaab0dde192f3dca17c7504b7b9aaef5d17", "disposition": "SUPERSEDED_PROTOCOL_INVALID" },
+    { "type": "AUTHORITATIVE_RESEAL", "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01R-reseal.json", "sha256": null, "commit": null, "disposition": "AUTHORITATIVE" }
+  ],
+  "sealedArtifacts": [
+    { "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/corrected-authorization-matrix.json", "sha256": "f2b5c5c6396788fed24e574598b94bc416a81c27b260a90eb398ca04142f7407", "gitBlobId": "e6fb1d2e0ce166099677122be6b2382feea611a8" },
+    { "path": "frontend/tests/validatePhase271PlanResult.test.ts", "sha256": "7f1148b59e7c909f079446b021eb3200da39ef694a9f5788db591922f083ec1c", "gitBlobId": "c5e26361b494c9aa28cbc4bf2673b492eb399053" },
+    { "path": "frontend/tests/validatePhase271PlanResult.ts", "sha256": "3edaaa6a241e7392cadcb519af848db7973d14b94f23fb5e509b3f6e15021cad", "gitBlobId": "192baa0e0b98b0c2ea4fdd85cf55770bdb7456b6" },
+    { "path": "frontend/tests/validatePhase271Reseal.test.ts", "sha256": "7713645e1c537e856e8e2866785238f490d0089fcb2769cb945bb7021927fb4a", "gitBlobId": "dcf950f1c2928e610ad533c48f221cfc4bd9dd89" },
+    { "path": "frontend/tests/validatePhase271Reseal.ts", "sha256": "06e8d1fd29cc526222586b47dd5086f8b2382cf8e3f2d6c1d27a88f2c6354dd3", "gitBlobId": "51e4c20e42af0421e06dcb7b201022b025db72b7" },
+    { "path": "frontend/tests/validateVisualReconciliation.test.ts", "sha256": "e34ed438c09d5a00c48455f2435bfdd633e2ab2e2ff269d1cf57afe2c0418896", "gitBlobId": "e62af04eda71a28becb0611fc0f5d63f8c5c2731" },
+    { "path": "frontend/tests/validateVisualReconciliation.ts", "sha256": "9dc2feb3faec754d9899e3bb285969b44cb737dd452589c4fc186846ee831175", "gitBlobId": "77f0b7f2e613c1c702c104685f418449793fb7da" }
+  ],
+  "payloadMembers": [
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01R-SUMMARY.md",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-01R-byte-manifest.json",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-01R-lineage-manifest.json",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-01R-reseal.json",
+    "frontend/tests/validatePhase271Reseal.test.ts",
+    "frontend/tests/validatePhase271Reseal.ts"
+  ],
+  "sourceSuiteRerun": false,
+  "blockers": []
+}

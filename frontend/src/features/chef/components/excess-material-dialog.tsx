@@ -20,14 +20,28 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { RotateCcw, AlertTriangle, Scale, CheckCircle2, HelpCircle, AlertCircle } from 'lucide-react'
-import { formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
+import { RotateCcw, Scale, CheckCircle2, HelpCircle, AlertCircle } from 'lucide-react'
+import { formatNumber, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
+import { formatShiftName } from '@/lib/workflowConfig'
 import type { ExcessMaterial, Ingredient } from '@/lib/types'
+
+type ExcessMaterialOption = Ingredient & {
+  sourceCustomerName?: string
+  sourceShiftName?: string
+  sourcePriceTierAmount?: number
+}
+
+const materialLabel = (material: ExcessMaterialOption) => [
+  `${material.name} (${formatUnit(material.unit)})`,
+  material.sourceCustomerName,
+  material.sourceShiftName ? formatShiftName(material.sourceShiftName) : undefined,
+  typeof material.sourcePriceTierAmount === 'number' ? `${formatNumber(material.sourcePriceTierAmount)}đ` : undefined,
+].filter(Boolean).join(' · ')
 
 interface ExcessMaterialDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  materials: Ingredient[]
+  materials: ExcessMaterialOption[]
   onSubmit: (data: ExcessMaterial) => void
 }
 
@@ -41,18 +55,21 @@ export function ExcessMaterialDialog({
   const [returnedQty, setReturnedQty] = useState<string>('')
   const [condition, setCondition] = useState<NonNullable<ExcessMaterial['condition']>[]>(['intact'])
   const [notes, setNotes] = useState<string>('')
-  const [formError, setFormError] = useState<string>('')
+  const [fieldErrors, setFieldErrors] = useState<{ material?: string; quantity?: string }>({})
 
   const selectedMaterial = materials.find((m) => m.id === selectedMaterialId)
   const isMaterialCondition = (value: string): value is NonNullable<ExcessMaterial['condition']> =>
     value === 'intact' || value === 'partially_used' || value === 'damaged'
 
   const handleSubmit = () => {
+    const nextErrors = {
+      ...(!selectedMaterial ? { material: 'Vui lòng chọn nguyên liệu.' } : {}),
+      ...(!returnedQty ? { quantity: 'Vui lòng nhập số lượng trả lại.' } : {}),
+    }
+    setFieldErrors(nextErrors)
     if (!selectedMaterial || !returnedQty) {
-      setFormError('Vui lòng chọn nguyên liệu và nhập số lượng trả lại.')
       return
     }
-    setFormError('')
 
     onSubmit({
       ingredientId: selectedMaterialId,
@@ -69,7 +86,7 @@ export function ExcessMaterialDialog({
     setReturnedQty('')
     setCondition(['intact'])
     setNotes('')
-    setFormError('')
+    setFieldErrors({})
   }
 
   return (
@@ -86,38 +103,34 @@ export function ExcessMaterialDialog({
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
-          {formError && (
-            <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50/70 p-3 text-xs font-medium text-red-800 animate-in fade-in slide-in-from-top-1 duration-200">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
-              <span>{formError}</span>
-            </div>
-          )}
-
           {/* Material Selection */}
           <div className="space-y-1.5">
             <label id="excess-material-label" className="text-xs font-semibold tracking-wider text-slate-500">
               Chọn nguyên liệu <span className="text-blue-500 font-bold">*</span>
             </label>
-            <Select value={selectedMaterialId} onValueChange={(val) => setSelectedMaterialId(val || '')}>
-              <SelectTrigger aria-labelledby="excess-material-label" className="h-10 rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
-                <SelectValue placeholder="Nhấp để chọn nguyên liệu..." />
+            <Select value={selectedMaterialId} onValueChange={(val) => {
+              setSelectedMaterialId(val || '')
+              setFieldErrors((current) => ({ ...current, material: undefined }))
+            }}>
+              <SelectTrigger aria-labelledby="excess-material-label" aria-invalid={Boolean(fieldErrors.material) || undefined} aria-describedby={fieldErrors.material ? 'excess-material-error' : undefined} className="h-10 rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors">
+                <SelectValue className={selectedMaterial ? 'text-slate-800' : 'text-slate-400'}>
+                  {selectedMaterial ? materialLabel(selectedMaterial) : 'Nhấp để chọn nguyên liệu...'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-lg border border-slate-200 bg-white shadow-lg max-h-60">
                 {materials.map((material) => (
                   <SelectItem key={material.id} value={material.id} className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 py-2.5">
-                    <span className="text-slate-800 font-medium">
-                      {material.name}
-                    </span>
-                    <span className="text-xs text-slate-400 ml-1.5">({formatUnit(material.unit)})</span>
+                    <span className="text-slate-800 font-medium">{materialLabel(material)}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.material && <p id="excess-material-error" className="text-xs text-red-700">{fieldErrors.material}</p>}
           </div>
 
           {/* Current Quantity Display */}
           {selectedMaterial && (
-            <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 transition-all duration-300">
+            <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 transition-colors duration-300">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white border border-slate-200/60 text-slate-500">
                   <Scale className="w-4 h-4" />
@@ -143,8 +156,13 @@ export function ExcessMaterialDialog({
                 min="0"
                 placeholder="Nhập số lượng hoàn trả..."
                 value={returnedQty}
-                onChange={(e) => setReturnedQty(e.target.value)}
-                className="h-10 rounded-lg border-slate-200 bg-white pr-16 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                onChange={(e) => {
+                  setReturnedQty(e.target.value)
+                  setFieldErrors((current) => ({ ...current, quantity: undefined }))
+                }}
+                aria-invalid={Boolean(fieldErrors.quantity) || undefined}
+                aria-describedby={fieldErrors.quantity ? 'excess-returned-qty-error' : undefined}
+                className="h-10 rounded-lg border-slate-200 bg-white pr-16 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               {selectedMaterial && (
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3">
@@ -154,6 +172,7 @@ export function ExcessMaterialDialog({
                 </div>
               )}
             </div>
+            {fieldErrors.quantity && <p id="excess-returned-qty-error" className="text-xs text-red-700">{fieldErrors.quantity}</p>}
           </div>
 
           {/* Condition */}
@@ -176,21 +195,21 @@ export function ExcessMaterialDialog({
             >
               <ToggleGroupItem
                 value="intact"
-                className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-emerald-200 data-[state=on]:bg-emerald-50 data-[state=on]:text-emerald-800 data-[state=on]:shadow-sm data-[state=on]:shadow-emerald-100/30"
+                className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-emerald-200 data-[state=on]:bg-emerald-50 data-[state=on]:text-emerald-800 data-[state=on]:shadow-sm data-[state=on]:shadow-emerald-100/30"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>Nguyên vẹn</span>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="partially_used"
-                className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-amber-200 data-[state=on]:bg-amber-50 data-[state=on]:text-amber-800 data-[state=on]:shadow-sm data-[state=on]:shadow-amber-100/30"
+                className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-amber-200 data-[state=on]:bg-amber-50 data-[state=on]:text-amber-800 data-[state=on]:shadow-sm data-[state=on]:shadow-amber-100/30"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                 <span>Đã sử dụng</span>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="damaged"
-                className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-red-200 data-[state=on]:bg-red-50 data-[state=on]:text-red-800 data-[state=on]:shadow-sm data-[state=on]:shadow-red-100/30"
+                className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-colors duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-red-200 data-[state=on]:bg-red-50 data-[state=on]:text-red-800 data-[state=on]:shadow-sm data-[state=on]:shadow-red-100/30"
               >
                 <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
                 <span>Hư hỏng</span>
@@ -208,7 +227,7 @@ export function ExcessMaterialDialog({
               placeholder="Mô tả chi tiết về tình trạng hoặc nguyên nhân hoàn trả..."
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="min-h-[80px] h-20 resize-none rounded-lg border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              className="min-h-[80px] h-20 resize-none rounded-lg border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
             />
           </div>
         </div>
@@ -218,14 +237,14 @@ export function ExcessMaterialDialog({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-all font-medium"
+            className="rounded-lg border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 transition-colors font-medium"
           >
             Hủy
           </Button>
           <Button
             type="button"
             onClick={handleSubmit}
-            className="rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] transition-all font-semibold shadow-sm shadow-blue-600/10"
+            className="rounded-lg bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] transition-[transform,background-color] font-semibold shadow-sm shadow-blue-600/10"
           >
             Ghi nhận nguyên liệu thừa
           </Button>

@@ -20,7 +20,7 @@ export function QuickServingCell({ row, workflow }: { row: QuickServingRow; work
             workflow.actions.discardQuickServing(row.key)
           }
         }}
-        className="ipc-input h-8 w-24 text-center"
+        className="h-8 w-24 rounded-sm border border-slate-300 bg-white px-2 text-center text-sm text-slate-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
         disabled={row.isConfirmed}
         aria-label={`Số suất ${row.dayLabel} ${row.shiftLabel}`}
       />

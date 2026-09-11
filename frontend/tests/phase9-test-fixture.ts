@@ -141,6 +141,15 @@ async function fulfill(route: Route, data: unknown) {
 }
 
 export async function stubPhase09Api(page: Page) {
+  await page.route('**/api/supplemental-material-requests**', async (route) => fulfill(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 100,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/purchase-workflow/workbench**', async (route) => {
     const requestUrl = new URL(route.request().url());
     await fulfill(route, {

@@ -1,0 +1,1493 @@
+{
+  "schemaVersion": 2,
+  "sourceRoot": "frontend/src",
+  "count": 95,
+  "summary": {
+    "ARTIFICIAL_RESERVATION": 0,
+    "NEEDS_BROWSER": 0,
+    "NOT_APPLICABLE": 0,
+    "PURPOSEFUL_CONSTRAINT": 88,
+    "RESPONSIVE_WORKAROUND": 7,
+    "SHARED_OWNER_DEFECT": 0
+  },
+  "rows": [
+    {
+      "id": "GEO-001",
+      "key": "frontend/src/app/pages/admin-data/AdminContractsPanel.tsx|f23785ae14df|line-122|min-h|86px|1",
+      "path": "frontend/src/app/pages/admin-data/AdminContractsPanel.tsx",
+      "line": 122,
+      "axis": "min-height",
+      "value": "86px",
+      "anchorHash": "f23785ae14df",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "className=\"min-h-[86px]\""
+    },
+    {
+      "id": "GEO-002",
+      "key": "frontend/src/app/pages/admin-data/AdminEmployeesPanel.tsx|7fa29c03a0b5|line-162|min-w|150px|1",
+      "path": "frontend/src/app/pages/admin-data/AdminEmployeesPanel.tsx",
+      "line": 162,
+      "axis": "min-width",
+      "value": "150px",
+      "anchorHash": "7fa29c03a0b5",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th className=\"min-w-[150px] text-left\">Họ tên</th>"
+    },
+    {
+      "id": "GEO-003",
+      "key": "frontend/src/app/pages/admin-data/ReconciliationAdminDataPage.tsx|616caebb3b48|line-19|min-h|420px|1",
+      "path": "frontend/src/app/pages/admin-data/ReconciliationAdminDataPage.tsx",
+      "line": 19,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "616caebb3b48",
+      "applicability": [
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<Suspense fallback={<div aria-busy=\"true\" className=\"min-h-[420px] rounded-md bg-slate-50\" />}>"
+    },
+    {
+      "id": "GEO-004",
+      "key": "frontend/src/components/common/ApprovalQueue.tsx|b850da70a931|line-269|min-w|1080px|1",
+      "path": "frontend/src/components/common/ApprovalQueue.tsx",
+      "line": 269,
+      "axis": "min-width",
+      "value": "1080px",
+      "anchorHash": "b850da70a931",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table aria-label=\"Danh sách chứng từ cần duyệt\" className=\"ipc-data-table ipc-approval-table min-w-[1080px] !table-fixed\">"
+    },
+    {
+      "id": "GEO-005",
+      "key": "frontend/src/components/common/DemandSummary.tsx|490f89ad28ca|line-67|min-w|980px|1",
+      "path": "frontend/src/components/common/DemandSummary.tsx",
+      "line": 67,
+      "axis": "min-width",
+      "value": "980px",
+      "anchorHash": "490f89ad28ca",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table ipc-demand-table ipc-status-action-table table-fixed w-full min-w-[980px]\">"
+    },
+    {
+      "id": "GEO-006",
+      "key": "frontend/src/components/common/ExceptionLane.tsx|e968f2b59b2b|line-37|min-h|145px|1",
+      "path": "frontend/src/components/common/ExceptionLane.tsx",
+      "line": 37,
+      "axis": "min-height",
+      "value": "145px",
+      "anchorHash": "e968f2b59b2b",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "<aside className={cn('ipc-exception-lane min-h-[145px] flex flex-col', className)} tabIndex={scrollLabel ? 0 : undefined} aria-label={scrollLabel}>"
+    },
+    {
+      "id": "GEO-007",
+      "key": "frontend/src/components/common/ExceptionLane.tsx|8217e740b2c7|line-42|min-h|100px|1",
+      "path": "frontend/src/components/common/ExceptionLane.tsx",
+      "line": 42,
+      "axis": "min-height",
+      "value": "100px",
+      "anchorHash": "8217e740b2c7",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "className=\"ipc-exception-lane-empty min-h-[100px] !items-stretch !justify-start !p-3 !text-left\""
+    },
+    {
+      "id": "GEO-008",
+      "key": "frontend/src/components/common/QueryViewBoundary.tsx|777c9cf4d848|line-26|min-h|180px|1",
+      "path": "frontend/src/components/common/QueryViewBoundary.tsx",
+      "line": 26,
+      "axis": "min-height",
+      "value": "180px",
+      "anchorHash": "777c9cf4d848",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Shared semantic geometry scale declared by the boundary primitive.",
+      "sourceExcerpt": "section: 'min-h-[180px]',"
+    },
+    {
+      "id": "GEO-009",
+      "key": "frontend/src/components/common/QueryViewBoundary.tsx|e981cb39647d|line-27|min-h|380px|1",
+      "path": "frontend/src/components/common/QueryViewBoundary.tsx",
+      "line": 27,
+      "axis": "min-height",
+      "value": "380px",
+      "anchorHash": "e981cb39647d",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Shared semantic geometry scale declared by the boundary primitive.",
+      "sourceExcerpt": "table: 'min-h-[380px]',"
+    },
+    {
+      "id": "GEO-010",
+      "key": "frontend/src/components/common/QueryViewBoundary.tsx|099bb9386df0|line-28|min-h|380px|1",
+      "path": "frontend/src/components/common/QueryViewBoundary.tsx",
+      "line": 28,
+      "axis": "min-height",
+      "value": "380px",
+      "anchorHash": "099bb9386df0",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Shared semantic geometry scale declared by the boundary primitive.",
+      "sourceExcerpt": "workspace: 'min-h-[380px]',"
+    },
+    {
+      "id": "GEO-011",
+      "key": "frontend/src/components/common/StockMovementTable.tsx|7961c7954be5|line-113|min-w|760px|1",
+      "path": "frontend/src/components/common/StockMovementTable.tsx",
+      "line": 113,
+      "axis": "min-width",
+      "value": "760px",
+      "anchorHash": "7961c7954be5",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]\">"
+    },
+    {
+      "id": "GEO-012",
+      "key": "frontend/src/components/common/TabContentSkeleton.tsx|021d634b5e8d|line-24|min-h|12rem|1",
+      "path": "frontend/src/components/common/TabContentSkeleton.tsx",
+      "line": 24,
+      "axis": "min-height",
+      "value": "12rem",
+      "anchorHash": "021d634b5e8d",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Shared semantic geometry scale declared by the boundary primitive.",
+      "sourceExcerpt": "compact: 'min-h-[12rem]',"
+    },
+    {
+      "id": "GEO-013",
+      "key": "frontend/src/components/common/TabContentSkeleton.tsx|2d4105258e8e|line-25|min-h|20rem|1",
+      "path": "frontend/src/components/common/TabContentSkeleton.tsx",
+      "line": 25,
+      "axis": "min-height",
+      "value": "20rem",
+      "anchorHash": "2d4105258e8e",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Shared semantic geometry scale declared by the boundary primitive.",
+      "sourceExcerpt": "section: 'min-h-[20rem]',"
+    },
+    {
+      "id": "GEO-014",
+      "key": "frontend/src/components/common/TabContentSkeleton.tsx|4dc998186045|line-26|min-h|26rem|1",
+      "path": "frontend/src/components/common/TabContentSkeleton.tsx",
+      "line": 26,
+      "axis": "min-height",
+      "value": "26rem",
+      "anchorHash": "4dc998186045",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Shared semantic geometry scale declared by the boundary primitive.",
+      "sourceExcerpt": "table: 'min-h-[26rem]',"
+    },
+    {
+      "id": "GEO-015",
+      "key": "frontend/src/components/common/TabContentSkeleton.tsx|965a18463012|line-27|min-h|34rem|1",
+      "path": "frontend/src/components/common/TabContentSkeleton.tsx",
+      "line": 27,
+      "axis": "min-height",
+      "value": "34rem",
+      "anchorHash": "965a18463012",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Shared semantic geometry scale declared by the boundary primitive.",
+      "sourceExcerpt": "workspace: 'min-h-[34rem]',"
+    },
+    {
+      "id": "GEO-016",
+      "key": "frontend/src/components/common/TableEmptyState.tsx|9a4bc8bed990|line-25|min-h|220px|1",
+      "path": "frontend/src/components/common/TableEmptyState.tsx",
+      "line": 25,
+      "axis": "min-height",
+      "value": "220px",
+      "anchorHash": "9a4bc8bed990",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "'flex min-h-[220px] w-full flex-col items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center',"
+    },
+    {
+      "id": "GEO-017",
+      "key": "frontend/src/components/reconciliation/ClosedLoopTransferPanel.tsx|024a7110e318|line-151|min-w|720px|1",
+      "path": "frontend/src/components/reconciliation/ClosedLoopTransferPanel.tsx",
+      "line": 151,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "024a7110e318",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table w-full min-w-[720px] table-fixed border-collapse text-sm\">"
+    },
+    {
+      "id": "GEO-018",
+      "key": "frontend/src/components/ui/button.tsx|4ded86260e10|line-33|min-w|var(--button-min-w-default,5rem)|1",
+      "path": "frontend/src/components/ui/button.tsx",
+      "line": 33,
+      "axis": "min-width",
+      "value": "var(--button-min-w-default,5rem)",
+      "anchorHash": "4ded86260e10",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Design-token-backed component minimum.",
+      "sourceExcerpt": "'h-10 min-w-[var(--button-min-w-default,5rem)] gap-2 px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3',"
+    },
+    {
+      "id": "GEO-019",
+      "key": "frontend/src/components/ui/button.tsx|02a7f6e62574|line-34|min-w|var(--button-min-w-sm,4rem)|1",
+      "path": "frontend/src/components/ui/button.tsx",
+      "line": 34,
+      "axis": "min-width",
+      "value": "var(--button-min-w-sm,4rem)",
+      "anchorHash": "02a7f6e62574",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Design-token-backed component minimum.",
+      "sourceExcerpt": "xs: \"h-8 min-w-[var(--button-min-w-sm,4rem)] gap-1 rounded-sm px-2 text-button-compact in-data-[slot=button-group]:rounded-sm has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5\","
+    },
+    {
+      "id": "GEO-020",
+      "key": "frontend/src/components/ui/button.tsx|f95f51b65676|line-35|min-w|var(--button-min-w-sm,4rem)|1",
+      "path": "frontend/src/components/ui/button.tsx",
+      "line": 35,
+      "axis": "min-width",
+      "value": "var(--button-min-w-sm,4rem)",
+      "anchorHash": "f95f51b65676",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Design-token-backed component minimum.",
+      "sourceExcerpt": "sm: \"h-9 min-w-[var(--button-min-w-sm,4rem)] gap-1.5 rounded-sm px-3 text-button in-data-[slot=button-group]:rounded-sm has-data-[icon=inline-end]:pr-2.5 has-data-[icon=inline-start]:pl-2.5 [&_svg:not([class*='size-'])]:size-4\","
+    },
+    {
+      "id": "GEO-021",
+      "key": "frontend/src/components/ui/button.tsx|3478ca47f56f|line-36|min-w|var(--button-min-w-lg,6rem)|1",
+      "path": "frontend/src/components/ui/button.tsx",
+      "line": 36,
+      "axis": "min-width",
+      "value": "var(--button-min-w-lg,6rem)",
+      "anchorHash": "3478ca47f56f",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Design-token-backed component minimum.",
+      "sourceExcerpt": "lg: 'h-11 min-w-[var(--button-min-w-lg,6rem)] gap-2 px-5 has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4',"
+    },
+    {
+      "id": "GEO-022",
+      "key": "frontend/src/features/approvals/components/MenuAmendmentReconciliation.tsx|6ee663fe09b1|line-97|min-w|900px|1",
+      "path": "frontend/src/features/approvals/components/MenuAmendmentReconciliation.tsx",
+      "line": 97,
+      "axis": "min-width",
+      "value": "900px",
+      "anchorHash": "6ee663fe09b1",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]\">"
+    },
+    {
+      "id": "GEO-023",
+      "key": "frontend/src/features/approvals/pages/ApprovalDecisionDialog.tsx|7bee3122cb37|line-92|min-h|100px|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalDecisionDialog.tsx",
+      "line": 92,
+      "axis": "min-height",
+      "value": "100px",
+      "anchorHash": "7bee3122cb37",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "className=\"flex min-h-[100px] w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
+    },
+    {
+      "id": "GEO-024",
+      "key": "frontend/src/features/approvals/pages/ApprovalPage.tsx|a4d9e6ae34dc|line-322|min-h|16rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalPage.tsx",
+      "line": 322,
+      "axis": "min-height",
+      "value": "16rem",
+      "anchorHash": "a4d9e6ae34dc",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "detailClassName=\"min-h-[16rem] border-0 bg-transparent p-0\""
+    },
+    {
+      "id": "GEO-025",
+      "key": "frontend/src/features/approvals/pages/ApprovalPage.tsx|1fda14770929|line-324|min-h|11.5rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalPage.tsx",
+      "line": 324,
+      "axis": "min-height",
+      "value": "11.5rem",
+      "anchorHash": "1fda14770929",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<Suspense fallback={<div aria-hidden=\"true\" className=\"min-h-[11.5rem] rounded-md bg-slate-50 motion-reduce:animate-none\" />}>"
+    },
+    {
+      "id": "GEO-026",
+      "key": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx|66cd20a113e1|line-48|min-h|32rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx",
+      "line": 48,
+      "axis": "min-height",
+      "value": "32rem",
+      "anchorHash": "66cd20a113e1",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "className={loading ? \"min-h-[32rem]\" : \"min-w-0\"}"
+    },
+    {
+      "id": "GEO-027",
+      "key": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx|b33443afa732|line-228|min-h|11.5rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx",
+      "line": 228,
+      "axis": "min-height",
+      "value": "11.5rem",
+      "anchorHash": "b33443afa732",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "className=\"min-h-[11.5rem]\""
+    },
+    {
+      "id": "GEO-028",
+      "key": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx|b33443afa732|line-238|min-h|11.5rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx",
+      "line": 238,
+      "axis": "min-height",
+      "value": "11.5rem",
+      "anchorHash": "b33443afa732",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "className=\"min-h-[11.5rem]\""
+    },
+    {
+      "id": "GEO-029",
+      "key": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx|7653952ff85e|line-248|min-h|11.5rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx",
+      "line": 248,
+      "axis": "min-height",
+      "value": "11.5rem",
+      "anchorHash": "7653952ff85e",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "<InlineAlert title=\"Đang tải chứng từ workflow\" variant=\"info\" className=\"min-h-[11.5rem]\">"
+    },
+    {
+      "id": "GEO-030",
+      "key": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx|d28b442a04ac|line-255|min-h|11.5rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx",
+      "line": 255,
+      "axis": "min-height",
+      "value": "11.5rem",
+      "anchorHash": "d28b442a04ac",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "<InlineAlert title=\"Chưa khởi tạo chứng từ workflow\" variant=\"info\" className=\"min-h-[11.5rem]\">"
+    },
+    {
+      "id": "GEO-031",
+      "key": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx|b33443afa732|line-265|min-h|11.5rem|1",
+      "path": "frontend/src/features/approvals/pages/ApprovalQueryPanels.tsx",
+      "line": 265,
+      "axis": "min-height",
+      "value": "11.5rem",
+      "anchorHash": "b33443afa732",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "className=\"min-h-[11.5rem]\""
+    },
+    {
+      "id": "GEO-032",
+      "key": "frontend/src/features/chef/ChefQueryBoundary.tsx|25cd8478d506|line-104|min-h|32rem|1",
+      "path": "frontend/src/features/chef/ChefQueryBoundary.tsx",
+      "line": 104,
+      "axis": "min-height",
+      "value": "32rem",
+      "anchorHash": "25cd8478d506",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "className={cn('relative flex flex-col gap-3', isInitialLoad && 'min-h-[32rem]')}"
+    },
+    {
+      "id": "GEO-033",
+      "key": "frontend/src/features/chef/components/excess-material-dialog.tsx|fd549272dea1|line-230|min-h|80px|1",
+      "path": "frontend/src/features/chef/components/excess-material-dialog.tsx",
+      "line": 230,
+      "axis": "min-height",
+      "value": "80px",
+      "anchorHash": "fd549272dea1",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Notes textarea has an explicit 80px editing area; height and minimum agree.",
+      "sourceExcerpt": "className=\"min-h-[80px] h-20 resize-none rounded-lg border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors\""
+    },
+    {
+      "id": "GEO-034",
+      "key": "frontend/src/features/chef/pages/ChefDashboardPage.tsx|f70c4701f36c|line-109|min-h|420px|1",
+      "path": "frontend/src/features/chef/pages/ChefDashboardPage.tsx",
+      "line": 109,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "f70c4701f36c",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<div className=\"relative min-h-[420px]\" aria-busy={isViewPending} aria-live=\"polite\">"
+    },
+    {
+      "id": "GEO-035",
+      "key": "frontend/src/features/chef/production/ChefProductionSection.tsx|6ee663fe09b1|line-48|min-w|900px|1",
+      "path": "frontend/src/features/chef/production/ChefProductionSection.tsx",
+      "line": 48,
+      "axis": "min-width",
+      "value": "900px",
+      "anchorHash": "6ee663fe09b1",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]\">"
+    },
+    {
+      "id": "GEO-036",
+      "key": "frontend/src/features/coordination/components/order-table.tsx|e538d146e41e|line-324|min-w|240px|1",
+      "path": "frontend/src/features/coordination/components/order-table.tsx",
+      "line": 324,
+      "axis": "min-width",
+      "value": "240px",
+      "anchorHash": "e538d146e41e",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<td className=\"min-w-[240px] border-r border-slate-200\">"
+    },
+    {
+      "id": "GEO-037",
+      "key": "frontend/src/features/coordination/pages/CoordinationPage.tsx|2522ec8bda63|line-120|min-h|420px|1",
+      "path": "frontend/src/features/coordination/pages/CoordinationPage.tsx",
+      "line": 120,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "2522ec8bda63",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<Suspense fallback={<div aria-busy=\"true\" className=\"min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none\" />}>"
+    },
+    {
+      "id": "GEO-038",
+      "key": "frontend/src/features/dashboard/pages/DashboardPage.tsx|500f4d34c5b5|line-11|min-h|28rem|1",
+      "path": "frontend/src/features/dashboard/pages/DashboardPage.tsx",
+      "line": 11,
+      "axis": "min-height",
+      "value": "28rem",
+      "anchorHash": "500f4d34c5b5",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Named dashboard Suspense fallback preserves the initial lazy-load geometry.",
+      "sourceExcerpt": "className=\"min-h-[28rem] rounded-md border border-slate-200 bg-slate-50 motion-reduce:animate-none\""
+    },
+    {
+      "id": "GEO-039",
+      "key": "frontend/src/features/dashboard/pages/DefaultDashboardPage.tsx|5a40b47c491f|line-422|min-w|96px|1",
+      "path": "frontend/src/features/dashboard/pages/DefaultDashboardPage.tsx",
+      "line": 422,
+      "axis": "min-width",
+      "value": "96px",
+      "anchorHash": "5a40b47c491f",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Status column alignment and stable label width.",
+      "sourceExcerpt": "<StatusBadge variant={statusTone} className=\"min-w-[96px] justify-center\">{displayAction}</StatusBadge>"
+    },
+    {
+      "id": "GEO-040",
+      "key": "frontend/src/features/projects/components/ImportedLayoutMatrix.tsx|b32970e5ec13|line-85|min-w|190px|1",
+      "path": "frontend/src/features/projects/components/ImportedLayoutMatrix.tsx",
+      "line": 85,
+      "axis": "min-width",
+      "value": "190px",
+      "anchorHash": "b32970e5ec13",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th scope=\"col\" className=\"w-[190px] min-w-[190px] text-left\">Bố cục / dòng</th>"
+    },
+    {
+      "id": "GEO-041",
+      "key": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx|732f721cf9e9|line-247|min-h|38px|1",
+      "path": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx",
+      "line": 247,
+      "axis": "min-height",
+      "value": "38px",
+      "anchorHash": "732f721cf9e9",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "<div className=\"flex min-h-[38px] flex-wrap items-center gap-2 border-t border-slate-200 pt-3\">"
+    },
+    {
+      "id": "GEO-042",
+      "key": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx|252e0786a705|line-253|min-w|132px|1",
+      "path": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx",
+      "line": 253,
+      "axis": "min-width",
+      "value": "132px",
+      "anchorHash": "252e0786a705",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "<Button type=\"button\" variant={row.isCompleted ? 'outline' : 'default'} size=\"sm\" className=\"min-w-[132px]\" disabled={disabled} onClick={() => void scheduleWorkflow.actions.completeQuickServing(row)}>"
+    },
+    {
+      "id": "GEO-043",
+      "key": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx|4d029db052f3|line-294|min-h|34px|1",
+      "path": "frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx",
+      "line": 294,
+      "axis": "min-height",
+      "value": "34px",
+      "anchorHash": "4d029db052f3",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "<div className=\"flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2\">"
+    },
+    {
+      "id": "GEO-044",
+      "key": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx|98cb55d34e1c|line-77|min-w|116px|1",
+      "path": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx",
+      "line": 77,
+      "axis": "min-width",
+      "value": "116px",
+      "anchorHash": "98cb55d34e1c",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<td className=\"text-center whitespace-nowrap\"><StatusBadge variant={getImportJobStatusTone(job.status)} className=\"min-w-[116px] justify-center whitespace-nowrap\">{getImportJobStatusLabel(job.status)}</StatusBadge></td>"
+    },
+    {
+      "id": "GEO-045",
+      "key": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx|6419df3429fa|line-27|min-h|34px|1",
+      "path": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx",
+      "line": 27,
+      "axis": "min-height",
+      "value": "34px",
+      "anchorHash": "6419df3429fa",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "<FieldRow label=\"Khách hàng\" hint=\"Chọn khách hàng trong file\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
+    },
+    {
+      "id": "GEO-046",
+      "key": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx|c94afc99f36e|line-53|min-h|34px|1",
+      "path": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx",
+      "line": 53,
+      "axis": "min-height",
+      "value": "34px",
+      "anchorHash": "c94afc99f36e",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "<FieldRow label=\"Tuần bắt đầu\" hint=\"Chọn thứ 2 của tuần\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
+    },
+    {
+      "id": "GEO-047",
+      "key": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx|d1d80e06ceef|line-66|min-h|34px|1",
+      "path": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx",
+      "line": 66,
+      "axis": "min-height",
+      "value": "34px",
+      "anchorHash": "d1d80e06ceef",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "<FieldRow label=\"Mức giá thực đơn\" hint=\"Chọn mức giá áp dụng cho file\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
+    },
+    {
+      "id": "GEO-048",
+      "key": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx|4ea5764220f5|line-80|min-h|34px|1",
+      "path": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx",
+      "line": 80,
+      "axis": "min-height",
+      "value": "34px",
+      "anchorHash": "4ea5764220f5",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "<FieldRow label=\"File Excel\" hint=\"Chọn file thực đơn\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
+    },
+    {
+      "id": "GEO-049",
+      "key": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx|acdc19885161|line-119|min-w|92px|1",
+      "path": "frontend/src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx",
+      "line": 119,
+      "axis": "min-width",
+      "value": "92px",
+      "anchorHash": "acdc19885161",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "sourceExcerpt": "className=\"min-w-[92px] shrink-0\""
+    },
+    {
+      "id": "GEO-050",
+      "key": "frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx|8a8ae67099de|line-89|min-w|200px|1",
+      "path": "frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx",
+      "line": 89,
+      "axis": "min-width",
+      "value": "200px",
+      "anchorHash": "8a8ae67099de",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "RESPONSIVE_WORKAROUND",
+      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "sourceExcerpt": "className=\"ipc-native-control min-h-9 min-w-[200px] rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600\""
+    },
+    {
+      "id": "GEO-051",
+      "key": "frontend/src/features/purchasing/pages/PurchasingPage.tsx|76cee8702875|line-26|min-h|420px|1",
+      "path": "frontend/src/features/purchasing/pages/PurchasingPage.tsx",
+      "line": 26,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "76cee8702875",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "const purchasingCapabilityFallback = <div aria-busy=\"true\" className=\"min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none\" />"
+    },
+    {
+      "id": "GEO-052",
+      "key": "frontend/src/features/purchasing/pages/PurchasingPage.tsx|93a94c1f8962|line-194|min-w|10.25rem|1",
+      "path": "frontend/src/features/purchasing/pages/PurchasingPage.tsx",
+      "line": 194,
+      "axis": "min-width",
+      "value": "10.25rem",
+      "anchorHash": "93a94c1f8962",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Visible primary workflow action width; the former invisible spacer was removed separately.",
+      "sourceExcerpt": "className=\"min-h-11 min-w-[10.25rem] sm:min-h-9\""
+    },
+    {
+      "id": "GEO-053",
+      "key": "frontend/src/features/purchasing/PurchaseLineGroups.tsx|6ee663fe09b1|line-75|min-w|900px|1",
+      "path": "frontend/src/features/purchasing/PurchaseLineGroups.tsx",
+      "line": 75,
+      "axis": "min-width",
+      "value": "900px",
+      "anchorHash": "6ee663fe09b1",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]\">"
+    },
+    {
+      "id": "GEO-054",
+      "key": "frontend/src/features/purchasing/PurchaseServiceDateWorkbench.tsx|6c550dd9d25e|line-125|min-w|900px|1",
+      "path": "frontend/src/features/purchasing/PurchaseServiceDateWorkbench.tsx",
+      "line": 125,
+      "axis": "min-width",
+      "value": "900px",
+      "anchorHash": "6c550dd9d25e",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[900px] table-fixed\">"
+    },
+    {
+      "id": "GEO-055",
+      "key": "frontend/src/features/purchasing/PurchaseServiceDateWorkbench.tsx|6c550dd9d25e|line-132|min-w|900px|1",
+      "path": "frontend/src/features/purchasing/PurchaseServiceDateWorkbench.tsx",
+      "line": 132,
+      "axis": "min-width",
+      "value": "900px",
+      "anchorHash": "6c550dd9d25e",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[900px] table-fixed\">"
+    },
+    {
+      "id": "GEO-056",
+      "key": "frontend/src/features/purchasing/quotation/SupplierQuotationSection.tsx|7961c7954be5|line-113|min-w|760px|1",
+      "path": "frontend/src/features/purchasing/quotation/SupplierQuotationSection.tsx",
+      "line": 113,
+      "axis": "min-width",
+      "value": "760px",
+      "anchorHash": "7961c7954be5",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]\">"
+    },
+    {
+      "id": "GEO-057",
+      "key": "frontend/src/features/purchasing/SupplementalPurchasingWorkbench.tsx|7961c7954be5|line-174|min-w|760px|1",
+      "path": "frontend/src/features/purchasing/SupplementalPurchasingWorkbench.tsx",
+      "line": 174,
+      "axis": "min-width",
+      "value": "760px",
+      "anchorHash": "7961c7954be5",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]\">"
+    },
+    {
+      "id": "GEO-058",
+      "key": "frontend/src/features/reports/LegacyLineageDispositionPanel.tsx|ea500fb46188|line-135|min-w|260px|1",
+      "path": "frontend/src/features/reports/LegacyLineageDispositionPanel.tsx",
+      "line": 135,
+      "axis": "min-width",
+      "value": "260px",
+      "anchorHash": "ea500fb46188",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "RESPONSIVE_WORKAROUND",
+      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "sourceExcerpt": "<label className=\"min-w-[260px] text-xs font-semibold text-slate-600\" htmlFor=\"legacy-disposition-reason\">"
+    },
+    {
+      "id": "GEO-059",
+      "key": "frontend/src/features/reports/pages/ReportsDataQualityPanel.tsx|bc21f6cb4bcd|line-83|min-w|800px|1",
+      "path": "frontend/src/features/reports/pages/ReportsDataQualityPanel.tsx",
+      "line": 83,
+      "axis": "min-width",
+      "value": "800px",
+      "anchorHash": "bc21f6cb4bcd",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table ipc-reports-quality-table min-w-[800px]\">"
+    },
+    {
+      "id": "GEO-060",
+      "key": "frontend/src/features/reports/pages/ReportsFilters.tsx|1fc6c54e1fe5|line-27|min-w|130px|1",
+      "path": "frontend/src/features/reports/pages/ReportsFilters.tsx",
+      "line": 27,
+      "axis": "min-width",
+      "value": "130px",
+      "anchorHash": "1fc6c54e1fe5",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "RESPONSIVE_WORKAROUND",
+      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "sourceExcerpt": "<SelectTrigger id=\"report-filter-shift\" className=\"h-8 min-w-[130px] text-xs\"><SelectValue>{shiftName || 'Tất cả ca'}</SelectValue></SelectTrigger>"
+    },
+    {
+      "id": "GEO-061",
+      "key": "frontend/src/features/reports/pages/ReportsFilters.tsx|c3ca60fe9f07|line-33|min-w|150px|1",
+      "path": "frontend/src/features/reports/pages/ReportsFilters.tsx",
+      "line": 33,
+      "axis": "min-width",
+      "value": "150px",
+      "anchorHash": "c3ca60fe9f07",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "RESPONSIVE_WORKAROUND",
+      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "sourceExcerpt": "<SelectTrigger id=\"report-filter-sort\" className=\"h-8 min-w-[150px] text-xs\"><Filter size={14} className=\"mr-1 text-slate-400\" /><SelectValue>{sortDirection === 'desc' ? 'Mới nhất trước' : 'Cũ nhất trước'}</SelectValue></SelectTrigger>"
+    },
+    {
+      "id": "GEO-062",
+      "key": "frontend/src/features/reports/pages/ReportsPage.tsx|7946798c0093|line-59|min-h|360px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPage.tsx",
+      "line": 59,
+      "axis": "min-height",
+      "value": "360px",
+      "anchorHash": "7946798c0093",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "const reportCapabilityFallback = <div aria-busy=\"true\" className=\"min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none\" />"
+    },
+    {
+      "id": "GEO-063",
+      "key": "frontend/src/features/reports/pages/ReportsPage.tsx|d466b496f90e|line-134|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPage.tsx",
+      "line": 134,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "d466b496f90e",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-status-action-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-064",
+      "key": "frontend/src/features/reports/pages/ReportsPage.tsx|d466b496f90e|line-212|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPage.tsx",
+      "line": 212,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "d466b496f90e",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-status-action-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-065",
+      "key": "frontend/src/features/reports/pages/ReportsPage.tsx|2ea4a5636721|line-268|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPage.tsx",
+      "line": 268,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "2ea4a5636721",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-066",
+      "key": "frontend/src/features/reports/pages/ReportsPage.tsx|2ea4a5636721|line-330|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPage.tsx",
+      "line": 330,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "2ea4a5636721",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-067",
+      "key": "frontend/src/features/reports/pages/ReportsPage.tsx|2ea4a5636721|line-375|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPage.tsx",
+      "line": 375,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "2ea4a5636721",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-068",
+      "key": "frontend/src/features/reports/pages/ReportsPage.tsx|1377fad26457|line-419|min-w|1300px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPage.tsx",
+      "line": 419,
+      "axis": "min-width",
+      "value": "1300px",
+      "anchorHash": "1377fad26457",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[1300px]\">"
+    },
+    {
+      "id": "GEO-069",
+      "key": "frontend/src/features/reports/pages/ReportsPricePanel.tsx|7c31a196a641|line-134|min-w|900px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPricePanel.tsx",
+      "line": 134,
+      "axis": "min-width",
+      "value": "900px",
+      "anchorHash": "7c31a196a641",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-price-variance-table min-w-[900px]\">"
+    },
+    {
+      "id": "GEO-070",
+      "key": "frontend/src/features/reports/pages/ReportsPricePanel.tsx|27b9de299313|line-212|min-w|240px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPricePanel.tsx",
+      "line": 212,
+      "axis": "min-width",
+      "value": "240px",
+      "anchorHash": "27b9de299313",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "RESPONSIVE_WORKAROUND",
+      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "sourceExcerpt": "<div className=\"ipc-report-warning-card min-w-[240px] flex-1 rounded-md border border-[var(--ipc-danger)] bg-[var(--ipc-danger-soft)] p-3 text-sm text-[var(--ipc-danger)]\">"
+    },
+    {
+      "id": "GEO-071",
+      "key": "frontend/src/features/reports/pages/ReportsPricePanel.tsx|be0b6cc87952|line-218|min-w|240px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPricePanel.tsx",
+      "line": 218,
+      "axis": "min-width",
+      "value": "240px",
+      "anchorHash": "be0b6cc87952",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "RESPONSIVE_WORKAROUND",
+      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "sourceExcerpt": "<div className=\"ipc-report-warning-card rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 min-w-[240px] flex-1\">"
+    },
+    {
+      "id": "GEO-072",
+      "key": "frontend/src/features/reports/pages/ReportsPricePanel.tsx|2ea4a5636721|line-238|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPricePanel.tsx",
+      "line": 238,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "2ea4a5636721",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-073",
+      "key": "frontend/src/features/reports/pages/ReportsPricePanel.tsx|2ea4a5636721|line-291|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPricePanel.tsx",
+      "line": 291,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "2ea4a5636721",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-074",
+      "key": "frontend/src/features/reports/pages/ReportsPricePanel.tsx|2ea4a5636721|line-346|min-w|720px|1",
+      "path": "frontend/src/features/reports/pages/ReportsPricePanel.tsx",
+      "line": 346,
+      "axis": "min-width",
+      "value": "720px",
+      "anchorHash": "2ea4a5636721",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[720px]\">"
+    },
+    {
+      "id": "GEO-075",
+      "key": "frontend/src/features/reports/pages/ServiceRunReportPanel.tsx|42895b522bf7|line-48|min-w|1240px|1",
+      "path": "frontend/src/features/reports/pages/ServiceRunReportPanel.tsx",
+      "line": 48,
+      "axis": "min-width",
+      "value": "1240px",
+      "anchorHash": "42895b522bf7",
+      "applicability": [
+        "DEFAULT"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "{({ columns }) => <table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[1240px]\">"
+    },
+    {
+      "id": "GEO-076",
+      "key": "frontend/src/features/warehouse/pages/WarehousePage.tsx|35026fa82215|line-432|min-h|420px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePage.tsx",
+      "line": 432,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "35026fa82215",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<div className={`${typography.body} relative min-h-[420px]`} aria-busy={isViewPending} aria-live=\"polite\">"
+    },
+    {
+      "id": "GEO-077",
+      "key": "frontend/src/features/warehouse/pages/WarehousePage.tsx|2522ec8bda63|line-463|min-h|420px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePage.tsx",
+      "line": 463,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "2522ec8bda63",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<Suspense fallback={<div aria-busy=\"true\" className=\"min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none\" />}>"
+    },
+    {
+      "id": "GEO-078",
+      "key": "frontend/src/features/warehouse/pages/WarehousePage.tsx|2522ec8bda63|line-505|min-h|420px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePage.tsx",
+      "line": 505,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "2522ec8bda63",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<Suspense fallback={<div aria-busy=\"true\" className=\"min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none\" />}>"
+    },
+    {
+      "id": "GEO-079",
+      "key": "frontend/src/features/warehouse/pages/WarehousePage.tsx|3f7ea4a28a00|line-517|min-h|420px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePage.tsx",
+      "line": 517,
+      "axis": "min-height",
+      "value": "420px",
+      "anchorHash": "3f7ea4a28a00",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "? <Suspense fallback={<div aria-busy=\"true\" className=\"min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none\" />}><ReconciliationWarehousePage /></Suspense>"
+    },
+    {
+      "id": "GEO-080",
+      "key": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx|03fe3597d322|line-57|min-w|1060px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "line": 57,
+      "axis": "min-width",
+      "value": "1060px",
+      "anchorHash": "03fe3597d322",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[1060px] !table-auto\">"
+    },
+    {
+      "id": "GEO-081",
+      "key": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx|ddccc63b2a6c|line-60|min-w|280px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "line": 60,
+      "axis": "min-width",
+      "value": "280px",
+      "anchorHash": "ddccc63b2a6c",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th className=\"min-w-[280px]\">Đơn mua</th>"
+    },
+    {
+      "id": "GEO-082",
+      "key": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx|2fb5eb0511ca|line-61|min-w|160px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "line": 61,
+      "axis": "min-width",
+      "value": "160px",
+      "anchorHash": "2fb5eb0511ca",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th className=\"min-w-[160px]\">Nhà cung cấp</th>"
+    },
+    {
+      "id": "GEO-083",
+      "key": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx|058909ce4111|line-62|min-w|220px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "line": 62,
+      "axis": "min-width",
+      "value": "220px",
+      "anchorHash": "058909ce4111",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th className=\"min-w-[220px]\">Đề xuất mua</th>"
+    },
+    {
+      "id": "GEO-084",
+      "key": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx|a42a4908c0b1|line-63|min-w|140px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "line": 63,
+      "axis": "min-width",
+      "value": "140px",
+      "anchorHash": "a42a4908c0b1",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th className=\"min-w-[140px]\">Trạng thái</th>"
+    },
+    {
+      "id": "GEO-085",
+      "key": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx|c0c8201d91c8|line-64|min-w|130px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "line": 64,
+      "axis": "min-width",
+      "value": "130px",
+      "anchorHash": "c0c8201d91c8",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th className=\"min-w-[130px]\">Tiến độ dòng</th>"
+    },
+    {
+      "id": "GEO-086",
+      "key": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx|6bac56ed3f42|line-65|min-w|130px|1",
+      "path": "frontend/src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "line": 65,
+      "axis": "min-width",
+      "value": "130px",
+      "anchorHash": "6bac56ed3f42",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<th className=\"min-w-[130px] text-right\">Thao tác</th>"
+    },
+    {
+      "id": "GEO-087",
+      "key": "frontend/src/features/warehouse/PurchaseOrderLineGroups.tsx|6ee663fe09b1|line-60|min-w|900px|1",
+      "path": "frontend/src/features/warehouse/PurchaseOrderLineGroups.tsx",
+      "line": 60,
+      "axis": "min-width",
+      "value": "900px",
+      "anchorHash": "6ee663fe09b1",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]\">"
+    },
+    {
+      "id": "GEO-088",
+      "key": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx|d7cc0d6e96e4|line-293|min-w|980px|1",
+      "path": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx",
+      "line": 293,
+      "axis": "min-width",
+      "value": "980px",
+      "anchorHash": "d7cc0d6e96e4",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[980px]\">"
+    },
+    {
+      "id": "GEO-089",
+      "key": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx|be5645f17f59|line-311|min-w|250px|1",
+      "path": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx",
+      "line": 311,
+      "axis": "min-width",
+      "value": "250px",
+      "anchorHash": "be5645f17f59",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "RESPONSIVE_WORKAROUND",
+      "reason": "Row action group minimum keeps its visible controls together inside the table scroll owner.",
+      "sourceExcerpt": "<div className=\"flex min-w-[250px] justify-end flex-wrap gap-2\">"
+    },
+    {
+      "id": "GEO-090",
+      "key": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx|454a879a3ee8|line-330|min-w|1120px|1",
+      "path": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx",
+      "line": 330,
+      "axis": "min-width",
+      "value": "1120px",
+      "anchorHash": "454a879a3ee8",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[1120px]\">"
+    },
+    {
+      "id": "GEO-091",
+      "key": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx|34ebf2aa8534|line-351|min-w|820px|1",
+      "path": "frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx",
+      "line": 351,
+      "axis": "min-width",
+      "value": "820px",
+      "anchorHash": "34ebf2aa8534",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[820px]\">"
+    },
+    {
+      "id": "GEO-092",
+      "key": "frontend/src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx|eca8e8cc01f5|line-214|min-h|20rem|1",
+      "path": "frontend/src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx",
+      "line": 214,
+      "axis": "min-height",
+      "value": "20rem",
+      "anchorHash": "eca8e8cc01f5",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "sourceExcerpt": "className={cn(typography.body, 'mt-4 grid min-h-[20rem] content-start gap-3')}"
+    },
+    {
+      "id": "GEO-093",
+      "key": "frontend/src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx|a79a4770f09f|line-229|min-w|760px|1",
+      "path": "frontend/src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx",
+      "line": 229,
+      "axis": "min-width",
+      "value": "760px",
+      "anchorHash": "a79a4770f09f",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Data-table/cell horizontal geometry; measured through its scroll owner.",
+      "sourceExcerpt": "<table className=\"ipc-data-table min-w-[760px]\">"
+    },
+    {
+      "id": "GEO-094",
+      "key": "frontend/src/routes/AppRouter.tsx|a3567dea8aef|line-33|min-h|580px|1",
+      "path": "frontend/src/routes/AppRouter.tsx",
+      "line": 33,
+      "axis": "min-height",
+      "value": "580px",
+      "anchorHash": "a3567dea8aef",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "className=\"ipc-operational-frame min-h-[580px]\""
+    },
+    {
+      "id": "GEO-095",
+      "key": "frontend/src/routes/AppRouter.tsx|d4c165002038|line-42|min-h|380px|1",
+      "path": "frontend/src/routes/AppRouter.tsx",
+      "line": 42,
+      "axis": "min-height",
+      "value": "380px",
+      "anchorHash": "d4c165002038",
+      "applicability": [
+        "DEFAULT",
+        "MATERIAL_RECONCILIATION"
+      ],
+      "disposition": "PURPOSEFUL_CONSTRAINT",
+      "reason": "Initial lazy/loading geometry is paired with an explicit pending state.",
+      "sourceExcerpt": "<div className=\"min-h-[380px] rounded-lg border border-slate-200 bg-white p-4 space-y-3\">"
+    }
+  ]
+}

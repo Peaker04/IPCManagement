@@ -13,6 +13,12 @@ public partial class PurchaseOrder
 
     public byte[] SupplierId { get; set; } = null!;
 
+    public byte[]? ReceivingWarehouseId { get; set; }
+
+    public string? PurchasingTerms { get; set; }
+
+    public DateOnly? ProposedDeliveryDate { get; set; }
+
     public DateOnly OrderDate { get; set; }
 
     public string Status { get; set; } = "ORDERED";

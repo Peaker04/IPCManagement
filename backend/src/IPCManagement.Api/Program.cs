@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
@@ -8,11 +7,11 @@ using IPCManagement.Api.HealthChecks;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.OpenApi;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -55,38 +54,8 @@ Log.Logger = loggerConfiguration.CreateLogger();
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
-// ── Forwarded headers ───────────────────────────────────────────────────────
-// API chạy sau reverse proxy: không đọc X-Forwarded-For thì rate limiter phân partition theo IP
-// của proxy, nghĩa là toàn hệ thống dùng chung một hạn mức.
-var knownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()
-    ?? Array.Empty<string>();
-
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-
-    // Mặc định ASP.NET Core chỉ tin proxy loopback; xóa allowlist để header từ proxy thật được đọc.
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
-
-    foreach (var proxy in knownProxies)
-    {
-        if (IPAddress.TryParse(proxy, out var proxyAddress))
-        {
-            options.KnownProxies.Add(proxyAddress);
-        }
-    }
-});
-
-if (knownProxies.Length == 0)
-{
-    Log.Warning("ForwardedHeaders:KnownProxies chưa cấu hình — API tin mọi X-Forwarded-For. "
-        + "Chỉ an toàn khi API luôn nằm sau reverse proxy tin cậy.");
-}
-
 // ── Cookie policy ───────────────────────────────────────────────────────────
-// Ngoài Development, cookie refresh-token bắt buộc có cờ Secure. Ép ở đây thay vì để controller
-// tự quyết theo Request.IsHttps, vì sau proxy TLS-terminating thì IsHttps có thể là false.
+// Ngoài Development, cookie refresh-token bắt buộc có cờ Secure dù controller nhận request nào.
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Unspecified;   // giữ nguyên SameSite controller đặt
@@ -98,6 +67,7 @@ builder.Services.Configure<CookiePolicyOptions>(options =>
 DeploymentConfigurationValidator.Validate(builder.Configuration, builder.Environment);
 
 builder.Services.AddBackendServices(builder.Configuration);
+builder.Services.AddScoped<IOperationalWarehouseResolver, OperationalWarehouseResolver>();
 
 builder.Services.AddOptions<JwtSettings>()
     .Bind(builder.Configuration.GetSection(JwtSettings.SectionName))
@@ -166,11 +136,15 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CoordinationRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryRoles));
+    options.AddPolicy(AuthorizationPolicies.InventoryReceiptReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryReceiptReadRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryApproveAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryApproveRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryIssueAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(
             AuthorizationPolicies.InventoryRoles.Concat(AuthorizationPolicies.ProductionRoles).ToArray()));
+    options.AddPolicy(AuthorizationPolicies.SupplementalMaterialRequestReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.SupplementalMaterialRequestReadRoles));
     options.AddPolicy(AuthorizationPolicies.ProductionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ProductionRoles));
     options.AddPolicy(AuthorizationPolicies.DemandGenerateAccess, policy =>
@@ -185,8 +159,16 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseCatalogAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseCatalogRoles));
+    options.AddPolicy(AuthorizationPolicies.WarehouseSelectorAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseSelectorRoles));
     options.AddPolicy(AuthorizationPolicies.WarehousePurchaseReceive, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehousePurchaseReceiveRoles));
+    options.AddPolicy(AuthorizationPolicies.ReportAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReportRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationDispositionAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationDecisionRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationCompleteAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationDecisionRoles));
 });
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -227,10 +209,15 @@ builder.Services.AddHealthChecks()
         failureStatus: HealthStatus.Unhealthy,
         tags: new[] { "ready" },
         timeout: TimeSpan.FromSeconds(5))
-    // Degraded chứ không Unhealthy: thiếu migration không làm API mất khả năng phục vụ,
-    // đừng để loadbalancer rút API khỏi vòng vì nó. Xem MigrationHealthCheck.
+    // Schema cũ có thể thiếu bảng/cột mà model hiện hành luôn query. Chặn readiness để
+    // traffic không lọt vào runtime không tương thích và biến thành chuỗi endpoint 500.
     .AddCheck<MigrationHealthCheck>(
         "migrations",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "ready" },
+        timeout: TimeSpan.FromSeconds(5))
+    .AddCheck<LifecycleOutboxHealthCheck>(
+        "lifecycle-outbox",
         failureStatus: HealthStatus.Degraded,
         tags: new[] { "ready" },
         timeout: TimeSpan.FromSeconds(5));
@@ -287,15 +274,8 @@ builder.Services.AddRateLimiter(opts =>
             QueueLimit = 10
         }));
 
-    // Trả về JSON khi bị từ chối
-    opts.OnRejected = async (context, _) =>
-    {
-        context.HttpContext.Response.StatusCode  = StatusCodes.Status429TooManyRequests;
-        context.HttpContext.Response.ContentType = "application/json";
-        await context.HttpContext.Response.WriteAsync(
-            """{"success":false,"message":"Quá nhiều yêu cầu. Vui lòng thử lại sau."}""")
-            .ConfigureAwait(false);
-    };
+    opts.OnRejected = (context, cancellationToken) =>
+        RateLimitRejectionWriter.WriteAsync(context.HttpContext, context.Lease, cancellationToken);
 });
 
 static string GetRateLimitPartitionKey(HttpContext context)
@@ -312,9 +292,13 @@ static string GetRateLimitPartitionKey(HttpContext context)
 
 var app = builder.Build();
 
-// PHẢI đứng đầu pipeline: mọi middleware phía sau (HttpsRedirection, rate limiter phân partition
-// theo IP, log request) đều cần RemoteIpAddress/Scheme đã được sửa lại theo header của proxy.
-app.UseForwardedHeaders();
+await using (var startupScope = app.Services.CreateAsyncScope())
+{
+    var operationalWarehouseResolver = startupScope.ServiceProvider
+        .GetRequiredService<IOperationalWarehouseResolver>();
+    await DeploymentConfigurationValidator.ValidateOperationalWarehouseAsync(
+        operationalWarehouseResolver);
+}
 
 // ── Security headers ────────────────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
@@ -377,43 +361,11 @@ app.MapGet("/", () =>
 
 // ── Health endpoints ────────────────────────────────────────────────────────
 // Probe phải luôn trả lời được kể cả khi hạn mức đã cạn → DisableRateLimiting.
-app.MapHealthChecks("/health/live", new HealthCheckOptions
-{
-    Predicate = registration => registration.Tags.Contains("live"),
-    ResponseWriter = WriteHealthCheckResponseAsync
-}).DisableRateLimiting().AllowAnonymous();
+app.MapHealthChecks("/health/live", HealthEndpointOptions.CreateLive())
+    .DisableRateLimiting().AllowAnonymous();
 
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
-{
-    Predicate = registration => registration.Tags.Contains("ready"),
-    ResponseWriter = WriteHealthCheckResponseAsync
-}).DisableRateLimiting().AllowAnonymous();
-
-// Healthy/Degraded → 200, Unhealthy → 503 (mặc định của HealthCheckOptions.ResultStatusCodes).
-static Task WriteHealthCheckResponseAsync(HttpContext context, HealthReport report)
-{
-    context.Response.ContentType = "application/json";
-
-    var payload = new
-    {
-        status = report.Status.ToString(),
-        totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 1),
-        checks = report.Entries.Select(entry => new
-        {
-            name = entry.Key,
-            status = entry.Value.Status.ToString(),
-            description = entry.Value.Description,
-            durationMs = Math.Round(entry.Value.Duration.TotalMilliseconds, 1)
-        })
-    };
-
-    return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(
-        payload,
-        new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-        }));
-}
+app.MapHealthChecks("/health/ready", HealthEndpointOptions.CreateReady())
+    .DisableRateLimiting().AllowAnonymous();
 
 app.UseResponseCompression();
 app.UseHttpsRedirection();
@@ -422,6 +374,8 @@ app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
+
+await WarmAuthPathAsync(app.Services);
 
 app.Lifetime.ApplicationStarted.Register(() =>
 {
@@ -437,6 +391,52 @@ app.Lifetime.ApplicationStarted.Register(() =>
         }
     }
 });
+
+static async Task WarmAuthPathAsync(IServiceProvider services)
+{
+    var startedAt = System.Diagnostics.Stopwatch.StartNew();
+    try
+    {
+        await using var scope = services.CreateAsyncScope();
+        var userRepository = scope.ServiceProvider.GetRequiredService<
+            IPCManagement.Api.Data.Repositories.IUserRepository>();
+        var tokenService = scope.ServiceProvider.GetRequiredService<
+            IPCManagement.Api.Features.Auth.Services.ITokenService>();
+
+        // Compile the login query/provider path without reading a real account.
+        await userRepository.FindByUsernameAsync($"__auth_warmup_{Guid.NewGuid():N}");
+
+        // JIT token and response serialization paths without creating a session or DB row.
+        var warmupUser = new IPCManagement.Api.Features.Auth.Contracts.UserInfoDto
+        {
+            UserId = Guid.Empty.ToString(),
+            Username = "warmup",
+            FullName = "warmup",
+            RoleCode = "WARMUP",
+            RoleName = "Warmup",
+            IsActive = false
+        };
+        var warmupResponse = new IPCManagement.Api.Features.Auth.Contracts.LoginResponseDto
+        {
+            AccessToken = tokenService.GenerateAccessToken(
+                warmupUser.UserId,
+                warmupUser.Username,
+                warmupUser.FullName,
+                warmupUser.RoleName),
+            User = warmupUser
+        };
+        _ = System.Text.Json.JsonSerializer.Serialize(
+            ApiResponse<IPCManagement.Api.Features.Auth.Contracts.LoginResponseDto>
+                .SuccessResult(warmupResponse));
+
+        Log.Information("Auth cold path warmed in {ElapsedMs} ms", startedAt.Elapsed.TotalMilliseconds);
+    }
+    catch (Exception ex)
+    {
+        // Readiness remains authoritative. A transient DB outage must not hide the real health status.
+        Log.Warning(ex, "Auth cold-path warmup failed; readiness will report database state");
+    }
+}
 
 try
 {

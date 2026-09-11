@@ -1,22 +1,36 @@
-import { SectionPanel, StockMovementTable } from '@/components/common';
-import { toNextReportCursor } from '@/api/workflowApi';
+import { KeepAliveTabPanel, SearchField, SectionPanel } from '@/components/common';
+import { StockMovementTable } from '@/components/common/StockMovementTable';
+import { toNextReportCursor } from '@/api/workflowApiTypes';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminInventoryPanelProps = { model: AdminDataPageModel };
 
 export function AdminInventoryPanel({ model }: AdminInventoryPanelProps) {
-  const { adjustmentMovements, effectiveActiveView, queryViews, setStockMovementCursors, stockMovementCursors, stockMovementResult } = model;
+  const { adjustmentMovements, effectiveActiveView, inventoryMovementSearch, queryViews, setInventoryMovementSearch, setStockMovementCursors, stockMovementCursors, stockMovementResult } = model;
   return (
-    <>
-      {effectiveActiveView === 'inventory' && (
-        <SectionPanel title="Điều chỉnh tồn và thông báo">
-          <div id="admin-inventory-panel" role="tabpanel" aria-labelledby="admin-inventory-tab">
-          <AdminQueryBoundary queries={[
-            { label: 'tồn kho hiện tại', view: queryViews.currentStock },
-            { label: 'lịch sử điều chỉnh tồn', view: queryViews.stockMovements },
-          ]}>
-            <StockMovementTable
+    <KeepAliveTabPanel id="admin-inventory" active={effectiveActiveView === 'inventory'} className="flex flex-col gap-4">
+      <SectionPanel
+        title="Điều chỉnh tồn và thông báo"
+        description="Theo dõi lịch sử các bút toán điều chỉnh tồn kho và số lượng tồn hiện hành."
+        actions={
+          <SearchField
+            id="admin-inventory-movement-search"
+            label="Tìm bút toán điều chỉnh tồn"
+            hideLabel
+            width="compact"
+            value={inventoryMovementSearch}
+            onChange={(event) => setInventoryMovementSearch(event.target.value)}
+            placeholder="Tìm kho, nguyên liệu, lý do..."
+            inputClassName="bg-slate-50 text-xs focus:bg-white"
+          />
+        }
+      >
+        <AdminQueryBoundary queries={[
+          { label: 'tồn kho hiện tại', view: queryViews.currentStock },
+          { label: 'lịch sử điều chỉnh tồn', view: queryViews.stockMovements },
+        ]}>
+          <StockMovementTable
             movements={adjustmentMovements}
             cursorPagination={{
               page: stockMovementCursors.length + 1,
@@ -29,13 +43,9 @@ export function AdminInventoryPanel({ model }: AdminInventoryPanelProps) {
               },
               ariaLabel: 'Phân trang lịch sử điều chỉnh tồn',
             }}
-            />
-          </AdminQueryBoundary>
-          </div>
-        </SectionPanel>
-      )}
-
-
-    </>
+          />
+        </AdminQueryBoundary>
+      </SectionPanel>
+    </KeepAliveTabPanel>
   );
 }

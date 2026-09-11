@@ -45,6 +45,11 @@
   background: #fbfdff;
 }
 
+.ipc-redesign-shell .ipc-advanced-settings-link {
+  border-color: #b9cee9;
+  background: #fbfdff;
+}
+
 .ipc-redesign-shell .ipc-logout-button {
   min-height: 38px;
   border-color: #fecaca;
@@ -75,7 +80,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1023px) {
   .ipc-redesign-shell .ipc-brand {
     min-height: 56px;
     padding: 10px 12px;
@@ -112,52 +117,26 @@
 
 }
 
-.ipc-table-shell,
 .ipc-table-viewport {
-  height: auto;
-}
-
-.ipc-table-viewport {
-  scrollbar-gutter: stable;
+  scrollbar-gutter: auto;
   min-height: 96px;
-  max-height: 520px;
+  max-height: none;
   border: 1px solid var(--ipc-border, #e2e8f0);
   border-radius: 0.375rem;
   background: #fff;
 }
 
-.ipc-table-viewport td[class~="h-[320px]"] {
-  height: 120px;
+/* Reconciliation schedule is the primary work surface: use the remaining viewport instead of
+   forcing an internal 520px scroll area followed by unused page space. */
+.ipc-table-viewport.ipc-weekly-menu-shell--viewport-fill {
+  max-height: calc(100dvh - 17rem);
 }
 
-.ipc-table-viewport[class~="max-h-[260px]"] {
-  max-height: 260px;
-}
-
-.ipc-table-viewport[class~="max-h-[300px]"] {
-  max-height: 300px;
-}
-
-.ipc-table-viewport[class~="max-h-[320px]"] {
-  max-height: 320px;
-}
-
-.ipc-table-viewport[class~="max-h-[360px]"] {
-  max-height: 360px;
-}
-
-.ipc-table-viewport[class~="max-h-[400px]"] {
-  max-height: 400px;
-}
-
-.ipc-table-viewport[class~="max-h-[440px]"] {
-  max-height: 440px;
-}
-
-@media (min-width: 1280px) {
-  .ipc-table-viewport[class~="xl:max-h-[480px]"] {
-    max-height: 480px;
-  }
+/* Page-flow tables grow with their content so the page owns vertical scrolling.
+   The viewport remains the horizontal overflow boundary for wide ERP columns. */
+.ipc-table-viewport.ipc-table-viewport--page-flow {
+  max-height: none;
+  scrollbar-gutter: auto;
 }
 
 .ipc-warehouse-actions,
@@ -229,6 +208,7 @@
   z-index: 1;
   background: var(--ipc-slate-50);
 }
+
 
 @media (max-width: 767px) {
   .ipc-table-viewport {

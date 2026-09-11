@@ -208,7 +208,7 @@ chuẩn thay thế.
 | Giữ nguyên | Nó đang gánh việc gì |
 |---|---|
 | **CI step `Check EF migration snapshot`** (`has-pending-model-changes`) | Bắt drift giữa model và migration |
-| **Hai CI step B13**: replay migration trên MySQL thật + so schema migration với schema model | Trước 27/07 **không migration viết tay nào từng chạy trong CI**. Xem `docs/CURRENT-STATE.md` |
+| **Hai CI step B13**: replay migration trên MySQL thật + so schema migration với schema model | Bối cảnh lịch sử nằm trong `HISTORY.md`; bài học bất biến nằm trong `LESSONS.md`. |
 | **Chốt an toàn đầu `backend/database/IPCmanagement.sql`** (bảng `TEMPORARY` + va chạm PRIMARY KEY) | Chặn đúng thứ đã xoá sạch database chính ngày 26/07. Bỏ nó ra là mở lại đường đó |
 | **`--set-gtid-purged=OFF`** trong mọi `mysqldump` | Thiếu nó thì restore vào máy đang bật GTID sẽ hỏng |
 | **`MigrationHealthCheck` trả `Degraded`, không phải `Unhealthy`** | Cố ý: thiếu migration không làm API mất khả năng phục vụ, đừng để loadbalancer rút API khỏi vòng |
@@ -219,4 +219,4 @@ chuẩn thay thế.
 `Migrations/` chứa file mà quy ước đặt tên chung không áp dụng: một số migration viết tay có
 `[Migration]` inline thay vì `.Designer.cs`. **Không dọn cho "nhất quán"** — và tuyệt đối không chạy
 `dotnet ef migrations remove` khi migration cuối thiếu `.Designer.cs` (EF sẽ reset model snapshot gần
-như rỗng). Lý do đầy đủ ở `docs/CURRENT-STATE.md`, mục "Ba cái bẫy phải nhớ khi đụng vào migration".
+như rỗng). Lý do và quy tắc bắt buộc ở `LESSONS.md`, mục "Ba bẫy migration".

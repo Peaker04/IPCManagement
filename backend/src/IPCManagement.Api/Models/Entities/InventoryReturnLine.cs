@@ -13,11 +13,15 @@ public partial class InventoryReturnLine
 
     public byte[] UnitId { get; set; } = null!;
 
+    public byte[]? SourceIssueLineId { get; set; }
+
     public decimal Quantity { get; set; }
 
     public virtual Ingredient Ingredient { get; set; } = null!;
 
     public virtual InventoryReturn Return { get; set; } = null!;
+
+    public virtual InventoryIssueLine? SourceIssueLine { get; set; }
 
     public virtual Unit Unit { get; set; } = null!;
 }

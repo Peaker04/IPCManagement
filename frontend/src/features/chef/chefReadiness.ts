@@ -1,4 +1,4 @@
-import type { ProductionPlanLine } from '@/api/workflowApi';
+import type { ProductionPlanLine } from '@/api/workflowApiTypes';
 
 export type ChefReadiness = {
   variant: 'success' | 'warning' | 'neutral';

@@ -8,6 +8,8 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal static class WeeklyMenuWorkbookParser
 {
+    internal const string ParserVersion = "canonical-three-tier-v1";
+
     internal static WeeklyMenuImportPlan Parse(
         XlsxWorkbookReader reader,
         string workbookPath,
@@ -34,11 +36,12 @@ internal static class WeeklyMenuWorkbookParser
             : sheetCandidates
                 .Where(candidate => SheetNameMatchesPriceTier(candidate.SheetName, priceTierAmount.Value))
                 .ToList();
-        var candidatePool = sheetsMatchingPriceTier.Count > 0
-            ? sheetsMatchingPriceTier
-            : sheetsMatchingHint.Count > 0
-                ? sheetsMatchingHint
-                : sheetCandidates;
+        var candidatePool = ResolveCandidatePool(
+            sheetCandidates,
+            sheetsMatchingHint,
+            sheetsMatchingPriceTier,
+            mapping?.SheetNameHint,
+            priceTierAmount);
         var best = candidatePool.OrderByDescending(candidate => candidate.Score).FirstOrDefault();
         if (best is null || best.Score < 20)
         {
@@ -78,10 +81,9 @@ internal static class WeeklyMenuWorkbookParser
         {
             if (priceTierAmount is not null)
             {
-                var fallbackPlan = Parse(reader, workbookPath, originalFileName, weekStartFallback, mapping, null);
-                fallbackPlan.Warnings.Add(
-                    $"Sheet {best.SheetName} chưa có món; dùng menu dùng chung từ sheet {fallbackPlan.SheetName} và áp dụng định lượng tier {priceTierAmount:0}.");
-                return fallbackPlan;
+                throw new BusinessRuleException(
+                    $"Sheet {best.SheetName} cho định mức {priceTierAmount / 1000m:0}k chưa có món. " +
+                    "Mỗi khách hàng trong một tuần chỉ được nhập dữ liệu vào đúng sheet đơn giá đã chọn.");
             }
 
             throw new BusinessRuleException("File Excel không có dòng món ăn hợp lệ để import.");
@@ -91,13 +93,34 @@ internal static class WeeklyMenuWorkbookParser
         return plan;
     }
 
+    private static IReadOnlyList<SheetCandidate> ResolveCandidatePool(
+        IReadOnlyList<SheetCandidate> sheetCandidates,
+        IReadOnlyList<SheetCandidate> sheetsMatchingHint,
+        IReadOnlyList<SheetCandidate> sheetsMatchingPriceTier,
+        string? sheetNameHint,
+        decimal? priceTierAmount)
+    {
+        if (priceTierAmount is not null)
+        {
+            if (sheetsMatchingPriceTier.Count == 0)
+            {
+                throw new BusinessRuleException(
+                    $"File Excel không có sheet cho định mức {priceTierAmount / 1000m:0}k.");
+            }
+
+            return sheetsMatchingPriceTier;
+        }
+
+        return sheetsMatchingHint.Count > 0 ? sheetsMatchingHint : sheetCandidates;
+    }
+
     private static bool SheetNameMatchesPriceTier(string sheetName, decimal priceTierAmount)
     {
-        var normalized = WeeklyMenuWorkbookSyntaxPolicy.NormalizeText(sheetName);
+        var normalized = WeeklyMenuWorkbookSyntaxPolicy.NormalizeText(sheetName).Trim();
         var rounded = DecimalPolicy.RoundMoney(priceTierAmount);
         var tierInThousands = rounded / 1000m;
-        return normalized.Contains(rounded.ToString("0", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase) ||
-               normalized.Contains($"{tierInThousands:0}K", StringComparison.OrdinalIgnoreCase);
+        return string.Equals(normalized, rounded.ToString("0", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(normalized, $"{tierInThousands:0}K", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int ScoreMenuSheet(
@@ -108,6 +131,11 @@ internal static class WeeklyMenuWorkbookParser
             .Contains("MENU", StringComparison.OrdinalIgnoreCase) ? 8 : 0;
         foreach (var value in rows.Take(80).SelectMany(row => row.Values))
         {
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                score += 1;
+            }
+
             if (WeeklyMenuWorkbookSyntaxPolicy.IsSection(value))
             {
                 score += 15;

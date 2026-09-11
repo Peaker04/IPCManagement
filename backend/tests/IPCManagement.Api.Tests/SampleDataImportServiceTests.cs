@@ -1,3 +1,5 @@
+using NSubstitute;
+using IPCManagement.Api.Features.Inventory.Services;
 
 using System.IO.Compression;
 using System.Reflection;
@@ -12,6 +14,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IPCManagement.Api.Tests;
 
@@ -20,7 +23,7 @@ public class SampleDataImportServiceTests
     [Fact]
     public void EnsureBomLine_Should_KeepPresetPriceTiersSeparate()
     {
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureBomLine",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -61,7 +64,7 @@ public class SampleDataImportServiceTests
         };
         var dishes = new List<Dish> { existing };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureDish",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -95,7 +98,7 @@ public class SampleDataImportServiceTests
         };
         var ingredients = new List<Ingredient> { existing };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureIngredient",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -123,7 +126,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
         var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
@@ -183,7 +186,7 @@ public class SampleDataImportServiceTests
         };
         var ingredients = new List<Ingredient> { ingredient };
         var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
-        var service = new SampleBomImportService(null!, null!);
+        var service = new SampleBomImportService(null!, null!, CreateOperationalWarehouseResolver(null!));
         var method = typeof(SampleBomImportService).GetMethod(
             "EnsureIngredient",
             BindingFlags.NonPublic | BindingFlags.Instance);
@@ -207,7 +210,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
         var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
@@ -244,7 +247,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
 
         var result = await service.ImportAsync(new SampleDataImportRequest
@@ -256,7 +259,7 @@ public class SampleDataImportServiceTests
 
         result.DryRun.Should().BeTrue();
         result.Counts.BomLinesCreated.Should().BeGreaterThan(0);
-        (await context.Warehouses.CountAsync()).Should().Be(0);
+        (await context.Warehouses.CountAsync()).Should().Be(1);
         (await context.Units.CountAsync()).Should().Be(0);
         (await context.Suppliers.CountAsync()).Should().Be(0);
         (await context.Ingredients.CountAsync()).Should().Be(0);
@@ -274,7 +277,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
-        var service = new SampleBomImportService(context, null!);
+        var service = new SampleBomImportService(context, null!, CreateOperationalWarehouseResolver(context));
         using var fixture = CreateSampleImportFixture();
         var request = new SampleDataImportRequest
         {
@@ -482,6 +485,7 @@ public class SampleDataImportServiceTests
             setup.CustomerIdString,
             new DateOnly(2026, 6, 15),
             25000m,
+            null,
             setup.UserIdString);
 
         await act.Should().ThrowAsync<BusinessRuleException>()
@@ -668,12 +672,15 @@ public class SampleDataImportServiceTests
         var resultBuilder = new WeeklyMenuImportResultBuilder(context);
         var actorResolver = new WeeklyMenuAuditActorResolver(context);
         var persistence = new WeeklyMenuImportPersistence(context, resultBuilder, actorResolver);
+        var cache = new MemoryCache(new MemoryCacheOptions());
         return new WeeklyMenuImportService(
             context,
             customerResolver,
             resultBuilder,
             persistence,
-            new EfTransactionRunner(context));
+            new WeeklyMenuImportPreviewTicketStore(cache),
+            new EfTransactionRunner(context),
+            cache);
     }
 
     private static async Task<WeeklyMenuImportContext> CreateWeeklyMenuImportContextAsync()
@@ -835,4 +842,23 @@ public class SampleDataImportServiceTests
         IpcManagementContext Context,
         string CustomerIdString,
         string UserIdString);
+    private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext? context)
+    {
+        var warehouseId = GuidHelper.NewId();
+        if (context is not null)
+        {
+            context.Warehouses.Add(new Warehouse
+            {
+                WarehouseId = warehouseId,
+                WarehouseCode = "WH-TEST-OP",
+                WarehouseName = "Kho vận hành test",
+                WarehouseType = "KHAC",
+            });
+            context.SaveChanges();
+        }
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(warehouseId);
+        return resolver;
+    }
+
 }

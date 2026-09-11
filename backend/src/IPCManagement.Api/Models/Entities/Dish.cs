@@ -17,6 +17,12 @@ public partial class Dish
 
     public bool? IsActive { get; set; }
 
+    public string? SourceImportBatch { get; set; }
+
+    public string? SourceFileName { get; set; }
+
+    public string? SourceChecksum { get; set; }
+
     public virtual ICollection<DishBom> Dishboms { get; set; } = new List<DishBom>();
 
     public virtual ICollection<MenuItem> Menuitems { get; set; } = new List<MenuItem>();

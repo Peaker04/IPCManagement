@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "routes": [
+    { "id": "dashboard", "entry": "src/features/dashboard/pages/DashboardPage.tsx", "gzipBytes": 203776 },
+    { "id": "weekly-menu", "entry": "src/features/projects/pages/WeeklyMenuPage.tsx", "gzipBytes": 281600 },
+    { "id": "reports", "entry": "src/features/reports/pages/ReportsPage.tsx", "gzipBytes": 258048 },
+    { "id": "coordination", "entry": "src/features/coordination/pages/CoordinationPage.tsx", "gzipBytes": 200704 },
+    { "id": "chef-dashboard", "entry": "src/features/chef/pages/ChefDashboardPage.tsx", "gzipBytes": 269312 },
+    { "id": "approval", "entry": "src/features/approvals/pages/ApprovalPage.tsx", "gzipBytes": 206848 },
+    { "id": "purchasing", "entry": "src/features/purchasing/pages/PurchasingPage.tsx", "gzipBytes": 261120 },
+    { "id": "warehouse", "entry": "src/features/warehouse/pages/WarehousePage.tsx", "gzipBytes": 263168 },
+    { "id": "admin-data", "entry": "src/app/pages/AdminDataPage.tsx", "gzipBytes": 265216 },
+    { "id": "approval-rules", "entry": "src/features/admin/pages/ApprovalRulesPage.tsx", "gzipBytes": 246784 }
+  ]
+}

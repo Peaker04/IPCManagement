@@ -5,6 +5,7 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Infrastructure.Lifecycle;
 
 using IPCManagement.Api.Exceptions;
 
@@ -35,28 +36,30 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
         }
 
         ApprovalResultDto? transactionResult = null;
-        return await _transactionRunner.ExecuteAsync(
-            async _ =>
+        async Task<ApprovalResultDto?> ExecuteAsync(CancellationToken _)
+        {
+            transactionResult = await HandleCoreAsync(entityId, request, actorId);
+            if (transactionResult is null)
             {
-                transactionResult = await HandleCoreAsync(entityId, request, actorId);
-                if (transactionResult is null)
-                {
-                    return null;
-                }
+                return null;
+            }
 
-                await Context.SaveChangesAsync();
-                return transactionResult;
-            },
-            async cancellationToken =>
-            {
-                var historyId = GuidHelper.ParseGuidString(transactionResult?.HistoryId);
-                return historyId is not null &&
-                       await Context.Approvalhistories
-                           .AsNoTracking()
-                           .AnyAsync(
-                               history => history.ApprovalHistoryId == historyId,
-                               cancellationToken);
-            });
+            await Context.SaveChangesAsync();
+            return transactionResult;
+        }
+
+        async Task<bool> VerifySucceededAsync(CancellationToken cancellationToken)
+        {
+            var historyId = GuidHelper.ParseGuidString(transactionResult?.HistoryId);
+            return historyId is not null &&
+                   await Context.Approvalhistories
+                       .AsNoTracking()
+                       .AnyAsync(
+                           history => history.ApprovalHistoryId == historyId,
+                           cancellationToken);
+        }
+
+        return await _transactionRunner.ExecuteAsync(ExecuteAsync, VerifySucceededAsync);
     }
 
     protected abstract Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId);
@@ -71,7 +74,8 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
     {
         var alreadyResolved = await Context.Approvalhistories
             .AsNoTracking()
-            .AnyAsync(item => item.TargetType == targetType && item.TargetId == targetId);
+            .AnyAsync(item => item.TargetType == targetType && item.TargetId == targetId &&
+                (item.Decision == "APPROVE" || item.Decision == "REJECT"));
         if (alreadyResolved)
         {
             throw new BusinessRuleException("Phiếu này đã được xử lý.");
@@ -198,7 +202,8 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
 
         var existingHistory = await Context.Approvalhistories
             .AsNoTracking()
-            .SingleOrDefaultAsync(item => item.TargetType == TargetTypeName && item.TargetId == targetId);
+            .SingleOrDefaultAsync(item => item.TargetType == TargetTypeName && item.TargetId == targetId &&
+                (item.Decision == "APPROVE" || item.Decision == "REJECT"));
         if (existingHistory is not null)
         {
             var requestedDecision = request.Status.ToString().ToUpperInvariant();
@@ -260,7 +265,7 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
         };
 }
 
-public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<MaterialRequest>
+public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<MaterialRequest>, IApprovalTargetPersistenceHandler
 {
     private const string MaterialDemandTargetType = "material-demand";
     private const string PendingStatus = "DRAFT";
@@ -274,6 +279,15 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
         : base(context, transactionRunner) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.MaterialDemand;
+
+    async Task<ApprovalResultDto?> IApprovalTargetPersistenceHandler.StageAsync(
+        string targetId,
+        ApprovalRequest request,
+        byte[] actorId)
+    {
+        var entityId = GuidHelper.ParseGuidString(targetId);
+        return entityId is null ? null : await HandleCoreAsync(entityId, request, actorId);
+    }
 
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(
         byte[] targetId,
@@ -289,7 +303,8 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
 
         var existingHistory = await Context.Approvalhistories
             .AsNoTracking()
-            .Where(item => item.TargetType == MaterialDemandTargetType && item.TargetId == targetId)
+            .Where(item => item.TargetType == MaterialDemandTargetType && item.TargetId == targetId &&
+                (item.Decision == "APPROVE" || item.Decision == "REJECT"))
             .OrderBy(item => item.ActionAt)
             .FirstOrDefaultAsync();
         if (existingHistory is not null)
@@ -351,22 +366,47 @@ public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Invent
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId)
     {
         var receipt = await Context.Inventoryreceipts
-            .Include(item => item.PurchaseRequest)
             .FirstOrDefaultAsync(item => item.ReceiptId == targetId);
 
         if (receipt is null) return null;
 
-        var oldStatus = receipt.PurchaseRequest?.Status;
-        var newStatus = request.Status == ApprovalDecision.Approve ? "SENTTOWAREHOUSE" : "CANCELLED";
-
-        if (receipt.PurchaseRequest is not null)
+        if (receipt.Status != "PENDING_APPROVAL" || receipt.QualityStatus is not ("ACCEPTED" or "PARTIALLY_ACCEPTED"))
         {
-            receipt.PurchaseRequest.Status = newStatus;
-            receipt.PurchaseRequest.ApprovedBy = actorId;
-            receipt.PurchaseRequest.ApprovedAt = DateTime.UtcNow;
+            throw new BusinessRuleException("Chỉ phiếu nhập đã kiểm tra chất lượng và chờ duyệt mới được Quản lý quyết định.");
+        }
+        if (receipt.CreatedBy.SequenceEqual(actorId))
+        {
+            throw new BusinessRuleException("Người tạo phiếu nhập không được tự duyệt.");
         }
 
-        return await SaveHistoryAsync("inventory-receipt", targetId, request, actorId, oldStatus, newStatus);
+        var oldStatus = receipt.Status;
+        var newStatus = request.Status == ApprovalDecision.Approve ? "APPROVED" : "REJECTED";
+        receipt.Status = newStatus;
+        receipt.ConcurrencyVersion++;
+        if (request.Status == ApprovalDecision.Approve)
+        {
+            receipt.ManagerApprovedBy = actorId;
+            receipt.ManagerApprovedAt = DateTime.UtcNow;
+            receipt.ManagerApprovalReason = request.Reason;
+        }
+        else
+        {
+            receipt.RejectedBy = actorId;
+            receipt.RejectedAt = DateTime.UtcNow;
+            receipt.RejectionReason = request.Reason;
+            var activeLines = await Context.Purchasereceiptactivelines
+                .Where(item => item.ReceiptId == receipt.ReceiptId)
+                .ToListAsync();
+            Context.Purchasereceiptactivelines.RemoveRange(activeLines);
+        }
+
+        var result = await SaveHistoryAsync("inventory-receipt", targetId, request, actorId, oldStatus, newStatus);
+        new LifecycleTransitionRecorder(Context).Stage(new LifecycleTransitionRequest(
+            "Receipt", receipt.ReceiptId, result.HistoryId, checked((int)receipt.ConcurrencyVersion), oldStatus, newStatus,
+            actorId, receipt.ConcurrencyVersion - 1, request.Reason, result.HistoryId, null,
+            $"{{\"qualityStatus\":\"{receipt.QualityStatus}\"}}",
+            $"{{\"receiptId\":\"{GuidHelper.ToGuidString(receipt.ReceiptId)}\",\"status\":\"{newStatus}\"}}"));
+        return result;
     }
 }
 
@@ -384,9 +424,16 @@ public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventor
     {
         var issue = await Context.Inventoryissues
             .Include(item => item.MaterialRequest)
-            .FirstOrDefaultAsync(item => item.IssueId == targetId);
+            .Include(item => item.Inventoryissuelines)
+            .FirstOrDefaultAsync(item =>
+                item.IssueId == targetId &&
+                item.MaterialRequestId != null &&
+                item.ReconciliationBatchId == null &&
+                item.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId != null &&
+                    line.ReconciliationBatchLineId == null));
 
-        if (issue is null) return null;
+        if (issue?.MaterialRequest is null) return null;
 
         var oldStatus = issue.MaterialRequest.Status;
         var newStatus = request.Status == ApprovalDecision.Approve ? "CONFIRMED" : "REJECTED";

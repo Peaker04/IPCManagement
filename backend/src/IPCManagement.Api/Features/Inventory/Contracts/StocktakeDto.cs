@@ -38,8 +38,7 @@ public class StocktakeLineDto
 
 public class CreateStocktakeRequest
 {
-    [Required]
-    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseId { get; set; }
 
     public string? Notes { get; set; }
 

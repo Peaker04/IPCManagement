@@ -1,14 +1,17 @@
-import { ContextStrip, InlineAlert } from '@/components/common'
+import { ContextStrip, InlineAlert, StatusBadge } from '@/components/common'
+import { Button } from '@/components/ui/button'
+import { Link } from 'react-router-dom'
+import { ROUTES } from '@/lib/routeConfig'
 import { ImportedLayoutMatrix } from '../../components/ImportedLayoutMatrix'
 import { formatImportDate, getImportJobStatusLabel } from '../model/formatters'
-import { getImportJobStatusClass } from './importValidation'
+import { getImportJobStatusTone } from './importValidation'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 
 type Props = { workflow: WeeklyMenuImportWorkflow }
 
 export const WeeklyMenuImportReview = ({ workflow }: Props) => {
   const { selectedJob: job, presentation, status, actions } = workflow
-  const { activeDayKey, diffRows, displayDays, issues, layoutRows, preview, problemMessages, warningMessages, warningSummary } = presentation
+  const { activeDayKey, bomIssues, diffRows, displayDays, issues, layoutRows, preview, problemMessages, warningMessages, warningSummary } = presentation
   if (!job) return null
 
   return (
@@ -18,7 +21,7 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
           <h3 className="text-base font-bold text-slate-900">Kết quả kiểm tra {job.customerCode}</h3>
           <p className="text-sm font-medium text-slate-500">{job.fileName}</p>
         </div>
-        <span className={getImportJobStatusClass(job.status)}>{getImportJobStatusLabel(job.status)}</span>
+        <StatusBadge variant={getImportJobStatusTone(job.status)}>{getImportJobStatusLabel(job.status)}</StatusBadge>
       </div>
 
       {problemMessages.length > 0 && (
@@ -34,7 +37,7 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
         </InlineAlert>
       )}
 
-      {preview && (
+      {preview && preview.detectedLayout.dayColumns.length > 0 && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <ContextStrip
@@ -43,15 +46,17 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
                 { label: 'Số món đọc được', value: preview.detectedLayout.rowsImported.toString(), tone: 'success' },
               ]}
             />
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
+              textWrap="wrap"
               onClick={() => void actions.saveMapping()}
               disabled={status.isSavingMapping}
-              className="ipc-button ipc-button-ghost ipc-button-bounded"
               title="Ghi nhớ cách đọc file này cho khách hàng, dùng lại cho lần sau"
             >
               {status.isSavingMapping ? 'Đang ghi nhớ...' : 'Ghi nhớ cách đọc file'}
-            </button>
+            </Button>
           </div>
 
           {diffRows.length > 0 && (
@@ -67,6 +72,20 @@ export const WeeklyMenuImportReview = ({ workflow }: Props) => {
                 </ul>
                 {diffRows.length > 3 && <p className="font-medium">Còn {diffRows.length - 3} vị trí khác.</p>}
               </div>
+            </InlineAlert>
+          )}
+
+          {bomIssues.length > 0 && (
+            <InlineAlert title={`${bomIssues.length} món thiếu BOM hiệu lực`} variant="warning">
+              <p>Thực đơn có thể lưu nháp, nhưng chưa thể tạo nhu cầu nguyên liệu cho các món này.</p>
+              <ul className="mt-2 space-y-2">
+                {bomIssues.map((issue) => (
+                  <li key={issue.dishId} className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-amber-200 bg-white px-3 py-2">
+                    <span><strong>{issue.dishName}</strong> · {issue.affectedSlots} vị trí · {issue.serviceDates.length} ngày</span>
+                    <Link className="ipc-button ipc-button-ghost ipc-button-compact" to={`${ROUTES.ADMIN_DATA}?view=bom-import&dishId=${encodeURIComponent(issue.dishId)}&customerId=${encodeURIComponent(job.customerId)}&tier=${job.priceTierAmount}&date=${encodeURIComponent(issue.serviceDates[0] ?? job.weekStartDate)}`}>Bổ sung BOM</Link>
+                  </li>
+                ))}
+              </ul>
             </InlineAlert>
           )}
 

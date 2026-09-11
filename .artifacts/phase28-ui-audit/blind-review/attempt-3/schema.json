@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Phase 28 blind qualitative review output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reviewer",
+    "inputSha256",
+    "selectedCanonicalSha256",
+    "reviews"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "phase28-blind-review/v1"
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity",
+        "tool",
+        "model",
+        "invocationId",
+        "fresh",
+        "receivedOnlyInputAndSchema"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "invocationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fresh": {
+          "const": true
+        },
+        "receivedOnlyInputAndSchema": {
+          "const": true
+        }
+      }
+    },
+    "inputSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "selectedCanonicalSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "reviews": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identity",
+          "verdict",
+          "rule",
+          "expected",
+          "actual",
+          "severity",
+          "lowestOwner",
+          "confidence",
+          "evidenceReference"
+        ],
+        "properties": {
+          "identity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "verdict": {
+            "enum": [
+              "NEEDS_EVIDENCE",
+              "FAIL",
+              "UNRESOLVED"
+            ]
+          },
+          "rule": {
+            "const": "AI-QUAL-01"
+          },
+          "expected": {
+            "type": "string",
+            "minLength": 1
+          },
+          "actual": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "enum": [
+              "INFO",
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "lowestOwner": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "evidenceReference": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

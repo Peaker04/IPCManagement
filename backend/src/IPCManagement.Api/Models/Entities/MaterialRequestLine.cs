@@ -49,6 +49,8 @@ public partial class MaterialRequestLine
 
     public virtual ICollection<PurchaseRequestLine> Purchaserequestlines { get; set; } = new List<PurchaseRequestLine>();
 
+    public virtual ICollection<InventoryIssueLine> Inventoryissuelines { get; set; } = new List<InventoryIssueLine>();
+
     public virtual MaterialRequest Request { get; set; } = null!;
 
     public virtual Unit Unit { get; set; } = null!;

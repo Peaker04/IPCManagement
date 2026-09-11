@@ -1,5 +1,6 @@
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Shared.Contracts;
@@ -14,6 +15,7 @@ namespace IPCManagement.Api.Features.Reports.Controllers;
 [Tags("WorkflowReports")]
 [Authorize]
 [EnableRateLimiting("api-general")]
+[SystemOperation("admin-data.audit", OperationDisposition.Retained)]
 public class AuditReportsController : ControllerBase
 {
     private readonly IAuditReportService _reportService;

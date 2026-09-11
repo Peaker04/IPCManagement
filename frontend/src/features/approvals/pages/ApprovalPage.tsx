@@ -1,46 +1,61 @@
-import { useEffect, useRef, useState } from 'react';
-import { ClipboardCheck, FileCheck2, RotateCcw, Clock, ArrowRight } from 'lucide-react';
+import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from 'react';
+import { ClipboardCheck, FileCheck2, RotateCcw } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
-import {
-  CommandBar,
-  ContextStrip,
-  InlineAlert,
-  OperationalFrame,
-  QueryErrorAlert,
-  SectionPanel,
-  SplitWorkbench,
-  useToast,
-  ViewSwitcher,
-} from '@/components/common';
+import { CommandBar } from '@/components/common/CommandBar';
+import { ContextStrip } from '@/components/common/ContextStrip';
+import { KeepAliveTabPanel } from '@/components/common/KeepAliveTabPanel';
+import { OperationalFrame } from '@/components/common/OperationalFrame';
+import { SectionPanel } from '@/components/common/SectionPanel';
+import { useToast } from '@/components/common/useToast';
+import { ViewSwitcher } from '@/components/common/ViewSwitcher';
+import { SplitWorkbench } from '@/components/common/SplitWorkbench';
+import { TabContentSkeleton } from '@/components/common/TabContentSkeleton';
 import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
-import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetWorkflowDocumentsQuery, useGetPurchaseRequestsPageQuery, useGetApprovalHistoryQuery } from '@/api/workflowApi';
+import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/api/approvalsApi';
+import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
+import { useGetPurchaseRequestsPageQuery } from '@/api/purchasingApi';
 import type { ApprovalRecord } from '@/types/workflow';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
-import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
+import { formatDateOnly } from '@/lib/formatters';
+import { getApprovalDecisionCopy } from './approvalCopy';
 import { resolveApprovalAvailability } from '@/lib/actionEligibility';
-import {
-  ApprovalQueueState,
-  PurchaseRequestHistoryState,
-  WorkflowDocumentsState,
-} from './ApprovalQueryPanels';
+import { visibleTabIds } from '@/lib/navigationPreferences';
+
+const ApprovalDecisionDialog = lazy(() => import('./ApprovalDecisionDialog').then(({ ApprovalDecisionDialog: component }) => ({ default: component })))
+const ApprovalSearchField = lazy(() => import('./ApprovalSearchField').then(({ ApprovalSearchField: component }) => ({ default: component })))
+const ApprovalQueueState = lazy(() => import('./ApprovalQueryPanels').then(({ ApprovalQueueState: component }) => ({ default: component })))
+const WorkflowDocumentsState = lazy(() => import('./ApprovalQueryPanels').then(({ WorkflowDocumentsState: component }) => ({ default: component })))
+const ApprovalHistoryTab = lazy(() => import('./ApprovalHistoryTab'))
+const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendmentReconciliation').then(({ MenuAmendmentReconciliation: component }) => ({ default: component })))
 
 export default function ApprovalPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const queueFocusRef = useRef<HTMLDivElement>(null);
-  const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
+  const decisionTriggerRef = useRef<HTMLElement | null>(null);
+  const approvalTabIds = visibleTabIds('approvals') as Array<'queue' | 'history'>;
+  const [activeView, setActiveView] = useState<'queue' | 'history'>(() => approvalTabIds[0] ?? 'queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
-  const [approvalCursors, setApprovalCursors] = useState<string[]>([]);
+  const [approvalPagination, setApprovalPagination] = useState<{ scopeKey: string; cursors: string[] }>({ scopeKey: '', cursors: [] });
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
-  
-  const approvalCursor = approvalCursors.at(-1);
+  const [approvalSearch, setApprovalSearch] = useState('');
+  const deferredApprovalSearch = useDeferredValue(approvalSearch.trim());
+  const requestedTargetType = searchParams.get('target') ?? searchParams.get('targetType');
+  const requestedTargetId = searchParams.get('id') ?? searchParams.get('targetId');
+  const requestedWeek = searchParams.get('week');
+  const requestedDate = searchParams.get('date');
+  const approvalScopeKey = [requestedTargetType, requestedTargetId, requestedWeek, requestedDate, deferredApprovalSearch].join('|');
+  const scopedApprovalCursors = approvalPagination.scopeKey === approvalScopeKey ? approvalPagination.cursors : [];
+  const approvalCursor = scopedApprovalCursors.at(-1);
   const approvalQuery = useGetApprovalRecordsQuery({
     limit: 20,
     cursor: approvalCursor,
+    targetType: requestedTargetType ?? undefined,
+    targetId: requestedTargetId ?? undefined,
+    week: requestedWeek ?? undefined,
+    date: requestedDate ?? undefined,
+    searchKeyword: deferredApprovalSearch || undefined,
   });
   const approvalView = toQueryView(approvalQuery, {
     instruction: 'Mở trang duyệt vận hành để tải hàng đợi phê duyệt.',
@@ -73,13 +88,13 @@ export default function ApprovalPage() {
     errorMessage: 'Không tải được danh sách đề xuất mua hàng.',
     forbiddenMessage: 'Bạn không có quyền xem danh sách đề xuất mua hàng.',
   });
-  const approvalPageNumber = approvalCursors.length + 1;
+  const approvalPageNumber = scopedApprovalCursors.length + 1;
   const goToPreviousApprovalPage = () => {
-    setApprovalCursors((current) => current.slice(0, -1));
+    setApprovalPagination({ scopeKey: approvalScopeKey, cursors: scopedApprovalCursors.slice(0, -1) });
   };
   const goToNextApprovalPage = () => {
     if (approvalPage?.hasNext && approvalPage.nextCursor) {
-      setApprovalCursors((current) => [...current, approvalPage.nextCursor!]);
+      setApprovalPagination({ scopeKey: approvalScopeKey, cursors: [...scopedApprovalCursors, approvalPage.nextCursor] });
     }
   };
 
@@ -97,7 +112,6 @@ export default function ApprovalPage() {
 
   const [executeApprovalDecision, { isLoading: isDeciding }] = useExecuteApprovalDecisionMutation();
   const [decisionError, setDecisionError] = useState<string | null>(null);
-  const [decisionAnnouncement, setDecisionAnnouncement] = useState<string | null>(null);
   
   const [decisionModal, setDecisionModal] = useState<{
     isOpen: boolean;
@@ -126,10 +140,13 @@ export default function ApprovalPage() {
     isDeciding,
   });
   const firstActionableRecord = approvalAvailability.firstActionableRecord;
-  const requestedTargetType = searchParams.get('target') ?? searchParams.get('targetType');
-  const requestedTargetId = searchParams.get('id') ?? searchParams.get('targetId');
   const requestedRecord = approvalRecords.find((record) =>
     record.targetType === requestedTargetType && record.targetId === requestedTargetId);
+  const approvalScopeLabel = requestedDate
+    ? `Ngày ${formatDateOnly(requestedDate)}`
+    : requestedWeek
+      ? `Tuần từ ${formatDateOnly(requestedWeek)}`
+      : 'Tất cả ngày đang chờ duyệt';
 
   useEffect(() => {
     if (!requestedRecord) return;
@@ -140,6 +157,7 @@ export default function ApprovalPage() {
   }, [requestedRecord]);
 
   const openDecisionModal = (record: ApprovalRecord, status: 'Approve' | 'Reject') => {
+    decisionTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setDecisionError(null);
     setDecisionModal({
       isOpen: true,
@@ -153,6 +171,7 @@ export default function ApprovalPage() {
     if (isDeciding) return;
     setDecisionError(null);
     setDecisionModal({ isOpen: false, record: null, status: null, reason: '' });
+    window.requestAnimationFrame(() => decisionTriggerRef.current?.focus());
   };
 
   const handleDecisionSubmit = async () => {
@@ -180,8 +199,6 @@ export default function ApprovalPage() {
       
       setDecisionModal({ isOpen: false, record: null, status: null, reason: '' });
       setDecisionError(null);
-      const completedLabel = status === 'Approve' ? 'Đã duyệt' : 'Đã từ chối';
-      setDecisionAnnouncement(`${completedLabel} ${record.title.toLocaleLowerCase('vi-VN')}.`);
       window.setTimeout(() => queueFocusRef.current?.focus(), 0);
       toast({
         title: status === 'Approve' ? 'Đã duyệt chứng từ' : 'Đã từ chối chứng từ',
@@ -199,22 +216,24 @@ export default function ApprovalPage() {
 
   const renderRecordActions = (record: ApprovalRecord) => (
     <>
-      <button
-        className="ipc-button ipc-button-success"
+      <Button
+        variant="success"
         type="button"
+        aria-label={`${getApprovalDecisionCopy(record.targetType, 'Approve').submitLabel}: ${record.title}`}
         onClick={() => openDecisionModal(record, 'Approve')}
         disabled={isDeciding || !record.targetType || !record.targetId}
       >
-        {getApprovalDecisionCopy(record.targetType, 'Approve').submitLabel}
-      </button>
-      <button
-        className="ipc-button ipc-button-ghost"
+        Duyệt
+      </Button>
+      <Button
+        variant="outline"
         type="button"
+        aria-label={`${getApprovalDecisionCopy(record.targetType, 'Reject').submitLabel}: ${record.title}`}
         onClick={() => openDecisionModal(record, 'Reject')}
         disabled={isDeciding || !record.targetType || !record.targetId}
       >
-        {getApprovalDecisionCopy(record.targetType, 'Reject').submitLabel}
-      </button>
+        Từ chối
+      </Button>
     </>
   );
 
@@ -249,7 +268,7 @@ export default function ApprovalPage() {
               >
                 Từ chối
               </button>
-              <Link className="ipc-button ipc-button-primary" to={ROUTES.PURCHASING}>
+              <Link className="ipc-button ipc-button-secondary" to={ROUTES.PURCHASING}>
                 <FileCheck2 size={16} />
                 Sang thu mua
               </Link>
@@ -283,25 +302,56 @@ export default function ApprovalPage() {
         ariaLabel="Chọn góc nhìn duyệt vận hành"
         tabs={[
           { id: 'approval-queue', label: 'Cần duyệt' },
-          { id: 'approval-role', label: 'Theo vai trò' },
           { id: 'approval-history', label: 'Lịch sử' },
-        ]}
+        ].filter((tab) => approvalTabIds.includes(tab.id.replace('approval-', '') as 'queue' | 'history'))}
         activeTab={`approval-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('approval-', '') as 'queue' | 'role' | 'history')}
+        onTabChange={(id) => setActiveView(id.replace('approval-', '') as 'queue' | 'history')}
       />
 
-      {activeView === 'queue' && (
-        <div id="approval-queue-panel" role="tabpanel" aria-labelledby="approval-queue-tab">
+      <div className="flex-1 min-h-0 flex flex-col">
+        <KeepAliveTabPanel
+          id="approval-queue"
+          active={activeView === 'queue'}
+          fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải hàng chờ duyệt..." />}
+        >
+          <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+            <MenuAmendmentReconciliation />
+          </Suspense>
           <SplitWorkbench
             detailLabel="Chứng từ"
-            detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
+            detailClassName="min-h-[16rem] border-0 bg-transparent p-0"
+            detail={
+              <Suspense fallback={<div aria-hidden="true" className="min-h-[11.5rem] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+                <WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />
+              </Suspense>
+            }
           >
-            <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
-              <ApprovalQueueState
+            <SectionPanel
+              title="Danh sách cần duyệt"
+              icon={<ClipboardCheck size={18} />}
+              description="Các đề xuất và chứng từ đang chờ quản lý vận hành phê duyệt."
+              actions={
+                <div className="flex max-w-full flex-wrap items-center gap-3 sm:flex-nowrap">
+                  <span className="hidden whitespace-nowrap text-xs text-slate-500 md:inline">Phạm vi: {approvalScopeLabel}</span>
+                  <div className="w-64 max-w-full">
+                    <Suspense fallback={<span aria-hidden="true" className="block h-9 rounded-md bg-slate-50" />}>
+                      <ApprovalSearchField
+                        value={approvalSearch}
+                        onChange={(value) => {
+                          setApprovalSearch(value);
+                          setApprovalPagination({ scopeKey: '', cursors: [] });
+                        }}
+                      />
+                    </Suspense>
+                  </div>
+                </div>
+              }
+            >
+              <Suspense fallback={<TabContentSkeleton variant="table" geometry="table" message="Đang tải hàng chờ duyệt..." />}>
+                <ApprovalQueueState
                 view={approvalView}
                 records={approvalRecords}
                 disabledReason={approvalAvailability.disabledReason}
-                decisionAnnouncement={decisionAnnouncement}
                 requestedTargetType={requestedTargetType}
                 requestedTargetId={requestedTargetId}
                 requestedRecord={requestedRecord}
@@ -311,204 +361,47 @@ export default function ApprovalPage() {
                 onPrevious={goToPreviousApprovalPage}
                 onNext={goToNextApprovalPage}
                 paginationLabel="Phân trang hàng đợi duyệt"
-              />
+                />
+              </Suspense>
             </SectionPanel>
           </SplitWorkbench>
-        </div>
-      )}
+        </KeepAliveTabPanel>
 
-      {activeView === 'role' && (
-        <SectionPanel title="Việc đang chờ quản lí" icon={<ClipboardCheck size={18} />}>
-          <div id="approval-role-panel" role="tabpanel" aria-labelledby="approval-role-tab">
-            <ApprovalQueueState
-              view={approvalView}
-              records={approvalRecords}
-              disabledReason={approvalAvailability.disabledReason}
-              decisionAnnouncement={decisionAnnouncement}
-              requestedTargetType={requestedTargetType}
-              requestedTargetId={requestedTargetId}
-              requestedRecord={requestedRecord}
-              queueFocusRef={queueFocusRef}
-              actionForRecord={renderRecordActions}
-              page={approvalPageNumber}
-              onPrevious={goToPreviousApprovalPage}
-              onNext={goToNextApprovalPage}
-              paginationLabel="Phân trang việc đang chờ quản lí"
-            />
-          </div>
-        </SectionPanel>
-      )}
-
-      {activeView === 'history' && (
-        <div id="approval-history-panel" role="tabpanel" aria-labelledby="approval-history-tab">
-          <SplitWorkbench
-            detailLabel="Tiến trình phê duyệt"
-            detail={
-              selectedPrId ? (
-                <div className="p-5 space-y-5">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <h3 className="font-semibold text-slate-800">Lịch sử phê duyệt</h3>
-                    <button
-                      onClick={() => setSelectedPrId(null)}
-                      className="text-xs text-blue-600 hover:underline"
-                    >
-                      Đóng
-                    </button>
-                  </div>
-                  {historyView.phase === 'forbidden' ? (
-                    <InlineAlert title="Không có quyền xem lịch sử phê duyệt" variant="danger">
-                      <span role="alert">{historyView.message}</span>
-                    </InlineAlert>
-                  ) : historyView.phase === 'error' ? (
-                    <QueryErrorAlert
-                      title="Không tải được lịch sử phê duyệt"
-                      isRetrying={historyView.isRetrying}
-                      onRetry={historyView.retry}
-                    >
-                      Kiểm tra kết nối rồi thử lại để xem các bước đã ghi nhận.
-                    </QueryErrorAlert>
-                  ) : historyView.phase === 'loading' ? (
-                    <p role="status" className="text-sm text-slate-500 italic text-center py-4">
-                      Đang tải lịch sử phê duyệt...
-                    </p>
-                  ) : historyView.phase === 'uninitialized' ? (
-                    <p className="text-sm text-slate-500 italic text-center py-4">{historyView.instruction}</p>
-                  ) : (
-                    <>
-                      {historyView.isRefreshing && (
-                        <InlineAlert title="Đang cập nhật lịch sử" variant="info">
-                          Lịch sử hiện tại vẫn được giữ trong khi đồng bộ bản mới.
-                        </InlineAlert>
-                      )}
-                      {historyItems.length === 0 ? (
-                        <p className="text-sm text-slate-500 italic text-center py-4">Không tìm thấy bước duyệt nào.</p>
-                      ) : (
-                        <div className="space-y-6 relative pl-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                          {historyItems.map((item) => (
-                            <div key={item.historyId} className="flex gap-4 relative pl-6">
-                              <div className="absolute left-[-2px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-blue-500 bg-white flex items-center justify-center">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center justify-between text-xs text-slate-500">
-                                  <span>{new Date(item.actionAt).toLocaleString('vi-VN')}</span>
-                                  <span className="font-semibold text-slate-700">{item.actionByName}</span>
-                                </div>
-                                <div className="text-sm">
-                                  <span className="font-semibold text-blue-700">{formatApprovalDecision(item.decision)}</span>
-                                  {item.oldStatus && item.newStatus && (
-                                    <span className="ml-2 text-xs text-slate-400">
-                                      ({formatWorkflowStatus(item.oldStatus)} <ArrowRight className="inline size-3 mx-0.5" /> {formatWorkflowStatus(item.newStatus)})
-                                    </span>
-                                  )}
-                                </div>
-                                {item.reason && (
-                                  <div className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded p-2 italic mt-1">
-                                    "{item.reason}"
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              ) : (
-                <div className="flex h-full items-center justify-center p-8 text-center text-slate-400">
-                  <div>
-                    <Clock className="mx-auto size-8 text-slate-300 mb-2" />
-                    <p className="text-sm">Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt</p>
-                  </div>
-                </div>
-              )
-            }
-          >
-            <SectionPanel title="Danh sách đề xuất mua hàng" icon={<ClipboardCheck size={18} />}>
-              <PurchaseRequestHistoryState
-                view={purchaseRequestView}
-                selectedId={selectedPrId}
-                currentPage={purchaseRequestPage}
-                onSelect={setSelectedPrId}
-                onPageChange={setPurchaseRequestPage}
-              />
-            </SectionPanel>
-          </SplitWorkbench>
-        </div>
-      )}
-
-      {/* Confirmation Dialog for Approvals / Rejections */}
-      <Dialog
-        open={decisionModal.isOpen}
-        onOpenChange={(open) => {
-          if (!open) closeDecisionModal();
-        }}
-      >
-        <DialogContent
-          aria-label={modalCopy.title}
-          className="max-w-md"
-          onKeyDown={(event) => {
-            if (event.key !== 'Escape') return;
-            event.preventDefault();
-            closeDecisionModal();
-          }}
+        <KeepAliveTabPanel
+          id="approval-history"
+          active={activeView === 'history'}
+          fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải lịch sử duyệt..." />}
         >
-          <DialogHeader>
-            <DialogTitle>
-              {modalCopy.title}
-            </DialogTitle>
-            <DialogDescription>
-              {modalCopy.description}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-2 py-2">
-            <label htmlFor="decision-reason" className="text-sm font-semibold text-slate-700">
-              {decisionModal.status === 'Approve' ? 'Ghi chú duyệt (tùy chọn)' : 'Lý do từ chối'}
-            </label>
-            <Textarea
-              id="decision-reason"
-              value={decisionModal.reason}
-              onChange={(e) => setDecisionModal((prev) => ({ ...prev, reason: e.target.value }))}
-              placeholder={decisionModal.status === 'Approve' ? 'Ví dụ: Đồng ý duyệt...' : 'Nhập lý do từ chối bắt buộc...'}
-              className="min-h-[100px] resize-none"
-              aria-invalid={Boolean(decisionError)}
-              aria-describedby={decisionError ? 'decision-error' : undefined}
-              disabled={isDeciding}
+          <Suspense fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải lịch sử duyệt..." />}>
+            <ApprovalHistoryTab
+              selectedPrId={selectedPrId}
+              setSelectedPrId={setSelectedPrId}
+              purchaseRequestView={purchaseRequestView}
+              purchaseRequestPage={purchaseRequestPage}
+              setPurchaseRequestPage={setPurchaseRequestPage}
+              historyView={historyView}
+              historyItems={historyItems}
             />
-          </div>
+          </Suspense>
+        </KeepAliveTabPanel>
+      </div>
 
-          {decisionError && (
-            <div id="decision-error" role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              <p>{decisionError}</p>
-              <Button type="button" variant="outline" className="mt-2" onClick={() => void approvalQuery.refetch()} disabled={isDeciding}>
-                Tải lại hàng đợi
-              </Button>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={closeDecisionModal}
-              disabled={isDeciding}
-              autoFocus
-            >
-              {modalCopy.safeLabel}
-            </Button>
-            <Button
-              type="button"
-              variant={decisionModal.status === 'Reject' ? 'destructive' : 'default'}
-              onClick={handleDecisionSubmit}
-              disabled={isDeciding || (decisionModal.status === 'Reject' && !decisionModal.reason.trim())}
-            >
-              {isDeciding ? 'Đang xử lý...' : modalCopy.submitLabel}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {decisionModal.isOpen && decisionModal.status && (
+        <Suspense fallback={<div aria-hidden="true" className="fixed inset-0 z-50 bg-black/20" />}>
+          <ApprovalDecisionDialog
+            open
+            status={decisionModal.status}
+            reason={decisionModal.reason}
+            error={decisionError}
+            isDeciding={isDeciding}
+            copy={modalCopy}
+            onReasonChange={(reason) => setDecisionModal((previous) => ({ ...previous, reason }))}
+            onClose={closeDecisionModal}
+            onSubmit={() => void handleDecisionSubmit()}
+            onRetry={() => void approvalQuery.refetch()}
+          />
+        </Suspense>
+      )}
     </OperationalFrame>
   );
 }

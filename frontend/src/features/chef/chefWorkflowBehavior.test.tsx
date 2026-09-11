@@ -1,6 +1,6 @@
 import { act, render, renderHook, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { KitchenIssueRow } from '@/api/workflowApi'
+import type { KitchenIssueRow } from '@/api/workflowApiTypes'
 import type { ProductionPlan } from '@/lib/types'
 import type { ChefMaterial } from './chefDashboardTypes'
 import type { ChefShiftScope } from './production/useChefProductionPlan'
@@ -12,12 +12,13 @@ const mocks = vi.hoisted(() => ({
   getCatalog: vi.fn(),
   getDailyPlan: vi.fn(),
   getKitchenIssues: vi.fn(),
+  getKitchenIssueActions: vi.fn(),
   getInventoryReturns: vi.fn(),
   sendDailyPlan: vi.fn(),
 }))
 
-vi.mock('@/app/hooks', () => ({
-  useAppSelector: (selector: (state: unknown) => unknown) => selector({
+vi.mock('@/lib/coordinationStore', () => ({
+  useCoordinationStoreSelector: (selector: (state: unknown) => unknown) => selector({
     coordination: { orders: [], lossRate: 0 },
   }),
 }))
@@ -26,13 +27,21 @@ vi.mock('@/api/dishCatalogApi', () => ({
   useGetDishesCatalogQuery: mocks.getCatalog,
 }))
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/api/warehouseApi', () => ({
   useConfirmInventoryIssueReceiptMutation: () => [mocks.confirmReceipt, { isLoading: false }],
   useCreateInventoryReturnMutation: () => [mocks.createReturn, { isLoading: false }],
   useCreateSupplementalMaterialRequestMutation: () => [mocks.createSupplemental, { isLoading: false }],
   useGetInventoryReturnsQuery: mocks.getInventoryReturns,
+}))
+
+vi.mock('@/api/reportsApi', () => ({
   useGetDailyProductionPlanQuery: mocks.getDailyPlan,
   useGetKitchenIssuesPageQuery: mocks.getKitchenIssues,
+  useGetKitchenIssuesQuery: mocks.getKitchenIssueActions,
+}))
+
+vi.mock('@/api/chefApi', () => ({
+  useGetDailyProductionPlanQuery: mocks.getDailyPlan,
   useSendDailyProductionPlanToKitchenMutation: () => [mocks.sendDailyPlan, { isLoading: false }],
 }))
 
@@ -79,10 +88,11 @@ describe('chef workflow service-date behavior', () => {
       isLoading: false,
       isError: false,
     })
+    mocks.getKitchenIssueActions.mockReturnValue({ data: [], isLoading: false, isError: false })
     mocks.getInventoryReturns.mockReturnValue({ data: undefined, isLoading: false, isError: false })
   })
 
-  it('queries receipts by service date and shift and cannot confirm a non-matching issue', async () => {
+  it('queries receipt pages in the selected shift scope', async () => {
     const unrelatedIssue = issue({ issueDate: '2026-07-19', shiftName: 'AFTERNOON' })
     mocks.getKitchenIssues.mockReturnValue({
       data: { items: [unrelatedIssue], totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false },
@@ -96,7 +106,13 @@ describe('chef workflow service-date behavior', () => {
       dateTo: '2026-07-20',
       shiftName: 'MORNING',
       pageNumber: 1,
-      pageSize: 100,
+      pageSize: 20,
+    }, { skip: false })
+    expect(mocks.getKitchenIssueActions).toHaveBeenCalledWith({
+      dateFrom: '2026-07-20',
+      dateTo: '2026-07-20',
+      shiftName: 'MORNING',
+      limit: 500,
     }, { skip: false })
     expect(result.current.rows).toEqual([])
 
@@ -110,6 +126,39 @@ describe('chef workflow service-date behavior', () => {
       issueId: unrelatedIssue.issueId,
     }, true))
     expect(mocks.confirmReceipt).not.toHaveBeenCalled()
+  })
+
+  it('queries returns by service date and presents FULLDAY returns only in the morning shift', () => {
+    mocks.getInventoryReturns.mockReturnValue({
+      data: {
+        items: [{
+          returnId: 'return-1', returnCode: 'PT-001', returnDate: '2026-07-20', shiftName: null,
+          returnType: 'RETURN', warehouseId: 'warehouse-1', reason: 'Còn nguyên vẹn', isReceived: false,
+          createdAt: '2026-07-20T10:00:00Z',
+          lines: [{ returnLineId: 'return-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', quantity: 1, unitId: 'unit-1', unitName: 'kg' }],
+        }],
+        totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false,
+      },
+      isLoading: false,
+      isError: false,
+    })
+    const productionPlan: ProductionPlan = {
+      date: scope.serviceDate, shift: scope.activeShift,
+      kitchenAssignment: { kitchenName: 'Bếp', kitchenCode: 'B01', responsibleChefs: [] },
+      totalMeals: 1, activeDishes: [], receivedMaterials: [], plannedMaterials: [],
+    }
+
+    const morning = renderHook(() => useChefExceptions(scope, productionPlan, [], vi.fn()))
+    expect(mocks.getInventoryReturns).toHaveBeenCalledWith({
+      returnDate: '2026-07-20', pageNumber: 1, pageSize: 100,
+    }, { skip: false })
+    expect(morning.result.current.activeReturns).toHaveLength(1)
+    morning.unmount()
+
+    const afternoon = renderHook(() => useChefExceptions({
+      ...scope, activeShift: 'Ca Chiều', apiShiftName: 'AFTERNOON',
+    }, { ...productionPlan, shift: 'Ca Chiều' }, [], vi.fn()))
+    expect(afternoon.result.current.activeReturns).toEqual([])
   })
 
   it('exposes server totals and page navigation when a receipt has more than 100 lines', () => {
@@ -133,7 +182,7 @@ describe('chef workflow service-date behavior', () => {
     expect(result.current.allReceived).toBe(false)
 
     act(() => result.current.setPage(2))
-    expect(mocks.getKitchenIssues).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2, pageSize: 100 }), { skip: false })
+    expect(mocks.getKitchenIssues).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2, pageSize: 20 }), { skip: false })
   })
 
   it('does not expose supplemental or return mutations when the selected scope has no issue', async () => {
@@ -225,22 +274,22 @@ describe('chef workflow service-date behavior', () => {
     expect(result.current.productionPlan.totalMeals).toBe(840)
   })
 
-  it('disables plan receipt with a visible reason while the shift is not locked', () => {
+  it('allows plan receipt from the server daily-plan state after a page reload', () => {
+    const onReceivePlan = vi.fn()
     render(
       <ChefProductionSection
         lines={[]}
         isSending={false}
-        isLocked={false}
         isLoading={false}
         isError={false}
         totalPlans={1}
         sentPlans={0}
-        onReceivePlan={vi.fn()}
+        onReceivePlan={onReceivePlan}
       />,
     )
 
-    expect(screen.getByRole('button', { name: 'Nhận kế hoạch' })).toBeDisabled()
-    expect(screen.getByText('Ca chưa chốt. Bếp chỉ được xem trước kế hoạch.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Nhận kế hoạch' })).toBeEnabled()
+    expect(screen.queryByText('Ca chưa chốt. Kế hoạch điều phối chưa đồng bộ; trạng thái vật tư xem ở Checklist nhận nguyên liệu.')).not.toBeInTheDocument()
   })
 
   it('replaces the plan receipt action with completion status after all plans are sent', () => {
@@ -248,7 +297,6 @@ describe('chef workflow service-date behavior', () => {
       <ChefProductionSection
         lines={[]}
         isSending={false}
-        isLocked
         isLoading={false}
         isError={false}
         totalPlans={1}
@@ -258,7 +306,7 @@ describe('chef workflow service-date behavior', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Nhận kế hoạch' })).not.toBeInTheDocument()
-    expect(screen.getByText('Kế hoạch đã gửi bếp')).toBeInTheDocument()
+    expect(screen.getByText('Kế hoạch đã đồng bộ')).toBeInTheDocument()
   })
 
   it('uses the selected service date when creating an inventory return', async () => {
@@ -301,6 +349,7 @@ describe('chef workflow service-date behavior', () => {
       returnDate: '2026-07-20',
       shiftName: 'MORNING',
       issueId: issueRow.issueId,
+      lines: [expect.objectContaining({ sourceIssueLineId: issueRow.id })],
     }))
   })
 })

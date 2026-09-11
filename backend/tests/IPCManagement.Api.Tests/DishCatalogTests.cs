@@ -1,3 +1,4 @@
+using IPCManagement.Api.Features.Inventory.Services;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
@@ -48,6 +49,9 @@ public class DishCatalogTests
                 DishType = "MORNING",
                 DishGroup = "Mặn",
                 IsActive = true,
+                SourceImportBatch = "MENU-CUS-20260720-V01",
+                SourceFileName = "weekly-menu.xlsx",
+                SourceChecksum = "ABC123",
                 Menuitems =
                 [
                     new MenuItem { DishSlot = "Món mặn", DisplayOrder = 2 },
@@ -94,6 +98,9 @@ public class DishCatalogTests
         result.Should().ContainSingle();
         var catalogDish = result[0];
         catalogDish.DishId.Should().Be(dishId.ToString());
+        catalogDish.SourceImportBatch.Should().Be("MENU-CUS-20260720-V01");
+        catalogDish.SourceFileName.Should().Be("weekly-menu.xlsx");
+        catalogDish.SourceChecksum.Should().Be("ABC123");
         catalogDish.MenuSlots.Should().Equal("Món mặn", "Canh");
         catalogDish.BomLines.Should().ContainSingle();
         catalogDish.BomLines[0].BomId.Should().Be(bomId.ToString());
@@ -566,17 +573,17 @@ public class DishCatalogTests
             }
 
             var reader = new XlsxWorkbookReader();
-            var rows = reader.ReadTable(tempFile, "BOM", BomTemplateWorkbookBuilder.Headers);
+            var rows = reader.ReadTable(tempFile, "BOM", BomTemplateWorkbookBuilder.DisplayHeaders);
 
             rows.Should().HaveCount(8);
-            rows[0]["DishCode"].Should().Be("DISH-BOM");
-            rows[0]["DishName"].Should().Be("Món BOM");
-            rows[0]["PriceTier"].Should().Be("25000");
-            rows[0]["IngredientName"].Should().BeEmpty();
-            rows[0]["UnitCode"].Should().BeEmpty();
-            rows[0]["GrossQtyPerServing"].Should().BeEmpty();
-            rows[0]["WasteRatePercent"].Should().BeEmpty();
-            rows[0]["BomStatus"].Should().Be("PUBLISHED");
+            rows[0]["Tên món"].Should().Be("Món BOM");
+            rows[0]["Nguyên liệu chính"].Should().BeEmpty();
+            rows[0]["Đơn vị"].Should().BeEmpty();
+            rows[0]["Định lượng/suất"].Should().BeEmpty();
+            rows[0]["Hao hụt (%)"].Should().BeEmpty();
+            rows[0]["Mã món"].Should().Be("DISH-BOM");
+            rows[0]["Mức giá"].Should().Be("25000");
+            rows[0]["Trạng thái"].Should().Be("PUBLISHED");
         }
         finally
         {
@@ -709,8 +716,8 @@ public class DishCatalogTests
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Trùng dish/ingredient/unit/effective date")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Khoảng hiệu lực BOM bị overlap trong file")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("DishCode không tồn tại")));
-        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("IngredientCode không tồn tại")));
-        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("UnitCode không tồn tại")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Mã nguyên liệu không tồn tại")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Mã đơn vị không tồn tại")));
         await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*File BOM còn lỗi*");
 
@@ -745,7 +752,7 @@ public class DishCatalogTests
         => new(context, new MemoryCache(new MemoryCacheOptions()));
 
     private static DishBomImportService CreateDishBomImportService(IpcManagementContext context)
-        => new(context, new MemoryCache(new MemoryCacheOptions()), new EfTransactionRunner(context));
+        => new(context, new MemoryCache(new MemoryCacheOptions()), new EfTransactionRunner(context), CreateOperationalWarehouseResolver(context));
 
     private static MemoryStream ToStream(string content)
         => new(Encoding.UTF8.GetBytes(content));
@@ -833,7 +840,9 @@ public class DishCatalogTests
                 warehouseCode TEXT NOT NULL,
                 warehouseName TEXT NOT NULL,
                 warehouseType TEXT NOT NULL,
-                note TEXT NULL
+                note TEXT NULL,
+                IsOperationalActive INTEGER NOT NULL DEFAULT 0,
+                OperationalSingletonKey INTEGER NULL
             );
 
             CREATE TABLE ingredients (
@@ -853,6 +862,9 @@ public class DishCatalogTests
                 dishName TEXT NOT NULL,
                 dishType TEXT NULL,
                 dishGroup TEXT NULL,
+                sourceImportBatch TEXT NULL,
+                sourceFileName TEXT NULL,
+                sourceChecksum TEXT NULL,
                 isActive INTEGER NULL
             );
 
@@ -902,4 +914,12 @@ public class DishCatalogTests
             await Connection.DisposeAsync();
         }
     }
+    private static IOperationalWarehouseResolver CreateOperationalWarehouseResolver(IpcManagementContext context)
+    {
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(_ =>
+            context.Warehouses.Local.Select(item => item.WarehouseId).First());
+        return resolver;
+    }
+
 }

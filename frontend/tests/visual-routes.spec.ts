@@ -28,6 +28,17 @@ const visualViewports = [
   { name: 'mobile', width: 390, height: 844 },
 ] as const;
 
+const phase09ClockInstant = new Date(`${PHASE09_DATE}T12:00:00+07:00`);
+const phase09HeaderDate = new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })
+  .format(phase09ClockInstant);
+
+async function installPhase09Clock(page: Page) {
+  await page.clock.install({ time: phase09ClockInstant });
+  await page.clock.setFixedTime(phase09ClockInstant);
+  expect(await page.evaluate(() => new Date().toISOString()))
+    .toBe(phase09ClockInstant.toISOString());
+}
+
 async function stubVisualApi(page: Page) {
   const fulfill = (route: Parameters<Parameters<Page['route']>[1]>[0], data: unknown) =>
     route.fulfill({
@@ -37,8 +48,15 @@ async function stubVisualApi(page: Page) {
     });
 
   await page.route('**/*', async (route) => {
-    if (new URL(route.request().url()).pathname.startsWith('/api/')) {
-      await fulfill(route, []);
+    const requestUrl = new URL(route.request().url());
+    if (requestUrl.pathname.startsWith('/api/')) {
+      if (requestUrl.pathname === '/api/inventory-returns' || requestUrl.pathname === '/api/supplemental-material-requests') {
+        await fulfill(route, { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0 });
+      } else if (requestUrl.pathname === '/api/workflow-reports/kitchen-issues/page') {
+        await fulfill(route, { items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0 });
+      } else {
+        await fulfill(route, []);
+      }
       return;
     }
 
@@ -229,13 +247,20 @@ async function login(page: Page) {
 
   await page.goto(ROUTES.LOGIN);
   await page.getByLabel('Tài khoản').fill('admin');
-  await page.getByLabel('Mật khẩu').fill('admin');
+  await page.getByRole('textbox', { name: 'Mật khẩu', exact: true }).fill('admin');
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page).toHaveURL(ROUTES.DASHBOARD);
 }
 
-async function stabilizeVisuals(page: Page) {
+async function stabilizeVisuals(page: Page, routeName?: string) {
   await page.waitForLoadState('networkidle');
+  if (routeName === 'chef-dashboard') {
+    await expect(page.getByRole('heading', { name: 'Kế hoạch điều phối trong ngày' })).toBeVisible();
+  }
+  if (routeName === 'purchasing') {
+    await expect(page.getByText('Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.')).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' })).toBeVisible();
+  }
   await page.addStyleTag({
     content: `
       *, *::before, *::after {
@@ -247,7 +272,6 @@ async function stabilizeVisuals(page: Page) {
       }
     `,
   });
-  await page.waitForTimeout(500);
 }
 
 test.describe('visual routes', () => {
@@ -257,6 +281,7 @@ test.describe('visual routes', () => {
 
       for (const route of visualRoutes) {
         test(`${route.name} visual baseline`, async ({ page }) => {
+          await installPhase09Clock(page);
           await stubVisualApi(page);
           if (route.path === ROUTES.LOGIN) {
             await page.goto(route.path);
@@ -267,9 +292,10 @@ test.describe('visual routes', () => {
             }
             await expect(page).toHaveURL(route.path);
             await expect(page.locator('.ipc-app-shell')).toBeVisible();
+            await expect(page.locator('.ipc-header-context')).toContainText(phase09HeaderDate);
           }
 
-          await stabilizeVisuals(page);
+          await stabilizeVisuals(page, route.name);
           await expect(page).toHaveScreenshot(`${route.name}-${viewport.name}.png`, {
             fullPage: true,
           });
@@ -291,6 +317,7 @@ test.describe('full-system tab audit captures', () => {
 
       for (const route of visualRoutes) {
         test(`${route.name} tab audit capture`, async ({ page }) => {
+          await installPhase09Clock(page);
           await stubVisualApi(page);
           if (route.path === ROUTES.LOGIN) {
             await page.goto(route.path);
@@ -322,6 +349,39 @@ test.describe('full-system tab audit captures', () => {
   }
 });
 
+test.describe('MainLayout responsive shell contract', () => {
+  for (const viewport of [
+    { name: '390x844', width: 390, height: 844, collapsed: true },
+    { name: '768x1024', width: 768, height: 1024, collapsed: true },
+    { name: '1280x900', width: 1280, height: 900, collapsed: false },
+    { name: '1365x900', width: 1365, height: 900, collapsed: false },
+  ] as const) {
+    test(`${viewport.name} shell breakpoint`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await installPhase09Clock(page);
+      await stubVisualApi(page);
+      await login(page);
+      await page.goto(ROUTES.WAREHOUSE);
+
+      const toggle = page.getByRole('button', { name: 'Mở menu điều hướng' });
+      const navigation = page.getByRole('navigation', { name: 'Điều hướng chính' });
+      if (viewport.collapsed) {
+        await expect(toggle).toBeVisible();
+        await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+        await expect(navigation).toBeHidden();
+      } else {
+        await expect(toggle).toBeHidden();
+        await expect(navigation).toBeVisible();
+      }
+
+      await expect(page.locator('.ipc-header-context')).toContainText(phase09HeaderDate);
+      expect(await page.evaluate(() =>
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      )).toBe(true);
+    });
+  }
+});
+
 test.describe('Phase 09 deterministic visual seam', () => {
   for (const viewport of [
     { name: '1365x900', width: 1365, height: 900 },
@@ -343,11 +403,13 @@ test.describe('Phase 09 deterministic visual seam', () => {
         },
       ] as const) {
         test(`${route.name} visual baseline`, async ({ page }) => {
+          await installPhase09Clock(page);
           await stubVisualApi(page);
           await stubPhase09Api(page);
           await login(page);
           await page.goto(route.path);
           await expect(page.locator('.ipc-app-shell')).toBeVisible();
+          await expect(page.locator('.ipc-header-context')).toContainText(phase09HeaderDate);
           await stabilizeVisuals(page);
           await expect(page).toHaveScreenshot(`${route.name}-${viewport.name}.png`);
         });

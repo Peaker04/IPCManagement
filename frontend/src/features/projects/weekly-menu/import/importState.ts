@@ -8,6 +8,9 @@ export type ImportFeedback = {
   variant: 'info' | 'warning' | 'danger'
 }
 
+export type ImportSetupField = 'customer' | 'weekStartDate' | 'file'
+export type ImportSetupErrors = Partial<Record<ImportSetupField, Pick<ImportFeedback, 'title' | 'message'>>>
+
 export type ImportRollbackTarget = {
   menuVersionId: string
   label: string
@@ -22,6 +25,7 @@ export type WeeklyMenuImportState = {
   jobs: WeeklyMenuImportJob[]
   selectedJobId: string
   feedback: ImportFeedback | null
+  setupErrors: ImportSetupErrors
   isQuickCustomerFormOpen: boolean
   quickCustomerCode: string
   quickCustomerName: string
@@ -37,6 +41,7 @@ export const initialWeeklyMenuImportState: WeeklyMenuImportState = {
   jobs: [],
   selectedJobId: '',
   feedback: null,
+  setupErrors: {},
   isQuickCustomerFormOpen: false,
   quickCustomerCode: '',
   quickCustomerName: '',
@@ -58,6 +63,7 @@ export type WeeklyMenuImportAction =
   | { type: 'toggle-quick-customer' }
   | { type: 'quick-customer-created'; customerId: string }
   | { type: 'set-feedback'; feedback: ImportFeedback | null }
+  | { type: 'set-setup-errors'; errors: ImportSetupErrors }
   | { type: 'upsert-job'; job: WeeklyMenuImportJob }
   | { type: 'update-job'; jobId: string; changes: Partial<WeeklyMenuImportJob> }
   | { type: 'remove-job'; jobId: string }
@@ -80,20 +86,34 @@ export const weeklyMenuImportReducer = (
       }
     case 'close':
       return initialWeeklyMenuImportState
-    case 'edit':
-      return { ...state, [action.field]: action.value, feedback: null }
+    case 'edit': {
+      const setupField = action.field === 'draftCustomerId'
+        ? 'customer'
+        : action.field === 'weekStartDate'
+          ? 'weekStartDate'
+          : action.field === 'selectedFile' ? 'file' : null
+      const setupErrors = { ...state.setupErrors }
+      if (setupField) delete setupErrors[setupField]
+      return { ...state, [action.field]: action.value, feedback: null, setupErrors }
+    }
     case 'toggle-quick-customer':
       return { ...state, isQuickCustomerFormOpen: !state.isQuickCustomerFormOpen, feedback: null }
-    case 'quick-customer-created':
+    case 'quick-customer-created': {
+      const setupErrors = { ...state.setupErrors }
+      delete setupErrors.customer
       return {
         ...state,
         draftCustomerId: action.customerId,
         quickCustomerCode: '',
         quickCustomerName: '',
         isQuickCustomerFormOpen: false,
+        setupErrors,
       }
+    }
     case 'set-feedback':
       return { ...state, feedback: action.feedback }
+    case 'set-setup-errors':
+      return { ...state, feedback: null, setupErrors: action.errors }
     case 'upsert-job': {
       const exists = state.jobs.some((job) => job.customerId === action.job.customerId)
       const jobs = exists

@@ -84,11 +84,12 @@ public class StockLedgerReportService : IStockLedgerReportService
             })
             .ToListAsync();
         var movementAggregates = await movementsQuery
-            .GroupBy(item => new { item.WarehouseId, item.IngredientId })
+            .GroupBy(item => new { item.WarehouseId, item.IngredientId, item.UnitId })
             .Select(group => new StockLedgerMovementAggregateProjection
             {
                 WarehouseId = group.Key.WarehouseId,
                 IngredientId = group.Key.IngredientId,
+                UnitId = group.Key.UnitId,
                 LedgerQty = group.Sum(item => item.QuantityIn - item.QuantityOut),
                 LastMovementAt = group.Max(item => item.MovementDate),
                 LegacyBaselineCount = group.Sum(item => item.RefTable == LegacyLedgerBaselineRefTable ? 1 : 0)
@@ -130,12 +131,48 @@ public class StockLedgerReportService : IStockLedgerReportService
         var stocksByKey = stocks.ToDictionary(
             item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId),
             StringComparer.Ordinal);
-        var aggregatesByKey = movementAggregates.ToDictionary(
-            item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId),
-            StringComparer.Ordinal);
         var latestByKey = latestMovements.ToDictionary(
             item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId),
             StringComparer.Ordinal);
+        var requiredUnitIds = stocks.Select(item => item.UnitId)
+            .Concat(movementAggregates.Select(item => item.UnitId))
+            .DistinctBy(Convert.ToBase64String)
+            .ToList();
+        var units = await _context.Units
+            .AsNoTracking()
+            .Where(item => requiredUnitIds.Contains(item.UnitId))
+            .Select(item => new StockLedgerUnitProjection
+            {
+                UnitId = item.UnitId,
+                UnitCode = item.UnitCode,
+                BaseUnitCode = item.BaseUnitCode,
+                ConvertRateToBase = item.ConvertRateToBase
+            })
+            .ToListAsync();
+        var unitsById = units.ToDictionary(
+            item => Convert.ToBase64String(item.UnitId),
+            StringComparer.Ordinal);
+        var aggregatesByKey = movementAggregates
+            .GroupBy(item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId), StringComparer.Ordinal)
+            .ToDictionary(
+                group => group.Key,
+                group =>
+                {
+                    stocksByKey.TryGetValue(group.Key, out var stock);
+                    latestByKey.TryGetValue(group.Key, out var latest);
+                    var targetUnitId = stock?.UnitId ?? latest!.UnitId;
+                    return new StockLedgerMovementAggregateProjection
+                    {
+                        WarehouseId = group.First().WarehouseId,
+                        IngredientId = group.First().IngredientId,
+                        UnitId = targetUnitId,
+                        LedgerQty = DecimalPolicy.RoundQuantity(group.Sum(item =>
+                            ConvertLedgerQuantity(item.LedgerQty, item.UnitId, targetUnitId, unitsById))),
+                        LastMovementAt = group.Max(item => item.LastMovementAt),
+                        LegacyBaselineCount = group.Sum(item => item.LegacyBaselineCount)
+                    };
+                },
+                StringComparer.Ordinal);
         var keys = stocksByKey.Keys
             .Concat(aggregatesByKey.Keys)
             .Distinct(StringComparer.Ordinal)
@@ -175,6 +212,31 @@ public class StockLedgerReportService : IStockLedgerReportService
     private static string BuildStockLedgerKey(byte[] warehouseId, byte[] ingredientId)
         => $"{Convert.ToBase64String(warehouseId)}|{Convert.ToBase64String(ingredientId)}";
 
+    private static decimal ConvertLedgerQuantity(
+        decimal quantity,
+        byte[] sourceUnitId,
+        byte[] targetUnitId,
+        IReadOnlyDictionary<string, StockLedgerUnitProjection> unitsById)
+    {
+        if (sourceUnitId.SequenceEqual(targetUnitId))
+        {
+            return quantity;
+        }
+
+        if (!unitsById.TryGetValue(Convert.ToBase64String(sourceUnitId), out var source) ||
+            !unitsById.TryGetValue(Convert.ToBase64String(targetUnitId), out var target) ||
+            source.ConvertRateToBase <= 0 ||
+            target.ConvertRateToBase <= 0 ||
+            !string.Equals(source.NormalizedBaseUnitCode, target.NormalizedBaseUnitCode, StringComparison.OrdinalIgnoreCase))
+        {
+            // Dữ liệu legacy không quy đổi được vẫn phải nổi mismatch để data-quality xử lý,
+            // thay vì bị loại khỏi ledger và vô tình báo khớp.
+            return quantity;
+        }
+
+        return DecimalPolicy.RoundQuantity(quantity * source.ConvertRateToBase / target.ConvertRateToBase);
+    }
+
     private static int NormalizeLimit(int limit)
         => Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
 
@@ -196,6 +258,7 @@ public class StockLedgerReportService : IStockLedgerReportService
     {
         public byte[] WarehouseId { get; init; } = [];
         public byte[] IngredientId { get; init; } = [];
+        public byte[] UnitId { get; init; } = [];
         public decimal LedgerQty { get; init; }
         public DateTime LastMovementAt { get; init; }
         public int LegacyBaselineCount { get; init; }
@@ -212,6 +275,17 @@ public class StockLedgerReportService : IStockLedgerReportService
         public string? IngredientName { get; init; }
         public byte[] UnitId { get; init; } = [];
         public string? UnitName { get; init; }
+    }
+
+    private sealed class StockLedgerUnitProjection
+    {
+        public byte[] UnitId { get; init; } = [];
+        public string UnitCode { get; init; } = string.Empty;
+        public string? BaseUnitCode { get; init; }
+        public decimal ConvertRateToBase { get; init; }
+        public string NormalizedBaseUnitCode => string.IsNullOrWhiteSpace(BaseUnitCode)
+            ? UnitCode.Trim().ToUpperInvariant()
+            : BaseUnitCode.Trim().ToUpperInvariant();
     }
 }
 

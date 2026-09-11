@@ -1,3 +1,5 @@
+import { formatDateOnly } from '@/lib/formatters';
+
 export const BOM_PRICE_TIERS = [25000, 30000, 34000] as const;
 export type BomPriceTier = (typeof BOM_PRICE_TIERS)[number];
 export const DEFAULT_BOM_PRICE_TIER = BOM_PRICE_TIERS[0];
@@ -77,7 +79,7 @@ export function buildProductionPlanPages<TPlan extends ProductionPlanLike>(
     const current = pageMap.get(dateKey) ?? {
       key: dateKey,
       label: displayDay?.label ?? 'Ngày phục vụ',
-      dateLabel: new Date(plan.planDate).toLocaleDateString('vi-VN'),
+      dateLabel: formatDateOnly(plan.planDate),
       plans: [],
       totalLines: 0,
       totalServings: 0,

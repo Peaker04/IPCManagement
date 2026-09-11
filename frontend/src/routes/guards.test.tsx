@@ -7,7 +7,9 @@ import { describe, expect, it } from 'vitest';
 import { apiSlice } from '../api/apiSlice';
 import { coordinationReducer } from '../features/coordination';
 import authReducer from '../features/auth/authSlice';
+import ForbiddenPage from '../features/auth/pages/ForbiddenPage';
 import type { User } from '../features/auth/authTypes';
+import { ROUTES } from '../lib/routeConfig';
 import { ActionGuard } from './ActionGuard';
 import { RoleGuard } from './RoleGuard';
 
@@ -63,6 +65,21 @@ const renderWithStore = (
   );
 };
 
+describe('ForbiddenPage presentation', () => {
+  it('keeps access-denied content nested below the shell page heading', () => {
+    renderWithStore(<ForbiddenPage />);
+
+    const deniedPanel = screen.getByRole('heading', { level: 2, name: 'Phân hệ này chưa được cấp quyền' }).closest('[data-ui-owner]');
+    expect(deniedPanel).toHaveAttribute('data-ui-owner', 'uio-h');
+    expect(deniedPanel).toHaveAttribute('data-ui-floorplan', 'uif-h');
+    expect(deniedPanel).toHaveAttribute('data-ui-region', 'uir-h');
+    expect(screen.queryByRole('heading', { level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByText('403')).toBeInTheDocument();
+    expect(screen.getByText(/Tài khoản hiện tại chưa được cấp quyền vào phân hệ này/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Về tổng quan' })).toHaveAttribute('href', ROUTES.DASHBOARD);
+  });
+});
+
 describe('RoleGuard permission decisions', () => {
   it('renders nothing while user is missing', () => {
     const { container } = renderWithStore(
@@ -84,7 +101,7 @@ describe('RoleGuard permission decisions', () => {
     expect(screen.getByText('Reports')).toBeInTheDocument();
 
     renderWithStore(
-      <RoleGuard requiredPermissions={['admin.only']}>
+      <RoleGuard requiredPermissions={['report.read']}>
         <span>Admin</span>
       </RoleGuard>,
       { user: buildUser({ role: 'admin', permissions: [] }), isAuthenticated: true },
@@ -125,7 +142,7 @@ describe('ActionGuard role and permission decisions', () => {
     rerender(
       <Provider store={buildStore({ user: buildUser({ role: 'thumua' }), isAuthenticated: true })}>
         <MemoryRouter>
-          <ActionGuard allowedRoles={['thukho']} requiredPermissions={['warehouse.issue']} fallback={<span>Hidden</span>}>
+          <ActionGuard allowedRoles={['thukho']} requiredPermissions={['report.read']} fallback={<span>Hidden</span>}>
             <button type="button">Approve</button>
           </ActionGuard>
         </MemoryRouter>
@@ -138,13 +155,13 @@ describe('ActionGuard role and permission decisions', () => {
 
   it('renders children when role and permission both pass, or admin wildcard is present', () => {
     renderWithStore(
-      <ActionGuard allowedRoles={['thukho']} requiredPermissions={['warehouse.issue']} fallback={<span>Hidden</span>}>
+      <ActionGuard allowedRoles={['thukho']} requiredPermissions={['report.read']} fallback={<span>Hidden</span>}>
         <button type="button">Approve</button>
       </ActionGuard>,
       {
         user: buildUser({
           role: 'thukho',
-          permissions: ['warehouse.issue'],
+          permissions: ['report.read'],
         }),
         isAuthenticated: true,
       },
@@ -152,7 +169,7 @@ describe('ActionGuard role and permission decisions', () => {
     expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument();
 
     renderWithStore(
-      <ActionGuard allowedRoles={['staff']} requiredPermissions={['admin.only']} fallback={<span>Hidden</span>}>
+      <ActionGuard allowedRoles={['staff']} requiredPermissions={['report.read']} fallback={<span>Hidden</span>}>
         <button type="button">Admin action</button>
       </ActionGuard>,
       {

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "run": 1,
+  "runId": "cad60c80-5a20-4bc9-acfa-e6f9c14494b7",
+  "started": "2026-08-23T03:01:36.870Z",
+  "status": "COMPLETE",
+  "exitCode": 0,
+  "resultsSha256": "db2c5eb6e5b39e83f3624cec763fe108acb52e5dd6d15eeb49fa1d65c9e0cd21",
+  "attestation": {
+    "nodeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+    "playwrightCli": {
+      "path": "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\@playwright\\test\\cli.js",
+      "sha256": "79e23e6a249176295b8490567daa7717448a75866d6ea6f6b296ff3d23305c69"
+    },
+    "viteCli": {
+      "path": "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\vite\\bin\\vite.js",
+      "sha256": "fa03478846d229651a3c6aa64833ba2c6cbf580a798b92bd8f47c7480bafb5d8"
+    },
+    "playwrightArgv": [
+      "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "tests/visual-routes.spec.ts",
+      "tests/pagination-visual.spec.ts",
+      "--config=playwright.phase271-recovery.config.ts",
+      "--project=chromium",
+      "--workers=1",
+      "--reporter=json",
+      "--output=test-results/phase271/final-pass-1"
+    ],
+    "viteArgv": [
+      "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\vite\\bin\\vite.js",
+      "--host",
+      "127.0.0.1",
+      "--port",
+      "5173",
+      "--strictPort"
+    ],
+    "cwd": "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\frontend",
+    "shell": false,
+    "jsonOutputFile": null
+  }
+}

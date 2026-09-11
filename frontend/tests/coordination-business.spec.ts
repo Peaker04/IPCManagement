@@ -377,20 +377,24 @@ test.describe('coordination business state coverage', () => {
 
   test('legacy order payload resolves dish roles from menu schedule only after opening details', async ({ page }) => {
     await stubCoordinationScenario(page, ['COMPLETED'])
-    const sourceOrder = buildOrder(1, 't6', 'MORNING')
-    const legacyOrder = {
-      ...sourceOrder,
-      dishes: sourceOrder.dishes.map((dish) => ({
-        dishId: dish.dishId,
-        dishCode: dish.dishCode,
-        dishName: dish.dishName,
-      })),
-    }
+    let sourceOrder = buildOrder(1, 't2', 'MORNING')
     let menuScheduleRequests = 0
 
     await page.route('**/api/coordination/orders**', async (route) => {
       const url = new URL(route.request().url())
       if (route.request().method() === 'GET' && url.pathname.endsWith('/coordination/orders')) {
+        sourceOrder = {
+          ...buildOrder(1, url.searchParams.get('dayOfWeek') ?? 't2', 'MORNING'),
+          serviceDate: url.searchParams.get('serviceDate') ?? '2026-08-04',
+        }
+        const legacyOrder = {
+          ...sourceOrder,
+          dishes: sourceOrder.dishes.map((dish) => ({
+            dishId: dish.dishId,
+            dishCode: dish.dishCode,
+            dishName: dish.dishName,
+          })),
+        }
         await fulfillJson(route, [legacyOrder])
         return
       }

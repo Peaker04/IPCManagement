@@ -50,4 +50,26 @@ describe('weekly menu import state machine', () => {
     expect(removed.jobs.map((job) => job.jobId)).toEqual(['import-ipc'])
     expect(removed.selectedJobId).toBe('import-ipc')
   })
+
+  it('clears only the setup error owned by the edited field', () => {
+    const withErrors = {
+      ...initialWeeklyMenuImportState,
+      setupErrors: {
+        customer: { title: 'Khách hàng', message: 'Chọn khách hàng.' },
+        weekStartDate: { title: 'Tuần', message: 'Chọn thứ 2.' },
+        file: { title: 'File', message: 'Chọn file.' },
+      },
+    }
+
+    const edited = weeklyMenuImportReducer(withErrors, { type: 'edit', field: 'weekStartDate', value: '2026-07-27' })
+    expect(edited.setupErrors).toEqual({
+      customer: { title: 'Khách hàng', message: 'Chọn khách hàng.' },
+      file: { title: 'File', message: 'Chọn file.' },
+    })
+
+    const created = weeklyMenuImportReducer(edited, { type: 'quick-customer-created', customerId: 'customer-1' })
+    expect(created.setupErrors).toEqual({
+      file: { title: 'File', message: 'Chọn file.' },
+    })
+  })
 })
