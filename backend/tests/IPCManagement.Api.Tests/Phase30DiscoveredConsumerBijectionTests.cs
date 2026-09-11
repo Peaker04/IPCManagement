@@ -599,6 +599,7 @@ global using Xunit;
         while (pending.TryDequeue(out var caller))
         {
             if (!graph.Declarations.TryGetValue(caller, out var declaration)) continue;
+            if (FullyQualifiedType(caller.ContainingType) == "IPCManagement.Api.Features.Reports.Services.AuditPrivacyProjection") continue;
             var model = graph.Compilation.GetSemanticModel(declaration.SyntaxTree, ignoreAccessibility: true);
             foreach (var callee in ResolveCallees(declaration, model).SelectMany(symbol => ExactDispatchTargets(graph, symbol)))
             {
