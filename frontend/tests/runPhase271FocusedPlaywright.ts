@@ -80,7 +80,7 @@ export function validateFocusedInput(raw: unknown): FocusedLauncherInput {
   const spec = normalizeRepoRelative(input.spec, 'spec')
   if (!ALLOWED_SPECS.has(spec)) throw new Error('spec is not allowlisted')
   if (typeof input.grep !== 'string' || input.grep.trim() === '') throw new Error('non-empty grep is required')
-  try { new RegExp(input.grep) } catch { throw new Error('grep must be a valid regular expression') }
+  if (!/^[\p{L}\p{N} .:_-]+$/u.test(input.grep)) throw new Error('grep must be a literal test-title fragment')
   if (input.project !== 'chromium') throw new Error('project must be chromium')
   if (input.workers !== 1) throw new Error('workers must be 1')
   if (input.reporter !== 'line' && input.reporter !== 'json') throw new Error('reporter must be line or json')

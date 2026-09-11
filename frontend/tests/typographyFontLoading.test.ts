@@ -10,8 +10,9 @@ describe('self-hosted typography font loading', () => {
   it('is local-only and remains compatible with font-src self CSP', () => {
     expect(fontSources).toHaveLength(3)
     for (const source of fontSources) {
-      expect(source).not.toMatch(/^(?:https?:|data:|\/\/)/)
-      expect(source).toMatch(/^@fontsource-variable\/inter\/files\/.+\.woff2$/)
+      expect(source.startsWith('http:') || source.startsWith('https:') || source.startsWith('data:') || source.startsWith('//')).toBe(false)
+      expect(source.startsWith('@fontsource-variable/inter/files/')).toBe(true)
+      expect(source.endsWith('.woff2')).toBe(true)
       const localAsset = resolve(root, 'node_modules', source)
       const workspaceAsset = resolve(root, '..', 'node_modules', source)
       expect(existsSync(localAsset) || existsSync(workspaceAsset)).toBe(true)
