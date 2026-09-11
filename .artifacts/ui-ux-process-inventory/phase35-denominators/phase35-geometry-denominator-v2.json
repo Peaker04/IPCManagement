@@ -4,10 +4,10 @@
   "count": 95,
   "summary": {
     "ARTIFICIAL_RESERVATION": 0,
-    "NEEDS_BROWSER": 0,
+    "NEEDS_BROWSER": 27,
     "NOT_APPLICABLE": 0,
-    "PURPOSEFUL_CONSTRAINT": 88,
-    "RESPONSIVE_WORKAROUND": 7,
+    "PURPOSEFUL_CONSTRAINT": 67,
+    "RESPONSIVE_WORKAROUND": 1,
     "SHARED_OWNER_DEFECT": 0
   },
   "rows": [
@@ -23,8 +23,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"min-h-[86px]\""
     },
     {
@@ -102,8 +102,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<aside className={cn('ipc-exception-lane min-h-[145px] flex flex-col', className)} tabIndex={scrollLabel ? 0 : undefined} aria-label={scrollLabel}>"
     },
     {
@@ -118,8 +118,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"ipc-exception-lane-empty min-h-[100px] !items-stretch !justify-start !p-3 !text-left\""
     },
     {
@@ -262,8 +262,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "'flex min-h-[220px] w-full flex-col items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center',"
     },
     {
@@ -372,8 +372,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"flex min-h-[100px] w-full resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring"
     },
     {
@@ -387,8 +387,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "detailClassName=\"min-h-[16rem] border-0 bg-transparent p-0\""
     },
     {
@@ -432,8 +432,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"min-h-[11.5rem]\""
     },
     {
@@ -447,8 +447,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"min-h-[11.5rem]\""
     },
     {
@@ -462,8 +462,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<InlineAlert title=\"Đang tải chứng từ workflow\" variant=\"info\" className=\"min-h-[11.5rem]\">"
     },
     {
@@ -477,8 +477,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<InlineAlert title=\"Chưa khởi tạo chứng từ workflow\" variant=\"info\" className=\"min-h-[11.5rem]\">"
     },
     {
@@ -492,8 +492,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"min-h-[11.5rem]\""
     },
     {
@@ -614,8 +614,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Status column alignment and stable label width.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<StatusBadge variant={statusTone} className=\"min-w-[96px] justify-center\">{displayAction}</StatusBadge>"
     },
     {
@@ -646,8 +646,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<div className=\"flex min-h-[38px] flex-wrap items-center gap-2 border-t border-slate-200 pt-3\">"
     },
     {
@@ -662,8 +662,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<Button type=\"button\" variant={row.isCompleted ? 'outline' : 'default'} size=\"sm\" className=\"min-w-[132px]\" disabled={disabled} onClick={() => void scheduleWorkflow.actions.completeQuickServing(row)}>"
     },
     {
@@ -678,8 +678,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<div className=\"flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2\">"
     },
     {
@@ -710,8 +710,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<FieldRow label=\"Khách hàng\" hint=\"Chọn khách hàng trong file\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
     },
     {
@@ -726,8 +726,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<FieldRow label=\"Tuần bắt đầu\" hint=\"Chọn thứ 2 của tuần\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
     },
     {
@@ -742,8 +742,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<FieldRow label=\"Mức giá thực đơn\" hint=\"Chọn mức giá áp dụng cho file\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
     },
     {
@@ -758,8 +758,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<FieldRow label=\"File Excel\" hint=\"Chọn file thực đơn\" className=\"min-w-0 [&_.ipc-field-label]:min-h-[34px]\">"
     },
     {
@@ -774,8 +774,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Local content/control alignment minimum with concrete rendered content.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"min-w-[92px] shrink-0\""
     },
     {
@@ -790,8 +790,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "RESPONSIVE_WORKAROUND",
-      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className=\"ipc-native-control min-h-9 min-w-[200px] rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600\""
     },
     {
@@ -910,8 +910,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "RESPONSIVE_WORKAROUND",
-      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<label className=\"min-w-[260px] text-xs font-semibold text-slate-600\" htmlFor=\"legacy-disposition-reason\">"
     },
     {
@@ -940,8 +940,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "RESPONSIVE_WORKAROUND",
-      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<SelectTrigger id=\"report-filter-shift\" className=\"h-8 min-w-[130px] text-xs\"><SelectValue>{shiftName || 'Tất cả ca'}</SelectValue></SelectTrigger>"
     },
     {
@@ -955,8 +955,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "RESPONSIVE_WORKAROUND",
-      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<SelectTrigger id=\"report-filter-sort\" className=\"h-8 min-w-[150px] text-xs\"><Filter size={14} className=\"mr-1 text-slate-400\" /><SelectValue>{sortDirection === 'desc' ? 'Mới nhất trước' : 'Cũ nhất trước'}</SelectValue></SelectTrigger>"
     },
     {
@@ -1090,8 +1090,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "RESPONSIVE_WORKAROUND",
-      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<div className=\"ipc-report-warning-card min-w-[240px] flex-1 rounded-md border border-[var(--ipc-danger)] bg-[var(--ipc-danger-soft)] p-3 text-sm text-[var(--ipc-danger)]\">"
     },
     {
@@ -1105,8 +1105,8 @@
       "applicability": [
         "DEFAULT"
       ],
-      "disposition": "RESPONSIVE_WORKAROUND",
-      "reason": "Content-fit/control grouping minimum; browser containment still required.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "<div className=\"ipc-report-warning-card rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700 min-w-[240px] flex-1\">"
     },
     {
@@ -1437,8 +1437,8 @@
         "DEFAULT",
         "MATERIAL_RECONCILIATION"
       ],
-      "disposition": "PURPOSEFUL_CONSTRAINT",
-      "reason": "Headed 147-cell composition run measured useful content with no blank-surface or overflow failure.",
+      "disposition": "NEEDS_BROWSER",
+      "reason": "Source occurrence is classified; browser containment/composition evidence remains required.",
       "sourceExcerpt": "className={cn(typography.body, 'mt-4 grid min-h-[20rem] content-start gap-3')}"
     },
     {

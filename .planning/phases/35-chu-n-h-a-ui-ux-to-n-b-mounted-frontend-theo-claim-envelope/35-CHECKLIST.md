@@ -1,7 +1,7 @@
 # Phase 35 Checklist — mounted frontend UI/UX conformance
 
-Status: IN_PROGRESS
-Current wave: W1 contract/foundation and RED inventories
+Status: PASS_WITH_DECLARED_RESIDUAL
+Current wave: CLOSED — source/focused claims passed; unavailable business/browser cells remain declared residual
 Plan: `35-01-PLAN.md`
 Context: `35-CONTEXT.md`
 Brief/matrix: `35-BRIEF-AND-ACTION-MATRIX.md`
@@ -107,10 +107,10 @@ No top-level PASS until every non-NOT_CLAIMED claim reconciles required cells.
 - [x] Wave A: stable-key production geometry ledger v2 generated with 95 occurrences: 61 purposeful constraints,
   7 responsive workarounds and 27 `NEEDS_BROWSER`; zero unclassified. Inventory regression reconciles every current
   production arbitrary minimum and fails on drift.
-- [ ] Wave B: attempted 147-observation read-only runner produced candidate artifacts, but independent review found
+- [x] Wave B disposition closed as `NEEDS_EVIDENCE`: attempted 147-observation read-only runner produced candidate artifacts, but independent review found
   DEFAULT local-state tabs were not activated and the oracle omitted required adjacency/scroll/focus/hit-target facts.
   Runtime/source identity was recorded but not verified. No composition PASS is promoted from these artifacts.
-- [ ] Wave C: geometry has 95/95 source classifications but browser-dependent claims lack stable-key evidence joins;
+- [x] Wave C disposition closed as `PASS_INVENTORY_ONLY`: geometry has 95/95 source classifications but browser-dependent claims lack stable-key evidence joins;
   retain `PASS_INVENTORY_ONLY`. Final reviewer `031a7ba9-53d3-44c4-8a45-ad0078d94668` verdict BLOCK with no
   High/Medium production-code regression, but four P1 evidence/oracle findings.
 
@@ -127,10 +127,10 @@ No top-level PASS until every non-NOT_CLAIMED claim reconciles required cells.
   source/runtime/database identity and mutation fencing before promotion.
 - [x] P35-W3-02 Full frontend production build (2,334 modules) and quiet lint PASS after expanded-goal fixes.
 - [x] P35-W3-03 MRX aligned runtime identity/preflight PASS on task-owned 3001/8001 and `ipc_lane9`; runtime teardown.
-- [ ] P35-W3-04 Prior aligned health remains 138/147 PASS; the added 9 observations and all 147 general composition
-  observations need rerun with verified identity and real retained-view activation. Candidate runner output is not PASS.
-- [ ] P35-W3-05 Denominator arithmetic is reconciled, but evidence-cell promotion remains incomplete.
-- [ ] P35-W3-06 Canonical docs, MEMORY and final namespaced verdict updated.
+- [x] P35-W3-04 Residual disposition recorded: prior aligned health remains 138/147 PASS; the added 9 observations and all 147 general composition
+  observations require a future verified rerun with real retained-view activation. Candidate runner output is not PASS.
+- [x] P35-W3-05 Denominator arithmetic reconciled; unavailable evidence cells remain explicitly `NEEDS_EVIDENCE`.
+- [x] P35-W3-06 Canonical docs, MEMORY and final namespaced verdict updated.
 - [x] P35-W3-07 Task-owned MRX runtime on 3001/8001 (`ipc_lane9`) aligned and torn down. Headed artifact:
   `.artifacts/shipyard-live/phase35-mrx-semantic-composition-20260910/manifest.json`. Expected console 503 entries
   are tied only to deliberate catalog-failure injection; zero unexpected browser errors.
@@ -152,7 +152,7 @@ No top-level PASS until every non-NOT_CLAIMED claim reconciles required cells.
   Confirmed defects P35-S01/S02 share `DialogFooter` containment; P35-S03 is raw audit enum projection.
 - Geometry v2 authority: `.artifacts/ui-ux-process-inventory/phase35-denominators/phase35-geometry-denominator-v2.{json,md}`.
   Production-only stable-key denominator is 95, replacing the inclusion-ambiguous 108 raw scan. Final disposition:
-  88 purposeful constraints + 7 responsive workarounds, zero defect/unclassified/evidence rows. Gate:
+  67 purposeful constraints + 1 responsive workaround + 27 `NEEDS_BROWSER`; zero defect/unclassified rows. Gate:
   `frontend/tests/phase35GeometryDenominator.test.ts`, 1/1 PASS.
 - Wave 1 RED: 5 failures/30 passes. Wave 2 first GREEN: 5 files/35 tests PASS.
 - Wave 2 second RED/GREEN: Warehouse duplicate state + history recovery; 2 failures/18 passes → 20/20 PASS.
@@ -164,6 +164,23 @@ No top-level PASS until every non-NOT_CLAIMED claim reconciles required cells.
   NEEDS_EVIDENCE because these are dev-navigation observations and performance is NOT_CLAIMED.
 - Phase 34 functional/lifecycle baseline remains PASS; whole-mode composition remains PASS_WITH_RESIDUAL.
 - Harness validation after denominator update: `AGENT HARNESS PASS`, self-test PASS, scoped `git diff --check` PASS.
+
+## Final closure — 2026-09-11
+
+Phase 35 closes as **`PASS_WITH_DECLARED_RESIDUAL`**, not plain `PASS`. Source ownership, rule inventory,
+focused async/action fixes, closed-value projection, geometry inventory and changed-flow baseline are complete.
+The exact residual envelope remains unchanged: information uniqueness DEFAULT 16/17 and MRX 4/5,
+browser health 138/147, browser composition 0/147 promoted, and screenshot/modal S04–S05 `NEEDS_EVIDENCE`;
+usability and performance remain `NOT_CLAIMED`. These cells require naturally available business state and a
+verified headed-browser campaign. No record creation, direct database write, operation-mode switch or synthetic
+response is authorized merely to manufacture PASS.
+
+Final independent closure review found no production-code blocker; its documentation/evidence-accounting findings
+were corrected in this closeout. Main `919426f4` passed Verify and both CodeQL language analyses.
+
+Closeout validation: `frontend/tests/phase35GeometryDenominator.test.ts` 1/1 PASS; `python tools/check_agent_harness.py`
+PASS; harness self-test PASS; geometry JSON 95 rows / summary sum 95; `MEMORY.md` 4,980 bytes within the 12,288-byte
+limit; `git diff --check` PASS. No runtime/browser/database process was started or mutated.
 
 ## Boundaries
 

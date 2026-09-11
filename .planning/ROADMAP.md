@@ -298,11 +298,12 @@ Plans:
 
 ### Phase 35: Chuẩn hóa UI UX toàn bộ mounted frontend theo claim envelope và shared seams
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Normalize mounted frontend ownership, state composition, action hierarchy, closed-value projection and geometry through measurable source/browser claim envelopes.
+**Requirements:** Preserve domain/mode authority; close source/focused claims and declare unavailable browser/business-state cells without fabricated evidence.
 **Depends on:** Phase 34
-**Plans:** 0 plans
+**Plans:** 1 plan
+**Status:** PASS_WITH_DECLARED_RESIDUAL
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 35 to break down)
+- [x] 35-01-PLAN.md — contract/foundation → shared seams → mounted rollout and honest residual closure

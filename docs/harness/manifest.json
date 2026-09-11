@@ -33,13 +33,8 @@
     }
   ],
   "activePointers": [
-    ".planning/phases/34-chu-n-h-a-v-th-c-thi-ui-ux-to-n-b-ch-i-chi-u-nguy-n-li-u-the/34-CONTEXT.md",
-    ".planning/phases/34-chu-n-h-a-v-th-c-thi-ui-ux-to-n-b-ch-i-chi-u-nguy-n-li-u-the/34-01-PLAN.md",
-    ".planning/phases/34-chu-n-h-a-v-th-c-thi-ui-ux-to-n-b-ch-i-chi-u-nguy-n-li-u-the/34-BRIEF-AND-ACTION-MATRIX.md",
-    ".planning/phases/34-chu-n-h-a-v-th-c-thi-ui-ux-to-n-b-ch-i-chi-u-nguy-n-li-u-the/34-CHECKLIST.md",
-    ".planning/quick/ui-ux-governance/CHECKLIST.md",
-    ".planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-CHECKLIST.md",
-    ".artifacts/subagents/mrx-screenshot-uiux-remediation-HANDOVER.md"
+    ".planning/phases/35-chu-n-h-a-ui-ux-to-n-b-mounted-frontend-theo-claim-envelope/35-CHECKLIST.md",
+    ".planning/notes/nfr-research-and-remediation-PLAN.md"
   ],
   "requiredPointers": [
     ".planning/phases/32-chu-n-h-a-ki-n-tr-c-ai-agent-harness-d-ng-chung-cho-pi-cli-v/32-CHECKLIST.md",
