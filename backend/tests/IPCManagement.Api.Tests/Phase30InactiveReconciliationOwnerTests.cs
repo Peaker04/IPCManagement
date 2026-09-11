@@ -821,7 +821,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 {
                     IssueId = GuidHelper.NewId(), IssueCode = "ISS-P30-ACTUAL", IssueDate = new DateOnly(2026, 8, 30), WarehouseId = warehouse,
                     ReconciliationBatchId = actualBatch, IssuedBy = actor, ReceivedBy = actor, ReceivedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow,
-                    Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = ingredient, UnitId = unit, ReconciliationBatchLineId = actualLine, RequestedQty = 5m, IssuedQty = 5m }]
+                    Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = ingredient, UnitId = unit, ReconciliationBatchLineId = actualLine, RequestedQty = 5m, IssuedQty = 4m }]
                 });
             Context.Reconciliationactuals.AddRange(
                 new ReconciliationActual { ActualId = GuidHelper.NewId(), BatchLineId = actualLine, Side = "PURCHASED", Quantity = 5m, Version = 1, EnteredBy = actor, EnteredAt = DateTime.UtcNow },

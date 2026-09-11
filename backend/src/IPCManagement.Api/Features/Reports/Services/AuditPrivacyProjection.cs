@@ -102,17 +102,18 @@ public static class AuditPrivacyProjection
         switch (node)
         {
             case JsonObject obj:
-                foreach (var property in obj)
+                foreach (var key in Enumerable.ToArray(Enumerable.Select(obj, static item => item.Key)))
                 {
-                    if (property.Value is null) continue;
-                    if (IsSensitiveKey(property.Key))
+                    var child = obj[key];
+                    if (child is null) continue;
+                    if (IsSensitiveKey(key))
                     {
-                        obj[property.Key] = RedactedValue;
+                        obj[key] = RedactedValue;
                         changed = true;
                     }
                     else
                     {
-                        changed |= RedactJson(property.Value, property.Key, depth + 1);
+                        changed |= RedactJson(child, key, depth + 1);
                     }
                 }
                 break;
