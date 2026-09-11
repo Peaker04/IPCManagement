@@ -16,6 +16,8 @@ credentials_via: IPC_LANE7_<ROLE>_PASSWORD
 
 ## Current checkpoint
 
+- Production Render/Railway bootstrap handover: `.planning/notes/production-render-bootstrap-HANDOVER.md`.
+- Backend is live at `https://ipcmanagement.onrender.com`; Railway `IPC` schema/master/account bootstrap and bounded E2E-master cleanup completed. Rotate the database password exposed in chat, update Render, and restart; never persist or repeat the credential.
 - `main` includes PR #43 at merge commit `dbffa5ad` and CI base-ref hardening at `919426f4`.
 - Post-merge Verify, CodeQL C#/JavaScript-TypeScript, Dependabot and Vercel passed. Follow-up `919426f4` also passed Verify and both CodeQL language analyses.
 - Phase 35 closes as **`PASS_WITH_DECLARED_RESIDUAL`**. Authority:
