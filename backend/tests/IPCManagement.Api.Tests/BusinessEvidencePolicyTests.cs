@@ -44,7 +44,7 @@ public sealed partial class BusinessEvidencePolicyTests
             .ToArray();
 
         migrationIds.Should().HaveCount(77);
-        migrationIds[^1].Should().Be("20260828092012_ClosedLoopReconciliationIssueLineage");
+        migrationIds[^1].Should().Be("20260904045405_AllowSupplementalReconciliationIssues");
     }
 
     [GeneratedRegex("\\[Migration\\(\"([^\"]+)\"\\)\\]", RegexOptions.CultureInvariant)]

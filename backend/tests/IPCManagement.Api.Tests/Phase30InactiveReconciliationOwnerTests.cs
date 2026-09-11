@@ -810,12 +810,19 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                 Batch(completionBatch, completionLine, "IN_PROGRESS", 3, 3m),
                 Batch(issueBatch, issueLine, "TRANSFERRED", 2, 5m),
                 Batch(actualBatch, actualLine, "IN_PROGRESS", 6, 5m));
-            Context.Inventoryissues.Add(new InventoryIssue
-            {
-                IssueId = GuidHelper.NewId(), IssueCode = "ISS-P30-COMPLETE", IssueDate = new DateOnly(2026, 8, 30), WarehouseId = warehouse,
-                ReconciliationBatchId = completionBatch, IssuedBy = actor, ReceivedBy = actor, ReceivedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow,
-                Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = ingredient, UnitId = unit, ReconciliationBatchLineId = completionLine, RequestedQty = 3m, IssuedQty = 3m }]
-            });
+            Context.Inventoryissues.AddRange(
+                new InventoryIssue
+                {
+                    IssueId = GuidHelper.NewId(), IssueCode = "ISS-P30-COMPLETE", IssueDate = new DateOnly(2026, 8, 30), WarehouseId = warehouse,
+                    ReconciliationBatchId = completionBatch, IssuedBy = actor, ReceivedBy = actor, ReceivedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow,
+                    Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = ingredient, UnitId = unit, ReconciliationBatchLineId = completionLine, RequestedQty = 3m, IssuedQty = 3m }]
+                },
+                new InventoryIssue
+                {
+                    IssueId = GuidHelper.NewId(), IssueCode = "ISS-P30-ACTUAL", IssueDate = new DateOnly(2026, 8, 30), WarehouseId = warehouse,
+                    ReconciliationBatchId = actualBatch, IssuedBy = actor, ReceivedBy = actor, ReceivedAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow,
+                    Inventoryissuelines = [new InventoryIssueLine { IssueLineId = GuidHelper.NewId(), IngredientId = ingredient, UnitId = unit, ReconciliationBatchLineId = actualLine, RequestedQty = 5m, IssuedQty = 5m }]
+                });
             Context.Reconciliationactuals.AddRange(
                 new ReconciliationActual { ActualId = GuidHelper.NewId(), BatchLineId = actualLine, Side = "PURCHASED", Quantity = 5m, Version = 1, EnteredBy = actor, EnteredAt = DateTime.UtcNow },
                 new ReconciliationActual { ActualId = GuidHelper.NewId(), BatchLineId = actualLine, Side = "ISSUED", Quantity = 5m, Version = 1, EnteredBy = actor, EnteredAt = DateTime.UtcNow });

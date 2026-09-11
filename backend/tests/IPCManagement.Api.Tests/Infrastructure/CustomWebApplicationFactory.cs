@@ -4,6 +4,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authentication;
@@ -28,6 +29,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<DbContextOptions<IpcManagementContext>>();
             services.RemoveAll<IpcManagementContext>();
+            services.RemoveAll<IOperationalWarehouseResolver>();
+            services.AddScoped<IOperationalWarehouseResolver>(_ => new TestOperationalWarehouseResolver());
 
             var connectionString = Environment.GetEnvironmentVariable("IPC_TEST_CONNECTION_STRING")
                 ?? throw new InvalidOperationException(
@@ -36,6 +39,12 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDbContext<IpcManagementContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
         });
+    }
+
+    private sealed class TestOperationalWarehouseResolver : IOperationalWarehouseResolver
+    {
+        public Task<byte[]> ResolveAsync(CancellationToken cancellationToken = default)
+            => Task.FromResult(Guid.Empty.ToByteArray());
     }
 
     public static async Task<ApprovalOwnerTestHost> CreateApprovalOwnerHostAsync(

@@ -362,7 +362,7 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
             {
                 var issueId = generated.IssueId!;
                 var issueCode = generated.IssueCode!;
-                var issueRow = $"{issueId}|{issueCode}|8/30/2026|MORNING|{WarehouseId}|{GuidHelper.ToGuidString(MaterialRequestBytes)}|-|{AdminId}|-||{generated.IssueCreatedAt}";
+                var issueRow = $"{issueId}|{issueCode}|{new DateOnly(2026, 8, 30)}|MORNING|{WarehouseId}|{GuidHelper.ToGuidString(MaterialRequestBytes)}|-|{AdminId}|-||{generated.IssueCreatedAt}";
                 var lineRow = $"{generated.IssueLineId}|{issueId}|{GuidHelper.ToGuidString(IngredientBytes)}|{GuidHelper.ToGuidString(UnitBytes)}|{GuidHelper.ToGuidString(MaterialRequestLineBytes)}|-|3.0|3.0";
                 AssertExactRows(AddExact(before.Issues, issueRow), after.Issues, "issues");
                 AssertExactRows(AddExact(before.IssueLines, lineRow), after.IssueLines, "issue lines");
@@ -383,7 +383,7 @@ public sealed class Phase30InactiveDefaultLifecycleOwnerTests
                 AssertExactRows(before.Movements, after.Movements, "movements");
                 var purchaseId = result.PurchaseRequestId!;
                 var purchaseCode = result.PurchaseRequestCode!;
-                var headerRow = $"{purchaseId}|{purchaseCode}|{generated.PurchaseRequestDate}|8/30/2026|MORNING|DRAFT|{AdminId}|-|";
+                var headerRow = $"{purchaseId}|{purchaseCode}|{generated.PurchaseRequestDate}|{new DateOnly(2026, 8, 30)}|MORNING|DRAFT|{AdminId}|-|";
                 var lineRow = $"{generated.PurchaseRequestLineId}|{purchaseId}|{GuidHelper.ToGuidString(MaterialRequestLineBytes)}|{GuidHelper.ToGuidString(IngredientBytes)}|-|{GuidHelper.ToGuidString(UnitBytes)}|8.0|5.0|3.0|0.0|||False";
                 AssertExactRows(AddExact(before.PurchaseRequests, headerRow), after.PurchaseRequests, "purchase requests");
                 AssertExactRows(AddExact(before.PurchaseRequestLines, lineRow), after.PurchaseRequestLines, "purchase request lines");

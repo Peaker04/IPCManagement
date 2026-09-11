@@ -102,7 +102,7 @@ public static class AuditPrivacyProjection
         switch (node)
         {
             case JsonObject obj:
-                foreach (var property in obj.ToList())
+                foreach (var property in obj)
                 {
                     if (property.Value is null) continue;
                     if (IsSensitiveKey(property.Key))
