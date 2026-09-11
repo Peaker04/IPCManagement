@@ -50,6 +50,7 @@ export default defineConfig({
       'tests/validatePhase271PlanResult.test.ts',
       'tests/validatePhase271Reseal.test.ts',
       'tests/validateVisualReconciliation.test.ts',
+      'src/features/purchasing/pages/PurchasingPage.state.test.tsx',
     ] : [],
     coverage: {
       provider: 'v8',
