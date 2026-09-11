@@ -17,6 +17,6 @@ describe('self-hosted typography font loading', () => {
       const workspaceAsset = resolve(root, '..', 'node_modules', source)
       expect(existsSync(localAsset) || existsSync(workspaceAsset)).toBe(true)
     }
-    expect(css).not.toMatch(/fonts\.(?:googleapis|gstatic)\.com/)
+    expect(css.includes('fonts.googleapis.com') || css.includes('fonts.gstatic.com')).toBe(false)
   })
 })
