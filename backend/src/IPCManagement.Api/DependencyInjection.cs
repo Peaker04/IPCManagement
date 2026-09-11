@@ -37,7 +37,7 @@ public static class DependencyInjection
         return services.AddBackendServicesCore(configuration, options =>
             options.UseMySql(
                 connectionString,
-                ServerVersion.AutoDetect(connectionString),
+                new MySqlServerVersion(new Version(8, 0, 36)),
                 mySqlOptions => mySqlOptions
                     // Manual transactions are centralized in EfTransactionRunner, which
                     // executes them through the provider execution strategy.

@@ -50,7 +50,7 @@ Access JWT đã phát hành vẫn có residual window tối đa phần còn lạ
 
 ## Required và optional
 
-`DependencyInjection.AddBackendServices` sẽ fail nếu `DefaultConnection` không được cấu hình. `Program.cs` bind/validate `JwtSettings` khi startup; `SecretKey` phải đạt tối thiểu 32 ký tự và `ExpiryMinutes`/`RefreshExpiryDays` phải lớn hơn 0. Ngoài Development, `DeploymentConfigurationValidator` còn chặn password/secret mẫu, placeholder, CORS localhost và `AllowedHosts=*`.
+`DependencyInjection.AddBackendServices` sẽ fail nếu `DefaultConnection` không được cấu hình. EF dùng contract MySQL 8.0.36 cố định để việc tạo `DbContext` không tự mở kết nối mạng; `/health/ready` và startup operational-warehouse validation vẫn là các DB connectivity gates fail-closed. `Program.cs` bind/validate `JwtSettings` khi startup; `SecretKey` phải đạt tối thiểu 32 ký tự và `ExpiryMinutes`/`RefreshExpiryDays` phải lớn hơn 0. Ngoài Development, `DeploymentConfigurationValidator` còn chặn password/secret mẫu, placeholder, CORS localhost và `AllowedHosts=*`.
 
 Các key pagination có default trong options; frontend `VITE_API_BASE_URL` và `VITE_PROXY_TARGET` có fallback dành cho local development. Backend deployment hiện dùng direct-host và không đọc `X-Forwarded-For`/`X-Forwarded-Proto`; rate limiting phân vùng theo địa chỉ kết nối trực tiếp. Nếu sau này đặt backend sau reverse proxy, phải triển khai một thay đổi riêng với allowlist proxy tin cậy và integration tests trước khi bật forwarded headers. Khi giá trị phụ thuộc hosting, domain, DNS hoặc secret manager thì phải cấu hình ở nền tảng triển khai, không ghi vào repository.
 
