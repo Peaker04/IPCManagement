@@ -1,7 +1,7 @@
 ---
 updated: 2026-09-11
 branch: main
-observed_head: 66e3ba3c
+observed_base_head: 919426f4
 runtime_ports:
   frontend: 3001
   api: 8001
