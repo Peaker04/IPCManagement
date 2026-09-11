@@ -149,7 +149,6 @@ public class InventoryReturnService : IInventoryReturnService
                     };
                 }).ToList();
                 _returnRepository.Add(inventoryReturn);
-
                 var result = new InventoryReturnCreatedDto
                 {
                     ReturnId = GuidHelper.ToGuidString(inventoryReturn.ReturnId),
@@ -159,9 +158,7 @@ public class InventoryReturnService : IInventoryReturnService
                 recorder?.Stage(new LifecycleTransitionRequest(
                     aggregateType, inventoryReturn.ReturnId, commandId, 0, null, "PENDING_RECEIPT", userIdBytes, 0,
                     inventoryReturn.Reason, dto.CorrelationId?.Trim(), dto.CausationId?.Trim(), response, response));
-
                 await _unitOfWork.SaveChangesAsync();
-
                 return result;
             },
             async token => _context is null
@@ -170,11 +167,9 @@ public class InventoryReturnService : IInventoryReturnService
                     .AnyAsync(item => item.CommandId == commandId && item.AggregateType == aggregateType, token),
             IsolationLevel.Serializable);
     }
-
     private void AddWasteAudit(InventoryReturn inventoryReturn, InventoryIssue issue, byte[] userIdBytes)
     {
         if (_context is null) return;
-
         foreach (var line in inventoryReturn.Inventoryreturnlines)
         {
             _context.Auditlogs.Add(new AuditLog
@@ -192,7 +187,6 @@ public class InventoryReturnService : IInventoryReturnService
             });
         }
     }
-
     public async Task<bool> ConfirmReceiptAsync(string id, ConfirmInventoryReturnReceiptRequest dto, string? userId)
     {
         var bytes = GuidHelper.ParseGuidString(id);
@@ -201,7 +195,6 @@ public class InventoryReturnService : IInventoryReturnService
         var commandId = RequireText(dto.CommandId, "Mã lệnh xác nhận không được để trống.", 128);
         const string aggregateType = "InventoryReturn";
         var recorder = new LifecycleTransitionRecorder(_context);
-
         // Luồng này ghi vào 6 bảng (inventoryreturns, inventoryreturnlines, auditlogs, currentstock,
         // currentstocklots, stockmovements). Không có transaction thì một lỗi giữa chừng để lại
         // phiếu đã đánh dấu "đã nhận" nhưng tồn kho chưa cộng. Dùng đúng khuôn mẫu của CreateAsync
@@ -212,15 +205,12 @@ public class InventoryReturnService : IInventoryReturnService
                 var inventoryReturn = await _context.Inventoryreturns
                     .Include(r => r.Inventoryreturnlines)
                     .FirstOrDefaultAsync(r => r.ReturnId == bytes, cancellationToken);
-
                 if (inventoryReturn is null) return false;
                 var sourceIssue = await _issueRepository.GetByIdWithLinesAsync(inventoryReturn.IssueId)
                     ?? throw new BusinessRuleException("Không tìm thấy phiếu xuất gốc của phiếu trả.");
                 EnsureOwningFamilyActive(sourceIssue);
-
                 var replay = await recorder.FindExistingCommandAsync(commandId, aggregateType, bytes, cancellationToken);
                 if (replay is not null) return true;
-
                 if (inventoryReturn.ReceivedAt.HasValue)
                 {
                     throw new ResourceConflictException("Phiếu trả nguyên liệu này đã được xác nhận.");
@@ -229,7 +219,6 @@ public class InventoryReturnService : IInventoryReturnService
                 {
                     throw new ResourceConflictException("Phiếu trả đã thay đổi; hãy tải lại trước khi xác nhận.");
                 }
-
                 var proposedAdjustments = new List<(InventoryReturnLine Line, decimal Quantity)>();
                 if (dto.AdjustedLines != null && dto.AdjustedLines.Any())
                 {
@@ -242,33 +231,47 @@ public class InventoryReturnService : IInventoryReturnService
                         {
                             throw new BusinessRuleException("Dòng điều chỉnh không thuộc phiếu trả đang xác nhận.");
                         }
-
                         var lineKey = Convert.ToHexString(line.ReturnLineId);
                         if (!adjustedLineIds.Add(lineKey))
                         {
                             throw new BusinessRuleException("Mỗi dòng phiếu trả chỉ được điều chỉnh một lần trong một lệnh xác nhận.");
                         }
-
                         var adjustedQuantity = DecimalPolicy.RoundQuantity(adjustedLine.NewQuantity);
                         if (!DecimalPolicy.GreaterThanQuantity(adjustedQuantity, 0))
                         {
                             throw new BusinessRuleException("Số lượng thực nhận sau điều chỉnh phải lớn hơn 0.");
                         }
-
                         proposedAdjustments.Add((line, adjustedQuantity));
                     }
                 }
-
                 await EnsureReturnBalanceAfterAdjustmentAsync(
                     inventoryReturn,
                     proposedAdjustments.ToDictionary(item => Convert.ToHexString(item.Line.ReturnLineId), item => item.Quantity),
                     cancellationToken);
-
                 var confirmedAt = DateTime.UtcNow;
                 inventoryReturn.ReceivedBy = userIdBytes;
                 inventoryReturn.ReceivedAt = confirmedAt;
                 var auditLogReason = $"Thủ kho xác nhận phiếu trả {inventoryReturn.ReturnCode}.";
-
+                var returnedSourceIssueLineIds = inventoryReturn.Inventoryreturnlines
+                    .Where(line => line.SourceIssueLineId is not null).Select(line => line.SourceIssueLineId!).ToList();
+                var affectedReconciliationLineIds = sourceIssue.Inventoryissuelines
+                    .Where(line => line.ReconciliationBatchLineId is not null && returnedSourceIssueLineIds.Any(sourceLineId => sourceLineId.AsSpan().SequenceEqual(line.IssueLineId)))
+                    .Select(line => line.ReconciliationBatchLineId!).ToList();
+                var staleDispositions = affectedReconciliationLineIds.Count == 0
+                    ? []
+                    : (await _context.Reconciliationdispositions.ToListAsync(cancellationToken))
+                        .Where(disposition => affectedReconciliationLineIds.Any(lineId => lineId.AsSpan().SequenceEqual(disposition.BatchLineId))).ToList();
+                foreach (var disposition in staleDispositions)
+                {
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = GuidHelper.NewId(), ChangedAt = confirmedAt, ChangedBy = userIdBytes,
+                        BusinessArea = "RECONCILIATION", EntityName = nameof(ReconciliationDisposition), EntityId = disposition.DispositionId,
+                        FieldName = "Validity", OldValue = $"{disposition.Category}|{disposition.Reason}|v{disposition.Version}", NewValue = "INVALIDATED",
+                        Reason = "Confirmed inventory return changed the linked issued quantity."
+                    });
+                    _context.Reconciliationdispositions.Remove(disposition);
+                }
                 foreach (var (line, adjustedQuantity) in proposedAdjustments.Where(item => item.Line.Quantity != item.Quantity))
                 {
                     _context.Auditlogs.Add(new AuditLog
@@ -286,7 +289,6 @@ public class InventoryReturnService : IInventoryReturnService
                     });
                     line.Quantity = adjustedQuantity;
                 }
-
                 if (dto.HasDiscrepancy)
                 {
                     var note = dto.DiscrepancyNote?.Trim() ?? "";

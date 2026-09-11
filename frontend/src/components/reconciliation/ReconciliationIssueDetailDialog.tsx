@@ -102,8 +102,8 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
               <label className="grid gap-1 text-sm font-medium text-slate-800">
                 Chi tiết kỹ thuật
                 <Select value={selectedLine.issueLineId} onValueChange={(value) => value && setSelectedLineId(value)}>
-                  <SelectTrigger aria-label="Chọn dòng để xem chi tiết kỹ thuật"><SelectValue>Dòng {selectedLineIndex + 1}</SelectValue></SelectTrigger>
-                  <SelectContent>{issue.lines.map((line) => <SelectItem key={line.issueLineId} value={line.issueLineId}>{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</SelectItem>)}</SelectContent>
+                  <SelectTrigger aria-label="Chọn dòng để xem chi tiết kỹ thuật"><SelectValue>{selectedLine.ingredientName || 'Nguyên liệu chưa đặt tên'} · Dòng {selectedLineIndex + 1}</SelectValue></SelectTrigger>
+                  <SelectContent>{issue.lines.map((line, index) => <SelectItem key={line.issueLineId} value={line.issueLineId}>{line.ingredientName || 'Nguyên liệu chưa đặt tên'} · Dòng {index + 1}</SelectItem>)}</SelectContent>
                 </Select>
               </label>
               <dl className="mt-3 grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-2 text-xs" role="region" aria-label="Chi tiết kỹ thuật dòng đã chọn">

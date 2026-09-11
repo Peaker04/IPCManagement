@@ -72,7 +72,7 @@ export function QueryViewBoundary({
   }
 
   const uninitialized = queries.find(({ view }) => view.phase === 'uninitialized');
-  if (uninitialized && !preserveFallback && queries.every(({ view }) => view.phase === 'uninitialized') && uninitialized.view.phase === 'uninitialized') {
+  if (uninitialized && !preserveFallback && uninitialized.view.phase === 'uninitialized') {
     return (
       <div className={`relative flex flex-col gap-3 ${boundaryMinHeight}`} data-query-geometry={geometry}>
         <InlineAlert title={`Chưa khởi tạo ${uninitialized.label}`} variant="info">

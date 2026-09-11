@@ -42,7 +42,7 @@ return (
                   Nhân viên
                 </button>
               )}
-              <Link className="ipc-button ipc-button-primary" to={ROUTES.WEEKLY_MENU}>
+              <Link className="ipc-button ipc-button-secondary" to={ROUTES.WEEKLY_MENU}>
                 <Database size={16} />
                 Xem KHSX/BOM
               </Link>

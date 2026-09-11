@@ -39,7 +39,7 @@ last_reviewed: 2026-08-12
 ### 0.3 Chỉ dẫn bắt buộc khi thực thi (dành cho AI agent và dev)
 
 1. Mọi ví dụ trong tài liệu là **placeholder generic**. MUST NOT coi chúng là mô tả một màn hình có thật, và MUST NOT chỉ sửa đúng chỗ trùng với ví dụ.
-2. Khi nhận yêu cầu dạng "sửa màn hình X": MUST quét toàn bộ codebase để tìm **mọi** nơi vi phạm cùng rule đó, liệt kê danh sách, rồi mới sửa. Sửa một màn hình rồi dừng là không đạt.
+2. Khi nhận yêu cầu dạng "sửa màn hình X": MUST discovery cùng anti-pattern và callsite của root owner trên codebase, ghi mọi occurrence tìm thấy vào một ledger trước khi sửa. Discovery không tự cấp quyền sửa toàn hệ thống: khóa implementation scope và acceptance scope theo Lean delivery. Occurrence ngoài scope phải có disposition; sửa shared owner phải kiểm các consumer bị ảnh hưởng hoặc chặn phần chưa đủ evidence/authority. Không chỉ vá màn được nêu rồi bỏ qua cùng nguyên nhân.
 3. MUST sửa ở **tầng thấp nhất có thể**, theo thứ tự: design token → primitive component → shared hook/formatter/util → layout → màn hình. Cấm vá cục bộ trong file màn hình nếu nguyên nhân nằm ở component dùng chung.
 4. MUST NOT tạo biến thể song song (`BadgeV2`, `TableNew`, `ModalCustom`, `*.old.tsx`). Sửa hoặc mở rộng component gốc.
 5. Mỗi thay đổi MUST ghi ID rule đang áp trong mô tả PR/commit, ví dụ `C3`, `M3.2`.
@@ -79,8 +79,12 @@ Quy tắc lưu trữ:
 
 Khi áp dụng tài liệu này cho IPCManagement, GSD Core thực hiện theo thứ tự:
 
-1. Audit toàn bộ rule với source/test/runtime hiện hành và phân loại `PASS`, `GAP`, `NOT_APPLICABLE` hoặc
-   `NEEDS_EVIDENCE`; ví dụ generic trong tài liệu không được dùng làm bằng chứng.
+1. Với audit toàn hệ thống được giao rõ ràng, audit toàn bộ rule; với task focused, disposition các rule liên quan
+   declared scope và các consumer bị ảnh hưởng. Trước audit phải khóa claim envelope/mẫu số gồm mounted route,
+   retained view, state, actor, viewport, action và nhóm rule áp dụng; mỗi required cell phải được disposition và
+   tổng required phải khớp tổng verdict cells. Dùng source/test/runtime hiện hành để phân loại `PASS`, `GAP`,
+   `NOT_APPLICABLE` hoặc `NEEDS_EVIDENCE`; phần chưa audit là `NOT_CLAIMED`, không được mặc định PASS. Ví dụ
+   generic không là bằng chứng và số lượng rule không tự mở scope.
 2. Gộp các `GAP` theo **shared seam/root cause** (token, primitive, shared formatter/hook, layout, route),
    không tạo task hoặc phase riêng cho từng rule ID, component hay màn hình.
 3. Chỉ đưa `GAP` có bằng chứng và acceptance test kiểm chứng được vào plan. Mục chưa đủ evidence phải nằm
@@ -108,6 +112,10 @@ Khi áp dụng tài liệu này cho IPCManagement, GSD Core thực hiện theo t
 - **P6 (SHOULD)** Ưu tiên hiệu suất thao tác của người dùng thành thạo hơn vẻ đẹp: phím tắt, thao tác hàng loạt, ghi nhớ bộ lọc, giữ tay trong vùng làm việc.
 - **P7 (MUST)** Phòng lỗi trước khi báo lỗi: chặn giá trị không hợp lệ tại nguồn, gợi ý giá trị hợp lệ, mặc định thông minh.
 - **P8 (SHOULD)** Mọi màn hình phải trả lời được trong 2 giây: *cái gì đang bất thường* và *tôi cần làm gì tiếp theo*.
+- **P9 (MUST)** Trước tạo/sửa/loại bỏ UI, khóa design brief, actor–action–transition matrix và walkthrough theo
+  `DESIGN.md` §7: mục đích, role/data scope, pre/postcondition, next owner, recovery, composition và acceptance.
+  Delta/link có căn cứ đủ cho phần không đổi; không tạo process/registry song song. Thiếu quyết định nghiệp vụ,
+  quyền hoặc data safety phải chặn phần phụ thuộc, không dùng styling để thay câu trả lời.
 
 ---
 
@@ -170,6 +178,11 @@ Khi áp dụng tài liệu này cho IPCManagement, GSD Core thực hiện theo t
 - **S1.13 (MUST)** Nếu một trạng thái xuất hiện ở gần như mọi hàng thì nó không còn giá trị cảnh báo — chuyển thành bộ lọc hoặc cột, không phải badge màu.
 
 ### S2. Ánh xạ ngữ nghĩa sang tone (dùng chung toàn app)
+
+Bảng dưới là semantic palette, không bắt mọi entity có nhãn “Hoàn tất” phải màu xanh. Projection theo entity,
+primary lifecycle và ngữ cảnh vận hành đã chốt tại `GLOSSARY.md` §2 được áp dụng trước ví dụ generic bên dưới:
+trạng thái bình thường có thể `neutral` theo D8; MRX giữ mapping riêng đã được duyệt. Cùng entity/logical state/
+context phải cùng tone trên mọi màn. Không tự thêm mapping local hoặc thay domain label để hợp màu.
 
 | Ngữ nghĩa | Tone | Dùng cho |
 | --- | --- | --- |
@@ -259,7 +272,10 @@ Khi áp dụng tài liệu này cho IPCManagement, GSD Core thực hiện theo t
 
 Layout shift luôn đến từ bốn nguồn: ảnh hoặc embed không khai báo kích thước, nội dung chèn động không được đặt chỗ trước, font web đổi metric, animation chạm thuộc tính gây reflow.
 
-- **C1 (MUST)** Mọi vùng render sau khi fetch (badge, KPI, chip, banner, biểu đồ, avatar) MUST có `min-height`, `min-width` hoặc `aspect-ratio` ngay từ lần layout đầu tiên. MUST NOT để container rỗng cao 0px.
+- **C1 (MUST)** Initial loading phải có placeholder/skeleton khớp nội dung dự kiến và geometry role theo DESIGN;
+  dùng min-size/aspect-ratio khi content contract cần đặt chỗ, không áp minimum height generic cho mọi boundary.
+  Control compact giữ chiều cao control; workspace chỉ grow khi có canvas/editor thật. Refreshing giữ content cũ;
+  empty/prerequisite theo C10 và V4–V6, không giữ panel trắng để né shift.
 - **C2 (MUST)** Skeleton MUST khớp kích thước thật: cùng số dòng, cùng chiều cao hàng, cùng padding. Skeleton sai kích thước vẫn gây shift, tức là vô nghĩa.
 - **C3 (MUST)** Ô trạng thái trong bảng đặt `min-width` bằng nhãn dài nhất của enum, chiều cao cố định theo token, `white-space: nowrap`. Khi chưa có dữ liệu thì render skeleton cùng kích thước, MUST NOT render rỗng.
 - **C4 (MUST)** Mọi con số cập nhật động (bộ đếm, đồng hồ, KPI, polling) dùng `tabular-nums`.
@@ -268,7 +284,10 @@ Layout shift luôn đến từ bốn nguồn: ảnh hoặc embed không khai bá
 - **C7 (MUST)** Animation chỉ dùng `transform` và `opacity`. MUST NOT animate `top`, `left`, `width`, `height`, `box-shadow`, `filter`.
 - **C8 (MUST)** `content-visibility: auto` MUST đi kèm `contain-intrinsic-size`. Thiếu nó, phần ngoài viewport bị coi là cao 0px và thanh cuộn sẽ nhảy.
 - **C9 (MUST)** Font fallback MUST khớp metric (`size-adjust`, `ascent-override`, `descent-override`) hoặc preload font chính. `font-display: swap` một mình không chống shift.
-- **C10 (MUST)** MUST NOT thu hồi khoảng trống đã đặt chỗ khi API trả về rỗng — giữ placeholder thay vì collapse.
+- **C10 (MUST)** Khi query resolve empty/prerequisite, thay skeleton bằng đúng một purposeful state surface
+  có lý do/next action hợp lệ; không giữ blank placeholder hoặc bản sao work panel rỗng. Bảng phân trang dùng
+  content height thật, không synthetic rows/row capacity/min-height theo page size. Giữ focus/scroll anchor và
+  kiểm transition hai chiều theo measurement protocol; không ép `pagination.top` bất biến bằng khoảng trắng giả.
 - **C11 (MUST)** Ảnh, iframe, embed MUST khai báo `width`/`height` hoặc `aspect-ratio`.
 - **C12 (SHOULD)** Nội dung bổ sung nên nằm phía dưới hoặc yêu cầu tương tác ("Tải thêm"). Shift trong vòng 500ms sau tương tác của người dùng được miễn trừ; tự động chèn khi polling thì không.
 
@@ -385,7 +404,9 @@ html { scrollbar-gutter: stable; }
   4. **Không đủ quyền** → nêu rõ cần quyền gì và cách xin quyền.
 - **E3 (MUST)** Empty state MUST trả lời đủ ba câu hỏi: *đây là gì*, *vì sao đang trống*, *bước tiếp theo là gì* — kèm nút hoặc link đi thẳng vào tác vụ đó. MUST NOT để một vùng trắng trơn.
 - **E4 (MUST)** Skeleton cho nội dung có cấu trúc (bảng, card, KPI); spinner chỉ cho nút và tác vụ ngắn rời rạc.
-- **E5 (MUST)** Mọi hành động ghi dữ liệu MUST có phản hồi: xác nhận thành công, thông báo lỗi hành động được, và undo với thao tác phá huỷ.
+- **E5 (MUST)** Mọi hành động ghi dữ liệu MUST có phản hồi thành công/thất bại và đường xử lý lỗi. Thao tác
+  phá huỷ cần xác nhận hoặc undo theo P5; chỉ cung cấp undo khi domain cho phép, không rewrite immutable history
+  hoặc hứa khôi phục một transaction không thể đảo ngược.
 - **E6 (MUST)** Cập nhật nền MUST NOT cướp ngữ cảnh. Hiện chỉ báo "có N cập nhật mới — tải lại" thay vì tự chèn hàng làm bảng nhảy.
 - **E7 (MUST)** Thông báo lỗi nêu **chuyện gì xảy ra** và **làm gì tiếp theo**. MUST NOT hiển thị mã lỗi thô hoặc stack trace cho người dùng cuối; mã lỗi để trong phần chi tiết có nút sao chép.
 - **E8 (MUST)** Thông báo trạng thái MUST dùng `aria-live` phù hợp.
@@ -440,7 +461,11 @@ html { scrollbar-gutter: stable; }
 - **V2 (MUST)** Heading, description, scope control và content của cùng work object phải ở cùng visual group.
   Control đứng ở một góc của panel trắng lớn hoặc heading bị đẩy xuống đáy là lỗi bố cục.
 - **V3 (MUST)** Một prerequisite/empty/error state chỉ có một explanatory surface chính. Cấm render panel trắng
-  rồi thêm alert thứ hai bên ngoài để giải thích vì sao panel đó trống.
+  rồi thêm alert thứ hai bên ngoài để giải thích vì sao panel đó trống. Trong cùng work object, data grain và state
+  cell, các message/surface mô tả cùng một vấn đề nền và dẫn tới cùng recovery/next action được tính là một state
+  dù khác câu chữ hoặc component; chỉ render một owner giải thích chính. Summary/detail chỉ được lặp khi phục vụ
+  grain hoặc quyết định actor khác và phần detail bổ sung fact không trùng; ngoại lệ phải được disposition trong
+  claim ledger.
 - **V4 (MUST)** Async boundary phải khai geometry đúng semantic role: `compact`, `section`, `table` hoặc
   `workspace`. Boundary bọc select/filter/action MUST NOT dùng min-height của bảng/workspace.
 - **V5 (MUST)** `min-height`, `height`, `flex-grow` và viewport units chỉ được dùng khi có content/skeleton
@@ -475,13 +500,26 @@ Không có oracle cho các quan hệ trên thì verdict composition là `NEEDS_E
 
 ## Q. Definition of Done, đo lường, thứ tự triển khai
 
+### Q0. Rule maintenance và chống tái diễn (MUST)
+
+Khi phát hiện defect UI/UX chưa được rule bao phủ hoặc rule mơ hồ, agent MUST tự bổ sung/làm rõ rule kỹ thuật
+có bằng chứng tại canonical owner trong cùng task, theo [execution harness §4.1](UI-UX-EXECUTION-HARNESS.md).
+Rule đã đủ thì sửa enforcement/regression, không tạo ID trùng nghĩa. Mỗi invariant mới phải có scope, ngoại lệ
+hợp lệ, oracle và liên kết tới regression red-capable; không chỉ thêm lời nhắc vào docs rồi coi là đã phòng lỗi.
+
+Quyền này không cho phép tự đổi nghiệp vụ, quyền/data visibility, mode, design direction hoặc threshold chưa
+được duyệt. Candidate thiếu bằng chứng/authority giữ NEEDS_EVIDENCE/BLOCKED và hỏi owner khi cần quyết định.
+Không hạ rule, sửa expectation theo bug, hoặc tự thay CI/hooks để lấy PASS.
+
 ### Q1. Checklist review PR
 
+- [ ] Brief/ma trận actor–action/walkthrough đã khóa trước code và được đối chiếu lại sau sửa (`P9`, DESIGN §7)
+- [ ] Có outcome, next owner, recovery và disposition actor bị từ chối; không chỉ kiểm happy path của Admin (`P2`, `P9`)
 - [ ] Không có mã kỹ thuật nào đứng một mình ở cột hoặc nhãn chính (`L1`, `L2`)
 - [ ] Mọi enum backend đi qua từ điển nhãn tập trung (`L4`)
 - [ ] Mọi số dùng formatter chung, có `tabular-nums` và có đơn vị (`L5`, `L6`, `T3`)
 - [ ] Badge dùng đúng loại, đúng token màu, có nhãn chữ, tối đa 2 trên một hàng (`S1`)
-- [ ] Vùng bất đồng bộ có skeleton khớp kích thước; không có container cao 0px (`C1`, `C2`)
+- [ ] Initial skeleton đúng geometry role; empty chỉ có một purposeful surface, không giữ khoảng trắng giả (`C1`, `C2`, `C10`)
 - [ ] Không hiển thị "không có dữ liệu" trong lúc đang tải (`E1`)
 - [ ] Bốn loại empty state được xử lý riêng, mỗi loại có hành động kế tiếp (`E2`, `E3`)
 - [ ] Không có orphan control/heading, panel trắng vô nghĩa hoặc state bị lặp trên hai surface (`V2`–`V6`)
@@ -492,6 +530,9 @@ Không có oracle cho các quan hệ trên thì verdict composition là `NEEDS_E
 - [ ] Vùng bấm ≥ 24×24px; tương phản chữ ≥ 4,5:1; tương phản phi văn bản ≥ 3:1 (`A`)
 - [ ] Không có hex hoặc rgb hardcode trong component (`D4`)
 - [ ] PR ghi rõ ID rule đã áp (mục `0.3`)
+- [ ] Finding mới/tái diễn đã disposition coverage; rule gap được bổ sung tại owner, regression có red/green
+  evidence và liên kết rule ↔ test ↔ command trong GSD ledger (`Q0`, execution harness §4.1). Không có defect thì
+  ghi không áp dụng có lý do, không bịa rule để hoàn thành checklist.
 
 ### Q2. Chỉ số theo dõi
 

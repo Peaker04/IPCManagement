@@ -33,7 +33,7 @@ Không auto-load `HISTORY.md`, `LESSONS.md`, toàn bộ `docs/`, `.planning/` ho
 | Kiến trúc hệ thống | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Audit/redesign có ngày trong tên |
 | UI normative rules | [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) | Screenshot, wave audit, checklist lịch sử |
 | UI floorplan/surface/geometry | [`DESIGN.md`](DESIGN.md) | CSS page-local hoặc mockup |
-| Điểm vào UI project-specific | [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md) | Corpus checklist bên ngoài |
+| Đầu mối gom rule UI/UX cho tạo/sửa/xóa: mục đích, role, luồng, dữ liệu, design và verification | [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), mục 1.1–1.2 | Corpus checklist bên ngoài, ma trận quyền trong audit lịch sử hoặc bộ rule sao chép |
 | Quy trình audit/fix/browser UI | [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md) | Script run cũ hoặc reviewer summary |
 | Oracle và metric UI | [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md) | Screenshot đơn lẻ, `issueCount: 0` generic |
 | Adapter Front-End Checklist | [`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md) | Rule project hoặc scope generator |

@@ -73,7 +73,7 @@ export const AppRouter = () => {
             <Route path={ROUTES.APPROVALS} element={<ModeGuard><RoleGuard requiredPermissions={['purchase.request.approve']}><Suspense fallback={routeFallback}><ApprovalPage /></Suspense></RoleGuard></ModeGuard>} />
             <Route path={ROUTES.PURCHASING} element={<ModeGuard><RoleGuard requiredPermissions={['purchase.read']}><Suspense fallback={routeFallback}><PurchasingPage /></Suspense></RoleGuard></ModeGuard>} />
             <Route path={ROUTES.WAREHOUSE} element={<ModeGuard><RoleGuard requiredPermissions={['warehouse.read']}><Suspense fallback={routeFallback}><WarehousePage /></Suspense></RoleGuard></ModeGuard>} />
-            <Route path={ROUTES.RECONCILIATION} element={<ModeGuard><RoleGuard requiredPermissions={['warehouse.read']}><Suspense fallback={routeFallback}><ReconciliationPage /></Suspense></RoleGuard></ModeGuard>} />
+            <Route path={ROUTES.RECONCILIATION} element={<ModeGuard><RoleGuard requiredPermissions={['report.read']}><Suspense fallback={routeFallback}><ReconciliationPage /></Suspense></RoleGuard></ModeGuard>} />
             <Route path={ROUTES.ADMIN_DATA} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><AdminDataPage /></Suspense></RoleGuard>} />
             <Route path={ROUTES.APPROVAL_RULES} element={<ModeGuard><RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><ApprovalRulesPage /></Suspense></RoleGuard></ModeGuard>} />
             <Route path={ROUTES.ADVANCED_SETTINGS} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><AdvancedDisplaySettingsPage /></Suspense></RoleGuard>} />

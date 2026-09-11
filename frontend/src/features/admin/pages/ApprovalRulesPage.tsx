@@ -81,19 +81,19 @@ const formatMutationError = (error: unknown) => {
   return dataMessage ?? validationMessage ?? candidate?.message ?? 'Hệ thống chưa trả về chi tiết lỗi. Vui lòng thử lại.';
 };
 
-const approvalDocumentLabels: Record<string, string> = {
-  'purchase-request': 'Đơn mua thêm (PR)',
-  'inventory-issue': 'Phiếu xuất kho',
-  'order-adjustment': 'Điều chỉnh suất ăn',
-};
-
-const approverRoleLabels: Record<string, string> = {
-  quanly: 'Quản lý',
-  beptruong: 'Bếp trưởng',
-  thumua: 'Thu mua',
-  thukho: 'Thủ kho',
-};
-
+const approvalDocumentOptions = [
+  ['purchase-request', 'Đơn mua thêm (PR)'],
+  ['inventory-issue', 'Phiếu xuất kho'],
+  ['order-adjustment', 'Điều chỉnh suất ăn'],
+] as const;
+const approverRoleOptions = [
+  ['quanly', 'Quản lý'],
+  ['beptruong', 'Bếp trưởng'],
+  ['thumua', 'Thu mua'],
+  ['thukho', 'Thủ kho'],
+] as const;
+const approvalDocumentLabels = Object.fromEntries(approvalDocumentOptions) as Record<string, string>;
+const approverRoleLabels = Object.fromEntries(approverRoleOptions) as Record<string, string>;
 const formatApprovalDocumentType = (value: string) => approvalDocumentLabels[value] ?? value;
 const formatApproverRole = (value: string) => approverRoleLabels[value] ?? value;
 
@@ -419,9 +419,7 @@ export default function ApprovalRulesPage() {
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-600">Loại chứng từ</label>
                   <select value={documentType} onChange={(event) => setDocumentType(event.target.value)} className={fieldClassName}>
-                    <option value="purchase-request">{formatApprovalDocumentType('purchase-request')}</option>
-                    <option value="inventory-issue">Phiếu xuất kho</option>
-                    <option value="order-adjustment">Điều chỉnh suất ăn</option>
+                    {approvalDocumentOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </div>
               </div>
@@ -498,10 +496,7 @@ export default function ApprovalRulesPage() {
                         <div className="space-y-1">
                           <label className="text-xs font-semibold text-slate-600">Vai trò phê duyệt</label>
                           <select value={assignment.approverRole} onChange={(event) => handleAssignmentChange(idx, 'approverRole', event.target.value)} className={`${fieldClassName} h-8 text-xs`}>
-                            <option value="quanly">Quản lý</option>
-                            <option value="beptruong">Bếp trưởng</option>
-                            <option value="thumua">Thu mua</option>
-                            <option value="thukho">Thủ kho</option>
+                            {approverRoleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                           </select>
                         </div>
 

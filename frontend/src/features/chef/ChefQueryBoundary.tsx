@@ -78,7 +78,10 @@ export function ChefQueryBoundary({
   preserveFallback = false,
   stabilizeInitialLoad = false,
 }: Props) {
-  const blocking = queries.find(({ view }) => view.phase !== 'ready');
+  const blocking = queries.find(({ view }) => view.phase === 'forbidden')
+    ?? queries.find(({ view }) => view.phase === 'error')
+    ?? queries.find(({ view }) => view.phase === 'uninitialized')
+    ?? queries.find(({ view }) => view.phase === 'loading');
   const isInitialLoad =
     stabilizeInitialLoad &&
     queries.some(({ view }) => view.phase === 'loading' || view.phase === 'uninitialized');

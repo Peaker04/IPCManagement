@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.0.4",
   "info": {
     "title": "IPC Management API",
     "description": "Hệ thống quản lý bếp ăn công nghiệp (IPC Management System)",

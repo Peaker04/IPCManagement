@@ -36,6 +36,27 @@ public class AuthControllerTests
     }
 
     [Fact]
+    public async Task LoginFailureLog_Should_NotContainUsernameOrUserAgent()
+    {
+        var controller = CreateController();
+        controller.Request.Headers.UserAgent = "sensitive-user-agent-marker";
+        _authService.LoginAsync(Arg.Any<LoginRequest>(), Arg.Any<string>()).Returns((LoginResponseDto?)null);
+
+        await controller.LoginAsync(new LoginRequest
+        {
+            Username = "sensitive-username-marker",
+            Password = "sensitive-password-marker"
+        });
+
+        var renderedLogs = string.Join(" ", _logger.ReceivedCalls()
+            .SelectMany(call => call.GetArguments())
+            .Select(argument => argument?.ToString()));
+        renderedLogs.Should().NotContain("sensitive-username-marker")
+            .And.NotContain("sensitive-user-agent-marker")
+            .And.NotContain("sensitive-password-marker");
+    }
+
+    [Fact]
     public async Task Refresh_Should_ReadRefreshCookie_But_Not_ExposeRotatedRefreshTokenInBody()
     {
         var controller = CreateController();

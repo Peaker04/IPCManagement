@@ -8,6 +8,10 @@
 
 <!-- VERIFY: Tên project/team/domain Vercel và host backend production phải được xác nhận trong tài khoản triển khai thực tế. -->
 
+## .NET servicing baseline
+
+Backend remains `net9.0`. The servicing lane uses SDK `9.0.313` via root `global.json`, Microsoft ASP.NET/EF packages `9.0.20`, IdentityModel JWT `8.19.2`, Pomelo `9.0.0` and CI `dotnet-ef 9.0.20`. Rollback is the prior build artifact/package graph; no schema rollback is involved because this servicing change creates no model or migration change. .NET 10 LTS remains a separate compatibility/runtime lane and must not be combined with business/schema changes.
+
 ## Build pipeline
 
 `.github/workflows/verify.yml` là quality gate chạy khi `push` và `pull_request`: setup .NET/Node, `npm ci`, build/test backend, kiểm tra migration/schema MySQL, lint và build frontend. Đây không phải deployment workflow; không có file workflow deploy riêng trong `.github/workflows/`.
@@ -18,7 +22,7 @@ Root Directory của project trên Vercel là `./` (gốc repository) — **đã
 
 ## Environment setup
 
-Production backend cần `ConnectionStrings:DefaultConnection`, `JwtSettings:*`, `Cors:AllowedOrigins` và `AllowedHosts`; xem [CONFIGURATION.md](CONFIGURATION.md) để biết shape và validation. Các giá trị secret/domain phải đặt trong secret manager hoặc environment của host.
+Production backend cần `ConnectionStrings:DefaultConnection`, `JwtSettings:*`, `Cors:AllowedOrigins` và `AllowedHosts`; xem [CONFIGURATION.md](CONFIGURATION.md) để biết shape và validation. Runtime hiện deploy direct-host và không tin forwarded headers. Nếu provider sau này thêm reverse proxy/TLS termination, deployment phải bổ sung trusted-proxy allowlist, forwarded-header integration tests và HTTPS/cookie verification trước promotion. Các giá trị secret/domain phải đặt trong secret manager hoặc environment của host.
 
 <!-- VERIFY: Cách inject secret, database host, region, DNS và frontend/backend origin phải được xác nhận theo provider production thực tế. -->
 
@@ -43,8 +47,17 @@ Chỉ commit sau khi operator xác nhận post-check. Sau commit, khởi động
 
 <!-- VERIFY: Quy trình rollback chính thức, retention artifact và lệnh platform-specific cần được xác nhận với đội vận hành. -->
 
+## Operational service, health and recovery targets
+
+- Service window: `05:00–22:00 Asia/Ho_Chi_Minh` daily.
+- Internal monthly qualification SLO: 99.5% successful eligible requests inside that window; no customer/legal SLA is implied.
+- Watchdog target: probe `/health/live` and `/health/ready` at least once per minute; alert after two consecutive ready failures. Primary acknowledgement target is 5 minutes, backup escalation 10 minutes.
+- `/health/live` stays 200 while the process can answer. `/health/ready` explicitly maps Healthy/Degraded to 200 and Unhealthy to 503. DB unavailable and pending migration are Unhealthy; Degraded outbox remains 200 + alert until a tested critical threshold is configured.
+- Encrypted backup target: at least every 4 hours, 14-day operational retention, RPO ≤4 hours and RTO ≤30 minutes. Restore rehearsal is quarterly and after material DB/recovery changes.
+- These are selected targets, not production evidence. Alert delivery, outage behavior, independent off-host retention and full encrypted restore remain `NEEDS_EVIDENCE` until authorized staging/provider drills produce receipts.
+
 ## Monitoring
 
-Backend ghi log Serilog ra console và file rolling `logs/ipc-.log`, giữ tối đa 30 file theo cấu hình trong `Program.cs`. Chưa thấy tích hợp Sentry, Datadog, New Relic hoặc OpenTelemetry trong dependency/config hiện tại.
+Backend ghi log Serilog ra console và file rolling JSON Lines `logs/ipc-.jsonl`, giữ tối đa 30 file theo cấu hình trong `Program.cs`. Chưa thấy tích hợp Sentry, Datadog, New Relic hoặc OpenTelemetry trong dependency/config hiện tại.
 
 <!-- VERIFY: Dashboard, alert, log aggregation và uptime monitor production chưa được xác định từ repository. -->

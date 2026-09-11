@@ -6,6 +6,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/nfr-research/20260910/d09-servicing-focused-receipt.json` | `888C538434509759E94B66CB137EF83B1A2529A2FE5D44557121D2175B5D40ED` | D09 focused source gate on dirty current worktree: observed SDK 9.0.313, coherent Microsoft 9.0.20 + IdentityModel 8.19.2 package graph, restore, isolated build 0/0, focused 49/49, EF no-pending-model and configured-source vulnerability scan PASS. Explicitly not mandatory full-CI/OpenAPI/runtime/DB certification. |
 | `.artifacts/runtime/mxe10-18-resume-20260906-1830/db/postflight-compare.json` | `5B43F4237D8D721C1783647EF5F20EE3DB674CCA24B956C824889C1164DA2DAA` | MXE protected migration postflight on exact `ipc_lane7`: only authorized migration added, history 76→77, business checksums unchanged, expected non-unique indexes and DEFAULT/17 preserved before browser cycles. |
 | `.artifacts/runtime/mxe10-18-resume-20260906-1830/browser/evidence.json` | `9C6174A55F631B8691C0172F889BEE50F53E5E4F396EA196CDB7DD42A04E6150` | Production-build headed MRX read-only matrix: five desktop viewports × five retained routes plus 200% text zoom, mode asserted before actions/captures, zero overflow/browser/request/unexpected write, exact restoration cycle recorded. |
 | `.artifacts/runtime/mxe10-18-resume-20260906-1830/performance/baseline.json` | `9EF6C76941A32EFC0493B972244C5AFE2EB8A7A40C95EF9200954CF6215A05B5` | MXE-15 finite lab baseline: 5 cold + 10 warm samples, max LCP 552 ms, CLS 0.031831, zero >50 ms long task, max elapsed 1,335 ms; not field p75. |
@@ -72,6 +73,7 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/nfr-research/20260910/d09-broad-backend-attempt.json` | `01872D35D309BDFBBC83DD1AE84C4F1E98DFAC56F23D7232E3097CA929458C58` | Attempt only: broad non-MySQL selection executed 1,226 tests with 1,211 pass/15 fail in inherited fixture/lineage seams. Not a gate, not attribution to servicing, and not permission to weaken mandatory CI. |
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/golden/stage1/partial-checkpoint.json` | `21AC63149E685DE6C1F0D2F9ECDDCE05147B1485815A730D54B1DF0524F526A2` | Checkpoint lịch sử sau Stage 1 fail; đã bị thay thế bởi Stage 1 final PASS và Golden manifest. |
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/golden/stage1-diagnostic/result.json` | `EB72C5FCEEE960ADEA0A95A40F66C8EA0FAA87001A43DA033C9BB074359AEBD9` | Diagnostic cũ cho demand-tab activation; không phải Golden gate và đã bị thay thế bởi physical Stage 1 PASS. |
 | `.artifacts/shipyard-live/phase-05-multi-customer-lifecycle/preflight/browser-control-failed-20260813.json` | `AA2C860B6C79B9BACF33E6D6277C909B5EB73FABF4C0231C43C6D587119D5DB2` | Task 1 bounded physical-input attempt: credential canonical không có trong environment; run-owned Chrome profile cũ không còn authenticated session nên navigation locator không render. Pointer/keyboard trusted đều false, workaround false, protected-lane attempt 0; hard gate dừng trước migration/Golden. |

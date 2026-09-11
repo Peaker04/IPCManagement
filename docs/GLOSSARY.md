@@ -22,10 +22,17 @@ Nếu một thuật ngữ chưa có ở đây, đối chiếu [`DOMAIN.md`](DOMA
 | Dòng nguồn | Source-line | Dòng chứng từ gốc mà action nghiệp vụ tác động |
 | Bút toán tồn kho | Movement | Một lần thay đổi tồn kho bất biến, có nguồn và actor |
 
-## 2. Bản đồ kiến trúc trạng thái theo thực thể (Rule S1.2, S1.7, L4, UI-Q13, T18, T19, D8)
+## 2. Bản đồ kiến trúc trạng thái theo thực thể (Rule S1.2, S1.7, L4, S2, D8)
 > **Nguyên tắc một cột trạng thái:** Mỗi thực thể có đúng **một máy trạng thái sở hữu cột trạng thái chính** (Primary Owner). Các trạng thái thuộc vòng đời khác được coi là chiều phụ và hiển thị qua phương tiện riêng (header chip, checklist, tiến độ).
 > **Chuẩn màu ISA-101 / High-Performance HMI (Rule D8):** Trạng thái bình thường dùng tông trung tính (`neutral`), chỉ dùng màu nhấn cho việc cần làm (`warning`) hoặc lỗi/chặn (`danger`).
-> Giá trị thiếu/rỗng MUST NOT nằm trong registry trạng thái, mà hiển thị bằng ký hiệu rỗng thống nhất `—` (Rule T20).
+> Giá trị thiếu/rỗng không phải một lifecycle status; dùng fallback presentation theo domain/formatter.
+> Với metadata không có giá trị dùng `—`; không thay query loading/forbidden/error hoặc nhãn nghiệp vụ như
+> `Chưa xuất` bằng dấu gạch (E1–E3 và contract MRX). Các mã UI-Q13/T18/T19/T20 trong bản cũ không thuộc bộ rule
+> normative hiện hành, không dùng chúng làm acceptance ID.
+>
+> Bảng dưới là mapping contextual theo entity/lifecycle của project, cụ thể hóa palette S2. `neutral` cho trạng
+> thái vận hành bình thường không mâu thuẫn với palette success; không tự đổi mọi trạng thái hoàn tất sang green.
+> Giữ các mapping MRX đã chốt, không áp mapping DEFAULT sang mode này.
 
 | Thực thể (Entity) | Máy sở hữu cột trạng thái chính | Tập nhãn chuẩn của máy chính | Semantic Tone (ISA-101) | Chiều phụ & Phương thức hiển thị |
 |---|---|---|---|---|

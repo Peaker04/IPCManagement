@@ -25,9 +25,14 @@ powershell.exe -File scripts/database-recovery/Invoke-DatabaseRecovery.ps1 -Mode
 ```
 
 Restore drill accepts only the provider receipt/object identity and a newly absent `ipc_restore_*` target.
-It downloads the exact immutable version into run-owned temporary storage, verifies the archive and inner
-manifest, restores, compares migration/schema/FK/trigger/row/business/binlog oracles, records RPO/RTO inputs,
-and only then tears down the exact run-owned database.
+It downloads the exact immutable version into run-owned temporary storage, verifies archive/inner-manifest identity,
+restores, and compares migration/schema/FK/trigger/row checksum plus DCR closure fields before optional teardown.
+GTID/binlog fields are retained as source-manifest metadata but are **not yet snapshot-bound recovery-point provenance**
+and are not compared with the new restore target.
+
+Current E21 scope is a data-integrity comparator only. Business-state oracle, exact dump snapshot coordinates/time,
+meaningful binlog provenance validation, elapsed operator recovery duration, measured RPO/RTO and off-host/provider
+certification remain `NEEDS_EVIDENCE` under E22. The current success receipt must not be presented as those guarantees.
 
 ```powershell
 powershell.exe -File scripts/database-recovery/Invoke-DatabaseRecovery.ps1 -Mode RestoreDrill `

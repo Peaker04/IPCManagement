@@ -7,32 +7,34 @@ using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using IPCManagement.Api.Features.Auth.Contracts;
 
 namespace IPCManagement.Api.Features.Auth.Services;
 
 public class AuthService : IAuthService
 {
-    private const int MaxActiveRefreshTokensPerUser = 10;
-
     private readonly IUserRepository   _userRepository;
     private readonly ITokenService     _tokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly ILogger<AuthService> _logger;
+    private readonly JwtSettings _settings;
 
     public AuthService(
         IUserRepository       userRepository,
         ITokenService         tokenService,
         IRefreshTokenRepository refreshTokenRepository,
         IEfTransactionRunner transactionRunner,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IOptions<JwtSettings> settings)
     {
         _userRepository = userRepository;
         _tokenService   = tokenService;
         _refreshTokenRepository = refreshTokenRepository;
         _transactionRunner = transactionRunner;
         _logger = logger;
+        _settings = settings.Value;
     }
 
     // ── Login ─────────────────────────────────────────────────────────────────
@@ -42,13 +44,13 @@ public class AuthService : IAuthService
         var user = await _userRepository.FindByUsernameAsync(request.Username);
         if (user is null || user.IsActive == false)
         {
-            _logger.LogWarning("Login rejected for unknown or inactive username {Username}", request.Username);
+            _logger.LogWarning("Login rejected for unknown or inactive account.");
             return null;
         }
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            _logger.LogWarning("Login rejected for user {UserId} ({Username}) due to invalid password", GuidHelper.ToGuidString(user.UserId), user.Username);
+            _logger.LogWarning("Login rejected for user {UserId} due to invalid password", GuidHelper.ToGuidString(user.UserId));
             return null;
         }
 
@@ -64,23 +66,31 @@ public class AuthService : IAuthService
             roleCode,
             roleName,
             deviceInfo);
-        await _transactionRunner.ExecuteAsync(
-            async _ =>
+        var issuedSession = await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
+                if (!await _userRepository.LockActiveUserForSessionMutationAsync(user.UserId, cancellationToken))
+                {
+                    return false;
+                }
+
                 await _refreshTokenRepository.PrepareForLoginAsync(
                     user.UserId,
                     deviceInfo,
-                    MaxActiveRefreshTokensPerUser - 1);
+                    _settings.MaxActiveRefreshTokens - 1);
                 _refreshTokenRepository.Add(issued.RefreshToken);
                 await _refreshTokenRepository.SaveChangesAsync();
+                return true;
             },
             async _ => await _refreshTokenRepository.FindByHashAsync(issued.RefreshToken.TokenHash) is not null);
 
-        _logger.LogInformation(
-            "Issued tokens for user {UserId} ({Username}) from device {DeviceInfo}",
-            userId,
-            user.Username,
-            deviceInfo);
+        if (!issuedSession)
+        {
+            _logger.LogWarning("Login rejected because the user became inactive before session issuance.");
+            return null;
+        }
+
+        _logger.LogInformation("Issued tokens for user {UserId}", userId);
 
         return issued.Response;
     }
@@ -124,12 +134,11 @@ public class AuthService : IAuthService
             var tokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
             var stored    = await _refreshTokenRepository.FindValidByHashAsync(tokenHash, userId);
 
-            if (stored is null || stored.IsRevoked || stored.IsUsed || stored.ExpiresAt < DateTime.UtcNow)
+            if (stored is null || stored.User.IsActive == false || stored.IsRevoked || stored.IsUsed || stored.ExpiresAt < DateTime.UtcNow)
             {
                 _logger.LogWarning(
-                    "Refresh rejected for user {UserId} with token hash prefix {TokenHashPrefix}",
-                    GuidHelper.ToGuidString(userId),
-                    tokenHash[..Math.Min(tokenHash.Length, 8)]);
+                    "Refresh rejected for user {UserId}",
+                    GuidHelper.ToGuidString(userId));
                 return null;
             }
 
@@ -137,28 +146,45 @@ public class AuthService : IAuthService
             var roleName = user.Role?.RoleName ?? "Unknown";
             var roleCode = user.Role?.RoleCode ?? string.Empty;
             var issued = BuildLoginResponse(
-                user.UserId, userIdStr, user.Username, user.FullName, roleCode, roleName);
+                user.UserId, userIdStr, user.Username, user.FullName, roleCode, roleName, stored.DeviceInfo);
+            issued.RefreshToken.ExpiresAt = stored.ExpiresAt;
 
-            await _transactionRunner.ExecuteAsync(
-                async _ =>
+            var rotated = await _transactionRunner.ExecuteAsync(
+                async cancellationToken =>
                 {
+                    // Serialize login, refresh and deactivation on the same user row before
+                    // inspecting token state or creating a successor.
+                    if (!await _userRepository.LockActiveUserForSessionMutationAsync(userId, cancellationToken))
+                    {
+                        return false;
+                    }
+
                     // Reload inside the retryable transaction: EfTransactionRunner clears tracked
                     // state between attempts, so mutable entities cannot be captured from outside.
-                    var tokenToRotate = await _refreshTokenRepository.FindValidByHashAsync(tokenHash, userId)
-                        ?? throw new InvalidOperationException("Refresh token is no longer available for rotation.");
+                    var tokenToRotate = await _refreshTokenRepository.FindValidByHashAsync(tokenHash, userId);
+                    if (tokenToRotate is null || tokenToRotate.User.IsActive == false ||
+                        tokenToRotate.IsRevoked || tokenToRotate.IsUsed || tokenToRotate.ExpiresAt < DateTime.UtcNow)
+                    {
+                        return false;
+                    }
+
                     tokenToRotate.IsUsed = true;
                     tokenToRotate.IsRevoked = true;
                     tokenToRotate.RevokedAt = DateTime.UtcNow;
                     tokenToRotate.ReplacedByToken = issued.RefreshToken.TokenHash;
                     _refreshTokenRepository.Add(issued.RefreshToken);
                     await _refreshTokenRepository.SaveChangesAsync();
+                    return true;
                 },
                 async _ => await _refreshTokenRepository.FindByHashAsync(issued.RefreshToken.TokenHash) is not null);
 
-            _logger.LogInformation(
-                "Refresh succeeded for user {UserId} with rotated refresh token hash prefix {TokenHashPrefix}",
-                userIdStr,
-                tokenHash[..Math.Min(tokenHash.Length, 8)]);
+            if (!rotated)
+            {
+                _logger.LogWarning("Refresh rejected because the user or token changed before rotation.");
+                return null;
+            }
+
+            _logger.LogInformation("Refresh succeeded for user {UserId}", userIdStr);
 
             return issued.Response;
         }
@@ -190,17 +216,15 @@ public class AuthService : IAuthService
 
             if (stored is null)
             {
-                _logger.LogWarning(
-                    "Logout/revoke requested for unknown refresh token hash prefix {TokenHashPrefix}",
-                    tokenHash[..Math.Min(tokenHash.Length, 8)]);
+                _logger.LogWarning("Logout/revoke requested for unknown refresh token.");
                 return false;
             }
 
             if (stored.IsRevoked)
             {
                 _logger.LogInformation(
-                    "Logout/revoke requested for already revoked token hash prefix {TokenHashPrefix}",
-                    tokenHash[..Math.Min(tokenHash.Length, 8)]);
+                    "Logout/revoke requested for already revoked token owned by user {UserId}",
+                    GuidHelper.ToGuidString(stored.UserId));
                 return true;
             }
 
@@ -209,9 +233,8 @@ public class AuthService : IAuthService
             await _refreshTokenRepository.SaveChangesAsync();
 
             _logger.LogInformation(
-                "Refresh token revoked for user {UserId} with token hash prefix {TokenHashPrefix}",
-                GuidHelper.ToGuidString(stored.UserId),
-                tokenHash[..Math.Min(tokenHash.Length, 8)]);
+                "Refresh token revoked for user {UserId}",
+                GuidHelper.ToGuidString(stored.UserId));
             return true;
         }
         catch (DbUpdateException ex)

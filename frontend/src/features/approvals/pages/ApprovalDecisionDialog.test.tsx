@@ -27,7 +27,7 @@ const renderDialog = (overrides: Partial<ComponentProps<typeof ApprovalDecisionD
 describe('ApprovalDecisionDialog controlled lazy contract', () => {
   it.each([
     ['Escape', async (user: ReturnType<typeof userEvent.setup>) => user.keyboard('{Escape}')],
-    ['backdrop', async (user: ReturnType<typeof userEvent.setup>) => user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-portal="true"] [aria-hidden="true"]')!)],
+    ['backdrop', async (user: ReturnType<typeof userEvent.setup>) => user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-outside="true"]')!)],
     ['safe button', async (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByRole('button', { name: copy.safeLabel }))],
   ])('closes without submitting through %s', async (_name, close) => {
     const user = userEvent.setup()
@@ -47,9 +47,43 @@ describe('ApprovalDecisionDialog controlled lazy contract', () => {
     expect(props.onSubmit).toHaveBeenCalledTimes(2)
   })
 
-  it('keeps rejection disabled until a nonblank reason exists', () => {
-    renderDialog({ status: 'Reject', reason: '   ' })
-    expect(screen.getByRole('button', { name: copy.submitLabel })).toBeDisabled()
+  it('allows blank rejection submit so validation can identify and focus the required field', async () => {
+    const user = userEvent.setup()
+    const props = renderDialog({ status: 'Reject', reason: '   ' })
+
+    await user.click(screen.getByRole('button', { name: copy.submitLabel }))
+
+    expect(props.onSubmit).toHaveBeenCalledOnce()
+  })
+
+  it('traps keyboard focus inside the dialog', async () => {
+    const user = userEvent.setup()
+    render(<button type="button">Outside</button>)
+    renderDialog()
+
+    screen.getByRole('button', { name: copy.submitLabel }).focus()
+    await user.tab()
+
+    expect(screen.getByLabelText('Ghi chú duyệt (tùy chọn)')).toHaveFocus()
+  })
+
+  it('asks before discarding a dirty reason and closes only after confirmation', async () => {
+    const user = userEvent.setup()
+    const props = renderDialog({ status: 'Reject', reason: 'Sai số lượng' })
+
+    await user.keyboard('{Escape}')
+
+    expect(props.onClose).not.toHaveBeenCalled()
+    expect(screen.getByText('Bỏ lý do đang nhập?')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' })).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }))
+    expect(screen.getByLabelText('Lý do từ chối')).toHaveValue('Sai số lượng')
+    expect(screen.getByRole('button', { name: copy.safeLabel })).toHaveFocus()
+
+    await user.keyboard('{Escape}')
+    await user.click(screen.getByRole('button', { name: 'Bỏ thay đổi' }))
+    expect(props.onClose).toHaveBeenCalledOnce()
   })
 
   it('vetoes Escape, backdrop, close and submit while mutation is loading', async () => {
@@ -58,7 +92,7 @@ describe('ApprovalDecisionDialog controlled lazy contract', () => {
     expect(screen.getByRole('button', { name: 'Đang xử lý...' })).toBeDisabled()
     expect(screen.getByRole('button', { name: copy.safeLabel })).toBeDisabled()
     await user.keyboard('{Escape}')
-    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-portal="true"] [aria-hidden="true"]')!)
+    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-outside="true"]')!)
     expect(props.onClose).not.toHaveBeenCalled()
     expect(props.onSubmit).not.toHaveBeenCalled()
   })

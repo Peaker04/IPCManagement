@@ -42,7 +42,8 @@ jobs:
       JwtSettings__Issuer: IPCManagementAPI
       JwtSettings__Audience: IPCManagementClient
       JwtSettings__ExpiryMinutes: 30
-      JwtSettings__RefreshExpiryDays: 30
+      JwtSettings__RefreshExpiryDays: 1
+      JwtSettings__MaxActiveRefreshTokens: 3
 
     steps:
       - name: Checkout
@@ -92,7 +93,7 @@ jobs:
         run: npm run check:api-contract
 
       - name: Install EF Core CLI
-        run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.16
+        run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.20
 
       - name: Check EF migration snapshot
         run: >

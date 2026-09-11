@@ -286,10 +286,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                         <SelectValue>{formatMenuVersionStatus(scheduleRuleForm.status)}</SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="DRAFT">Bản nháp</SelectItem>
-                          <SelectItem value="ACTIVE">Đang áp dụng</SelectItem>
-                          <SelectItem value="SUPERSEDED">Đã thay thế</SelectItem>
-                          <SelectItem value="LOCKED">Đã khóa</SelectItem>
+                          {['DRAFT', 'ACTIVE', 'SUPERSEDED', 'LOCKED'].map((status) => <SelectItem key={status} value={status}>{formatMenuVersionStatus(status)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </label>

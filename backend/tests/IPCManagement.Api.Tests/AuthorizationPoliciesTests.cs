@@ -121,6 +121,8 @@ public class AuthorizationPoliciesTests
         Policy(actuals, nameof(ReconciliationActualsController.Disposition)).Should().Be(AuthorizationPolicies.ReconciliationDispositionAccess);
         AuthorizationPolicies.ReconciliationDecisionRoles.Should().Contain(["Manager", "Admin"]);
         AuthorizationPolicies.ReconciliationDecisionRoles.Should().NotContain(["Coordinator", "Purchasing", "WarehouseStaff"]);
+        AuthorizationPolicies.ReportRoles.Should().OnlyContain(role =>
+            AuthorizationPolicies.ResolvePermissions(role).Contains(AuthorizationPolicies.ReportRead));
     }
 
     private static string? Policy(Type controller, string action) => controller.GetMethod(action)!

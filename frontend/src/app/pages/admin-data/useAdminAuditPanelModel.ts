@@ -5,7 +5,7 @@ import type { ReportCursor } from '@/api/workflowApiTypes';
 import { getTodayInputValue, type AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 
-export function useAdminAuditPanelModel(activeView: AdminView, groupByEvent = false) {
+export function useAdminAuditPanelModel(activeView: AdminView, groupByEvent = false, sourceFamily?: string) {
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const [auditActor, setAuditActor] = useState('');
   const [auditArea, setAuditArea] = useState('');
@@ -27,8 +27,9 @@ export function useAdminAuditPanelModel(activeView: AdminView, groupByEvent = fa
       entityName: deferredAuditEntity.trim() || undefined,
       fieldName: deferredAuditField.trim() || undefined,
       groupBy: groupByEvent ? 'event' : undefined,
+      sourceFamily,
     }),
-    [deferredAuditActor, deferredAuditArea, deferredAuditEntity, deferredAuditField, groupByEvent],
+    [deferredAuditActor, deferredAuditArea, deferredAuditEntity, deferredAuditField, groupByEvent, sourceFamily],
   );
   const auditCursor = auditCursors.at(-1);
   const auditResult = useGetAuditChangePageQuery({
@@ -52,6 +53,7 @@ export function useAdminAuditPanelModel(activeView: AdminView, groupByEvent = fa
     if (auditArea) params.append('businessArea', auditArea.trim());
     if (auditEntity) params.append('entityName', auditEntity.trim());
     if (auditField) params.append('fieldName', auditField.trim());
+    if (sourceFamily) params.append('sourceFamily', sourceFamily);
 
     try {
       const response = await fetch(`/api/workflow-reports/audit-changes/csv?${params.toString()}`, {

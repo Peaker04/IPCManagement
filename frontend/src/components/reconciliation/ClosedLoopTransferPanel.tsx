@@ -121,6 +121,7 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
     try {
       await transfer({ id: batch.batchId, expectedVersion: batch.version }).unwrap()
       await refetch()
+      setFeedback({ title: 'Đã chuyển sang Kho', message: 'Kho có thể mở lô này để tạo phiếu xuất theo định lượng đã khóa.', variant: 'info' })
     } catch (error) {
       setFeedback({ title: 'Chưa chuyển được sang Kho', message: errorMessage(error, 'Lô đã thay đổi. Hãy tải lại trước khi chuyển.'), variant: 'danger' })
     }

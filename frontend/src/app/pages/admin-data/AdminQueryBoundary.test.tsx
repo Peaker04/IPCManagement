@@ -24,6 +24,11 @@ describe('AdminQueryBoundary', () => {
     expect(screen.queryByText('Kết quả quản trị')).toBeNull();
   });
 
+  it('keeps compact blocking states content-sized', () => {
+    const { container } = renderBoundary([{ phase: 'forbidden', message: 'Không có quyền.' }]);
+    expect(container.firstElementChild).not.toHaveClass('min-h-[420px]');
+  });
+
   it('renders loading without exposing children as a false empty state', () => {
     renderBoundary([{ phase: 'loading' }]);
 

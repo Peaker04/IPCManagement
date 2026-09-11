@@ -227,8 +227,12 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
           onClick={() => requestClose("backdrop")}
         />
         <div
+          data-ipc-dialog-outside="true"
           className="fixed inset-0 z-[1001] flex items-start justify-center overflow-y-auto p-4 sm:items-center overscroll-contain"
           style={{ overscrollBehavior: 'contain' }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) requestClose("backdrop")
+          }}
         >
           {children}
         </div>
@@ -332,7 +336,7 @@ export function DialogFooter({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-10 flex flex-col-reverse bg-inherit sm:flex-row sm:justify-end sm:gap-2",
+        "sticky bottom-0 z-10 flex flex-col-reverse flex-wrap gap-2 bg-inherit sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

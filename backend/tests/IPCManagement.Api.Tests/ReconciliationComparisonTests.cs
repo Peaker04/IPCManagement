@@ -11,7 +11,7 @@ public sealed class ReconciliationComparisonTests
         var actuals = new[] { new ReconciliationActual { BatchLineId=line.BatchLineId,Side="PURCHASED",Quantity=10.5m } };
         var result = ReconciliationComparisonService.Map(line, actuals, null, 9.4m);
         Assert.Equal(0.5m,result.PurchasedRequiredDifference); Assert.Equal(-0.6m,result.IssuedRequiredDifference); Assert.Equal(1.1m,result.PurchasedIssuedDifference);
-        Assert.DoesNotContain("PURCHASED_REQUIRED",result.Triggers); Assert.Contains("ISSUED_REQUIRED",result.Triggers); Assert.Contains("PURCHASED_ISSUED",result.Triggers);
+        Assert.DoesNotContain("PURCHASED_REQUIRED",result.Triggers); Assert.Contains("ISSUED_REQUIRED",result.Triggers); Assert.DoesNotContain("PURCHASED_ISSUED",result.Triggers);
     }
 
     [Fact]

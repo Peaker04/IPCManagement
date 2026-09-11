@@ -40,7 +40,6 @@ export const reconciliationOwnedMutationEndpointNames = new Set([
   'transferReconciliationBatch',
   'createReconciliationIssue',
   'completeReconciliationBatch',
-  'setReconciliationActual',
   'setReconciliationDisposition',
 ])
 
@@ -111,7 +110,6 @@ export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder =
   listReconciliationSourceChanges: builder.query<ReconciliationSourceChange[], string>({ query: batchId => `/reconciliation/batches/${batchId}/source-changes`, transformResponse: (r: ApiResponse<ReconciliationSourceChange[]>) => r.data ?? [], providesTags: (_result, _error, batchId) => [{ type: 'ReconciliationBatches', id: batchId }] }),
   createReconciliationIssue: builder.mutation<ReconciliationIssueCreated, CreateReconciliationIssueRequest>({ query: body => ({ url: '/inventory-issues', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationIssueCreated>) => r.data!, invalidatesTags: (_result, _error, body) => [{ type: 'ReconciliationBatches', id: body.reconciliationBatchId! }, { type: 'ReconciliationIssueHistory', id: body.reconciliationBatchId! }] }),
   completeReconciliationBatch: builder.mutation<ReconciliationBatch,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/complete`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags:['ReconciliationBatches'] }),
-  setReconciliationActual: builder.mutation<void,{lineId:string;side:'purchased'|'issued';quantity:number;expectedVersion?:number;confirmZero:boolean;correctionReason?:string}>({query:({lineId,side,...body})=>({url:`/reconciliation/lines/${lineId}/${side}`,method:'PUT',body}),invalidatesTags:['ReconciliationBatches']}),
   setReconciliationDisposition: builder.mutation<void,{lineId:string;category:string;reason:string;expectedVersion?:number}>({query:({lineId,...body})=>({url:`/reconciliation/lines/${lineId}/disposition`,method:'PUT',body}),invalidatesTags:['ReconciliationBatches']}),
 })})
 
@@ -131,6 +129,5 @@ export const {
   useCreateReconciliationIssueMutation,
   useCompleteReconciliationBatchMutation,
   useGetReconciliationBatchQuery,
-  useSetReconciliationActualMutation,
   useSetReconciliationDispositionMutation,
 } = reconciliationApi

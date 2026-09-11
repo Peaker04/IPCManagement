@@ -253,6 +253,58 @@ thực tế của run và không được sửa ngược để giả thành cove
 - Không rerun sanitizer/seed/import chỉ để chạy gate này. Nếu cần E2E mới, boot source-backed,
   xác minh `/health/ready` đọc đúng `ipc_lane1`, sau đó đối chiếu FE → API → DB → FE reload.
 
+### Gate NFR auth và accessibility/dialog
+
+- `AuthServiceTests` khóa refresh rotation tại public service seam: tài khoản inactive bị từ chối không tạo
+  successor, trạng thái user/token được kiểm lại trong transaction và successor giữ `DeviceInfo`. Test unit này
+  không thay relational two-connection proof cho concurrent reuse; claim đó giữ `NEEDS_EVIDENCE` nếu chưa có
+  disposable database authority.
+- `frontend/tests/uiAuditAxe.test.ts` là negative-control gate cho contrast: serious/critical axe findings không
+  được bỏ chỉ vì placeholder thuộc allowlist màu hoặc text/placeholder khác màu. Browser axe vẫn là oracle render;
+  source-string guards không thay thế.
+- `ApprovalDecisionDialog.test.tsx` khóa shared Dialog focus trap, pending veto, rejection validation và dirty
+  discard confirmation trong cùng blocking layer. Protected approval mutation vẫn cần UI → API → DB → reload
+  evidence trên business item được cấp quyền; component tests không tự chứng nhận lifecycle.
+- `RateLimitRejectionWriterTests` khóa response `429` và chỉ phát `Retry-After` khi native limiter lease cung cấp
+  delay; không tự chế thời gian retry. Backend hiện direct-host nên forwarded-header behavior không nằm trong
+  runtime contract; khi thêm reverse proxy phải có trusted/untrusted proxy integration tests riêng.
+- `SessionTimeoutModal.test.tsx` và `LoginPage.feedback.test.tsx` khóa reauthentication continuity: giữ
+  pathname/query/hash của route nội bộ, từ chối URL external/protocol-relative/không có slash và login-loop,
+  rồi để `ProtectedRoute`/`ModeGuard`/`RoleGuard` xử lý quyền hiện hành sau login.
+- `authHelpers.test.ts` khóa access token và user metadata trong tab-scoped `sessionStorage`, đồng thời xóa auth
+  metadata legacy khỏi `localStorage`; refresh cookie vẫn không lộ cho JavaScript. `IdleSessionGuard.test.tsx`
+  dùng fake timers khóa 60 phút idle, cảnh báo 2 phút, trusted-activity reset, continue-session và logout đúng một lần.
+  Focused source evidence không thay host/browser privacy verification.
+- `AuthServiceTests` khóa configurable active-session cap mặc định 3 và successor kế thừa exact family expiry;
+  repeated rotation vì vậy không sliding quá 24 giờ mặc định. `AdminEmployeeServiceTests` dùng nhiều session,
+  already-revoked và other-user controls để khóa cả Update/UpdateStatus chỉ revoke đúng session của user bị khóa.
+  Login/refresh/deactivate source cùng lấy MySQL user-row lock, nhưng concurrent login-cap và deactivate interleavings
+  vẫn NEEDS_EVIDENCE tới khi có relational two-connection gate.
+- `formatters.test.ts` và `calendarDateBoundary.test.ts` khóa `Asia/Ho_Chi_Minh`, UTC→ICT qua biên ngày/năm và
+  date-only/service-date không bị lệch theo timezone máy. VND/quantity/date convergence vẫn thuộc shared formatter.
+- Auth log-minimization source không còn routine username, User-Agent/device hoặc token/hash-prefix templates.
+  `AuthServiceTests` và `AuthControllerTests` dùng synthetic username/password/User-Agent markers để khóa không lộ
+  qua routine log rendering; host access/rotation/30-day retention tiếp tục `NEEDS_EVIDENCE`.
+
+### Gate D06 browser support
+
+- `browserSupportPolicy.test.ts` khóa full denominator 672 cells: Windows 10/11 × Chrome/Edge × current/previous × ba desktop viewport × normal/reduced motion × 100/200% × bảy critical workflows. OS/version band nằm trong evidence identity; NVDA là subset riêng.
+- `playwright.browser-support.config.ts` tạo bốn browser/motion projects không có versioned device descriptor hoặc `webServer`, giữ native installed-browser UA và không tự start server. Runner nhận operator-supplied URL/source ref/run ID/OS/version band; các metadata này chưa phải runtime identity verification. `browser-support-evidence.spec.ts` chỉ preflight login/reflow/overflow/native-UA trên ba viewport. Root-font-size 200% chỉ là text-reflow proxy, không phải real browser-zoom/NVDA evidence.
+- Browser current/previous version receipts, workflow actions, keyboard/focus, real zoom, NVDA, console/network và protected mutations vẫn `NEEDS_EVIDENCE`; preflight PASS không được nâng thành browser-support PASS.
+
+### Gate NFR performance, health và recovery
+
+- `PerformanceQualificationContractTests` khóa đúng phạm vi read-only probe: 10 RPS/15 phút, burst 30 RPS/60 giây, zero dropped iterations, required run ID và run-unique output. Probe dùng một identity/chỉ GET nên không chứng nhận 50 users, 20 active workers, 80/20 writes, import, p99 class budgets hoặc business invariants; full D04 qualification còn OPEN.
+- `HealthResponseWriterTests` khóa JSON machine-readable và `HealthEndpointOptions` lock live/ready tag partitions cùng ready 200/200/503. Đây là source options contract; real HTTP probe/outage/alert delivery vẫn cần authorized runtime drill.
+- `RestoreOracle.ps1` tách data-integrity equality khỏi GTID/binlog provenance. CHECKSUM TABLE chỉ lưu checksum value nên source/target database khác tên không false-fail; missing provenance hoặc malformed checksum fail closed. `RecoveryScriptContractTests` chạy synthetic PowerShell controls; không thay encrypted off-host restore/RPO/RTO evidence.
+
+### Gate D09 .NET 9 servicing
+
+- Root `global.json` selects minimum SDK `9.0.313` within the 9.0.3xx `latestPatch` band; the recorded local run observed 9.0.313, while CI installs floating supported `9.0.x`. Microsoft ASP.NET/EF production and test packages plus CI `dotnet-ef` are coherent at `9.0.20`. `System.IdentityModel.Tokens.Jwt 8.19.2` is the required direct dependency for JwtBearer 9.0.20; unrelated packages remain unchanged.
+- Restore PASS; isolated API build PASS with 0 warnings/errors; focused auth/authorization/config/health/transaction/repository/admin/rate-limit aggregate 49/49 PASS under the observed local SDK 9.0.313. `dotnet-ef 9.0.20 migrations has-pending-model-changes` reports no model change. NuGet vulnerable scan reports none from configured sources.
+- Broad non-MySQL test attempt executed 1,226 tests and returned 15 failures in inherited fixture/lineage owners (SQLite schema missing `IsOperationalActive`, stale migration count 76 vs 77, MRX expected exception ordering, Roslyn source-generator partial implementation); it is not a D09 full-suite PASS and those failures were not edited in this servicing lane.
+- OpenAPI generation completed successfully, but generated contract bytes differ from the already dirty working-copy contract files; originals were restored exactly. Therefore API contract parity is `NEEDS_RECONCILIATION`, not PASS, until the owning API-contract lane disposes those inherited changes.
+
 ## CI integration
 
-Workflow `.github/workflows/verify.yml` chạy trên cả `push` và `pull_request`. Job `verify` dùng MySQL `8.0`, .NET `9.0.x` và Node `20`, sau đó chạy `npm ci`, backend build/test, kiểm tra EF migration snapshot, tạo và smoke-test MySQL schema, frontend lint và frontend build. Workflow hiện là quality gate; không có workflow deploy riêng trong `.github/workflows/`.
+Workflow `.github/workflows/verify.yml` chạy trên cả `push` và `pull_request`. Job `verify` dùng MySQL `8.0`, .NET `9.0.x` và Node `22`, sau đó chạy `npm ci`, backend build/test, kiểm tra EF migration snapshot, tạo và smoke-test MySQL schema, frontend lint và frontend build. Workflow hiện là quality gate; không có workflow deploy riêng trong `.github/workflows/`.

@@ -59,6 +59,7 @@ export default function ReconciliationPage() {
   const completionSessionRef = useRef(0)
   const [completeBatch] = useCompleteReconciliationBatchMutation()
   const canComplete = useHasRole(['quanly'])
+  const canSetDisposition = canComplete
   const batch = batchQuery.currentData ?? batchQuery.data
   const actionableCount = useMemo(() => batch?.lines.filter((line) => line.status !== 'MATCHED').length ?? 0, [batch?.lines])
   const resultPresentation = getReconciliationResultPresentation({ total: batch?.lines.length ?? 0, actionable: actionableCount, issueId: selectedIssueId, showAll })
@@ -148,7 +149,8 @@ export default function ReconciliationPage() {
         {batch && <div className="space-y-4">
           <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />
           <SectionPanel title={resultPresentation.title} description={resultPresentation.description} actions={<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{completionReady && canComplete && <Button type="button" size="sm" onClick={openCompletion}>Hoàn tất đối chiếu</Button>}</div>}>
-            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' ? setDisposingLine : undefined} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title="Sẵn sàng hoàn tất" description={`${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
+            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' && canSetDisposition ? setDisposingLine : undefined} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title="Sẵn sàng hoàn tất" description={`${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
+            {batch.status === 'IN_PROGRESS' && actionableCount > 0 && !canSetDisposition && <p role="status" className="mt-3 text-sm text-slate-600">Quản trị hoặc Quản lý cần xử lý chênh lệch trước khi lô có thể hoàn tất.</p>}
             {completionReady && !canComplete && <p role="status" className="mt-3 text-sm text-slate-600">Lô đã đủ điều kiện; Quản trị hoặc Quản lý cần xác nhận hoàn tất đối chiếu.</p>}
           </SectionPanel>
           <ReconciliationSourceChangeLog batchId={batch.batchId} />

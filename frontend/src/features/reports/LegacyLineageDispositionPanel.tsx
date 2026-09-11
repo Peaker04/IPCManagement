@@ -54,6 +54,11 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
   );
   const reviewItems = [...(pendingResult.data ?? []), ...(approvedResult.data ?? [])]
     .filter((item, index, all) => all.findIndex(candidate => candidate.dispositionId === item.dispositionId) === index);
+  const candidates = candidatesResult.data ?? [];
+  const selectedTargetIndex = candidates.findIndex((candidate) => candidate.targetLineId === targetLineId);
+  const selectedTargetLabel = selectedTargetIndex >= 0
+    ? `${candidates[selectedTargetIndex].documentCode} · Lựa chọn ${selectedTargetIndex + 1}/${candidates.length}`
+    : 'Chọn dòng chứng từ hợp lệ';
   const isBusy = createState.isLoading || reviewState.isLoading || applyState.isLoading;
 
   const submitCreate = async () => {
@@ -179,10 +184,10 @@ export function LegacyLineageDispositionPanel({ rows }: { rows: SupplyLineReconc
           )}
           <Select value={targetLineId || null} onValueChange={(value) => setTargetLineId(value ?? '')} disabled={candidatesResult.isError || candidatesResult.isFetching}>
             <SelectTrigger className="mt-2 w-full bg-white" aria-label="Dòng chứng từ đích">
-              <SelectValue placeholder="Chọn dòng chứng từ hợp lệ" />
+              <SelectValue placeholder="Chọn dòng chứng từ hợp lệ">{selectedTargetLabel}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {(candidatesResult.data ?? []).map((candidate, index, candidates) => (
+              {candidates.map((candidate, index) => (
                 <SelectItem key={candidate.targetLineId} value={candidate.targetLineId}>
                   {candidate.documentCode} · Lựa chọn {index + 1}/{candidates.length}
                 </SelectItem>

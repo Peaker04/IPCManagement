@@ -8,6 +8,8 @@
 const numberFormatCache = new Map<string, Intl.NumberFormat>();
 const dateTimeFormatCache = new Map<string, Intl.DateTimeFormat>();
 
+export const BUSINESS_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+
 export const getNumberFormat = (
   locale = 'vi-VN',
   options: Intl.NumberFormatOptions = {},
@@ -137,7 +139,7 @@ export const formatDateTime = (value?: string | Date | null): string => {
     minute: '2-digit',
     second: '2-digit',
     hour12: false,
-    timeZone: 'Asia/Bangkok',
+    timeZone: BUSINESS_TIME_ZONE,
   }).format(parsed);
 };
 
@@ -148,4 +150,5 @@ export const formatDateVN = (date: Date = new Date()): string =>
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    timeZone: BUSINESS_TIME_ZONE,
   }).format(date);

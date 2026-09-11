@@ -65,8 +65,6 @@ export function WarehouseMovementPanel({
   onStockMovementPrevious,
   onStockMovementNext,
 }: WarehouseMovementPanelProps) {
-  const isCurrentStockError = currentStockView.phase === 'error' || currentStockView.phase === 'forbidden';
-
   return (
     <SplitWorkbench
       wideDetailRail
@@ -100,40 +98,41 @@ export function WarehouseMovementPanel({
         >
           {currentStockView.phase === 'forbidden' && <InlineAlert title="Không có quyền xem tồn kho hiện tại" variant="danger" className="mb-3">{currentStockView.message}</InlineAlert>}
           {currentStockView.phase === 'error' && <EmptyState variant="error" className="mb-3" title="Không tải được tồn kho hiện tại" description="Vui lòng thử tải lại hoặc kiểm tra kết nối mạng." onRetry={() => currentStockView.retry?.()} isRetrying={currentStockView.isRetrying} />}
+          {currentStockView.phase === 'uninitialized' && <InlineAlert title="Chưa tải tồn kho hiện tại" variant="info">{currentStockView.instruction}</InlineAlert>}
           {currentStockView.phase === 'ready' && currentStockView.isRefreshing && <RefreshStatus>Đang cập nhật...</RefreshStatus>}
-          <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
-            <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
-              <thead>
-                <tr>
-                  <th className="text-left">Kho</th>
-                  <th className="text-left">Nguyên liệu</th>
-                  <th className="text-right">Số lượng</th>
-                  <th className="text-center">Cập nhật</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentStockView.phase === 'loading' ? (
-                  Array.from({ length: 8 }).map((_, index) => (
-                    <tr key={`stock-skel-${index}`}>
-                      <td colSpan={4} className="p-2.5">
-                        <div className="h-4 animate-pulse rounded bg-slate-100" />
-                      </td>
-                    </tr>
-                  ))
-                ) : currentStockRows.length === 0 ? (
-                  <tr><td colSpan={4} className="py-6 text-center text-slate-500">{currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}</td></tr>
-                ) : currentStockRows.map((row) => (
-                  <tr key={row.id}>
-                    <td className="text-slate-700">{row.warehouse}</td>
-                    <td className="font-medium text-slate-900">{row.ingredient}</td>
-                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
-                    <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
+          {(currentStockView.phase === 'loading' || currentStockView.phase === 'ready') && <>
+            <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
+              <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
+                <thead>
+                  <tr>
+                    <th className="text-left">Kho</th>
+                    <th className="text-left">Nguyên liệu</th>
+                    <th className="text-right">Số lượng</th>
+                    <th className="text-center">Cập nhật</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableViewport>
-          <PaginationBar page={currentStockPage} pageSize={currentStockPageSize} totalItems={currentStockTotalItems} onPageChange={onCurrentStockPageChange} />
+                </thead>
+                <tbody>
+                  {currentStockView.phase === 'loading' ? (
+                    Array.from({ length: 8 }).map((_, index) => (
+                      <tr key={`stock-skel-${index}`}>
+                        <td colSpan={4} className="p-2.5"><div className="h-4 animate-pulse rounded bg-slate-100" /></td>
+                      </tr>
+                    ))
+                  ) : currentStockRows.length === 0 ? (
+                    <tr><td colSpan={4} className="py-6 text-center text-slate-500">Chưa có dữ liệu tồn kho</td></tr>
+                  ) : currentStockRows.map((row) => (
+                    <tr key={row.id}>
+                      <td className="text-slate-700">{row.warehouse}</td>
+                      <td className="font-medium text-slate-900">{row.ingredient}</td>
+                      <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
+                      <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
+            {currentStockView.phase === 'ready' && <PaginationBar page={currentStockPage} pageSize={currentStockPageSize} totalItems={currentStockTotalItems} onPageChange={onCurrentStockPageChange} />}
+          </>}
         </SectionPanel>
 
         <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>

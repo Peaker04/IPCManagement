@@ -23,7 +23,7 @@ describe('shared dialog contract', () => {
     expect(dialog).toHaveAttribute('data-size', 'md')
     expect(dialog).toHaveClass('max-h-[85vh]', 'overflow-y-auto')
     expect(screen.getByText('Thao tác có xác nhận').parentElement).toHaveClass('sticky', 'top-0')
-    expect(screen.getByRole('button', { name: 'Đóng' }).parentElement).toHaveClass('sticky', 'bottom-0')
+    expect(screen.getByRole('button', { name: 'Đóng' }).parentElement).toHaveClass('sticky', 'bottom-0', 'flex-wrap')
   })
   it('DIALOG-02 reports a close reason and respects a veto', async () => {
     const onOpenChange = vi.fn()
@@ -36,7 +36,7 @@ describe('shared dialog contract', () => {
     await user.click(screen.getByRole('button', { name: 'Đóng' }))
     expect(onCloseRequest).toHaveBeenLastCalledWith('close-control')
     expect(onOpenChange).not.toHaveBeenCalled()
-    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-portal="true"] [aria-hidden="true"]')!)
+    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-outside="true"]')!)
     expect(onCloseRequest).toHaveBeenLastCalledWith('backdrop')
     expect(onOpenChange).not.toHaveBeenCalled()
   })
@@ -46,7 +46,7 @@ describe('shared dialog contract', () => {
     const user = userEvent.setup()
     await user.keyboard('{Escape}')
     expect(onOpenChange).toHaveBeenCalledWith(false, 'escape')
-    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-portal="true"] [aria-hidden="true"]')!)
+    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-outside="true"]')!)
     expect(onOpenChange).toHaveBeenLastCalledWith(false, 'backdrop')
   })
   it('DIALOG-03 keeps focus inside, inerts the background, and returns it to the opener', async () => {

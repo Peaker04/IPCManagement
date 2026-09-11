@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
@@ -13,7 +12,6 @@ using IPCManagement.Api.OpenApi;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -56,38 +54,8 @@ Log.Logger = loggerConfiguration.CreateLogger();
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
-// ── Forwarded headers ───────────────────────────────────────────────────────
-// API chạy sau reverse proxy: không đọc X-Forwarded-For thì rate limiter phân partition theo IP
-// của proxy, nghĩa là toàn hệ thống dùng chung một hạn mức.
-var knownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()
-    ?? Array.Empty<string>();
-
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-
-    // Mặc định ASP.NET Core chỉ tin proxy loopback; xóa allowlist để header từ proxy thật được đọc.
-    options.KnownNetworks.Clear();
-    options.KnownProxies.Clear();
-
-    foreach (var proxy in knownProxies)
-    {
-        if (IPAddress.TryParse(proxy, out var proxyAddress))
-        {
-            options.KnownProxies.Add(proxyAddress);
-        }
-    }
-});
-
-if (knownProxies.Length == 0)
-{
-    Log.Warning("ForwardedHeaders:KnownProxies chưa cấu hình — API tin mọi X-Forwarded-For. "
-        + "Chỉ an toàn khi API luôn nằm sau reverse proxy tin cậy.");
-}
-
 // ── Cookie policy ───────────────────────────────────────────────────────────
-// Ngoài Development, cookie refresh-token bắt buộc có cờ Secure. Ép ở đây thay vì để controller
-// tự quyết theo Request.IsHttps, vì sau proxy TLS-terminating thì IsHttps có thể là false.
+// Ngoài Development, cookie refresh-token bắt buộc có cờ Secure dù controller nhận request nào.
 builder.Services.Configure<CookiePolicyOptions>(options =>
 {
     options.MinimumSameSitePolicy = SameSiteMode.Unspecified;   // giữ nguyên SameSite controller đặt
@@ -306,15 +274,8 @@ builder.Services.AddRateLimiter(opts =>
             QueueLimit = 10
         }));
 
-    // Trả về JSON khi bị từ chối
-    opts.OnRejected = async (context, _) =>
-    {
-        context.HttpContext.Response.StatusCode  = StatusCodes.Status429TooManyRequests;
-        context.HttpContext.Response.ContentType = "application/json";
-        await context.HttpContext.Response.WriteAsync(
-            """{"success":false,"message":"Quá nhiều yêu cầu. Vui lòng thử lại sau."}""")
-            .ConfigureAwait(false);
-    };
+    opts.OnRejected = (context, cancellationToken) =>
+        RateLimitRejectionWriter.WriteAsync(context.HttpContext, context.Lease, cancellationToken);
 });
 
 static string GetRateLimitPartitionKey(HttpContext context)
@@ -338,10 +299,6 @@ await using (var startupScope = app.Services.CreateAsyncScope())
     await DeploymentConfigurationValidator.ValidateOperationalWarehouseAsync(
         operationalWarehouseResolver);
 }
-
-// PHẢI đứng đầu pipeline: mọi middleware phía sau (HttpsRedirection, rate limiter phân partition
-// theo IP, log request) đều cần RemoteIpAddress/Scheme đã được sửa lại theo header của proxy.
-app.UseForwardedHeaders();
 
 // ── Security headers ────────────────────────────────────────────────────────
 if (!app.Environment.IsDevelopment())
@@ -404,43 +361,11 @@ app.MapGet("/", () =>
 
 // ── Health endpoints ────────────────────────────────────────────────────────
 // Probe phải luôn trả lời được kể cả khi hạn mức đã cạn → DisableRateLimiting.
-app.MapHealthChecks("/health/live", new HealthCheckOptions
-{
-    Predicate = registration => registration.Tags.Contains("live"),
-    ResponseWriter = WriteHealthCheckResponseAsync
-}).DisableRateLimiting().AllowAnonymous();
+app.MapHealthChecks("/health/live", HealthEndpointOptions.CreateLive())
+    .DisableRateLimiting().AllowAnonymous();
 
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
-{
-    Predicate = registration => registration.Tags.Contains("ready"),
-    ResponseWriter = WriteHealthCheckResponseAsync
-}).DisableRateLimiting().AllowAnonymous();
-
-// Healthy/Degraded → 200, Unhealthy → 503 (mặc định của HealthCheckOptions.ResultStatusCodes).
-static Task WriteHealthCheckResponseAsync(HttpContext context, HealthReport report)
-{
-    context.Response.ContentType = "application/json";
-
-    var payload = new
-    {
-        status = report.Status.ToString(),
-        totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 1),
-        checks = report.Entries.Select(entry => new
-        {
-            name = entry.Key,
-            status = entry.Value.Status.ToString(),
-            description = entry.Value.Description,
-            durationMs = Math.Round(entry.Value.Duration.TotalMilliseconds, 1)
-        })
-    };
-
-    return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(
-        payload,
-        new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
-        }));
-}
+app.MapHealthChecks("/health/ready", HealthEndpointOptions.CreateReady())
+    .DisableRateLimiting().AllowAnonymous();
 
 app.UseResponseCompression();
 app.UseHttpsRedirection();

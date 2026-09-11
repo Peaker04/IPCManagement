@@ -245,6 +245,7 @@ export function ApprovalQueue({
     return (
       <EmptyState
         title="Chưa có chứng từ chờ duyệt."
+        description="Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử."
         className={cn(
           "ipc-approval-queue is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left",
           className,

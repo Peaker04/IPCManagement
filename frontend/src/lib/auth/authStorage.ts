@@ -11,11 +11,9 @@ export interface StoredAuthSnapshot {
 }
 
 const canUseWebStorage = () =>
-  typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
-
-const readLocalStorageValue = (key: string) => canUseWebStorage()
-  ? window.localStorage.getItem(key)
-  : null;
+  typeof window !== 'undefined'
+  && typeof window.localStorage !== 'undefined'
+  && typeof window.sessionStorage !== 'undefined';
 
 const readSessionStorageValue = (key: string) => canUseWebStorage()
   ? window.sessionStorage.getItem(key)
@@ -61,16 +59,18 @@ const clearLegacyRefreshToken = () => {
   window.sessionStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
 };
 
-const clearLegacyPersistentAccessToken = () => {
-  if (canUseWebStorage()) window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+const clearLegacyPersistentAuth = () => {
+  if (!canUseWebStorage()) return;
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  window.localStorage.removeItem(USER_KEY);
 };
 
 export const readStoredAuthSnapshot = (): StoredAuthSnapshot => {
   clearLegacyRefreshToken();
-  clearLegacyPersistentAccessToken();
+  clearLegacyPersistentAuth();
   return {
     token: readSessionStorageValue(ACCESS_TOKEN_KEY),
-    user: parseStoredUser(readLocalStorageValue(USER_KEY)),
+    user: parseStoredUser(readSessionStorageValue(USER_KEY)),
   };
 };
 
@@ -81,10 +81,10 @@ export const persistAuthSnapshot = (snapshot: StoredAuthSnapshot) => {
   else window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
 
   clearLegacyRefreshToken();
-  clearLegacyPersistentAccessToken();
+  clearLegacyPersistentAuth();
 
-  if (snapshot.user) window.localStorage.setItem(USER_KEY, JSON.stringify(snapshot.user));
-  else window.localStorage.removeItem(USER_KEY);
+  if (snapshot.user) window.sessionStorage.setItem(USER_KEY, JSON.stringify(snapshot.user));
+  else window.sessionStorage.removeItem(USER_KEY);
 };
 
 export const clearStoredAuth = () => {

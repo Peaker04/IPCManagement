@@ -36,6 +36,12 @@ describe('QueryViewBoundary', () => {
     expect(boundary).not.toHaveClass('min-h-[380px]')
   })
 
+  it('blocks children when any required dependency is still uninitialized', () => {
+    renderBoundary([ready(), { phase: 'uninitialized', instruction: 'Chọn phạm vi.' }])
+    expect(screen.getByText('Chọn phạm vi.')).toBeInTheDocument()
+    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+  })
+
   it('blocks false-empty while loading', () => {
     renderBoundary([{ phase: 'loading' }])
     expect(screen.getByText('Đang tải nguồn 1')).toBeInTheDocument()

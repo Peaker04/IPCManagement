@@ -20,13 +20,9 @@ export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryExcep
     rationale: 'The transfer card owns one batch collection and explicitly distinguishes loading, error, missing-scope and no-batch-for-scope states.',
     requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được định lượng xuất kho', 'Chưa có lô định lượng. Hãy kiểm tra nguồn'],
   },
-  'src/features/reconciliation/ReconciliationIssueDetailDialog.tsx': {
+  'src/components/reconciliation/ReconciliationIssueDetailDialog.tsx': {
     rationale: 'The issue detail dialog owns exact issue and linked-batch lookups, keeps each failure retryable, and hides content when persisted batch linkage does not match.',
     requiredMarkers: ['useGetReconciliationIssueQuery', 'useGetReconciliationBatchQuery', 'Liên kết lô không khớp'],
-  },
-  'src/features/reconciliation/ReconciliationWorkspace.tsx': {
-    rationale: 'The retained-work-area reconciliation workspace owns one batch collection and preserves loading, error and genuinely empty states.',
-    requiredMarkers: ['useListReconciliationBatchesQuery', 'Không tải được lô đối chiếu', 'Chưa có lô đối chiếu'],
   },
   'src/features/reconciliation/ReconciliationDispositionDrawer.tsx': {
     rationale: 'The drawer loads the server-owned category vocabulary and blocks submission with an explicit retryable error when that contract is unavailable.',

@@ -24,14 +24,15 @@ const eventStatusLabels: Record<string, string> = {
   RECEIVED: 'Bếp đã nhận',
 };
 
-const auditAreaLabels: Record<string, string> = {
-  Signoff: 'Hoàn thành ca',
-  Coordination: 'Điều phối',
-  MaterialRequest: 'Yêu cầu nguyên liệu',
-  PurchaseRequest: 'Đề xuất mua hàng',
-  InventoryReceipt: 'Nhập kho',
-  InventoryIssue: 'Xuất kho',
-};
+const auditAreaOptions = [
+  ['Signoff', 'Hoàn thành ca'],
+  ['Coordination', 'Điều phối'],
+  ['MaterialRequest', 'Yêu cầu nguyên liệu'],
+  ['PurchaseRequest', 'Đề xuất mua hàng'],
+  ['InventoryReceipt', 'Nhập kho'],
+  ['InventoryIssue', 'Xuất kho'],
+] as const;
+const auditAreaLabels = Object.fromEntries(auditAreaOptions) as Record<string, string>;
 
 const adminAuditPreferenceConfig: TablePreferenceConfig = {
   tableId: 'admin-audit',
@@ -73,6 +74,13 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
         <div className="flex flex-col gap-4">
           {/* Bộ lọc Audit log */}
           <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
+            {isReconciliationMode && 'auditSourceFamily' in model && <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-slate-600">Phạm vi nhật ký</label>
+              <Select value={model.auditSourceFamily} onValueChange={(value) => model.setAuditSourceFamily(value as 'MATERIAL_RECONCILIATION' | 'ALL')}>
+                <SelectTrigger className="w-48 text-xs" aria-label="Phạm vi nhật ký"><SelectValue>{model.auditSourceFamily === 'ALL' ? 'Toàn hệ thống' : 'Đối chiếu nguyên liệu'}</SelectValue></SelectTrigger>
+                <SelectContent><SelectItem value="MATERIAL_RECONCILIATION">Đối chiếu nguyên liệu</SelectItem><SelectItem value="ALL">Toàn hệ thống</SelectItem></SelectContent>
+              </Select>
+            </div>}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-slate-600">Người thực hiện</label>
               <Input
@@ -94,16 +102,11 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                 }}
               >
                 <SelectTrigger className="w-40 text-xs">
-                  <SelectValue>{auditArea ? auditAreaLabels[auditArea] ?? 'Tất cả' : 'Tất cả'}</SelectValue>
+                  <SelectValue>{auditArea ? auditAreaLabels[auditArea] ?? `Mảng chưa nhận diện: ${auditArea}` : 'Tất cả'}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_AUDIT_AREAS_VALUE}>Tất cả</SelectItem>
-                  <SelectItem value="Signoff">Hoàn thành ca</SelectItem>
-                  <SelectItem value="Coordination">Điều phối</SelectItem>
-                  <SelectItem value="MaterialRequest">Yêu cầu nguyên liệu</SelectItem>
-                  <SelectItem value="PurchaseRequest">Đề xuất mua hàng</SelectItem>
-                  <SelectItem value="InventoryReceipt">Nhập kho</SelectItem>
-                  <SelectItem value="InventoryIssue">Xuất kho</SelectItem>
+                  {auditAreaOptions.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -161,7 +164,7 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
           </div>
           {exportError && <div role="alert"><InlineAlert title="Chưa thể tải file CSV" variant="danger">{exportError}</InlineAlert></div>}
 
-          <AdminQueryBoundary queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
+          <AdminQueryBoundary minHeight="min-h-0" queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
             <TableViewport ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell" preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}>
               {({ columns }) => <table className="ipc-data-table ipc-erp-grid-table ipc-admin-audit-table w-full text-xs">
                 <thead>

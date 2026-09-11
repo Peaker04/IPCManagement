@@ -95,7 +95,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
           });
         }}>
           <SelectTrigger id="price-analysis-view" className="h-8 w-full max-w-xs text-xs" aria-label="Góc nhìn phân tích biến động giá">
-            <SelectValue />
+            <SelectValue>{visiblePriceSubViewTabs.find((tab) => tab.id === priceSubView)?.label ?? 'Chọn góc nhìn'}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {visiblePriceSubViewTabs.map((tab) => <SelectItem key={tab.id} value={tab.id}>{tab.label}</SelectItem>)}

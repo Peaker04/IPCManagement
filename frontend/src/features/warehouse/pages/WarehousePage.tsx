@@ -396,7 +396,7 @@ function DefaultWarehousePage() {
         </InlineAlert>
       )}
 
-      <WarehousePurchaseOrdersPanel
+      {!isPurchaseOrderError && <WarehousePurchaseOrdersPanel
         canReceivePurchases={canReceivePurchases}
         purchaseOrders={purchaseOrders}
         isFetchingPurchaseOrders={isFetchingPurchaseOrders}
@@ -413,7 +413,7 @@ function DefaultWarehousePage() {
           setSelectedReceiptLine(undefined);
         }}
         onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
-      />
+      />}
 
       <WarehouseReceiptLifecyclePanel />
 

@@ -25,7 +25,6 @@ interface ApprovalQueueStateProps {
   view: QueryView<ApprovalInboxPage>;
   records: ApprovalRecord[];
   disabledReason: string | null;
-  decisionAnnouncement: string | null;
   requestedTargetType: string | null;
   requestedTargetId: string | null;
   requestedRecord?: ApprovalRecord;
@@ -107,7 +106,6 @@ export function ApprovalQueueState({
   view,
   records,
   disabledReason,
-  decisionAnnouncement,
   requestedTargetType,
   requestedTargetId,
   requestedRecord,
@@ -161,7 +159,7 @@ export function ApprovalQueueState({
           Các chứng từ hiện tại vẫn được giữ trong khi đồng bộ bản mới.
         </InlineAlert>
       )}
-      {disabledReason && (
+      {disabledReason && records.length > 0 && (
         <InlineAlert
           title={
             records.length === 0
@@ -175,11 +173,6 @@ export function ApprovalQueueState({
             sử.
           </span>
         </InlineAlert>
-      )}
-      {decisionAnnouncement && (
-        <div role="status" aria-live="polite" className="sr-only">
-          {decisionAnnouncement}
-        </div>
       )}
       {requestedTargetType &&
         requestedTargetId &&

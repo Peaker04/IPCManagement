@@ -24,7 +24,7 @@ export function AdminQueryBoundary({
   queries,
   children,
   loadingFallback,
-  minHeight = 'min-h-[420px]',
+  minHeight = 'min-h-0',
 }: AdminQueryBoundaryProps) {
   const validQueries = queries.filter(({ view }) => Boolean(view));
   const forbidden = validQueries.find(({ view }) => view.phase === 'forbidden');

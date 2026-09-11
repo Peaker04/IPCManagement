@@ -88,6 +88,44 @@ public class InventoryIssuesControllerTests
     }
 
     [Fact]
+    public async Task Create_Should_ReturnForbidden_WhenProductionRoleCreatesReconciliationIssue()
+    {
+        _currentUserService.GetRoleNames(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
+            .Returns(["Chef"]);
+
+        var result = await CreateController().CreateAsync(new CreateInventoryIssueRequest
+        {
+            ReconciliationBatchId = Guid.NewGuid().ToString()
+        });
+
+        var forbidden = result.Should().BeOfType<ObjectResult>().Subject;
+        forbidden.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
+        await _inventoryIssueService.DidNotReceive()
+            .CreateAsync(Arg.Any<CreateInventoryIssueRequest>(), Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task Create_Should_PreserveDefaultIssuePath_ForProductionRole()
+    {
+        var userId = Guid.NewGuid().ToString();
+        _currentUserService.GetRoleNames(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
+            .Returns(["Chef"]);
+        _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
+            .Returns(userId);
+        _inventoryIssueService.CreateAsync(Arg.Any<CreateInventoryIssueRequest>(), userId)
+            .Returns(new InventoryIssueCreatedDto { IssueId = Guid.NewGuid().ToString(), IssueCode = "ISS-DEFAULT" });
+
+        var result = await CreateController().CreateAsync(new CreateInventoryIssueRequest
+        {
+            MaterialRequestId = Guid.NewGuid().ToString()
+        });
+
+        result.Should().BeOfType<CreatedAtActionResult>();
+        await _inventoryIssueService.Received(1)
+            .CreateAsync(Arg.Any<CreateInventoryIssueRequest>(), userId);
+    }
+
+    [Fact]
     public async Task Create_Should_TargetMvcActionNameWithoutAsyncSuffix()
     {
         var userId = Guid.NewGuid().ToString();

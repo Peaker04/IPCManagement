@@ -42,6 +42,16 @@ describe('ChefQueryBoundary', () => {
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull()
   })
 
+  it('prioritizes a retryable error over an earlier loading dependency', () => {
+    renderBoundary([
+      { phase: 'loading' },
+      { phase: 'error', message: 'Nguồn phụ lỗi.', retry: vi.fn(), isRetrying: false },
+    ])
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Nguồn phụ lỗi.')
+    expect(screen.queryByText('Đang tải nguồn 1')).toBeNull()
+  })
+
   it('keeps a non-forbidden error retryable', () => {
     const retry = vi.fn()
     renderBoundary([{ phase: 'error', message: 'Lỗi máy chủ.', retry, isRetrying: false }])

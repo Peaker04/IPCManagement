@@ -5,11 +5,13 @@ const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
   login: vi.fn(),
   navigate: vi.fn(),
+  locationState: undefined as { from?: unknown } | undefined,
 }));
 
 vi.mock('react-router-dom', async (importOriginal) => ({
   ...await importOriginal<typeof import('react-router-dom')>(),
   useNavigate: () => mocks.navigate,
+  useLocation: () => ({ state: mocks.locationState }),
 }));
 
 vi.mock('@/lib/reduxHooks', () => ({
@@ -27,6 +29,7 @@ describe('LoginPage validation feedback', () => {
     mocks.dispatch.mockReset();
     mocks.login.mockReset();
     mocks.navigate.mockReset();
+    mocks.locationState = undefined;
   });
 
   it('places its single page heading inside one named main landmark', () => {
@@ -91,6 +94,52 @@ describe('LoginPage validation feedback', () => {
     fireEvent.submit(form);
 
     expect(mocks.login).toHaveBeenCalledOnce();
+  });
+
+  it('returns to the sanitized same-app route after successful reauthentication', async () => {
+    mocks.locationState = { from: '/reports?view=purchase#price-panel' };
+    mocks.login.mockReturnValue({
+      unwrap: () => Promise.resolve({
+        success: true,
+        data: {
+          accessToken: 'access-token',
+          user: {
+            userId: 'user-1', username: 'quanly', fullName: 'Quản lý',
+            roleCode: 'MANAGER', roleName: 'Quản lý', permissions: ['report.read'],
+          },
+        },
+      }),
+    });
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('Tài khoản'), { target: { value: 'quanly' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith('/reports?view=purchase#price-panel', { replace: true }));
+  });
+
+  it.each(['https://evil.example/steal', '//evil.example/steal', '/\\evil.example/steal', 'reports', '/login/', '/login?from=%2Freports', '/reports/../login', '/LOGIN', '/%6cogin'])('falls back to dashboard for unsafe return path %s', async (from) => {
+    mocks.locationState = { from };
+    mocks.login.mockReturnValue({
+      unwrap: () => Promise.resolve({
+        success: true,
+        data: {
+          accessToken: 'access-token',
+          user: {
+            userId: 'user-1', username: 'quanly', fullName: 'Quản lý',
+            roleCode: 'MANAGER', roleName: 'Quản lý', permissions: ['report.read'],
+          },
+        },
+      }),
+    });
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('Tài khoản'), { target: { value: 'quanly' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    await waitFor(() => expect(mocks.navigate).toHaveBeenCalledWith('/', { replace: true }));
   });
 
   it('explains invalid credentials instead of suggesting a connection failure for a 401 response', async () => {

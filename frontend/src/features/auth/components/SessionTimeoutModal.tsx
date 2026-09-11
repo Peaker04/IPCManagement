@@ -18,32 +18,34 @@ const AUTO_REDIRECT_MS = 1800;
 export const SessionTimeoutModal = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+  const [returnPath, setReturnPath] = useState<string | null>(null);
+  const currentPath = `${location.pathname}${location.search}${location.hash}`;
 
-  useEffect(() => subscribeSessionExpired(() => setIsOpen(true)), []);
+  useEffect(() => subscribeSessionExpired(() => setReturnPath(currentPath)), [currentPath]);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (!returnPath) {
       return undefined;
     }
 
     const timer = window.setTimeout(() => {
-      setIsOpen(false);
-      navigate(ROUTES.LOGIN, { replace: true, state: { from: location.pathname } });
+      setReturnPath(null);
+      navigate(ROUTES.LOGIN, { replace: true, state: { from: returnPath } });
     }, AUTO_REDIRECT_MS);
 
     return () => window.clearTimeout(timer);
-  }, [isOpen, location.pathname, navigate]);
+  }, [navigate, returnPath]);
 
   const goToLogin = () => {
-    setIsOpen(false);
-    navigate(ROUTES.LOGIN, { replace: true, state: { from: location.pathname } });
+    if (!returnPath) return;
+    setReturnPath(null);
+    navigate(ROUTES.LOGIN, { replace: true, state: { from: returnPath } });
   };
 
-  if (!isOpen) return null;
+  if (!returnPath) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => (open ? setIsOpen(true) : goToLogin())}>
+    <Dialog open onOpenChange={(open) => { if (!open) goToLogin() }}>
       <DialogContent aria-label="Phiên đăng nhập đã hết hạn" className="max-w-md border-amber-200 bg-white p-6 shadow-2xl">
         <DialogHeader className="text-left">
           <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-amber-700">

@@ -8,6 +8,10 @@ describe('WarehouseMovementPanel contract', () => {
     expect(warehouseMovementPanelSource).not.toMatch(/tabIndex|\border\s*:/);
   });
 
+  it('keeps current-stock failure ownership to one explanatory surface', () => {
+    expect(warehouseMovementPanelSource).not.toContain("currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho'");
+  });
+
   it('retains independent current-stock and movement-history controls and states', () => {
     expect(warehouseMovementPanelSource.match(/title="Tồn kho hiện tại"/g)).toHaveLength(1);
     expect(warehouseMovementPanelSource.match(/title="Luân chuyển kho"/g)).toHaveLength(1);

@@ -6,7 +6,7 @@ namespace IPCManagement.Api.Tests;
 public sealed partial class BusinessEvidencePolicyTests
 {
     [Fact]
-    public void DeployableModel_IsMigration76WithoutBusinessEvidencePersistence()
+    public void DeployableModel_IsMigration77WithoutBusinessEvidencePersistence()
     {
         var root = FindWorkspaceRoot();
         var retiredPaths = new[]
@@ -43,7 +43,7 @@ public sealed partial class BusinessEvidencePolicyTests
             .OrderBy(id => id, StringComparer.Ordinal)
             .ToArray();
 
-        migrationIds.Should().HaveCount(76);
+        migrationIds.Should().HaveCount(77);
         migrationIds[^1].Should().Be("20260828092012_ClosedLoopReconciliationIssueLineage");
     }
 

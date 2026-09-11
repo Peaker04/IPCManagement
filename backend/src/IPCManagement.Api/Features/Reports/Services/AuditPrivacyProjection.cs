@@ -8,7 +8,7 @@ namespace IPCManagement.Api.Features.Reports.Services;
 /// <summary>
 /// Redacts sensitive audit values at public read/export boundaries without changing stored audit history.
 /// </summary>
-public static partial class AuditPrivacyProjection
+public static class AuditPrivacyProjection
 {
     public const string RedactedValue = "Thông tin nhạy cảm đã được ẩn";
     public const string PasswordChangedValue = "Đã đổi mật khẩu";
@@ -83,11 +83,11 @@ public static partial class AuditPrivacyProjection
     }
 
     public static bool ContainsSensitiveMaterial(string value)
-        => BcryptRegex().IsMatch(value)
-           || BearerRegex().IsMatch(value)
-           || JwtRegex().IsMatch(value)
-           || PrivateKeyRegex().IsMatch(value)
-           || SensitiveAssignmentRegex().IsMatch(value);
+        => BcryptRegex.IsMatch(value)
+           || BearerRegex.IsMatch(value)
+           || JwtRegex.IsMatch(value)
+           || PrivateKeyRegex.IsMatch(value)
+           || SensitiveAssignmentRegex.IsMatch(value);
 
     private static bool RedactJson(JsonNode node, string? propertyName, int depth)
     {
@@ -163,18 +163,9 @@ public static partial class AuditPrivacyProjection
         return normalized is "password" or "passwordhash" or "passwd" or "accesstoken" or "refreshtoken" or "apikey" or "clientsecret" or "privatekey";
     }
 
-    [GeneratedRegex(@"\$2[aby]\$\d{2}\$[./A-Za-z0-9]{20,}", RegexOptions.CultureInvariant)]
-    private static partial Regex BcryptRegex();
-
-    [GeneratedRegex(@"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex BearerRegex();
-
-    [GeneratedRegex(@"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b", RegexOptions.CultureInvariant)]
-    private static partial Regex JwtRegex();
-
-    [GeneratedRegex(@"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex PrivateKeyRegex();
-
-    [GeneratedRegex("[\\\"']?(?:password(?:hash)?|passwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|private[_-]?key)[\\\"']?\\s*[:=]\\s*[\\\"']?[^\\s,;}\\\"]{6,}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
-    private static partial Regex SensitiveAssignmentRegex();
+    private static readonly Regex BcryptRegex = new(@"\$2[aby]\$\d{2}\$[./A-Za-z0-9]{20,}", RegexOptions.CultureInvariant);
+    private static readonly Regex BearerRegex = new(@"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex JwtRegex = new(@"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b", RegexOptions.CultureInvariant);
+    private static readonly Regex PrivateKeyRegex = new(@"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    private static readonly Regex SensitiveAssignmentRegex = new("[\\\"']?(?:password(?:hash)?|passwd|access[_-]?token|refresh[_-]?token|api[_-]?key|client[_-]?secret|private[_-]?key)[\\\"']?\\s*[:=]\\s*[\\\"']?[^\\s,;}\\\"]{6,}", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 }

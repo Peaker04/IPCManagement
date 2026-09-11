@@ -112,7 +112,6 @@ export default function ApprovalPage() {
 
   const [executeApprovalDecision, { isLoading: isDeciding }] = useExecuteApprovalDecisionMutation();
   const [decisionError, setDecisionError] = useState<string | null>(null);
-  const [decisionAnnouncement, setDecisionAnnouncement] = useState<string | null>(null);
   
   const [decisionModal, setDecisionModal] = useState<{
     isOpen: boolean;
@@ -200,8 +199,6 @@ export default function ApprovalPage() {
       
       setDecisionModal({ isOpen: false, record: null, status: null, reason: '' });
       setDecisionError(null);
-      const completedLabel = status === 'Approve' ? 'Đã duyệt' : 'Đã từ chối';
-      setDecisionAnnouncement(`${completedLabel} ${record.title.toLocaleLowerCase('vi-VN')}.`);
       window.setTimeout(() => queueFocusRef.current?.focus(), 0);
       toast({
         title: status === 'Approve' ? 'Đã duyệt chứng từ' : 'Đã từ chối chứng từ',
@@ -271,7 +268,7 @@ export default function ApprovalPage() {
               >
                 Từ chối
               </button>
-              <Link className="ipc-button ipc-button-primary" to={ROUTES.PURCHASING}>
+              <Link className="ipc-button ipc-button-secondary" to={ROUTES.PURCHASING}>
                 <FileCheck2 size={16} />
                 Sang thu mua
               </Link>
@@ -355,7 +352,6 @@ export default function ApprovalPage() {
                 view={approvalView}
                 records={approvalRecords}
                 disabledReason={approvalAvailability.disabledReason}
-                decisionAnnouncement={decisionAnnouncement}
                 requestedTargetType={requestedTargetType}
                 requestedTargetId={requestedTargetId}
                 requestedRecord={requestedRecord}

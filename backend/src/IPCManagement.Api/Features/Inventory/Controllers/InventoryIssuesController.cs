@@ -80,8 +80,15 @@ public class InventoryIssuesController : ControllerBase
     {
         try
         {
-            var userId = _currentUserService.GetUserId(User);
+            if (!string.IsNullOrWhiteSpace(dto.ReconciliationBatchId) &&
+                !_currentUserService.GetRoleNames(User).Any(role =>
+                    AuthorizationPolicies.WarehouseRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse.FailResult("Chỉ người phụ trách Kho được tạo phiếu xuất cho lô đối chiếu."));
+            }
 
+            var userId = _currentUserService.GetUserId(User);
             var result = await _inventoryIssueService.CreateAsync(dto, userId);
             if (result is null)
                 return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));

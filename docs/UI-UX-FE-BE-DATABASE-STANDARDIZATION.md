@@ -80,8 +80,10 @@ Các quy tắc bắt buộc:
 - `loading` lần đầu được phép dùng skeleton; `refreshing` giữ dữ liệu cũ, focus, scroll và trang hiện tại.
 - `error` và `forbidden` không được render thành `empty`.
 - Empty do filter phải khác empty do chưa có dữ liệu và phải có hành động khôi phục tương ứng.
-- Table, pagination, badge, alert, toast và dialog không được làm thay đổi geometry của vùng người dùng đang thao tác.
-- Bảng phải giữ contract của `TableViewport`/`PaginatedTableFrame`; trang cuối thiếu dòng không được làm pagination nhảy vị trí.
+- Feedback/refetch không được chèn block làm dịch vùng đang thao tác; skeleton ban đầu khớp geometry dự kiến.
+- Bảng giữ contract `TableViewport`/`PaginatedTableFrame`: trang cuối dùng chiều cao content thật, không row giả,
+  row capacity hoặc min-height theo page size. Pagination có thể dịch đúng chênh lệch content hợp lệ nhưng phải
+  giữ focus, scroll anchor và scroll owner; đo full-page → short-page → full-page theo measurement protocol.
 - Trạng thái phải có chữ và/hoặc hình dạng; không dùng màu làm kênh duy nhất.
 
 ### 4.2. Thông tin hiển thị
@@ -99,8 +101,22 @@ ID kỹ thuật vẫn phải được giữ trong data/action contract để dri
 
 ### 4.3. Action và feedback
 
-- Nút bị chặn bởi điều kiện nghiệp vụ: hiện, disable và nói rõ lý do.
-- Thiếu permission: ẩn nhất quán theo route/menu/action; không dùng trạng thái empty để che forbidden.
+Visibility và eligibility phải xét theo decision table sau; đây là presentation contract, không cấp quyền mới.
+Ma trận actor/action của task ở [DESIGN §7](DESIGN.md) phải trỏ tới domain decision, BE policy/scope/state guard
+và FE owner hiện hành. Nếu permission/mode chưa xác định, fail closed với loading/prerequisite phù hợp, không
+render action được phép giả hoặc mount query bị cấm.
+
+| Điều kiện | Presentation và recovery | Authority / kiểm chứng |
+|---|---|---|
+| Thiếu permission hoặc ngoài data scope | Ẩn route/menu/action không được phép; deep-link/request bị từ chối phải hiện forbidden, không giả empty. Không tiết lộ row/field ngoài scope. | BE enforce read và write; test actor được phép và bị từ chối. Ẩn FE không là authorization. |
+| Mode/capability loại workflow | Không mount route/tab/query/action owner bị loại; direct link hiển thị unavailable/forbidden theo contract. | Server mode/capability là authority; không đổi mode hoặc dẫn sang workflow khác để né blocker. |
+| Có quyền nhưng thiếu prerequisite nghiệp vụ | Với action còn thuộc workflow: hiện disabled kèm lý do và recovery/next owner hợp lệ. Object terminal chỉ hiển thị read-only/history theo domain, không giữ mutation giả. | Eligibility dựa entity state và prerequisite, không dựa query loading. Không cấp action cho actor khác để giải quyết blocker. |
+| Field chưa hợp lệ | Không disable submit chỉ để che validation; cho submit validation, hiện lỗi sát field và focus field lỗi đầu tiên. Request mutation chỉ gửi khi hợp lệ. | `I4`, field/cross-field validation; permission/prerequisite vẫn có thể chặn độc lập. |
+| Mutation đang pending | Chặn duplicate command tại đúng action/session; hiển thị tiến trình. Giữ cancel/close khi an toàn theo lifecycle contract, không khóa toàn trang vô cớ. | Pending không thay permission hay entity state; không nói “đã hủy” nếu chỉ đóng dialog mà server còn xử lý. |
+| Stale/conflict/mất kết nối | Giữ draft/dữ liệu cuối với cảnh báo, cung cấp revalidate/retry/recovery hợp lệ; không hiển thị thành công giả. | Không để response cũ ghi đè state mới; recheck version/precondition trước durable write. |
+
+Các điều kiện có thể đồng thời tồn tại: trust boundary permission/mode/data scope được xét trước eligibility và
+validation; feedback không được làm lộ dữ liệu bị cấm. Không gộp mọi nguyên nhân thành một boolean `disabled`.
 - Success ngắn: toast. Mutation error cần xử lý: inline persistent. Validation: cạnh field.
 - Mutation tác động tồn kho, duyệt, sign-off hoặc tạo chứng từ phải xác nhận đúng object, hệ quả và lý do khi cần.
 - Optimistic update chỉ dùng khi rollback không gây hiểu sai số liệu tồn kho/trạng thái; không re-sort hoặc đổi trang trước khi mutation settle.
@@ -201,7 +217,9 @@ Một thay đổi chỉ được xem là hoàn tất khi tất cả điều ki�
 - [ ] DB constraint hoặc service invariant bảo vệ dữ liệu, không chỉ dựa vào FE.
 - [ ] Test liên quan pass; test mới khóa regression của chính vấn đề.
 - [ ] Nếu là flow mutation/E2E: có chuỗi FE control → API → DB transition → FE reload.
-- [ ] Khi thay đổi ảnh hưởng render/layout hoặc flow tương tác, browser gate dùng đúng năm desktop viewport trong `MEMORY.md`; không có overflow, console/page error, escaped mutation hoặc layout shift ngoài ngưỡng đã được duyệt.
+- [ ] Khi thay đổi ảnh hưởng render/layout hoặc flow tương tác, browser gate dùng exact viewport matrix đã khóa
+  tại MEMORY/checkpoint theo UI execution harness; thiếu matrix là blocker, không lấy năm viewport từ báo cáo cũ.
+  Không có overflow, console/page error, escaped mutation hoặc layout shift ngoài ngưỡng đã được duyệt.
 - [ ] `git diff --check` và secret/stub scan pass; tài liệu liên quan được đồng bộ trong cùng thay đổi.
 
 ## 9. Bộ kiểm chứng tối thiểu

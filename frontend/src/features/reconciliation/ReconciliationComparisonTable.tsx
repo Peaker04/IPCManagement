@@ -32,7 +32,9 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
       </TableRow></TableHeader>
       <TableBody>{visible.map((line) => {
         const unit = line.canonicalUnitName ?? undefined
-        const difference = line.issuedRequiredDifference ?? ((line.issuedQuantity ?? 0) - line.requiredQuantity)
+        const difference = line.issuedQuantity == null
+          ? null
+          : line.issuedRequiredDifference ?? line.issuedQuantity - line.requiredQuantity
         return <TableRow key={line.batchLineId}>
           <TableCell>
             <span className="block font-medium text-slate-900">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span>

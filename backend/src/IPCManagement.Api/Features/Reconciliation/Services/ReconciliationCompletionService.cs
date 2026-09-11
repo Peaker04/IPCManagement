@@ -34,7 +34,7 @@ public sealed class ReconciliationCompletionService(
                         line,
                         actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
                         dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
-                        linkedIssued.GetValueOrDefault(Convert.ToHexString(line.BatchLineId)));
+                        ReconciliationBatchService.LinkedQuantity(linkedIssued, line.BatchLineId));
                     if (comparison.IssuedQuantity is null) throw new InvalidOperationException("Mọi dòng phải có số lượng xuất kho liên kết.");
                     if (comparison.Triggers.Count > 0)
                     {

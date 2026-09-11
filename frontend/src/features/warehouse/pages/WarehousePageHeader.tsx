@@ -31,8 +31,8 @@ export function buildWarehousePageHeader(props: WarehousePageHeaderProps) {
         <button className="ipc-button ipc-button-primary" type="button" onClick={props.onOpenIssueDialog} disabled={!props.canCreateIssue} aria-describedby={props.issueDisabledReason ? 'warehouse-issue-action-guidance' : undefined} title={props.issueDisabledReason}>
           {props.isFetchingIssueCandidates ? 'Đang kiểm tra nhu cầu' : 'Tạo phiếu xuất kho'}
         </button>
-        <Link className="ipc-button ipc-button-success" to={ROUTES.REPORTS}>Xem tồn kho</Link>
-        <Link className="ipc-button ipc-button-primary" to={ROUTES.CHEF_DASHBOARD}><PackageOpen size={16} />Bàn giao cho bếp</Link>
+        <Link className="ipc-button ipc-button-secondary" to={ROUTES.REPORTS}>Xem tồn kho</Link>
+        <Link className="ipc-button ipc-button-secondary" to={ROUTES.CHEF_DASHBOARD}><PackageOpen size={16} />Bàn giao cho bếp</Link>
         <Link className="ipc-button ipc-button-ghost" to={ROUTES.PURCHASING}>Quay lại thu mua</Link>
       </>}>
         <span className="ipc-command-meta"><Warehouse size={16} />{props.warehouseName}</span>

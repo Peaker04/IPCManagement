@@ -47,6 +47,28 @@ describe('ExcessMaterialDialog responsive contract', () => {
     expect(trigger).not.toHaveTextContent('issue-line-guid');
   });
 
+  it('keeps the option discriminator in the closed value', async () => {
+    const user = userEvent.setup();
+    render(
+      <ExcessMaterialDialog
+        open
+        onOpenChange={vi.fn()}
+        onSubmit={vi.fn()}
+        materials={[
+          { id: 'morning', name: 'Gạo', unit: 'kg', quantity: 5, status: 'Đã nhận', signed: true, sourceCustomerName: 'An Vui', sourceShiftName: 'MORNING', sourcePriceTierAmount: 30000 },
+          { id: 'afternoon', name: 'Gạo', unit: 'kg', quantity: 4, status: 'Đã nhận', signed: true, sourceCustomerName: 'Bình Minh', sourceShiftName: 'AFTERNOON', sourcePriceTierAmount: 34000 },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole('combobox', { name: /Chọn nguyên liệu/ }));
+    await user.click(await screen.findByRole('option', { name: /Bình Minh/ }));
+
+    const trigger = screen.getByRole('combobox', { name: /Chọn nguyên liệu/ });
+    expect(trigger).toHaveTextContent('Gạo (kg) · Bình Minh · Ca chiều · 34.000đ');
+    expect(trigger).not.toHaveTextContent('AFTERNOON');
+  });
+
   it('associates missing values with both affected fields', async () => {
     const user = userEvent.setup();
     render(<ExcessMaterialDialog open onOpenChange={vi.fn()} onSubmit={vi.fn()} materials={[]} />);

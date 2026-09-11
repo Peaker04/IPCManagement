@@ -4,7 +4,7 @@ import purchaseSummarySource from './PurchaseSummarySection.tsx?raw';
 
 describe('weekly purchase scope contract', () => {
   it('queries the effective displayed week after a customer auto-loads its committed menu', () => {
-    expect(weeklyMenuPageSource).toMatch(/useWeeklyMenuImport\(\{[\s\S]*?weekStartDate: committedMenuWeekStartDate,[\s\S]*?\}\);/);
+    expect(weeklyMenuPageSource).toMatch(/useWeeklyMenuImport\(\{[\s\S]*?weekStartDate: effectiveWeekStartDate,[\s\S]*?\}\);/);
     expect(weeklyMenuPageSource).toMatch(/usePurchaseSummary\(\{[\s\S]*?weekStartDate: weeklyScheduleScope\.weekStartDate,[\s\S]*?weekLabel: weeklyScheduleScope\.weekLabel/);
     expect(weeklyMenuPageSource).toMatch(/useGetIngredientDemandAggregatePageQuery\(\{[\s\S]*?dateFrom: weeklyScheduleScope\.weekStartDate \|\| undefined,[\s\S]*?dateTo: committedMenu\?\.weekEndDate\?\.split\('T'\)\[0\]/);
   });

@@ -32,9 +32,9 @@ const pathExceptionLocations = [
   'src/components/common/TablePreferencesControl.tsx:129',
   'src/features/admin/pages/ApprovalRulesPage.tsx:28',
   'src/features/admin/pages/ApprovalRulesPage.tsx:421',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:500',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:510',
-  'src/features/approvals/pages/ApprovalDecisionDialog.tsx:54',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:498',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:505',
+  'src/features/approvals/pages/ApprovalDecisionDialog.tsx:86',
   // Route-critical controls intentionally stay native to avoid pulling Base UI field closures into eager chunks.
   'src/features/projects/weekly-menu/schedule/QuickServingCell.tsx:7',
   'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx:95',

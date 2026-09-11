@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setCredentials } from '../authSlice';
 import { useLoginMutation } from '../authApi';
@@ -46,6 +46,26 @@ const isUnauthorizedLoginError = (error: unknown) =>
   && 'status' in error
   && error.status === 401;
 
+const safeReturnPath = (value: unknown) => {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    return ROUTES.DASHBOARD;
+  }
+
+  try {
+    const parsed = new URL(value, window.location.origin);
+    const routePath = decodeURIComponent(parsed.pathname).toLowerCase();
+    if (parsed.origin !== window.location.origin
+      || routePath === ROUTES.LOGIN
+      || routePath.startsWith(`${ROUTES.LOGIN}/`)) {
+      return ROUTES.DASHBOARD;
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+  } catch {
+    return ROUTES.DASHBOARD;
+  }
+};
+
 const DevLoginFallbackHint = () => {
   if (import.meta.env.PROD || !isDevLoginFallbackEnabled) {
     return null;
@@ -70,6 +90,8 @@ const LoginPage = () => {
 
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = safeReturnPath((location.state as { from?: unknown } | null)?.from);
   const [login] = useLoginMutation();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +131,7 @@ const LoginPage = () => {
             token: loginData.accessToken,
           })
         );
-        navigate(ROUTES.DASHBOARD);
+        navigate(returnPath, { replace: true });
       } else {
         setError(result.message || 'Đăng nhập thất bại.');
       }
@@ -138,7 +160,7 @@ const LoginPage = () => {
             token: getDevFallbackToken(username),
           })
         );
-        navigate(ROUTES.DASHBOARD);
+        navigate(returnPath, { replace: true });
       } else {
         setError('Tài khoản hoặc mật khẩu không đúng.');
       }

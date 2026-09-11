@@ -28,9 +28,9 @@ Browser
 ## Luồng dữ liệu
 
 1. `frontend/src/main.tsx` khởi tạo React và Redux store; `frontend/src/App.tsx` gắn router và toast provider.
-2. `frontend/src/routes/AppRouter.tsx` phân biệt route công khai `/login` với các route cần đăng nhập. `ProtectedRoute` kiểm tra session, còn `RoleGuard` kiểm tra permission trước khi render màn hình.
-3. Toàn frontend dùng đúng một `frontend/src/api/apiSlice.ts`. Bảy feature owner cùng `workflowDocumentsApi` inject endpoint vào slice này; `frontend/src/api/workflowApi.ts` chỉ là compatibility barrel đăng ký/re-export public contract. Base query gắn Bearer token, xử lý refresh token và dùng `/api` hoặc `VITE_API_BASE_URL` tùy môi trường.
-4. `Program.cs` chạy correlation ID, exception middleware, Swagger ở Development, CORS, authentication, rate limiting, authorization và controller mapping.
+2. `frontend/src/routes/AppRouter.tsx` phân biệt route công khai `/login` với các route cần đăng nhập. `ProtectedRoute` kiểm tra session, còn `RoleGuard` kiểm tra permission trước khi render màn hình. Khi session hết hạn, login chỉ nhận same-app pathname/query/hash đã sanitize rồi điều hướng lại qua chính route guards; external/protocol-relative/login-loop paths về Dashboard.
+3. Toàn frontend dùng đúng một `frontend/src/api/apiSlice.ts`. Bảy feature owner cùng `workflowDocumentsApi` inject endpoint vào slice này; `frontend/src/api/workflowApi.ts` chỉ là compatibility barrel đăng ký/re-export public contract. Base query gắn Bearer token, xử lý refresh token và dùng `/api` hoặc `VITE_API_BASE_URL` tùy môi trường. Access JWT và user metadata đều tab-scoped trong `sessionStorage`; startup xóa auth metadata legacy khỏi `localStorage`, còn refresh credential chỉ ở HttpOnly cookie.
+4. `Program.cs` chạy correlation ID, exception middleware, Swagger ở Development, CORS, authentication, rate limiting, authorization và controller mapping. Backend hiện direct-host, không tin `X-Forwarded-*`; reverse proxy chỉ được bật qua thay đổi riêng có trusted-proxy allowlist.
 5. Controller xác thực model và policy, gọi service nghiệp vụ. Service dùng repository/Unit of Work và `IpcManagementContext` để thao tác các entity, migration và audit/workflow.
 6. Response JSON được trả về frontend để cập nhật RTK Query cache và giao diện feature tương ứng.
 
@@ -38,7 +38,7 @@ Browser
 
 | Abstraction | Vị trí | Vai trò |
 |---|---|---|
-| `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình host, middleware, JWT, CORS, Swagger và rate limit. |
+| `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình direct host, middleware, JWT, CORS, Swagger và rate limit; rejection dùng lease metadata để trả `Retry-After` khi có. |
 | `AddBackendServices` | `backend/src/IPCManagement.Api/DependencyInjection.cs` | Đăng ký DbContext, repository, service và security dependency. |
 | `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext/registration root cho MySQL; 53 mapping nằm trong 11 file feature-owned `Features/*/Persistence` qua `IEntityTypeConfiguration<T>`. |
 | `DishCatalogCache` | `backend/src/IPCManagement.Api/Caching/DishCatalogCache.cs` | Root-owned cache contract dùng chéo Catalog và SampleData; giữ hai key catalog active/all và xóa cả hai sau các mutation liên quan. |
@@ -47,11 +47,12 @@ Browser
 | `MaterialDemandService` | `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
 | Purchasing use-case services | `backend/src/IPCManagement.Api/Features/Purchasing/Services/` | Workbench, generate-from-demand, supplier decision và submit có port/shell/policy riêng; controller không qua workflow facade. |
 | Reports use-case services | `backend/src/IPCManagement.Api/Features/Reports/Services/` | Tách price, demand, purchasing, inventory, audit/data-quality, KPI và aggregate cache theo use case. |
-| `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. |
-| `AuthService` / `RefreshTokenRepository` | `backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs`, `backend/src/IPCManagement.Api/Data/Repositories/RefreshTokenRepository.cs` | Login/rotation chạy trong `IEfTransactionRunner`; thay session cũ cùng device, dọn token đóng và giữ tối đa 10 refresh session active/user. |
+| `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. Routine auth diagnostics không ghi username, User-Agent/device hoặc token/hash prefix; opaque user ID và remote IP chỉ giữ khi cần cho security trace. |
+| `formatters` / `chefServiceDate` | `frontend/src/lib/formatters.ts`, `frontend/src/lib/chefServiceDate.ts` | Owner chung cho `Asia/Ho_Chi_Minh`: instant UTC được render theo giờ nghiệp vụ Việt Nam; date-only/service-date giữ nguyên calendar date. |
+| `AuthService` / `RefreshTokenRepository` | `backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs`, `backend/src/IPCManagement.Api/Data/Repositories/RefreshTokenRepository.cs` | Login/rotation chạy trong `IEfTransactionRunner`; rotation giữ device identity và recheck active/token state trong transaction, thay session cũ cùng device và dọn token đóng. Login, refresh và Admin deactivate dùng cùng MySQL user-row `FOR UPDATE` seam trước session mutation; configurable cap mặc định là 3. Rotation kế thừa expiry gốc nên không kéo dài quá 24 giờ mặc định. Source/unit khóa ordering và sequential behavior; concurrent cap/deactivate guarantees vẫn NEEDS_EVIDENCE tới khi chạy two-connection MySQL gate. |
 | `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session, exact-mutation single-flight và namespace RTK Query cache duy nhất. |
 | `workflowApi` compatibility barrel | `frontend/src/api/workflowApi.ts` | Đăng ký/re-export đúng 75 workflow endpoint và 75 public hook từ `workflowDocumentsApi` cùng bảy feature owner; không tạo slice, endpoint hoặc tag registry thứ hai. |
-| `MainLayout` | `frontend/src/app/layout/MainLayout.tsx` | App-owned shell cho permission navigation, mobile nav và tuần tự idle preload route module. |
+| `MainLayout` | `frontend/src/app/layout/MainLayout.tsx` | App-owned shell cho permission navigation, mobile nav, route preload và `IdleSessionGuard`: mặc định cảnh báo sau 60 phút không thao tác, grace 2 phút rồi gọi shared logout/revoke đúng một lần. |
 | `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |
 
 Pomelo bật `EnableRetryOnFailure`; production source chỉ còn một `BeginTransactionAsync(` nằm trong

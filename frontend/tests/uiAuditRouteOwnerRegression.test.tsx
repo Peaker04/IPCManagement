@@ -87,8 +87,8 @@ describe('Phase 28 non-admin route-owner remediation inventory', () => {
 
   it('keeps visible-label controls actionable while excluding hidden Base UI internals', () => {
     const harnesses = [weeklyHarnessSource, chefHarnessSource, reportsHarnessSource, warehouseHarnessSource, mealOrdersHarnessSource, approvalsHarnessSource];
-    expect(axeEvidenceSource).toContain("getComputedStyle(element, '::placeholder').color");
-    expect(axeEvidenceSource).toContain("color === 'rgb(71, 85, 105)'");
+    expect(axeEvidenceSource).toContain("violation.impact === 'serious' || violation.impact === 'critical'");
+    expect(axeEvidenceSource).not.toContain("getComputedStyle(element, '::placeholder')");
     for (const source of harnesses) {
       expect(source).toContain('seriousViolationsWithBrowserPlaceholderEvidence(page, axe.violations)');
       expect(source).toContain("getAttribute('aria-hidden')");

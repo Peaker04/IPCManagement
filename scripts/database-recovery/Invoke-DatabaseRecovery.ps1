@@ -70,6 +70,8 @@ function Invoke-MySqlRows([string]$DefaultsFile, [string]$Sql) {
     return @($output)
 }
 
+. (Join-Path $PSScriptRoot 'RestoreOracle.ps1')
+
 function Get-DatabaseManifest([string]$DefaultsFile, [string]$DatabaseName, [string]$ClosurePath) {
     Assert-File $ClosurePath 'DCR closure baseline'
     $migrationIds = @(Invoke-MySqlRows $DefaultsFile "SELECT MigrationId FROM ``$DatabaseName``.``__EFMigrationsHistory`` ORDER BY MigrationId;")
@@ -83,7 +85,7 @@ function Get-DatabaseManifest([string]$DefaultsFile, [string]$DatabaseName, [str
     foreach ($table in $tables) {
         if ($table -notmatch '^[A-Za-z0-9_]+$') { throw 'Unsafe table name returned by metadata query.' }
         $rowCounts[$table] = [long](Invoke-MySqlRows $DefaultsFile "SELECT COUNT(*) FROM ``$DatabaseName``.``$table``;")[0]
-        $rowDigests[$table] = (Invoke-MySqlRows $DefaultsFile "CHECKSUM TABLE ``$DatabaseName``.``$table``;")[0]
+        $rowDigests[$table] = Get-TableChecksumValue @(Invoke-MySqlRows $DefaultsFile "CHECKSUM TABLE ``$DatabaseName``.``$table``;")
     }
     $gtidExecuted = @(Invoke-MySqlRows $DefaultsFile 'SELECT @@GLOBAL.gtid_executed;')
     $binaryLogChain = @(Invoke-MySqlRows $DefaultsFile 'SHOW BINARY LOGS;')
@@ -98,15 +100,6 @@ function Get-DatabaseManifest([string]$DefaultsFile, [string]$DatabaseName, [str
         dcrClosureBaseline = (Get-FileHash -LiteralPath $ClosurePath -Algorithm SHA256).Hash
         gtidExecuted = $gtidExecuted
         binaryLogChain = $binaryLogChain
-    }
-}
-
-function Assert-RestoreOracle([object]$Expected, [object]$Actual) {
-    foreach ($field in @('migrationIds', 'migrationHead', 'tableDefinitions', 'foreignKeyDefinitions',
-            'triggerDefinitions', 'rowCounts', 'rowDigests', 'dcrClosureBaseline', 'gtidExecuted', 'binaryLogChain')) {
-        $expectedJson = $Expected.$field | ConvertTo-Json -Depth 20 -Compress
-        $actualJson = $Actual.$field | ConvertTo-Json -Depth 20 -Compress
-        if ($expectedJson -ne $actualJson) { throw "Restore oracle mismatch: $field" }
     }
 }
 
@@ -235,6 +228,7 @@ try {
     $dump = Get-ChildItem -LiteralPath $extract -Filter '*.sql' | Select-Object -Single
     $manifest = Get-ChildItem -LiteralPath $extract -Filter 'manifest.json' | Select-Object -Single
     $expected = Get-Content -Raw -LiteralPath $manifest.FullName | ConvertFrom-Json
+    Assert-RecoveryProvenance $expected
     if ((Get-FileHash -LiteralPath $dump.FullName -Algorithm SHA256).Hash -ne $expected.dumpSha256) { throw 'Inner dump hash mismatch.' }
     $forbidden = Select-String -LiteralPath $dump.FullName -Pattern '(?i)^\s*(USE|CREATE\s+DATABASE|DROP\s+DATABASE|DROP\s+TABLE)\b'
     if ($forbidden) { throw 'Dump contains a forbidden database-switch or destructive statement.' }

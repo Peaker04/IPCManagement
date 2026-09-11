@@ -1,6 +1,4 @@
-import { getDateTimeFormat } from '@/lib/formatters';
-
-const BANGKOK_TIME_ZONE = 'Asia/Bangkok';
+import { BUSINESS_TIME_ZONE, getDateTimeFormat } from '@/lib/formatters';
 
 const DAY_CODE_BY_UTC_DAY = ['cn', 't2', 't3', 't4', 't5', 't6', 't7'] as const;
 const WEEK_INDEX_BY_DAY_CODE: Record<string, number> = {
@@ -15,7 +13,7 @@ const WEEK_INDEX_BY_DAY_CODE: Record<string, number> = {
 
 const getBangkokCalendarDate = (now: Date) => {
   const parts = getDateTimeFormat('en-CA', {
-    timeZone: BANGKOK_TIME_ZONE,
+    timeZone: BUSINESS_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

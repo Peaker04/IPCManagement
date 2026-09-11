@@ -48,14 +48,18 @@ const allRoutes = dashboardUiRulesProfile ? [
   { name: 'admin-audit', path: '/admin-data' },
 ] : [
   { name: 'dashboard', path: '/' },
-  { name: 'weekly-menu', path: '/weekly-menu' },
+  ...['schedule','demand','production-plan','purchase-summary','cost','dish-materials'].map((view) => ({ name: `weekly-menu-${view}`, path: `/weekly-menu?view=${view}` })),
   { name: 'meal-orders', path: '/meal-orders' },
-  { name: 'chef-dashboard', path: '/chef-dashboard' },
-  { name: 'approvals', path: '/approvals' },
-  { name: 'purchasing', path: '/purchasing' },
-  { name: 'warehouse', path: '/warehouse' },
-  { name: 'reports', path: '/reports' },
-  { name: 'admin-data', path: '/admin-data' },
+  ...['production','documents'].map((view) => ({ name: `chef-${view}`, path: `/chef-dashboard?view=${view}` })),
+  ...['queue','history'].map((view) => ({ name: `approvals-${view}`, path: `/approvals?view=${view}` })),
+  ...['workflow','supplemental','quotations'].map((view) => ({ name: `purchasing-${view}`, path: `/purchasing?view=${view}` })),
+  ...['movement','demand','exceptions'].map((view) => ({ name: `warehouse-${view}`, path: `/warehouse?view=${view}` })),
+  { name: 'reconciliation', path: '/reconciliation' },
+  ...['price','demand','purchase','stock','movement','kitchen','usage','audit','data-quality'].map((view) => ({ name: `reports-${view}`, path: `/reports?view=${view}` })),
+  ...['bom-import','contracts','cleanup','inventory','statistics','audit','employees'].map((view) => ({ name: `admin-data-${view}`, path: `/admin-data?view=${view}` })),
+  { name: 'approval-rules', path: '/admin/rules' },
+  { name: 'advanced-settings', path: '/admin/advanced-settings' },
+  { name: 'forbidden', path: '/403' },
 ];
 const routes = requestedRoutes.size > 0
   ? allRoutes.filter((route) => requestedRoutes.has(route.name))
@@ -484,6 +488,11 @@ try {
           bodyFontFamily: getComputedStyle(document.body).fontFamily,
           pageTitleFontFamily: document.querySelector('.ipc-page-title') ? getComputedStyle(document.querySelector('.ipc-page-title')).fontFamily : null,
           sectionTitleFontFamily: document.querySelector('.ipc-section-title') ? getComputedStyle(document.querySelector('.ipc-section-title')).fontFamily : null,
+          composition: {
+            commandPrimaryActions: document.querySelectorAll('.ipc-command-bar-actions .ipc-button-primary, .ipc-command-bar-actions .ipc-button-success, .ipc-command-bar-actions .ipc-button-warning, .ipc-command-bar-actions [data-variant="default"], .ipc-command-bar-actions [data-variant="success"], .ipc-command-bar-actions [data-variant="warning"]').length,
+            invisibleActionSpacers: document.querySelectorAll('.ipc-command-bar-actions span[aria-hidden="true"]:empty').length,
+            visibleStateSurfaces: document.querySelectorAll('[role="alert"], [data-empty-state], [data-query-state]').length,
+          },
         };
       });
       evidence.routes.push({ viewport: viewport.name, route: route.path, ...state });
@@ -497,6 +506,9 @@ try {
     const apiAfterAction = evidence.apiResponses.filter((sample) => sample.probe.startsWith(`${viewport.name}:`) && sample.afterAction);
     if (routeSamples.some((sample) => sample.errorOverlay || sample.horizontalOverflow || sample.textLength === 0)) {
       throw new Error(`Viewport ${viewport.name} has an error overlay, overflow or empty render.`);
+    }
+    if (routeSamples.some((sample) => sample.composition.commandPrimaryActions > 1 || sample.composition.invisibleActionSpacers > 0)) {
+      throw new Error(`Viewport ${viewport.name} violates command action hierarchy or reserves an invisible action spacer.`);
     }
     if (apiAfterAction.length === 0) throw new Error(`Viewport ${viewport.name} has no API response after action.`);
   }

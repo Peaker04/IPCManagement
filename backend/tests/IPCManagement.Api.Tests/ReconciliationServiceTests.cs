@@ -167,6 +167,61 @@ public sealed class ReconciliationServiceTests
         Assert.Equal("COMPLETED", completed.Status);
     }
 
+    [Fact]
+    public async Task Disposition_is_rejected_until_batch_is_in_progress()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        fixture.Batch.Status = "READY";
+        context.RemoveRange(context.ChangeTracker.Entries<ReconciliationDisposition>().Select(entry => entry.Entity));
+        await context.SaveChangesAsync();
+        var service = new ReconciliationActualService(context, new ImmediateTransactionRunner(), ProtectedContext());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetDispositionAsync(
+            GuidHelper.ToGuidString(fixture.Line.BatchLineId), new("ACCEPTED_VARIANCE", "Không được xét sớm", null), GuidHelper.ToGuidString(fixture.Actor)));
+
+        Assert.Contains("đang đối chiếu", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(context.Reconciliationdispositions);
+    }
+
+    [Fact]
+    public async Task Disposition_is_rejected_when_line_has_no_current_trigger()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.ChangeTracker.Entries<ReconciliationActual>().Single(entry => entry.Entity.Side == "PURCHASED").Entity.Quantity = 10m;
+        context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity.IssuedQty = 10m;
+        context.RemoveRange(context.ChangeTracker.Entries<ReconciliationDisposition>().Select(entry => entry.Entity));
+        await context.SaveChangesAsync();
+        var runner = new ImmediateTransactionRunner();
+        var batches = new ReconciliationBatchService(context, runner, ProtectedContext());
+        var line = Assert.Single((await batches.GetAsync(GuidHelper.ToGuidString(fixture.Batch.BatchId)))!.Lines);
+        Assert.Empty(line.Triggers);
+        var service = new ReconciliationActualService(context, runner, ProtectedContext());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetDispositionAsync(
+            GuidHelper.ToGuidString(fixture.Line.BatchLineId), new("ACCEPTED_VARIANCE", "Không có chênh lệch", null), GuidHelper.ToGuidString(fixture.Actor)));
+
+        Assert.Contains("chênh lệch", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(context.Reconciliationdispositions);
+    }
+
+    [Fact]
+    public async Task Disposition_rejects_legacy_purchased_variance_when_ledger_issued_is_exact()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity.IssuedQty = 10m;
+        context.RemoveRange(context.ChangeTracker.Entries<ReconciliationDisposition>().Select(entry => entry.Entity));
+        await context.SaveChangesAsync();
+        var service = new ReconciliationActualService(context, new ImmediateTransactionRunner(), ProtectedContext());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SetDispositionAsync(
+            GuidHelper.ToGuidString(fixture.Line.BatchLineId), new("ACCEPTED_VARIANCE", "Legacy không có authority", null), GuidHelper.ToGuidString(fixture.Actor)));
+
+        Assert.Empty(context.Reconciliationdispositions);
+    }
+
     [Theory]
     [InlineData("ACCEPTED_VARIANCE")]
     [InlineData("CORRECTION_REQUIRED")]
@@ -175,6 +230,7 @@ public sealed class ReconciliationServiceTests
     {
         await using var context = CreateContext();
         var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity.IssuedQty = 8m;
         context.RemoveRange(context.ChangeTracker.Entries<ReconciliationDisposition>().Select(entry => entry.Entity));
         await context.SaveChangesAsync();
         var runner = new ImmediateTransactionRunner();
@@ -276,10 +332,30 @@ public sealed class ReconciliationServiceTests
     }
 
     [Fact]
+    public async Task Completion_rejects_missing_linked_issue_even_with_legacy_actual_and_disposition()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.RemoveRange(context.ChangeTracker.Entries<InventoryIssueLine>().Select(entry => entry.Entity));
+        await context.SaveChangesAsync();
+        var runner = new ImmediateTransactionRunner();
+        var batches = new ReconciliationBatchService(context, runner, ProtectedContext());
+        var completion = new ReconciliationCompletionService(context, batches, runner, ProtectedContext());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(
+            GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor)));
+
+        Assert.Contains("số lượng xuất kho liên kết", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("IN_PROGRESS", fixture.Batch.Status);
+    }
+
+    [Fact]
     public async Task AggregateAndCompletion_Should_IgnoreDefaultAndLegacyCollisionQuantities()
     {
         await using var context = CreateContext();
         var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity.IssuedQty = 10m;
+        context.RemoveRange(context.ChangeTracker.Entries<ReconciliationDisposition>().Select(entry => entry.Entity));
         context.Inventoryissues.AddRange(
             CollisionIssue("ISS-DEFAULT-COLLISION", GuidHelper.NewId(), null, GuidHelper.NewId(), null, 101m),
             CollisionIssue("ISS-LEGACY-COLLISION", null, null, null, null, 303m));
@@ -291,6 +367,8 @@ public sealed class ReconciliationServiceTests
 
         var projectedLine = Assert.Single(projected!.Lines);
         Assert.Equal(10m, projectedLine.IssuedQuantity);
+        Assert.Equal("MATCHED", projectedLine.Status);
+        Assert.Empty(projectedLine.Triggers);
         var completed = await new ReconciliationCompletionService(context, batches, new ImmediateTransactionRunner(), requestContext)
             .CompleteAsync(GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor));
         Assert.Equal("COMPLETED", completed.Status);
@@ -432,7 +510,7 @@ public sealed class ReconciliationServiceTests
         {
             IssueLineId = GuidHelper.NewId(), IssueId = issue.IssueId, Issue = issue,
             IngredientId = line.IngredientId, UnitId = line.CanonicalUnitId,
-            RequestedQty = 10m, IssuedQty = 10m, ReconciliationBatchLineId = line.BatchLineId
+            RequestedQty = 10m, IssuedQty = 8m, ReconciliationBatchLineId = line.BatchLineId
         };
         issue.Inventoryissuelines.Add(issueLine);
         context.AddRange(unit, ingredient, batch, line, issue, issueLine,

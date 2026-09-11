@@ -378,7 +378,7 @@ export function AdvancedDisplaySettings() {
     resetNavigationPreferences();
     setTabPreferences(structuredClone(defaultPageTabPreferences));
     writePageTabPreferences(defaultPageTabPreferences);
-    setLastChange('Đã khôi phục toàn bộ khu vực và tab về mặc định.');
+    setLastChange('');
     toast({
       title: 'Đã khôi phục mặc định',
       description: 'Tất cả khu vực menu và tab đã được hiển thị đầy đủ.',

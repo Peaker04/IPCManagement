@@ -169,6 +169,24 @@ internal sealed class ReconciliationInventoryIssueCreator
                     }).ToList()
                 };
                 _issueRepository.Add(issue);
+                if (isSupplemental)
+                {
+                    var affectedLineIds = resolved.Select(item => item.Source.BatchLineId).ToList();
+                    var staleDispositions = (await _context.Reconciliationdispositions.ToListAsync(token))
+                        .Where(item => affectedLineIds.Any(lineId => lineId.AsSpan().SequenceEqual(item.BatchLineId)))
+                        .ToList();
+                    foreach (var disposition in staleDispositions)
+                    {
+                        _context.Auditlogs.Add(new AuditLog
+                        {
+                            AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId,
+                            BusinessArea = "RECONCILIATION", EntityName = nameof(ReconciliationDisposition), EntityId = disposition.DispositionId,
+                            FieldName = "Validity", OldValue = $"{disposition.Category}|{disposition.Reason}|v{disposition.Version}", NewValue = "INVALIDATED",
+                            Reason = "Supplemental inventory issue changed the linked issued quantity.", CorrelationId = dto.CorrelationId?.Trim()
+                        });
+                        _context.Reconciliationdispositions.Remove(disposition);
+                    }
+                }
                 foreach (var item in resolved.Where(item => item.VarianceReason is not null))
                     _context.Auditlogs.Add(new AuditLog
                     {
@@ -184,7 +202,7 @@ internal sealed class ReconciliationInventoryIssueCreator
                 await _unitOfWork.SaveChangesAsync();
                 var result = new InventoryIssueCreatedDto { IssueId = GuidHelper.ToGuidString(issueId), IssueCode = issue.IssueCode, ConcurrencyVersion = 1 };
                 var response = JsonSerializer.Serialize(result);
-                recorder.Stage(new LifecycleTransitionRequest(nameof(InventoryIssue), batchId, commandId, 1, isSupplemental ? "IN_PROGRESS" : "TRANSFERRED", isSupplemental ? "SUPPLEMENTAL_ISSUED" : "ISSUED", actorId,
+                recorder.Stage(new LifecycleTransitionRequest(nameof(InventoryIssue), batchId, commandId, checked((int)batch.Version), isSupplemental ? "IN_PROGRESS" : "TRANSFERRED", isSupplemental ? "SUPPLEMENTAL_ISSUED" : "ISSUED", actorId,
                     dto.ExpectedVersion, isSupplemental ? $"Tạo phiếu xuất thêm {issue.IssueCode} cho lô đối chiếu." : $"Tạo phiếu xuất {issue.IssueCode} từ lô đối chiếu.", dto.CorrelationId, dto.CausationId, response, response));
                 await _unitOfWork.SaveChangesAsync();
                 return result;

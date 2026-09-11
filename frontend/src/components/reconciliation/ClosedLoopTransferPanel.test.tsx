@@ -1,11 +1,12 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel'
 
 const batches = [
   { batchId: 'batch-other', menuVersionId: 'menu-other', status: 'TRANSFERRED', version: 1 },
-  { batchId: 'batch-exact', menuVersionId: 'menu-exact', status: 'READY', version: 2 },
+  { batchId: 'batch-draft', menuVersionId: 'menu-draft', status: 'DRAFT', version: 5, lines: [{ batchLineId: 'line-1' }] },
+  { batchId: 'batch-exact', menuVersionId: 'menu-exact', status: 'READY', version: 2, lines: [{ batchLineId: 'line-1' }] },
   { batchId: 'batch-progress', menuVersionId: 'menu-progress', status: 'IN_PROGRESS', version: 3 },
   { batchId: 'batch-completed', menuVersionId: 'menu-completed', status: 'COMPLETED', version: 4 },
 ]
@@ -14,18 +15,25 @@ const preview = vi.fn()
 const commit = vi.fn()
 const ready = vi.fn()
 const initializeTolerance = vi.fn()
+const refetch = vi.fn()
 
 vi.mock('@/api/reconciliationApi', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/reconciliationApi')>()),
   useInitializeReconciliationToleranceMutation: () => [initializeTolerance, { isLoading: false }],
-  useListReconciliationBatchesQuery: () => ({ data: batches, isLoading: false, isError: false, refetch: vi.fn() }),
+  useListReconciliationBatchesQuery: () => ({ data: batches, isLoading: false, isError: false, refetch }),
   usePreviewReconciliationQuantityImportMutation: () => [preview, { isLoading: false }],
   useCommitReconciliationQuantityImportMutation: () => [commit, { isLoading: false }],
   useReadyReconciliationBatchMutation: () => [ready, { isLoading: false }],
   useTransferReconciliationBatchMutation: () => [transfer, { isLoading: false }],
 }))
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  refetch.mockResolvedValue({ data: batches })
+  commit.mockReturnValue({ unwrap: () => Promise.resolve({}) })
+  ready.mockReturnValue({ unwrap: () => Promise.resolve({}) })
+  transfer.mockReturnValue({ unwrap: () => Promise.resolve({}) })
+})
 
 it('fails closed when the selected menu source has no exact batch', () => {
   render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-missing" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
@@ -81,6 +89,49 @@ it('shows missing material definitions and blocks batch creation', async () => {
   expect(await screen.findByText('Cần bổ sung định mức nguyên liệu')).toBeInTheDocument()
   expect(screen.getByText(/món 'Cá kho'/)).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /tạo lô định lượng/i })).toBeDisabled()
+})
+
+it('commits the exact preview authority and refetches the canonical batch', async () => {
+  preview.mockReturnValue({ unwrap: () => Promise.resolve({ token: 'token-commit', contentFingerprint: 'fingerprint-commit', plans: [{ status: 'COMPLETED', serviceDate: '2026-08-24', lines: [{ quantityPlanLineId: 'line-1', shift: 'MORNING', finalServings: 120, dishes: [] }] }] }) })
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-missing" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
+
+  fireEvent.click(screen.getByRole('button', { name: /kiểm tra nguồn định lượng/i }))
+  fireEvent.click(await screen.findByRole('button', { name: 'Tạo lô định lượng' }))
+
+  await waitFor(() => expect(commit).toHaveBeenCalledWith({ token: 'token-commit', contentFingerprint: 'fingerprint-commit', sourceLabel: 'ANV · tuần 24/8/2026' }))
+  expect(refetch).toHaveBeenCalledOnce()
+  expect(await screen.findByText('Đã tạo lô định lượng')).toBeInTheDocument()
+})
+
+it('freezes the exact draft version and refetches after success', async () => {
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-draft" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Xác nhận và khóa' }))
+
+  await waitFor(() => expect(ready).toHaveBeenCalledWith({ id: 'batch-draft', expectedVersion: 5 }))
+  expect(refetch).toHaveBeenCalledOnce()
+  expect(await screen.findByText('Đã khóa định lượng')).toBeInTheDocument()
+})
+
+it('transfers the exact ready version, refetches, and confirms the Warehouse handoff', async () => {
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-exact" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Chuyển sang Kho' }))
+
+  await waitFor(() => expect(transfer).toHaveBeenCalledWith({ id: 'batch-exact', expectedVersion: 2 }))
+  expect(refetch).toHaveBeenCalledOnce()
+  expect(await screen.findByText('Đã chuyển sang Kho')).toBeInTheDocument()
+})
+
+it('keeps a transfer conflict inside the owning panel without refetching stale success', async () => {
+  transfer.mockReturnValue({ unwrap: () => Promise.reject({ data: { message: 'Lô đã thay đổi.' } }) })
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-exact" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
+
+  fireEvent.click(screen.getByRole('button', { name: 'Chuyển sang Kho' }))
+
+  expect(await screen.findByText('Chưa chuyển được sang Kho')).toBeInTheDocument()
+  expect(screen.getByText('Lô đã thay đổi.')).toBeInTheDocument()
+  expect(refetch).not.toHaveBeenCalled()
 })
 
 it('offers the stock workflow action only for the exact menu source', () => {

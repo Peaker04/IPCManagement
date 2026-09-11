@@ -119,6 +119,7 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
             requestContext,
             guard);
         var currentUser = Substitute.For<ICurrentUserService>();
+        currentUser.GetRoleNames(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(["WarehouseStaff"]);
         currentUser.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(actorId);
         var controller = new InventoryIssuesController(service, currentUser);
 

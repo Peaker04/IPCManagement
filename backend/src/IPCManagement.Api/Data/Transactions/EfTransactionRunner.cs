@@ -52,7 +52,7 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
             cancellationToken);
     }
 
-    public Task<TResult> ExecuteProtectedAsync<TResult>(
+    public async Task<TResult> ExecuteProtectedAsync<TResult>(
         string operationKey,
         long expectedModeVersion,
         Func<CancellationToken, Task<TResult>> operation,
@@ -60,10 +60,11 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
         IsolationLevel isolationLevel = IsolationLevel.ReadCommitted,
         CancellationToken cancellationToken = default)
     {
-        if (_requestContext is null) throw new InvalidOperationException("Protected transaction context is unavailable.");
+        if (_requestContext is null || _modeGuard is null) throw new InvalidOperationException("Protected transaction context is unavailable.");
         _requestContext.OperationKey = operationKey;
         _requestContext.ExpectedModeVersion = expectedModeVersion;
-        return ExecuteAsync(operation, verifySucceeded, isolationLevel, cancellationToken);
+        await _modeGuard.ValidateAsync(operationKey, expectedModeVersion, _requestContext.Disposition, cancellationToken);
+        return await ExecuteAsync(operation, verifySucceeded, isolationLevel, cancellationToken);
     }
 
     public async Task<TResult> ExecuteAsync<TResult>(

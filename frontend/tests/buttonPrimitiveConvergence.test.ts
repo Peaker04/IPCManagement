@@ -14,8 +14,8 @@ const commandBarExceptionLocations = [
   'src/app/pages/AdminDataPage.tsx:35',
   'src/app/pages/AdminDataPage.tsx:40',
   'src/features/admin/pages/ApprovalRulesPage.tsx:274',
-  'src/features/approvals/pages/ApprovalPage.tsx:254',
-  'src/features/approvals/pages/ApprovalPage.tsx:264',
+  'src/features/approvals/pages/ApprovalPage.tsx:251',
+  'src/features/approvals/pages/ApprovalPage.tsx:261',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:42',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:51',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:61',
@@ -26,12 +26,12 @@ const commandBarExceptionLocations = [
 ]
 
 const adapterExceptionLocations = [
-  'src/app/layout/MainLayout.tsx:162',
-  'src/app/layout/MainLayout.tsx:227',
-  'src/app/layout/MainLayout.tsx:268',
+  'src/app/layout/MainLayout.tsx:164',
+  'src/app/layout/MainLayout.tsx:229',
+  'src/app/layout/MainLayout.tsx:270',
   'src/app/pages/admin-data/AdminBomPanel.tsx:137',
   'src/components/common/ApprovalQueue.tsx:113',
-  'src/components/common/ApprovalQueue.tsx:332',
+  'src/components/common/ApprovalQueue.tsx:333',
   'src/components/common/PaginationBar.tsx:116',
   'src/components/common/PaginationBar.tsx:132',
   'src/components/common/PaginationBar.tsx:158',

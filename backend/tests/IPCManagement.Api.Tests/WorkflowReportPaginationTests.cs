@@ -20,7 +20,7 @@ public class WorkflowReportPaginationTests
         {
             command.CommandText = """
                 CREATE TABLE units (unitId BLOB PRIMARY KEY, unitCode TEXT NOT NULL, unitName TEXT NOT NULL, baseUnitCode TEXT, convertRateToBase REAL NOT NULL);
-                CREATE TABLE warehouses (warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL, warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT);
+                CREATE TABLE warehouses (warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL, warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT, IsOperationalActive INTEGER NOT NULL DEFAULT 0, OperationalSingletonKey INTEGER);
                 CREATE TABLE ingredients (ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL, ingredientName TEXT NOT NULL, unitId BLOB NOT NULL, warehouseId BLOB NOT NULL, referencePrice REAL NOT NULL, isFreshDaily INTEGER NOT NULL, isActive INTEGER NOT NULL);
                 CREATE TABLE currentstock (warehouseId BLOB NOT NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL, currentQty REAL NOT NULL, lastUpdated TEXT NOT NULL, rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (warehouseId, ingredientId));
                 """;

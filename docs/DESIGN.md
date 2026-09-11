@@ -128,24 +128,82 @@ Ví dụ oracle cho lỗi bố cục:
 
 Ngưỡng số cụ thể phải lấy từ token/DOM baseline của component, không suy từ pixel của một ảnh duy nhất.
 
-## 7. Definition of ready cho UI implementation
+## 7. Definition of Ready — thiết kế theo tác vụ và vai trò
 
-Trước khi viết JSX phải khóa:
+Áp dụng trước mọi thay đổi **tạo, sửa hoặc loại bỏ UI**, kể cả nhận UI từ branch khác. Thiết kế phải truy vết
+được từ vấn đề/người dùng đến luồng công việc, authority, dữ liệu, composition và oracle; không bắt đầu bằng
+việc chọn màu/component rồi mới tìm mục đích. Đây là đầu vào của [UI execution harness](UI-UX-EXECUTION-HARNESS.md),
+không phải một workflow hoặc bộ checklist song song.
+
+### 7.1. Design brief bắt buộc
+
+Ghi brief trong plan/ledger GSD đang sở hữu mục tiêu. Với thay đổi nhỏ, ghi delta và link contract không đổi;
+không điền lại toàn hệ thống, không tạo file cho mỗi control. Mục không áp dụng cần lý do, không để trống.
 
 ```text
-Primary task
-Work object và grain
-Scope controls
-State matrix
-One-state/one-surface mapping
-Geometry role của từng async boundary
-Primary action
-Owner thấp nhất
-Red oracle
+Problem/outcome: ai gặp vấn đề gì; hoàn thành công việc hoặc ra quyết định nào?
+Change: tạo UI | sửa UI | bỏ UI; phạm vi và ngoài phạm vi.
+Context: operation mode/capability; work object, grain, đơn vị và data scope.
+Actors: người khởi tạo, người xem, người quyết định, người nhận việc tiếp; separation of duties.
+Authority: domain decision; BE policy/claims/scope/state guard; FE route/query/action owner.
+Journey: đầu vào/entry point -> tác vụ hiện tại -> đầu ra/next owner; Back/deep-link/return context.
+Actions: precondition -> navigation hoặc command -> postcondition -> destination/handoff.
+Visibility: route/tab/row/field/action theo actor; lý do hidden/disabled/read-only/forbidden.
+States/recovery: query state + entity state + draft/pending; lỗi, conflict/stale, retry/cancel/recovery.
+Data safety: tác động tạo/sửa/xóa; draft chưa lưu, dependent records, immutable history, audit, undo hợp lệ.
+Composition: floorplan, scope controls, primary action, one-state/one-surface mapping;
+             geometry role của từng async boundary, owner thấp nhất, primitive/token dùng lại.
+Coherence: cùng object/state ở màn upstream/downstream có cùng nhãn, thông tin bắt buộc và action hợp lệ.
+Acceptance: rule IDs, scenario, expected result, red-capable oracle, evidence/viewport scope.
+Open decisions: điều chưa rõ về outcome/quyền/dữ liệu/phạm vi cần owner quyết định.
 ```
 
-Thiếu bất kỳ mục nào thì implementation chưa sẵn sàng. Không dùng browser audit cuối để khám phá lại kiến trúc
-mà lẽ ra phải được khóa trước khi code.
+Agent tự đọc authority và source để trả lời phần đã có; chỉ hỏi Kỳ quyết định chưa có hoặc đang mâu thuẫn.
+Source mô tả observed behavior, không tự hợp pháp hóa behavior trái domain contract. Không suy permission từ tên
+role, không giả định Admin được bỏ qua separation of duties; mode không cấp quyền.
+
+### 7.2. Ma trận actor–action–transition
+
+Với action, visibility hoặc workflow bị ảnh hưởng, mỗi hàng đại diện một scenario/action có ý nghĩa:
+
+```text
+Actor | Mode/capability | Object/data scope | Entity state | Action |
+BE permission/guard | FE visibility/eligibility | Block reason |
+Destination/transition | Next owner | Rule/oracle/evidence
+```
+
+- Actor đủ quyền và actor bị từ chối phải được disposition; không chỉ mô tả happy path của Admin.
+- Truy cả quyền xem dữ liệu (row/field scope) và quyền hành động, không chỉ menu/button. Backend phải chặn
+  request trái phép dù gọi trực tiếp; không fetch dữ liệu nhạy cảm rồi chỉ che bằng CSS.
+- Query state, entity state và local draft/pending là các chiều khác nhau. Ma trận dùng scenario hợp lệ,
+  không sinh mọi tích Descartes hoặc một permission registry production mới.
+- Hàng bàn giao phải chỉ rõ người nhận nhìn thấy object/state gì và làm bước tiếp theo ở đâu. Next action chỉ
+  hiện cho actor đủ quyền; actor khác thấy người chịu trách nhiệm/hướng dẫn phù hợp, không được tự nâng quyền.
+- Với sửa token/copy thuần túy không đổi action, link ma trận/contract liên quan và ghi `unchanged` có căn cứ.
+  Điều chưa xác minh vẫn là `NEEDS_EVIDENCE`, không ghi quyền phỏng đoán.
+
+Decision table visibility/disablement có owner tại
+[chuẩn FE–BE–DB §4.3](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md); không sao chép logic sang từng trang.
+
+### 7.3. Gate sẵn sàng và review luồng trước code
+
+Trước JSX, walkthrough ít nhất luồng chính và nhánh từ chối/khôi phục liên quan: entry → hành động → feedback →
+trạng thái sau lưu/reload → người nhận bước tiếp. Có thể dùng sơ đồ text/floorplan ngắn; không bắt buộc mockup
+hoặc Figma khi contract hiện có đủ quyết định. Không dùng screenshot đẹp thay kiểm tra tính liên kết nghiệp vụ.
+
+- `PASS`: brief đủ cho phạm vi, authority không mâu thuẫn, acceptance quan sát được, oracle xác định rõ.
+- `BLOCKED`: thiếu quyết định nghiệp vụ/quyền/data safety; chỉ dừng phần phụ thuộc, không đoán để code tiếp.
+- `NEEDS_EVIDENCE`: chưa có source/oracle cần để khóa quyết định; chưa sẵn sàng implement phần đó.
+- Regression fix phải có red loop đã chạy theo Lean delivery. UI mới phải có red-capable acceptance scenario
+  trước implementation; không yêu cầu một bug tái hiện trên màn hình chưa tồn tại.
+
+Outcome phải mô tả việc người dùng hoàn thành, không chỉ “không overflow/đúng màu”. Usability với người dùng thật
+và performance là claim riêng, cần scenario/baseline/phép đo được duyệt; walkthrough/test kỹ thuật không chứng minh
+người dùng hoàn thành nhanh hơn. Không tự đặt time target hoặc số lượng người tham gia mới.
+
+Bỏ một control/route phải disposition entry links, deep-link, query/action owner, người còn cần tác vụ và đường
+thay thế; bỏ UI không cho phép xóa business record. Delete, cancel, deactivate và compensating transaction là
+các semantics khác nhau; undo chỉ được cung cấp khi domain cho phép, không rewrite immutable history.
 
 ## 8. Contract áp dụng khi hợp nhất hoặc chuẩn hóa UI
 

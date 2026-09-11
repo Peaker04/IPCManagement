@@ -226,6 +226,14 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         await using var context = CreateContext();
         var fixture = await CreateReconciliationIssueFixtureAsync(context);
         await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+        var frozenLine = Assert.Single(context.Reconciliationbatchlines.Local);
+        context.Reconciliationdispositions.Add(new ReconciliationDisposition
+        {
+            DispositionId = GuidHelper.NewId(), BatchLineId = frozenLine.BatchLineId,
+            Category = "ACCEPTED_VARIANCE", Reason = "Kết luận trước khi xuất thêm", Version = 1,
+            DisposedBy = GuidHelper.ParseGuidString(fixture.ActorId)!, DisposedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
 
         fixture.Request.CommandId = "supplemental-" + Guid.NewGuid();
         fixture.Request.ExpectedVersion = 4;
@@ -241,7 +249,13 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.All(context.Inventoryissuelines.Local, line => Assert.True(line.ReconciliationBatchLineId!.SequenceEqual(frozenLineId)));
         Assert.Equal(2.4m, context.Inventoryissuelines.Local.Sum(line => line.IssuedQty));
         Assert.Contains(context.Auditlogs.Local, audit => audit.Reason == "Bếp đề nghị bổ sung cho ca trưa");
+        Assert.Empty(context.Reconciliationdispositions);
+        Assert.Contains(context.Auditlogs.Local, audit => audit.EntityName == nameof(ReconciliationDisposition) && audit.NewValue == "INVALIDATED");
         Assert.Equal(5, Assert.Single(context.Reconciliationbatches.Local).Version);
+        var transitions = await context.Lifecycletransitions.AsNoTracking().OrderBy(item => item.AggregateSequence).ToListAsync();
+        Assert.Equal(2, transitions.Count);
+        Assert.Equal(2, transitions.Select(item => item.AggregateSequence).Distinct().Count());
+        Assert.Contains(transitions, item => item.ToState == "SUPPLEMENTAL_ISSUED");
     }
 
     [Fact]

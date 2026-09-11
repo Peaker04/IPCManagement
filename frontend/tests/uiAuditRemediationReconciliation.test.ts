@@ -18,7 +18,8 @@ describe('Phase 28 remediation reconciliation', () => {
     expect(routeOwnerRegressionSource).toContain('tabIndex\\s*!==?\\s*-1');
     expect(routeOwnerRegressionSource).toContain('.labels');
     expect(routeOwnerRegressionSource).toContain('seriousViolationsWithBrowserPlaceholderEvidence');
-    expect(axeSource).toContain("getComputedStyle(element, '::placeholder').color");
+    expect(axeSource).toContain("violation.impact === 'serious' || violation.impact === 'critical'");
+    expect(axeSource).not.toContain("getComputedStyle(element, '::placeholder')");
   });
 
   it('accepts exact stable closure and rejects promotion, drift, writes, and actionable failure', () => {

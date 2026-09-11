@@ -195,6 +195,7 @@ describe('AdvancedDisplaySettings Component', () => {
     expect(readNavigationPreferences(window.localStorage)).toEqual(defaultNavigationPreferences);
     expect(readPageTabPreferences(window.localStorage)).toEqual(defaultPageTabPreferences);
     expect(screen.getByText('Đã khôi phục mặc định')).toBeInTheDocument();
+    expect(screen.getAllByRole('status').filter((node) => node.textContent?.includes('khôi phục'))).toHaveLength(1);
   });
 
   it('guards against disabling the last remaining tab in a page tab group', async () => {

@@ -37,10 +37,13 @@ npm run test:ui-measurements
 ```
 
 Gate dùng fixture read-only và route thật từ `src/lib/routeConfig.ts`; không dùng hard-code generic
-`/dashboard`, `/orders`, `?mock=long` hay port của kit. Nó đo toàn bộ protected route IPCManagement ở đúng
-năm desktop viewport hiện hành: `1920x1080`, `1440x900`, `1366x768`, `1365x900`, `1280x900`.
+`/dashboard`, `/orders`, `?mock=long` hay port của kit. Coverage thực tế phải đọc từ runner/result hiện hành và
+đối chiếu declared scope; không coi default runner hoặc năm viewport lịch sử là acceptance matrix của task mới.
+Exact matrix phải được resolve từ MEMORY/checkpoint theo execution harness trước browser run. Thiếu matrix là
+`BLOCKED` cho browser gate; không tự điền mobile/tablet hoặc lấy cấu hình cũ để chứng nhận.
 
-Mỗi test ghi `test-results/ui-audit-*.json` với schema:
+Report compatibility ghi `test-results/ui-audit-*.json`; ví dụ schema legacy (route/viewport chỉ minh họa,
+`rule` ở đây là detector ID cũ, không phải normative rule ID):
 
 ```json
 {
@@ -51,9 +54,22 @@ Mỗi test ghi `test-results/ui-audit-*.json` với schema:
 }
 ```
 
-Các finding hiện có oracle máy kiểm tra được gồm: overflow toàn trang (C1), control bị clip/wrap hoặc
-word-break không an toàn (C4), dialog thiếu accessible name (A1), và seam tab (C2). Route có table sử dụng
-vùng scroll cục bộ hợp lệ không bị coi là overflow toàn trang.
+### Traceability của detector legacy
+
+`frontend/tests/ui-audit.spec.ts` còn phát ID cũ trùng tên nhưng khác nghĩa với normative rules. Khi đưa finding
+vào ledger, MUST giữ source/selector/reason và ghi riêng detector ID + rule project; không relabel evidence cũ
+hoặc đổi schema/emitter chỉ bằng sửa docs.
+
+| Detector legacy / reason | Nghĩa đã đối chiếu source | Rule/contract dùng khi disposition |
+|---|---|---|
+| `C1 / PAGE_H_SCROLL` | Overflow ngang cấp document | UI-PHILOSOPHY §2.5; V10 nếu liên quan responsive composition; không phải normative C1 |
+| `C4 / CONTROL_CLIPPED`, `TABLE_ACTION_UNREADABLE`, `CONTROL_VERTICAL_WRAP`, `UNSAFE_WORD_BREAK` | Nhãn/action clip hoặc wrap không đọc được | UI-PHILOSOPHY §2.5, A2 khi action không dùng được; không phải normative C4 |
+| `A1 / DIALOG_MISSING_NAME` | Detector kiểm sự có mặt của attribute label | M2.5; cần semantic accessible-name assertion để chứng minh tên thực sự resolve, không phải table rule A1 |
+| `C2 / tablist ...` | Kiểm tra geometry/style seam tab | DESIGN/V10 hoặc conformance PB-18 tùy reason; không phải skeleton rule C2 |
+
+Một detector không chứng minh mọi yêu cầu của rule đích. Đặc biệt tab nowrap/inset chỉ là detector compatibility,
+không tự tạo pixel/geometry canon nếu nguồn chưa chốt. Phân loại `UNRESOLVED` khi reason chưa có normative oracle.
+Route có table scroll cục bộ hợp lệ không bị coi là overflow toàn trang.
 
 Gate này **chưa đủ** để kết luận visual composition PASS. Mọi route được sửa về layout phải bổ sung scoped
 browser assertion theo `V1`–`V10`; thiếu assertion đó là `NEEDS_EVIDENCE`, không được suy từ `issueCount: 0`.
@@ -143,5 +159,5 @@ agent và không được update chỉ để biến một gate thành xanh.
 | --- | --- |
 | `scripts/overflow-audit.mjs` | `frontend/tests/ui-audit.spec.ts`: fixture-aware DOM measurement + JSON report |
 | Mock `dashboard/orders` | `ROUTES` canon và read-only API fixture của ứng dụng |
-| Width generic | Năm viewport desktop khai trong `MEMORY.md` |
+| Width generic | Exact viewport matrix khóa tại MEMORY/checkpoint; thiếu thì browser preflight BLOCKED |
 | Screenshot/pixel diff | Reviewer-only regression artifact, không dùng làm oracle agent |

@@ -162,6 +162,16 @@ describe('ApprovalPage query state boundary', () => {
     expect(screen.queryByText('Không có chứng từ chờ duyệt')).toBeNull();
   });
 
+  it('renders one purposeful surface for a ready empty approval queue', async () => {
+    mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([])));
+
+    renderPage();
+
+    expect(await screen.findByText('Chưa có chứng từ chờ duyệt.')).toBeInTheDocument();
+    expect(screen.queryByText('Không có chứng từ chờ duyệt')).toBeNull();
+    expect(screen.getByText(/Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử/)).toBeInTheDocument();
+  });
+
   it('keeps a non-forbidden approval-inbox failure retryable', async () => {
     const refetch = vi.fn();
     mocks.getApprovals.mockReturnValue(failedQuery(500, refetch));
@@ -181,7 +191,8 @@ describe('ApprovalPage query state boundary', () => {
     expect(screen.getAllByText('Đang cập nhật hàng đợi')[0]).toBeInTheDocument();
   });
 
-  it('opens the purchase-request approval dialog from that row and mutates only after confirmation', async () => {
+  it('opens the purchase-request approval dialog from that row and announces success once', async () => {
+    mocks.executeDecision.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
     mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([{
       ...approvalRecord,
       targetCode: 'PR-20260810-FULLDAY',
@@ -207,6 +218,7 @@ describe('ApprovalPage query state boundary', () => {
       reason: null,
       week: undefined,
     }));
+    await waitFor(() => expect(screen.getAllByRole('status').filter((node) => node.textContent?.includes('Đã duyệt chứng từ'))).toHaveLength(1));
   });
 
   it('sends deep-link week target and server search filters to the inbox query', async () => {

@@ -498,7 +498,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         movement.Should().Be(new MovementValue(movement.Id, "ISSUE", "inventoryissues", issue.Id, 5m, 0m));
         var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = issueCode, ConcurrencyVersion = 1 });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-issue", nameof(InventoryIssue), fixture.IssueBatchId,
-            1, "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {issueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
+            checked((int)newBatch.Version), "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {issueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
         var transition = lifecycle.Transitions.Except(before.Transitions).Single();
         var outbox = lifecycle.Outbox.Except(before.Outbox).Single();
         var receipt = lifecycle.Receipts.Except(before.Receipts).Single();

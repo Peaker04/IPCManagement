@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '@/features/auth';
+import { IdleSessionGuard } from '@/features/auth/components/IdleSessionGuard';
 import { store } from '@/app/store';
 import { logoutSession } from '@/app/session/logoutSession';
 import { ROUTES } from '@/lib/routeConfig';
@@ -59,7 +60,7 @@ const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenc
   { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, preferenceKey: 'approvals', requiredPermissions: ['purchase.request.approve'] },
   { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, preferenceKey: 'purchasing', requiredPermissions: ['purchase.read'] },
   { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'] },
-  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'], reconciliationOnly: true },
+  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['report.read'], reconciliationOnly: true },
   { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, preferenceKey: 'chef-dashboard', requiredPermissions: ['production.read'] },
   { path: ROUTES.REPORTS, label: 'Báo cáo vận hành', icon: <TrendingUp size={18} />, preferenceKey: 'reports', requiredPermissions: ['report.read'] },
   { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, preferenceKey: 'admin-data', requiredPermissions: ['*'] },
@@ -146,6 +147,7 @@ const MainLayoutContent = () => {
 
   return (
     <div className="ipc-app-shell ipc-redesign-shell">
+      <IdleSessionGuard onLogout={handleLogout} />
       <a href="#ipc-main-content" className="ipc-skip-link">
         {uiCopy.navigation.skipToContent}
       </a>

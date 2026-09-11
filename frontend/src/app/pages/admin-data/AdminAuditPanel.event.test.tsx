@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -23,6 +23,7 @@ import type { ReconciliationAdminDataPageModel } from './useReconciliationAdminD
 const readyView = { phase: 'ready', data: { items: [], hasNext: false }, isRefreshing: false, truncation: null } as const
 const model = {
   isReconciliationMode: true,
+  auditSourceFamily: 'MATERIAL_RECONCILIATION', setAuditSourceFamily: vi.fn(),
   effectiveActiveView: 'audit', auditActor: '', auditArea: '', auditCursors: [], auditEntity: '', auditField: '',
   auditResult: { data: { hasNext: false, nextCursorOffset: 0 } }, exportError: undefined, isExportingAudit: false, handleExportAuditCsv: vi.fn(),
   displayLogs: [{
@@ -41,6 +42,20 @@ describe('MXE-08 reconciliation admin audit event surface', () => {
     expect(screen.getByRole('heading', { name: 'Chi tiết sự kiện xuất kho' })).toBeInTheDocument()
     expect(screen.getByText('Gạo')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xuất CSV chi tiết' })).toHaveAttribute('title', expect.stringContaining('không gộp theo sự kiện'))
+  })
+
+  it('defaults audit scope to MRX and lets Admin explicitly choose the whole system', async () => {
+    render(<MemoryRouter><AdminAuditPanel model={model} /></MemoryRouter>)
+    const scope = screen.getByRole('combobox', { name: 'Phạm vi nhật ký' })
+    expect(scope).toHaveTextContent('Đối chiếu nguyên liệu')
+    expect(scope).not.toHaveTextContent('MATERIAL_RECONCILIATION')
+    fireEvent.click(scope)
+    expect(screen.getByRole('option', { name: 'Đối chiếu nguyên liệu' })).toBeInTheDocument()
+    const allOption = screen.getByRole('option', { name: 'Toàn hệ thống' })
+    fireEvent.pointerDown(allOption)
+    fireEvent.pointerUp(allOption)
+    fireEvent.click(allOption)
+    await waitFor(() => expect(model.setAuditSourceFamily).toHaveBeenCalledWith('ALL'))
   })
 
   it('shows the exact event count and truthful unknown-role label', () => {

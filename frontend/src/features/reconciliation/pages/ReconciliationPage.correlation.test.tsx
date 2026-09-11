@@ -10,8 +10,8 @@ const { issueState, listState, completionState } = vi.hoisted(() => ({
 const batch = {
   batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
   lines: [
-    { batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'kg', canonicalUnitName: 'kg', requiredQuantity: 1.25, issuedQuantity: 1.25, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1 },
-    { batchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Sữa', canonicalUnitId: 'ml', canonicalUnitName: 'ml', requiredQuantity: 900, issuedQuantity: 900, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1 },
+    { batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'kg', canonicalUnitName: 'kg', requiredQuantity: 1.25, issuedQuantity: 1.25, frozenTolerance: 0, triggers: [] as string[], status: 'MATCHED', version: 1 },
+    { batchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Sữa', canonicalUnitId: 'ml', canonicalUnitName: 'ml', requiredQuantity: 900, issuedQuantity: 900, frozenTolerance: 0, triggers: [] as string[], status: 'MATCHED', version: 1 },
   ],
 }
 const ready = <T,>(data: T) => ({ data, currentData: data, isLoading: false, isFetching: false, isError: false, isSuccess: true, isUninitialized: false, refetch: completionState.refetch })
@@ -75,6 +75,8 @@ describe('MXE-09 reconciliation issue deep link', () => {
     issueState.batchId = 'batch-1'
     listState.phase = 'ready'
     completionState.allowed = true
+    batch.lines[0].status = 'MATCHED'
+    batch.lines[0].triggers = []
     completionState.shouldFail = false
     completionState.refreshedVersion = 2
     completionState.mutate.mockReset()
@@ -91,6 +93,7 @@ describe('MXE-09 reconciliation issue deep link', () => {
     expect(screen.getByRole('heading', { name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
     expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
     expect(screen.getByText('Sẵn sàng hoàn tất')).toBeInTheDocument()
+    expect(screen.getAllByText(/nguyên liệu đã khớp/)).toHaveLength(1)
     expect(screen.queryByRole('table', { name: 'Kết quả đối chiếu nguyên liệu' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Xem toàn bộ' }))
@@ -137,6 +140,27 @@ describe('MXE-09 reconciliation issue deep link', () => {
     expect(screen.queryByText('Sữa')).not.toBeInTheDocument()
     expect(screen.getByText('Sẵn sàng hoàn tất')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Xem toàn bộ' })[0]).toHaveFocus()
+  })
+
+  it('hides the disposition action from an actor without decision authority', () => {
+    batch.lines[0].status = 'NEEDS_REVIEW'
+    batch.lines[0].triggers = ['PURCHASED_REQUIRED']
+    completionState.allowed = false
+
+    renderPage('/reconciliation?batchId=batch-1')
+
+    expect(screen.getByText('Gạo')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Xử lý chênh lệch' })).not.toBeInTheDocument()
+    expect(screen.getByText(/Quản trị hoặc Quản lý cần xử lý chênh lệch/)).toBeInTheDocument()
+  })
+
+  it('shows the disposition action to an authorized decision actor', () => {
+    batch.lines[0].status = 'NEEDS_REVIEW'
+    batch.lines[0].triggers = ['PURCHASED_REQUIRED']
+
+    renderPage('/reconciliation?batchId=batch-1')
+
+    expect(screen.getByRole('button', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
   })
 
   it('completes an all-matched IN_PROGRESS batch only after explicit confirmation and refetches', async () => {

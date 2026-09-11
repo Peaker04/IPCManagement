@@ -36,6 +36,24 @@ public class RecoveryScriptContractTests
     }
 
     [Fact]
+    public void Restore_oracle_should_compare_checksum_values_without_database_names_and_keep_provenance_separate()
+    {
+        var oraclePath = Path.Combine(FindRepositoryRoot(), "scripts", "database-recovery", "RestoreOracle.ps1")
+            .Replace("'", "''", StringComparison.Ordinal);
+        var command = $". '{oraclePath}'; " +
+            "$value = Get-TableChecksumValue @((\"source_db.orders`t12345\")); " +
+            "$expected = [pscustomobject]@{ migrationIds=@('m1'); migrationHead='m1'; tableDefinitions=@('orders'); foreignKeyDefinitions=@(); triggerDefinitions=@(); rowCounts=@{orders=2}; rowDigests=@{orders=$value}; dcrClosureBaseline='abc'; gtidExecuted=@('g'); binaryLogChain=@('b') }; " +
+            "$actual = [pscustomobject]@{ migrationIds=@('m1'); migrationHead='m1'; tableDefinitions=@('orders'); foreignKeyDefinitions=@(); triggerDefinitions=@(); rowCounts=@{orders=2}; rowDigests=@{orders=(Get-TableChecksumValue @((\"target_db.orders`t12345\")))}; dcrClosureBaseline='abc'; gtidExecuted=@('different'); binaryLogChain=@('different') }; " +
+            "Assert-RecoveryProvenance $expected; Assert-RestoreOracle $expected $actual";
+
+        InvokePowerShell(command).Should().Be(0);
+        InvokePowerShell($". '{oraclePath}'; try {{ Get-TableChecksumValue @((\"db.orders`tbad\")) | Out-Null; exit 0 }} catch {{ exit 1 }}")
+            .Should().NotBe(0);
+        InvokePowerShell($". '{oraclePath}'; try {{ Assert-RecoveryProvenance ([pscustomobject]@{{ gtidExecuted=$null; binaryLogChain=$null }}); exit 0 }} catch {{ exit 1 }}")
+            .Should().NotBe(0);
+    }
+
+    [Fact]
     public void Backup_manifest_should_cover_exact_restore_oracles_before_success()
     {
         var script = ReadRepositoryFile("scripts", "database-recovery", "Invoke-DatabaseRecovery.ps1");
@@ -103,14 +121,28 @@ public class RecoveryScriptContractTests
             $". '{providerPath}'; try {{ Assert-NewRestoreTarget -DatabaseName '{target}' " +
             $"-TestDatabaseExists {{ param($DatabaseName) ${exists.ToString().ToLowerInvariant()} }} | Out-Null; exit 0 }} " +
             "catch { exit 1 }";
+        return InvokePowerShell(command);
+    }
+
+    private static int InvokePowerShell(string command)
+    {
         using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
             FileName = "powershell.exe",
-            Arguments = $"-NoProfile -NonInteractive -Command \"{command.Replace("\"", "\\\"", StringComparison.Ordinal)}\"",
+            Arguments = $"-NoProfile -NonInteractive -EncodedCommand {Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(command))}",
             UseShellExecute = false,
             CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
         }) ?? throw new InvalidOperationException("Could not start Windows PowerShell.");
+        var output = process.StandardOutput.ReadToEnd();
+        var error = process.StandardError.ReadToEnd();
         process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            Console.WriteLine(output);
+            Console.WriteLine(error);
+        }
         return process.ExitCode;
     }
 }

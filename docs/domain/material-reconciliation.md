@@ -70,10 +70,12 @@ extracted_from: ../../MEMORY.md
 - Mỗi supplemental transaction chọn đúng **một ingredient đã có trong frozen batch**, quantity dương và một lý do tiếng Việt bắt buộc.
 - Mỗi lần xuất thêm tạo `InventoryIssue` mới với cùng batch/frozen-line lineage. Không sửa issue trước, không tạo frozen material row mới và không cho ingredient ngoài lô.
 - Một ingredient có thể có nhiều supplemental issue; history/audit/stock movement của từng giao dịch phải giữ append-only và hiển thị được.
+- Lifecycle transition của initial và supplemental issue cùng batch phải dùng aggregate sequence tăng theo batch version; không được tái dùng sequence `1`, vì unique lifecycle fence sẽ biến lần xuất thêm hợp lệ thành lỗi 500.
 
 ### 8. Authority số đã xuất và đối chiếu
 
 - `IssuedQuantity` chỉ được suy ra từ tổng mọi linked `InventoryIssueLine` của frozen line **trừ confirmed returns**. Legacy `ReconciliationActual` với `Side == ISSUED` chỉ giữ audit compatibility, không có authority.
+- Public legacy mutation `PUT /api/reconciliation/lines/{lineId}/purchased|issued` đã ngừng hỗ trợ và phải trả `410 Gone`; không được tái xuất FE mutation hook/drawer cho hai đường này. Dữ liệu actual/revision cũ vẫn được giữ để đọc và audit.
 - Missing linked issue dictionary entry nghĩa là `null/chưa xuất`, không phải decimal 0. Trước initial issue, reconciliation hiển thị `Chưa xuất`, không mở disposition và không giả vờ đã có giao dịch.
 - Reconciliation so sánh frozen `RequiredQuantity` với ledger-derived total issued; cùng ingredient xuất thêm phải aggregate vào đúng reconciliation row.
 - Under/over tạo variance thật. Disposition chỉ được mở khi batch `IN_PROGRESS`, có linked issue và line cần xử lý; category/value hiển thị tiếng Việt, không raw enum/UUID/version/fingerprint.
@@ -82,8 +84,10 @@ extracted_from: ../../MEMORY.md
 ### 9. Quyền, concurrency, audit và dữ liệu
 
 - Mode không cấp quyền. Admin Data mutation vẫn cần Admin authority; issue/supplemental cần Warehouse authority; readiness/transfer dùng owner được định nghĩa; reconciliation disposition/completion dùng quyền tương ứng.
+- Trong MRX, Admin Audit mặc định lọc `sourceFamily=MATERIAL_RECONCILIATION`; Admin có thể chủ động chọn `ALL`. Bảng và CSV dùng cùng scope, scope được giữ trong URL; giá trị thiếu/không hợp lệ fail-closed về MRX.
+- Customer data scope hiện là intentional-global cho actor có `ReportAccess/report.read`; không suy hoặc thêm customer restriction khi chưa có claim/assignment authority chính thức.
 - Mode/version và aggregate expected version phải recheck trong transaction trước durable write. Stale tab, stale batch, concurrent/double submit và wrong mode phải fail closed, không duplicate issue/movement/audit/idempotency.
-- Retry cùng command trả canonical prior result; supplemental dùng command identity mới cho từng giao dịch.
+- Mỗi committed `QuantityImportBatchId` chỉ có một reconciliation batch canonical. DB unique constraint là authority; retry cùng command trả canonical prior result, command khác cho source đã dùng phải conflict; muốn đối chiếu lại cần committed import authority mới. Supplemental dùng command identity mới cho từng giao dịch.
 - Không hard-delete valid issue, issue line, stock movement, return, audit, contributor hoặc reconciliation history. Không reshape retained/protected batch và không fabricate evidence.
 
 ### 10. Evidence và quy tắc thực thi
@@ -91,4 +95,4 @@ extracted_from: ../../MEMORY.md
 - Full acceptance phải đi qua public UI/API từ import/select menu → corrections → servings → missing-BOM recovery → preview → commit → READY → transfer → initial manual issue → optional supplemental → reconciliation/disposition → completion/reload.
 - E2E phải đối chiếu đồng thời DOM/browser state, request/response, backend state, DB transitions, lineage, stock movement và render sau reload. Screenshot một mình không phải PASS oracle.
 - Disposable fixture chỉ được bootstrap declared master/start stock; hành vi từ menu import trở đi phải dùng public seams. Protected data không reset/seed/direct-write.
-- Current disposable full lifecycle evidence: `.artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/`, 47/47 browser/API lifecycle PASS, final batch `COMPLETED`, 84 frozen lines, 494 contributors, 84 issue lines/movements, under/over audit retained. Đây không thay thế invariant runtime đủ tồn đang mở ở batch nêu trên.
+- Current Phase 34 disposable lifecycle evidence: `.artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/full/`, 49/49 headed browser/API lifecycle PASS, final batch `COMPLETED`, 84 frozen lines, 494 contributors, 2 issues/85 issue lines and movements, one confirmed return, supplemental and exact-return disposition invalidation PASS. Database: `ipc_mrx_full_e2e_phase34_20260909224848_f`; `ipc_lane9` was not referenced or mutated.

@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { RotateCcw, Scale, CheckCircle2, HelpCircle, AlertCircle } from 'lucide-react'
 import { formatNumber, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
+import { formatShiftName } from '@/lib/workflowConfig'
 import type { ExcessMaterial, Ingredient } from '@/lib/types'
 
 type ExcessMaterialOption = Ingredient & {
@@ -29,6 +30,13 @@ type ExcessMaterialOption = Ingredient & {
   sourceShiftName?: string
   sourcePriceTierAmount?: number
 }
+
+const materialLabel = (material: ExcessMaterialOption) => [
+  `${material.name} (${formatUnit(material.unit)})`,
+  material.sourceCustomerName,
+  material.sourceShiftName ? formatShiftName(material.sourceShiftName) : undefined,
+  typeof material.sourcePriceTierAmount === 'number' ? `${formatNumber(material.sourcePriceTierAmount)}đ` : undefined,
+].filter(Boolean).join(' · ')
 
 interface ExcessMaterialDialogProps {
   open: boolean
@@ -106,19 +114,13 @@ export function ExcessMaterialDialog({
             }}>
               <SelectTrigger aria-labelledby="excess-material-label" aria-invalid={Boolean(fieldErrors.material) || undefined} aria-describedby={fieldErrors.material ? 'excess-material-error' : undefined} className="h-10 rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors">
                 <SelectValue className={selectedMaterial ? 'text-slate-800' : 'text-slate-400'}>
-                  {selectedMaterial
-                    ? `${selectedMaterial.name} (${formatUnit(selectedMaterial.unit)})`
-                    : 'Nhấp để chọn nguyên liệu...'}
+                  {selectedMaterial ? materialLabel(selectedMaterial) : 'Nhấp để chọn nguyên liệu...'}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-lg border border-slate-200 bg-white shadow-lg max-h-60">
                 {materials.map((material) => (
                   <SelectItem key={material.id} value={material.id} className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 py-2.5">
-                    <span className="text-slate-800 font-medium">
-                      {material.name}
-                    </span>
-                    <span className="text-xs text-slate-400 ml-1.5">({formatUnit(material.unit)})</span>
-                    {material.sourceCustomerName ? <span className="block text-xs text-slate-500">{material.sourceCustomerName} · {material.sourceShiftName === 'AFTERNOON' ? 'Ca chiều' : material.sourceShiftName === 'MORNING' ? 'Ca sáng' : 'Cả ngày'}{typeof material.sourcePriceTierAmount === 'number' ? ` · ${formatNumber(material.sourcePriceTierAmount)}đ` : ''}</span> : null}
+                    <span className="text-slate-800 font-medium">{materialLabel(material)}</span>
                   </SelectItem>
                 ))}
               </SelectContent>

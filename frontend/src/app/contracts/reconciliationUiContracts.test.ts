@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import weeklyMenuSource from '@/features/projects/pages/ReconciliationWeeklyMenuPage.tsx?raw'
+import weeklyMenuSource from '@/features/projects/pages/WeeklyMenuPage.tsx?raw'
 import warehouseSource from '@/features/warehouse/pages/ReconciliationWarehousePage.tsx?raw'
 import reconciliationSource from '@/features/reconciliation/pages/ReconciliationPage.tsx?raw'
 import issueHistorySource from '@/components/reconciliation/ReconciliationIssueHistoryTable.tsx?raw'
@@ -8,18 +8,21 @@ import adminBomSource from '@/app/pages/admin-data/AdminBomPanel.tsx?raw'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 
 describe('material reconciliation UI contracts', () => {
-  it('owns the weekly-menu work object in validated URL query state', () => {
+  it('keeps the mounted weekly-menu work object in validated URL query state', () => {
     expect(buildWeeklyMenuRoute({ view: 'demand', customerId: 'customer 1', weekStartDate: '2026-08-24' }))
       .toBe('/weekly-menu?view=demand&customerId=customer+1&weekStartDate=2026-08-24')
-    expect(weeklyMenuSource).toContain("value === 'schedule' || value === 'demand'")
-    expect(weeklyMenuSource).toContain("searchParams.get('customerId')")
-    expect(weeklyMenuSource).toContain("searchParams.get('weekStartDate')")
+    expect(weeklyMenuSource).toContain('const [searchParams, setSearchParams] = useSearchParams()')
+    expect(weeklyMenuSource).toContain('readReconciliationWeeklyMenuRoute(searchParams)')
+    expect(weeklyMenuSource).toContain('reconciliationRouteScope.customerId')
+    expect(weeklyMenuSource).toContain('reconciliationRouteScope.weekStartDate')
+    expect(weeklyMenuSource).toContain('reconciliationRouteScope.view')
+    expect(weeklyMenuSource).toContain('updateReconciliationScope({ view })')
+    expect(weeklyMenuSource).toContain('selectedCustomerId={effectiveMenuCustomerId}')
   })
 
-  it('renders reason-specific schedule recovery outside the generic table empty row', () => {
-    expect(weeklyMenuSource).toContain('getReconciliationScheduleEmptyState')
-    expect(weeklyMenuSource).toContain('<EmptyState')
-    expect(weeklyMenuSource).toContain('scheduleEmptyState.actionLabel')
+  it('keeps schedule readiness and query recovery on the mounted owner', () => {
+    expect(weeklyMenuSource).toContain('<WeeklyMenuReadiness readiness={readiness} />')
+    expect(weeklyMenuSource).toContain('<QueryViewBoundary preserveFallback')
   })
 
   it('keeps warehouse tab semantics and the prerequisite action unambiguous', () => {

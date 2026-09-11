@@ -87,9 +87,22 @@ public sealed class ReconciliationActualService(
             async operationToken =>
             {
                 var line = await context.Reconciliationbatchlines.Include(x => x.Batch).SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken) ?? throw new KeyNotFoundException();
-                if (line.Batch.Status is not ("READY" or "IN_PROGRESS")) throw new InvalidOperationException("Chỉ lô đang đối chiếu mới được cập nhật hướng xử lý.");
-                var hasLinkedIssue = await context.Inventoryissuelines.AnyAsync(x => x.ReconciliationBatchLineId == lineBytes, operationToken);
-                if (!hasLinkedIssue) throw new InvalidOperationException("Cần có phiếu xuất kho liên kết trước khi xử lý chênh lệch.");
+                if (line.Batch.Status != "IN_PROGRESS") throw new InvalidOperationException("Chỉ lô đang đối chiếu mới được cập nhật hướng xử lý.");
+                var issueRows = await context.Inventoryissuelines.AsNoTracking()
+                    .Where(x => x.ReconciliationBatchLineId == lineBytes)
+                    .Select(x => new { x.IssueLineId, x.ReconciliationBatchLineId, x.IssuedQty })
+                    .ToListAsync(operationToken);
+                if (issueRows.Count == 0) throw new InvalidOperationException("Cần có phiếu xuất kho liên kết trước khi xử lý chênh lệch.");
+                var issueLineIds = issueRows.Select(x => x.IssueLineId).ToList();
+                var returns = await context.Inventoryreturnlines.AsNoTracking()
+                    .Where(x => x.SourceIssueLineId != null && issueLineIds.Contains(x.SourceIssueLineId) && x.Return.ReceivedAt != null)
+                    .Select(x => new { x.SourceIssueLineId, x.Quantity })
+                    .ToListAsync(operationToken);
+                var linkedIssued = ReconciliationBatchService.ProjectNetIssuedQuantities(
+                    issueRows.Select(x => (x.IssueLineId, x.ReconciliationBatchLineId!, x.IssuedQty)),
+                    returns.Select(x => (x.SourceIssueLineId!, x.Quantity)));
+                var comparison = ReconciliationComparisonService.Map(line, [], null, ReconciliationBatchService.LinkedQuantity(linkedIssued, lineBytes));
+                if (comparison.Triggers.Count == 0) throw new InvalidOperationException("Dòng không có chênh lệch hiện hành cần xử lý.");
                 var current = await context.Reconciliationdispositions.SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken);
                 if (current is null)
                 {

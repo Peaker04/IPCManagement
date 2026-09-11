@@ -8,22 +8,62 @@ last_reviewed: 2026-08-12
 
 # Triết lý UI/UX của IPCManagement
 
-Đây là điểm vào dành cho người xây dựng hoặc review giao diện IPCManagement. Tài liệu này tổng hợp
-những nguyên tắc đã được đưa vào kiến trúc và component hiện tại; không phải một visual audit riêng lẻ
-và không thay thế bộ rule chi tiết.
+Đây là đầu mối rule dành cho người thiết kế, xây dựng hoặc review giao diện IPCManagement. Mục tiêu là
+**thiết kế theo tác vụ và vai trò**: mục đích nghiệp vụ → actor/data scope → thao tác/chuyển trạng thái →
+người nhận việc tiếp → composition → bằng chứng. Áp dụng cho tạo, sửa và loại bỏ UI, không chỉ styling.
+Tài liệu định tuyến tới contract hiện hành, không phải visual audit hoặc chứng nhận component đã tuân thủ.
 
 ## 1. Nguồn sự thật và cách dùng
 
 | Khi cần quyết định | Đọc trước | Kết quả cần giữ |
 |---|---|---|
 | Nguyên tắc UI/UX đầy đủ và mã rule | [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) | Áp dụng `MUST`, `SHOULD`, `MAY`; ghi rule ID khi thay đổi |
-| Floorplan, surface và geometry role | [`DESIGN.md`](DESIGN.md) | Khóa primary work object, adjacency, one-state/one-surface và async-boundary geometry trước JSX |
+| Design brief/Definition of Ready, actor–action matrix, floorplan và geometry | [`DESIGN.md`](DESIGN.md), §7 rồi §2–5 | Khóa mục đích, quyền/scope, flow/handoff, recovery và composition trước JSX |
 | Component, token và pattern đang có | [`frontend/docs/ipc-design-tokens.md`](../frontend/docs/ipc-design-tokens.md) | Dùng primitive/token hiện có trước khi tạo class hoặc variant mới |
 | Quyết định render đã được duyệt | [`UI-CONFORMANCE-MATRIX.md`](UI-CONFORMANCE-MATRIX.md) | Không tự thêm spacing, pixel, golden hoặc quota chưa có nguồn |
 | State, action, permission và grain nghiệp vụ | [`DOMAIN.md`](DOMAIN.md), [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md) | Không làm sai trạng thái, quyền hoặc mức chi tiết của dữ liệu |
 | UI có dữ liệu đi qua FE–API–DB | [`UI-UX-FE-BE-DATABASE-STANDARDIZATION.md`](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | Giữ chuỗi control → API → DB → reload |
 | Cách chứng minh UI đúng | [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md) | Dùng test/DOM/API/focus/performance evidence, không kết luận từ screenshot đơn lẻ |
 | Quy trình audit, sửa và handoff UI/UX | [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md) | Phân loại task, sửa đúng owner, giữ evidence và resume session an toàn |
+
+### 1.1. Đầu mối tra cứu rule cho tạo, sửa và xóa UI
+
+“Gom rule” ở đây là **một đầu mối tra cứu, mỗi rule giữ một owner**, không chép toàn bộ contract vào một file.
+Dùng bảng sau trước khi chọn component hoặc styling. Đây là inventory các yêu cầu đã có, không phải bộ rule mới.
+
+| Câu hỏi cần trả lời | Nhóm rule / nguồn sở hữu | Nội dung cần đối chiếu |
+|---|---|---|
+| Màn hình/control tồn tại để làm gì? Hỗ trợ quyết định nào? | `P1`, `P2`, `P8`, `N1`, `N5`; [DOMAIN](DOMAIN.md); [chuẩn FE–BE–DB §4.2](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | Primary task, work object, thông tin cần để ra quyết định; không thêm field chỉ vì API có |
+| Ai làm, ai xem, ai nhận việc tiếp theo? | [DOMAIN — vai trò, trạng thái và quyền](DOMAIN.md); [chuẩn FE–BE–DB §4.3, §5.3](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | Role/permission, scope dữ liệu, state hợp lệ, phân tách trách nhiệm; backend enforce cuối cùng |
+| Mode có cho phép workflow này không? | [DESIGN §8.1](DESIGN.md); [contract MRX](domain/material-reconciliation.md) khi thuộc mode đó | Route/tab/query/action capability; không dùng luồng DEFAULT làm bước tiếp theo của MRX |
+| Bấm rồi đi đâu, thay đổi gì, ai tiếp nhận? | `P2`, `L9`, `N2`–`N4`, `V7`; [chuẩn FE–BE–DB §3–4](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | Navigation hay mutation, object đích, transition, feedback, reload và next action đúng authority |
+| Tạo/sửa/xóa có mất dữ liệu hoặc phá lịch sử không? | `P5`, `P7`, `M2.3`, `M2.9`, `E5`, `I8`; domain contract | Phân biệt bỏ UI với xóa record; phân biệt delete/cancel/deactivate/compensating action; không tự cấp quyền xóa hoặc undo |
+| Một hàng/số đại diện cho điều gì? | [DATA-GRAIN-MATRIX](DATA-GRAIN-MATRIX.md); `L5`, `L6`, `T3` | Grain, đơn vị, kỳ dữ liệu, source-line, aggregate chỉ để trình bày; không double-count |
+| Tên gọi và trạng thái có thống nhất giữa màn hình? | [GLOSSARY](GLOSSARY.md); `P3`, `L1`–`L12`, `S`; [conformance PF-01/PF-02](UI-CONFORMANCE-MATRIX.md) | Vocabulary, primary lifecycle, action set và thông tin bắt buộc theo cùng logical state |
+| Bố cục và bề mặt tương tác nào phù hợp? | [DESIGN §2–7](DESIGN.md); `V1`–`V10`, `M1`, `D7`, `T12` | Floorplan, adjacency, geometry role, một state/một surface, một primary action, dialog/drawer/page |
+| Dùng lại component/token nào? | [conformance PB-01..PB-18](UI-CONFORMANCE-MATRIX.md); `D1`–`D9`; [CSS entry](../frontend/src/styles/index.css) | Owner hiện hành trước page-local CSS; token reference phải được đối chiếu conformance và source |
+| Loading/empty/error/forbidden và refetch khác nhau thế nào? | `E`, `F12`–`F24`, `C`, `I`; [DESIGN §8.2](DESIGN.md) | State honesty, stale-data, field errors, giữ draft/focus/scroll, concurrency và recovery |
+| Bảng/form/keyboard/responsive có dùng được không? | `T`, `I`, `M2`, `A`, `V10`; [Front-End Checklist adapter](FRONT-END-CHECKLIST-INTEGRATION.md) | Semantics, labels, focus, target, contrast, overflow cục bộ và continuity; external corpus không tự mở scope |
+| Chứng minh đúng bằng gì, ai giữ trạng thái công việc? | `Q`; [execution harness](UI-UX-EXECUTION-HARNESS.md); [measurement protocol](UI-UX-MEASUREMENT-PROTOCOL.md); [Lean delivery](harness/DELIVERY.md) | GSD là state owner; oracle theo claim, regression đúng seam; mutation nối FE → API → DB → reload |
+| Gặp lỗi chưa có rule, làm sao không lặp lại? | `Q0`; [execution harness §4.1](UI-UX-EXECUTION-HARNESS.md) | Tự xác minh và bổ sung/mở rộng rule kỹ thuật cùng regression trong task; rule có rồi thì sửa enforcement, không nhân bản rule; quyết định nghiệp vụ/quyền mới phải hỏi owner |
+
+Các mã `P/D/L/S/T/M/C/F/E/I/A/N/V/Q` trỏ về [bộ rule normative](DASHBOARD-UI-RULES.md).
+Đọc đầy đủ mục sở hữu trước khi áp dụng; bảng này không thay nội dung hoặc mức `MUST/SHOULD/MAY` của nguồn.
+
+### 1.2. Phân biệt nguồn hiện hành, lịch sử và điểm chưa thống nhất
+
+- [PA state/action/permission audit](PA-STATE-ACTION-PERMISSION-AUDIT.md) là snapshot điều tra và đầu mối
+  tới policy/registry, **không phải ma trận quyền hiện hành**. Không copy role/permission từ report cũ để cấp quyền.
+- [UI conformance matrix](UI-CONFORMANCE-MATRIX.md) giữ các quyết định được duyệt trong phạm vi của nó;
+  `UNRESOLVED` không cho phép agent tự đặt pixel, quota hoặc quyền mới. Kết quả PASS lịch sử không chứng minh HEAD mới.
+- Table owner theo conformance `PB-08`: `TableViewport`/`PaginatedTableFrame`; `DataTableShell` đã retired.
+  Không tạo lại component/API cũ từ ví dụ lịch sử.
+- `C1/C10` phân biệt initial skeleton, refreshing và purposeful empty theo `V4`–`V6`; không diễn giải chống
+  CLS thành permission giữ canvas trống, row giả hoặc page-size capacity.
+- Decision table **permission/mode/prerequisite/validation/pending/stale** thuộc chuẩn FE–BE–DB §4.3.
+  Không gom mọi nguyên nhân thành một boolean “disabled”; rule `I4` không cấp quyền submit mutation trái phép.
+- Nếu hai nguồn vẫn đưa ra quyết định khác nhau cho cùng case, ghi rõ cả hai nguồn và phần bị chặn,
+  xin owner decision trước implementation tại phần đó. Không sửa rule theo bug hoặc im lặng chọn nguồn tiện nhất.
 
 `docs/ui-audit-kit/` là nguồn tham khảo đã được chuẩn hóa; không phải nơi chứa config, route, viewport
 hay gate riêng của IPCManagement.
@@ -60,8 +100,9 @@ hiện hành; nếu chưa có bằng chứng thì ghi `NEEDS_EVIDENCE` hoặc `U
 
 ### 2.3. Quyền và hành động
 
-- Control chỉ hiện khi permission và state cho phép; nếu bị ẩn hoặc disabled, UI phải giữ được lý do trong
-  ngữ cảnh phù hợp.
+- Permission/data scope và mode quyết định actor có được truy cập workflow/dữ liệu/action hay không; state
+  quyết định action còn hợp lệ. Phân biệt hidden, forbidden, disabled có lý do, validation và pending theo
+  [decision table FE–BE–DB §4.3](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md); không ẩn business blocker như thiếu quyền.
 - Backend vẫn là nơi enforce cuối cùng. Không coi việc ẩn nút ở FE là authorization.
 - Một vùng ngữ cảnh chỉ có một primary action. Nhãn nút phải mô tả hành động cụ thể, không dùng `OK` hoặc
   thuật ngữ kỹ thuật nếu người dùng không cần biết.
@@ -80,7 +121,7 @@ hiện hành; nếu chưa có bằng chứng thì ghi `NEEDS_EVIDENCE` hoặc `U
 
 - Shell, header, tab strip và vùng ngữ cảnh phải ổn định khi fetch/refetch; không để thông báo động chèn vào
   flow làm layout nhảy.
-- Overflow ngang cấp document phải bằng không. Bảng rộng cuộn trong `DataTableShell`/`TableViewport`, có
+- Overflow ngang cấp document phải bằng không. Bảng rộng cuộn trong `TableViewport`/`PaginatedTableFrame`, có
   owner rõ ràng; không dùng `overflow-x: hidden` để che lỗi.
 - Control, tab, badge và nhãn tiếng Việt phải wrap hoặc co trong surface của chúng; không cắt mất hành động
   bắt buộc.
@@ -105,14 +146,18 @@ hiện hành; nếu chưa có bằng chứng thì ghi `NEEDS_EVIDENCE` hoặc `U
 | Status/permission action | `frontend/src/lib/statusPresentation.ts`, `frontend/src/lib/workflowConfig.ts`, `frontend/src/lib/actionEligibility.ts` | Không map enum hoặc eligibility rải rác trong page |
 | Số, tiền, ngày, đơn vị | `frontend/src/lib/formatters.ts` | Không dùng local `toFixed`/locale helper cho presentation |
 | Route shell/work object | `frontend/src/components/common/OperationalFrame.tsx`, `ViewSwitcher.tsx`, `CommandBar.tsx` | Giữ một shell canon; tab chỉ xuất hiện khi có work-object alternatives |
-| Table geometry/overflow | `frontend/src/components/common/DataTableShell.tsx`, `TableViewport.tsx`, `PaginationBar.tsx` | Scroll cục bộ, pagination/cursor đúng owner, không tải toàn bộ collection |
+| Table geometry/overflow | `frontend/src/components/common/TableViewport.tsx`, `PaginatedTableFrame.tsx`, `PaginationBar.tsx` | Scroll cục bộ, pagination/cursor đúng owner, không tải toàn bộ collection |
 | Status and feedback | `StatusBadge.tsx`, `InlineAlert.tsx`, `QueryErrorAlert.tsx`, `EmptyState.tsx` | Chọn primitive theo semantics; không tạo badge/alert page-local tương đương |
 | Token và responsive | `frontend/src/styles/index.css`, [`ipc-design-tokens.md`](../frontend/docs/ipc-design-tokens.md) | Mở rộng token/primitive trước khi vá CSS tại một page |
 | Verification | `frontend/tests`, `test-results/ui-audit-*.json`, `.artifacts/` | Test/DOM/API/focus/performance là bằng chứng; screenshot chỉ hỗ trợ review |
 
-## 4. Quy trình khi thêm hoặc sửa UI
+## 4. Áp dụng khi tạo, sửa hoặc loại bỏ UI
 
-1. Xác định work object, grain, state, permission và mutation boundary trước khi viết JSX.
+Quy trình execution chỉ có một owner: [UI-UX-EXECUTION-HARNESS](UI-UX-EXECUTION-HARNESS.md).
+Các bước dưới là bản chỉ đường, không checklist/task state thứ hai.
+
+1. Khóa brief, actor–action–transition matrix và walkthrough theo [DESIGN §7](DESIGN.md), áp dụng `P9`.
+   Tự đọc nguồn đã có; chỉ hỏi quyết định chưa rõ. Với delta nhỏ, link contract không đổi thay vì viết lại brief.
 2. Vẽ floorplan ngắn và gán geometry role cho từng async boundary theo [`DESIGN.md`](DESIGN.md); xác nhận
    one-state/one-surface và heading/control/content adjacency.
 3. Tìm rule ID trong [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) và owner thấp nhất trong bảng trên.
@@ -122,7 +167,8 @@ hiện hành; nếu chưa có bằng chứng thì ghi `NEEDS_EVIDENCE` hoặc `U
    `NOT_APPLICABLE`, `NEEDS_EVIDENCE` hoặc `UNRESOLVED`.
 7. Với UI read-only, chạy gate DOM/source/focus và composition geometry phù hợp. Với mutation hoặc dữ liệu
    nghiệp vụ, chứng minh thêm control → API → DB → rendered reload.
-8. Chạy `git diff --check`, secret/stub scan và cập nhật tài liệu liên quan trong cùng thay đổi.
+8. Chạy `git diff --check`, secret/stub scan và cập nhật tài liệu liên quan trong cùng thay đổi. Finding chưa có
+   rule hoặc tái diễn bắt buộc qua `Q0` và vòng phản hồi execution harness §4.1; không chỉ lưu bài học trong chat.
 
 ## 5. Thứ tự ưu tiên khi có xung đột
 

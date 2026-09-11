@@ -284,3 +284,25 @@ Plans:
 Plans:
 
 - [x] 33-01-PLAN.md — completed sequential S1/S2/S3 checkpoints and closeout; strict architecture-growth PASS with baseline byte-identical.
+
+### Phase 34: Chuẩn hóa và thực thi UI UX toàn bộ chế độ Đối chiếu nguyên liệu theo tác vụ vai trò và bằng chứng
+
+**Goal:** Áp dụng governance UI/UX theo tác vụ/vai trò cho toàn bộ MATERIAL_RECONCILIATION, sửa finding có bằng chứng tại owner thấp nhất và chứng minh từng claim mà không mutate protected data.
+**Requirements**: P34-MRX-UI-01..08 (inventory/authority, brief/action matrix, state/composition, regression, mode isolation, accessibility, browser preflight, E2E evidence)
+**Depends on:** Phase 33 application source; approved UI governance contract in current worktree
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 34-01-PLAN.md — inventory/DoR → owner-level remediation → scoped browser/E2E verification
+
+### Phase 35: Chuẩn hóa UI UX toàn bộ mounted frontend theo claim envelope và shared seams
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 34
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 35 to break down)
