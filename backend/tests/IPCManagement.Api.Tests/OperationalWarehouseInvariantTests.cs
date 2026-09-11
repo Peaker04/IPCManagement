@@ -24,10 +24,25 @@ public class OperationalWarehouseInvariantTests
     }
 
     [Fact]
-    public async Task ResolveAsync_Should_Reject_Missing_Configuration_Before_Querying_Data()
+    public async Task ResolveAsync_Should_Use_The_Single_Active_Warehouse_When_Configuration_Is_Omitted()
+    {
+        var activeId = Guid.NewGuid().ToByteArray();
+        var repository = Substitute.For<IWarehouseRepository>();
+        repository.GetOperationalCandidatesAsync(2).Returns([Warehouse(activeId)]);
+        var resolver = new OperationalWarehouseResolver(repository, BuildConfiguration(null));
+
+        var resolved = await resolver.ResolveAsync();
+
+        resolved.Should().BeSameAs(activeId);
+        await repository.Received(1).GetOperationalCandidatesAsync(2);
+        await repository.DidNotReceive().GetByIdAsync(Arg.Any<byte[]>());
+    }
+
+    [Fact]
+    public async Task ResolveAsync_Should_Reject_Malformed_Optional_Configuration_Before_Querying_Data()
     {
         var repository = Substitute.For<IWarehouseRepository>();
-        var resolver = new OperationalWarehouseResolver(repository, BuildConfiguration(null));
+        var resolver = new OperationalWarehouseResolver(repository, BuildConfiguration("not-a-guid"));
 
         var act = () => resolver.ResolveAsync();
 

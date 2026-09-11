@@ -19,12 +19,13 @@ public sealed class OperationalWarehouseResolver : IOperationalWarehouseResolver
 
     public async Task<byte[]> ResolveAsync(CancellationToken cancellationToken = default)
     {
-        var configuredId = GuidHelper.ParseGuidString(_configuration[WarehouseIdConfigurationKey]);
-        if (configuredId is null)
+        var configuredValue = _configuration[WarehouseIdConfigurationKey];
+        var configuredId = GuidHelper.ParseGuidString(configuredValue);
+        if (!string.IsNullOrWhiteSpace(configuredValue) && configuredId is null)
         {
             throw Failure(
                 OperationalWarehouseInvariantFailure.MissingConfiguration,
-                $"{WarehouseIdConfigurationKey} must contain an existing warehouse GUID.");
+                $"{WarehouseIdConfigurationKey} must contain an existing warehouse GUID when configured.");
         }
 
         var activeWarehouses = await _warehouseRepository.GetOperationalCandidatesAsync(2);
@@ -43,7 +44,7 @@ public sealed class OperationalWarehouseResolver : IOperationalWarehouseResolver
         }
 
         var activeId = activeWarehouses[0].WarehouseId;
-        if (activeId.AsSpan().SequenceEqual(configuredId))
+        if (configuredId is null || activeId.AsSpan().SequenceEqual(configuredId))
         {
             return activeId;
         }
