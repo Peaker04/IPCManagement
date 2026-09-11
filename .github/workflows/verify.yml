@@ -81,8 +81,8 @@ jobs:
           EVENT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
           BASE_REF="$EVENT_BASE_REF"
-          if [ -z "$BASE_REF" ] || [[ "$BASE_REF" =~ ^0+$ ]]; then
-            BASE_REF="$(git rev-list --max-parents=0 HEAD)"
+          if [ -z "$BASE_REF" ] || [[ "$BASE_REF" =~ ^0+$ ]] || ! git cat-file -e "$BASE_REF^{commit}" 2>/dev/null; then
+            BASE_REF="$(git rev-parse HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)"
           fi
           node scripts/check-architecture-growth.mjs --strict --base-ref "$BASE_REF"
 
