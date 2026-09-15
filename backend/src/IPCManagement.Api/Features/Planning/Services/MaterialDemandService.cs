@@ -168,6 +168,16 @@ public class MaterialDemandService : IMaterialDemandService
             }
         }
 
+        if (missingBomDishes.Count > 0)
+        {
+            var examples = string.Join(", ", missingBomDishes
+                .Select(item => $"{item.DishCode} - {item.DishName}")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(4));
+            throw new BusinessRuleException(
+                $"Chưa thể tạo nhu cầu nguyên liệu vì còn {missingBomDishes.Count} dòng món thiếu BOM hiệu lực: {examples}. Bổ sung BOM đúng ngày, khách hàng và định mức rồi thử lại.");
+        }
+
         PruneStaleLines(plan, materialRequest, generatedPlanLineIds, generatedRequestLineKeys);
 
         _context.Auditlogs.Add(new AuditLog

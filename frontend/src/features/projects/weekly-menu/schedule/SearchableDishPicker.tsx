@@ -32,17 +32,20 @@ export function SearchableDishPicker({
   value,
   options,
   label,
+  placeholder,
   disabled,
   onChange,
 }: {
   value: string
   options: DishOption[]
   label: string
+  placeholder?: string
   disabled?: boolean
   onChange: (dishId: string) => void
 }) {
   const listId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
+  const positionFrameRef = useRef<number | null>(null)
   const selected = options.find((dish) => dish.id === value)
   const [open, setOpen] = useState(false)
   const [popupStyle, setPopupStyle] = useState({ left: 0, top: 0, width: 0 })
@@ -78,12 +81,23 @@ export function SearchableDishPicker({
       }
       setPopupStyle({ left, top: rect.bottom + 4, width: popupWidth })
     }
+    const schedulePopupPlacement = () => {
+      if (positionFrameRef.current !== null) return
+      positionFrameRef.current = window.requestAnimationFrame(() => {
+        positionFrameRef.current = null
+        placePopup()
+      })
+    }
     placePopup()
-    window.addEventListener('resize', placePopup)
-    window.addEventListener('scroll', placePopup, true)
+    window.addEventListener('resize', schedulePopupPlacement)
+    window.addEventListener('scroll', schedulePopupPlacement, { capture: true, passive: true })
     return () => {
-      window.removeEventListener('resize', placePopup)
-      window.removeEventListener('scroll', placePopup, true)
+      window.removeEventListener('resize', schedulePopupPlacement)
+      window.removeEventListener('scroll', schedulePopupPlacement, true)
+      if (positionFrameRef.current !== null) {
+        window.cancelAnimationFrame(positionFrameRef.current)
+        positionFrameRef.current = null
+      }
     }
   }, [open])
 
@@ -104,7 +118,7 @@ export function SearchableDishPicker({
           disabled={disabled}
           value={open ? query : (selected?.name ?? '')}
           title={selected?.name ?? ''}
-          placeholder={disabled ? 'Chưa có món phù hợp' : 'Tìm món ăn'}
+          placeholder={disabled ? 'Chưa có món phù hợp' : (placeholder || 'Tìm món ăn')}
           className="h-9 w-full rounded-sm border border-slate-300 bg-white pl-8 pr-2 text-xs text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50"
           onFocus={() => { setQuery(''); setActiveIndex(0); setOpen(true) }}
           onChange={(event) => { setQuery(event.target.value); setActiveIndex(0); setOpen(true) }}

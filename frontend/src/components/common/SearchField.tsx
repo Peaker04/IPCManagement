@@ -26,11 +26,11 @@ export function SearchField({ label, description, width = 'standard', hideLabel 
   return (
     <label htmlFor={inputId} className={cn('ipc-search-field', widthClasses[width], className)}>
       <span className={hideLabel ? 'sr-only' : 'ipc-search-field__label'}>{label}</span>
-      {description ? <span id={descriptionId} className="ipc-search-field__description">{description}</span> : null}
       <span className="ipc-search-field__control">
         <Search aria-hidden="true" className="ipc-search-field__icon" />
         <Input {...props} id={inputId} type="search" aria-label={props['aria-label'] ?? label} aria-describedby={props['aria-describedby'] ?? descriptionId} className={cn('ipc-search-field__input', inputClassName)} />
       </span>
+      {description ? <span id={descriptionId} className="ipc-search-field__description">{description}</span> : null}
     </label>
   );
 }

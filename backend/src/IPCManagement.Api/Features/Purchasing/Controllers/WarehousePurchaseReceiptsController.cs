@@ -103,7 +103,7 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
         try
         {
             var result = await _purchaseReceivingService.PostAsync(receiptId, request, _currentUserService.GetUserId(User), cancellationToken);
-            return Ok(ApiResponse<WarehousePurchaseReceiptResultDto>.SuccessResult(result, "Đã POSTED phiếu nhập kho và ghi nhận tồn kho."));
+            return Ok(ApiResponse<WarehousePurchaseReceiptResultDto>.SuccessResult(result, "Đã ghi sổ phiếu nhập kho và cập nhật tồn kho."));
         }
         catch (KeyNotFoundException exception)
         {
@@ -202,7 +202,7 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
                 cancellationToken);
             return Ok(ApiResponse<ReceiptCorrectionResultDto>.SuccessResult(
                 result,
-                "Đã POSTED chứng từ correction của phiếu nhập."));
+                "Đã ghi sổ chứng từ điều chỉnh của phiếu nhập."));
         }
         catch (KeyNotFoundException exception)
         {

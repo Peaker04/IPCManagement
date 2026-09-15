@@ -109,6 +109,20 @@ const renderSection = (dataState: QueryView<unknown>, options?: WorkflowOptions)
 )
 
 describe('MaterialDemandSection — lỗi API không được hoá trang thành empty state', () => {
+  it('does not turn danger tone on a scoped aggregate into purchase entitlement', () => {
+    const workflow = buildWorkflow(readyState())
+    const line = { id: 'aggregate', projection: 'physical-handoff' as const, customerId: 'customer-a',
+      serviceDate: '2026-07-20', material: 'Gạo', required: 200, available: 0, issuedQty: 0,
+      receivedByKitchenQty: 0, remainingToIssueQty: 200, reserved: 0, unit: 'kg',
+      source: 'Khách A · 25k · 2 dòng nhu cầu', status: 'Chưa xuất', nextAction: 'Kho xử lý xuất', tone: 'danger' as const }
+    workflow.presentation.aggregateLines = [line]
+    workflow.presentation.inventoryGroups = { exceptionLines: [line], sufficientLines: [] }
+    render(<MemoryRouter><ToastProvider><MaterialDemandSection workflow={workflow} scheduleWorkflow={scheduleWorkflow} servingFeedback={null} /></ToastProvider></MemoryRouter>)
+    expect(screen.getByText('Kho xử lý xuất')).toBeInTheDocument()
+    expect(screen.getByText('Khách A · 25k · 2 dòng nhu cầu')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Đề xuất mua' })).not.toBeInTheDocument()
+  })
+
   it('hiện cảnh báo lỗi kèm nút tải lại thay vì "Chưa tính nhu cầu nguyên liệu" khi API demand chết', () => {
     renderSection({
       phase: 'error',
@@ -140,7 +154,7 @@ describe('MaterialDemandSection — lỗi API không được hoá trang thành 
   it('hiện hướng dẫn thay vì empty state khi query chưa đủ điều kiện chạy', () => {
     renderSection({ phase: 'uninitialized', instruction: 'Chọn khách hàng để xem nhu cầu nguyên liệu.' })
 
-    expect(screen.getByText('Chọn khách hàng để xem nhu cầu nguyên liệu.')).toBeInTheDocument()
+    expect(screen.getByText('Chọn khách hàng và tuần để xem KHSX và tiến độ bàn giao nguyên liệu.')).toBeInTheDocument()
     expect(screen.queryByText(/Chưa tính nhu cầu nguyên liệu/)).toBeNull()
   })
 

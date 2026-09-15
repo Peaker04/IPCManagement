@@ -88,4 +88,60 @@ describe('shared dialog contract', () => {
     expect(document.body.style.overflow).not.toBe('hidden')
     unmount()
   })
+
+  it('DIALOG-06 handles nested modal stacking with proper depth, inert isolation, and scoped Escape', async () => {
+    const user = userEvent.setup()
+    function NestedFixture() {
+      const [dialog1Open, setDialog1Open] = useState(false)
+      const [dialog2Open, setDialog2Open] = useState(false)
+      return (
+        <div>
+          <button onClick={() => setDialog1Open(true)}>Open Modal 1</button>
+          <Dialog open={dialog1Open} onOpenChange={setDialog1Open}>
+            <DialogContent>
+              <DialogTitle>Modal Lớp 1</DialogTitle>
+              <button onClick={() => setDialog2Open(true)}>Open Modal 2</button>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={dialog2Open} onOpenChange={setDialog2Open}>
+            <DialogContent>
+              <DialogTitle>Modal Lớp 2</DialogTitle>
+              <button onClick={() => setDialog2Open(false)}>Close Modal 2</button>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )
+    }
+
+    render(<NestedFixture />)
+    await user.click(screen.getByRole('button', { name: 'Open Modal 1' }))
+    const modal1 = await screen.findByRole('dialog', { name: 'Modal Lớp 1' })
+    expect(modal1).toHaveAttribute('data-depth', '1')
+    expect(modal1.closest('[data-ipc-dialog-portal="true"]')).not.toHaveAttribute('inert')
+
+    // Open nested modal
+    await user.click(screen.getByRole('button', { name: 'Open Modal 2' }))
+    const modal2 = await screen.findByRole('dialog', { name: 'Modal Lớp 2' })
+    expect(modal2).toHaveAttribute('data-depth', '2')
+
+    // Modal 1 portal must be inert and marked as under
+    const modal1Portal = modal1.closest('[data-ipc-dialog-portal="true"]')
+    expect(modal1Portal).toHaveAttribute('inert')
+    expect(modal1Portal).toHaveAttribute('data-ipc-dialog-under', 'true')
+
+    // Modal 2 portal must NOT be inert
+    const modal2Portal = modal2.closest('[data-ipc-dialog-portal="true"]')
+    expect(modal2Portal).not.toHaveAttribute('inert')
+
+    // First Escape closes ONLY Modal 2
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Modal Lớp 2' })).not.toBeInTheDocument())
+    expect(screen.getByRole('dialog', { name: 'Modal Lớp 1' })).toBeInTheDocument()
+    expect(modal1Portal).not.toHaveAttribute('inert')
+    expect(modal1Portal).not.toHaveAttribute('data-ipc-dialog-under')
+
+    // Second Escape closes Modal 1
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Modal Lớp 1' })).not.toBeInTheDocument())
+  })
 })

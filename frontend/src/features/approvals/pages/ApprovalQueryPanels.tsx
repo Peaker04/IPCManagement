@@ -17,7 +17,6 @@ import type {
   PurchaseRequestResult,
 } from "@/api/workflowApiTypes";
 import type { QueryView } from "@/lib/queryView";
-import { formatWorkflowStatus } from "@/lib/workflowConfig";
 import type { ApprovalRecord, WorkflowDocument } from "@/types/workflow";
 import { Button } from "@/components/ui/button";
 
@@ -350,17 +349,7 @@ export function PurchaseRequestHistoryState({
                 <span className="font-semibold text-slate-800 text-sm">
                   {purchaseRequest.purchaseRequestCode}
                 </span>
-                <StatusBadge
-                  variant={
-                    purchaseRequest.status === "APPROVED"
-                      ? "success"
-                      : purchaseRequest.status === "REJECTED"
-                        ? "danger"
-                        : "warning"
-                  }
-                >
-                  {formatWorkflowStatus(purchaseRequest.status)}
-                </StatusBadge>
+                <StatusBadge status={purchaseRequest.status} domain="purchase" />
               </div>
               <div className="flex items-center justify-between text-xs text-slate-700">
                 <span>

@@ -14,10 +14,10 @@ const { dialogProps } = vi.hoisted(() => ({
 }))
 
 const batch = {
-  batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
+  batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z', weekStartDate: '2026-09-21', weekEndDate: '2026-09-26',
   lines: [
-    { batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 13.3344, issuedQuantity: 13.3344 as number | null, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1 },
-    { batchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Đậu xanh', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 2.1234567, issuedQuantity: null, frozenTolerance: 0, triggers: [], status: 'PENDING', version: 1 },
+    { batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 13.3344, issuedQuantity: 13.3344 as number | null, frozenTolerance: 0, triggers: [], status: 'MATCHED', version: 1, issueNotes: [] as string[] },
+    { batchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Đậu xanh', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 2.1234567, issuedQuantity: null, frozenTolerance: 0, triggers: [], status: 'PENDING', version: 1, issueNotes: [] as string[] },
   ],
 }
 const issue = {
@@ -30,6 +30,9 @@ const batchRefetch = vi.fn()
 const historyRefetch = vi.fn()
 const batchQueryState = { phase: 'ready' as 'ready' | 'loading' | 'error' }
 const historyQueryState = { phase: 'ready' as 'ready' | 'loading' | 'error' }
+const dishesRefetch = vi.fn()
+const dishesState = { phase: 'empty' as 'empty' | 'loading' | 'error' | 'stale-error' | 'ready' | 'previous-batch' }
+const dish = { dishId: 'dish-1', dishCode: 'D1', dishName: 'Cơm', materials: [{ batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', canonicalUnitId: 'unit-1', grossQtyPerServing: 0.1 }] }
 const createMutationState = { loading: false }
 const roleState = { allowed: true }
 const ready = <T,>(data: T, refetch = vi.fn()) => ({ data, currentData: data, isLoading: false, isFetching: false, isError: false, refetch })
@@ -60,6 +63,14 @@ vi.mock('@/api/reconciliationApi', () => ({
       ? { data: undefined, currentData: undefined, isLoading: false, isFetching: false, isError: true, refetch: historyRefetch }
       : ready({ items: [issue], totalCount: 1 }, historyRefetch),
   useCreateReconciliationIssueMutation: () => [createIssue, { isLoading: createMutationState.loading }],
+  useListReconciliationBatchDishesQuery: () => ({
+    ...ready(dishesState.phase === 'empty' ? [] : [dish], dishesRefetch),
+    currentData: ['empty', 'ready', 'stale-error'].includes(dishesState.phase) ? (dishesState.phase === 'empty' ? [] : [dish]) : undefined,
+    isLoading: dishesState.phase === 'loading',
+    isFetching: ['loading', 'previous-batch'].includes(dishesState.phase),
+    isError: ['error', 'stale-error'].includes(dishesState.phase),
+    error: { data: { message: 'Nguyên liệu BOM hiện hành không khớp dòng đã đóng băng.' } },
+  }),
 }))
 vi.mock('@/components/reconciliation/ReconciliationIssueDetailDialog', () => ({
   ReconciliationIssueDetailDialog: (props: typeof dialogProps[number]) => {
@@ -85,6 +96,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     vi.clearAllMocks()
     batchQueryState.phase = 'ready'
     historyQueryState.phase = 'ready'
+    dishesState.phase = 'empty'
     createMutationState.loading = false
     roleState.allowed = true
     batch.status = 'IN_PROGRESS'
@@ -93,6 +105,13 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     batch.lines[1].issuedQuantity = null
     createIssue.mockReturnValue({ unwrap: () => Promise.resolve({ issueId: 'created-1' }) })
     batchRefetch.mockResolvedValue({ data: batch })
+  })
+
+  it('uses the same business-week label inside and outside the batch selector', () => {
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+    expect(screen.getByRole('combobox', { name: 'Chọn lô cần xuất' })).toHaveTextContent('Tuần 21/09/2026 · Đang đối chiếu')
+    fireEvent.click(screen.getByRole('combobox', { name: 'Chọn lô cần xuất' }))
+    expect(screen.getByRole('option', { name: 'Tuần 21/09/2026 · Đang đối chiếu' })).toBeInTheDocument()
   })
 
   it('renders an owned loading state instead of an empty demand table while the selected batch loads', () => {
@@ -183,6 +202,15 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     screen.getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
   })
 
+  it('renders recorded issue notes for over-issued committed lines honestly', () => {
+    batch.lines[0].issuedQuantity = 20
+    batch.lines[0].issueNotes = ['Bù hao hụt sơ chế']
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+
+    expect(screen.getByText('Đã xuất vượt')).toBeInTheDocument()
+    expect(screen.getByText('Bù hao hụt sơ chế')).toBeInTheDocument()
+  })
+
   it('hides initial and supplemental issue controls from a denied route reader', () => {
     roleState.allowed = false
     renderPage('/warehouse?view=demand&batchId=batch-1')
@@ -210,12 +238,36 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByRole('button', { name: 'Điền đủ toàn bộ' })).toBeDisabled()
   })
 
+  it('defaults initial issued quantities to 0 with neutral status and disables confirmation until filled', () => {
+    batch.status = 'TRANSFERRED'
+    batch.lines[0].issuedQuantity = null
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+
+    const gạoInput = screen.getByRole('spinbutton', { name: 'Thực xuất Gạo' })
+    const đậuXanhInput = screen.getByRole('spinbutton', { name: 'Thực xuất Đậu xanh' })
+    expect(gạoInput).toHaveValue(0)
+    expect(đậuXanhInput).toHaveValue(0)
+
+    const unenteredBadges = screen.getAllByText('Chưa nhập')
+    expect(unenteredBadges).toHaveLength(2)
+
+    const confirmButton = screen.getByRole('button', { name: 'Xác nhận và tạo phiếu xuất (2)' })
+    expect(confirmButton).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }))
+
+    expect(gạoInput).toHaveValue(13.3344)
+    expect(đậuXanhInput).toHaveValue(2.1234567)
+    expect(confirmButton).not.toBeDisabled()
+  })
+
   it('creates the initial issue with exact batch lineage and moves to history after refetch', async () => {
     batch.status = 'TRANSFERRED'
     batch.version = 7
     batch.lines[0].issuedQuantity = null
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
+    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }))
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận và tạo phiếu xuất (2)' }))
 
     await waitFor(() => expect(createIssue).toHaveBeenCalledWith(expect.objectContaining({
@@ -239,11 +291,66 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     createIssue.mockReturnValue({ unwrap: () => Promise.reject({ data: { message: 'Phiên bản lô đã thay đổi.' } }) })
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
+    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }))
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận và tạo phiếu xuất (2)' }))
 
     expect(await screen.findByText('Phiên bản lô đã thay đổi.')).toBeInTheDocument()
     expect(batchRefetch).not.toHaveBeenCalled()
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=demand&batchId=batch-1')
+  })
+
+  it.each(['error', 'stale-error'] as const)('explains %s dish projection and permits only frozen-ingredient recovery', (phase) => {
+    dishesState.phase = phase
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('Nguyên liệu BOM hiện hành không khớp dòng đã đóng băng.')
+    expect(screen.getByText(/Vẫn có thể chọn trực tiếp nguyên liệu đã đóng băng/)).toBeInTheDocument()
+    expect(screen.queryByText('Món ăn phát sinh')).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Chọn nguyên liệu xuất thêm' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xác nhận xuất thêm' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }))
+    expect(dishesRefetch).toHaveBeenCalledOnce()
+    expect(createIssue).not.toHaveBeenCalled()
+  })
+
+  it.each(['loading', 'previous-batch'] as const)('does not calculate from %s dish data', (phase) => {
+    dishesState.phase = phase
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
+    expect(screen.getByText(/Đang tải định lượng món/)).toHaveAttribute('role', 'status')
+    expect(screen.queryByText('Món ăn phát sinh')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Lô chưa có định lượng món để tính xuất thêm/)).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Chọn nguyên liệu xuất thêm' })).toBeInTheDocument()
+  })
+
+  it('keeps explicit frozen-ingredient issuing usable when dish projection fails', async () => {
+    dishesState.phase = 'stale-error'
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Chọn nguyên liệu xuất thêm' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Gạo' }))
+    fireEvent.change(screen.getByLabelText('Số lượng xuất thêm'), { target: { value: '1.5' } })
+    fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Xuất theo nguyên liệu đã đóng băng' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất thêm' }))
+    await waitFor(() => expect(createIssue).toHaveBeenCalledWith(expect.objectContaining({
+      lines: [expect.objectContaining({ ingredientId: 'ingredient-1', reconciliationBatchLineId: 'batch-line-1', issuedQty: 1.5 })],
+    })))
+  })
+
+  it('uses manual supplementation when the current batch has no authoritative serving-date change', () => {
+    dishesState.phase = 'ready'
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
+    expect(screen.getByRole('button', { name: 'Bổ sung thủ công' })).toBeInTheDocument()
+    expect(screen.queryByText('Món ăn phát sinh')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Thử tải lại' })).not.toBeInTheDocument()
+  })
+
+  it('distinguishes successful empty dish projection from an error', () => {
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
+    expect(screen.getByText(/Lô chưa có định lượng món để tính xuất thêm/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Thử tải lại' })).not.toBeInTheDocument()
   })
 
   it('presents supplemental issue as a secondary consequence-aware action', () => {
@@ -296,11 +403,11 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(batchRefetch).not.toHaveBeenCalled()
   })
 
-  it('navigates only from the drawer explicit open-batch action with exact batch and issue context', () => {
+  it('navigates only from the drawer explicit open-batch action with exact batch context', () => {
     renderPage()
     fireEvent.click(screen.getByRole('button', { name: 'Xem giao dịch' }))
     fireEvent.click(screen.getByRole('button', { name: 'Mở lô đối chiếu' }))
 
-    expect(screen.getByTestId('location')).toHaveTextContent('/reconciliation?batchId=batch-1&issueId=issue-1')
+    expect(screen.getByTestId('location')).toHaveTextContent('/reconciliation?batchId=batch-1')
   })
 })

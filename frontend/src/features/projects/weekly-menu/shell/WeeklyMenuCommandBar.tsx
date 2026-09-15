@@ -1,7 +1,6 @@
 import { Edit, Send, Upload } from 'lucide-react'
-import { CommandBar, FieldRow, StatusBadge } from '@/components/common'
+import { CommandBar, FieldRow } from '@/components/common'
 import { Input } from '@/components/ui/input'
-import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import type { CoordinationCustomerOption } from '@/api/coordinationApi'
 
 type CommandProps = {
@@ -109,27 +108,3 @@ export const WeeklyMenuCommandBar = ({
   </CommandBar>
   )
 }
-
-export const WeeklyMenuPricingContext = ({
-  menuPrice,
-  menuPriceSource,
-}: {
-  menuPrice: number
-  menuPriceSource: string
-}) => (
-
-  <section className="ipc-weekly-pricing-context" aria-label="Cấu hình định lượng đang áp dụng">
-    <div className="ipc-weekly-pricing-primary">
-      <span>Định mức đang áp dụng</span>
-      <strong>{formatBomTierLabel(menuPrice)}</strong>
-      {menuPrice > 0 ? (
-        <StatusBadge variant="success">Đang dùng</StatusBadge>
-      ) : (
-        <StatusBadge variant="warning">Chưa cấu hình</StatusBadge>
-      )}
-    </div>
-    <dl className="ipc-weekly-pricing-meta">
-      <div><dt>Nguồn</dt><dd>{menuPriceSource}</dd></div>
-    </dl>
-  </section>
-)

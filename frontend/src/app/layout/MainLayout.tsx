@@ -14,7 +14,7 @@ import { uiCopy } from '@/lib/uiCopy';
 import { readNavigationPreferences, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
 import { useSystemOperation } from '@/lib/systemOperationContext';
 import { SystemOperationProvider } from '@/app/providers/SystemOperationProvider';
-import { isRouteEligible } from '@/lib/systemOperationEligibility';
+import { isRouteVisibleToPermissions } from '@/lib/systemOperationEligibility';
 import {
   ChefHat,
   LayoutDashboard,
@@ -22,7 +22,6 @@ import {
   TrendingUp,
   LogOut,
   Utensils,
-  Clock3,
   ClipboardCheck,
   ShoppingCart,
   Warehouse,
@@ -41,18 +40,6 @@ const preloadNavigationTarget = (path: string, mode: 'DEFAULT' | 'MATERIAL_RECON
   void preloadRouteData(path, mode);
 };
 
-function HeaderShiftContext({ isCoordination, owner }: { isCoordination: boolean; owner: string }) {
-  const coordinationShift = useAppSelector((state) => state.coordination.currentShift);
-  const activeShift = isCoordination ? coordinationShift : 'Ca trưa';
-
-  return (
-    <div className="ipc-header-chip">
-      <Clock3 size={16} />
-      <span>{activeShift} · {owner}</span>
-    </div>
-  );
-}
-
 const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenceKey: NavigationPreferenceKey; requiredPermissions?: string[]; reconciliationOnly?: boolean }> = [
   { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} />, preferenceKey: 'dashboard' },
   { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, preferenceKey: 'weekly-menu', requiredPermissions: ['coordination.read'] },
@@ -60,7 +47,7 @@ const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenc
   { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, preferenceKey: 'approvals', requiredPermissions: ['purchase.request.approve'] },
   { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, preferenceKey: 'purchasing', requiredPermissions: ['purchase.read'] },
   { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'] },
-  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['report.read'], reconciliationOnly: true },
+  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'reconciliation', requiredPermissions: ['report.read'], reconciliationOnly: true },
   { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, preferenceKey: 'chef-dashboard', requiredPermissions: ['production.read'] },
   { path: ROUTES.REPORTS, label: 'Báo cáo vận hành', icon: <TrendingUp size={18} />, preferenceKey: 'reports', requiredPermissions: ['report.read'] },
   { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, preferenceKey: 'admin-data', requiredPermissions: ['*'] },
@@ -84,11 +71,14 @@ const MainLayoutContent = () => {
   const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
   const visibleMenuItems = useMemo(() => menuItems.filter((item) => {
     if (item.reconciliationOnly && systemOperation?.mode !== 'MATERIAL_RECONCILIATION') return false;
-    if (systemOperation && !isRouteEligible(systemOperation.mode, item.path)) return false;
     if (!navigationPreferences[item.preferenceKey]) return false;
-    if (!item.requiredPermissions) return true;
-    if (isAdmin) return true;
-    return item.requiredPermissions.some((perm) => currentUser?.permissions?.includes(perm));
+    return isRouteVisibleToPermissions(
+      systemOperation?.mode ?? 'DEFAULT',
+      item.path,
+      item.requiredPermissions,
+      currentUser?.permissions,
+      isAdmin,
+    );
   }), [currentUser?.permissions, isAdmin, navigationPreferences, systemOperation]);
 
   useEffect(() => {
@@ -108,23 +98,23 @@ const MainLayoutContent = () => {
       case ROUTES.DASHBOARD:
         return { title: 'Bàn điều hành hôm nay', workflow: 'Tổng quan vận hành', state: 'Theo dõi điểm tắc' };
       case ROUTES.WEEKLY_MENU:
-        return { title: 'Kế hoạch sản xuất và định lượng', workflow: workflowContext.lane.label, state: 'Theo dõi kế hoạch tuần' };
+        return { title: 'Thực đơn tuần', workflow: workflowContext.lane.label, state: 'Theo dõi kế hoạch tuần' };
       case ROUTES.MEAL_ORDERS:
-        return { title: 'Điều phối suất ăn', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Điều phối suất ăn', workflow: workflowContext.lane.label, state: 'Theo dõi chốt suất' };
       case ROUTES.CHEF_DASHBOARD:
-        return { title: 'Bếp sản xuất', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Bếp sản xuất', workflow: workflowContext.lane.label, state: 'Theo dõi chế biến' };
       case ROUTES.REPORTS:
         return { title: 'Báo cáo vận hành', workflow: 'Báo cáo vận hành', state: 'Theo dõi vận hành' };
       case ROUTES.APPROVALS:
-        return { title: 'Duyệt vận hành', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Duyệt vận hành', workflow: workflowContext.lane.label, state: 'Theo dõi phê duyệt' };
       case ROUTES.PURCHASING:
-        return { title: 'Thu mua', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Thu mua', workflow: workflowContext.lane.label, state: 'Theo dõi tiến độ mua' };
       case ROUTES.WAREHOUSE:
-        return { title: 'Kho nguyên liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Kho nguyên liệu', workflow: workflowContext.lane.label, state: 'Theo dõi xuất nhập kho' };
       case ROUTES.RECONCILIATION:
         return { title: 'Đối chiếu nguyên liệu', workflow: 'Đối chiếu', state: 'Theo dõi sai lệch' };
       case ROUTES.ADMIN_DATA:
-        return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: 'Theo dõi dữ liệu nguồn' };
       case ROUTES.APPROVAL_RULES:
         return { title: 'Thiết lập quy trình duyệt', workflow: 'Phê duyệt', state: 'Cấu hình hệ thống' };
       case ROUTES.ADVANCED_SETTINGS:
@@ -136,14 +126,28 @@ const MainLayoutContent = () => {
     }
   })();
 
-  const serviceDate = serviceDateFormatter.format(new Date());
+  const scopedServiceDate = location.pathname === ROUTES.WEEKLY_MENU
+    ? new URLSearchParams(location.search).get('weekStartDate')
+    : null;
+  const serviceDate = scopedServiceDate
+    ? serviceDateFormatter.format(new Date(`${scopedServiceDate}T00:00:00`))
+    : serviceDateFormatter.format(new Date());
   const showHeaderState = location.pathname !== ROUTES.MEAL_ORDERS;
   const statusTone = toneFromStatus(pageContext.state);
-  const refreshWeeklyMenu = () => dispatch(apiSlice.util.invalidateTags([
-    workflowCacheTags.ingredientDemand,
-    workflowCacheTags.documents,
-    workflowCacheTags.productionPlans,
-  ]));
+  const refreshWeeklyMenu = () => {
+    if (systemOperation?.mode === 'MATERIAL_RECONCILIATION') {
+      dispatch(apiSlice.util.invalidateTags([
+        'ReconciliationBatches' as unknown as (typeof workflowCacheTags)[keyof typeof workflowCacheTags],
+        'ReconciliationIssueHistory' as unknown as (typeof workflowCacheTags)[keyof typeof workflowCacheTags],
+      ]));
+    } else {
+      dispatch(apiSlice.util.invalidateTags([
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.documents,
+        workflowCacheTags.productionPlans,
+      ]));
+    }
+  };
 
   return (
     <div className="ipc-app-shell ipc-redesign-shell">
@@ -261,10 +265,6 @@ const MainLayoutContent = () => {
               <span>{serviceDate}</span>
             </div>
             {systemOperation && <div className="ipc-header-chip" aria-label="Chế độ vận hành"><SlidersHorizontal size={16} /><span>{systemOperation.label}</span></div>}
-            <HeaderShiftContext
-              isCoordination={location.pathname === ROUTES.MEAL_ORDERS}
-              owner={workflowContext.lane.owner}
-            />
             {showHeaderState && (
               location.pathname === ROUTES.WEEKLY_MENU ? (
                 <button type="button" className={`ipc-status-pill is-${statusTone}`} onClick={refreshWeeklyMenu} title="Làm mới dữ liệu kế hoạch tuần">

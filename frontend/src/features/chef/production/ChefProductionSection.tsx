@@ -1,6 +1,5 @@
-import { ClipboardList, ShieldCheck } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { SectionPanel, StatusBadge, TableViewport } from '@/components/common';
-import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { getChefReadiness } from '../chefReadiness';
 import { formatShiftName } from '@/lib/workflowConfig';
@@ -8,12 +7,10 @@ import type { DailyPlanLine } from './chefProductionModel';
 
 type Props = {
   lines: DailyPlanLine[];
-  isSending: boolean;
   isLoading: boolean;
   isError: boolean;
   totalPlans: number;
   sentPlans: number;
-  onReceivePlan: () => Promise<void>;
 };
 
 const bomScopeLabels: Record<string, string> = {
@@ -24,9 +21,8 @@ const bomScopeLabels: Record<string, string> = {
 
 const formatBomScope = (scope?: string | null) => (scope ? (bomScopeLabels[scope.toLowerCase()] ?? 'Theo cấu hình') : 'Theo cấu hình');
 
-export function ChefProductionSection({ lines, isSending, isLoading, isError, totalPlans, sentPlans, onReceivePlan }: Props) {
+export function ChefProductionSection({ lines, isLoading, isError, totalPlans, sentPlans }: Props) {
   const isComplete = totalPlans > 0 && sentPlans >= totalPlans;
-  const canReceivePlan = !isLoading && !isError && totalPlans > 0 && !isComplete;
 
   return (
     <SectionPanel
@@ -36,11 +32,12 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
       badge={
         isComplete ? (
           <StatusBadge variant="success">Kế hoạch đã đồng bộ</StatusBadge>
+        ) : isLoading ? (
+          <StatusBadge variant="neutral">Đang tải</StatusBadge>
+        ) : isError ? (
+          <StatusBadge variant="danger">Không tải được</StatusBadge>
         ) : (
-          <Button size="sm" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
-            <ShieldCheck size={15} aria-hidden="true" />
-            {isSending ? 'Đang nhận...' : 'Nhận kế hoạch'}
-          </Button>
+          <StatusBadge variant="warning">Chờ Điều phối gửi</StatusBadge>
         )
       }
     >

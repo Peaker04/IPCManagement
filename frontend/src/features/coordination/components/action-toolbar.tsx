@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle, FileDown, Lock, Unlock } from 'lucide-react'
+import { AlertTriangle, CheckCircle, FileDown, Lock, Send, Unlock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert } from '@/components/common'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -9,11 +9,12 @@ import { useAppDispatch } from '@/lib/reduxHooks'
 import { useCoordinationSelector, useCurrentShift, useOrders } from '../coordinationHooks'
 import { addAuditLog, markOrdersLocked } from '../coordinationSlice'
 import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation, useSignoffCoordinationScopeMutation, useUnlockCoordinationScopeMutation } from '@/api/coordinationApi'
-import { toDisplayShift } from '../types'
+import { useSendDailyProductionPlanToKitchenMutation } from '@/api/coordinationApi'
+import { toApiShiftName, toDisplayShift } from '../types'
 import type { ShiftType } from '../types'
 import { ActionGuard } from '@/components/common/ActionGuard'
 
-type ConfirmationAction = 'lock' | 'export' | 'signoff' | 'unlock' | null
+type ConfirmationAction = 'lock' | 'send' | 'export' | 'signoff' | 'unlock' | null
 
 type ActionErrorFeedback = {
   title: string
@@ -117,6 +118,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
   const [exportCoordinationOrders, { isLoading: isExporting }] = useExportCoordinationOrdersMutation()
   const [signoffCoordinationScope, { isLoading: isSigningOff }] = useSignoffCoordinationScopeMutation()
   const [unlockCoordinationScope, { isLoading: isUnlocking }] = useUnlockCoordinationScopeMutation()
+  const [sendDailyPlan, { isLoading: isSendingPlan }] = useSendDailyProductionPlanToKitchenMutation()
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null)
   const [confirmationError, setConfirmationError] = useState<ActionErrorFeedback | null>(null)
   const [isExecutingAction, setIsExecutingAction] = useState(false)
@@ -139,12 +141,27 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
   const isMixed = normalizedStatus === 'MIXED'
   const isSyncing = normalizedStatus === 'SYNCING'
   const hasActionableData = hasPlans && orders.length > 0
-  const isBusy = isExecutingAction || isLocking || isExporting || isSigningOff || isUnlocking
+  const isBusy = isExecutingAction || isLocking || isExporting || isSigningOff || isUnlocking || isSendingPlan
   const canLock = hasActionableData && !isConfirmed && !isTerminal && !isMixed && !isSyncing
+  const canSendPlan = hasActionableData && isConfirmed && !isTerminal && !isMixed && !isSyncing
   const canSignoff = hasActionableData && isConfirmed && !isTerminal && !isMixed && !isSyncing
   const canUnlock = canSignoff
   const canExport = canSignoff
-  const hasStateActions = canLock || canSignoff || canUnlock || canExport
+  const hasStateActions = canLock || canSendPlan || canSignoff || canUnlock || canExport
+
+  const handleSendPlan = async () => {
+    try {
+      const result = await sendDailyPlan({
+        serviceDate: currentServiceDate,
+        shiftName: toApiShiftName(currentShift),
+        reason: `Điều phối gửi kế hoạch sản xuất ngày ${currentServiceDate}, ${currentShift}.`,
+      }).unwrap()
+      setConfirmationAction(null)
+      setFeedback({ title: 'Đã gửi kế hoạch cho Bếp', message: `${result.sentPlans}/${result.totalPlans} kế hoạch trong ngày/ca đã được bàn giao.`, variant: 'info' })
+    } catch (error) {
+      setConfirmationError({ title: 'Chưa gửi được kế hoạch', message: getActionErrorMessage(error, 'Giữ nguyên ngày/ca và thử lại.') })
+    }
+  }
 
   const closeConfirmationDialog = () => {
     if (!isBusy) {
@@ -348,6 +365,14 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
       }
     }
 
+    if (confirmationAction === 'send') {
+      return {
+        title: 'Gửi kế hoạch cho Bếp?',
+        description: `Tất cả kế hoạch thuộc ngày ${currentServiceDate} và ${currentShift} sẽ được đánh dấu đã gửi Bếp.`,
+        action: 'Gửi kế hoạch',
+      }
+    }
+
     if (confirmationAction === 'unlock') {
       return {
         title: 'Mở khóa ca này?',
@@ -371,6 +396,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
     setConfirmationError(null)
     try {
       if (confirmationAction === 'lock') return await handleLock()
+      if (confirmationAction === 'send') return await handleSendPlan()
       if (confirmationAction === 'signoff') return await handleSignoff()
       if (confirmationAction === 'unlock') return await handleUnlock()
       return await handleExportExcel()
@@ -396,6 +422,19 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
             >
               <Lock className="size-3.5" />
               {isLocking ? 'Đang chốt...' : 'Chốt đơn cả ngày'}
+            </Button>
+          </ActionGuard>}
+
+          {canSendPlan && <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
+            <Button
+              onClick={() => openConfirmationDialog('send')}
+              disabled={isSendingPlan}
+              variant="default"
+              size="sm"
+              className="gap-1.5 font-semibold whitespace-nowrap"
+            >
+              <Send className="size-3.5" />
+              {isSendingPlan ? 'Đang gửi...' : 'Gửi kế hoạch cho Bếp'}
             </Button>
           </ActionGuard>}
 

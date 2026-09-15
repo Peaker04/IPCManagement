@@ -95,7 +95,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   AdvancedDisplaySettings: {
-    'frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-34': [
+    'frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-35': [
       'defaultNavigationPreferences,',
       'type PageTabGroupId,',
     ],
@@ -108,7 +108,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
   },
   Dashboard: {
     'frontend/src/features/dashboard/pages/DefaultDashboardPage.tsx:61-66': [
-      'useWorkflowOverview();',
+      'useWorkflowOverview({ skipPrice: !canReadPurchaseReports });',
       'useGetOperationalKpisQuery();',
     ],
   },
@@ -123,13 +123,13 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'export function buildChefProductionPlan({',
       '}: BuildChefProductionPlanOptions): ProductionPlan {',
     ],
-    'frontend/src/features/chef/production/ChefProductionSection.tsx:27-50': [
-      'const canReceivePlan =',
-      'onClick={() => void onReceivePlan()}',
+    'frontend/src/features/chef/production/ChefProductionSection.tsx:22-43': [
+      'const isComplete =',
+      'Chờ Điều phối gửi',
     ],
   },
   MaterialReconciliation: {
-    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-160': [
+    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-360': [
       'export default function ReconciliationPage()',
       '<ReconciliationComparisonTable lines={batch.lines}'
     ],
@@ -572,9 +572,9 @@ const componentLocalDebt = [
   {
     id: 'ProductionPlanOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/chef/production/ChefProductionSection.tsx:27-50',
+    source: 'frontend/src/features/chef/production/ChefProductionSection.tsx:22-43',
     sourceText: chefProductionSectionSource,
-    fragment: 'const canReceivePlan =',
+    fragment: 'const isComplete =',
   },
   {
     id: 'WarehousePurchaseReceiptOperation',

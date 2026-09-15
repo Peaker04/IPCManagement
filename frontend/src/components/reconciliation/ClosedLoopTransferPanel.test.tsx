@@ -141,6 +141,13 @@ it('offers the stock workflow action only for the exact menu source', () => {
   expect(screen.queryByRole('link', { name: /mở danh sách cần xuất/i })).not.toBeInTheDocument()
 })
 
+it('points post-issue serving changes to the exact supplemental warehouse flow', () => {
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-progress" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
+
+  expect(screen.getByText('Số suất thay đổi sau khi đã khóa định lượng')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Mở phiếu xuất bổ sung' })).toHaveAttribute('href', '/warehouse?view=demand&batchId=batch-progress')
+})
+
 it.each([
   ['menu-progress', 'Mở đối chiếu', '/reconciliation?batchId=batch-progress'],
   ['menu-completed', 'Mở kết quả', '/reconciliation?batchId=batch-completed'],

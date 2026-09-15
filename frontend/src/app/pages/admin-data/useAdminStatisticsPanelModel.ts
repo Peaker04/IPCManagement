@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useGetOperationalKpisQuery } from '@/api/dashboardApi';
 import {
   useGetIngredientDemandAggregatePageQuery,
@@ -9,7 +8,6 @@ import type { AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 
 export function useAdminStatisticsPanelModel(activeView: AdminView, operationalDate: string) {
-  const [priceWarningPage, setPriceWarningPage] = useState(1);
   const operationalKpisQuery = useGetOperationalKpisQuery(undefined, { skip: activeView !== 'statistics' });
   const operationalKpisView = toAdminView(operationalKpisQuery, 'KPI vận hành');
   const operationalKpis = operationalKpisView.phase === 'ready' ? operationalKpisView.data : undefined;
@@ -28,16 +26,15 @@ export function useAdminStatisticsPanelModel(activeView: AdminView, operationalD
   const purchasePlanView = toAdminView(purchasePlanQuery, 'thống kê kế hoạch thu mua');
   const purchasePlanPage = purchasePlanView.phase === 'ready' ? purchasePlanView.data : undefined;
   const priceVarianceQuery = useGetPriceVariancePageQuery({
-    pageNumber: priceWarningPage,
-    pageSize: 8,
+    pageNumber: 1,
+    pageSize: 1,
     warningOnly: true,
     dateFrom: operationalDate,
     dateTo: operationalDate,
   }, { skip: activeView !== 'statistics' });
   const priceVarianceView = toAdminView(priceVarianceQuery, 'thống kê cảnh báo giá');
   const priceVariancePage = priceVarianceView.phase === 'ready' ? priceVarianceView.data : undefined;
-  const shortageCount = ingredientDemandPage?.shortageCount ?? 0;
-  const priceWarnings = priceVariancePage?.items ?? [];
+  const shortageCount = ingredientDemandPage?.remainingToIssueCount ?? 0;
   const priceWarningCount = priceVariancePage?.totalCount ?? 0;
   const totalPurchaseQty = purchasePlanPage?.totalShortageQty ?? 0;
   const totalIssuedQty = operationalKpis?.totalKitchenIssuedQty ?? 0;
@@ -52,11 +49,7 @@ export function useAdminStatisticsPanelModel(activeView: AdminView, operationalD
       purchasePlan: purchasePlanView,
     },
     operationalKpis,
-    priceVariancePage,
     priceWarningCount,
-    priceWarningPage,
-    priceWarnings,
-    setPriceWarningPage,
     shortageCount,
     totalIssuedQty,
     totalPurchaseQty,

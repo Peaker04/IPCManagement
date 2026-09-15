@@ -26,7 +26,7 @@ export function useAdminInventoryPanelModel(activeView: AdminView) {
   const stockMovementView = toAdminView(stockMovementResult, 'bút toán điều chỉnh kho');
   const currentStockQuery = useGetCurrentStockPageQuery(
     { pageNumber: currentStockPage, pageSize: 8 },
-    { skip: activeView !== 'inventory' && activeView !== 'statistics' },
+    { skip: activeView !== 'inventory' },
   );
   const currentStockView = toAdminView(currentStockQuery, 'tồn kho hiện tại');
   const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;

@@ -51,7 +51,7 @@ export function useReportsDemandPurchaseViewModel({ activeView, initialPage, rep
     totalEstimatedAmount: purchasePlanView.phase === 'ready' ? purchasePlanView.data.totalEstimatedAmount : 0,
     shortageTone: purchasePlanView.phase === 'ready' && purchasePlanView.data.totalShortageQty > 0 ? 'danger' as const : 'success' as const,
   };
-  const shortageCount = ingredientDemandView.phase === 'ready' ? ingredientDemandView.data.shortageCount : 0;
+  const shortageCount = ingredientDemandView.phase === 'ready' ? ingredientDemandView.data.remainingToIssueCount : 0;
   const setPurchaseSearch = (value: string) => {
     setPurchaseSearchState(value);
     setPurchasePage(1);
@@ -65,8 +65,10 @@ export function useReportsDemandPurchaseViewModel({ activeView, initialPage, rep
         ['Nguyên liệu', (row) => row.material],
         ['Nguồn', (row) => row.source],
         ['Cần', (row) => row.required],
-        ['Tồn hiện có', (row) => row.available],
-        ['Thiếu/mua', (row) => Math.max(row.required - row.available, 0)],
+        ['Đã xuất', (row) => row.issuedQty],
+        ['Chưa xuất', (row) => row.remainingToIssueQty],
+        ['Bếp đã nhận', (row) => row.receivedByKitchenQty],
+        ['Chờ Bếp nhận', (row) => row.pendingKitchenReceiptQty],
         ['Đơn vị', (row) => row.unit],
         ['Trạng thái', (row) => formatWorkflowStatus(row.status)],
       ],

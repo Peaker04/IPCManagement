@@ -124,6 +124,7 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
   const [approveWaiver, approveWaiverState] = useApproveServiceRunVarianceWaiverMutation()
   const declarationTracks = varianceTracksForRole(user?.role)
   const isAdmin = user?.isAdminFullAccess || user?.role === 'admin'
+  const canManageServiceRun = isAdmin || user?.role === 'quanly'
   const act = async (operation: () => Promise<unknown>) => {
     try {
       setError(null)
@@ -193,11 +194,12 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
           <Button size="sm" disabled={recordState.isLoading || actual === ''} onClick={() => void act(() => record({ id: run.serviceRunId, body: { actualServings: Number(actual), reason: reason || null } }).unwrap())}>Ghi nhận</Button>
         </>}
         {run.canConfirmService && <Button size="sm" disabled={confirmState.isLoading} onClick={() => void act(() => confirm(run.serviceRunId).unwrap())}><CheckCircle2 className="size-4" />Xác nhận phục vụ</Button>}
-        {run.canResolveVariance && <Button size="sm" variant="outline" disabled={resolveVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết toán chênh lệch</Button>}
-        {run.canResolveServingVariance && <Button size="sm" variant="outline" disabled={resolveServingVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveServingVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết định chênh lệch suất</Button>}
-        {run.canWaiveServiceConfirmation && <Button size="sm" variant="outline" disabled={waiveConfirmationState.isLoading || !reason.trim()} onClick={() => void act(() => waiveConfirmation({ id: run.serviceRunId, body: { reason } }).unwrap())}>Miễn xác nhận</Button>}
-        {run.canClose && <Button size="sm" disabled={closeState.isLoading} onClick={() => void act(() => close(run.serviceRunId).unwrap())}><ShieldCheck className="size-4" />Đóng ca</Button>}
-        {run.status === 'CLOSED' && <>
+        {run.canResolveVariance && canManageServiceRun && <Button size="sm" variant="outline" disabled={resolveVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết toán chênh lệch</Button>}
+        {run.canResolveServingVariance && canManageServiceRun && <Button size="sm" variant="outline" disabled={resolveServingVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveServingVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết định chênh lệch suất</Button>}
+        {run.canWaiveServiceConfirmation && canManageServiceRun && <Button size="sm" variant="outline" disabled={waiveConfirmationState.isLoading || !reason.trim()} onClick={() => void act(() => waiveConfirmation({ id: run.serviceRunId, body: { reason } }).unwrap())}>Miễn xác nhận</Button>}
+        {run.canClose && canManageServiceRun && <Button size="sm" disabled={closeState.isLoading} onClick={() => void act(() => close(run.serviceRunId).unwrap())}><ShieldCheck className="size-4" />Đóng ca</Button>}
+        {run.canClose && !canManageServiceRun && <p className="text-xs text-slate-600">Chờ Quản lý đóng ca.</p>}
+        {run.status === 'CLOSED' && canManageServiceRun && <>
             <label className="grid gap-1 text-xs font-medium text-slate-700">Suất điều chỉnh<Input aria-label="Số suất điều chỉnh hậu kiểm" type="number" min="0" value={correctedActual} onChange={(event) => setCorrectedActual(event.target.value)} className="h-8 w-28" /></label>
             <label className="grid gap-1 text-xs font-medium text-slate-700">Lý do hậu kiểm<Input aria-label="Lý do điều chỉnh hậu kiểm" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Bắt buộc" className="h-8 w-56" /></label>
             <Button size="sm" variant="outline" disabled={createAdjustmentState.isLoading || correctedActual === '' || !reason.trim()} onClick={() => void act(() => createAdjustment({ id: run.serviceRunId, body: { correctedActualServings: Number(correctedActual), reason } }).unwrap())}>Ghi điều chỉnh hậu kiểm</Button>

@@ -111,8 +111,7 @@ Oracle bắt buộc:
    không vượt biên control, cùng tâm theo trục dự kiến và `elementFromPoint()` tại tâm phải trả về accessory
    hoặc descendant của nó. Assertion click phải chạy sau khi control chuyển sang error/focus/pressed state vì
    ring, stacking context và active transform có thể làm hỏng hit target dù trạng thái ban đầu nhìn đúng.
-7. Với form, đo cả nhóm label → control → guidance/error: không overlap, không tách thành orphan message,
-   và lỗi của field này không được tạo khoảng trắng giả cho field khác.
+7. Với form, đo cả nhóm label → control → guidance/error: DOM và visual order phải khớp; không overlap, không tách thành orphan message, và lỗi của field này không được tạo khoảng trắng giả cho field khác. Đo effective separation bằng bounding box và token tại owner; `gap` cộng với margin con là FAIL. Với hai field cùng density và label một dòng trong cùng grid, mép control trên/dưới lệch quá 1px là FAIL; khi label/helper wrap chỉ yêu cầu containment, adjacency và hàng kế tiếp bắt đầu sau content cao nhất.
 8. Các assertion được chạy lại trên toàn viewport matrix thuộc claim. Nếu người dùng cung cấp screenshot ở
    viewport ngoài matrix, thêm đúng viewport/zoom đó vào scoped reproduction; matrix chuẩn không được dùng để
    bỏ qua lỗi đã báo cáo.
@@ -129,6 +128,7 @@ Oracle bắt buộc:
 12. Data-presentation oracle fail khi visible text chứa raw enum/code thuộc vocabulary đã biết, số vượt precision
     formatter, identifier kỹ thuật wrap phá cột, action bị clipping, hoặc cùng một fact xuất hiện ở nhiều primary
     surfaces. Giá trị raw cần audit được giữ trong tooltip/detail, không hiển thị thay cho business label.
+13. Với modal theo `M2.12`, oracle phải đo bounding box giữa các direct region và từ content cuối của region tới action đầu tiên; `rowGap` hoặc class name riêng lẻ không đủ vì margin/padding bù có thể cộng đôi nhưng outer-box vẫn xanh. Fixture ngắn phải chứng minh không overflow; fixture dài phải có `scrollHeight > clientHeight`, focus cuối vẫn nằm trong viewport dialog và không bị sticky header/footer che. Modal tự quản **inter-region spacing** phải chứng minh `gap-0`; modal chỉ tự quản body scroll vẫn có thể giữ shared gap. Cả hai loại phải chứng minh body `min-h-0` là scroll owner và document không overflow. Fixture generic không chứng nhận một editor production cụ thể nếu editor đó chưa được mount/đo trong cùng evidence run.
 
 Ngưỡng khoảng cách/diện tích cụ thể phải xuất phát từ token và baseline của primitive. Không hardcode một tỷ lệ
 chung rồi áp cho chart, editor hoặc matrix workspace vốn có geometry hợp lệ.

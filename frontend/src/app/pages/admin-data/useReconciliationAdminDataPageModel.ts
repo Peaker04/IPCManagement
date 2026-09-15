@@ -1,12 +1,22 @@
-import { useEffect, useState, useTransition } from 'react'
+import { useEffect, useTransition } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAdminBomPanelModel } from './useAdminBomPanelModel'
 import { useAdminAuditPanelModel } from './useAdminAuditPanelModel'
 import { useAdminContractsPanelModel } from './useAdminContractsPanelModel'
 import type { AdminView } from './adminDataPageTypes'
+import { useSystemOperation } from '@/lib/systemOperationContext'
+import { eligiblePageTabs } from '@/lib/systemOperationEligibility'
+import { visibleTabIds } from '@/lib/navigationPreferences'
 
 export function useReconciliationAdminDataPageModel() {
   const [isViewPending, startViewTransition] = useTransition()
+  const operation = useSystemOperation()
+  const eligibleAdminTabs = eligiblePageTabs(
+    operation?.mode ?? 'MATERIAL_RECONCILIATION',
+    'admin-data',
+    operation?.capabilities.pageTabs['admin-data'] ?? ['bom-import', 'audit'],
+    visibleTabIds('admin-data'),
+  ) as AdminView[]
   const [searchParams, setSearchParams] = useSearchParams()
   const bomTemplateDishId = searchParams.get('dishId')?.trim() || undefined
   const requested = searchParams.get('view')
@@ -23,7 +33,21 @@ export function useReconciliationAdminDataPageModel() {
     next.set('sourceFamily', value)
     setSearchParams(next, { replace: true })
   }
-  const [activeView, setActiveView] = useState<AdminView>(requested === 'audit' ? 'audit' : 'bom-import')
+  const isAuditEligible = eligibleAdminTabs.includes('audit')
+  const isBomEligible = eligibleAdminTabs.includes('bom-import')
+  const activeView: AdminView = (() => {
+    if (requested === 'source-changes' && isAuditEligible) return 'source-changes'
+    if (requested === 'audit' && isAuditEligible) return 'audit'
+    if (requested === 'bom-import' && isBomEligible) return 'bom-import'
+    if (isBomEligible) return 'bom-import'
+    if (isAuditEligible) return 'audit'
+    return 'bom-import'
+  })()
+  const selectActiveView = (view: AdminView) => {
+    const next = new URLSearchParams(searchParams)
+    next.set('view', view)
+    setSearchParams(next, { replace: true })
+  }
   const { queryViews: bomQueryViews, ...bomModel } = useAdminBomPanelModel(activeView, bomTemplateDishId)
   const { queryViews: contractQueryViews, ...contractModel } = useAdminContractsPanelModel(activeView, false)
   const { queryView: auditView, ...auditModel } = useAdminAuditPanelModel(activeView, true, auditSourceFamily === 'ALL' ? undefined : auditSourceFamily)
@@ -36,8 +60,9 @@ export function useReconciliationAdminDataPageModel() {
     ...auditModel,
     bomTemplateDishId,
     effectiveActiveView: activeView,
+    eligibleAdminTabs,
     isViewPending,
-    setActiveView,
+    setActiveView: selectActiveView,
     startViewTransition,
     queryViews: {
       audit: auditView,

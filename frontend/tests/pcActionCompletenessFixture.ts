@@ -98,11 +98,11 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Chốt đơn cả ngày',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:389-400',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:415-426',
       ),
       source: coordinationSource(
         'lock-to-confirmed',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:143,389',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:145,415',
         'backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:89',
       ),
       disposition: 'Known Manager/Coordinator command; intercepted mutation evidence is fixture-only.',
@@ -140,7 +140,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Hoàn tất ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:402-413',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:441-452',
       ),
       source: coordinationSource(
         'signoff-to-completed',
@@ -160,11 +160,11 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Mở khóa ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:415-426',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:454-465',
       ),
       source: coordinationSource(
         'unlock-to-draft',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:145,415',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:148,454',
         'backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:246-264',
       ),
       disposition: 'Manager-only command.',
@@ -206,13 +206,13 @@ const coordinationRows: PcProjectedRegistryRow[] = [
         ? coordinationControl(
             'button',
             'Xuất báo cáo',
-            'frontend/src/features/coordination/components/action-toolbar.tsx:428-439',
+            'frontend/src/features/coordination/components/action-toolbar.tsx:467-478',
           )
         : null,
       source: coordinationSource(
         'export',
         available
-          ? 'frontend/src/features/coordination/components/action-toolbar.tsx:146,428'
+          ? 'frontend/src/features/coordination/components/action-toolbar.tsx:149,467'
           : `frontend/${UNKNOWN}: canExport is false for this scenario`,
         `backend/${UNKNOWN}: no entity-status precondition is canonical`,
       ),

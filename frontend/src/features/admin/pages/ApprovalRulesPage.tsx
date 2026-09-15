@@ -7,6 +7,7 @@ import {
   ConfirmDialog,
   EmptyState,
   InlineAlert,
+  NotificationBadge,
   QueryErrorAlert,
   StatusBadge,
   useToast,
@@ -288,7 +289,7 @@ export default function ApprovalRulesPage() {
         </CommandBar>
       }
     >
-      <div className="p-4 space-y-6">
+      <div className="space-y-4">
         <SectionPanel title="Danh sách các quy tắc phê duyệt" icon={<Layers size={18} />}>
           {rulesView.phase === 'forbidden' ? (
             <InlineAlert title="Không có quyền xem quy tắc phê duyệt" variant="danger">
@@ -320,15 +321,13 @@ export default function ApprovalRulesPage() {
                   className="!min-h-0 !p-8"
                 />
               ) : (
-                <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {rules.map((rule: ApprovalRuleDto) => (
                 <div key={rule.ruleId ?? rule.ruleName} className="border border-slate-200 rounded-lg p-4 bg-white shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                   <div className="space-y-2">
                     <div className="flex justify-between items-start">
                       <h3 className="font-semibold text-slate-800 text-base">{rule.ruleName}</h3>
-                      <StatusBadge variant={rule.isActive ? 'success' : 'neutral'}>
-                        {rule.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
-                      </StatusBadge>
+                      <StatusBadge status={rule.isActive ? 'ACTIVE' : 'INACTIVE'} domain="admin" />
                     </div>
                     <div className="grid grid-cols-1 gap-2 text-xs text-slate-500 sm:grid-cols-2">
                       <div>Loại chứng từ: <span className="font-semibold text-slate-700">{formatApprovalDocumentType(rule.documentType)}</span></div>
@@ -342,10 +341,10 @@ export default function ApprovalRulesPage() {
                       <div className="space-y-1">
                         {(rule.approvalassignments ?? []).map((a: ApprovalAssignmentDto) => (
                           <div key={a.assignmentId ?? `${rule.ruleId}-${a.sequence}-${a.approverRole}`} className="flex items-center gap-2 text-xs">
-                            <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">{a.sequence}</span>
+                            <NotificationBadge count={a.sequence} variant="info" />
                             <span className="font-semibold text-slate-700">{formatApproverRole(a.approverRole)}</span>
                             {a.approverUser && <span className="text-slate-700">({a.approverUser.fullName})</span>}
-                            {a.isRequired && <span className="text-xs text-red-700 font-semibold bg-red-50 px-1.5 py-0.5 rounded">Bắt buộc</span>}
+                            {a.isRequired && <StatusBadge tone="danger" size="sm">Bắt buộc</StatusBadge>}
                           </div>
                         ))}
                       </div>
@@ -490,7 +489,7 @@ export default function ApprovalRulesPage() {
                 <div className="space-y-3">
                   {assignments.map((assignment, idx) => (
                     <div key={idx} className="flex flex-col items-stretch gap-3 rounded-md border border-slate-100 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
-                      <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">{assignment.sequence}</span>
+                      <NotificationBadge count={assignment.sequence} variant="neutral" />
                       
                       <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1">

@@ -181,7 +181,7 @@ const buildSnapshot = (mode: 'DEFAULT' | 'MATERIAL_RECONCILIATION', version: num
         navigation: ['dashboard', 'weekly-menu', 'meal-orders', 'approvals', 'purchasing', 'warehouse', 'chef-dashboard', 'reports', 'admin-data', 'approval-rules'],
         pageTabs: {
           'weekly-menu': ['schedule', 'demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials'],
-          warehouse: ['movement', 'demand', 'exceptions'],
+          warehouse: ['receiving', 'demand', 'exceptions', 'movement'],
           'admin-data': ['bom-import', 'contracts', 'cleanup', 'inventory', 'statistics', 'audit', 'employees'],
         },
       }

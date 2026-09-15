@@ -1,6 +1,6 @@
 import { addCalendarDays, getBangkokToday } from '@/lib/chefServiceDate';
 
-export type AdminView = 'bom-import' | 'contracts' | 'cleanup' | 'inventory' | 'audit' | 'statistics' | 'employees';
+export type AdminView = 'bom-import' | 'contracts' | 'cleanup' | 'inventory' | 'audit' | 'statistics' | 'employees' | 'source-changes';
 export type BomTemplateType = 'missing' | 'blank' | 'dish';
 export type BomPanelMode = 'current' | 'preview';
 

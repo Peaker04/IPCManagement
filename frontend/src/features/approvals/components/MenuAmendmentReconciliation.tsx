@@ -82,7 +82,7 @@ export function MenuAmendmentReconciliation() {
         </label>
       )}
     >
-      <div className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
+      <div className="space-y-3">
       {feedback && <p role="status" className="mt-3 text-sm text-slate-700">{feedback}</p>}
       {!scope ? (
         <p className="mt-3 text-sm text-slate-700">Chọn khách hàng để xem yêu cầu cần xử lý.</p>

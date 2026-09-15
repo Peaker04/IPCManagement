@@ -133,6 +133,22 @@ export const parseDisplayDateToIso = (value?: string) => {
 export const LAST_WEEKLY_MENU_CUSTOMER_KEY = 'ipc.weeklyMenu.lastCustomerId'
 export const LAST_WEEKLY_MENU_WEEK_KEY = 'ipc.weeklyMenu.lastWeekStartDate'
 
+const weeklyMenuStorage = () => {
+  try { return window.localStorage } catch { return undefined }
+}
+
+export const readWeeklyMenuSelection = (key: string, storage: Storage | undefined = weeklyMenuStorage()) => {
+  try { return storage?.getItem(key) ?? '' } catch { return '' }
+}
+
+export const writeWeeklyMenuSelection = (key: string, value: string, storage: Storage | undefined = weeklyMenuStorage()) => {
+  if (!storage) return
+  try {
+    if (value) storage.setItem(key, value)
+    else storage.removeItem(key)
+  } catch { /* Optional UI memory must not block the workflow. */ }
+}
+
 export const isValidWeekStartDate = (value: string) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
   if (!match) return true
@@ -148,11 +164,11 @@ export const normalizeWeekStartDate = (value: string) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-export const getStoredWeekStartDate = () => {
-  const stored = window.localStorage.getItem(LAST_WEEKLY_MENU_WEEK_KEY) ?? ''
+export const getStoredWeekStartDate = (storage: Storage | undefined = weeklyMenuStorage()) => {
+  const stored = readWeeklyMenuSelection(LAST_WEEKLY_MENU_WEEK_KEY, storage)
   if (stored && !isValidWeekStartDate(stored)) {
     const normalized = normalizeWeekStartDate(stored)
-    window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, normalized)
+    writeWeeklyMenuSelection(LAST_WEEKLY_MENU_WEEK_KEY, normalized, storage)
     return normalized
   }
   return stored

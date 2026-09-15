@@ -55,7 +55,9 @@ describe('operational page performance contracts', () => {
 
   it('keeps chef tab queries scoped to the selected panel', () => {
     expect(chefSource).toContain('const isProductionView = activeView === \'production\'');
-    expect(chefSource).toContain('useChefJournal(!isProductionView)');
+    expect(chefSource).toContain('useChefJournal(scope, !isProductionView)');
+    expect(chefJournalSource).toContain('dateFrom: scope.serviceDate');
+    expect(chefJournalSource).toContain('shiftName: scope.apiShiftName');
     for (const source of [chefReceiptsSource, chefProductionSource, chefExceptionsSource, chefJournalSource]) {
       expect(source).toContain('skip: !enabled');
     }
@@ -63,9 +65,14 @@ describe('operational page performance contracts', () => {
 
   it('gates warehouse work-view queries and keeps panel geometry stable', () => {
     const warehouseContractSource = `${warehouseSource}\n${warehouseDemandPanelSource}`;
-    expect(warehouseContractSource).toContain("{ skip: activeView !== 'demand' }");
-    expect(warehouseContractSource).toContain('const { roleInboxItems } = useWorkflowOverview({');
-    expect(warehouseContractSource).toContain('min-h-[420px]');
+    expect(warehouseContractSource).toContain("const isReceivingView = activeView === 'receiving'");
+    expect(warehouseContractSource).toContain("const isIssueView = activeView === 'demand'");
+    expect(warehouseContractSource.match(/skip: !isReceivingView/g)).toHaveLength(1);
+    expect(warehouseContractSource).toContain("{ skip: activeView === 'exceptions' }");
+    expect(warehouseContractSource.match(/skip: !isIssueView/g)).toHaveLength(3);
+    expect(warehouseContractSource).toContain('{isReceivingView && selectedPurchaseOrder && <WarehouseReceiptLifecyclePanel');
+    expect(warehouseContractSource).toContain('const roleInboxItems = buildRoleInbox(workflowDocuments, [], []);');
+    expect(warehouseContractSource).not.toContain('useWorkflowOverview');
     expect(warehouseContractSource).toContain('duration-150 motion-reduce:transition-none');
   });
 
@@ -75,7 +82,7 @@ describe('operational page performance contracts', () => {
       expect(reportsContractSource).toContain(`priceSubView !== '${subview}'`);
     }
     expect(reportsContractSource).toContain("priceSubView === 'lines' && (");
-    expect(reportsContractSource).toContain('price: priceModel.activePriceView');
+    expect(reportsContractSource).toContain('price: priceView');
   });
 
   it('does not build hidden admin dialogs or query inactive datasets', () => {

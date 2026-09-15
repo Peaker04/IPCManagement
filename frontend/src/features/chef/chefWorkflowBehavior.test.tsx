@@ -14,7 +14,6 @@ const mocks = vi.hoisted(() => ({
   getKitchenIssues: vi.fn(),
   getKitchenIssueActions: vi.fn(),
   getInventoryReturns: vi.fn(),
-  sendDailyPlan: vi.fn(),
 }))
 
 vi.mock('@/lib/coordinationStore', () => ({
@@ -42,7 +41,6 @@ vi.mock('@/api/reportsApi', () => ({
 
 vi.mock('@/api/chefApi', () => ({
   useGetDailyProductionPlanQuery: mocks.getDailyPlan,
-  useSendDailyProductionPlanToKitchenMutation: () => [mocks.sendDailyPlan, { isLoading: false }],
 }))
 
 import { useChefExceptions } from './exceptions/useChefExceptions'
@@ -126,6 +124,24 @@ describe('chef workflow service-date behavior', () => {
       issueId: unrelatedIssue.issueId,
     }, true))
     expect(mocks.confirmReceipt).not.toHaveBeenCalled()
+  })
+
+  it('confirms the whole issue with discrepancy evidence and reports success', async () => {
+    const pendingIssue = issue({ isReceivedByKitchen: false, receiptStatus: 'PENDING' })
+    mocks.getKitchenIssues.mockReturnValue({
+      data: { items: [pendingIssue], totalCount: 1, pageNumber: 1, pageSize: 20, totalPages: 1, hasPrev: false, hasNext: false },
+      isLoading: false, isError: false,
+    })
+    mocks.confirmReceipt.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({ message: 'Đã nhận phiếu' }) })
+    const { result } = renderHook(() => useKitchenReceipts(scope, vi.fn()))
+
+    let success = false
+    await act(async () => {
+      success = await result.current.signOff({ id: pendingIssue.id, name: 'Gạo', unit: 'kg', quantity: 9, status: 'Chờ giao', signed: false, issueId: pendingIssue.issueId }, true, true, 'Thiếu 0,5 kg')
+    })
+
+    expect(success).toBe(true)
+    expect(mocks.confirmReceipt).toHaveBeenCalledWith({ issueId: 'issue-1', hasDiscrepancy: true, discrepancyNote: 'Thiếu 0,5 kg' })
   })
 
   it('queries returns by service date and presents FULLDAY returns only in the morning shift', () => {
@@ -218,23 +234,15 @@ describe('chef workflow service-date behavior', () => {
     expect(mocks.createReturn).not.toHaveBeenCalled()
   })
 
-  it('uses the selected service date for daily-plan reads and sends', async () => {
-    mocks.sendDailyPlan.mockReturnValue({
-      unwrap: vi.fn().mockResolvedValue({ sentPlans: 1, totalPlans: 1 }),
-    })
-    const { result, rerender } = renderHook(
-      ({ currentScope }) => useChefProductionPlan(currentScope, [], {}, vi.fn()),
+  it('uses the selected service date for daily-plan reads without exposing the upstream send command', () => {
+    const { rerender } = renderHook(
+      ({ currentScope }) => useChefProductionPlan(currentScope, [], {}),
       { initialProps: { currentScope: scope } },
     )
 
     expect(mocks.getDailyPlan).toHaveBeenCalledWith({ serviceDate: '2026-07-20', shiftName: 'MORNING' }, { skip: false })
     rerender({ currentScope: { ...scope, activeDay: 't6', serviceDate: '2026-07-24' } })
     expect(mocks.getDailyPlan).toHaveBeenLastCalledWith({ serviceDate: '2026-07-24', shiftName: 'MORNING' }, { skip: false })
-    await act(() => result.current.receiveDailyPlan())
-    expect(mocks.sendDailyPlan).toHaveBeenCalledWith(expect.objectContaining({
-      serviceDate: '2026-07-24',
-      shiftName: 'MORNING',
-    }))
   })
 
   it('treats a fully sent server plan as locked after a page reload', () => {
@@ -268,40 +276,27 @@ describe('chef workflow service-date behavior', () => {
       isLoading: false,
       isError: false,
     })
-    const { result } = renderHook(() => useChefProductionPlan({ ...scope, isLocked: false }, [], {}, vi.fn()))
+    const { result } = renderHook(() => useChefProductionPlan({ ...scope, isLocked: false }, [], {}))
 
     expect(result.current.isLocked).toBe(true)
     expect(result.current.productionPlan.totalMeals).toBe(840)
   })
 
-  it('allows plan receipt from the server daily-plan state after a page reload', () => {
-    const onReceivePlan = vi.fn()
-    render(
-      <ChefProductionSection
-        lines={[]}
-        isSending={false}
-        isLoading={false}
-        isError={false}
-        totalPlans={1}
-        sentPlans={0}
-        onReceivePlan={onReceivePlan}
-      />,
-    )
+  it('shows upstream handoff state without exposing a receive/send command to Chef', () => {
+    render(<ChefProductionSection lines={[]} isLoading={false} isError={false} totalPlans={1} sentPlans={0} />)
 
-    expect(screen.getByRole('button', { name: 'Nhận kế hoạch' })).toBeEnabled()
-    expect(screen.queryByText('Ca chưa chốt. Kế hoạch điều phối chưa đồng bộ; trạng thái vật tư xem ở Checklist nhận nguyên liệu.')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nhận kế hoạch' })).not.toBeInTheDocument()
+    expect(screen.getByText('Chờ Điều phối gửi')).toBeInTheDocument()
   })
 
   it('replaces the plan receipt action with completion status after all plans are sent', () => {
     render(
       <ChefProductionSection
         lines={[]}
-        isSending={false}
         isLoading={false}
         isError={false}
         totalPlans={1}
         sentPlans={1}
-        onReceivePlan={vi.fn()}
       />,
     )
 

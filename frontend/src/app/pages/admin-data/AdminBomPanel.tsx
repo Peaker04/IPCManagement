@@ -38,7 +38,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
             icon={<Upload size={18} />}
             description="Tải lên tệp định mức BOM chuẩn theo từng mức giá suất ăn và áp dụng cho các khách hàng."
           >
-            <div className="grid min-w-0 gap-4" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
+            <div className="grid min-w-0 max-w-full gap-4">
               <div className="grid w-full min-w-0 max-w-full self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                 <FieldRow label="Đơn giá BOM">
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -87,8 +87,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   </FieldRow>
                 )}
 
-                <FieldRow label="Hiệu lực từ">
+                <FieldRow label="Hiệu lực từ" htmlFor="admin-bom-effective-from">
                   <Input
+                    id="admin-bom-effective-from"
                     className="w-full"
                     type="date"
                     value={bomImportEffectiveFrom}
@@ -205,7 +206,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   </InlineAlert>
                 )}
 
-                <InlineAlert title="Chỉ cần nhập 3 thông tin" variant="info">
+                <InlineAlert title="Chỉ cần nhập 3 thông tin" variant="info" headingLevel={3}>
                   <span id="bom-import-action-guidance">
                     Chọn <strong>Nguyên liệu chính</strong>, <strong>Đơn vị</strong> và nhập <strong>Định lượng/suất</strong>. Các ô món, mức giá, phạm vi và trạng thái đã được hệ thống khóa.
                   </span>
@@ -326,7 +327,11 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                           <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantity(row.grossQtyPerServing)}</td>
                           <td className="text-right tabular-nums font-medium text-slate-700">{formatPercent(row.wasteRatePercent)}</td>
                           <td>{row.action === 'INSERT' ? 'Thêm mới' : row.action === 'UPDATE' ? 'Cập nhật' : row.action === 'DELETE' ? 'Xóa' : row.action === 'NONE' ? 'Giữ nguyên' : row.action}</td>
-                          <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.status === 'error' ? (row.errors?.[0] ?? 'Lỗi') : row.status === 'warning' ? (row.warnings?.[0] ?? 'Cảnh báo') : 'Hợp lệ'}</StatusBadge></td>
+                          <td>{row.status === 'error'
+                            ? <StatusBadge variant="danger">{row.errors?.[0] ?? 'Lỗi'}</StatusBadge>
+                            : row.status === 'warning'
+                              ? <StatusBadge variant="warning">{row.warnings?.[0] ?? 'Cảnh báo'}</StatusBadge>
+                              : null}</td>
                         </tr>
                       ))}
                       {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}

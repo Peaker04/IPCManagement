@@ -1,0 +1,520 @@
+{
+  "scope": "All production <SectionPanel> callsites under frontend/src as of Wave M7.1",
+  "defaultHeadingLevel": 2,
+  "callsites": [
+    {
+      "path": "src/app/pages/admin-data/AdminAuditPanel.tsx",
+      "occurrence": 1,
+      "title": "Nhật ký thay đổi hệ thống",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminBomPanel.tsx",
+      "occurrence": 1,
+      "title": "Import BOM theo đơn giá",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminCleanupPanel.tsx",
+      "occurrence": 1,
+      "title": "Kiểm tra dữ liệu lỗi",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminContractsPanel.tsx",
+      "occurrence": 1,
+      "title": "Hợp đồng khách hàng và quy tắc suất ăn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminEmployeesPanel.tsx",
+      "occurrence": 1,
+      "title": "editingEmployeeId ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminEmployeesPanel.tsx",
+      "occurrence": 2,
+      "title": "Danh sách nhân viên",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminInventoryPanel.tsx",
+      "occurrence": 1,
+      "title": "Tồn kho hiện tại",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminInventoryPanel.tsx",
+      "occurrence": 2,
+      "title": "Lịch sử điều chỉnh tồn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/app/pages/admin-data/AdminStatisticsPanel.tsx",
+      "occurrence": 1,
+      "title": "Thống kê vận hành",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/components/common/ServiceRunBlockerPanel.tsx",
+      "occurrence": 1,
+      "title": "Ca phục vụ đang bị chặn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/components/common/ServiceRunBlockerPanel.tsx",
+      "occurrence": 2,
+      "title": "Ca phục vụ đang bị chặn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/admin/components/AdvancedDisplaySettings.tsx",
+      "occurrence": 1,
+      "title": "Menu điều hướng chính (Thanh bên trái)",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/admin/components/AdvancedDisplaySettings.tsx",
+      "occurrence": 2,
+      "title": "Tab chức năng theo từng trang",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/admin/components/SystemOperationModeSettings.tsx",
+      "occurrence": 1,
+      "title": "Chế độ vận hành",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/admin/pages/ApprovalRulesPage.tsx",
+      "occurrence": 1,
+      "title": "Danh sách các quy tắc phê duyệt",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/approvals/components/MenuAmendmentInbox.tsx",
+      "occurrence": 1,
+      "title": "Điều chỉnh thực đơn chờ xử lý",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/approvals/components/MenuAmendmentReconciliation.tsx",
+      "occurrence": 1,
+      "title": "Đối soát điều chỉnh thực đơn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/approvals/pages/ApprovalHistoryTab.tsx",
+      "occurrence": 1,
+      "title": "Danh sách đề xuất mua hàng",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/approvals/pages/ApprovalPage.tsx",
+      "occurrence": 1,
+      "title": "Danh sách cần duyệt",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/auth/pages/ForbiddenPage.tsx",
+      "occurrence": 1,
+      "title": "headingless",
+      "classification": "headingless",
+      "rationale": "Panel is a layout container; its owned visible denied-state heading is explicit h2 content."
+    },
+    {
+      "path": "src/features/chef/components/active-dishes-grid.tsx",
+      "occurrence": 1,
+      "title": "Bảng món đang nấu",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/chef/components/material-checklist.tsx",
+      "occurrence": 1,
+      "title": "Checklist nhận nguyên liệu",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/chef/components/operational-actions.tsx",
+      "occurrence": 1,
+      "title": "Luồng ngoại lệ ca",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/chef/journal/ChefDocumentsSection.tsx",
+      "occurrence": 1,
+      "title": "Kế hoạch, bàn giao và phiếu trả",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/chef/production/ChefProductionSection.tsx",
+      "occurrence": 1,
+      "title": "Kế hoạch điều phối trong ngày",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/coordination/pages/CoordinationPage.tsx",
+      "occurrence": 1,
+      "title": "Suất ăn theo ngày và ca",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/cost/MenuCostSection.tsx",
+      "occurrence": 1,
+      "title": "Giá vốn theo ngày từ kế hoạch tuần",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx",
+      "occurrence": 1,
+      "title": "KHSX và tiến độ xuất nguyên liệu",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/dish-materials/DishMaterialsSection.tsx",
+      "occurrence": 1,
+      "title": "Phân tích nguyên liệu món",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/import/WeeklyMenuImportHistory.tsx",
+      "occurrence": 1,
+      "title": "Lịch sử import thực đơn tuần",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx",
+      "occurrence": 1,
+      "title": "<span className={typography.sectionTitle",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/production-plan/ProductionPlanSection.tsx",
+      "occurrence": 1,
+      "title": "Kế hoạch sản xuất",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/purchasing/PurchaseSummarySection.tsx",
+      "occurrence": 1,
+      "title": "Bàn giao nguyên liệu",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/projects/weekly-menu/schedule/WeeklyScheduleSection.tsx",
+      "occurrence": 1,
+      "title": "Bố cục menu theo file khách hàng",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/purchasing/PurchaseDecisionPanel.tsx",
+      "occurrence": 1,
+      "title": "Quyết định thu mua",
+      "classification": "nested-detail",
+      "rationale": "Record/date decision detail mounted below a purchasing worklist or in the shared drawer.",
+      "headingLevel": 3
+    },
+    {
+      "path": "src/features/purchasing/PurchaseDecisionPanel.tsx",
+      "occurrence": 2,
+      "title": "Quyết định thu mua",
+      "classification": "nested-detail",
+      "rationale": "Record/date decision detail mounted below a purchasing worklist or in the shared drawer.",
+      "headingLevel": 3
+    },
+    {
+      "path": "src/features/purchasing/PurchaseServiceDateWorkbench.tsx",
+      "occurrence": 1,
+      "title": "Ngày phục vụ",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/purchasing/quotation/SupplierQuotationSection.tsx",
+      "occurrence": 1,
+      "title": "Quản lý báo giá nhà cung cấp",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/purchasing/SupplementalPurchasingWorkbench.tsx",
+      "occurrence": 1,
+      "title": "Nhu cầu mua bổ sung từ bếp",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reconciliation/pages/ReconciliationPage.tsx",
+      "occurrence": 1,
+      "title": "resultPresentation.title",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reconciliation/ReconciliationSourceChangeLog.tsx",
+      "occurrence": 1,
+      "title": "Lịch sử thay đổi nguồn",
+      "classification": "conditional",
+      "rationale": "Route-primary h2 when standalone in Admin; nested h3 inside the reconciliation disclosure.",
+      "headingLevelByState": {
+        "standalone": 2,
+        "nested": 3
+      }
+    },
+    {
+      "path": "src/features/reports/pages/ReportsDataQualityPanel.tsx",
+      "occurrence": 1,
+      "title": "uiCopy.reports.preProductionQuality",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 1,
+      "title": "Nhu cầu theo ngày trong khoảng chọn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 2,
+      "title": "Kế hoạch thu mua dự kiến",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 3,
+      "title": "Tồn kho hiện tại theo kho",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 4,
+      "title": "Lịch sử nhập/xuất theo khoảng ngày",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 5,
+      "title": "Xuất kho cho bếp theo ca",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 6,
+      "title": "Sử dụng thực tế: xuất - hoàn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 7,
+      "title": "Đối soát theo dòng nhu cầu",
+      "classification": "nested-detail",
+      "rationale": "Lineage reconciliation detail follows the primary usage report surface.",
+      "headingLevel": 3
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPage.tsx",
+      "occurrence": 8,
+      "title": "${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPricePanel.tsx",
+      "occurrence": 1,
+      "title": "Bảng biến động giá nguyên liệu",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPricePanel.tsx",
+      "occurrence": 2,
+      "title": "Biến động giá theo nhà cung cấp",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPricePanel.tsx",
+      "occurrence": 3,
+      "title": "Biến động giá theo thời gian (theo tháng)",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ReportsPricePanel.tsx",
+      "occurrence": 4,
+      "title": "Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/reports/pages/ServiceRunReportPanel.tsx",
+      "occurrence": 1,
+      "title": "Ca phục vụ và chứng từ nguồn",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/pages/ReconciliationWarehousePage.tsx",
+      "occurrence": 1,
+      "title": "Danh sách cần xuất",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/pages/ReconciliationWarehousePage.tsx",
+      "occurrence": 2,
+      "title": "Lịch sử xuất kho",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/pages/WarehouseMovementPanel.tsx",
+      "occurrence": 1,
+      "title": "Tồn kho hiện tại",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/pages/WarehouseMovementPanel.tsx",
+      "occurrence": 2,
+      "title": "Luân chuyển kho",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/pages/WarehousePurchaseOrdersPanel.tsx",
+      "occurrence": 1,
+      "title": "Đơn mua chờ nhập kho",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/WarehouseDemandPanel.tsx",
+      "occurrence": 1,
+      "title": "Nhu cầu xuất theo từng ngày",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/WarehouseExceptionsWorkbench.tsx",
+      "occurrence": 1,
+      "title": "Yêu cầu cấp nguyên liệu bổ sung",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/WarehouseExceptionsWorkbench.tsx",
+      "occurrence": 2,
+      "title": "Đối soát nguyên liệu đã xuất",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
+      "path": "src/features/warehouse/WarehouseExceptionsWorkbench.tsx",
+      "occurrence": 3,
+      "title": "Phiếu trả dư và hao hụt chờ kho tiếp nhận",
+      "classification": "route-primary",
+      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    }
+  ]
+}

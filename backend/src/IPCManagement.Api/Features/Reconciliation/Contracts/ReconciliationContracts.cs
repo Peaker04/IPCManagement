@@ -1,6 +1,22 @@
 namespace IPCManagement.Api.Features.Reconciliation.Contracts;
 
-public sealed record ReconciliationBatchDto(string BatchId, string MenuVersionId, string QuantityImportBatchId, string Status, long Version, DateTime CreatedAt, DateTime? ReadyAt, DateTime? CompletedAt, IReadOnlyList<ReconciliationLineDto> Lines);
+public sealed record ReconciliationBatchDto(
+    string BatchId,
+    string MenuVersionId,
+    string QuantityImportBatchId,
+    string Status,
+    long Version,
+    DateTime CreatedAt,
+    DateTime? ReadyAt,
+    DateTime? CompletedAt,
+    IReadOnlyList<ReconciliationLineDto> Lines)
+{
+    public string? CustomerId { get; init; }
+    public string? CustomerName { get; init; }
+    public string? CustomerCode { get; init; }
+    public DateOnly? WeekStartDate { get; init; }
+    public DateOnly? WeekEndDate { get; init; }
+}
 public sealed record ReconciliationLineDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, decimal FrozenTolerance, decimal? PurchasedQuantity, long? PurchasedVersion, decimal? IssuedQuantity, long? IssuedVersion, decimal? PurchasedRequiredDifference, decimal? IssuedRequiredDifference, decimal? PurchasedIssuedDifference, IReadOnlyList<string> Triggers, string Status, long Version, ReconciliationDispositionDto? Disposition, IReadOnlyList<string>? IssueNotes = null);
 public sealed record ReconciliationDispositionDto(string Category, string Reason, long Version, DateTime DisposedAt);
 public sealed record ReconciliationDispositionCategoryDto(string Value, string Label);
@@ -22,3 +38,6 @@ public sealed record ReconciliationWarehouseTransferLineDto(string BatchLineId, 
 public sealed record UpsertReconciliationActualRequest(decimal Quantity, long? ExpectedVersion, bool ConfirmZero, string? CorrectionReason);
 public sealed record SetReconciliationDispositionRequest(string Category, string Reason, long? ExpectedVersion);
 public sealed record CompleteReconciliationBatchRequest(long ExpectedVersion);
+public sealed record ReconciliationBatchDishScopeDto(string ServiceDate, string ShiftName, int FrozenServings, int CurrentServings, int AdditionalServings);
+public sealed record ReconciliationBatchDishSummaryDto(string DishId, string DishCode, string DishName, IReadOnlyList<ReconciliationBatchDishMaterialDto> Materials, IReadOnlyList<ReconciliationBatchDishScopeDto>? Scopes = null);
+public sealed record ReconciliationBatchDishMaterialDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal GrossQtyPerServing);

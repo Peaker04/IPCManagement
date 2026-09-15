@@ -174,7 +174,7 @@ export const reportsApi = apiSlice.injectEndpoints({
       },
       providesTags: [workflowCacheTags.materialRequestCandidates],
     }),
-    getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, IngredientDemandAggregatePageQuery | void>({
+    getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number; remainingToIssueCount: number; pendingKitchenReceiptCount: number }, IngredientDemandAggregatePageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand/aggregate/page',
         params: {
@@ -194,6 +194,8 @@ export const reportsApi = apiSlice.injectEndpoints({
           hasPrev: page?.hasPrev ?? false,
           hasNext: page?.hasNext ?? false,
           shortageCount: page?.shortageCount ?? 0,
+          remainingToIssueCount: page?.remainingToIssueCount ?? 0,
+          pendingKitchenReceiptCount: page?.pendingKitchenReceiptCount ?? 0,
         };
       },
       providesTags: [workflowCacheTags.ingredientDemand],
@@ -565,11 +567,11 @@ export const {
   useUpdateDataQualityIssueRemediationMutation,
 } = reportsApi;
 
-export function useWorkflowOverview(options: { skip?: boolean } = {}) {
+export function useWorkflowOverview(options: { skip?: boolean; skipPrice?: boolean } = {}) {
   const queryOptions = { skip: options.skip ?? false };
   const documentsResult = useGetWorkflowDocumentsQuery({ limit: 100 }, queryOptions);
   const demandResult = useGetIngredientDemandQuery({ limit: 100 }, queryOptions);
-  const priceResult = useGetPriceVarianceQuery({ limit: 100 }, queryOptions);
+  const priceResult = useGetPriceVarianceQuery({ limit: 100 }, { skip: queryOptions.skip || options.skipPrice === true });
   const movementsResult = useGetStockMovementsQuery({ limit: 100 }, queryOptions);
   const documents = documentsResult.data ?? [];
   const demandLines = demandResult.data ?? [];

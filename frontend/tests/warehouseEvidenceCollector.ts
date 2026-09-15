@@ -16,6 +16,77 @@ const forbiddenDefinition = { id: 'warehouse-route-forbidden', name: 'Không đ�
 
 export type WarehouseRuntimeSignals = { consoleErrors: string[]; pageErrors: string[]; nonReadRequests: string[] };
 
+export type WarehouseHeadingOwner = 'shell-header' | 'main' | 'other-shell' | 'overlay' | 'hidden-keepalive' | 'hidden-other';
+export type WarehouseHeadingRecord = {
+  domOrder: number;
+  level: number;
+  name: string;
+  selector: string;
+  visible: boolean;
+  owner: WarehouseHeadingOwner;
+};
+export type WarehouseHeadingEvidence = {
+  records: WarehouseHeadingRecord[];
+  visibleRecords: WarehouseHeadingRecord[];
+  levels: number[];
+  names: string[];
+  selectors: string[];
+};
+
+export function collectWarehouseHeadingEvidence(root: Document = document): WarehouseHeadingEvidence {
+  const selectorFor = (element: Element): string => {
+    if (element.id) return `#${element.id}`;
+    const parts: string[] = [];
+    let node: Element | null = element;
+    while (node && node.tagName.toLowerCase() !== 'body') {
+      const parent: Element | null = node.parentElement;
+      const tag = node.tagName.toLowerCase();
+      if (!parent) { parts.unshift(tag); break; }
+      const siblings = Array.from(parent.children).filter((sibling) => sibling.tagName === node!.tagName);
+      parts.unshift(siblings.length > 1 ? `${tag}:nth-of-type(${siblings.indexOf(node) + 1})` : tag);
+      node = parent;
+    }
+    return parts.join(' > ');
+  };
+  const nameOf = (element: Element): string => {
+    const ariaLabel = element.getAttribute('aria-label')?.trim();
+    if (ariaLabel) return ariaLabel;
+    const labelledBy = element.getAttribute('aria-labelledby');
+    if (labelledBy) {
+      const label = labelledBy.split(/\s+/).map((id) => root.getElementById(id)?.textContent ?? '').join(' ').trim();
+      if (label) return label;
+    }
+    return element.textContent?.trim() ?? '';
+  };
+  const isVisible = (element: Element): boolean => {
+    for (let node: Element | null = element; node; node = node.parentElement) {
+      const style = getComputedStyle(node);
+      if ((node as HTMLElement).hidden || node.getAttribute('aria-hidden') === 'true' || style.display === 'none' || style.visibility === 'hidden') return false;
+    }
+    return true;
+  };
+  const main = root.querySelector('#ipc-main-content') ?? root.querySelector('main');
+  const records = Array.from(root.querySelectorAll('h1,h2,h3,h4,h5,h6')).map((element, domOrder): WarehouseHeadingRecord => {
+    const visible = isVisible(element);
+    const owner: WarehouseHeadingOwner = !visible
+      ? element.closest('[role="tabpanel"]') ? 'hidden-keepalive' : 'hidden-other'
+      : element.closest('[role="dialog"],[data-slot="drawer-content"]') ? 'overlay'
+      : element.closest('header') && !main?.contains(element) ? 'shell-header'
+      : main?.contains(element) ? 'main'
+      : 'other-shell';
+    return { domOrder, level: Number(element.tagName.slice(1)), name: nameOf(element), selector: selectorFor(element), visible, owner };
+  });
+  const visibleRecords = (['shell-header', 'main', 'other-shell', 'overlay'] as const)
+    .flatMap((owner) => records.filter((record) => record.visible && record.owner === owner));
+  return {
+    records,
+    visibleRecords,
+    levels: visibleRecords.map(({ level }) => level),
+    names: visibleRecords.map(({ name }) => name),
+    selectors: visibleRecords.map(({ selector }) => selector),
+  };
+}
+
 export type WarehouseEvidenceRun = { directory: 'baseline' | 'after'; runId?: string };
 
 export async function collectWarehouseEvidence(
@@ -49,12 +120,16 @@ export async function collectWarehouseEvidence(
     });
   }, definitions);
   const focusOrder = await page.locator('button:not([disabled]),a[href],input:not([disabled]),[tabindex="0"]').evaluateAll((nodes) => nodes.filter((node) => (node as HTMLElement).offsetParent !== null).map((node) => node.getAttribute('aria-label') || node.textContent?.trim() || node.id || node.tagName));
-  const documentFacts = await page.evaluate(() => ({
+  const headingEvidence = await page.evaluate<WarehouseHeadingEvidence>(`(${collectWarehouseHeadingEvidence.toString()})(document)`);
+  const documentFacts = await page.evaluate((headings) => ({
     clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth,
-    h1Count: document.querySelectorAll('h1').length,
-    headingLevels: Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6')).map((node) => Number(node.tagName.slice(1))),
+    h1Count: headings.visibleRecords.filter(({ level }) => level === 1).length,
+    headingLevels: headings.levels,
+    headingNames: headings.names,
+    headingSelectors: headings.selectors,
+    headingRecords: headings.records,
     primaryActionCount: document.querySelector('.ipc-split-primary')?.querySelectorAll('[data-variant="primary"],.ipc-button-primary').length ?? 0,
-  }));
+  }), headingEvidence);
   const activeElement = await page.evaluate(() => document.activeElement?.getAttribute('aria-label') || document.activeElement?.textContent?.trim() || document.activeElement?.tagName || 'BODY');
   const geometry = Object.fromEntries(probes);
   const owners = Object.fromEntries(definitions.map(({ id, owner }) => [id, owner]));

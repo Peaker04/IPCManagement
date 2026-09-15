@@ -11,7 +11,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace IPCManagement.Api.Tests;
 
-public sealed class ReconciliationServiceTests
+public sealed partial class ReconciliationServiceTests
 {
     [Fact]
     public void Tolerance_resolution_uses_ingredient_then_unit_group_then_system_default()
@@ -447,6 +447,22 @@ public sealed class ReconciliationServiceTests
         Assert.Equal("Commit", change.FieldName);
     }
 
+    [Fact]
+    public async Task List_batches_projects_business_week_instead_of_creation_date()
+    {
+        await using var context = CreateContext();
+        var menuVersionId = GuidHelper.NewId();
+        var customerId = GuidHelper.NewId();
+        context.Menuversions.Add(new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 9, 21), VersionNo = 1, Status = "PUBLISHED", CreatedAt = new DateTime(2026, 9, 13), UpdatedAt = new DateTime(2026, 9, 13) });
+        context.Reconciliationbatches.Add(new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = menuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 1, CreatedBy = GuidHelper.NewId(), CreatedAt = new DateTime(2026, 9, 13) });
+        await context.SaveChangesAsync();
+
+        var batch = Assert.Single(await new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext()).ListAsync());
+
+        Assert.Equal(new DateOnly(2026, 9, 21), batch.WeekStartDate);
+        Assert.Equal(new DateOnly(2026, 9, 26), batch.WeekEndDate);
+    }
+
     private static async Task<Exception?> Capture(Func<Task> operation)
     {
         try { await operation(); return null; }
@@ -551,7 +567,7 @@ public sealed class ReconciliationServiceTests
                 typeof(MenuVersion), typeof(QuantityImportBatch), typeof(MealQuantityPlan), typeof(MenuSchedule), typeof(MealQuantityPlanLine),
                 typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
                 typeof(ReconciliationDisposition), typeof(BomAdjustment), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
-                typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog)
+                typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog), typeof(Dish), typeof(DishBom)
             };
             foreach (var entityType in typeof(AuditLog).Assembly.GetTypes().Where(type => type.Namespace == typeof(AuditLog).Namespace && type.IsClass && !included.Contains(type)))
                 modelBuilder.Ignore(entityType);
@@ -577,6 +593,11 @@ public sealed class ReconciliationServiceTests
             modelBuilder.Entity<MealQuantityPlanLine>().HasOne(x => x.QuantityPlan).WithMany(x => x.Mealquantityplanlines).HasForeignKey(x => x.QuantityPlanId);
             modelBuilder.Entity<MealQuantityPlanLine>().HasOne(x => x.MenuSchedule).WithMany(x => x.Mealquantityplanlines).HasForeignKey(x => x.MenuScheduleId);
 
+            modelBuilder.Entity<Dish>().HasKey(x => x.DishId);
+            modelBuilder.Entity<DishBom>().HasKey(x => x.BomId);
+            modelBuilder.Entity<DishBom>().HasOne(x => x.Dish).WithMany(x => x.Dishboms).HasForeignKey(x => x.DishId);
+            modelBuilder.Entity<DishBom>().HasOne(x => x.Ingredient).WithMany(x => x.Dishboms).HasForeignKey(x => x.IngredientId);
+            modelBuilder.Entity<DishBom>().HasOne(x => x.Unit).WithMany(x => x.Dishboms).HasForeignKey(x => x.UnitId);
             modelBuilder.Entity<BomAdjustment>().HasKey(x => x.BomAdjustmentId);
             modelBuilder.Entity<BomAdjustment>().Ignore(x => x.Bom);
             modelBuilder.Entity<BomAdjustment>().Ignore(x => x.AdjustedByNavigation);

@@ -93,6 +93,27 @@ describe('ServiceRun variance controls', () => {
     expect(screen.getByRole('region', { name: 'Ngoại lệ đang chờ xử lý' })).not.toHaveTextContent('declaration-1')
   })
 
+  it('does not offer management actions to Bếp trưởng when lifecycle state allows them', () => {
+    mocks.user = { role: 'beptruong', isAdminFullAccess: false }
+    mocks.persistedRun = {
+      ...run,
+      status: 'READY_TO_CLOSE',
+      blockers: [],
+      canResolveVariance: true,
+      canResolveServingVariance: true,
+      canWaiveServiceConfirmation: true,
+      canClose: true,
+    }
+
+    render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)
+
+    expect(screen.queryByRole('button', { name: 'Quyết toán chênh lệch' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Quyết định chênh lệch suất' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Miễn xác nhận' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Đóng ca' })).not.toBeInTheDocument()
+    expect(screen.getByText('Chờ Quản lý đóng ca.')).toBeInTheDocument()
+  })
+
   it('shows Admin a user-labelled pending declaration instead of a technical identifier field', async () => {
     mocks.user = { role: 'admin', isAdminFullAccess: true }
     render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)

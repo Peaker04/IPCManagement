@@ -6320,6 +6320,45 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/batches/{id}/dishes": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path: {
+                    readonly id: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/batches/{id}/ready": {
         readonly parameters: {
             readonly query?: never;
@@ -12970,6 +13009,8 @@ export interface components {
             readonly hasCancelledLine: boolean;
             readonly ingredientId: string;
             readonly ingredientName?: string | null;
+            /** Format: double */
+            readonly issuedQty: number;
             /** Format: int32 */
             readonly lineCount: number;
             /** Format: double */
@@ -12978,6 +13019,10 @@ export interface components {
             readonly pendingKitchenReceiptQty: number;
             /** Format: double */
             readonly priceTierAmount: number;
+            /** Format: double */
+            readonly receivedByKitchenQty: number;
+            /** Format: double */
+            readonly remainingToIssueQty: number;
             /** Format: date */
             readonly requestDate: string;
             /** Format: double */
@@ -12997,6 +13042,10 @@ export interface components {
             readonly pageNumber: number;
             /** Format: int32 */
             readonly pageSize: number;
+            /** Format: int32 */
+            readonly pendingKitchenReceiptCount: number;
+            /** Format: int32 */
+            readonly remainingToIssueCount: number;
             /** Format: int32 */
             readonly shortageCount: number;
             /** Format: int32 */
@@ -14169,6 +14218,7 @@ export interface components {
             readonly dishGroup?: string | null;
             readonly dishId: string;
             readonly dishName: string;
+            readonly dishSlot?: string | null;
             readonly dishType?: string | null;
             /** Format: int32 */
             readonly displayOrder: number;
@@ -15558,12 +15608,37 @@ export interface components {
             /** Format: double */
             readonly sourceQuantity: number;
         };
+        readonly ReconciliationBatchDishMaterialDto: {
+            readonly batchLineId: string;
+            readonly canonicalUnitId: string;
+            readonly canonicalUnitName?: string | null;
+            /** Format: double */
+            readonly grossQtyPerServing: number;
+            readonly ingredientCode?: string | null;
+            readonly ingredientId: string;
+            readonly ingredientName?: string | null;
+        };
+        readonly ReconciliationBatchDishSummaryDto: {
+            readonly dishCode: string;
+            readonly dishId: string;
+            readonly dishName: string;
+            readonly materials: readonly components["schemas"]["ReconciliationBatchDishMaterialDto"][];
+        };
+        readonly ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["ReconciliationBatchDishSummaryDto"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
         readonly ReconciliationBatchDto: {
             readonly batchId: string;
             /** Format: date-time */
             readonly completedAt?: string | null;
             /** Format: date-time */
             readonly createdAt: string;
+            readonly customerCode?: string | null;
+            readonly customerId?: string | null;
+            readonly customerName?: string | null;
             readonly lines: readonly components["schemas"]["ReconciliationLineDto"][];
             readonly menuVersionId: string;
             readonly quantityImportBatchId: string;

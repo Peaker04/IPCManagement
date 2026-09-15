@@ -324,9 +324,10 @@
 .ipc-data-table th {
   border-bottom: 1px solid var(--ipc-color-border-strong);
   color: var(--ipc-color-text-muted);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  padding: 9px 12px;
+  font-size: var(--text-table-header);
+  line-height: var(--text-table-header--line-height);
+  font-weight: var(--text-table-header--font-weight);
+  padding: 8px 12px;
   text-align: left;
   white-space: normal;
 }
@@ -334,8 +335,10 @@
 .ipc-data-table td {
   border-bottom: 1px solid var(--ipc-color-border-muted);
   color: var(--ipc-color-text-strong);
-  font-size: 0.8125rem;
-  height: 48px;
+  font-size: var(--text-table);
+  line-height: var(--text-table--line-height);
+  height: var(--table-row-h, var(--table-row-height-standard));
+  min-height: var(--table-row-h, var(--table-row-height-standard));
   padding: 8px 12px;
   text-align: left;
   vertical-align: middle;
@@ -348,14 +351,15 @@
 
 .ipc-search-field {
   display: grid;
-  gap: 0.5rem;
-  color: var(--ipc-color-text-muted);
+  gap: var(--ipc-space-1, 4px);
+  color: var(--ipc-slate-700);
 }
 
 .ipc-search-field__label {
   font-size: 0.75rem;
   font-weight: 700;
   line-height: 1rem;
+  color: var(--ipc-slate-700);
 }
 
 .ipc-search-field__description {
@@ -463,17 +467,26 @@
 
 .ipc-table-viewport[data-density="compact"] .ipc-data-table td,
 .ipc-table-shell[data-density="compact"] .ipc-data-table td {
-  height: 40px;
+  height: var(--table-row-height-compact);
+  min-height: var(--table-row-height-compact);
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
 .ipc-table-viewport[data-density="standard"] .ipc-data-table td,
 .ipc-table-shell[data-density="standard"] .ipc-data-table td {
-  height: 48px;
+  height: var(--table-row-height-standard);
+  min-height: var(--table-row-height-standard);
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .ipc-table-viewport[data-density="comfortable"] .ipc-data-table td,
 .ipc-table-shell[data-density="comfortable"] .ipc-data-table td {
-  height: 56px;
+  height: var(--table-row-height-relaxed);
+  min-height: var(--table-row-height-relaxed);
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 .ipc-schedule-table {
@@ -523,7 +536,6 @@
 
 .ipc-weekly-menu-shell {
   max-height: min(68vh, 720px);
-  overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
@@ -579,6 +591,11 @@
 .ipc-matrix-grid-table tbody tr:hover {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+.ipc-weekly-menu-shell tbody tr:hover > td,
+.ipc-matrix-grid-table tbody tr:hover > td {
+  background-color: unset;
 }
 
 /* Khóa cố định màu sắc cho thanh tiêu đề phân đoạn (MENU MẶN CA CHIỀU, MENU CHAY...) */

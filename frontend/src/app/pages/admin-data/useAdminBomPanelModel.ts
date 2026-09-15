@@ -32,10 +32,11 @@ type BomFormErrors = Partial<Record<BomFormField, string>>;
 export function useAdminBomPanelModel(
   activeView: AdminView,
   bomTemplateDishId: string | undefined,
+  initialScope?: { priceTier?: number; customerId?: string; effectiveFrom?: string },
 ) {
-  const [bomImportTier, setBomImportTier] = useState(25000);
-  const [bomImportCustomerId, setBomImportCustomerId] = useState('');
-  const [bomImportEffectiveFrom, setBomImportEffectiveFrom] = useState(getTodayInputValue());
+  const [bomImportTier, setBomImportTier] = useState(initialScope?.priceTier ?? 25000);
+  const [bomImportCustomerId, setBomImportCustomerId] = useState(initialScope?.customerId ?? '');
+  const [bomImportEffectiveFrom, setBomImportEffectiveFrom] = useState(initialScope?.effectiveFrom ?? getTodayInputValue());
   const [bomImportFile, setBomImportFile] = useState<File | null>(null);
   const [bomImportPreview, setBomImportPreview] = useState<BomImportPreview | null>(null);
   const [bomImportFeedback, setBomImportFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);

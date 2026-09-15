@@ -19,6 +19,7 @@ import {
 
 type QualityDraft = Record<string, { acceptedQuantity: string; reason: string }>;
 type CorrectionDraft = Record<string, string>;
+type ReceiptAction = 'quality' | 'post' | 'rework' | 'void' | 'correction';
 
 const WarehouseReceiptLifecycleDialogs = lazy(() => import('./WarehouseReceiptLifecycleDialogs').then(({ WarehouseReceiptLifecycleDialogs: component }) => ({ default: component })));
 
@@ -35,15 +36,20 @@ const messageFromError = (error: unknown, fallback: string) => {
 
 const statusLabel = (status: string, qualityStatus: string) => formatReceiptLifecycleStatus(status, qualityStatus);
 
-export function WarehouseReceiptLifecyclePanel() {
+type WarehouseReceiptLifecyclePanelProps = {
+  purchaseOrderId: string;
+  selectedReceiptId?: string;
+  onSelectReceipt: (receiptId?: string) => void;
+};
+
+export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceiptId, onSelectReceipt }: WarehouseReceiptLifecyclePanelProps) {
   const canInspectQuality = useHasRole(['thukho']);
   const canPost = useHasRole(['admin']);
   const canRework = useHasRole(['dieuphoi']);
   const canCorrect = canPost;
   const canVoid = canPost;
   const [receiptPageNumber, setReceiptPageNumber] = useState(1);
-  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE, purchaseOrderOnly: true });
-  const [selectedReceiptId, setSelectedReceiptId] = useState<string>();
+  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ purchaseOrderId, pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE, purchaseOrderOnly: true });
   const [qualityOpen, setQualityOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
   const [reworkOpen, setReworkOpen] = useState(false);
@@ -55,6 +61,13 @@ export function WarehouseReceiptLifecyclePanel() {
   const [correctionDraft, setCorrectionDraft] = useState<CorrectionDraft>({});
   const [qualityDraft, setQualityDraft] = useState<QualityDraft>({});
   const [feedback, setFeedback] = useState<string>();
+  const [actionCommandIds, setActionCommandIds] = useState<Record<ReceiptAction, string>>(() => ({
+    quality: commandId('receipt-quality'),
+    post: commandId('receipt-post'),
+    rework: commandId('receipt-rework'),
+    void: commandId('receipt-void'),
+    correction: commandId('receipt-correction'),
+  }));
   const [acceptQuality, { isLoading: isSubmittingQuality }] = useAcceptReceiptQualityMutation();
   const [postReceipt, { isLoading: isPosting }] = usePostWarehousePurchaseReceiptMutation();
   const [reworkReceipt, { isLoading: isReworking }] = useReworkWarehousePurchaseReceiptMutation();
@@ -64,12 +77,16 @@ export function WarehouseReceiptLifecyclePanel() {
   const canonicalReceipts = receiptPage?.items ?? [];
   const activeReceiptId = canonicalReceipts.some((item) => item.receiptId === selectedReceiptId)
     ? selectedReceiptId
-    : canonicalReceipts[0]?.receiptId;
+    : undefined;
   const { data: receipt, isFetching: isFetchingReceipt, isError: isReceiptError, refetch: refetchReceipt } = useGetInventoryReceiptByIdQuery(activeReceiptId!, { skip: !activeReceiptId });
   const isLifecycleBusy = isFetching || isFetchingReceipt;
 
   const refresh = async () => {
     await Promise.all([refetch(), activeReceiptId ? refetchReceipt() : Promise.resolve()]);
+  };
+
+  const renewCommand = (action: ReceiptAction) => {
+    setActionCommandIds((current) => ({ ...current, [action]: commandId(`receipt-${action}`) }));
   };
 
   const showQualityControl = Boolean(receipt && receipt.status === 'DRAFT' && receipt.qualityStatus === 'PENDING_INSPECTION' && canInspectQuality);
@@ -105,7 +122,11 @@ export function WarehouseReceiptLifecyclePanel() {
         reason: draft?.reason.trim() || null,
       };
     });
-    const invalidLine = lines.find((line) => !Number.isFinite(line.acceptedQuantity) || line.acceptedQuantity < 0 || line.rejectedQuantity > 0 && !line.reason);
+    const invalidLine = lines.find((line, index) =>
+      !Number.isFinite(line.acceptedQuantity)
+      || line.acceptedQuantity < 0
+      || line.acceptedQuantity > receipt.lines[index].quantity
+      || line.rejectedQuantity > 0 && !line.reason);
     if (invalidLine) {
       setFeedback('Nhập số lượng đạt hợp lệ; mọi phần không đạt phải có lý do.');
       return;
@@ -115,9 +136,10 @@ export function WarehouseReceiptLifecyclePanel() {
       await acceptQuality({
         purchaseOrderId: receipt.purchaseOrderId,
         receiptId: receipt.receiptId,
-        data: { commandId: commandId('receipt-quality'), expectedVersion: receipt.concurrencyVersion, lines },
+        data: { commandId: actionCommandIds.quality, expectedVersion: receipt.concurrencyVersion, lines },
       }).unwrap();
       setQualityOpen(false);
+      setQualityDraft({});
       setFeedback('Đã lưu kết quả chất lượng. Phiếu chỉ vào inbox Quản lý khi có số lượng đạt.');
       await refresh();
     } catch (error) {
@@ -131,7 +153,7 @@ export function WarehouseReceiptLifecyclePanel() {
       await postReceipt({
         purchaseOrderId: receipt.purchaseOrderId,
         receiptId: receipt.receiptId,
-        data: { commandId: commandId('receipt-post'), expectedVersion: receipt.concurrencyVersion },
+        data: { commandId: actionCommandIds.post, expectedVersion: receipt.concurrencyVersion },
       }).unwrap();
       setPostOpen(false);
       setFeedback('Đã ghi sổ kho cho phiếu nhập. Tồn kho và tiến độ đơn mua đã được cập nhật đúng một lần.');
@@ -150,7 +172,7 @@ export function WarehouseReceiptLifecyclePanel() {
       await reworkReceipt({
         purchaseOrderId: receipt.purchaseOrderId,
         receiptId: receipt.receiptId,
-        data: { commandId: commandId('receipt-rework'), expectedVersion: receipt.concurrencyVersion, reason: reworkReason.trim() },
+        data: { commandId: actionCommandIds.rework, expectedVersion: receipt.concurrencyVersion, reason: reworkReason.trim() },
       }).unwrap();
       setReworkOpen(false);
       setReworkReason('');
@@ -170,7 +192,7 @@ export function WarehouseReceiptLifecyclePanel() {
       await voidReceipt({
         purchaseOrderId: receipt.purchaseOrderId,
         receiptId: receipt.receiptId,
-        data: { commandId: commandId('receipt-void'), expectedVersion: receipt.concurrencyVersion, reason: voidReason.trim() },
+        data: { commandId: actionCommandIds.void, expectedVersion: receipt.concurrencyVersion, reason: voidReason.trim() },
       }).unwrap();
       setVoidOpen(false);
       setVoidReason('');
@@ -197,7 +219,7 @@ export function WarehouseReceiptLifecyclePanel() {
       const result = await createCorrection({
         purchaseOrderId: receipt.purchaseOrderId,
         receiptId: receipt.receiptId,
-        data: { commandId: commandId('receipt-correction'), expectedVersion: 0, reason: correctionReason.trim(), lines },
+        data: { commandId: actionCommandIds.correction, expectedVersion: 0, reason: correctionReason.trim(), lines },
       }).unwrap();
       setCorrectionOpen(false);
       setCorrectionReason('');
@@ -225,9 +247,9 @@ export function WarehouseReceiptLifecyclePanel() {
           Không coi danh sách trống là không có phiếu. Hãy tải lại trước khi đưa ra kết luận hoặc thao tác.
         </QueryErrorAlert>
       ) : (
-        <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="h-[220px] max-h-[220px]">
+        <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="max-h-[260px]">
           <table className="ipc-data-table min-w-[760px]">
-            <thead><tr><th>Phiếu</th><th>Nhà cung cấp</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
+            <thead><tr><th scope="col">Phiếu</th><th scope="col">Nhà cung cấp</th><th scope="col">Trạng thái</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {isFetching && canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Đang tải phiếu nhập…</td></tr>
                   : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Chưa có phiếu nhập cần xử lý trong trang này.</td></tr>
@@ -235,7 +257,7 @@ export function WarehouseReceiptLifecyclePanel() {
                     <td><IdentifierText value={item.receiptCode} className={cn(typography.code, 'font-semibold text-slate-900')} /></td>
                     <td>{item.supplierName ?? '—'}</td>
                     <td>{statusLabel(item.status, item.qualityStatus)}</td>
-                    <td className="text-right"><Button type="button" size="sm" variant="outline" onClick={() => { setSelectedReceiptId(item.receiptId); setFeedback(undefined); }}>Xem trạng thái</Button></td>
+                    <td className="text-right"><Button type="button" size="sm" variant="outline" onClick={() => { onSelectReceipt(item.receiptId); setQualityDraft({}); setReworkReason(''); setVoidReason(''); setCorrectionDraft({}); setCorrectionReason(''); setFeedback(undefined); }}>Xem trạng thái</Button></td>
                   </tr>)}
             </tbody>
           </table>
@@ -248,12 +270,13 @@ export function WarehouseReceiptLifecyclePanel() {
           totalItems={receiptPage?.totalCount ?? 0}
           onPageChange={(page) => {
             setReceiptPageNumber(page);
-            setSelectedReceiptId(undefined);
+            onSelectReceipt(undefined);
             setFeedback(undefined);
           }}
         />
       )}
 
+      {selectedReceiptId && !isFetching && !activeReceiptId && <InlineAlert title="Phiếu nhập không thuộc đơn mua đang chọn" variant="warning">Chọn lại phiếu nhập thuộc đơn mua này. Hệ thống không tự chuyển sang một phiếu khác.</InlineAlert>}
       {isReceiptError && <InlineAlert title="Không tải được chi tiết phiếu" variant="danger">Không thể xác định đủ các dòng nguyên liệu hoặc dữ liệu mới nhất; mọi thao tác đã bị chặn.</InlineAlert>}
       {isFetchingReceipt && activeReceiptId && <InlineAlert title="Đang tải các dòng nguyên liệu" variant="info">Đang lấy dữ liệu mới nhất trước khi cho phép thao tác.</InlineAlert>}
       {receipt && !isReceiptError && (
@@ -261,11 +284,11 @@ export function WarehouseReceiptLifecyclePanel() {
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><IdentifierText value={receipt.receiptCode} className="font-semibold text-slate-950" /><p className="text-xs text-slate-600">{statusLabel(receipt.status, receipt.qualityStatus)}</p></div>
             <div className="flex flex-wrap gap-2">
-              {showQualityControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setQualityOpen(true); }}><ClipboardCheck size={16} />Kiểm tra chất lượng</Button>}
-              {showPostControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); setPostOpen(true); }}><CheckCircle2 size={16} />Ghi sổ kho</Button>}
-              {showReworkControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setReworkReason(''); setReworkOpen(true); }}>Xử lý lại phiếu nhập</Button>}
-              {showVoidControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setVoidReason(''); setVoidOpen(true); }}><ShieldAlert size={16} />Hủy phiếu</Button>}
-              {showCorrectionControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); setCorrectionReason(''); setCorrectionDraft({}); setCorrectionOpen(true); }}>Điều chỉnh sau nhập</Button>}
+              {showQualityControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); renewCommand('quality'); setQualityOpen(true); }}><ClipboardCheck size={16} />Kiểm tra chất lượng</Button>}
+              {showPostControl && <Button type="button" size="sm" onClick={() => { setFeedback(undefined); renewCommand('post'); setPostOpen(true); }}><CheckCircle2 size={16} />Ghi sổ kho</Button>}
+              {showReworkControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); renewCommand('rework'); setReworkOpen(true); }}>Xử lý lại phiếu nhập</Button>}
+              {showVoidControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); renewCommand('void'); setVoidOpen(true); }}><ShieldAlert size={16} />Hủy phiếu</Button>}
+              {showCorrectionControl && <Button type="button" size="sm" variant="outline" onClick={() => { setFeedback(undefined); renewCommand('correction'); setCorrectionOpen(true); }}>Điều chỉnh sau nhập</Button>}
             </div>
           </div>
           <InlineAlert title="Điều kiện hành động" variant={showQualityControl || showPostControl ? 'info' : 'warning'}>{selectionReason}</InlineAlert>

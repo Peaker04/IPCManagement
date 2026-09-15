@@ -1,6 +1,8 @@
 'use client'
 
 import { AlertTriangle, Archive, CheckCircle, Loader2, Lock, LockOpen } from 'lucide-react'
+import { PageBanner } from '@/components/common'
+import type { StatusTone } from '@/lib/statusPresentation'
 
 interface OrderStatusBannerProps {
   status: 'syncing' | 'draft' | 'locked' | 'DRAFT' | 'CONFIRMED' | 'ADJUSTED' | 'COMPLETED' | 'ARCHIVED' | string
@@ -9,36 +11,31 @@ interface OrderStatusBannerProps {
 export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
   const normalizedStatus = status.toUpperCase()
   const presentation = status === 'syncing'
-    ? { title: 'Đang đồng bộ trạng thái đơn', detail: 'Đang lấy dữ liệu mới nhất.', tone: 'info', icon: Loader2, spin: true }
+    ? { title: 'Đang đồng bộ trạng thái đơn', detail: 'Đang lấy dữ liệu mới nhất.', tone: 'info' as StatusTone, icon: <Loader2 className="size-4 shrink-0" />, spin: true }
     : normalizedStatus === 'EMPTY'
-      ? { title: 'Chưa có kế hoạch suất ăn', detail: 'Không có dữ liệu để thao tác trong ca này.', tone: 'neutral', icon: LockOpen }
+      ? { title: 'Chưa có kế hoạch suất ăn', detail: 'Không có dữ liệu để thao tác trong ca này.', tone: 'neutral' as StatusTone, icon: <LockOpen className="size-4 shrink-0" /> }
       : normalizedStatus === 'MIXED'
-        ? { title: 'Trạng thái kế hoạch chưa đồng nhất', detail: 'Tải lại hoặc xử lý kế hoạch dở dang trước khi thao tác.', tone: 'warning', icon: AlertTriangle }
+        ? { title: 'Trạng thái kế hoạch chưa đồng nhất', detail: 'Tải lại hoặc xử lý kế hoạch dở dang trước khi thao tác.', tone: 'warning' as StatusTone, icon: <AlertTriangle className="size-4 shrink-0" /> }
         : status === 'locked' || normalizedStatus === 'CONFIRMED'
-          ? { title: 'Ca này đã khóa', detail: 'Điều chỉnh sau chốt cần ghi lý do.', tone: 'info', icon: Lock }
+          ? { title: 'Ca này đã khóa', detail: 'Điều chỉnh sau chốt cần ghi lý do.', tone: 'info' as StatusTone, icon: <Lock className="size-4 shrink-0" /> }
           : normalizedStatus === 'ADJUSTED'
-            ? { title: 'Ca này đã khóa và có điều chỉnh', detail: 'Số suất sau chốt đã được cập nhật.', tone: 'info', icon: Lock }
+            ? { title: 'Ca này đã khóa và có điều chỉnh', detail: 'Số suất sau chốt đã được cập nhật.', tone: 'info' as StatusTone, icon: <Lock className="size-4 shrink-0" /> }
             : normalizedStatus === 'COMPLETED'
-              ? { title: 'Ca này đã hoàn tất', detail: 'Dữ liệu đã ghi nhận vào nhật ký điều phối.', tone: 'success', icon: CheckCircle }
+              ? { title: 'Ca này đã hoàn tất', detail: 'Dữ liệu đã ghi nhận vào nhật ký điều phối.', tone: 'success' as StatusTone, icon: <CheckCircle className="size-4 shrink-0" /> }
               : normalizedStatus === 'ARCHIVED'
-                ? { title: 'Dữ liệu đã lưu trữ', detail: 'Chỉ dùng để tra cứu lịch sử.', tone: 'neutral', icon: Archive }
+                ? { title: 'Dữ liệu đã lưu trữ', detail: 'Chỉ dùng để tra cứu lịch sử.', tone: 'neutral' as StatusTone, icon: <Archive className="size-4 shrink-0" /> }
                 : normalizedStatus === 'CANCELLED'
-                  ? { title: 'Kế hoạch đã hủy', detail: 'Không thể chốt, hoàn tất hoặc điều chỉnh.', tone: 'warning', icon: Archive }
-                  : { title: 'Dữ liệu đang ở trạng thái nháp', detail: 'Kiểm tra số suất trước khi chốt đơn cả ngày.', tone: 'warning', icon: LockOpen }
-
-  const Icon = presentation.icon
-  const toneClasses = {
-    neutral: 'border-slate-200 bg-slate-50 text-slate-700',
-    info: 'border-blue-200 bg-blue-50 text-blue-800',
-    success: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    warning: 'border-amber-200 bg-amber-50 text-amber-900',
-  } as const
+                  ? { title: 'Kế hoạch đã hủy', detail: 'Không thể chốt, hoàn tất hoặc điều chỉnh.', tone: 'warning' as StatusTone, icon: <Archive className="size-4 shrink-0" /> }
+                  : { title: 'Dữ liệu đang ở trạng thái nháp', detail: 'Kiểm tra số suất trước khi chốt đơn cả ngày.', tone: 'warning' as StatusTone, icon: <LockOpen className="size-4 shrink-0" /> }
 
   return (
-    <div className={`ipc-order-status-banner flex items-center gap-2 border-b px-4 py-2 ${toneClasses[presentation.tone as keyof typeof toneClasses]}`} role="status">
-      <Icon className={`size-4 shrink-0 ${presentation.spin ? 'animate-spin' : ''}`} aria-hidden="true" />
-      <span className="text-sm font-semibold">{presentation.title}</span>
-      <span className="text-sm opacity-80">— {presentation.detail}</span>
-    </div>
+    <PageBanner
+      title={presentation.title}
+      detail={presentation.detail}
+      tone={presentation.tone}
+      icon={presentation.icon}
+      spin={presentation.spin}
+      className="ipc-order-status-banner"
+    />
   )
 }

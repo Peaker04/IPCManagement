@@ -1,8 +1,6 @@
 import { useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { ContextStripItem } from '@/components/common';
 import type { WorkflowReportQuery } from '@/api/workflowApiTypes';
-import { uiCopy } from '@/lib/uiCopy';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { buildCsv, downloadCsv } from './reportCsv';
 import {
@@ -174,8 +172,23 @@ export const useReportsPageModel = ({
     resetReportPages();
     updateSearchState({ page: '1' });
   };
+  const changeDateFrom = (value: string) => {
+    if (value === dateFrom) return;
+    setDateFrom(value);
+    resetReportPagesAndUrl();
+  };
+  const changeDateTo = (value: string) => {
+    if (value === dateTo) return;
+    setDateTo(value);
+    resetReportPagesAndUrl();
+  };
+  const changeShiftName = (value: string) => {
+    if (value === shiftName) return;
+    setShiftName(value);
+    resetReportPagesAndUrl();
+  };
   const reportViews = {
-    price: priceModel.activePriceView,
+    price: priceView,
     demand: demandPurchaseViews.demand,
     purchase: demandPurchaseViews.purchase,
     stock: stockMovementViews.stock,
@@ -193,6 +206,9 @@ export const useReportsPageModel = ({
     ...kitchenUsageExportConfigs,
     ...auditQualityExportConfigs,
   };
+  const canExportActiveReport =
+    activeReportView.phase === 'ready' &&
+    (exportConfig[activeView]?.rows.length ?? 0) > 0;
   const handleExportActiveReport = () => {
     const config = exportConfig[activeView];
     if (config.rows.length === 0) return;
@@ -200,18 +216,6 @@ export const useReportsPageModel = ({
     const timestamp = new Date().toISOString().slice(0, 10);
     downloadCsv(csv, `${config.filename}-${timestamp}.csv`);
   };
-  const reportContextItems: ContextStripItem[] = [
-    ...(canReadReceiptPriceVariance
-      ? [{ label: 'Cảnh báo giá trên trang', value: priceView.phase === 'ready' ? `${priceModel.warningItems.length}/${priceModel.priceVarianceRows.length}` : '—', tone: priceView.phase !== 'ready' ? 'neutral' as const : priceModel.warningItems.length ? 'danger' as const : 'success' as const }]
-      : []),
-    { label: 'Thiếu nguyên liệu', value: demandPurchaseViews.demand.phase === 'ready' ? demandPurchaseModel.shortageCount.toString() : '—', tone: demandPurchaseViews.demand.phase !== 'ready' ? 'neutral' : demandPurchaseModel.shortageCount ? 'danger' : 'success' },
-    { label: 'Dòng tồn kho', value: stockMovementViews.stock.phase === 'ready' ? stockMovementViews.stock.data.totalCount.toString() : '—', tone: 'neutral' },
-    ...(canReadAuditChanges
-      ? [{ label: uiCopy.reports.audit, value: auditQualityViews.audit.phase === 'ready' ? auditQualityModel.auditRows.length.toString() : '—', tone: 'neutral' as const }]
-      : []),
-    { label: uiCopy.reports.dataQuality, value: auditQualityViews['data-quality'].phase === 'ready' ? (auditQualityViews['data-quality'].data.totalIssues ?? 0).toString() : '—', tone: auditQualityViews['data-quality'].phase !== 'ready' ? 'neutral' : auditQualityModel.dataQualityRows.length ? 'warning' : 'success' },
-  ];
-
   return {
     ...priceModel,
     ...demandPurchaseModel,
@@ -220,10 +224,14 @@ export const useReportsPageModel = ({
     ...auditQualityModel,
     activeReportView,
     activeView,
+    canExportActiveReport,
     canReadAuditChanges,
     canReadPurchaseReports,
     canReadReceiptPriceVariance,
     canReadWarehouseReports,
+    changeDateFrom,
+    changeDateTo,
+    changeShiftName,
     dateFrom,
     dateTo,
     exportConfig,
@@ -233,7 +241,6 @@ export const useReportsPageModel = ({
     initialView,
     isViewPending,
     priceSubView,
-    reportContextItems,
     reportPageSize,
     reportQuery,
     reportViews,
@@ -243,14 +250,14 @@ export const useReportsPageModel = ({
     resetReportPages,
     resetReportPagesAndUrl,
     searchParams,
-    setDateFrom,
-    setDateTo,
+    setDateFrom: changeDateFrom,
+    setDateTo: changeDateTo,
     setNumberedPage,
     setNumberedPageSize,
     setRequestedPriceSubView,
     setRequestedView,
     setSearchParams,
-    setShiftName,
+    setShiftName: changeShiftName,
     setSortDirection,
     shiftName,
     sortDirection,

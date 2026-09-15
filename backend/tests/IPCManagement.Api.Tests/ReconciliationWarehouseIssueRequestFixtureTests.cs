@@ -121,7 +121,7 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.GetRoleNames(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(["WarehouseStaff"]);
         currentUser.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(actorId);
-        var controller = new InventoryIssuesController(service, currentUser);
+        var controller = new InventoryIssuesController(service, currentUser, requestContext);
 
         var conflict = await Assert.ThrowsAsync<SystemOperationConflictException>(() => controller.CreateAsync(request));
         Assert.Contains("thay đổi", conflict.Message, StringComparison.OrdinalIgnoreCase);

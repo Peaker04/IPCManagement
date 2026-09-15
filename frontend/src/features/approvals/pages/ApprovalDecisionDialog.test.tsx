@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import type { ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ApprovalDecisionDialog } from './ApprovalDecisionDialog'
+import type { InventoryReceipt } from '@/api/workflowApiTypes'
 
 const copy = { title: 'Duyệt đề xuất mua?', description: 'Kiểm tra trước khi duyệt.', safeLabel: 'Giữ đề xuất mua', submitLabel: 'Duyệt chứng từ' }
 
@@ -95,6 +96,24 @@ describe('ApprovalDecisionDialog controlled lazy contract', () => {
     await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-outside="true"]')!)
     expect(props.onClose).not.toHaveBeenCalled()
     expect(props.onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('shows receipt quality evidence before a manager decides', () => {
+    renderDialog({
+      receipt: {
+        receiptId: 'receipt-1', receiptCode: 'RCP-001', qualityCheckedAt: '2026-09-12T02:00:00Z',
+        lines: [{ receiptLineId: 'line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', unitName: 'kg', quantity: 10, acceptedQuantity: 8, rejectedQuantity: 2, qualityReason: 'Bao rách' }],
+      } as InventoryReceipt,
+    })
+
+    expect(screen.getByRole('region', { name: 'Bằng chứng kiểm tra phiếu nhập' })).toHaveTextContent('Đạt 8 kg · Không đạt 2 kg')
+    expect(screen.getByText('Lý do: Bao rách')).toBeVisible()
+  })
+
+  it('blocks a receipt decision when quality evidence cannot be loaded', () => {
+    renderDialog({ isReceiptError: true })
+    expect(screen.getByRole('alert')).toHaveTextContent('quyết định đang bị chặn')
+    expect(screen.getByRole('button', { name: copy.submitLabel })).toBeDisabled()
   })
 
   it('preserves dirty reason while exposing mutation error and retry', async () => {

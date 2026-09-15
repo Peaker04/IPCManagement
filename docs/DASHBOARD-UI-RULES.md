@@ -245,6 +245,7 @@ context phải cùng tone trên mọi màn. Không tự thêm mapping local ho�
 - **M2.9 (SHOULD)** Ưu tiên **undo** hơn **confirm** cho thao tác có thể hoàn tác; giữ confirm cho thao tác không thể hoàn tác.
 - **M2.10 (SHOULD)** Modal quan trọng nên có state trên URL để refresh và nút Back hoạt động đúng; Back đóng modal thay vì rời trang.
 - **M2.11 (MUST)** Nội dung trong modal tuân thủ toàn bộ rule `L`, `S`, `T`, `E`, `A` như mọi màn hình khác. Modal không phải vùng miễn trừ.
+- **M2.12 (MUST)** `DialogContent` dùng bố cục một chiều có `gap` token làm owner khoảng cách mặc định giữa header, body/error và footer. Consumer MUST NOT cộng thêm `mt-*`/`mb-*` tại cùng ranh giới. Chỉ modal/editor tự quản **khoảng cách giữa các region** bằng margin/padding riêng mới opt out rõ bằng `gap-0`; việc có body scroll riêng không tự tạo ngoại lệ. Modal có body scroll riêng phải giữ một body `min-h-0` với scroll owner duy nhất. Padding bên trong field group không thay thế hoặc cộng vào khoảng cách giữa các region.
 
 ### M3. Hiệu năng khi hiển thị modal
 
@@ -423,6 +424,8 @@ html { scrollbar-gutter: stable; }
 - **I6 (MUST)** Input số dùng đúng kiểu bàn phím, đúng đơn vị, đúng bước nhảy, và định dạng lại khi rời field.
 - **I7 (SHOULD)** Form dài chia nhóm có tiêu đề; form nhiều bước có stepper hiển thị tiến độ và cho quay lại.
 - **I8 (MUST)** Bảo toàn dữ liệu đang nhập khi lỗi mạng hoặc khi đóng nhầm (xem `M2.3`).
+- **I9 (MUST)** Anatomy field theo thứ tự label → control → guidance/error. Mỗi ranh giới chỉ có một spacing owner dùng token; không cộng parent `gap` với `mt-*`/`mb-*` của guidance/error. Các control cùng density và label một dòng trong cùng grid phải thẳng mép trên/dưới; label/helper dài được phép làm hàng cao tự nhiên, không dùng spacer giả để ép tổng chiều cao bằng nhau.
+- **I10 (MUST)** Container boundary có đúng một padding owner. `SectionPanel` padded mặc định sở hữu padding body; immediate wrapper bao toàn body MUST NOT lặp `p-*`/`px-*`. Bordered toolbar/card độc lập được phép có padding nội bộ; `SectionPanel padded={false}` phải thể hiện opt-out rõ. `TableViewport` mặc định/page-flow chỉ sở hữu scroll ngang của bảng; `size="weekly"` là ngoại lệ bounded vertical-scroll đã khai báo. Search/filter toolbar đứng ngoài cả hai loại viewport.
 
 ---
 

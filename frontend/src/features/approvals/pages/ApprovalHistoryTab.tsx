@@ -95,7 +95,7 @@ export default function ApprovalHistoryTab({
               <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
                 {purchaseRequests.map((request) => (
                   <Button key={request.purchaseRequestId} onClick={() => setSelectedPrId(request.purchaseRequestId)} variant="outline" textWrap="wrap" className={`w-full items-stretch justify-start p-3 text-left transition-colors flex flex-col gap-1 ${selectedPrId === request.purchaseRequestId ? 'bg-blue-50/50' : ''}`}>
-                    <div className="flex items-center justify-between"><span className="font-semibold text-slate-800 text-sm">{request.purchaseRequestCode}</span><StatusBadge variant={request.status === 'APPROVED' ? 'success' : request.status === 'REJECTED' ? 'danger' : 'warning'}>{formatWorkflowStatus(request.status)}</StatusBadge></div>
+                    <div className="flex items-center justify-between"><span className="font-semibold text-slate-800 text-sm">{request.purchaseRequestCode}</span><StatusBadge status={request.status} domain="purchase" /></div>
                     <div className="flex items-center justify-between text-xs text-slate-700"><span>Ngày mua: {request.purchaseForDate} {request.shiftName ? `(${request.shiftName})` : ''}</span><span>{request.lines?.length ?? 0} dòng</span></div>
                   </Button>
                 ))}

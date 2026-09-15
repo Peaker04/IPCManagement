@@ -5,7 +5,22 @@ import type { ApiResponse } from '@/types/api'
 export interface ReconciliationDisposition { category: string; reason: string; version: number; disposedAt: string }
 export type ReconciliationDispositionCategory = components['schemas']['ReconciliationDispositionCategoryDto']
 export interface ReconciliationLine { batchLineId: string; ingredientId: string; ingredientCode?: string | null; ingredientName?: string | null; canonicalUnitId: string; canonicalUnitName?: string | null; requiredQuantity: number; frozenTolerance: number; purchasedQuantity?: number | null; purchasedVersion?: number | null; issuedQuantity?: number | null; issuedVersion?: number | null; purchasedRequiredDifference?: number | null; issuedRequiredDifference?: number | null; purchasedIssuedDifference?: number | null; triggers: string[]; status: 'MATCHED'|'NEEDS_REVIEW'|'INCOMPLETE'; version: number; disposition?: ReconciliationDisposition | null; issueNotes?: string[] | null }
-export interface ReconciliationBatch { batchId: string; menuVersionId: string; quantityImportBatchId: string; status: 'DRAFT'|'READY'|'TRANSFERRED'|'IN_PROGRESS'|'COMPLETED'; version: number; createdAt: string; readyAt?: string|null; completedAt?: string|null; lines: ReconciliationLine[] }
+export interface ReconciliationBatch {
+  batchId: string
+  menuVersionId: string
+  quantityImportBatchId: string
+  status: 'DRAFT'|'READY'|'TRANSFERRED'|'IN_PROGRESS'|'COMPLETED'
+  version: number
+  createdAt: string
+  readyAt?: string|null
+  completedAt?: string|null
+  lines: ReconciliationLine[]
+  customerId?: string | null
+  customerName?: string | null
+  customerCode?: string | null
+  weekStartDate?: string | null
+  weekEndDate?: string | null
+}
 export type ReconciliationWarehouseTransfer = components['schemas']['ReconciliationWarehouseTransferDto']
 export type CreateReconciliationIssueRequest = components['schemas']['CreateInventoryIssueRequest']
 export type ReconciliationIssueCreated = components['schemas']['InventoryIssueCreatedDto']
@@ -20,6 +35,25 @@ export type QuantityImportCommit = components['schemas']['QuantityImportCommitDt
 export type PreviewQuantityImportRequest = components['schemas']['PreviewQuantityImportRequest']
 export type CommitQuantityImportRequest = components['schemas']['CommitQuantityImportRequest']
 
+export interface ReconciliationBatchDishMaterial {
+  batchLineId: string
+  ingredientId: string
+  ingredientCode?: string | null
+  ingredientName?: string | null
+  canonicalUnitId: string
+  canonicalUnitName?: string | null
+  grossQtyPerServing: number
+}
+
+export interface ReconciliationBatchDishScope { serviceDate: string; shiftName: string; frozenServings: number; currentServings: number; additionalServings: number }
+export interface ReconciliationBatchDishSummary {
+  dishId: string
+  dishCode: string
+  dishName: string
+  materials: ReconciliationBatchDishMaterial[]
+  scopes?: ReconciliationBatchDishScope[] | null
+}
+
 export const reconciliationOwnedQueryEndpointNames = new Set([
   'getReconciliationWeeklyMenu',
   'listReconciliationBatches',
@@ -29,6 +63,7 @@ export const reconciliationOwnedQueryEndpointNames = new Set([
   'listReconciliationIssueHistory',
   'getReconciliationIssue',
   'listReconciliationSourceChanges',
+  'listReconciliationBatchDishes',
 ])
 
 export const reconciliationOwnedMutationEndpointNames = new Set([
@@ -108,6 +143,7 @@ export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder =
   listReconciliationIssueHistory: builder.query<ReconciliationIssueHistoryPage, string>({ query: batchId => ({ url: '/inventory-issues', params: { sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: batchId, pageNumber: 1, pageSize: 20 } }), transformResponse: (r: ApiResponse<ReconciliationIssueHistoryPage>) => r.data ?? { items: [], totalCount: 0 }, providesTags: (_result, _error, batchId) => [{ type: 'ReconciliationIssueHistory', id: batchId }] }),
   getReconciliationIssue: builder.query<ReconciliationIssueHistoryItem, string>({ query: issueId => ({ url: `/inventory-issues/${issueId}`, params: { sourceFamily: 'MATERIAL_RECONCILIATION' } }), transformResponse: (r: ApiResponse<ReconciliationIssueHistoryItem>) => r.data!, providesTags: (_result, _error, issueId) => [{ type: 'ReconciliationIssueHistory', id: issueId }] }),
   listReconciliationSourceChanges: builder.query<ReconciliationSourceChange[], string>({ query: batchId => `/reconciliation/batches/${batchId}/source-changes`, transformResponse: (r: ApiResponse<ReconciliationSourceChange[]>) => r.data ?? [], providesTags: (_result, _error, batchId) => [{ type: 'ReconciliationBatches', id: batchId }] }),
+  listReconciliationBatchDishes: builder.query<ReconciliationBatchDishSummary[], string>({ query: id => `/reconciliation/batches/${id}/dishes`, transformResponse: (r: ApiResponse<ReconciliationBatchDishSummary[]>) => r.data ?? [], providesTags: (_result, _error, id) => [{ type: 'ReconciliationBatches', id: `${id}-dishes` }] }),
   createReconciliationIssue: builder.mutation<ReconciliationIssueCreated, CreateReconciliationIssueRequest>({ query: body => ({ url: '/inventory-issues', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationIssueCreated>) => r.data!, invalidatesTags: (_result, _error, body) => [{ type: 'ReconciliationBatches', id: body.reconciliationBatchId! }, { type: 'ReconciliationIssueHistory', id: body.reconciliationBatchId! }] }),
   completeReconciliationBatch: builder.mutation<ReconciliationBatch,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/complete`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags:['ReconciliationBatches'] }),
   setReconciliationDisposition: builder.mutation<void,{lineId:string;category:string;reason:string;expectedVersion?:number}>({query:({lineId,...body})=>({url:`/reconciliation/lines/${lineId}/disposition`,method:'PUT',body}),invalidatesTags:['ReconciliationBatches']}),
@@ -126,6 +162,7 @@ export const {
   useListReconciliationIssueHistoryQuery,
   useGetReconciliationIssueQuery,
   useListReconciliationSourceChangesQuery,
+  useListReconciliationBatchDishesQuery,
   useCreateReconciliationIssueMutation,
   useCompleteReconciliationBatchMutation,
   useGetReconciliationBatchQuery,

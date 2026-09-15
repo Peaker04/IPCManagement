@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import type { OrderRow } from '../types'
 import { getMenuDishSlotLabel, groupMenuDishes, type MenuDishRole } from '../dishRole'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { NotificationBadge } from '@/components/common'
 import { useLazyGetMenuSchedulesQuery } from '@/api/coordinationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
@@ -98,9 +99,7 @@ export function DishDetailDialog({ order, onClose }: DishDetailDialogProps) {
                       <section key={group.key} className="overflow-hidden rounded-md border border-slate-200 bg-white" aria-labelledby={headingId}>
                         <div className={`flex items-center gap-2 border-b px-3 py-2 ${style.header}`}>
                           <h4 id={headingId} className="text-sm font-semibold">{group.label}</h4>
-                          <span className={`ml-auto inline-flex min-w-5 justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${style.badge}`}>
-                            {group.dishes.length}
-                          </span>
+                          <NotificationBadge count={group.dishes.length} className="ml-auto" />
                         </div>
                         <ul className="divide-y divide-slate-200">
                           {group.dishes.map((dish) => {

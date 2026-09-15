@@ -40,7 +40,7 @@ GSD `.planning/` là process/state owner duy nhất. `.artifacts/` giữ output 
 | Thêm/sửa/archive harness knowledge | [GOVERNANCE.md](GOVERNANCE.md), [MAINTENANCE.md](MAINTENANCE.md) |
 | Domain/UI/system behavior | Các file canonical được `docs/README.md` định tuyến |
 | Historical work | `HISTORY.md`, `docs/archive/` |
-| Evidence | `.artifacts/`, `docs/EVIDENCE-INDEX.md` |
+| Evidence | [Artifact retention](ARTIFACTS.md), `.artifacts/`, `docs/EVIDENCE-INDEX.md` |
 
 Source/runtime mô tả điều đang xảy ra nhưng không tự hợp pháp hóa behavior trái expected contract. Khi mâu thuẫn, ghi discrepancy và xác minh owner; không sửa tài liệu theo bug để lấy PASS.
 

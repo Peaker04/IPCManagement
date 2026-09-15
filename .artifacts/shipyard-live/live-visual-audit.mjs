@@ -14,6 +14,7 @@ const attributionEnabled = process.env.IPC_VISUAL_ATTRIBUTION === 'true';
 const geometryEnabled = process.env.IPC_VISUAL_GEOMETRY === 'true';
 const dashboardUiRulesProfile = auditProfile === 'dashboard-ui-rules';
 if (database === 'ipc_lane1') throw new Error('Protected ipc_lane1 is prohibited for this visual audit.');
+const username = process.env.IPC_VISUAL_USERNAME ?? 'admin';
 const password = process.env.K6_PASSWORD;
 if (!password) throw new Error('K6_PASSWORD is required; default credentials are prohibited.');
 
@@ -53,7 +54,7 @@ const allRoutes = dashboardUiRulesProfile ? [
   ...['production','documents'].map((view) => ({ name: `chef-${view}`, path: `/chef-dashboard?view=${view}` })),
   ...['queue','history'].map((view) => ({ name: `approvals-${view}`, path: `/approvals?view=${view}` })),
   ...['workflow','supplemental','quotations'].map((view) => ({ name: `purchasing-${view}`, path: `/purchasing?view=${view}` })),
-  ...['movement','demand','exceptions'].map((view) => ({ name: `warehouse-${view}`, path: `/warehouse?view=${view}` })),
+  ...['receiving','demand','exceptions','movement'].map((view) => ({ name: `warehouse-${view}`, path: `/warehouse?view=${view}` })),
   { name: 'reconciliation', path: '/reconciliation' },
   ...['price','demand','purchase','stock','movement','kitchen','usage','audit','data-quality'].map((view) => ({ name: `reports-${view}`, path: `/reports?view=${view}` })),
   ...['bom-import','contracts','cleanup','inventory','statistics','audit','employees'].map((view) => ({ name: `admin-data-${view}`, path: `/admin-data?view=${view}` })),
@@ -391,7 +392,7 @@ try {
   await page.goto(`${baseUrl}/login`);
   await settle();
   if (await page.locator('#username').isVisible().catch(() => false)) {
-    await page.locator('#username').fill('admin');
+    await page.locator('#username').fill(username);
     await page.locator('#password').fill(password);
     actionStartedAt = Date.now();
     await Promise.all([

@@ -25,7 +25,7 @@ describe('QueryViewBoundary', () => {
   it('keeps uninitialized distinct from empty', () => {
     renderBoundary([{ phase: 'uninitialized', instruction: 'Chọn khách hàng.' }])
     expect(screen.getByText('Chọn khách hàng.')).toBeInTheDocument()
-    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+    expect(screen.getByText('Kết quả điều phối').parentElement).toHaveClass('invisible')
   })
 
   it('keeps compact controls content-sized instead of applying a table placeholder', () => {
@@ -36,16 +36,22 @@ describe('QueryViewBoundary', () => {
     expect(boundary).not.toHaveClass('min-h-[380px]')
   })
 
+  it.each(['section', 'table', 'workspace'] as const)('does not impose a generic %s height', (geometry) => {
+    const { container } = render(<QueryViewBoundary geometry={geometry} queries={[{ label: 'dữ liệu', view: ready() }]}><div>Kết quả</div></QueryViewBoundary>)
+    expect(container.firstElementChild).toHaveClass('min-h-0')
+    expect(container.firstElementChild).not.toHaveClass('min-h-[180px]', 'min-h-[380px]')
+  })
+
   it('blocks children when any required dependency is still uninitialized', () => {
     renderBoundary([ready(), { phase: 'uninitialized', instruction: 'Chọn phạm vi.' }])
     expect(screen.getByText('Chọn phạm vi.')).toBeInTheDocument()
-    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+    expect(screen.getByText('Kết quả điều phối').parentElement).toHaveClass('invisible')
   })
 
   it('blocks false-empty while loading', () => {
     renderBoundary([{ phase: 'loading' }])
     expect(screen.getByText('Đang tải nguồn 1')).toBeInTheDocument()
-    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+    expect(screen.getByText('Kết quả điều phối').parentElement).toHaveClass('invisible')
   })
 
   it('renders forbidden without retry', () => {
@@ -59,7 +65,7 @@ describe('QueryViewBoundary', () => {
     renderBoundary([{ phase: 'error', message: 'Lỗi máy chủ.', retry, isRetrying: false }])
     fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }))
     expect(retry).toHaveBeenCalledOnce()
-    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+    expect(screen.getByText('Kết quả điều phối').parentElement).toHaveClass('invisible')
   })
 
   it('prioritizes an actionable failure over an earlier passive loading state', () => {
@@ -70,7 +76,22 @@ describe('QueryViewBoundary', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Lỗi chỉ số.')
     expect(screen.queryByText('Đang tải nguồn 1')).toBeNull()
-    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+    expect(screen.getByText('Kết quả điều phối').parentElement).toHaveClass('invisible')
+  })
+
+  it('retains and unlocks the same shell across blocking and ready', () => {
+    const { rerender } = renderBoundary([{ phase: 'loading' }])
+    const shell = screen.getByText('Kết quả điều phối')
+    expect(shell.parentElement).toHaveAttribute('inert')
+    expect(shell.parentElement).toHaveAttribute('aria-hidden', 'true')
+
+    rerender(
+      <QueryViewBoundary queries={[{ label: 'nguồn 1', view: ready() }]}>
+        <div>Kết quả điều phối</div>
+      </QueryViewBoundary>,
+    )
+    expect(screen.getByText('Kết quả điều phối')).toBe(shell)
+    expect(shell.parentElement).not.toHaveClass('invisible')
   })
 
   it('renders ready-empty as an authoritative result', () => {
@@ -91,6 +112,17 @@ describe('QueryViewBoundary', () => {
     renderBoundary([ready({ truncation: { shown: 20, total: 25 } })])
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
     expect(screen.getByText(/20\/25 dòng; kết quả này chưa đầy đủ/)).toBeInTheDocument()
+  })
+
+  it.each([
+    { phase: 'loading' } as QueryView<unknown>,
+    { phase: 'uninitialized', instruction: 'Chọn phạm vi.' } as QueryView<unknown>,
+  ])('does not expose fallback content during preserved $phase', (view) => {
+    renderBoundary([view], true)
+    const shell = screen.getByText('Kết quả điều phối').parentElement
+    expect(shell).toHaveClass('invisible')
+    expect(shell).toHaveAttribute('inert')
+    expect(shell).toHaveAttribute('aria-hidden', 'true')
   })
 
   it('preserves explicitly available fallback data on failure', () => {

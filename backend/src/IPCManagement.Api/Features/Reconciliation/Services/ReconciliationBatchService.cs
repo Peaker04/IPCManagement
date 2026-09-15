@@ -26,7 +26,15 @@ public sealed class ReconciliationBatchService(
         var actuals = await context.Reconciliationactuals.AsNoTracking().Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(token);
         var dispositions = await context.Reconciliationdispositions.AsNoTracking().Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(token);
         var issued = await LoadLinkedIssuedQuantitiesAsync(lineIds, token);
-        return batches.Select(batch => Map(batch, actuals, dispositions, issued)).ToList();
+
+        var customerMap = await LoadCustomersForBatchesAsync(batches, token);
+        var weekMap = await LoadWeeksForBatchesAsync(batches, token);
+        return batches.Select(batch => {
+            var menuVersionKey = Convert.ToHexString(batch.MenuVersionId);
+            customerMap.TryGetValue(menuVersionKey, out var customer);
+            weekMap.TryGetValue(menuVersionKey, out var weekStartDate);
+            return Map(batch, actuals, dispositions, issued, customer: customer, weekStartDate: weekStartDate);
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<ReconciliationDraftSourceDto>> ListDraftSourcesAsync(CancellationToken token = default)
@@ -77,7 +85,8 @@ public sealed class ReconciliationBatchService(
                 .Select(audit => new { audit.EntityId, audit.Reason }).ToListAsync(token))
             .GroupBy(audit => Convert.ToHexString(audit.EntityId!))
             .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.Select(audit => audit.Reason!).ToList(), StringComparer.Ordinal);
-        return Map(batch, actuals, dispositions, issued, batchLines, issueNotes);
+        var customer = await TryGetCustomerAsync(batch.MenuVersionId, token);
+        return Map(batch, actuals, dispositions, issued, batchLines, issueNotes, customer);
     }
 
     public async Task<IReadOnlyList<ReconciliationSourceChangeDto>> ListSourceChangesAsync(string id, CancellationToken token = default)
@@ -136,6 +145,123 @@ public sealed class ReconciliationBatchService(
             .OrderByDescending(change => change.ChangedAt)
             .ThenByDescending(change => change.ChangeId, StringComparer.Ordinal)
             .ToList();
+    }
+
+    public async Task<IReadOnlyList<ReconciliationBatchDishSummaryDto>> ListDishesAsync(string id, CancellationToken token = default)
+    {
+        var batchId = RequiredId(id);
+        var batch = await context.Reconciliationbatches.AsNoTracking()
+            .Include(item => item.Lines).ThenInclude(line => line.Ingredient)
+            .Include(item => item.Lines).ThenInclude(line => line.CanonicalUnit)
+            .SingleOrDefaultAsync(item => item.BatchId == batchId, token)
+            ?? throw new KeyNotFoundException("Không tìm thấy lô đối chiếu.");
+
+        var batchLinesById = batch.Lines.ToDictionary(line => Convert.ToHexString(line.BatchLineId), StringComparer.Ordinal);
+        var batchLineIds = batch.Lines.Select(line => line.BatchLineId).ToList();
+
+        var contributors = await context.Reconciliationbatchcontributors.AsNoTracking()
+            .Where(contributor => batchLineIds.Contains(contributor.BatchLineId)).ToListAsync(token);
+        var dishBomIds = contributors.Select(contributor => contributor.DishBomId).Distinct().ToList();
+        var quantityPlanLineIds = contributors.Select(contributor => contributor.MealQuantityPlanLineId).ToList();
+        var planLines = await context.Mealquantityplanlines.AsNoTracking()
+            .Where(line => quantityPlanLineIds.Contains(line.QuantityPlanLineId))
+            .Include(line => line.MenuSchedule)
+            .ToListAsync(token);
+        var planLinesById = planLines.ToDictionary(line => Convert.ToHexString(line.QuantityPlanLineId), StringComparer.Ordinal);
+
+        var boms = await context.Dishboms.AsNoTracking()
+            .Where(bom => dishBomIds.Contains(bom.BomId))
+            .Include(bom => bom.Dish)
+            .Include(bom => bom.Ingredient).ThenInclude(ingredient => ingredient.Unit)
+            .Include(bom => bom.Unit)
+            .ToListAsync(token);
+
+        var contributorMap = contributors
+            .GroupBy(contributor => Convert.ToHexString(contributor.DishBomId))
+            .ToDictionary(group => group.Key, group =>
+            {
+                var batchLineIds = group
+                    .Select(contributor => Convert.ToHexString(contributor.BatchLineId))
+                    .Distinct(StringComparer.Ordinal)
+                    .ToList();
+                if (batchLineIds.Count != 1)
+                    throw new BusinessRuleException("Nguồn định mức của món không ánh xạ duy nhất tới dòng đã đóng băng; hãy chọn nguyên liệu trực tiếp từ lô để xuất thêm.");
+                return group.First().BatchLineId;
+            }, StringComparer.Ordinal);
+
+        var groupedByDish = boms
+            .GroupBy(bom => Convert.ToHexString(bom.DishId))
+            .Select(group =>
+            {
+                var firstBom = group.First();
+                var materials = group.Select(bom =>
+                {
+                    contributorMap.TryGetValue(Convert.ToHexString(bom.BomId), out var matchingLineId);
+                    ReconciliationBatchLine? matchingLine = null;
+                    if (matchingLineId is not null)
+                    {
+                        batchLinesById.TryGetValue(Convert.ToHexString(matchingLineId), out matchingLine);
+                    }
+                    if (matchingLine is null || !matchingLine.IngredientId.SequenceEqual(bom.IngredientId))
+                        throw new BusinessRuleException("Nguyên liệu BOM hiện hành không khớp dòng đã đóng băng; hãy chọn nguyên liệu trực tiếp từ lô để xuất thêm.");
+                    if (matchingLine.CanonicalUnit is null || bom.Unit is null) return null;
+                    var grossConverted = ConvertToCanonical(bom.GrossQtyPerServing, bom.Unit, matchingLine.CanonicalUnit);
+                    return new ReconciliationBatchDishMaterialDto(
+                        GuidHelper.ToGuidString(matchingLine.BatchLineId),
+                        GuidHelper.ToGuidString(bom.IngredientId),
+                        bom.Ingredient?.IngredientCode,
+                        bom.Ingredient?.IngredientName,
+                        GuidHelper.ToGuidString(matchingLine.CanonicalUnitId),
+                        matchingLine.CanonicalUnit?.UnitName,
+                        // Round the final issue quantity after multiplying servings, not this rate.
+                        grossConverted);
+                })
+                .Where(m => m != null)
+                .Select(m => m!)
+                .ToList();
+
+                var groupBomIds = group.Select(bom => Convert.ToHexString(bom.BomId)).ToHashSet(StringComparer.Ordinal);
+                var bomById = group.ToDictionary(bom => Convert.ToHexString(bom.BomId), StringComparer.Ordinal);
+                var scopes = contributors
+                    .Where(contributor => groupBomIds.Contains(Convert.ToHexString(contributor.DishBomId)))
+                    .GroupBy(contributor => Convert.ToHexString(contributor.MealQuantityPlanLineId))
+                    .Select(contributorGroup =>
+                    {
+                        if (!planLinesById.TryGetValue(contributorGroup.Key, out var planLine) || planLine.MenuSchedule is null) return null;
+                        var frozenCandidates = contributorGroup.Select(contributor =>
+                        {
+                            if (!bomById.TryGetValue(Convert.ToHexString(contributor.DishBomId), out var bom)) return 0m;
+                            if (!batchLinesById.TryGetValue(Convert.ToHexString(contributor.BatchLineId), out var frozenLine) || bom.Unit is null || frozenLine.CanonicalUnit is null) return 0m;
+                            var rate = ConvertToCanonical(bom.GrossQtyPerServing, bom.Unit, frozenLine.CanonicalUnit);
+                            return rate > 0 ? contributor.SourceQuantity / rate : 0m;
+                        }).Where(value => value > 0).ToList();
+                        if (frozenCandidates.Count == 0) return null;
+                        var frozenServings = (int)Math.Round(frozenCandidates.Average(), MidpointRounding.AwayFromZero);
+                        return new ReconciliationBatchDishScopeDto(
+                            planLine.MenuSchedule.ServiceDate.ToString("yyyy-MM-dd"),
+                            planLine.ShiftName,
+                            frozenServings,
+                            planLine.FinalServings,
+                            Math.Max(0, planLine.FinalServings - frozenServings));
+                    })
+                    .Where(scope => scope is not null)
+                    .Select(scope => scope!)
+                    .OrderBy(scope => scope.ServiceDate)
+                    .ThenBy(scope => scope.ShiftName)
+                    .ToList();
+
+                return new ReconciliationBatchDishSummaryDto(
+                    GuidHelper.ToGuidString(firstBom.DishId),
+                    firstBom.Dish?.DishCode ?? "",
+                    firstBom.Dish?.DishName ?? "Món chưa đặt tên",
+                    materials,
+                    scopes);
+            })
+            .Where(d => d.Materials.Count > 0)
+            .OrderBy(d => d.DishName)
+            .ToList();
+
+        return groupedByDish;
     }
 
     public async Task<ReconciliationBatchDto> CreateDraftAsync(CreateReconciliationDraftRequest request, string actorId, CancellationToken token = default)
@@ -442,17 +568,114 @@ public sealed class ReconciliationBatchService(
         IReadOnlyList<ReconciliationDisposition> dispositions,
         IReadOnlyDictionary<string, decimal>? linkedIssued = null,
         IReadOnlyList<ReconciliationBatchLine>? explicitLines = null,
-        IReadOnlyDictionary<string, IReadOnlyList<string>>? issueNotes = null) =>
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? issueNotes = null,
+        (string? CustomerId, string? CustomerName, string? CustomerCode)? customer = null,
+        DateOnly? weekStartDate = null) =>
         new(GuidHelper.ToGuidString(batch.BatchId), GuidHelper.ToGuidString(batch.MenuVersionId), GuidHelper.ToGuidString(batch.QuantityImportBatchId), batch.Status, batch.Version, batch.CreatedAt, batch.ReadyAt, batch.CompletedAt,
             (explicitLines ?? batch.Lines.ToList()).Select(line => ReconciliationComparisonService.Map(
                 line,
                 actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
                 dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
                 LinkedQuantity(linkedIssued, line.BatchLineId),
-                issueNotes?.GetValueOrDefault(Convert.ToHexString(line.BatchLineId)))).ToList());
+                issueNotes?.GetValueOrDefault(Convert.ToHexString(line.BatchLineId)))).ToList())
+        {
+            CustomerId = customer?.CustomerId,
+            CustomerName = customer?.CustomerName,
+            CustomerCode = customer?.CustomerCode,
+            WeekStartDate = weekStartDate,
+            WeekEndDate = weekStartDate?.AddDays(5)
+        };
 
     internal static decimal? LinkedQuantity(IReadOnlyDictionary<string, decimal>? linkedIssued, byte[] batchLineId) =>
         linkedIssued is not null && linkedIssued.TryGetValue(Convert.ToHexString(batchLineId), out var quantity) ? quantity : null;
 
     internal static byte[] RequiredId(string id) => GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("ID không hợp lệ.");
+
+    private async Task<(string? CustomerId, string? CustomerName, string? CustomerCode)?> TryGetCustomerAsync(byte[] menuVersionId, CancellationToken token)
+    {
+        if (context.Model.FindEntityType(typeof(MenuVersion)) is null)
+            return null;
+
+        var menuVersion = await context.Menuversions.AsNoTracking()
+            .Where(mv => mv.MenuVersionId == menuVersionId)
+            .Select(mv => new { mv.CustomerId })
+            .SingleOrDefaultAsync(token);
+
+        if (menuVersion is null)
+            return null;
+
+        var customerId = GuidHelper.ToGuidString(menuVersion.CustomerId);
+
+        if (context.Model.FindEntityType(typeof(Customer)) is null)
+            return (customerId, null, null);
+
+        var customer = await context.Customers.AsNoTracking()
+            .Where(c => c.CustomerId == menuVersion.CustomerId)
+            .Select(c => new { c.CustomerName, c.CustomerCode })
+            .SingleOrDefaultAsync(token);
+
+        return (customerId, customer?.CustomerName, customer?.CustomerCode);
+    }
+
+    private async Task<IReadOnlyDictionary<string, DateOnly>> LoadWeeksForBatchesAsync(IReadOnlyList<ReconciliationBatch> batches, CancellationToken token)
+    {
+        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null)
+            return new Dictionary<string, DateOnly>(StringComparer.Ordinal);
+        var menuVersionIds = batches.Select(batch => batch.MenuVersionId).Distinct().ToList();
+        return await context.Menuversions.AsNoTracking()
+            .Where(version => menuVersionIds.Contains(version.MenuVersionId))
+            .ToDictionaryAsync(version => Convert.ToHexString(version.MenuVersionId), version => version.WeekStartDate, StringComparer.Ordinal, token);
+    }
+
+    private async Task<IReadOnlyDictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>> LoadCustomersForBatchesAsync(
+        IReadOnlyList<ReconciliationBatch> batches,
+        CancellationToken token)
+    {
+        var result = new Dictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>(StringComparer.Ordinal);
+        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null)
+            return result;
+
+        var menuVersionIds = batches.Select(x => x.MenuVersionId).Distinct().ToList();
+        var menuVersions = await context.Menuversions.AsNoTracking()
+            .Where(mv => menuVersionIds.Contains(mv.MenuVersionId))
+            .Select(mv => new { mv.MenuVersionId, mv.CustomerId })
+            .ToListAsync(token);
+
+        if (menuVersions.Count == 0)
+            return result;
+
+        Dictionary<string, (string CustomerName, string CustomerCode)>? customerLookup = null;
+        if (context.Model.FindEntityType(typeof(Customer)) is not null)
+        {
+            var customerIds = menuVersions.Select(mv => mv.CustomerId).Distinct().ToList();
+            var customers = await context.Customers.AsNoTracking()
+                .Where(c => customerIds.Contains(c.CustomerId))
+                .Select(c => new { c.CustomerId, c.CustomerName, c.CustomerCode })
+                .ToListAsync(token);
+            customerLookup = customers.ToDictionary(
+                c => Convert.ToHexString(c.CustomerId),
+                c => (c.CustomerName, c.CustomerCode),
+                StringComparer.Ordinal
+            );
+        }
+
+        foreach (var mv in menuVersions)
+        {
+            string? name = null;
+            string? code = null;
+            if (customerLookup is not null && customerLookup.TryGetValue(Convert.ToHexString(mv.CustomerId), out var cInfo))
+            {
+                name = cInfo.CustomerName;
+                code = cInfo.CustomerCode;
+            }
+
+            result[Convert.ToHexString(mv.MenuVersionId)] = (
+                GuidHelper.ToGuidString(mv.CustomerId),
+                name,
+                code
+            );
+        }
+
+        return result;
+    }
 }

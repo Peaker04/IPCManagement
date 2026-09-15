@@ -9,6 +9,7 @@ import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/type
 import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
 import { ROUTES } from '@/lib/routeConfig';
 import { toLabeledQueryView } from '@/lib/labeledQueryView';
+import { useHasPermission } from '@/lib/useHasPermission';
 
 const queuePriority: Record<WorkflowTone, number> = {
   danger: 0,
@@ -59,9 +60,11 @@ const getQueueCategory = (item: RoleInboxItem): Exclude<DashboardQueueCategory, 
 };
 
 export default function DefaultDashboardPage() {
-  const workflowOverview = useWorkflowOverview();
+  const canReadPurchaseReports = useHasPermission('purchase.read');
+  const workflowOverview = useWorkflowOverview({ skipPrice: !canReadPurchaseReports });
   const kpiQuery = useGetOperationalKpisQuery();
   const [activeQueueFilter, setActiveQueueFilter] = useState<DashboardQueueCategory>('all');
+  const [isQueueExpanded, setIsQueueExpanded] = useState(false);
   const workflowData = { roleInboxItems: workflowOverview.roleInboxItems, workflowLanes: workflowOverview.workflowLanes };
   const workflowView = toLabeledQueryView({
     ...workflowOverview,
@@ -97,7 +100,7 @@ export default function DefaultDashboardPage() {
       key: 'menu',
       order: '01',
       title: 'Menu & số suất',
-      description: 'Điều phối chốt menu, khách và ca phục vụ.',
+      description: 'Chốt menu và số suất.',
       lanes: [laneById.get('coordination')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.MEAL_ORDERS,
     },
@@ -105,7 +108,7 @@ export default function DefaultDashboardPage() {
       key: 'bom',
       order: '02',
       title: 'Định lượng BOM',
-      description: 'KHSX kiểm mức BOM, định lượng và tồn kho.',
+      description: 'Kiểm BOM và định lượng.',
       lanes: [laneById.get('planning'), laneById.get('admin')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.WEEKLY_MENU,
     },
@@ -113,7 +116,7 @@ export default function DefaultDashboardPage() {
       key: 'purchase',
       order: '03',
       title: 'Duyệt & thu mua',
-      description: 'Quản lý duyệt, thu mua chọn NCC và theo receipt.',
+      description: 'Duyệt và xử lý mua hàng.',
       lanes: [laneById.get('management'), laneById.get('purchasing')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.PURCHASING,
     },
@@ -121,7 +124,7 @@ export default function DefaultDashboardPage() {
       key: 'kitchen',
       order: '04',
       title: 'Kho & bếp',
-      description: 'Thủ kho xuất nguyên liệu, bếp xác nhận nhận hàng.',
+      description: 'Xuất kho và Bếp xác nhận.',
       lanes: [laneById.get('warehouse'), laneById.get('kitchen')].filter(Boolean) as WorkflowLane[],
       route: ROUTES.WAREHOUSE,
     },
@@ -140,7 +143,7 @@ export default function DefaultDashboardPage() {
       key: 'purchase',
       label: 'Thu mua trễ',
       value: overduePurchaseCount + lateReceiptCount,
-      helper: `${overduePurchaseCount} PR / ${lateReceiptCount} receipt`,
+      helper: `${overduePurchaseCount} đề nghị mua / ${lateReceiptCount} phiếu nhập`,
       numberTone: overduePurchaseCount + lateReceiptCount > 0 ? 'warning' : 'neutral',
       route: `${ROUTES.REPORTS}?view=purchase`,
     },
@@ -148,7 +151,7 @@ export default function DefaultDashboardPage() {
       key: 'kitchen',
       label: 'Bếp chờ xác nhận',
       value: pendingKitchenCount,
-      helper: 'Issue chưa nhận bếp',
+      helper: 'Phiếu xuất chưa được Bếp nhận',
       numberTone: pendingKitchenCount > 0 ? 'warning' : 'neutral',
       route: `${ROUTES.REPORTS}?view=kitchen`,
     },
@@ -170,50 +173,6 @@ export default function DefaultDashboardPage() {
     },
   ] as const;
 
-  const syntheticItems: DashboardQueueItem[] = [];
-
-  if (shortageCount + lowStockCount > 0) {
-    syntheticItems.push({
-      id: 'kpi-material-shortage',
-      category: 'purchase',
-      owner: 'Thu mua',
-      title: 'Thiếu hoặc tồn thấp nguyên liệu',
-      description: `${shortageCount} thiếu hụt / ${lowStockCount} tồn thấp`,
-      due: 'Trước đặt hàng',
-      nextAction: 'Mở kế hoạch mua',
-      tone: shortageCount > 0 ? 'danger' : 'warning',
-      route: `${ROUTES.REPORTS}?view=demand`,
-    });
-  }
-
-  if (failedWorkflowCount + criticalDataCount > 0) {
-    syntheticItems.push({
-      id: 'kpi-data-blockers',
-      category: 'data',
-      owner: 'Admin',
-      title: 'Dữ liệu đang chặn luồng',
-      description: `${failedWorkflowCount} workflow lỗi / ${criticalDataCount} lỗi dữ liệu`,
-      due: 'Trước gửi bếp',
-      nextAction: 'Kiểm dữ liệu',
-      tone: 'danger',
-      route: `${ROUTES.ADMIN_DATA}?view=cleanup`,
-    });
-  }
-
-  if (pendingKitchenCount > 0) {
-    syntheticItems.push({
-      id: 'kpi-kitchen-pending',
-      category: 'kitchen',
-      owner: 'Bếp trưởng',
-      title: 'Bếp chờ xác nhận nguyên liệu',
-      description: `${pendingKitchenCount} issue chưa được xác nhận`,
-      due: 'Trong ca',
-      nextAction: 'Mở bếp trưởng',
-      tone: 'warning',
-      route: ROUTES.CHEF_DASHBOARD,
-    });
-  }
-
   const workflowItems = sortQueueItems(roleInboxItems).map<DashboardQueueItem>((item) => ({
     id: item.id,
     category: getQueueCategory(item),
@@ -225,13 +184,11 @@ export default function DefaultDashboardPage() {
     tone: item.tone,
     route: item.route,
   }));
-  const actionQueue = [...syntheticItems, ...workflowItems].sort((a, b) => queuePriority[a.tone] - queuePriority[b.tone]);
+  const actionQueue = workflowItems;
 
-  const visibleQueue = actionQueue
-    .filter((item) => activeQueueFilter === 'all' || item.category === activeQueueFilter)
-    .slice(0, 7);
-  const totalWaiting = sumLaneCount(workflowLanes, 'waiting');
-  const totalBlocked = sumLaneCount(workflowLanes, 'blocked') + failedWorkflowCount + criticalDataCount;
+  const filteredQueue = actionQueue.filter((item) => activeQueueFilter === 'all' || item.category === activeQueueFilter);
+  const visibleQueue = isQueueExpanded ? filteredQueue : filteredQueue.slice(0, 7);
+  const hiddenQueueCount = Math.max(filteredQueue.length - 7, 0);
 
   return (
     <OperationalFrame
@@ -264,28 +221,6 @@ export default function DefaultDashboardPage() {
         preserveFallback={preserveLoadingFallback}
         refreshLabel="Đang cập nhật tổng quan vận hành"
       >
-        <section className="ipc-dashboard-incident" aria-labelledby="dashboard-shift-status" aria-busy={isDashboardLoading}>
-          <div className="ipc-dashboard-incident-main">
-            <div className="ipc-dashboard-incident-copy">
-              <h2 id="dashboard-shift-status">Tổng quan ca hôm nay</h2>
-            </div>
-          </div>
-          <div className="ipc-dashboard-readiness-metrics">
-            <div>
-              <span>Cần xử lý</span>
-              <strong>{isDashboardLoading ? '—' : actionQueue.length}</strong>
-            </div>
-            <div>
-              <span>Đang chờ</span>
-              <strong>{isDashboardLoading ? '—' : totalWaiting}</strong>
-            </div>
-            <div>
-              <span>Điểm tắc</span>
-              <strong>{isDashboardLoading ? '—' : totalBlocked}</strong>
-            </div>
-          </div>
-        </section>
-
         <section className="ipc-dashboard-section" aria-label="Tín hiệu vận hành">
           <div className="ipc-dashboard-risk-board">
             {riskGroups.map((signal) => (
@@ -312,9 +247,9 @@ export default function DefaultDashboardPage() {
               <div>
                 <h3>Việc cần xử lý trước</h3>
               </div>
-              <Link to={ROUTES.APPROVALS} className="ipc-dashboard-panel-link">
-                Xem toàn bộ
-              </Link>
+              {hiddenQueueCount > 0 && <Button type="button" variant="ghost" size="sm" className="ipc-dashboard-panel-link" onClick={() => setIsQueueExpanded((value) => !value)}>
+                {isQueueExpanded ? 'Thu gọn' : `Xem thêm ${hiddenQueueCount}`}
+              </Button>}
             </div>
             <div className="ipc-dashboard-queue-filters" role="group" aria-label="Lọc hàng đợi xử lý">
               {queueFilters.map((filter) => {
@@ -327,7 +262,7 @@ export default function DefaultDashboardPage() {
                     variant="outline"
                     size="sm"
                     className={filter.key === activeQueueFilter ? 'is-active' : undefined}
-                    onClick={() => setActiveQueueFilter(filter.key)}
+                    onClick={() => { setActiveQueueFilter(filter.key); setIsQueueExpanded(false); }}
                     aria-pressed={filter.key === activeQueueFilter}
                   >
                     {filter.label}

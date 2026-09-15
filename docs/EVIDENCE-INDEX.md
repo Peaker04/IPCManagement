@@ -6,6 +6,15 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
+| `.artifacts/goal-ui-ux/admin-bom-warehouse-heading-browser-rerun-20260914T152705Z/manifest.json` | `3192096d5b035d498567061a070efdf83e01ee3b5856cd63c0116408de8a865c` | M7.1 focused current-source headed promotion: Admin BOM + Warehouse movement, 6/6 required cells at the three canonical desktop viewports, DEFAULT/27 on exact `ipc_lane7`, document-wide ownership-aware heading order PASS, zero overflow/runtime errors/unexpected writes, owned `3001/8001` teardown PASS; no claim beyond these six cells. |
+| `.artifacts/goal-ui-ux/section-panel-heading-browser-promotion-retry-20260914T151139Z/manifest.json` | `26ddbe15a49db952a9462662f1e5e5b7ebb8fbce6ede2c84b077788f8d6b7976` | M7.1 bounded pre-fix failure lineage: 36/36 headed cells observed with 24 PASS, 6 Admin/Warehouse heading FAIL and 6 natural-state NEEDS_EVIDENCE; authoritative only for the historical pre-fix state and superseded for the six corrected cells by the focused `3192096d...` manifest above. |
+| `.artifacts/information-simplification/be-resume-p1-20260913-002/red.log` | `2501ecf088e2a99b24ce58b65636dac65497ec6acd244e58df46715d501eab71` | P1 intended FE red: five query-state scenarios fail before integration fix; not runtime evidence. |
+| `.artifacts/information-simplification/be-resume-p1-20260913-002/contracts.log` | `9004c64a0d628e684dd466aedf7ae4f9e53c538785a95f0bb2c290aa68d45f27` | P1 mounted behavior plus mode/reconciliation source gates, 36 focused tests; browser/lifecycle NOT_RUN. |
+| `.artifacts/information-simplification/be-resume-p1-20260913-002/build-final.log` | `22746c06994ac051f058cee7a0cbe700853f8ad81fa78f12d09c566e51be4d9e` | P1 final current-source TypeScript/Vite build, not deployed/runtime acceptance. |
+| `.artifacts/information-simplification/be-resume-20260913-001/be-final.log` | `d529d7327fd1d4dc356776d2299d75929aea244ab66d032b6e9ae2a661aa10bf` | Bounded BE wave: DEFAULT handoff projection, MRX dish precision/identity, applicable mode/permission regression; source/test only, not live lifecycle acceptance. |
+| `.artifacts/information-simplification/be-resume-20260913-001/fe-focused.log` | `13082a0dda75900af20ab85fa9c074dd36f88f45967549e5f36983e0a3112984` | Focused FE compatibility after additive generated parity and unchanged short-label rendering; not F05 consumer migration or browser proof. |
+| `.artifacts/information-simplification/be-resume-20260913-001/fe-build-green.log` | `c7bdc25322f7a60d34ba3b9814c7b9a53b8da3e510e4f43569845c4c92199cce` | Current-tree TypeScript/production-build gate after removing unreachable shortLabel fallback; no deployment/runtime claim. |
+| `.artifacts/information-simplification/be-resume-20260913-001/fe-lint.log` | `38d2c63df1021d1425632f584dd7267a6d2f3cd2af7c7ffa08db20e67812ea22` | Authoritative failing full-FE lint observation; unchanged inherited source findings, not a PASS gate. |
 | `.artifacts/nfr-research/20260910/d09-servicing-focused-receipt.json` | `888C538434509759E94B66CB137EF83B1A2529A2FE5D44557121D2175B5D40ED` | D09 focused source gate on dirty current worktree: observed SDK 9.0.313, coherent Microsoft 9.0.20 + IdentityModel 8.19.2 package graph, restore, isolated build 0/0, focused 49/49, EF no-pending-model and configured-source vulnerability scan PASS. Explicitly not mandatory full-CI/OpenAPI/runtime/DB certification. |
 | `.artifacts/runtime/mxe10-18-resume-20260906-1830/db/postflight-compare.json` | `5B43F4237D8D721C1783647EF5F20EE3DB674CCA24B956C824889C1164DA2DAA` | MXE protected migration postflight on exact `ipc_lane7`: only authorized migration added, history 76→77, business checksums unchanged, expected non-unique indexes and DEFAULT/17 preserved before browser cycles. |
 | `.artifacts/runtime/mxe10-18-resume-20260906-1830/browser/evidence.json` | `9C6174A55F631B8691C0172F889BEE50F53E5E4F396EA196CDB7DD42A04E6150` | Production-build headed MRX read-only matrix: five desktop viewports × five retained routes plus 200% text zoom, mode asserted before actions/captures, zero overflow/browser/request/unexpected write, exact restoration cycle recorded. |
@@ -427,3 +436,47 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 - Mỗi artifact chỉ có một trạng thái. Khi thay thế gate, hạ dòng cũ xuống `Historical`; không sửa hash cũ.
 - File tên `error` hoặc `fatal` mặc định là `Attempt` trừ khi có ghi chú điều tra rõ ràng.
 - Kết luận gate hiện hành nằm trong `MEMORY.md`; file này chỉ định danh evidence, không lặp lại số đo.
+
+
+## F05 compatible consumer migration — 2026-09-13 / 003
+
+Owner: `.planning/notes/project-information-simplification-PLAN.md` §12. Evidence root `.artifacts/information-simplification/f05-20260913-003/`. Source/focused only: FE 31 files/176 tests, BE 78 tests, production build and fresh generated parity PASS. Full FE lint FAIL (7 errors/3 warnings in incoming-unchanged files); scoped lint PASS. DEFAULT/MRX live BLOCKED_PREMUTATION; provider/browser NOT_RUN; no DB/runtime operations. Final incoming/task-only comparisons and exact diff are in this run directory; no commits/staging.
+
+| Artifact | SHA-256 |
+|---|---|
+| `mapper-red.log` | `69fb2e843220eda4be552865e329ea5b0e64a75ce76ef73f482b09aa12b77503` |
+| `mapper-green-final.log` | `58760972988732953aa2881fd2cee5649891a08c75497193594b812472efd862` |
+| `count-red-final.log` | `7ef947ba28916a9fc5a5a70995bc38d1ec0126cde42d896e58294e9052d4a653` |
+| `count-green.log` | `5b7c2dab794cda783efb002f09a961ac0363a82f2e7459f0cc264779eeadcfee` |
+| `consumers-red.log` | `d36a71bc8fd839736a9addbce2476e5fc287ce871508d253d6697e7ec0e3ee8a` |
+| `consumers-green.log` | `9e545859024cee6f0350441fecf36b3263971556dbc51d084b5550b8cf529fc3` |
+| `hook-count-red.log` | `2592529eda93ef7d735f26c4f7f2448de2fa8245059ec2a552e4ef9adca4eeab` |
+| `hook-count-green.log` | `925170220cb797d9d574c409813eb6b8a7789edffd02b6aa32ceef7609487ed6` |
+| `readiness-red.log` | `7e2916cb8122df7970b35de9014d285acf48fe39a020399b0c6593c15095b8d4` |
+| `fallback-red.log` | `2297d4d05c736b45da33fd09fc611cc491a0a73fb49f787a4cca4277779d68bd` |
+| `fe-final.log` | `872cb3c2b410b26339bbb6498f6a38b9c48dcc76bb160955f5cc4953229a49ab` |
+| `be-final.log` | `cd5b0c348e7247e43f6d236d96169b9c42cbac10538db5bd246accc94b846c74` |
+| `build-final.log` | `6822980d8c02f313715acfbca3afbe32921c14e94add9dec5c091fd9dfd6f4c6` |
+| `full-lint.log` | `5d067c11dd638f68e563f9cd1bf0becea10c663db047060fed44887d4992ce31` |
+| `parity-verify.log` | `d34a24969c4d5659431e3af254e561e2a53084f994468b71c3f239608040a1ca` |
+
+## MRX disposable full headed lifecycle — 2026-09-13 / 085032
+
+Owner: `.planning/notes/project-information-simplification-PLAN.md` §14. Evidence root `.artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/`. Current-source 49-step headed UI→API→DB→reload lifecycle and final DB oracle passed. Disposable database was dropped; protected databases were not mutated.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `run-summary.json` | `DF4718BE3DDA8297EF37981CA8457573F064146C84A84F21407B1EE0A4846601` | Harness PASS, disposable DB dropped, protected mutation false. |
+| `full/browser/lifecycle.json` | `43F16BBBB91BBE5CCF279B2353F75C1B31DE3673C0D446DB24FFFA5E71695AB4` | 49/49 headed lifecycle steps PASS; zero unsupported steps. |
+| `full/db/final.json` | `4E829CEFB0473A30992E21A6311F6A910A2670FD21093727D36914642F8F5FE9` | Final MySQL lifecycle oracle for completed batch, issues, variances, movements and return. |
+| `full/browser/errors.json` | `5652EBCDED6435EB747BCB625951096C57A210BE4B98327BB037007E80D89EA4` | Zero page/request failures; two expected 409 conflict console entries. |
+## DEFAULT disposable full headed lifecycle — 2026-09-13 / 170647
+
+Owner: `.planning/notes/project-information-simplification-PLAN.md` §15. Evidence root `.artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/`. Current-source headed lifecycle completed demand through Manager ServiceRun close with 25 PASS steps and zero console/page/request failures. Supplier quotation/decision setup and the inherited-terminal coordination handoff are explicitly setup-only, not UI acceptance. Disposable database was dropped; protected databases were not mutated.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `run-summary.json` | `42028C562B4D6F209D8B7EEFA6CDCFFA5EE1294680AA5647312C12E5920B2B48` | Harness PASS, disposable DB dropped, protected mutation false. |
+| `full/browser/lifecycle.json` | `22095E009EDA70237203828317BB7ED12AEE82F1A83DC4A798FDF33568B5FBD6` | 25 headed lifecycle steps PASS; zero console/page/request failures. |
+| `full/db/final.json` | `0D55A84962AE4CEFAB016072905DAA146333C2695314DAA8F3FDA666FB68B427` | Final collector confirms DEFAULT mode/lifecycle status and no protected database reference. |
+| `full/manifest.json` | `87D15FF26D26FD892EAA9370425DB3327BF66B7974C35A627EA57158526EA674` | Immutable run manifest for source/runtime/evidence paths. |

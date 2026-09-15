@@ -11,7 +11,7 @@ namespace IPCManagement.Api.Features.Planning.Controllers;
 
 [ApiController]
 [Route("api/production-plans")]
-[Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
+[Authorize]
 [EnableRateLimiting("api-general")]
 public class ProductionPlansController : ControllerBase
 {
@@ -28,6 +28,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy danh sách kế hoạch sản xuất.</summary>
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<ProductionPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
@@ -37,6 +38,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy danh sách kế hoạch sản xuất theo ngày và khách hàng.</summary>
     [HttpGet("filter")]
+    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ProductionPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFilteredAsync(
         [FromQuery] string? serviceDate,
@@ -51,6 +53,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Kế hoạch sản xuất trong ngày để gửi/hiển thị cho bếp.</summary>
     [HttpGet("daily")]
+    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
     [ProducesResponseType(typeof(ApiResponse<DailyProductionPlanDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDailyAsync(
         [FromQuery] string? serviceDate,
@@ -64,6 +67,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Đánh dấu KHSX trong ngày đã gửi bếp.</summary>
     [HttpPost("daily/send-to-kitchen")]
+    [Authorize(Policy = AuthorizationPolicies.CoordinationAccess)]
     [ProducesResponseType(typeof(ApiResponse<DailyProductionPlanDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SendDailyToKitchenAsync(
         [FromBody] SendDailyProductionPlanRequest request,
@@ -76,6 +80,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy chi tiết kế hoạch sản xuất theo ID.</summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
     [ProducesResponseType(typeof(ApiResponse<ProductionPlanDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(string id)

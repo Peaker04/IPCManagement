@@ -77,9 +77,10 @@ internal sealed class ReconciliationInventoryIssueCreator
                 var isSupplemental = dto.IsSupplemental == true;
                 if ((isSupplemental ? batch.Status != "IN_PROGRESS" : batch.Status != "TRANSFERRED") || batch.Version != dto.ExpectedVersion)
                     throw new DbUpdateConcurrencyException("Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.");
-                if (dto.Lines.Count == 0) throw new ArgumentException("Phiếu xuất kho phải có ít nhất một dòng nguồn.");
-                if (isSupplemental && dto.Lines.Count != 1)
-                    throw new BusinessRuleException("Mỗi phiếu xuất thêm chỉ được chọn một nguyên liệu trong lô.");
+                if (dto.Lines.Count == 0)
+                    throw new ArgumentException(isSupplemental
+                        ? "Phiếu xuất thêm phải có ít nhất một nguyên liệu trong lô."
+                        : "Phiếu xuất kho phải có ít nhất một dòng nguồn.");
                 var sourceById = batch.Lines.ToDictionary(line => Convert.ToHexString(line.BatchLineId), StringComparer.Ordinal);
                 var resolved = new List<(ReconciliationBatchLine Source, decimal Quantity, string? VarianceReason)>();
                 foreach (var requested in dto.Lines)

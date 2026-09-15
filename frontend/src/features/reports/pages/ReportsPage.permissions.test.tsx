@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/common';
 
+import { mapDemandAggregateLine } from '@/api/reportMappers';
 import authReducer from '@/lib/auth/authSlice';
 import type { User } from '@/lib/auth/authTypes';
 
@@ -53,6 +54,8 @@ const emptyReadyPage = {
   hasPrev: false,
   hasNext: false,
   shortageCount: 0,
+  remainingToIssueCount: 0,
+  pendingKitchenReceiptCount: 0,
   totalShortageQty: 0,
   totalEstimatedAmount: 0,
   page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false },
@@ -158,22 +161,46 @@ const tabNames = () => screen.getAllByRole('tab').map((tab) => tab.textContent);
 
 const PURCHASE_ACCESS_TABS = ['Biến động giá', 'Kế hoạch thu mua'];
 const ADMIN_ACCESS_TAB = 'Nhật ký thay đổi';
-const ALWAYS_VISIBLE_TABS = ['Nhu cầu nguyên liệu', 'Tồn kho', 'Nhập/xuất kho', 'Xuất bếp', 'Sử dụng thực tế', 'Chất lượng dữ liệu'];
 
 describe('ReportsPage tab visibility vs WorkflowReportsController policies', () => {
   beforeEach(() => {
     Object.values(mocks).forEach((mock) => mock.mockReset().mockImplementation(readyWhenActive));
   });
 
-  it('hides price-variance, purchase-plan and audit tabs from Bếp trưởng', () => {
+  it('mounts the selected primary Reports panel as h2 below the shell route heading', () => {
+    renderReportsPage('admin', '/reports?view=demand');
+
+    expect(screen.getByRole('heading', { level: 2, name: 'Nhu cầu theo ngày trong khoảng chọn' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 3, name: 'Nhu cầu theo ngày trong khoảng chọn' })).not.toBeInTheDocument();
+  });
+
+  it.each(['beptruong', 'thukho', 'dieuphoi'] as const)('keeps physical demand read-only for %s without destination authority', (role) => {
+    const row = mapDemandAggregateLine({
+      requestDate: '2026-08-15', customerId: 'customer-a', customerName: 'Khách A', priceTierAmount: 25000,
+      ingredientId: 'rice', ingredientName: 'Gạo', unitId: 'kg', unitName: 'kg', totalRequiredQty: 200,
+      currentStockQty: 200, suggestedPurchaseQty: 0, fulfilledQty: 200, unissuedQty: 0,
+      pendingKitchenReceiptQty: 0, outstandingQty: 0, fulfillmentStatus: 'FULFILLED', lineCount: 2, hasCancelledLine: false,
+      issuedQty: 0, receivedByKitchenQty: 0, remainingToIssueQty: 200,
+    });
+    mocks.ingredientDemandPage.mockReturnValue(readyResult({ ...emptyReadyPage, items: [row], totalCount: 42, remainingToIssueCount: 17 }));
+    renderReportsPage(role, '/reports?view=demand');
+    expect(screen.getByRole('columnheader', { name: 'Đã xuất' })).toBeInTheDocument();
+    expect(screen.getByText('Kho xử lý xuất')).toBeInTheDocument();
+    expect(screen.getByText('Khách A · 25k · 2 dòng nhu cầu')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Mở thu mua|Đề xuất mua|Mở checklist/ })).not.toBeInTheDocument();
+    expect(screen.queryByText('Đã đáp ứng đủ')).not.toBeInTheDocument();
+  });
+
+  it('hides restricted groups from Bếp trưởng and shows only the active group children', () => {
     renderReportsPage('beptruong');
 
-    [...PURCHASE_ACCESS_TABS, ADMIN_ACCESS_TAB].forEach((label) => {
-      expect(screen.queryByRole('tab', { name: label })).not.toBeInTheDocument();
-    });
-    ALWAYS_VISIBLE_TABS.forEach((label) => {
-      expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
-    });
+    expect(screen.queryByRole('tab', { name: 'Chi phí & giá' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Kế hoạch & nhu cầu' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Kho & sử dụng' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Kiểm soát' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Nhu cầu nguyên liệu' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Tồn kho' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
   });
 
   it('hides the same restricted tabs from Điều phối', () => {
@@ -184,23 +211,24 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
     });
   });
 
-  it('shows every report tab to Admin', () => {
+  it('shows every report group to Admin while limiting children to the active group', () => {
     renderReportsPage('admin');
 
-    [...PURCHASE_ACCESS_TABS, ADMIN_ACCESS_TAB, ...ALWAYS_VISIBLE_TABS].forEach((label) => {
+    ['Chi phí & giá', 'Kế hoạch & nhu cầu', 'Kho & sử dụng', 'Kiểm soát'].forEach((label) => {
       expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
     });
+    expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Kế hoạch thu mua' })).not.toBeInTheDocument();
   });
 
-  it('shows price tabs to Thu mua but keeps the audit log admin-only', async () => {
+  it('shows Thu mua price access and keeps the audit report admin-only', async () => {
+    const user = userEvent.setup();
     await renderPriceReportsPage('thumua');
 
-    PURCHASE_ACCESS_TABS.forEach((label) => {
-      expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
-    });
+    expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Kế hoạch & nhu cầu' }));
+    expect(await screen.findByRole('tab', { name: 'Kế hoạch thu mua' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
-    // PurchaseAccess cũng mở 3 cách phân tích tổng hợp của price-variance/*.
-    expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
   });
 
   it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', async () => {
@@ -352,10 +380,11 @@ describe('ReportsPage query state boundary', () => {
         legacyLineageExceptionCount: 3,
       }]));
     renderReportsPage('admin');
-    await user.click(screen.getByRole('tab', { name: 'Sử dụng thực tế' }));
+    await user.click(screen.getByRole('tab', { name: 'Kho & sử dụng' }));
+    await user.click(await screen.findByRole('tab', { name: 'Sử dụng thực tế' }));
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Sử dụng thực tế' })).toHaveAttribute('aria-selected', 'true'));
 
-    expect(await screen.findByText('Đối soát lifecycle theo dòng nhu cầu')).toBeInTheDocument();
+    expect(await screen.findByText(/Đối soát.*theo dòng nhu cầu/)).toBeInTheDocument();
     expect(screen.getByText('MR-TEST-001')).toBeInTheDocument();
     expect(screen.getAllByRole('columnheader', { name: 'Đã xuất' })).toHaveLength(2);
     expect(screen.getByRole('columnheader', { name: /Bổ sung/ })).toBeInTheDocument();
@@ -431,6 +460,176 @@ describe('ReportsPage query state boundary', () => {
 
     expect(shift).toHaveTextContent('Ca sáng');
     expect(shift).not.toHaveTextContent('MORNING');
+  });
+});
+
+describe('ReportsPage composition ownership', () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((mock) => mock.mockReset().mockImplementation(readyWhenActive));
+  });
+
+  it('does not repeat inactive report summaries above the selected report', () => {
+    renderReportsPage('admin', '/reports?view=stock');
+
+    expect(screen.queryByText('Cảnh báo giá trên trang')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dòng chưa xuất')).not.toBeInTheDocument();
+    expect(screen.queryByText('Dòng tồn kho')).not.toBeInTheDocument();
+    expect(screen.getByText('Tồn kho hiện tại theo kho')).toBeInTheDocument();
+  });
+
+  it('keeps price exceptions and watch states without labeling zero-variance rows as stable', async () => {
+    const priceRow = {
+      id: 'price-1', name: 'Gạo tẻ', supplier: 'Nhà cung cấp A', receiptCode: 'PN-20260914-01',
+      receiptDate: '2026-09-14', quantity: 10, unit: 'kg', pricePrev: 20_000, priceCurrent: 20_000,
+      change: 0, warning: false,
+    };
+    mocks.priceVariancePage.mockReturnValue(readyResult({
+      ...emptyReadyPage,
+      items: [
+        { ...priceRow, id: 'price-warning', name: 'Thịt bò', priceCurrent: 24_000, change: 20, warning: true },
+        { ...priceRow, id: 'price-watch', name: 'Thịt gà', priceCurrent: 22_000, change: 10 },
+        { ...priceRow, id: 'price-normal' },
+      ],
+      totalCount: 3,
+      pageSize: 6,
+    }));
+
+    await renderPriceReportsPage('thumua', '/reports?view=price&subview=lines');
+
+    expect(await screen.findByText('Vượt ngưỡng')).toBeInTheDocument();
+    expect(screen.getByText('Theo dõi')).toBeInTheDocument();
+    expect(screen.queryByText('Ổn định')).not.toBeInTheDocument();
+    expect(screen.getByText('Gạo tẻ').closest('tr')?.querySelector('td:last-child')).toHaveTextContent('0%');
+  });
+
+  it('keeps supplier aggregate warning and watch rows without labeling zero variance as stable', async () => {
+    const supplierRow = {
+      ingredientId: 'ingredient-rice', ingredientName: 'Gạo tẻ', supplierId: 'supplier-a', supplierName: 'Nhà cung cấp A',
+      unitId: 'unit-kg', unitName: 'kg', receiptCount: 2, avgUnitPrice: 20_000, minUnitPrice: 20_000,
+      maxUnitPrice: 20_000, referencePrice: 20_000, variancePercent: 0, isWarning: false,
+    };
+    mocks.priceVarianceBySupplierPage.mockReturnValue(readyResult({
+      ...emptyReadyPage,
+      items: [
+        { ...supplierRow, ingredientId: 'ingredient-beef', ingredientName: 'Thịt bò', avgUnitPrice: 24_000, maxUnitPrice: 24_000, variancePercent: 20, isWarning: true },
+        { ...supplierRow, ingredientId: 'ingredient-chicken', ingredientName: 'Thịt gà', avgUnitPrice: 22_000, maxUnitPrice: 22_000, variancePercent: 10 },
+        supplierRow,
+      ],
+      totalCount: 3,
+    }));
+
+    await renderPriceReportsPage('thumua', '/reports?view=price&subview=supplier');
+
+    expect(await screen.findByText('Vượt ngưỡng')).toBeInTheDocument();
+    expect(screen.getByText('Theo dõi')).toBeInTheDocument();
+    expect(screen.queryByText('Ổn định')).not.toBeInTheDocument();
+    expect(screen.getByText('Gạo tẻ').closest('tr')?.querySelector('td:last-child')).toHaveTextContent('0%');
+  });
+
+  it('keeps period aggregate warning and watch rows without labeling zero variance as stable', async () => {
+    const periodRow = {
+      ingredientId: 'ingredient-rice', ingredientName: 'Gạo tẻ', unitId: 'unit-kg', unitName: 'kg',
+      periodLabel: '2026-09', periodStart: '2026-09-01', avgUnitPrice: 20_000, referencePrice: 20_000,
+      variancePercentVsReference: 0, variancePercentVsPreviousPeriod: 0, isWarning: false,
+    };
+    mocks.priceVarianceByPeriodPage.mockReturnValue(readyResult({
+      ...emptyReadyPage,
+      items: [
+        { ...periodRow, ingredientId: 'ingredient-beef', ingredientName: 'Thịt bò', avgUnitPrice: 24_000, variancePercentVsReference: 20, variancePercentVsPreviousPeriod: 18, isWarning: true },
+        { ...periodRow, ingredientId: 'ingredient-chicken', ingredientName: 'Thịt gà', avgUnitPrice: 22_000, variancePercentVsReference: 10, variancePercentVsPreviousPeriod: 5 },
+        periodRow,
+      ],
+      totalCount: 3,
+    }));
+
+    await renderPriceReportsPage('thumua', '/reports?view=price&subview=period');
+
+    expect(await screen.findByText('Vượt ngưỡng')).toBeInTheDocument();
+    expect(screen.getByText('Theo dõi')).toBeInTheDocument();
+    expect(screen.queryByText('Ổn định')).not.toBeInTheDocument();
+    expect(screen.getByText('Gạo tẻ').closest('tr')).toHaveTextContent('0%0%');
+  });
+
+  it('keeps supplier aggregate unit grains distinguishable with collision-free row keys', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const supplierRow = {
+      ingredientId: 'ingredient-rice', ingredientName: 'Gạo tẻ', supplierId: 'supplier-a', supplierName: 'Nhà cung cấp A',
+      unitId: 'unit-kg', unitName: 'kg', receiptCount: 2, avgUnitPrice: 20_000, minUnitPrice: 20_000,
+      maxUnitPrice: 20_000, referencePrice: 20_000, variancePercent: 0, isWarning: false,
+    };
+    mocks.priceVarianceBySupplierPage.mockReturnValue(readyResult({
+      ...emptyReadyPage,
+      items: [supplierRow, { ...supplierRow, unitId: 'unit-box', unitName: 'thùng' }],
+      totalCount: 2,
+    }));
+
+    await renderPriceReportsPage('thumua', '/reports?view=price&subview=supplier');
+
+    const rows = (await screen.findAllByText('Gạo tẻ')).map((cell) => cell.closest('tr'));
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('ĐVT: kg');
+    expect(rows[1]).toHaveTextContent('ĐVT: thùng');
+    expect(consoleError.mock.calls.flat().join(' ')).not.toMatch(/same key|unique "key"/i);
+    consoleError.mockRestore();
+  });
+
+  it('keeps period aggregate unit grains distinguishable with collision-free row keys', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const periodRow = {
+      ingredientId: 'ingredient-rice', ingredientName: 'Gạo tẻ', unitId: 'unit-kg', unitName: 'kg',
+      periodLabel: '2026-09', periodStart: '2026-09-01', avgUnitPrice: 20_000, referencePrice: 20_000,
+      variancePercentVsReference: 0, variancePercentVsPreviousPeriod: 0, isWarning: false,
+    };
+    mocks.priceVarianceByPeriodPage.mockReturnValue(readyResult({
+      ...emptyReadyPage,
+      items: [periodRow, { ...periodRow, unitId: 'unit-box', unitName: 'thùng' }],
+      totalCount: 2,
+    }));
+
+    await renderPriceReportsPage('thumua', '/reports?view=price&subview=period');
+
+    const rows = (await screen.findAllByText('Gạo tẻ')).map((cell) => cell.closest('tr'));
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('ĐVT: kg');
+    expect(rows[1]).toHaveTextContent('ĐVT: thùng');
+    expect(consoleError.mock.calls.flat().join(' ')).not.toMatch(/same key|unique "key"/i);
+    consoleError.mockRestore();
+  });
+
+  it('keeps purchase exceptions visible without labeling warning-free rows as ready', () => {
+    const purchaseRow = {
+      periodKey: '2026-09-14', groupBy: 'day', periodStart: '2026-09-14', periodEnd: '2026-09-14',
+      ingredientId: 'ingredient-1', ingredientName: 'Gạo', unitId: 'unit-kg', unitName: 'kg',
+      requiredQty: 10, currentStockQty: 2, pendingReceiptQty: 3, shortageQty: 5,
+      suggestedPurchaseQty: 8, estimatedUnitPrice: 20000, estimatedAmount: 100000,
+      supplierId: 'supplier-1', supplierName: 'Nhà cung cấp A', expectedDeliveryDate: '2026-09-14',
+      warnings: [] as string[],
+    };
+    mocks.purchasePlanPage.mockReturnValue(readyResult({
+      ...emptyReadyPage,
+      items: [
+        { ...purchaseRow, ingredientId: 'ingredient-quote', warnings: ['Chưa có báo giá NCC đang hiệu lực.'] },
+        { ...purchaseRow, ingredientId: 'ingredient-pending', ingredientName: 'Thịt gà', warnings: ['Có lượng đang chờ nhập kho, cần đối chiếu trước khi đặt mua thêm.'] },
+        { ...purchaseRow, ingredientId: 'ingredient-shortage', ingredientName: 'Cà rốt', warnings: ['Còn thiếu so với demand sau khi trừ pending receipt.'] },
+        { ...purchaseRow, ingredientId: 'ingredient-ready', ingredientName: 'Bí đỏ', warnings: [] },
+      ],
+      totalCount: 4,
+      totalShortageQty: 20,
+      totalEstimatedAmount: 400000,
+    }));
+
+    renderReportsPage('thumua', '/reports?view=purchase');
+
+    expect(screen.getByText('Thiếu báo giá')).toBeInTheDocument();
+    expect(screen.getByText('Chờ nhập kho')).toBeInTheDocument();
+    expect(screen.getByText('Còn thiếu')).toBeInTheDocument();
+    expect(screen.getByTitle('Chưa có báo giá NCC đang hiệu lực.')).toBeInTheDocument();
+    expect(screen.getByTitle('Có lượng đang chờ nhập kho, cần đối chiếu trước khi đặt mua thêm.')).toBeInTheDocument();
+    expect(screen.getByTitle('Còn thiếu so với demand sau khi trừ pending receipt.')).toBeInTheDocument();
+    expect(screen.queryByText('Sẵn sàng')).not.toBeInTheDocument();
+    expect(screen.getByText('Bí đỏ').closest('tr')?.querySelector('td:last-child')).toBeEmptyDOMElement();
+    expect(screen.getAllByText('Nhà cung cấp A')).toHaveLength(4);
+    expect(screen.getByRole('button', { name: 'Theo ngày' })).toBeInTheDocument();
   });
 });
 

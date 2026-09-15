@@ -91,7 +91,6 @@ const expectedEndpointNames = [
   'getWorkflowDocuments',
   'openServiceRun',
   'postWarehousePurchaseReceipt',
-  'recordPurchaseOrderReceipt',
   'recordServiceRunActualServings',
   'recordWarehousePurchaseReceipt',
   'rejectSupplementalMaterialRequest',
@@ -100,7 +99,6 @@ const expectedEndpointNames = [
   'reviewLegacyLineageDisposition',
   'reworkWarehousePurchaseReceipt',
   'routeSupplementalMaterialRequestToPurchasing',
-  'sendDailyProductionPlanToKitchen',
   'startServiceRun',
   'submitPurchaseRequest',
   'updateApprovalRule',
@@ -198,7 +196,6 @@ const expectedHookNames = [
   'useGetWorkflowDocumentsQuery',
   'useOpenServiceRunMutation',
   'usePostWarehousePurchaseReceiptMutation',
-  'useRecordPurchaseOrderReceiptMutation',
   'useRecordServiceRunActualServingsMutation',
   'useRecordWarehousePurchaseReceiptMutation',
   'useRejectSupplementalMaterialRequestMutation',
@@ -206,7 +203,6 @@ const expectedHookNames = [
   'useReviewLegacyLineageDispositionMutation',
   'useReworkWarehousePurchaseReceiptMutation',
   'useRouteSupplementalMaterialRequestToPurchasingMutation',
-  'useSendDailyProductionPlanToKitchenMutation',
   'useStartServiceRunMutation',
   'useSubmitPurchaseRequestMutation',
   'useUpdateApprovalRuleMutation',
@@ -229,6 +225,6 @@ describe('workflow API public surface', () => {
       .sort();
 
     expect(hooks).toEqual(expectedHookNames);
-    expect(hooks).toHaveLength(102);
+    expect(hooks).toHaveLength(100);
   });
 });

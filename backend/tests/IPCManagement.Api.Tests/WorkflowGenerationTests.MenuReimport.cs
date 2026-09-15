@@ -302,6 +302,27 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
     }
 
     [Fact]
+    public async Task MenuAmendment_Should_Create_WhenNoDemandExists()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        context.Materialrequests.RemoveRange(await context.Materialrequests.ToListAsync());
+        await context.SaveChangesAsync();
+
+        var result = await new MenuAmendmentService(context).CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString,
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            Reason = "Đổi món trước khi tạo nhu cầu.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = "savory-main", NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
+        }, fixture.UserIdString);
+
+        result.Status.Should().Be("PENDING_REVIEW");
+        result.AffectedDemandCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task MenuAmendment_Should_GroupDecisionScopesByCustomerDateShiftAndPriceTier()
     {
         var sources = new[]

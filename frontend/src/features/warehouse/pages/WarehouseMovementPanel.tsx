@@ -136,7 +136,7 @@ export function WarehouseMovementPanel({
         </SectionPanel>
 
         <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
-          <div className="space-y-3 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="space-y-3">
           <SearchField
             id="warehouse-stock-movement-search"
             label="Tìm bút toán theo chứng từ nguồn"

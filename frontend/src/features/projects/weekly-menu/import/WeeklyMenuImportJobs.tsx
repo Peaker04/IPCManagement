@@ -56,12 +56,12 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
       }
     >
       <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className={cn(typography.body, 'max-h-[260px]')} ariaLabel="Danh sách file thực đơn chờ kiểm tra" frozenFirstIdentifier={false}>
-        <table className="ipc-data-table table-fixed">
+        <table className="ipc-data-table min-w-[1040px] table-fixed">
           <thead><tr>
             <th className="text-left whitespace-nowrap">Khách hàng</th><th className="text-left whitespace-nowrap">Tuần</th>
             <th className="text-center whitespace-nowrap">Định mức</th><th className="text-left whitespace-nowrap">File</th>
             <th className="text-center whitespace-nowrap">File đọc</th><th className="text-right whitespace-nowrap">Dòng món</th>
-            <th className="text-center whitespace-nowrap">Trạng thái</th><th className="w-[190px] text-right whitespace-nowrap">Thao tác</th>
+            <th className="text-center whitespace-nowrap">Trạng thái</th><th className="w-[220px] text-right whitespace-nowrap">Thao tác</th>
           </tr></thead>
           <tbody>
             {filteredJobs.map((job) => {
@@ -76,9 +76,9 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
                   <td className={cn(typography.numeric, 'whitespace-nowrap text-right tabular-nums')}>{preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</td>
                   <td className="text-center whitespace-nowrap"><StatusBadge variant={getImportJobStatusTone(job.status)} className="min-w-[116px] justify-center whitespace-nowrap">{getImportJobStatusLabel(job.status)}</StatusBadge></td>
                   <td className="text-right"><div data-testid="import-job-actions" className="flex flex-nowrap justify-end gap-1.5 whitespace-nowrap">
-                    <Button type="button" variant="outline" size="xs" className="shrink-0" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'}>Kiểm tra</Button>
-                    <Button type="button" size="xs" className="shrink-0" onClick={() => setCommitTarget({ kind: 'job', jobId: job.jobId })} disabled={status.isImporting || job.status !== 'previewed'}>Lưu</Button>
-                    <Button type="button" variant="outline" size="xs" className="shrink-0" onClick={() => actions.removeJob(job.jobId)} disabled={status.isImporting}>Xóa</Button>
+                    <Button type="button" variant="outline" size="xs" className="min-w-0 shrink-0 px-2" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'}>Kiểm tra</Button>
+                    <Button type="button" size="xs" className="min-w-0 shrink-0 px-2" onClick={() => setCommitTarget({ kind: 'job', jobId: job.jobId })} disabled={status.isImporting || job.status !== 'previewed'}>Lưu</Button>
+                    <Button type="button" variant="outline" size="xs" className="min-w-0 shrink-0 px-2" onClick={() => actions.removeJob(job.jobId)} disabled={status.isImporting}>Xóa</Button>
                   </div></td>
                 </tr>
               )

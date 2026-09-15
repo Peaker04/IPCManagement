@@ -8632,6 +8632,45 @@
         }
       }
     },
+    "/api/reconciliation/batches/{id}/dishes": {
+      "get": {
+        "tags": [
+          "ReconciliationBatches"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reconciliation/batches/quantity-import/preview": {
       "post": {
         "tags": [
@@ -24663,10 +24702,13 @@
           "fulfillmentStatus",
           "hasCancelledLine",
           "ingredientId",
+          "issuedQty",
           "lineCount",
           "outstandingQty",
           "pendingKitchenReceiptQty",
           "priceTierAmount",
+          "receivedByKitchenQty",
+          "remainingToIssueQty",
           "requestDate",
           "suggestedPurchaseQty",
           "totalRequiredQty",
@@ -24720,6 +24762,18 @@
             "type": "number",
             "format": "double"
           },
+          "issuedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "receivedByKitchenQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "remainingToIssueQty": {
+            "type": "number",
+            "format": "double"
+          },
           "fulfilledQty": {
             "type": "number",
             "format": "double"
@@ -24756,6 +24810,8 @@
           "items",
           "pageNumber",
           "pageSize",
+          "pendingKitchenReceiptCount",
+          "remainingToIssueCount",
           "shortageCount",
           "totalCount",
           "totalPages"
@@ -24794,6 +24850,14 @@
             "readOnly": true
           },
           "shortageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "remainingToIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pendingKitchenReceiptCount": {
             "type": "integer",
             "format": "int32"
           }
@@ -28784,6 +28848,10 @@
             "nullable": true
           },
           "dishType": {
+            "type": "string",
+            "nullable": true
+          },
+          "dishSlot": {
             "type": "string",
             "nullable": true
           },
@@ -33564,6 +33632,96 @@
         },
         "additionalProperties": false
       },
+      "ReconciliationBatchDishMaterialDto": {
+        "required": [
+          "batchLineId",
+          "canonicalUnitId",
+          "grossQtyPerServing",
+          "ingredientId"
+        ],
+        "type": "object",
+        "properties": {
+          "batchLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "canonicalUnitId": {
+            "type": "string"
+          },
+          "canonicalUnitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "grossQtyPerServing": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationBatchDishSummaryDto": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "materials"
+        ],
+        "type": "object",
+        "properties": {
+          "dishId": {
+            "type": "string"
+          },
+          "dishCode": {
+            "type": "string"
+          },
+          "dishName": {
+            "type": "string"
+          },
+          "materials": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationBatchDishMaterialDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationBatchDishSummaryDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ReconciliationBatchDto": {
         "required": [
           "batchId",
@@ -33611,6 +33769,18 @@
             "items": {
               "$ref": "#/components/schemas/ReconciliationLineDto"
             }
+          },
+          "customerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerCode": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

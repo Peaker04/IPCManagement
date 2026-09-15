@@ -1,11 +1,12 @@
 import { ClipboardList } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { EmptyState, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
-import { useGetServiceRunPageQuery, useGetServiceRunAdjustmentsQuery } from '@/api/chefApi';
+import { useGetServiceRunPageQuery } from '@/api/chefApi';
 import { formatServiceRunBlocker, getServiceRunStatusPresentation } from '@/lib/workflowConfig';
 import { readStoredAuthSnapshot } from '@/lib/auth/authStorage';
 import { formatCurrency } from '@/lib/formatters';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
+import type { ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes';
 
 type Props = { dateFrom: string; dateTo: string; shiftName: string };
 
@@ -24,15 +25,13 @@ const serviceRunPreferenceConfig: TablePreferenceConfig = {
   ],
 };
 
-function CorrectionOverlay({ serviceRunId, snapshotActual, isCloseSnapshot }: { serviceRunId: string; snapshotActual: number | null | undefined; isCloseSnapshot: boolean }) {
-  const { data: adjustments, isLoading, isFetching, isError } = useGetServiceRunAdjustmentsQuery(serviceRunId, { skip: !isCloseSnapshot });
+export function CorrectionOverlay({ correctionOverlay, isCloseSnapshot }: { correctionOverlay: ServiceRunLifecycleProjectionDto['correctionOverlay']; isCloseSnapshot: boolean }) {
   if (!isCloseSnapshot) return <span className="text-xs text-slate-500">Dữ liệu lịch sử chưa có bản chốt.</span>;
-  if (isLoading) return <span className="block min-h-10 text-xs text-slate-500" role="status">Đang tải điều chỉnh hậu kiểm…</span>;
-  if (isError) return <span className="text-xs text-red-700" role="alert">Không tải được điều chỉnh hậu kiểm; snapshot đóng ca vẫn được giữ riêng.</span>;
-  const latest = adjustments?.[0];
-  if (!latest) return <span className="block min-h-10 text-xs text-slate-500" data-refreshing={isFetching || undefined}>Không có điều chỉnh hậu kiểm.</span>;
-  const delta = latest.correctedActualServings - (snapshotActual ?? 0);
-  return <span className="block min-h-10 text-xs" data-refreshing={isFetching || undefined} aria-busy={isFetching || undefined}><span className="block font-medium text-slate-800">Điều chỉnh hậu kiểm · {latest.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{latest.reason}</span></span>;
+  if (correctionOverlay.state !== 'PENDING' || correctionOverlay.correctedActualServings == null) {
+    return <span className="block min-h-10 text-xs text-slate-500">Không có điều chỉnh hậu kiểm.</span>;
+  }
+  const delta = correctionOverlay.actualServingsDelta ?? 0;
+  return <span className="block min-h-10 text-xs"><span className="block font-medium text-slate-800">Điều chỉnh hậu kiểm · {correctionOverlay.correctedActualServings} suất ({delta >= 0 ? '+' : ''}{delta})</span><span className="block text-slate-500">{correctionOverlay.reason}</span></span>;
 }
 
 export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
@@ -60,7 +59,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
                 supplemental: <span className="text-xs">{supplementalRequestCodes.join(', ') || '—'}</span>,
                 cost: <span className="text-right text-xs tabular-nums"><span className="block">Chi phí mua ước tính: {formatCurrency(estimatedPurchaseCost ?? 0)}</span><span className="mt-1 block text-slate-500">Chi phí mua thực nhận: {actualReceivedCost == null ? 'Chưa phát sinh nhập' : formatCurrency(actualReceivedCost)}</span></span>,
                 servings: <span className="tabular-nums font-semibold">{lifecycle.actualServings ?? '—'} / {lifecycle.plannedServings}</span>,
-                correction: <CorrectionOverlay serviceRunId={lifecycle.serviceRunId} snapshotActual={lifecycle.actualServings} isCloseSnapshot={isCloseSnapshot} />,
+                correction: <CorrectionOverlay correctionOverlay={lifecycle.correctionOverlay} isCloseSnapshot={isCloseSnapshot} />,
               };
               return <tr key={lifecycle.serviceRunId}>{columns.map((column) => <td key={column.id} className={column.id === 'cost' || column.id === 'servings' ? 'text-right' : column.id === 'status' ? 'text-center' : undefined}>{cells[column.id]}</td>)}</tr>;
             })}

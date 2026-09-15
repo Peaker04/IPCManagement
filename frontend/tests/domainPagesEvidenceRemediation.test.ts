@@ -38,7 +38,7 @@ describe('evidence-backed table presentation contracts', () => {
   });
 
   it('uses the canonical quantity formatter for Admin current stock', () => {
-    const source = readSource('../src/app/pages/admin-data/AdminStatisticsPanel.tsx');
+    const source = readSource('../src/app/pages/admin-data/AdminInventoryPanel.tsx');
 
     expect(source).toContain("formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })");
     expect(source).not.toContain('{row.currentQty} {row.unit}');

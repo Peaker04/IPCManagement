@@ -60,7 +60,7 @@ export const SessionTimeoutModal = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="mt-4 gap-2 sm:justify-end">
+        <DialogFooter className="gap-2 sm:justify-end">
           <Button type="button" variant="outline" onClick={goToLogin}>
             Đăng nhập lại
           </Button>

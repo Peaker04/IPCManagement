@@ -5,7 +5,13 @@ import {
   useGetPriceVarianceBySupplierPageQuery,
   useGetPriceVariancePageQuery,
 } from '@/features/reports/reportsApi';
-import type { WorkflowReportQuery } from '@/api/workflowApiTypes';
+import type {
+  PriceVarianceByDishGroupDto,
+  PriceVarianceByPeriodDto,
+  PriceVarianceBySupplierDto,
+  PriceVarianceRow,
+  WorkflowReportQuery,
+} from '@/api/workflowApiTypes';
 import {
   pricePageSizeOptions,
   readPageSize,
@@ -74,22 +80,75 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
       : priceSubView === 'dishGroup'
         ? priceVarianceByDishGroupView
         : priceVarianceView;
-  const exportConfig: ReportExportConfig = {
+
+  const linesConfig: ReportExportConfig = {
     filename: 'bien-dong-gia',
     rows: priceVarianceRows,
     columns: [
-      ['Tên nguyên liệu', (row) => row.name],
-      ['Nhà cung cấp', (row) => row.supplier],
-      ['Mã phiếu nhập', (row) => row.receiptCode],
-      ['Ngày nhập', (row) => row.receiptDate],
-      ['Số lượng', (row) => row.quantity],
-      ['ĐVT', (row) => row.unit],
-      ['Giá tham chiếu', (row) => row.pricePrev],
-      ['Giá nhập', (row) => row.priceCurrent],
-      ['Thay đổi (%)', (row) => row.change],
-      ['Vượt ngưỡng', (row) => (row.warning ? 'Có' : 'Không')],
+      ['Tên nguyên liệu', (row: PriceVarianceRow) => row.name],
+      ['Nhà cung cấp', (row: PriceVarianceRow) => row.supplier],
+      ['Mã phiếu nhập', (row: PriceVarianceRow) => row.receiptCode],
+      ['Ngày nhập', (row: PriceVarianceRow) => row.receiptDate],
+      ['Số lượng', (row: PriceVarianceRow) => row.quantity],
+      ['ĐVT', (row: PriceVarianceRow) => row.unit],
+      ['Giá tham chiếu', (row: PriceVarianceRow) => row.pricePrev],
+      ['Giá nhập', (row: PriceVarianceRow) => row.priceCurrent],
+      ['Thay đổi (%)', (row: PriceVarianceRow) => row.change],
+      ['Vượt ngưỡng', (row: PriceVarianceRow) => (row.warning ? 'Có' : 'Không')],
     ],
   };
+
+  const supplierConfig: ReportExportConfig = {
+    filename: 'bien-dong-gia-theo-ncc',
+    rows: priceVarianceBySupplierRows,
+    columns: [
+      ['Nguyên liệu', (row: PriceVarianceBySupplierDto) => row.ingredientName ?? ''],
+      ['Nhà cung cấp', (row: PriceVarianceBySupplierDto) => row.supplierName ?? ''],
+      ['ĐVT', (row: PriceVarianceBySupplierDto) => row.unitName ?? ''],
+      ['Số lần nhập', (row: PriceVarianceBySupplierDto) => row.receiptCount],
+      ['Giá TB', (row: PriceVarianceBySupplierDto) => row.avgUnitPrice],
+      ['Giá thấp nhất', (row: PriceVarianceBySupplierDto) => row.minUnitPrice],
+      ['Giá cao nhất', (row: PriceVarianceBySupplierDto) => row.maxUnitPrice],
+      ['Giá tham chiếu', (row: PriceVarianceBySupplierDto) => row.referencePrice],
+      ['Biến động (%)', (row: PriceVarianceBySupplierDto) => row.variancePercent],
+      ['Vượt ngưỡng', (row: PriceVarianceBySupplierDto) => (row.isWarning ? 'Có' : 'Không')],
+    ],
+  };
+
+  const periodConfig: ReportExportConfig = {
+    filename: 'bien-dong-gia-theo-thoi-gian',
+    rows: priceVarianceByPeriodRows,
+    columns: [
+      ['Nguyên liệu', (row: PriceVarianceByPeriodDto) => row.ingredientName ?? ''],
+      ['ĐVT', (row: PriceVarianceByPeriodDto) => row.unitName ?? ''],
+      ['Tháng', (row: PriceVarianceByPeriodDto) => row.periodLabel],
+      ['Giá TB', (row: PriceVarianceByPeriodDto) => row.avgUnitPrice],
+      ['% so với tham chiếu', (row: PriceVarianceByPeriodDto) => row.variancePercentVsReference],
+      ['% so với tháng trước', (row: PriceVarianceByPeriodDto) => row.variancePercentVsPreviousPeriod ?? '—'],
+      ['Vượt ngưỡng', (row: PriceVarianceByPeriodDto) => (row.isWarning ? 'Có' : 'Không')],
+    ],
+  };
+
+  const dishGroupConfig: ReportExportConfig = {
+    filename: 'bien-dong-gia-theo-nhom-mon',
+    rows: priceVarianceByDishGroupRows,
+    columns: [
+      ['Nhóm món', (row: PriceVarianceByDishGroupDto) => row.dishGroup],
+      ['Số nguyên liệu', (row: PriceVarianceByDishGroupDto) => row.ingredientCount],
+      ['Số NL vượt ngưỡng', (row: PriceVarianceByDishGroupDto) => row.warningIngredientCount],
+      ['% biến động (có trọng số)', (row: PriceVarianceByDishGroupDto) => row.weightedAvgVariancePercent],
+      ['Nguyên liệu ảnh hưởng nhiều nhất', (row: PriceVarianceByDishGroupDto) => (row.topIngredients ?? []).map((i) => `${i.ingredientName} (${i.variancePercent}%)`).join('; ')],
+    ],
+  };
+
+  const exportConfig: ReportExportConfig =
+    priceSubView === 'supplier'
+      ? supplierConfig
+      : priceSubView === 'period'
+        ? periodConfig
+        : priceSubView === 'dishGroup'
+          ? dishGroupConfig
+          : linesConfig;
 
   return {
     activePriceView,

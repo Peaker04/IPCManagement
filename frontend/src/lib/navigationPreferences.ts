@@ -5,6 +5,7 @@ export type NavigationPreferenceKey =
   | 'approvals'
   | 'purchasing'
   | 'warehouse'
+  | 'reconciliation'
   | 'chef-dashboard'
   | 'reports'
   | 'admin-data'
@@ -14,6 +15,11 @@ export type NavigationPreferences = Record<NavigationPreferenceKey, boolean>;
 
 export const NAVIGATION_PREFERENCES_STORAGE_KEY = 'ipc.navigation-preferences.v1';
 
+const browserStorage = () => {
+  if (typeof window === 'undefined') return undefined;
+  try { return window.localStorage; } catch { return undefined; }
+};
+
 export const defaultNavigationPreferences: NavigationPreferences = {
   dashboard: true,
   'weekly-menu': true,
@@ -21,6 +27,7 @@ export const defaultNavigationPreferences: NavigationPreferences = {
   approvals: true,
   purchasing: true,
   warehouse: true,
+  reconciliation: true,
   'chef-dashboard': true,
   reports: true,
   'admin-data': true,
@@ -42,9 +49,19 @@ export const readNavigationPreferences = (storage: Storage | undefined = typeof 
   }
 };
 
-export const writeNavigationPreferences = (preferences: NavigationPreferences, storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
-  storage?.setItem(NAVIGATION_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
-  if (typeof window !== 'undefined' && storage === window.localStorage) window.dispatchEvent(new Event('ipc:navigation-preferences-changed'));
+const writeStorage = (storage: Storage | undefined, key: string, value: string) => {
+  if (!storage) return false;
+  try { storage.setItem(key, value); return true; } catch { return false; }
+};
+
+const removeStorage = (storage: Storage | undefined, key: string) => {
+  if (!storage) return false;
+  try { storage.removeItem(key); return true; } catch { return false; }
+};
+
+export const writeNavigationPreferences = (preferences: NavigationPreferences, storage: Storage | undefined = browserStorage()) => {
+  const written = writeStorage(storage, NAVIGATION_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+  if (written && storage === browserStorage()) window.dispatchEvent(new Event('ipc:navigation-preferences-changed'));
 };
 
 export const resetNavigationPreferences = (storage?: Storage) => writeNavigationPreferences(defaultNavigationPreferences, storage);
@@ -54,6 +71,7 @@ export type ReconciliationWarehouseView = 'demand' | 'movement';
 export interface ReconciliationSelectionPreferences {
   batchId?: string;
   warehouseView?: ReconciliationWarehouseView;
+  customerId?: string;
 }
 
 export const readReconciliationSelection = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage): ReconciliationSelectionPreferences => {
@@ -64,9 +82,13 @@ export const readReconciliationSelection = (storage: Storage | undefined = typeo
     const batchId = typeof (parsed as Record<string, unknown>).batchId === 'string'
       ? (parsed as Record<string, string>).batchId.trim()
       : '';
+    const customerId = typeof (parsed as Record<string, unknown>).customerId === 'string'
+      ? (parsed as Record<string, string>).customerId.trim()
+      : '';
     const warehouseView = (parsed as Record<string, unknown>).warehouseView;
     return {
       ...(batchId ? { batchId } : {}),
+      ...(customerId ? { customerId } : {}),
       ...(warehouseView === 'demand' || warehouseView === 'movement' ? { warehouseView } : {}),
     };
   } catch {
@@ -74,21 +96,22 @@ export const readReconciliationSelection = (storage: Storage | undefined = typeo
   }
 };
 
-export const writeReconciliationSelection = (selection: ReconciliationSelectionPreferences, storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
+export const writeReconciliationSelection = (selection: ReconciliationSelectionPreferences, storage: Storage | undefined = browserStorage()) => {
   if (!storage) return;
   const next: ReconciliationSelectionPreferences = {
     ...(selection.batchId?.trim() ? { batchId: selection.batchId.trim() } : {}),
+    ...(selection.customerId?.trim() ? { customerId: selection.customerId.trim() } : {}),
     ...(selection.warehouseView ? { warehouseView: selection.warehouseView } : {}),
   };
   if (Object.keys(next).length === 0) {
-    storage.removeItem(RECONCILIATION_SELECTION_STORAGE_KEY);
+    removeStorage(storage, RECONCILIATION_SELECTION_STORAGE_KEY);
     return;
   }
-  storage.setItem(RECONCILIATION_SELECTION_STORAGE_KEY, JSON.stringify(next));
+  writeStorage(storage, RECONCILIATION_SELECTION_STORAGE_KEY, JSON.stringify(next));
 };
 
-export const clearReconciliationSelection = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
-  storage?.removeItem(RECONCILIATION_SELECTION_STORAGE_KEY);
+export const clearReconciliationSelection = (storage: Storage | undefined = browserStorage()) => {
+  removeStorage(storage, RECONCILIATION_SELECTION_STORAGE_KEY);
 };
 
 export type AdminTabPreferenceKey = 'bom-import' | 'contracts' | 'cleanup' | 'inventory' | 'statistics' | 'audit' | 'employees';
@@ -108,14 +131,14 @@ export const readAdminTabPreferences = (storage: Storage | undefined = typeof wi
     }, {} as Record<AdminTabPreferenceKey, boolean>);
   } catch { return { ...defaultAdminTabPreferences }; }
 };
-export const writeAdminTabPreferences = (preferences: Record<AdminTabPreferenceKey, boolean>, storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
-  storage?.setItem(ADMIN_TAB_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
-  if (typeof window !== 'undefined' && storage === window.localStorage) window.dispatchEvent(new Event('ipc:admin-tab-preferences-changed'));
+export const writeAdminTabPreferences = (preferences: Record<AdminTabPreferenceKey, boolean>, storage: Storage | undefined = browserStorage()) => {
+  const written = writeStorage(storage, ADMIN_TAB_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+  if (written && storage === browserStorage()) window.dispatchEvent(new Event('ipc:admin-tab-preferences-changed'));
 };
 
 export const pageTabGroups = [
-  { id: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch, nhu cầu, sản xuất và chi phí', tabs: [['schedule', 'Kế hoạch tuần'], ['demand', 'Nhu cầu'], ['production-plan', 'Kế hoạch sản xuất'], ['purchase-summary', 'Tổng hợp mua'], ['cost', 'Giá vốn'], ['dish-materials', 'Nguyên liệu món']] },
-  { id: 'warehouse', label: 'Kho nguyên liệu', description: 'Luân chuyển, nhu cầu xuất và ngoại lệ', tabs: [['movement', 'Luân chuyển'], ['demand', 'Nhu cầu xuất'], ['exceptions', 'Ngoại lệ']] },
+  { id: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch, nhu cầu và sản xuất', tabs: [['schedule', 'Kế hoạch tuần'], ['demand', 'Nhu cầu'], ['production-plan', 'Kế hoạch sản xuất']] },
+  { id: 'warehouse', label: 'Kho nguyên liệu', description: 'Nhập hàng, xuất hàng, ngoại lệ và tra cứu', tabs: [['receiving', 'Nhập hàng'], ['demand', 'Xuất hàng'], ['exceptions', 'Ngoại lệ'], ['movement', 'Tra cứu']] },
   { id: 'approvals', label: 'Duyệt vận hành', description: 'Hàng chờ và lịch sử phê duyệt', tabs: [['queue', 'Cần duyệt'], ['history', 'Lịch sử']] },
   { id: 'purchasing', label: 'Thu mua', description: 'Quy trình mua, mua bổ sung và báo giá', tabs: [['workflow', 'Xử lý thu mua'], ['supplemental', 'Mua bổ sung'], ['quotations', 'Báo giá nhà cung cấp']] },
   { id: 'chef', label: 'Bếp trưởng', description: 'Ca sản xuất và chứng từ bếp', tabs: [['production', 'Ca sản xuất'], ['documents', 'Chứng từ bếp']] },
@@ -140,10 +163,13 @@ export const readPageTabPreferences = (storage: Storage | undefined = typeof win
   }))]));
 };
 
-export const writePageTabPreferences = (preferences: PageTabPreferences, storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
-  storage?.setItem(PAGE_TAB_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
-  if (typeof window !== 'undefined' && storage === window.localStorage) window.dispatchEvent(new Event('ipc:page-tab-preferences-changed'));
+export const writePageTabPreferences = (preferences: PageTabPreferences, storage: Storage | undefined = browserStorage()) => {
+  const written = writeStorage(storage, PAGE_TAB_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+  if (written && storage === browserStorage()) window.dispatchEvent(new Event('ipc:page-tab-preferences-changed'));
 };
+
+export const resolveVisibleTabId = <T extends string>(requested: string | null, visible: T[], fallback: T): T =>
+  requested && visible.includes(requested as T) ? requested as T : (visible[0] ?? fallback);
 
 export const visibleTabIds = (groupId: PageTabGroupId, preferences = readPageTabPreferences()) => {
   const group = pageTabGroups.find((candidate) => candidate.id === groupId);

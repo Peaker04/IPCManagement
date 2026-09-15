@@ -107,8 +107,6 @@ export type {
   ReceiptCorrectionResult,
   RecordWarehousePurchaseReceiptRequest,
   PurchaseOrderPageResponse,
-  RecordPurchaseOrderReceiptLineDto,
-  RecordPurchaseOrderReceiptDto,
   PriceVarianceBySupplierDto,
   PriceVarianceByPeriodDto,
   PriceVarianceDishGroupIngredientDto,
@@ -189,7 +187,6 @@ export {
   useGetPurchaseOrdersQuery,
   useGetPurchaseOrdersPageQuery,
   useCreatePurchaseOrdersFromRequestMutation,
-  useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
@@ -225,7 +222,6 @@ export {
 } from '@/api/warehouseApi';
 export {
   useGetDailyProductionPlanQuery,
-  useSendDailyProductionPlanToKitchenMutation,
     useOpenServiceRunMutation,
     useGetServiceRunByPlanQuery,
     useGetServiceRunPageQuery,

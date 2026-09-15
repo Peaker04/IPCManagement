@@ -1,9 +1,11 @@
 import { Fragment, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { ChevronDown, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert, TableViewport } from '@/components/common'
 import { formatDateOnly, formatNumber, formatQuantity } from '@/lib/formatters'
 import { ReconciliationLifecycleStrip } from '@/components/reconciliation/ReconciliationLifecycleStrip'
+import { ROUTES } from '@/lib/routeConfig'
 import {
   useCommitReconciliationQuantityImportMutation,
   useInitializeReconciliationToleranceMutation,
@@ -127,7 +129,7 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
     }
   }
 
-  return <section className="rounded-lg border border-slate-200 bg-white p-4" aria-label="Chuẩn bị và chuyển định lượng sang kho">
+  return <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs" aria-label="Chuẩn bị và chuyển định lượng sang kho">
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div><h3 className="font-semibold text-slate-950">Định lượng xuất kho</h3><p className="mt-1 text-sm text-slate-600">{scopeLabel}. Kiểm tra kế hoạch, tạo lô và khóa định lượng trước khi chuyển sang Kho.</p></div>
       <div className="flex flex-wrap gap-2">
@@ -138,29 +140,67 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
       </div>
     </div>
 
-    {!batch && menuVersionId && !isMenuPublished && <div className="mt-3"><InlineAlert title="Thực đơn tuần chưa được phát hành" variant="warning">Hoàn tất chỉnh món, định mức nguyên liệu và số suất, sau đó xuất bản tuần trước khi tổng hợp nguyên liệu.<div className="mt-2"><Button type="button" size="sm" disabled={busy || !onPublishMenu} onClick={onPublishMenu}>{isPublishingMenu ? 'Đang xuất bản...' : 'Xuất bản tuần'}</Button></div></InlineAlert></div>}
-    {!batch && menuVersionId && isMenuPublished && incompleteServingPlanCount > 0 && <div className="mt-3"><InlineAlert title="Số suất chưa hoàn tất" variant="warning">Còn {incompleteServingPlanCount} kế hoạch ngày/ca ở trạng thái nháp. Mở trình chỉnh sửa và nhấn “Hoàn tất” cho từng ngày/ca trước khi kiểm tra nguồn.<div className="mt-2"><Button type="button" size="sm" disabled={busy || !onEditServings} onClick={onEditServings}>Nhập và hoàn tất số suất</Button></div></InlineAlert></div>}
-    {feedback && <div className="mt-3"><InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}{needsToleranceInitialization && <div className="mt-2">{canInitializeTolerance ? <Button type="button" size="sm" disabled={busy} onClick={() => void initializeSystemTolerance()}>{isInitializingTolerance ? 'Đang khởi tạo...' : 'Khởi tạo dung sai đối chiếu'}</Button> : <span className="text-sm font-medium">Liên hệ quản trị viên để khởi tạo dung sai đối chiếu.</span>}</div>}</InlineAlert></div>}
-    {preview && <div className="mt-3 overflow-hidden rounded border border-slate-200" aria-label="Kế hoạch định lượng">
+    {!batch && menuVersionId && !isMenuPublished ? (
+      <div className="mt-3">
+        <InlineAlert title="Thực đơn tuần chưa được phát hành" variant="warning">
+          Hoàn tất chỉnh món, định mức nguyên liệu và số suất, sau đó xuất bản tuần trước khi tổng hợp nguyên liệu.
+          <div className="mt-2">
+            <Button type="button" size="sm" disabled={busy || !onPublishMenu} onClick={onPublishMenu}>
+              {isPublishingMenu ? 'Đang xuất bản...' : 'Xuất bản tuần'}
+            </Button>
+          </div>
+        </InlineAlert>
+      </div>
+    ) : !batch && menuVersionId && isMenuPublished && incompleteServingPlanCount > 0 ? (
+      <div className="mt-3">
+        <InlineAlert title="Số suất chưa hoàn tất" variant="warning">
+          Còn {incompleteServingPlanCount} kế hoạch ngày/ca ở trạng thái nháp. Mở trình chỉnh sửa và nhấn “Hoàn tất” cho từng ngày/ca trước khi kiểm tra nguồn.
+          <div className="mt-2">
+            <Button type="button" size="sm" disabled={busy || !onEditServings} onClick={onEditServings}>
+              Nhập và hoàn tất số suất
+            </Button>
+          </div>
+        </InlineAlert>
+      </div>
+    ) : feedback ? (
+      <div className="mt-3">
+        <InlineAlert title={feedback.title} variant={feedback.variant}>
+          {feedback.message}
+          {needsToleranceInitialization && (
+            <div className="mt-2">
+              {canInitializeTolerance ? (
+                <Button type="button" size="sm" disabled={busy} onClick={() => void initializeSystemTolerance()}>
+                  {isInitializingTolerance ? 'Đang khởi tạo...' : 'Khởi tạo dung sai đối chiếu'}
+                </Button>
+              ) : (
+                <span className="text-sm font-medium">Liên hệ quản trị viên để khởi tạo dung sai đối chiếu.</span>
+              )}
+            </div>
+          )}
+        </InlineAlert>
+      </div>
+    ) : null}
+
+    {preview && <div className="mt-3 overflow-hidden rounded-md border border-slate-200" aria-label="Kế hoạch định lượng">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
-        <div><strong className="text-sm text-slate-950">Kế hoạch theo ngày và ca</strong><p className="mt-0.5 text-xs text-slate-600">{previewSummary.lineCount} ca · {formatNumber(previewSummary.servingCount)} suất · {previewSummary.ingredientTotals.length} nguyên liệu</p></div>
+        <div><strong className="text-sm font-semibold text-slate-950">Kế hoạch theo ngày và ca</strong><p className="mt-0.5 text-xs text-slate-600 tabular-nums">{previewSummary.lineCount} ca · {formatNumber(previewSummary.servingCount)} suất · {previewSummary.ingredientTotals.length} nguyên liệu</p></div>
         {onEditServings && <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setPreview(undefined); setExpandedLineId(undefined); setFeedback({ title: 'Kế hoạch cần được kiểm tra lại', message: 'Sau khi chỉnh thực đơn hoặc số suất, hãy kiểm tra lại trước khi tạo lô.', variant: 'warning' }); onEditServings() }}>Chỉnh thực đơn và số suất</Button>}
       </div>
-      {(preview.diagnostics?.length ?? 0) > 0 && <div className="border-b border-amber-200 bg-amber-50 px-4 py-3"><strong className="text-sm text-amber-900">Cần bổ sung định mức nguyên liệu</strong><ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-800">{preview.diagnostics.map((diagnostic) => <li key={diagnostic}>{diagnostic}</li>)}</ul></div>}
+      {(preview.diagnostics?.length ?? 0) > 0 && <div className="border-b border-amber-200 bg-amber-50 px-4 py-3"><strong className="text-sm font-semibold text-amber-900">Cần bổ sung định mức nguyên liệu</strong><ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-800">{preview.diagnostics.map((diagnostic) => <li key={diagnostic}>{diagnostic}</li>)}</ul></div>}
       <TableViewport ariaLabel="Kế hoạch định lượng theo ngày và ca" frozenFirstIdentifier={false}>
         <table className="ipc-data-table w-full min-w-[720px] table-fixed border-collapse text-sm">
-          <thead className="bg-white text-left text-xs font-semibold uppercase tracking-wide text-slate-600"><tr><th scope="col" className="px-4 py-2.5">Ngày</th><th scope="col" className="px-4 py-2.5">Ca</th><th scope="col" className="px-4 py-2.5 text-right">Số suất</th><th scope="col" className="px-4 py-2.5 text-right">Số món</th><th scope="col" className="w-28 px-4 py-2.5"><span className="sr-only">Chi tiết</span></th></tr></thead>
+          <thead className="bg-white text-left text-xs font-semibold uppercase tracking-wide text-slate-600"><tr><th scope="col" className="px-4 py-2.5">Ngày</th><th scope="col" className="px-4 py-2.5">Ca</th><th scope="col" className="px-4 py-2.5 text-right">Số suất</th><th scope="col" className="px-4 py-2.5 text-right">Số món</th><th scope="col" className="w-28 px-4 py-2.5 text-right"><span className="sr-only">Chi tiết</span></th></tr></thead>
           <tbody className="divide-y divide-slate-200">{preview.plans.flatMap((plan) => plan.lines.map((line) => ({ plan, line }))).map(({ plan, line }) => {
             const expanded = expandedLineId === line.quantityPlanLineId
-            return <Fragment key={line.quantityPlanLineId}><tr className="hover:bg-slate-50"><td className="px-4 py-3 font-medium text-slate-900">{plan.serviceDate ? formatDateOnly(plan.serviceDate) : 'Chưa xác định'}</td><td className="px-4 py-3">{shiftLabel(line.shift)}</td><td className="px-4 py-3 text-right tabular-nums">{formatNumber(line.finalServings)}</td><td className="px-4 py-3 text-right tabular-nums">{(line.dishes ?? []).length}</td><td className="px-4 py-3 text-right"><Button type="button" size="sm" variant="ghost" aria-expanded={expanded} onClick={() => setExpandedLineId(expanded ? undefined : line.quantityPlanLineId)}>{expanded ? 'Thu gọn' : 'Xem món'}<ChevronDown className={`ml-1 size-4 ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" /></Button></td></tr>
-              {expanded && <tr><td colSpan={5} className="bg-slate-50 px-4 py-3"><table className="ipc-data-table w-full table-fixed border-collapse text-xs"><thead><tr className="text-left text-slate-600"><th scope="col" className="pb-2 pr-3">Món ăn</th><th scope="col" className="pb-2 pr-3">Nguyên liệu</th><th scope="col" className="pb-2 text-right">Lượng cần</th></tr></thead><tbody className="divide-y divide-slate-200">{(line.dishes ?? []).flatMap((dish) => dish.materials.map((material, index) => <tr key={material.dishBomId}><td className="py-2 pr-3 font-medium text-slate-900">{index === 0 ? dish.dishName : ''}</td><td className="py-2 pr-3">{material.ingredientName}</td><td className="py-2 text-right font-medium tabular-nums">{formatQuantity(material.requiredQuantity, { maximumFractionDigits: 6 })} {material.canonicalUnitName}</td></tr>))}</tbody></table></td></tr>}
+            return <Fragment key={line.quantityPlanLineId}><tr className="hover:bg-slate-50"><td className="px-4 py-3 font-medium text-slate-900">{plan.serviceDate ? formatDateOnly(plan.serviceDate) : 'Chưa xác định'}</td><td className="px-4 py-3">{shiftLabel(line.shift)}</td><td className="px-4 py-3 text-right tabular-nums">{formatNumber(line.finalServings)}</td><td className="px-4 py-3 text-right tabular-nums">{(line.dishes ?? []).length}</td><td className="px-4 py-3 text-right"><Button type="button" size="sm" variant="ghost" aria-expanded={expanded} onClick={() => setExpandedLineId(expanded ? undefined : line.quantityPlanLineId)}>{expanded ? 'Thu gọn' : 'Xem món'}<ChevronDown className={`ml-1 size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" /></Button></td></tr>
+              {expanded && <tr><td colSpan={5} className="bg-slate-50/80 px-4 py-3"><table className="ipc-data-table w-full table-fixed border-collapse text-xs"><thead><tr className="text-left text-slate-600"><th scope="col" className="pb-2 pr-3">Món ăn</th><th scope="col" className="pb-2 pr-3">Nguyên liệu</th><th scope="col" className="pb-2 text-right">Lượng cần</th></tr></thead><tbody className="divide-y divide-slate-200">{(line.dishes ?? []).flatMap((dish) => dish.materials.map((material, index) => <tr key={material.dishBomId}><td className="py-2 pr-3 font-medium text-slate-900">{index === 0 ? dish.dishName : ''}</td><td className="py-2 pr-3 text-slate-800">{material.ingredientName}</td><td className="py-2 text-right font-medium tabular-nums">{formatQuantity(material.requiredQuantity, { maximumFractionDigits: 6 })} {material.canonicalUnitName}</td></tr>))}</tbody></table></td></tr>}
             </Fragment>
           })}</tbody>
         </table>
       </TableViewport>
-      {previewSummary.ingredientTotals.length > 0 && <details className="border-t border-slate-200"><summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-900">Xem tổng nguyên liệu</summary><div className="max-h-80 overflow-auto border-t border-slate-200"><table className="ipc-data-table w-full table-fixed text-sm"><thead className="sticky top-0 bg-slate-50 text-left text-xs text-slate-600"><tr><th scope="col" className="px-4 py-2">Nguyên liệu</th><th scope="col" className="px-4 py-2 text-right">Tổng lượng cần</th></tr></thead><tbody className="divide-y divide-slate-200">{previewSummary.ingredientTotals.map((material) => <tr key={`${material.code}:${material.unit}`}><td className="px-4 py-2">{material.name}</td><td className="px-4 py-2 text-right font-medium tabular-nums">{formatQuantity(material.quantity, { maximumFractionDigits: 6 })} {material.unit}</td></tr>)}</tbody></table></div></details>}
+      {previewSummary.ingredientTotals.length > 0 && <details className="group border-t border-slate-200"><summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span>Xem tổng nguyên liệu ({previewSummary.ingredientTotals.length})</span><ChevronDown className="size-4 text-slate-500 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="max-h-80 overflow-auto border-t border-slate-200"><table className="ipc-data-table w-full table-fixed text-sm"><thead className="sticky top-0 bg-slate-50 text-left text-xs text-slate-600"><tr><th scope="col" className="px-4 py-2">Nguyên liệu</th><th scope="col" className="px-4 py-2 text-right">Tổng lượng cần</th></tr></thead><tbody className="divide-y divide-slate-200">{previewSummary.ingredientTotals.map((material) => <tr key={`${material.code}:${material.unit}`}><td className="px-4 py-2 text-slate-900">{material.name}</td><td className="px-4 py-2 text-right font-medium tabular-nums">{formatQuantity(material.quantity, { maximumFractionDigits: 6 })} {material.unit}</td></tr>)}</tbody></table></div></details>}
     </div>}
-    {batch && <div className="mt-3 space-y-2"><ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={['TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'].includes(batch.status)} /><p className="text-sm text-slate-600">{batch.lines?.length ?? 0} nguyên liệu{batch.status !== 'DRAFT' ? ' · Định lượng đã khóa; thay đổi sau đó sẽ áp dụng cho lô mới.' : ''}</p></div>}
+    {batch && <div className="mt-3 space-y-2"><ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={['TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'].includes(batch.status)} /><p className="text-sm text-slate-600">{batch.lines?.length ?? 0} nguyên liệu{batch.status !== 'DRAFT' ? ' · Định lượng đã khóa; thay đổi sau đó không tự ghi đè lô này.' : ''}</p>{['TRANSFERRED', 'IN_PROGRESS'].includes(batch.status) && <InlineAlert title="Số suất thay đổi sau khi đã khóa định lượng" variant="warning">Lô vẫn giữ số suất đã khóa và không tự tăng theo giá trị mới. {batch.status === 'TRANSFERRED' ? 'Kho cần tạo phiếu xuất ban đầu trước; sau đó nút “Tạo phiếu xuất bổ sung” sẽ xuất hiện để xử lý phần tăng.' : 'Mở đúng lô tại Kho và dùng “Tạo phiếu xuất bổ sung”.'} Có thể chọn món cùng số suất tăng thêm để hệ thống tính nguyên liệu theo định mức hiện hành.<div className="mt-2"><Button nativeButton={false} size="sm" variant="outline" render={<Link to={`${ROUTES.WAREHOUSE}?view=demand&batchId=${encodeURIComponent(batch.batchId)}`} />}>{batch.status === 'TRANSFERRED' ? 'Mở Kho để xuất ban đầu' : 'Mở phiếu xuất bổ sung'}</Button></div></InlineAlert>}</div>}
     {isLoading && <p className="mt-3 text-sm text-slate-600">Đang tải định lượng đã chốt...</p>}
     {isError && <p className="mt-3 text-sm text-red-700" role="alert">Không tải được định lượng xuất kho. <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetch()}>Thử lại</Button></p>}
     {!isLoading && !isError && !menuVersionId && <p className="mt-3 text-sm text-slate-600">Chọn đúng khách hàng và tuần có kế hoạch đã nhập để mở định lượng xuất kho.</p>}

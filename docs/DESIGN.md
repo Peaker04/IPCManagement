@@ -101,7 +101,7 @@ Một page composition hợp lệ phải giữ các invariant sau:
 | Scope/action row | `CommandBar` | Compact, wrap có chủ đích, một primary action |
 | Async query state | `QueryViewBoundary` | State semantics + geometry role; placeholder phải phù hợp child |
 | Empty/prerequisite | `EmptyState` hoặc shared prerequisite primitive | Một state surface, title/reason/action |
-| Repeated work section | `SectionPanel` | Heading/content adjacency; không tạo khoảng trắng vô nghĩa |
+| Repeated work section | `SectionPanel` | Heading/content adjacency; route-primary mặc định `h2` dưới shell `h1`; nested/detail phải khai `h3`/`h4` tường minh; không tạo khoảng trắng vô nghĩa |
 | Data comparison | table primitives | Chỉ mount khi có selected work object hoặc purposeful empty state |
 | Dialog/detail | canonical Dialog/Drawer | Dialog chặn luồng và trap focus; drawer master–detail chỉ đọc dùng portal/side geometry nhưng không backdrop chặn, không trap focus hoặc khóa nền |
 

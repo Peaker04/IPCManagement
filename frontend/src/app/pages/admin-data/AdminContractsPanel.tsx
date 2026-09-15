@@ -1,5 +1,5 @@
 import { CalendarCheck, Pencil, PlusCircle, Save } from 'lucide-react';
-import { TableViewport, ContextStrip, KeepAliveTabPanel, SectionPanel, StatusBadge } from '@/components/common';
+import { TableViewport, KeepAliveTabPanel, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,14 +29,6 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
             icon={<CalendarCheck size={18} />}
             description="Quản lý thông tin hợp đồng khách hàng, quy tắc suất ăn, các ca áp dụng và phiên bản lịch thực đơn."
           >
-            <ContextStrip
-              items={[
-                { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
-                { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
-                { label: 'Ca phục vụ', value: selectedContract?.shiftNames.map(formatShiftName).join(', ') || '-', tone: 'info' },
-                { label: 'Lịch theo phiên bản', value: menuSchedules.length.toString(), tone: 'neutral' },
-              ]}
-            />
 
             {contractFeedback && (
               <div

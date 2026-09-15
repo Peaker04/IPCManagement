@@ -5,7 +5,7 @@ import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewConten
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
-import { OperationalFrame, ViewSwitcher, RefreshStatus } from '@/components/common';
+import { OperationalFrame, RefreshStatus } from '@/components/common';
 import { typography } from '@/lib/typography';
 import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
@@ -15,7 +15,7 @@ import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/reportsApi';
 import { useGetCoordinationCustomersQuery, useGetCustomerContractsQuery, useGetCommittedWeeklyMenuQuery, useGetReconciliationWeeklyMenuQuery, useGetMealQuantityPlansQuery, useGetMenuSchedulesQuery, useUpdateMenuScheduleVersionMutation } from '@/api/coordinationApi';
 import { isBomPriceTier, normalizeBomPriceTier } from '../weeklyMenuPlanning';
-import { formatImportDate, getStoredWeekStartDate, LAST_WEEKLY_MENU_CUSTOMER_KEY, LAST_WEEKLY_MENU_WEEK_KEY, normalizeDishMatchKey, normalizeWeekStartDate, parseDisplayDateToIso, toLocalIsoDate } from '../weekly-menu/model/formatters';
+import { formatImportDate, getStoredWeekStartDate, LAST_WEEKLY_MENU_CUSTOMER_KEY, LAST_WEEKLY_MENU_WEEK_KEY, normalizeDishMatchKey, normalizeWeekStartDate, parseDisplayDateToIso, readWeeklyMenuSelection, toLocalIsoDate, writeWeeklyMenuSelection } from '../weekly-menu/model/formatters';
 import { buildImportedDayDates, buildImportedLayoutRows, buildPlanRowsMaterialSummary } from '../weekly-menu/model/scope';
 import type { WeeklyMenuView } from '../weekly-menu/model/types';
 import { useWeeklyMenuImport } from '../weekly-menu/import/useWeeklyMenuImport';
@@ -32,8 +32,8 @@ import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
 import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel';
-import { MRX_QUANTITY_TAB_LABEL } from '@/lib/reconciliationLifecyclePresentation';
 import { useSystemOperation } from '@/lib/systemOperationContext';
+import { WeeklyMenuNavigation } from '../weekly-menu/shell/WeeklyMenuNavigation';
 import { readReconciliationWeeklyMenuRoute } from '@/lib/routeConfig';
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
 const WeeklyScheduleEditorDialog = lazy(() => import('../weekly-menu/schedule/WeeklyScheduleEditorDialog').then(({ WeeklyScheduleEditorDialog: component }) => ({ default: component })))
@@ -81,7 +81,7 @@ const DefaultWeeklyMenuPage = () => {
     : customerContractsView.phase === 'error' ? customerContractsQuery.currentData : undefined;
   const customerContracts = customerContractsResponse?.data ?? [];
   const [selectedMenuCustomerId, setSelectedMenuCustomerId] = useState(
-    () => window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? '',
+    () => readWeeklyMenuSelection(LAST_WEEKLY_MENU_CUSTOMER_KEY),
   );
   const effectiveMenuCustomerId = isMaterialReconciliationMode
     ? reconciliationRouteScope.customerId || selectedMenuCustomerId
@@ -178,7 +178,9 @@ const DefaultWeeklyMenuPage = () => {
     ?? displayedWeekStartDate;
   const activeServiceLabel = activeServiceDay
     ? `${activeServiceDay.label} - ${activeServiceDay.date}`
-    : `Ngoài tuần menu (${formatImportDate(todayIso)})`;
+    : displayedWeekStartDate
+      ? `Tuần ${formatImportDate(displayedWeekStartDate)}`
+      : 'Chưa chọn tuần';
   const selectedCustomer = customers.find((customer) => customer.customerId === effectiveMenuCustomerId);
   const selectedCustomerContract = customerContracts.find((contract) => contract.customerId === effectiveMenuCustomerId);
   const scheduleMenuPrices = menuSchedules
@@ -208,15 +210,22 @@ const DefaultWeeklyMenuPage = () => {
   const weeklyMenuTabIds = useMemo(() => {
     const locallyVisibleTabs = visibleTabIds('weekly-menu') as WeeklyMenuView[];
     const backendTabs = systemOperation?.capabilities.pageTabs['weekly-menu'] ?? [];
-    return eligiblePageTabs(systemOperation?.mode ?? 'DEFAULT', 'weekly-menu', backendTabs, locallyVisibleTabs) as WeeklyMenuView[];
+    const primaryTabs = eligiblePageTabs(systemOperation?.mode ?? 'DEFAULT', 'weekly-menu', backendTabs, locallyVisibleTabs) as WeeklyMenuView[];
+    return systemOperation?.mode === 'MATERIAL_RECONCILIATION'
+      ? primaryTabs
+      : [...primaryTabs, ...(['purchase-summary', 'cost', 'dish-materials'] as WeeklyMenuView[]).filter((view) => backendTabs.includes(view))];
   }, [systemOperation?.capabilities.pageTabs, systemOperation?.mode]);
-  const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() => weeklyMenuTabIds[0] ?? 'schedule');
+  const requestedDefaultView = searchParams.get('view') as WeeklyMenuView | null;
+  const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() =>
+    requestedDefaultView && weeklyMenuTabIds.includes(requestedDefaultView) ? requestedDefaultView : weeklyMenuTabIds[0] ?? 'schedule');
   const requestedReconciliationView = reconciliationRouteScope.view;
   const resolvedSelectedView = isMaterialReconciliationMode
     && requestedReconciliationView
     && weeklyMenuTabIds.includes(requestedReconciliationView as WeeklyMenuView)
     ? requestedReconciliationView as WeeklyMenuView
-    : weeklyMenuTabIds.includes(selectedView)
+    : !isMaterialReconciliationMode && requestedDefaultView && weeklyMenuTabIds.includes(requestedDefaultView)
+      ? requestedDefaultView
+      : weeklyMenuTabIds.includes(selectedView)
       ? selectedView
       : weeklyMenuTabIds[0] ?? 'schedule';
   useEffect(() => {
@@ -325,14 +334,14 @@ const DefaultWeeklyMenuPage = () => {
     onCustomerCreated: (customerId) => {
       setSelectedMenuCustomerId(customerId);
       resetScopedWeeklyMenuUi();
-      window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, customerId);
+      writeWeeklyMenuSelection(LAST_WEEKLY_MENU_CUSTOMER_KEY, customerId);
     },
     onMenuCommitted: (result) => {
-      window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, result.customerId);
+      writeWeeklyMenuSelection(LAST_WEEKLY_MENU_CUSTOMER_KEY, result.customerId);
       setSelectedMenuCustomerId(result.customerId);
       resetScopedWeeklyMenuUi();
       if (result.weekStartDate) {
-        window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, result.weekStartDate);
+        writeWeeklyMenuSelection(LAST_WEEKLY_MENU_WEEK_KEY, result.weekStartDate);
         setCommittedMenuWeekStartDate(result.weekStartDate);
       }
       dispatch(setWeeklyMenu(result.importedWeeklyMenu));
@@ -450,6 +459,7 @@ const DefaultWeeklyMenuPage = () => {
     missingBomCount: weeklyRowsMissingBom.length,
     invalidBomTierCount,
     demandMaterialCount: demandReadinessResult.data?.totalCount ?? 0,
+    // Readiness retains the compatibility calculation/lifecycle signal, not physical issue backlog.
     demandShortageCount: demandReadinessResult.data?.shortageCount ?? 0,
   });
   const readOnlyScopeKey = `${weeklyScheduleScope.customerId}:${weeklyScheduleScope.weekStartDate}`;
@@ -507,37 +517,32 @@ const DefaultWeeklyMenuPage = () => {
           setSelectedMenuCustomerId(customerId);
           updateReconciliationScope({ customerId });
           resetScopedWeeklyMenuUi();
-          if (customerId) window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, customerId);
-          else window.localStorage.removeItem(LAST_WEEKLY_MENU_CUSTOMER_KEY);
+          writeWeeklyMenuSelection(LAST_WEEKLY_MENU_CUSTOMER_KEY, customerId);
         }}
         onWeekChange={(weekStartDate) => {
           const normalizedWeekStartDate = normalizeWeekStartDate(weekStartDate);
           setCommittedMenuWeekStartDate(normalizedWeekStartDate);
           updateReconciliationScope({ weekStartDate: normalizedWeekStartDate });
           resetScopedWeeklyMenuUi();
-          if (normalizedWeekStartDate) window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, normalizedWeekStartDate);
-          else window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
+          writeWeeklyMenuSelection(LAST_WEEKLY_MENU_WEEK_KEY, normalizedWeekStartDate);
         }}
       />}
       context={isMaterialReconciliationMode ? undefined : <WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
       <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
         <WeeklyMenuReadiness readiness={readiness} />
-        <ViewSwitcher
-          ariaLabel="Chọn góc nhìn kế hoạch tuần"
-          tabs={[
-            { id: 'schedule', label: 'Kế hoạch tuần' },
-            { id: 'demand', label: isMaterialReconciliationMode ? MRX_QUANTITY_TAB_LABEL : 'Nhu cầu' },
-            { id: 'production-plan', label: 'Kế hoạch sản xuất' },
-            { id: 'purchase-summary', label: 'Tổng hợp mua' },
-            { id: 'cost', label: 'Giá vốn' },
-            { id: 'dish-materials', label: 'Nguyên liệu món' },
-          ].filter((tab) => weeklyMenuTabIds.includes(tab.id as WeeklyMenuView))}
-          activeTab={resolvedSelectedView}
-          onTabChange={(tabId) => {
-            const view = tabId as WeeklyMenuView;
+        <WeeklyMenuNavigation
+          mode={systemOperation?.mode ?? 'DEFAULT'}
+          views={weeklyMenuTabIds}
+          activeView={resolvedSelectedView}
+          onViewChange={(view) => {
             setSelectedView(view);
-            updateReconciliationScope({ view });
+            if (isMaterialReconciliationMode) updateReconciliationScope({ view });
+            else {
+              const next = new URLSearchParams(searchParams);
+              next.set('view', view);
+              setSearchParams(next);
+            }
           }}
         />
         <WeeklyMenuAlerts
@@ -588,7 +593,7 @@ const DefaultWeeklyMenuPage = () => {
 
         {importWorkflow.state.isOpen && <Suspense fallback={null}><WeeklyMenuImportDialog workflow={importWorkflow} /></Suspense>}
 
-        {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} servingRows={quickServingRows} /></Suspense>}
+        {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} servingRows={quickServingRows} layoutRows={committedLayoutRows} /></Suspense>}
       </QueryViewBoundary>
     </OperationalFrame>
   );

@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { ROUTES } from '@/lib/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
 import type { WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from '../schedule/types'
-import type { DemandLine } from '@/types/workflow'
 import type { MaterialDemandWorkflow } from './useMaterialDemand'
 import { getDemandActionPresentation } from './demandModel'
 import { typography } from '@/lib/typography'
@@ -32,9 +31,6 @@ export function MaterialDemandSection({
   const servingBusy = status.isSavingQuickServings || scheduleWorkflow.status.isSavingQuickServings
   const isStalenessUnavailable = status.stalenessState === 'loading' || status.stalenessState === 'error'
   const purchasingHref = `${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(presentation.activeDate)}`
-  const renderPurchaseAction = (line: DemandLine) => line.tone === 'danger' && line.serviceDate
-    ? <Link className="ipc-button ipc-button-warning ipc-button-bounded whitespace-nowrap" to={`${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(line.serviceDate)}`}>Đề xuất mua</Link>
-    : undefined
   const activeShiftGroups = Array.from(new Set(activeRows.map((row) => row.shiftLabel))).map((shiftLabel) => {
     const rows = activeRows.filter((row) => row.shiftLabel === shiftLabel)
     return {
@@ -79,11 +75,33 @@ export function MaterialDemandSection({
       setIsRegenerateConfirmOpen(false)
     }
   }
+  const isDemandReady = demandView.phase === 'ready'
+  const hasMaterials = isDemandReady && inventoryStatus.totalCount > 0
+  const handoffClassName = !isDemandReady || !hasMaterials
+    ? undefined
+    : inventoryStatus.shortageCount > 0 || inventoryStatus.pendingKitchenCount > 0
+      ? 'is-warning'
+      : 'is-complete'
+  const handoffText = demandView.phase === 'uninitialized'
+    ? 'Chọn phạm vi'
+    : demandView.phase === 'loading'
+      ? 'Đang tải'
+      : demandView.phase === 'forbidden' || demandView.phase === 'error'
+        ? 'Chưa xác định'
+        : inventoryStatus.totalCount === 0
+          ? 'Chưa có nguyên liệu'
+          : inventoryStatus.shortageCount > 0 && inventoryStatus.pendingKitchenCount > 0
+            ? `Kho còn xuất ${inventoryStatus.shortageCount} · Bếp còn nhận ${inventoryStatus.pendingKitchenCount}`
+            : inventoryStatus.shortageCount > 0
+              ? `Kho còn xuất ${inventoryStatus.shortageCount}/${inventoryStatus.totalCount}`
+              : inventoryStatus.pendingKitchenCount > 0
+                ? `Kho đã xuất đủ · Bếp còn nhận ${inventoryStatus.pendingKitchenCount}/${inventoryStatus.totalCount}`
+                : 'Bếp đã nhận đủ'
   return (
     <SectionPanel
-      title="KHSX, kiểm tồn kho và nhu cầu xuất"
+      title="KHSX và tiến độ xuất nguyên liệu"
       icon={<Scale size={18} color="var(--ipc-slate-600)" />}
-      badge={(
+      badge={demandView.phase === 'uninitialized' ? undefined : (
         <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
           <span className="text-xs font-semibold text-slate-500">Phê duyệt nhu cầu</span>
           <StatusBadge variant={presentation.demandApprovalStatus.tone}>
@@ -97,7 +115,13 @@ export function MaterialDemandSection({
         </div>
       )}
     >
-      <div className="flex flex-col gap-3">
+      {demandView.phase === 'uninitialized' ? (
+        <div className="py-2 text-sm text-slate-600">
+          Chọn khách hàng và tuần để xem KHSX và tiến độ bàn giao nguyên liệu.
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col gap-3">
         <section className="ipc-demand-day-command" aria-label="Điều hướng và trạng thái ngày đang xem">
           <div className="ipc-demand-day-object">
             <CalendarDays size={18} aria-hidden="true" />
@@ -150,21 +174,10 @@ export function MaterialDemandSection({
             <dt>Số suất theo ca</dt>
             <dd>{completedShiftCount}/{activeShiftGroups.length} ca hoàn tất</dd>
           </div>
-          <div>
+          <div className={handoffClassName}>
             <PackageSearch size={18} aria-hidden="true" />
-            <dt>Vật tư đã đáp ứng</dt>
-            <dd>{status.isDemandError ? 'Chưa xác định' : `${inventoryStatus.enoughCount}/${inventoryStatus.totalCount} nguyên liệu`}</dd>
-          </div>
-          <div className={status.isDemandError || inventoryStatus.shortageCount > 0 ? 'is-danger' : inventoryStatus.pendingKitchenCount > 0 ? 'is-warning' : 'is-complete'}>
-            <TriangleAlert size={18} aria-hidden="true" />
-            <dt>Tồn kho & vật tư</dt>
-            <dd>{status.isDemandError
-              ? 'Chưa xác định'
-              : inventoryStatus.shortageCount > 0
-                ? `Thiếu ${inventoryStatus.shortageCount} nguyên liệu`
-                : inventoryStatus.pendingKitchenCount > 0
-                  ? `Chờ Bếp nhận (${inventoryStatus.pendingKitchenCount})`
-                  : 'Đủ hàng'}</dd>
+            <dt>Bàn giao nguyên liệu</dt>
+            <dd>{handoffText}</dd>
           </div>
         </dl>
 
@@ -271,11 +284,7 @@ export function MaterialDemandSection({
             {demandView.truncation.total !== undefined ? `/${formatNumber(demandView.truncation.total)}` : ''} dòng. Hãy thu hẹp bộ lọc trước khi ra quyết định.
           </InlineAlert>
         )}
-        {demandView.phase === 'uninitialized' ? (
-          <InlineAlert title="Chưa có phạm vi nhu cầu" variant="info">
-            {demandView.instruction}
-          </InlineAlert>
-        ) : demandView.phase === 'loading' ? (
+        {demandView.phase === 'loading' ? (
           <div className="ipc-demand-summary is-empty" role="status">Đang tải nhu cầu nguyên liệu...</div>
         ) : demandView.phase === 'forbidden' ? (
           <InlineAlert title="Không có quyền xem nhu cầu nguyên liệu" variant="danger">
@@ -289,27 +298,29 @@ export function MaterialDemandSection({
             onRetry={demandView.retry}
             isRetrying={demandView.isRetrying}
           />
-        ) : presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
+        ) : presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 || (demandView.phase === 'ready' && Boolean(presentation.aggregatePage)) ? (
           <section className="ipc-demand-inventory-section" aria-label="Phạm vi ngày đang xem: tổng hợp nguyên liệu">
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-sm font-semibold text-slate-800">Nguyên liệu trong ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
-                <InfoNote title="Tổng hợp nguyên liệu theo ngày" content="Theo dõi nhu cầu nguyên liệu sinh từ KHSX, đối chiếu tồn kho và phần thiếu cần chuyển sang thu mua." />
+                <InfoNote title="Tổng hợp nguyên liệu theo ngày" content="Theo dõi nhu cầu, xuất kho và Bếp nhận theo ngày. Chưa xuất không đồng nghĩa cần mua." />
               </div>
-              <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
+              <span className="shrink-0 text-xs font-medium text-slate-600">
+                {inventoryStatus.totalCount > 0 ? `${inventoryStatus.totalCount} nguyên liệu` : 'Chưa có nguyên liệu'}
+              </span>
             </div>
             {status.isFetchingAggregate && !presentation.aggregatePage ? <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div> : (
               <>
                 {inventoryGroups.exceptionLines.length > 0 && (
                   <div className="ipc-demand-exception-block">
-                    <div><TriangleAlert size={17} aria-hidden="true" /><strong>{inventoryGroups.exceptionLines.length} nguyên liệu cần xử lý trước</strong><span>Thiếu hàng hoặc dữ liệu cần tính lại</span></div>
-                    <DemandSummary lines={inventoryGroups.exceptionLines} sourceLabel="Món sử dụng" renderAction={renderPurchaseAction} />
+                    <div><TriangleAlert size={17} aria-hidden="true" /><strong>{inventoryGroups.exceptionLines.length} nguyên liệu cần xử lý trước</strong><span>Theo dõi trạng thái và bên cần xử lý</span></div>
+                    <DemandSummary lines={inventoryGroups.exceptionLines} sourceLabel="Nguồn" />
                   </div>
                 )}
                 {inventoryGroups.sufficientLines.length > 0 && (
                   <details className="ipc-demand-sufficient-disclosure" open={inventoryGroups.exceptionLines.length === 0}>
-                    <summary><span>{inventoryGroups.sufficientLines.length} nguyên liệu đã đủ</span><span>Xem chi tiết <ChevronDown size={16} aria-hidden="true" /></span></summary>
-                    <DemandSummary lines={inventoryGroups.sufficientLines} sourceLabel="Món sử dụng" />
+                    <summary><span>{inventoryGroups.sufficientLines.length} nguyên liệu đã nhận</span><span>Xem chi tiết <ChevronDown size={16} aria-hidden="true" /></span></summary>
+                    <DemandSummary lines={inventoryGroups.sufficientLines} sourceLabel="Nguồn" />
                   </details>
                 )}
               </>
@@ -346,6 +357,8 @@ export function MaterialDemandSection({
           }}
         />
       )}
+    </>
+  )}
     </SectionPanel>
   )
 }

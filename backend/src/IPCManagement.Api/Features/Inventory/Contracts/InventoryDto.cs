@@ -150,6 +150,7 @@ public class InventoryIssueDto
 public class InventoryReceiptFilterRequestDto : PagedRequestDto
 {
     public bool PurchaseOrderOnly { get; set; }
+    public string? PurchaseOrderId { get; set; }
 }
 
 public class InventoryIssueFilterRequestDto : PagedRequestDto

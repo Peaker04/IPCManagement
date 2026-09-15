@@ -16,14 +16,20 @@ describe('WarehousePage permission contract', () => {
     expect(warehousePageSource).not.toContain('<WarehouseExceptionsWorkbench canManage={canReceivePurchases}');
   });
 
+  it('matches cross-customer return disposition visibility to the AdminAccess endpoint policy', () => {
+    expect(warehousePageSource).toContain("const canDispositionReturns = useHasRole(['admin'])");
+    expect(warehousePageSource).not.toContain('const canDispositionReturns = useHasRole([])');
+  });
+
   it('does not request supplemental material data while creating a receipt draft', () => {
     expect(warehousePageSource).not.toContain('useGetSupplementalMaterialRequestsQuery');
     expect(warehousePageSource).not.toContain('preferredWarehouseId=');
   });
 
   it('waits for every issue allocation projection before allowing another stock issue', () => {
-    expect(warehousePageSource).toContain('useGetKitchenIssuesQuery({ limit: 500 })');
+    expect(warehousePageSource).toMatch(/useGetKitchenIssuesQuery\(\s*\{ limit: 500 \}/);
     expect(warehousePageSource).toContain('isFetching: isFetchingKitchenIssues');
+    expect(warehousePageSource).toContain('const isAllocationSourceError = isSelectedDemandError || isSelectedWarehouseStockError || isKitchenIssueError');
     expect(warehousePageSource).toContain('const isIssueAllocationRefreshing = isFetchingSelectedDemand');
     expect(warehousePageSource).toContain('refetchIssueCandidates()');
     expect(warehousePageSource).toContain('refetchKitchenIssues()');

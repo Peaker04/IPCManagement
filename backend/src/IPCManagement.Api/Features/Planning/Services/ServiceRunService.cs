@@ -9,12 +9,17 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using static IPCManagement.Api.Features.Planning.Services.ServiceRunRules;
 namespace IPCManagement.Api.Features.Planning.Services;
-public sealed class ServiceRunService(IpcManagementContext context) : IServiceRunService
+public sealed partial class ServiceRunService(IpcManagementContext context) : IServiceRunService
 {
     internal static IQueryable<MaterialRequestLine> SelectRequestSourceLines(IQueryable<MaterialRequestLine> sourceLines, byte[] requestId)
         => ServiceRunSourceSelection.SelectRequestSourceLines(sourceLines, requestId);
     internal static IReadOnlyList<InventoryIssueLine> SelectRelevantIssueLines(IEnumerable<InventoryIssue> issues, IEnumerable<MaterialRequestLine> demandLines, string shiftName)
         => ServiceRunSourceSelection.SelectRelevantIssueLines(issues, demandLines);
+    internal static List<MaterialRequestLine> SelectScopedDemandLines(IEnumerable<MaterialRequestLine> demandLines, IEnumerable<byte[]> sourceLineIds)
+    {
+        var ids = sourceLineIds.ToList();
+        return demandLines.Where(line => ids.Any(id => id.SequenceEqual(line.RequestLineId))).ToList();
+    }
     public async Task<ServiceRunLifecycleProjectionDto?> OpenAsync(OpenServiceRunRequest request, string? userId, CancellationToken cancellationToken = default)
     {
         var planId = GuidHelper.ParseGuidString(request.PlanId) ?? throw new ArgumentException("Kế hoạch sản xuất không hợp lệ.");
@@ -93,127 +98,15 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
     {
         var runId = GuidHelper.ParseGuidString(serviceRunId);
         if (runId is null) return null;
-        var run = await context.Serviceruns.AsNoTracking().FirstOrDefaultAsync(item => item.ServiceRunId.SequenceEqual(runId), cancellationToken);
+        var run = await context.Serviceruns.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.ServiceRunId.SequenceEqual(runId), cancellationToken);
         if (run is null) return null;
-        var plan = await context.Productionplans.AsNoTracking().FirstOrDefaultAsync(item => item.PlanId.SequenceEqual(run.PlanId), cancellationToken);
+        var plan = await context.Productionplans.AsNoTracking()
+            .FirstOrDefaultAsync(item => item.PlanId.SequenceEqual(run.PlanId), cancellationToken);
         if (plan is null) return null;
-
-        var planLines = await context.Productionplanlines.AsNoTracking()
-            .Include(line => line.QuantityPlanLine).ThenInclude(line => line.QuantityPlan)
-            .Include(line => line.QuantityPlanLine).ThenInclude(line => line.MenuSchedule)
-            .Where(line => line.PlanId.SequenceEqual(run.PlanId) && line.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
-        var demandLines = await context.Materialrequestlines.AsNoTracking().Include(line => line.Request).Include(line => line.PlanLine)
-            .Include(line => line.Ingredient).Include(line => line.Unit)
-            .Where(line => line.Request.PlanId.SequenceEqual(run.PlanId) && line.PlanLine.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
-        var planRequestIds = await context.Materialrequests.AsNoTracking()
-            .Where(request => request.PlanId.SequenceEqual(run.PlanId))
-            .Select(request => request.RequestId)
-            .ToListAsync(cancellationToken);
-        var issueCandidates = await context.Inventoryissues.AsNoTracking().Include(issue => issue.Inventoryissuelines).Include(issue => issue.Inventoryreturns)
-            .Where(issue => issue.MaterialRequestId != null && issue.ReconciliationBatchId == null && issue.IssueDate == plan.PlanDate)
-            .ToListAsync(cancellationToken);
-        var issues = issueCandidates
-            .Where(issue => planRequestIds.Any(requestId => requestId.SequenceEqual(issue.MaterialRequestId!)))
-            .ToList();
-        var openSupplementalCount = await context.Supplementalmaterialrequests.AsNoTracking()
-            .Join(context.Inventoryissues.AsNoTracking(), request => request.IssueId, issue => issue.IssueId, (request, issue) => new { request, issue })
-            .CountAsync(item => item.issue.MaterialRequestId != null && item.issue.ReconciliationBatchId == null &&
-                                item.issue.MaterialRequest!.PlanId.SequenceEqual(run.PlanId) && item.issue.IssueDate == plan.PlanDate && item.issue.ShiftName == run.ShiftName && item.request.Status != "FULFILLED" && item.request.Status != "REJECTED", cancellationToken);
-        var hasReceiptDiscrepancy = await context.Auditlogs.AsNoTracking()
-            .Join(context.Inventoryissues.AsNoTracking(), audit => audit.EntityId, issue => issue.IssueId, (audit, issue) => new { audit, issue })
-            .AnyAsync(item => item.audit.BusinessArea == "KitchenReceipt" && item.audit.FieldName == "KitchenReceiptDiscrepancy" &&
-                              item.issue.MaterialRequestId != null && item.issue.ReconciliationBatchId == null &&
-                              item.issue.MaterialRequest!.PlanId.SequenceEqual(run.PlanId) && item.issue.IssueDate == plan.PlanDate && item.issue.ShiftName == run.ShiftName, cancellationToken);
-        var adjustmentCount = await context.Servicerunadjustments.AsNoTracking()
-            .CountAsync(item => item.ServiceRunId.SequenceEqual(run.ServiceRunId), cancellationToken);
-        var hasApprovedVarianceWaiver = await context.Servicerunvariancedeclarations.AsNoTracking()
-            .Where(item => item.ServiceRunId.SequenceEqual(run.ServiceRunId))
-            .Join(context.Servicerunvariancewaivers.AsNoTracking(), declaration => declaration.ServiceRunVarianceDeclarationId, waiver => waiver.ServiceRunVarianceDeclarationId, (declaration, waiver) => new { declaration, waiver })
-            .AnyAsync(item => !item.declaration.DeclaredBy.SequenceEqual(item.waiver.ApprovedBy), cancellationToken);
-        var pendingDeclarations = await (
-            from declaration in context.Servicerunvariancedeclarations.AsNoTracking()
-            join actor in context.Users.AsNoTracking() on declaration.DeclaredBy equals actor.UserId
-            where declaration.ServiceRunId.SequenceEqual(run.ServiceRunId) &&
-                  !context.Servicerunvariancewaivers.Any(waiver => waiver.ServiceRunVarianceDeclarationId.SequenceEqual(declaration.ServiceRunVarianceDeclarationId))
-            orderby declaration.DeclaredAt descending
-            select new ServiceRunVarianceDeclarationOptionDto
-            {
-                DeclarationId = GuidHelper.ToGuidString(declaration.ServiceRunVarianceDeclarationId),
-                TrackLabel = declaration.Track,
-                Reason = declaration.Reason,
-                DeclaredByLabel = actor.FullName,
-                DeclaredAt = declaration.DeclaredAt,
-            }).ToListAsync(cancellationToken);
-        var scopedSourceLineOptions = demandLines
-            .Where(line => run.CustomerId is not null && line.PlanLine.CustomerId.SequenceEqual(run.CustomerId) && line.PriceTierAmount == run.PriceTierAmount)
-            .Select(line => new ServiceRunSourceLineOptionDto
-            {
-                SourceLineId = GuidHelper.ToGuidString(line.RequestLineId),
-                IngredientLabel = line.Ingredient.IngredientName,
-                RequiredQuantity = line.TotalRequiredQty,
-                UnitLabel = line.Unit.UnitName,
-            })
-            .OrderBy(line => line.IngredientLabel)
-            .ThenBy(line => line.SourceLineId)
-            .ToList();
-
-        var relevantIssueLines = SelectRelevantIssueLines(issues, demandLines, run.ShiftName);
-        var relevantIssues = issues.Where(issue => issue.Inventoryissuelines.Any(line => relevantIssueLines.Contains(line))).ToList();
-        var hasBomBlocker = await HasBomBlockerAsync(context, plan.PlanDate, planLines, cancellationToken);
-        var requiredByItem = demandLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.TotalRequiredQty));
-        var issuedByItem = relevantIssueLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.IssuedQty));
-        var input = new ServiceRunLifecycleInput(
-            IsPlanSignedOff: planLines.Count > 0 && planLines.All(line => line.QuantityPlanLine.QuantityPlan.Status == "COMPLETED"),
-            HasGeneratedMaterialDemand: demandLines.Count > 0,
-            HasBomBlocker: hasBomBlocker,
-            HasOpenSupply: requiredByItem.Any(item => issuedByItem.GetValueOrDefault(item.Key) < item.Value),
-            HasUnreceivedIssue: relevantIssues.Any(issue => issue.ReceivedAt is null),
-            HasOpenSupplemental: openSupplementalCount > 0,
-            HasRecordedActualServings: run.ActualServingsRecordedAt is not null,
-            HasUnresolvedVariance: issues.SelectMany(issue => issue.Inventoryreturns).Any(item => item.ReceivedAt is null) ||
-                                  (hasReceiptDiscrepancy && run.VarianceResolvedAt is null) || pendingDeclarations.Count > 0,
-            HasUnresolvedServingVariance: run.ActualServings is not null && run.ActualServings != planLines.GroupBy(line => Convert.ToBase64String(line.QuantityPlanLineId)).Sum(group => group.Max(line => line.TotalServings)) && run.ServingVarianceResolvedAt is null,
-            HasServiceConfirmation: run.ServiceConfirmedAt is not null,
-            IsServiceConfirmationWaived: run.ServiceConfirmationWaivedAt is not null,
-            IsClosed: run.ClosedAt is not null,
-            HasApprovedVarianceWaiver: hasApprovedVarianceWaiver);
-        var lifecycle = ServiceRunLifecycle.Evaluate(input);
-        var isConfirmationPending = run.ServiceConfirmedAt is null && run.ServiceConfirmationWaivedAt is null;
-        var canSetConfirmationOutcome = run.ClosedAt is null && isConfirmationPending && CanConfirmOrWaive(lifecycle.Blockers);
-
-        var status = run.StartedAt is not null && lifecycle.Status == ServiceRunStatus.ReadyToProduce
-            ? ServiceRunStatus.InService
-            : lifecycle.Status;
-        var latestCorrection = await context.Servicerunadjustments.AsNoTracking()
-            .Where(item => item.ServiceRunId.SequenceEqual(run.ServiceRunId))
-            .OrderByDescending(item => item.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-        return new ServiceRunLifecycleProjectionDto
-        {
-            ServiceRunId = GuidHelper.ToGuidString(run.ServiceRunId), PlanId = GuidHelper.ToGuidString(plan.PlanId), PlanCode = plan.PlanCode, ServiceDate = plan.PlanDate,
-            CustomerId = run.CustomerId is null ? string.Empty : GuidHelper.ToGuidString(run.CustomerId),
-            CustomerLabel = run.CustomerId is null ? "Phạm vi chưa xác định" : GuidHelper.ToGuidString(run.CustomerId),
-            ShiftName = run.ShiftName, PriceTierAmount = run.PriceTierAmount ?? 0m, CurrentVersion = run.ConcurrencyVersion, Status = status, Blockers = lifecycle.Blockers,
-            Tracks = BuildTracks(lifecycle.Blockers, status), AllowedActions = BuildAllowedActions(run, lifecycle, canSetConfirmationOutcome),
-            CloseSnapshot = new ServiceRunCloseSnapshotViewDto { IsImmutable = run.ClosedAt is not null, ClosedAt = run.ClosedAt, ActualServings = run.ActualServings },
-            CorrectionOverlay = latestCorrection is null
-                ? new ServiceRunCorrectionOverlayDto()
-                : new ServiceRunCorrectionOverlayDto { State = "PENDING", CorrectedActualServings = latestCorrection.CorrectedActualServings, ActualServingsDelta = latestCorrection.CorrectedActualServings - (run.ActualServings ?? 0), Reason = latestCorrection.Reason },
-            CanStartService = lifecycle.CanStartService && run.StartedAt is null,
-            CanRecordActualServings = run.ClosedAt is null && (run.StartedAt is not null || lifecycle.CanStartService),
-            CanConfirmService = canSetConfirmationOutcome,
-            CanWaiveServiceConfirmation = canSetConfirmationOutcome && run.ServiceConfirmationPolicy == ServiceConfirmationPolicy.Waivable,
-            CanResolveVariance = run.ClosedAt is null && lifecycle.Blockers.Contains(ServiceRunBlocker.UnresolvedVariance) && !issues.SelectMany(issue => issue.Inventoryreturns).Any(item => item.ReceivedAt is null),
-            CanResolveServingVariance = run.ClosedAt is null && lifecycle.Blockers.Contains(ServiceRunBlocker.UnresolvedServingVariance),
-            CanClose = lifecycle.CanClose,
-            ServiceConfirmationOutcome = run.ServiceConfirmedAt is not null ? ServiceConfirmationOutcome.Confirmed : run.ServiceConfirmationWaivedAt is not null ? ServiceConfirmationOutcome.Waived : ServiceConfirmationOutcome.Pending,
-            PlannedServings = planLines.GroupBy(line => Convert.ToBase64String(line.QuantityPlanLineId)).Sum(group => group.Max(line => line.TotalServings)), ActualServings = run.ActualServings,
-            MaterialRequestLineCount = demandLines.Count, IssueCount = relevantIssues.Count, UnreceivedIssueCount = relevantIssues.Count(issue => issue.ReceivedAt is null),
-            OpenSupplementalCount = openSupplementalCount, UnreceivedReturnCount = issues.SelectMany(issue => issue.Inventoryreturns).Count(item => item.ReceivedAt is null), HasBomBlocker = hasBomBlocker,
-            AdjustmentCount = adjustmentCount,
-            SourceLineOptions = scopedSourceLineOptions,
-            PendingVarianceDeclarations = pendingDeclarations,
-        };
+        run.Plan = plan;
+        var data = await LoadProjectionDataAsync([run], includeOperationalFields: false, cancellationToken);
+        return BuildProjection(run, plan, data).Lifecycle;
     }
 
     public async Task<ServiceRunLifecycleProjectionDto?> GetByPlanAsync(ServiceRunByPlanQuery query, CancellationToken cancellationToken = default)
@@ -254,62 +147,37 @@ public sealed class ServiceRunService(IpcManagementContext context) : IServiceRu
         var candidateRuns = hasStatusFilter
             ? await orderedRuns.ToListAsync(cancellationToken)
             : await orderedRuns.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize).ToListAsync(cancellationToken);
-        var rows = new List<ServiceRunOperationalRowDto>(candidateRuns.Count);
-        foreach (var run in candidateRuns)
+        if (candidateRuns.Count == 0)
+            return PagedResponseDto<ServiceRunOperationalRowDto>.Create([], totalCount, query.PageNumber, query.PageSize);
+        var data = await LoadProjectionDataAsync(candidateRuns, includeOperationalFields: true, cancellationToken);
+        var rows = candidateRuns.Select(run =>
         {
-            var lifecycle = await GetProjectionAsync(GuidHelper.ToGuidString(run.ServiceRunId), cancellationToken) ?? throw new InvalidOperationException();
-            var planRequestIds = await context.Materialrequests.AsNoTracking()
-                .Where(request => request.PlanId.SequenceEqual(run.PlanId))
-                .Select(request => request.RequestId)
-                .ToListAsync(cancellationToken);
-            var issueCandidates = await context.Inventoryissues.AsNoTracking().Include(item => item.Inventoryissuelines).Include(item => item.Inventoryreturns)
-                .Where(item => item.MaterialRequestId != null && item.ReconciliationBatchId == null &&
-                               item.IssueDate == lifecycle.ServiceDate && item.ShiftName == run.ShiftName)
-                .ToListAsync(cancellationToken);
-            var issues = issueCandidates
-                .Where(issue => planRequestIds.Any(requestId => requestId.SequenceEqual(issue.MaterialRequestId!)))
-                .ToList();
-            var materialRequestLines = await context.Materialrequestlines.AsNoTracking().Include(item => item.Request).Include(item => item.PlanLine)
-                .Where(item => item.Request.PlanId.SequenceEqual(run.PlanId) && item.PlanLine.ShiftName == run.ShiftName).ToListAsync(cancellationToken);
-            var materialRequestCodes = materialRequestLines.Select(item => item.Request.RequestCode).Distinct().ToList();
-            var purchaseCosts = await (
-                from purchaseLine in context.Purchaserequestlines.AsNoTracking()
-                join materialRequestLine in context.Materialrequestlines.AsNoTracking() on purchaseLine.MaterialRequestLineId equals materialRequestLine.RequestLineId
-                join materialRequest in context.Materialrequests.AsNoTracking() on materialRequestLine.RequestId equals materialRequest.RequestId
-                join planLine in context.Productionplanlines.AsNoTracking() on materialRequestLine.PlanLineId equals planLine.PlanLineId
-                where materialRequest.PlanId.SequenceEqual(run.PlanId) && planLine.ShiftName == run.ShiftName
-                select new { purchaseLine.PurchaseRequestLineId, EstimatedCost = purchaseLine.EstimatedUnitPrice * purchaseLine.PurchaseQty })
-                .ToListAsync(cancellationToken);
-            var actualReceivedCosts = await (
-                from receiptLine in context.Inventoryreceiptlines.AsNoTracking()
-                join purchaseCost in (
-                    from purchaseLine in context.Purchaserequestlines.AsNoTracking()
-                    join materialRequestLine in context.Materialrequestlines.AsNoTracking() on purchaseLine.MaterialRequestLineId equals materialRequestLine.RequestLineId
-                    join materialRequest in context.Materialrequests.AsNoTracking() on materialRequestLine.RequestId equals materialRequest.RequestId
-                    join planLine in context.Productionplanlines.AsNoTracking() on materialRequestLine.PlanLineId equals planLine.PlanLineId
-                    where materialRequest.PlanId.SequenceEqual(run.PlanId) && planLine.ShiftName == run.ShiftName
-                    select purchaseLine.PurchaseRequestLineId)
-                    on receiptLine.PurchaseRequestLineId equals purchaseCost
-                select receiptLine.Amount ?? receiptLine.Quantity * receiptLine.UnitPrice)
-                .ToListAsync(cancellationToken);
-            var supplementalCodes = await context.Supplementalmaterialrequests.AsNoTracking()
-                .Join(context.Inventoryissues.AsNoTracking(), request => request.IssueId, issue => issue.IssueId, (request, issue) => new { request, issue })
-                .Where(item => item.issue.MaterialRequestId != null && item.issue.ReconciliationBatchId == null &&
-                               item.issue.MaterialRequest!.PlanId.SequenceEqual(run.PlanId) && item.issue.IssueDate == lifecycle.ServiceDate && item.issue.ShiftName == run.ShiftName)
-                .Select(item => item.request.RequestCode).Distinct().ToListAsync(cancellationToken);
+            var mapped = BuildProjection(run, run.Plan, data);
+            var materialRequestIds = mapped.DemandLines.Select(item => item.RequestId).ToList();
+            var operationalIssues = data.Issues.Where(issue => issue.IssueDate == mapped.Lifecycle.ServiceDate &&
+                issue.ShiftName == run.ShiftName && issue.MaterialRequestId is not null &&
+                materialRequestIds.Any(id => SameId(id, issue.MaterialRequestId))).ToList();
+            var supplementalCodes = data.SupplementalRows
+                .Where(item => operationalIssues.Any(issue => SameId(issue.IssueId, item.IssueId)))
+                .Select(item => item.RequestCode).Distinct().ToList();
+            var purchaseCosts = data.PurchaseCosts.Where(item => SameId(item.PlanId, run.PlanId) && item.ShiftName == run.ShiftName).ToList();
+            var receivedCosts = data.ReceivedCosts.Where(item => SameId(item.PlanId, run.PlanId) && item.ShiftName == run.ShiftName).ToList();
             var operationalRow = new ServiceRunOperationalRowDto
             {
-                Lifecycle = lifecycle, MaterialRequestCodes = materialRequestCodes, IssueCodes = issues.Select(item => item.IssueCode).ToList(),
-                ReturnCodes = issues.SelectMany(item => item.Inventoryreturns).Select(item => item.ReturnCode).Distinct().ToList(), SupplementalRequestCodes = supplementalCodes,
-                MaterialRequestLineIds = materialRequestLines.Select(item => GuidHelper.ToGuidString(item.RequestLineId)).ToList(),
-                IssueLineIds = issues.SelectMany(item => item.Inventoryissuelines).Select(item => GuidHelper.ToGuidString(item.IssueLineId)).ToList(),
+                Lifecycle = mapped.Lifecycle,
+                MaterialRequestCodes = mapped.DemandLines.Select(item => item.Request.RequestCode).Distinct().ToList(),
+                IssueCodes = operationalIssues.Select(item => item.IssueCode).ToList(),
+                ReturnCodes = operationalIssues.SelectMany(item => item.Inventoryreturns).Select(item => item.ReturnCode).Distinct().ToList(),
+                SupplementalRequestCodes = supplementalCodes,
+                MaterialRequestLineIds = mapped.DemandLines.Select(item => GuidHelper.ToGuidString(item.RequestLineId)).ToList(),
+                IssueLineIds = operationalIssues.SelectMany(item => item.Inventoryissuelines).Select(item => GuidHelper.ToGuidString(item.IssueLineId)).ToList(),
                 EstimatedPurchaseCost = purchaseCosts.Sum(item => item.EstimatedCost),
-                ActualReceivedCost = actualReceivedCosts.Count == 0 ? null : actualReceivedCosts.Sum(),
+                ActualReceivedCost = receivedCosts.Count == 0 ? null : receivedCosts.Sum(item => item.Cost),
             };
-            rows.Add(run.ClosedAt is not null && TryReadCloseSnapshot(run.CloseSnapshotJson, out var snapshotRow)
+            return run.ClosedAt is not null && TryReadCloseSnapshot(run.CloseSnapshotJson, out var snapshotRow)
                 ? ToClosedSnapshot(snapshotRow)
-                : operationalRow);
-        }
+                : operationalRow;
+        }).ToList();
         if (hasStatusFilter)
         {
             rows = rows.Where(row => row.Lifecycle.Status == query.Status!.Trim().ToUpperInvariant()).ToList();

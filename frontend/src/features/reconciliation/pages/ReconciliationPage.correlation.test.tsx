@@ -45,7 +45,6 @@ vi.mock('@/api/reconciliationApi', async () => {
     },
   }
 })
-vi.mock('../ReconciliationSourceChangeLog', () => ({ ReconciliationSourceChangeLog: ({ batchId }: { batchId: string }) => <div>Nhật ký nguồn lô {batchId}</div> }))
 vi.mock('../ReconciliationIssueDetailDialog', () => ({ ReconciliationIssueDetailDialog: ({ issueId, open, onClose }: { issueId: string | null; open: boolean; onClose: () => void }) => open ? <aside role="dialog" aria-label="Chi tiết giao dịch xuất kho đối chiếu"><span>{issueId}</span><button type="button" onClick={onClose}>Đóng</button></aside> : null }))
 vi.mock('@/lib/navigationPreferences', () => ({ readReconciliationSelection: () => ({}), writeReconciliationSelection: vi.fn() }))
 vi.mock('@/lib/useHasRole', () => ({ useHasRole: () => completionState.allowed }))
@@ -91,7 +90,6 @@ describe('MXE-09 reconciliation issue deep link', () => {
 
     expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toHaveTextContent('issue-1')
     expect(screen.getByRole('heading', { name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
-    expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
     expect(screen.getByText('Sẵn sàng hoàn tất')).toBeInTheDocument()
     expect(screen.getAllByText(/nguyên liệu đã khớp/)).toHaveLength(1)
     expect(screen.queryByRole('table', { name: 'Kết quả đối chiếu nguyên liệu' })).not.toBeInTheDocument()
@@ -123,6 +121,15 @@ describe('MXE-09 reconciliation issue deep link', () => {
     expect(view.container.querySelectorAll('[data-query-geometry]')).toHaveLength(1)
     expect(screen.getByText('Đang tải danh sách lô đối chiếu')).toBeInTheDocument()
     expect(screen.queryByText('Chưa khởi tạo lô đối chiếu đã chọn')).not.toBeInTheDocument()
+  })
+
+  it('keeps batch filters without repeating the comparison question above its canonical result owner', () => {
+    renderPage('/reconciliation?batchId=batch-1')
+
+    expect(screen.getByRole('combobox', { name: 'Chọn lô đối chiếu' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 3, name: 'Đối chiếu theo nguyên liệu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Cần xuất và đã xuất kho' })).not.toBeInTheDocument()
   })
 
   it('keeps the show-all toggle focused across short and full table states', () => {
@@ -278,6 +285,5 @@ describe('MXE-09 reconciliation issue deep link', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Xem toàn bộ' })[0])
     expect(screen.getByText('Gạo')).toBeInTheDocument()
     expect(screen.getByText('Sữa')).toBeInTheDocument()
-    expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
   })
 })

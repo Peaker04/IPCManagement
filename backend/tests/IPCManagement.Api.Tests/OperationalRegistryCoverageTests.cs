@@ -245,8 +245,8 @@ public sealed class OperationalRegistryCoverageTests
             "SystemOperation(\"reconciliation.batches.complete\", OperationDisposition.ReconciliationOnly)");
         validated.Add("MaterialReconciliation");
 
-        GetControllerPolicy<ProductionPlansController>()
-            .Should().Be(AuthorizationPolicies.ProductionAccess);
+        GetActionPolicy<ProductionPlansController>("SendDailyToKitchenAsync")
+            .Should().Be(AuthorizationPolicies.CoordinationAccess);
         AssertUniqueSourceFragment(
             "backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs",
             "plan.Status = \"SENTTOKITCHEN\";");

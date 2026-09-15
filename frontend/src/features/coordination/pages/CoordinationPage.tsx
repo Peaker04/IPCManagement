@@ -5,11 +5,9 @@ import { useCoordinationSelector, useCurrentShift } from '../coordinationHooks'
 import { syncOrdersForShift } from '../coordinationSlice'
 import { useGetCoordinationOrdersQuery, useGetMealQuantityPlansQuery } from '@/api/coordinationApi'
 import { toApiShiftName } from '../types'
-import { ContextStrip } from '@/components/common/ContextStrip'
 import { OperationalFrame } from '@/components/common/OperationalFrame'
 import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
 import { SectionPanel } from '@/components/common/SectionPanel'
-import { formatNumber } from '@/lib/formatters'
 import { deriveCoordinationStatus } from '../coordinationStatus'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
@@ -64,13 +62,13 @@ export default function CoordinationPage() {
     plans.map((plan) => plan.status),
     loading,
   )
-  const { hasPlans, isReadOnly, canEditForecast, canRequestAdjustment, useFinalServings } = coordinationStatus
-  const totalForecast = filteredOrders.reduce((sum, order) => sum + order.forecastQuantity, 0)
-  const totalActual = filteredOrders.reduce((sum, order) => sum + order.actualQuantity, 0)
-  const totalFinal = filteredOrders.reduce((sum, order) => sum + (isReadOnly ? order.actualQuantity : order.forecastQuantity), 0)
-  const totalVariance = totalFinal - totalForecast
+  const { hasPlans, canEditForecast, canRequestAdjustment, useFinalServings } = coordinationStatus
   const orderStatus = coordinationStatus.status
-  const hasVisibleOrderMetrics = ordersView.phase === 'ready' || hasOrderFallback
+  const isCoordinationReadyEmpty =
+    ordersView.phase === 'ready' &&
+    plansView.phase === 'ready' &&
+    filteredOrders.length === 0 &&
+    plans.length === 0
 
   return (
     <OperationalFrame
@@ -79,20 +77,13 @@ export default function CoordinationPage() {
           <HeaderInfo status={orderStatus} />
         </Suspense>
       )}
-      context={
-        <ContextStrip
-          items={[
-            { label: 'Suất dự kiến', value: hasVisibleOrderMetrics ? formatNumber(totalForecast) : '—', tone: 'neutral' },
-            { label: 'Suất điều phối', value: !hasVisibleOrderMetrics ? '—' : isReadOnly ? formatNumber(totalActual) : 'Chưa chốt', tone: hasVisibleOrderMetrics && isReadOnly ? 'success' : 'warning' },
-            { label: 'Chênh lệch', value: hasVisibleOrderMetrics ? `${totalVariance >= 0 ? '+' : ''}${formatNumber(totalVariance)}` : '—', tone: hasVisibleOrderMetrics && totalVariance === 0 ? 'success' : 'warning' },
-          ]}
-        />
-      }
     >
       <SectionPanel
+        title="Suất ăn theo ngày và ca"
+        headingLevel={2}
         tone="dark"
         padded={false}
-        className="operation-surface ipc-coordination-workbench overflow-hidden border-slate-200 bg-white shadow-sm"
+        className="operation-surface ipc-coordination-workbench overflow-hidden border-slate-200 bg-white shadow-sm [&>.ipc-section-header]:px-4 [&>.ipc-section-header]:pt-4"
       >
         {localError && (
           <QueryErrorAlert
@@ -111,7 +102,9 @@ export default function CoordinationPage() {
             { label: 'trạng thái chốt số suất', view: plansView },
           ]}
         >
-          <OrderStatusBanner status={orderStatus} />
+          {!isCoordinationReadyEmpty && (
+            <OrderStatusBanner status={orderStatus} />
+          )}
           <Suspense fallback={capabilityFallback}>
             <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
           </Suspense>

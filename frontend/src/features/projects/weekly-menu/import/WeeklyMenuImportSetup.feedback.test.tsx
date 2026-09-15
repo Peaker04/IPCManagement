@@ -108,7 +108,15 @@ describe('Weekly Menu Import setup feedback', () => {
     expect(screen.getByLabelText('Khách hàng')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Khách hàng')).toHaveAccessibleDescription()
     expect(document.getElementById('weekly-menu-import-file')).toHaveAttribute('aria-invalid', 'true')
-    expect(document.getElementById('weekly-menu-import-file')).toHaveAccessibleDescription()
+    expect(document.getElementById('weekly-menu-import-file')).toHaveAttribute(
+      'aria-describedby',
+      'weekly-menu-import-file-error weekly-menu-import-file-meta',
+    )
+    expect(document.getElementById('weekly-menu-import-file')).toHaveAccessibleDescription(
+      /Vui lòng chọn khách hàng và file Excel trước khi kiểm tra\./,
+    )
+    expect(screen.getAllByRole('alert')).toHaveLength(2)
+    expect(screen.getByText('File Excel').closest('label')).toHaveAttribute('for', 'weekly-menu-import-file')
   })
 
   it('keeps invalid-week validation beside the week field', async () => {
@@ -155,6 +163,23 @@ describe('Weekly Menu Import setup feedback', () => {
       },
     })
     expect(result.current.state.feedback).toBeNull()
+  })
+
+  it('gives quick-customer inputs programmatic names from their visible labels', () => {
+    const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
+    act(() => result.current.actions.open())
+    act(() => result.current.actions.toggleQuickCustomer())
+
+    render(<WeeklyMenuImportSetup workflow={result.current} />)
+
+    expect(screen.getByRole('textbox', { name: 'Mã khách hàng' })).toHaveAttribute('id', 'weekly-menu-import-quick-customer-code')
+    expect(screen.getByRole('textbox', { name: 'Mã khách hàng' })).toBeRequired()
+    expect(screen.getByText('Mã khách hàng').closest('label')).toHaveAttribute('for', 'weekly-menu-import-quick-customer-code')
+    expect(screen.getByText('Mã khách hàng').closest('label')).toHaveTextContent('*')
+    expect(screen.getByRole('textbox', { name: 'Tên khách hàng' })).toHaveAttribute('id', 'weekly-menu-import-quick-customer-name')
+    expect(screen.getByRole('textbox', { name: 'Tên khách hàng' })).toBeRequired()
+    expect(screen.getByText('Tên khách hàng', { selector: 'span' }).closest('label')).toHaveAttribute('for', 'weekly-menu-import-quick-customer-name')
+    expect(screen.getByText('Tên khách hàng', { selector: 'span' }).closest('label')).toHaveTextContent('*')
   })
 
   it('offers a retry action when the customer query fails', () => {

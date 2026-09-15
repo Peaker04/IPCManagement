@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { InlineAlert } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -183,17 +184,15 @@ export function WarehousePurchaseReceiptDialog({
         </DialogHeader>
 
         {line.blockerReason && (
-          <div role="alert" className="flex gap-2 rounded-sm border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-            <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            <span>{line.blockerReason}</span>
-          </div>
+          <InlineAlert role="alert" title="Điều kiện chặn tiếp nhận" variant="danger">
+            {line.blockerReason}
+          </InlineAlert>
         )}
 
         {submitError && (
-          <div role="alert" className="rounded-sm border border-red-200 bg-red-50 p-3 text-sm text-red-900">
-            <p className="font-semibold">Chưa thể ghi nhận phiếu nhập</p>
-            <p className="mt-1">{submitError}</p>
-          </div>
+          <InlineAlert role="alert" title="Chưa thể ghi nhận phiếu nhập" variant="danger">
+            {submitError}
+          </InlineAlert>
         )}
 
         {isConfirming ? (
@@ -224,45 +223,45 @@ export function WarehousePurchaseReceiptDialog({
               <p className="rounded-sm border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
                 {operationalWarehouse?.warehouseName ?? 'Chưa xác định'}
               </p>
-              {errors.warehouseId && <p id="purchase-receipt-warehouse-error" className="text-xs text-red-700">{errors.warehouseId}</p>}
+              {errors.warehouseId && <p id="purchase-receipt-warehouse-error" role="alert" className="text-xs font-medium text-red-700">{errors.warehouseId}</p>}
             </div>
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium" htmlFor="purchase-receipt-date">Ngày nhận <span className="text-red-600">*</span></label>
+              <label className="text-sm font-medium" htmlFor="purchase-receipt-date">Ngày nhận <span className="text-red-600 font-semibold" aria-hidden="true">*</span></label>
               <Input id="purchase-receipt-date" type="date" value={receiptDate} onChange={(event) => setReceiptDate(event.target.value)} aria-invalid={Boolean(errors.receiptDate)} aria-describedby={errors.receiptDate ? 'purchase-receipt-date-error' : undefined} />
-              {errors.receiptDate && <p id="purchase-receipt-date-error" className="text-xs text-red-700">{errors.receiptDate}</p>}
+              {errors.receiptDate && <p id="purchase-receipt-date-error" role="alert" className="text-xs font-medium text-red-700">{errors.receiptDate}</p>}
             </div>
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium" htmlFor="purchase-receipt-quantity">Số lượng thực nhận <span className="text-red-600">*</span></label>
-              <Input id="purchase-receipt-quantity" type="number" min="0.001" step="0.001" max={remainingQuantity} value={actualQuantity} onChange={(event) => setActualQuantity(event.target.value)} aria-invalid={Boolean(errors.actualQuantity)} aria-describedby="purchase-receipt-quantity-help purchase-receipt-quantity-error" />
+              <label className="text-sm font-medium" htmlFor="purchase-receipt-quantity">Số lượng thực nhận <span className="text-red-600 font-semibold" aria-hidden="true">*</span></label>
+              <Input id="purchase-receipt-quantity" type="number" min="0.001" step="0.001" max={remainingQuantity} value={actualQuantity} onChange={(event) => setActualQuantity(event.target.value)} aria-invalid={Boolean(errors.actualQuantity)} aria-describedby={errors.actualQuantity ? 'purchase-receipt-quantity-help purchase-receipt-quantity-error' : 'purchase-receipt-quantity-help'} className="tabular-nums" />
               <p id="purchase-receipt-quantity-help" className="text-xs text-slate-500">Còn có thể nhận {remainingQuantity} {line.unitName}. Cho phép nhận một phần.</p>
-              {errors.actualQuantity && <p id="purchase-receipt-quantity-error" className="text-xs text-red-700">{errors.actualQuantity}</p>}
+              {errors.actualQuantity && <p id="purchase-receipt-quantity-error" role="alert" className="text-xs font-medium text-red-700">{errors.actualQuantity}</p>}
             </div>
             <div className="grid gap-1.5">
               <label className="text-sm font-medium" htmlFor="purchase-receipt-unit">Đơn vị nhận</label>
               <Input id="purchase-receipt-unit" value={line.unitName} readOnly />
             </div>
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium" htmlFor="purchase-receipt-price">Đơn giá thực nhận <span className="text-red-600">*</span></label>
-              <Input id="purchase-receipt-price" type="number" min="0.01" step="0.01" value={actualUnitPrice} onChange={(event) => setActualUnitPrice(event.target.value)} aria-invalid={Boolean(errors.actualUnitPrice)} aria-describedby={errors.actualUnitPrice ? 'purchase-receipt-price-error' : undefined} />
-              {errors.actualUnitPrice && <p id="purchase-receipt-price-error" className="text-xs text-red-700">{errors.actualUnitPrice}</p>}
+              <label className="text-sm font-medium" htmlFor="purchase-receipt-price">Đơn giá thực nhận <span className="text-red-600 font-semibold" aria-hidden="true">*</span></label>
+              <Input id="purchase-receipt-price" type="number" min="0.01" step="0.01" value={actualUnitPrice} onChange={(event) => setActualUnitPrice(event.target.value)} aria-invalid={Boolean(errors.actualUnitPrice)} aria-describedby={errors.actualUnitPrice ? 'purchase-receipt-price-error' : undefined} className="tabular-nums" />
+              {errors.actualUnitPrice && <p id="purchase-receipt-price-error" role="alert" className="text-xs font-medium text-red-700">{errors.actualUnitPrice}</p>}
             </div>
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium" htmlFor="purchase-receipt-lot">Số lô {line.lotNumberRequired && <span className="text-red-600">*</span>}</label>
+              <label className="text-sm font-medium" htmlFor="purchase-receipt-lot">Số lô {line.lotNumberRequired && <span className="text-red-600 font-semibold" aria-hidden="true">*</span>}</label>
               <Input id="purchase-receipt-lot" value={lotNumber} onChange={(event) => setLotNumber(event.target.value)} aria-invalid={Boolean(errors.lotNumber)} aria-describedby={errors.lotNumber ? 'purchase-receipt-lot-error' : undefined} />
-              {errors.lotNumber && <p id="purchase-receipt-lot-error" className="text-xs text-red-700">{errors.lotNumber}</p>}
+              {errors.lotNumber && <p id="purchase-receipt-lot-error" role="alert" className="text-xs font-medium text-red-700">{errors.lotNumber}</p>}
             </div>
             {line.manufactureDateRequired && (
               <div className="grid gap-1.5">
-                <label className="text-sm font-medium" htmlFor="purchase-receipt-manufacture">Ngày sản xuất <span className="text-red-600">*</span></label>
+                <label className="text-sm font-medium" htmlFor="purchase-receipt-manufacture">Ngày sản xuất <span className="text-red-600 font-semibold" aria-hidden="true">*</span></label>
                 <Input id="purchase-receipt-manufacture" type="date" value={manufactureDate} onChange={(event) => setManufactureDate(event.target.value)} aria-invalid={Boolean(errors.manufactureDate)} aria-describedby={errors.manufactureDate ? 'purchase-receipt-manufacture-error' : undefined} />
-                {errors.manufactureDate && <p id="purchase-receipt-manufacture-error" className="text-xs text-red-700">{errors.manufactureDate}</p>}
+                {errors.manufactureDate && <p id="purchase-receipt-manufacture-error" role="alert" className="text-xs font-medium text-red-700">{errors.manufactureDate}</p>}
               </div>
             )}
             {line.expiryDateRequired && (
               <div className="grid gap-1.5">
-                <label className="text-sm font-medium" htmlFor="purchase-receipt-expiry">Hạn sử dụng <span className="text-red-600">*</span></label>
+                <label className="text-sm font-medium" htmlFor="purchase-receipt-expiry">Hạn sử dụng <span className="text-red-600 font-semibold" aria-hidden="true">*</span></label>
                 <Input id="purchase-receipt-expiry" type="date" value={expiryDate} onChange={(event) => setExpiryDate(event.target.value)} aria-invalid={Boolean(errors.expiryDate)} aria-describedby={errors.expiryDate ? 'purchase-receipt-expiry-error' : undefined} />
-                {errors.expiryDate && <p id="purchase-receipt-expiry-error" className="text-xs text-red-700">{errors.expiryDate}</p>}
+                {errors.expiryDate && <p id="purchase-receipt-expiry-error" role="alert" className="text-xs font-medium text-red-700">{errors.expiryDate}</p>}
               </div>
             )}
             <div className="sm:col-span-2">

@@ -2,10 +2,13 @@
 
 import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
 import { ShieldAlert, ShieldCheck } from 'lucide-react'
-import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, TabContentSkeleton, ViewSwitcher, RefreshStatus } from '@/components/common';
+import { Link, useSearchParams } from 'react-router-dom'
+import { CommandBar, InlineAlert, KeepAliveTabPanel, OperationalFrame, TabContentSkeleton, ViewSwitcher, RefreshStatus } from '@/components/common';
+import { ROUTES } from '@/lib/routeConfig'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import type { ShiftType } from '@/types/coordination'
-import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
+import { getBangkokToday } from '@/lib/chefServiceDate'
+import { getDayCodeFromIsoDate } from '@/lib/dateUtils'
 import { useChefExceptions } from '../exceptions/useChefExceptions'
 import { ChefHeader } from '../components/chef-header'
 import { useChefJournal } from '../journal/useChefJournal'
@@ -14,7 +17,7 @@ import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 import { ChefQueryBoundary } from '../ChefQueryBoundary'
 import { typography } from '@/lib/typography'
 import { cn } from '@/lib/utils'
-import { visibleTabIds } from '@/lib/navigationPreferences'
+import { resolveVisibleTabId, visibleTabIds } from '@/lib/navigationPreferences'
 
 import { ChefShiftControls } from './ChefShiftControls'
 const ChefProductionSection = lazy(() => import('../production/ChefProductionSection').then(({ ChefProductionSection: component }) => ({ default: component })))
@@ -24,17 +27,31 @@ const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection'
 const chefCapabilityFallback = <TabContentSkeleton geometry="section" columns={6} rows={6} message="Đang tải dữ liệu bếp trưởng..." />
 
 export default function ChefDashboardPage() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
-  const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
+  const [serviceDate, setServiceDate] = useState<string>(() => getBangkokToday())
+  const activeDay = getDayCodeFromIsoDate(serviceDate)
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
   const chefTabIds = visibleTabIds('chef') as Array<'production' | 'documents'>
-  const [selectedView, setSelectedView] = useState<'production' | 'documents'>(() => chefTabIds[0] ?? 'production')
+  const requestedChefView = searchParams.get('view')
+  const selectedView = resolveVisibleTabId(requestedChefView, chefTabIds, 'production')
   const activeView = useDeferredValue(selectedView)
+  const selectChefView = (view: 'production' | 'documents') => {
+    const next = new URLSearchParams(searchParams)
+    next.set('view', view)
+    setSearchParams(next, { replace: true })
+  }
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
   const isProductionView = activeView === 'production'
+  const productionTask = searchParams.get('task') === 'materials' ? 'materials' : 'run'
+  const selectProductionTask = (task: 'run' | 'materials') => {
+    const next = new URLSearchParams(searchParams)
+    if (task === 'run') next.delete('task')
+    else next.set('task', task)
+    setSearchParams(next, { replace: true })
+  }
   const isViewPending = selectedView !== activeView
   const lockKey = `${activeDay}-${activeShift}`
-  const serviceDate = resolveChefServiceDate(activeDay)
   const scope = useMemo<ChefShiftScope>(() => ({
     activeDay,
     activeShift,
@@ -46,55 +63,35 @@ export default function ChefDashboardPage() {
   const receipts = useKitchenReceipts(scope, setFeedback, isProductionView)
   // The checklist must render the paged receipt query. The action query remains wide
   // for mutations, but feeding it here made every page render the same 500-row slice.
-  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback, isProductionView)
+  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, isProductionView)
   const exceptions = useChefExceptions(scope, production.productionPlan, receipts.actionRows, setFeedback, isProductionView)
-  const journal = useChefJournal(!isProductionView)
-  const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
-  const receiptViewReady = receipts.queryView.phase === 'ready'
-  const returnView = isProductionView ? exceptions.queryView : journal.queryViews.documents
-  const returnCount = isProductionView ? exceptions.activeReturns.length : journal.returnDocuments.length
-
+  const journal = useChefJournal(scope, !isProductionView)
   const statusMessages = [
     production.status.isCatalogEmpty ? 'Danh mục món ăn đang trống nên danh sách nguyên liệu chưa thể sinh đầy đủ từ định lượng.' : null,
-    receiptViewReady && receipts.rows.length > 0
-      ? receipts.pendingCount > 0
-        ? `${receipts.pendingCount} dòng nguyên liệu trên trang ${receipts.page} đang chờ bếp trưởng ký nhận.`
-        : hasUnreviewedReceiptPages
-          ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
-          : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
-      : null,
     ...production.dailyPlanWarnings
-      .filter((warning) => production.productionPlan.totalMeals > 0 || !warning.toLocaleLowerCase('vi-VN').includes('khsx'))
-      .map((warning) => warning === 'Có kế hoạch chưa gửi bếp.'
-        ? 'Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.'
-        : warning),
+      .filter((warning) => warning !== 'Có kế hoạch chưa gửi bếp.' && (production.productionPlan.totalMeals > 0 || !warning.toLocaleLowerCase('vi-VN').includes('khsx')))
+      .map((warning) => {
+        if (warning.startsWith('KHSX có nhu cầu mua ban đầu;')) {
+          return 'Chưa thể cấp nguyên liệu. Kế hoạch mua nguyên liệu cho ca này chưa hoàn tất.'
+        }
+        return warning
+      }),
     receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
   ].filter((message): message is string => Boolean(message))
-  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.some((warning) =>
-    !warning.startsWith('KHSX có nhu cầu mua ban đầu;'),
-  ) ? 'warning' : 'info'
+  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
 
-  const signOffMaterial = async (materialId: string, signed: boolean) => {
-    await receipts.signOff(
-      production.productionPlan.receivedMaterials.find((material) => material.id === materialId),
-      signed,
-    )
-  }
+  const signOffMaterial = async (materialId: string, signed: boolean, hasDiscrepancy = false, discrepancyNote?: string) => receipts.signOff(
+    production.productionPlan.receivedMaterials.find((material) => material.id === materialId),
+    signed,
+    hasDiscrepancy,
+    discrepancyNote,
+  )
 
   return (
     <OperationalFrame
-      command={<CommandBar><ChefShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></CommandBar>}
-      context={(
-        <>
-          <ContextStrip items={[
-            { label: 'Kế hoạch điều phối', value: production.queryViews.dailyPlan.phase === 'ready' ? `${production.dailyPlan?.sentPlans ?? 0}/${production.dailyPlan?.totalPlans ?? 0} đã đồng bộ` : '—', tone: production.queryViews.dailyPlan.phase === 'ready' && production.dailyPlan?.sentPlans ? 'success' : 'neutral' },
-            { label: 'Phiếu trả', value: returnView.phase === 'ready' ? `${returnCount} chứng từ` : '—', tone: 'neutral' },
-            { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
-          ]} />
-          <ShiftAlert isLocked={production.isLocked} hasPlan={production.productionPlan.totalMeals > 0} />
-        </>
-      )}
+      command={<CommandBar><ChefShiftControls serviceDate={serviceDate} activeShift={activeShift} onDateChange={setServiceDate} onShiftChange={setActiveShift} /></CommandBar>}
+      context={<ShiftAlert isLocked={production.isLocked} hasPlan={production.productionPlan.totalMeals > 0} />}
     >
       <div className={cn(typography.body, 'ipc-operational-view')}>
         {feedback && <InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}</InlineAlert>}
@@ -104,7 +101,7 @@ export default function ChefDashboardPage() {
           isPending={isViewPending}
           tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }].filter((tab) => chefTabIds.includes(tab.id.replace('chef-', '') as 'production' | 'documents'))}
           activeTab={selectedView === 'production' ? 'chef-production' : 'chef-documents'}
-          onTabChange={(id) => setSelectedView(id === 'chef-production' ? 'production' : 'documents')}
+          onTabChange={(id) => selectChefView(id === 'chef-production' ? 'production' : 'documents')}
         />
         <div className="relative min-h-[420px]" aria-busy={isViewPending} aria-live="polite">
           {isViewPending && (
@@ -122,33 +119,44 @@ export default function ChefDashboardPage() {
               <Suspense fallback={chefCapabilityFallback}>
                 <ChefProductionSection
                 lines={production.dailyPlanLines}
-                isSending={production.isSendingDailyPlan}
                 isLoading={production.status.isDailyPlanLoading}
                 isError={production.status.isDailyPlanError}
                 totalPlans={production.dailyPlan?.totalPlans ?? 0}
                 sentPlans={production.dailyPlan?.sentPlans ?? 0}
-                  onReceivePlan={production.receiveDailyPlan}
                 />
               </Suspense>
-              <Suspense fallback={chefCapabilityFallback}>
-                <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
-              </Suspense>
-              <Suspense fallback={chefCapabilityFallback}>
-                <KitchenReceiptSection
-                productionPlan={production.productionPlan}
-                returns={exceptions.activeReturns}
-                isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
-                onSupplementalRequest={exceptions.requestSupplemental}
-                onExcessMaterialReturn={exceptions.recordReturn}
-                onMaterialSignoff={signOffMaterial}
-                receiptPage={receipts.page}
-                receiptPageSize={receipts.pageSize}
-                receiptTotalCount={receipts.totalCount}
-                receiptTotalSignedCount={receipts.totalSignedCount}
-                receiptActionRowCount={receipts.actionRowCount}
-                  onReceiptPageChange={receipts.setPage}
-                />
-              </Suspense>
+              <ViewSwitcher
+                compact
+                ariaLabel="Chọn tác vụ ca sản xuất"
+                tabs={[
+                  { id: 'chef-task-run', label: 'Thực hiện ca' },
+                  { id: 'chef-task-materials', label: 'Nhận & xử lý vật tư' },
+                ]}
+                activeTab={`chef-task-${productionTask}`}
+                onTabChange={(id) => selectProductionTask(id === 'chef-task-materials' ? 'materials' : 'run')}
+              />
+              {productionTask === 'run' ? (
+                <Suspense fallback={chefCapabilityFallback}>
+                  <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
+                </Suspense>
+              ) : (
+                <Suspense fallback={chefCapabilityFallback}>
+                  <KitchenReceiptSection
+                  productionPlan={production.productionPlan}
+                  returns={exceptions.activeReturns}
+                  isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
+                  onSupplementalRequest={exceptions.requestSupplemental}
+                  onExcessMaterialReturn={exceptions.recordReturn}
+                  onMaterialSignoff={signOffMaterial}
+                  receiptPage={receipts.page}
+                  receiptPageSize={receipts.pageSize}
+                  receiptTotalCount={receipts.totalCount}
+                  receiptTotalSignedCount={receipts.totalSignedCount}
+                  receiptActionRowCount={receipts.actionRowCount}
+                    onReceiptPageChange={receipts.setPage}
+                  />
+                </Suspense>
+              )}
             </ChefQueryBoundary>
           </KeepAliveTabPanel>
 
@@ -181,6 +189,13 @@ function ShiftAlert({ isLocked, hasPlan }: { isLocked: boolean; hasPlan: boolean
   return isLocked ? (
     <InlineAlert title="Lệnh sản xuất chính thức" icon={<ShieldCheck className="size-4" />} variant="info">Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo kế hoạch sản xuất.</InlineAlert>
   ) : (
-    <InlineAlert title="Kế hoạch điều phối chưa chốt" icon={<ShieldAlert className="size-4" />} variant="warning">Bếp có thể xem trước kế hoạch. Trạng thái nhận nguyên liệu được xác định riêng trong Checklist nhận nguyên liệu.</InlineAlert>
+    <InlineAlert
+      title="Kế hoạch điều phối chưa chốt"
+      icon={<ShieldAlert className="size-4" />}
+      variant="warning"
+      action={<Link to={ROUTES.MEAL_ORDERS} className="ipc-button ipc-button-secondary text-xs">Xem kế hoạch điều phối</Link>}
+    >
+      Bếp có thể xem trước kế hoạch. Trạng thái nhận nguyên liệu được xác định riêng trong Checklist nhận nguyên liệu.
+    </InlineAlert>
   )
 }

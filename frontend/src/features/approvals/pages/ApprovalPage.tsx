@@ -1,20 +1,15 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useRef, useState } from 'react';
-import { ClipboardCheck, FileCheck2, RotateCcw } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { CommandBar } from '@/components/common/CommandBar';
-import { ContextStrip } from '@/components/common/ContextStrip';
+import { ClipboardCheck } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { KeepAliveTabPanel } from '@/components/common/KeepAliveTabPanel';
 import { OperationalFrame } from '@/components/common/OperationalFrame';
 import { SectionPanel } from '@/components/common/SectionPanel';
 import { useToast } from '@/components/common/useToast';
 import { ViewSwitcher } from '@/components/common/ViewSwitcher';
-import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { TabContentSkeleton } from '@/components/common/TabContentSkeleton';
-import { ROUTES } from '@/lib/routeConfig';
 import { toQueryView } from '@/lib/queryView';
 import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/api/approvalsApi';
-import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
-import { useGetPurchaseRequestsPageQuery } from '@/api/purchasingApi';
+import { useGetPurchaseRequestsPageQuery } from '@/api/purchasingApi'; import { useGetInventoryReceiptByIdQuery } from '@/api/warehouseApi';
 import type { ApprovalRecord } from '@/types/workflow';
 import { Button } from '@/components/ui/button';
 import { formatDateOnly } from '@/lib/formatters';
@@ -25,17 +20,30 @@ import { visibleTabIds } from '@/lib/navigationPreferences';
 const ApprovalDecisionDialog = lazy(() => import('./ApprovalDecisionDialog').then(({ ApprovalDecisionDialog: component }) => ({ default: component })))
 const ApprovalSearchField = lazy(() => import('./ApprovalSearchField').then(({ ApprovalSearchField: component }) => ({ default: component })))
 const ApprovalQueueState = lazy(() => import('./ApprovalQueryPanels').then(({ ApprovalQueueState: component }) => ({ default: component })))
-const WorkflowDocumentsState = lazy(() => import('./ApprovalQueryPanels').then(({ WorkflowDocumentsState: component }) => ({ default: component })))
 const ApprovalHistoryTab = lazy(() => import('./ApprovalHistoryTab'))
+const MenuAmendmentInbox = lazy(() => import('../components/MenuAmendmentInbox').then(({ MenuAmendmentInbox: component }) => ({ default: component })))
 const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendmentReconciliation').then(({ MenuAmendmentReconciliation: component }) => ({ default: component })))
 
 export default function ApprovalPage() {
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queueFocusRef = useRef<HTMLDivElement>(null);
   const decisionTriggerRef = useRef<HTMLElement | null>(null);
   const approvalTabIds = visibleTabIds('approvals') as Array<'queue' | 'history'>;
-  const [activeView, setActiveView] = useState<'queue' | 'history'>(() => approvalTabIds[0] ?? 'queue');
+  type ApprovalView = 'amendments' | 'queue' | 'history';
+  const requestedView = searchParams.get('view');
+  const activeView: ApprovalView = requestedView === 'history' && approvalTabIds.includes('history')
+    ? 'history'
+    : requestedView === 'queue' && approvalTabIds.includes('queue')
+      ? 'queue'
+      : requestedView === 'amendments'
+        ? 'amendments'
+        : approvalTabIds.includes('queue') ? 'queue' : approvalTabIds.includes('history') ? 'history' : 'amendments';
+  const selectView = (view: ApprovalView) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('view', view);
+    setSearchParams(next);
+  };
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   const [approvalPagination, setApprovalPagination] = useState<{ scopeKey: string; cursors: string[] }>({ scopeKey: '', cursors: [] });
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
@@ -68,15 +76,6 @@ export default function ApprovalPage() {
   const isFetchingApprovals = approvalView.phase === 'loading'
     || approvalView.phase === 'ready' && approvalView.isRefreshing;
   const isApprovalLoadError = approvalView.phase === 'error' || approvalView.phase === 'forbidden';
-
-  const workflowDocumentQuery = useGetWorkflowDocumentsQuery({ limit: 20 });
-  const workflowDocumentView = toQueryView(workflowDocumentQuery, {
-    instruction: 'Đang chờ khởi tạo danh sách chứng từ workflow.',
-    retry: () => workflowDocumentQuery.refetch(),
-    errorMessage: 'Không tải được chứng từ workflow.',
-    forbiddenMessage: 'Bạn không có quyền xem chứng từ workflow.',
-  });
-  const workflowDocuments = workflowDocumentView.phase === 'ready' ? workflowDocumentView.data : [];
 
   const purchaseRequestQuery = useGetPurchaseRequestsPageQuery({
     pageNumber: purchaseRequestPage,
@@ -125,21 +124,11 @@ export default function ApprovalPage() {
     reason: '',
   });
 
-  const purchaseDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
-  const sourceDocument = workflowDocumentView.phase === 'ready'
-    ? workflowDocuments.find((document) => document.type === 'KHSX')
-      ?? purchaseDocuments[0]
-      ?? workflowDocuments[0]
-    : undefined;
-  const nearestDeadline = approvalView.phase === 'ready'
-    ? approvalRecords.find((record) => record.deadline)?.deadline
-    : undefined;
   const approvalAvailability = resolveApprovalAvailability(approvalRecords, {
     isFetching: isFetchingApprovals,
     isError: isApprovalLoadError,
     isDeciding,
   });
-  const firstActionableRecord = approvalAvailability.firstActionableRecord;
   const requestedRecord = approvalRecords.find((record) =>
     record.targetType === requestedTargetType && record.targetId === requestedTargetId);
   const approvalScopeLabel = requestedDate
@@ -240,93 +229,45 @@ export default function ApprovalPage() {
   const modalCopy = decisionModal.record && decisionModal.status
     ? getApprovalDecisionCopy(decisionModal.record.targetType, decisionModal.status)
     : getApprovalDecisionCopy(undefined, 'Approve');
+  const decisionReceiptId = decisionModal.record?.targetType === 'inventory-receipt'
+    ? decisionModal.record.targetId
+    : undefined;
+  const decisionReceiptQuery = useGetInventoryReceiptByIdQuery(decisionReceiptId!, { skip: !decisionReceiptId });
 
   return (
-    <OperationalFrame
-      command={
-        <CommandBar
-          actionsClassName="ipc-approval-actions"
-          actions={
-            <>
-              <button
-                className="ipc-button ipc-button-success"
-                type="button"
-                onClick={() => firstActionableRecord && openDecisionModal(firstActionableRecord, 'Approve')}
-                disabled={Boolean(approvalAvailability.disabledReason)}
-                aria-describedby={approvalAvailability.disabledReason ? 'approval-action-guidance' : undefined}
-                title={approvalAvailability.disabledReason ?? undefined}
-              >
-                Duyệt
-              </button>
-              <button
-                className="ipc-button ipc-button-ghost"
-                type="button"
-                onClick={() => firstActionableRecord && openDecisionModal(firstActionableRecord, 'Reject')}
-                disabled={Boolean(approvalAvailability.disabledReason)}
-                aria-describedby={approvalAvailability.disabledReason ? 'approval-action-guidance' : undefined}
-                title={approvalAvailability.disabledReason ?? undefined}
-              >
-                Từ chối
-              </button>
-              <Link className="ipc-button ipc-button-secondary" to={ROUTES.PURCHASING}>
-                <FileCheck2 size={16} />
-                Sang thu mua
-              </Link>
-              <Link className="ipc-button ipc-button-ghost" to={ROUTES.WAREHOUSE}>
-                <RotateCcw size={16} />
-                Kiểm tra kho
-              </Link>
-            </>
-          }
-        >
-          <span className="ipc-command-meta">
-            <ClipboardCheck size={16} />
-            Nguồn: {workflowDocumentView.phase === 'ready' ? sourceDocument?.title ?? 'Chưa có chứng từ' : 'Chưa xác định'}
-          </span>
-          <span className="ipc-command-meta">Hạn duyệt gần nhất: {approvalView.phase === 'ready' ? nearestDeadline ?? 'Chưa có' : 'Chưa xác định'}</span>
-        </CommandBar>
-      }
-      context={
-        <ContextStrip
-          items={[
-            { label: 'Trạng thái chính', value: approvalAvailability.statusLabel, tone: approvalAvailability.statusTone },
-            { label: 'Đơn mua', value: workflowDocumentView.phase === 'ready' ? `${purchaseDocuments.length} chứng từ` : '—', tone: 'neutral' },
-            { label: 'Nhu cầu xuất', value: approvalView.phase === 'ready' ? `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu` : '—', tone: approvalView.phase === 'ready' ? 'warning' : 'neutral' },
-            { label: 'Người duyệt', value: 'Quản lí vận hành', tone: 'neutral' },
-          ]}
-        />
-      }
-    >
+    <OperationalFrame>
       <ViewSwitcher
         compact
         ariaLabel="Chọn góc nhìn duyệt vận hành"
         tabs={[
-          { id: 'approval-queue', label: 'Cần duyệt' },
-          { id: 'approval-history', label: 'Lịch sử' },
-        ].filter((tab) => approvalTabIds.includes(tab.id.replace('approval-', '') as 'queue' | 'history'))}
+          { id: 'approval-amendments', label: 'Điều chỉnh thực đơn' },
+          ...(approvalTabIds.includes('queue') ? [{ id: 'approval-queue', label: 'Duyệt chứng từ' }] : []),
+          ...(approvalTabIds.includes('history') ? [{ id: 'approval-history', label: 'Lịch sử đề xuất mua' }] : []),
+        ]}
         activeTab={`approval-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('approval-', '') as 'queue' | 'history')}
+        onTabChange={(id) => selectView(id.replace('approval-', '') as ApprovalView)}
       />
 
       <div className="flex-1 min-h-0 flex flex-col">
+        <KeepAliveTabPanel
+          id="approval-amendments"
+          active={activeView === 'amendments'}
+          fallback={<TabContentSkeleton variant="table" geometry="table" message="Đang tải điều chỉnh thực đơn..." />}
+        >
+          <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+            <div className="space-y-3">
+              <MenuAmendmentInbox />
+              <MenuAmendmentReconciliation />
+            </div>
+          </Suspense>
+        </KeepAliveTabPanel>
+
         <KeepAliveTabPanel
           id="approval-queue"
           active={activeView === 'queue'}
           fallback={<TabContentSkeleton variant="split" geometry="workspace" message="Đang tải hàng chờ duyệt..." />}
         >
-          <Suspense fallback={<div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
-            <MenuAmendmentReconciliation />
-          </Suspense>
-          <SplitWorkbench
-            detailLabel="Chứng từ"
-            detailClassName="min-h-[16rem] border-0 bg-transparent p-0"
-            detail={
-              <Suspense fallback={<div aria-hidden="true" className="min-h-[11.5rem] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
-                <WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />
-              </Suspense>
-            }
-          >
-            <SectionPanel
+          <SectionPanel
               title="Danh sách cần duyệt"
               icon={<ClipboardCheck size={18} />}
               description="Các đề xuất và chứng từ đang chờ quản lý vận hành phê duyệt."
@@ -363,8 +304,7 @@ export default function ApprovalPage() {
                 paginationLabel="Phân trang hàng đợi duyệt"
                 />
               </Suspense>
-            </SectionPanel>
-          </SplitWorkbench>
+          </SectionPanel>
         </KeepAliveTabPanel>
 
         <KeepAliveTabPanel
@@ -398,7 +338,10 @@ export default function ApprovalPage() {
             onReasonChange={(reason) => setDecisionModal((previous) => ({ ...previous, reason }))}
             onClose={closeDecisionModal}
             onSubmit={() => void handleDecisionSubmit()}
-            onRetry={() => void approvalQuery.refetch()}
+            onRetry={() => void Promise.all([approvalQuery.refetch(), decisionReceiptId ? decisionReceiptQuery.refetch() : Promise.resolve()])}
+            receipt={decisionReceiptQuery.data}
+            isReceiptLoading={Boolean(decisionReceiptId && decisionReceiptQuery.isFetching)}
+            isReceiptError={Boolean(decisionReceiptId && decisionReceiptQuery.isError)}
           />
         </Suspense>
       )}

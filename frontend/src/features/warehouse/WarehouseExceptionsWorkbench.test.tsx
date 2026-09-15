@@ -168,6 +168,31 @@ describe('WarehouseExceptionsWorkbench', () => {
     expect(screen.getByText('Kho chính')).toBeInTheDocument();
   });
 
+  it('references the quantity error only while that error is rendered', () => {
+    render(<WarehousePurchaseReceiptDialog
+      open
+      order={{ purchaseOrderId: 'po-1', purchaseOrderCode: 'PO-001', supplierName: 'Nhà cung cấp Minh An' } as PurchaseOrderDto}
+      line={{
+        purchaseOrderLineId: 'line-1', ingredientName: 'Gạo', orderedQty: 5, receivedQty: 0,
+        unitPrice: 20_000, unitName: 'kg', unitId: 'unit-1', lotNumberRequired: false,
+        manufactureDateRequired: false, expiryDateRequired: false,
+      } as PurchaseOrderLineDto}
+      warehouses={[{ warehouseId: 'warehouse-1', warehouseCode: 'KHO-01', warehouseName: 'Kho chính' }]}
+      onOpenChange={vi.fn()}
+      onSuccess={vi.fn()}
+    />)
+
+    const quantity = screen.getByLabelText(/Số lượng thực nhận/)
+    expect(quantity).toHaveAttribute('aria-describedby', 'purchase-receipt-quantity-help')
+    expect(document.getElementById('purchase-receipt-quantity-error')).not.toBeInTheDocument()
+
+    fireEvent.change(quantity, { target: { value: '6' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
+
+    expect(quantity).toHaveAttribute('aria-describedby', 'purchase-receipt-quantity-help purchase-receipt-quantity-error')
+    expect(document.getElementById('purchase-receipt-quantity-error')).toBeInTheDocument()
+  })
+
   it('shows server-authoritative actions and creates a partial supplemental issue', async () => {
     render(<WarehouseExceptionsWorkbench canManage />);
 

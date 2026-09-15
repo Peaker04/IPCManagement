@@ -42,11 +42,13 @@ const uniqueText = (values: Array<string | null | undefined>, empty: string) => 
 export function PurchaseLineGroups({
   lines,
   selectedLineId,
-  onLineChange,
+  onLineChange = () => {},
+  ariaLabel = 'Dòng nguyên liệu của ngày phục vụ đang chọn',
 }: {
   lines: PurchaseLine[];
   selectedLineId?: string;
-  onLineChange: (lineId: string) => void;
+  onLineChange?: (lineId: string) => void;
+  ariaLabel?: string;
 }) {
   const [search, setSearch] = useState('');
   const [expandedGroupKey, setExpandedGroupKey] = useState<string>();
@@ -65,13 +67,15 @@ export function PurchaseLineGroups({
         <SearchField
           id="purchase-line-search"
           label="Tìm nguyên liệu, nhà cung cấp hoặc mã dòng nguồn"
+          hideLabel
           width="wide"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          placeholder="Nhập tên nguyên liệu, nhà cung cấp hoặc mã dòng..."
           inputClassName="bg-white"
         />
       </div>
-      <TableViewport ariaLabel="Nhóm dòng nguyên liệu cần mua" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để xử lý từng dòng chứng từ.">
+      <TableViewport ariaLabel={ariaLabel}>
       <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
         <thead>
           <tr>

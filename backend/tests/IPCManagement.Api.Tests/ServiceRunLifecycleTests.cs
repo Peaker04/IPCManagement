@@ -5,9 +5,12 @@ using IPCManagement.Api.Features.Planning.Services;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
+using System.Data.Common;
 
 namespace IPCManagement.Api.Tests;
 
@@ -187,6 +190,102 @@ public sealed class ServiceRunLifecycleTests
     }
 
     [Fact]
+    public void ScopedDemandSelection_Should_NotLeakSiblingCustomerOrTierLines()
+    {
+        var sourceA = GuidHelper.NewId();
+        var sourceB = GuidHelper.NewId();
+        var demandA = new MaterialRequestLine { RequestLineId = sourceA, TotalRequiredQty = 10m, TotalServings = 100 };
+        var demandB = new MaterialRequestLine { RequestLineId = sourceB, TotalRequiredQty = 999m, TotalServings = 999 };
+
+        var scoped = ServiceRunService.SelectScopedDemandLines([demandA, demandB], [sourceA]);
+
+        scoped.Should().ContainSingle().Which.Should().BeSameAs(demandA);
+        scoped.Should().NotContain(demandB);
+    }
+
+    [Fact]
+    public async Task ServiceRunPage_SelectCount_Should_NotGrowFromOneToTwentyRows()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var counter = new SelectCommandCounter();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(counter)
+            .Options;
+        await using var context = new SqliteServiceRunContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        var actorId = GuidHelper.NewId();
+        var now = DateTime.UtcNow;
+        byte[]? latestRunId = null;
+        for (var index = 0; index < 20; index++)
+        {
+            var planId = GuidHelper.NewId();
+            context.Productionplans.Add(new ProductionPlan
+            {
+                PlanId = planId,
+                PlanCode = $"KHSX-PERF-{index:00}",
+                PlanDate = new DateOnly(2026, 8, 5),
+                Status = "CREATED",
+                CreatedBy = actorId,
+                CreatedAt = now,
+                UpdatedAt = now.AddMinutes(index),
+            });
+            latestRunId = GuidHelper.NewId();
+            context.Serviceruns.Add(new ServiceRun
+            {
+                ServiceRunId = latestRunId,
+                PlanId = planId,
+                CustomerId = GuidHelper.NewId(),
+                ServiceDate = new DateOnly(2026, 8, 5),
+                ShiftName = "MORNING",
+                PriceTierAmount = 25000m,
+                OpenedBy = actorId,
+                CreatedAt = now,
+                UpdatedAt = now.AddMinutes(index),
+            });
+        }
+        context.Users.Add(new User
+        {
+            UserId = actorId,
+            RoleId = GuidHelper.NewId(),
+            Username = "service-run-perf",
+            FullName = "Service Run Performance",
+            PasswordHash = "test-only",
+            IsActive = true,
+            CreatedAt = now,
+        });
+        context.Servicerunvariancedeclarations.Add(new ServiceRunVarianceDeclaration
+        {
+            ServiceRunVarianceDeclarationId = GuidHelper.NewId(),
+            ServiceRunId = latestRunId!,
+            Track = "SERVICE_EXECUTION",
+            SourceLineEvidenceJson = "[]",
+            Reason = "Exercise the fixed declaration and waiver query phases.",
+            DeclaredBy = actorId,
+            DeclaredAt = now.AddMinutes(20),
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = new ServiceRunService(context);
+
+        counter.Reset();
+        var oneRow = await service.GetPageAsync(new ServiceRunPageQuery { AllCustomers = true, PageNumber = 1, PageSize = 1 });
+        var oneRowSelectCount = counter.SelectCount;
+        counter.Reset();
+        var twentyRows = await service.GetPageAsync(new ServiceRunPageQuery { AllCustomers = true, PageNumber = 1, PageSize = 20 });
+        var twentyRowSelectCount = counter.SelectCount;
+
+        oneRow.Items.Should().HaveCount(1);
+        twentyRows.Items.Should().HaveCount(20);
+        twentyRowSelectCount.Should().Be(oneRowSelectCount);
+        twentyRowSelectCount.Should().BeGreaterThan(10, "the fixture must execute the fixed batch phases, not pass through an empty fast path");
+        twentyRowSelectCount.Should().BeLessThanOrEqualTo(18);
+        counter.Commands.Should().Contain(command => command.Contains("LIMIT", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void ScopedSourceLineQuery_Should_TranslateForMySqlWithoutClientSideBase64Keys()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
@@ -356,6 +455,53 @@ public sealed class ServiceRunLifecycleTests
 
         result.Blockers.Should().NotContain(ServiceRunBlocker.UnresolvedVariance);
         result.CanClose.Should().BeTrue();
+    }
+
+    private sealed class SqliteServiceRunContext(DbContextOptions<IpcManagementContext> options) : IpcManagementContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                foreach (var property in entity.GetProperties())
+                {
+                    if (property.GetColumnType()?.StartsWith("enum(", StringComparison.OrdinalIgnoreCase) == true)
+                        property.SetColumnType("TEXT");
+                    if (property.GetDefaultValueSql()?.Equals("CURRENT_TIMESTAMP(6)", StringComparison.OrdinalIgnoreCase) == true)
+                        property.SetDefaultValueSql("CURRENT_TIMESTAMP");
+                    property.SetCollation(null);
+                }
+                foreach (var index in entity.GetIndexes().ToList())
+                    entity.RemoveIndex(index);
+            }
+        }
+    }
+
+    private sealed class SelectCommandCounter : DbCommandInterceptor
+    {
+        public int SelectCount { get; private set; }
+        public List<string> Commands { get; } = [];
+
+        public void Reset()
+        {
+            SelectCount = 0;
+            Commands.Clear();
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectCount++;
+                Commands.Add(command.CommandText);
+            }
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
     }
 
     [Fact]

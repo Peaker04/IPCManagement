@@ -9,6 +9,7 @@ import {
   Layers,
   LayoutDashboard,
   RotateCcw,
+  Scale,
   Settings,
   ShoppingCart,
   SlidersHorizontal,
@@ -47,6 +48,7 @@ const navigationItems: ReadonlyArray<NavigationItemConfig> = [
   { key: 'approvals', label: 'Duyệt vận hành', icon: ClipboardCheck },
   { key: 'purchasing', label: 'Thu mua', icon: ShoppingCart },
   { key: 'warehouse', label: 'Kho nguyên liệu', icon: Warehouse },
+  { key: 'reconciliation', label: 'Đối chiếu', icon: Scale },
   { key: 'chef-dashboard', label: 'Bếp trưởng', icon: ChefHat },
   { key: 'reports', label: 'Báo cáo vận hành', icon: TrendingUp },
   { key: 'admin-data', label: 'Quản trị dữ liệu', icon: Database },
@@ -326,14 +328,14 @@ export function AdvancedDisplaySettings() {
   }, [preferences, visibleNavCount, toast]);
 
   const updateTab = useCallback((groupId: PageTabGroupId, tabKey: string, tabLabel: string) => {
+    const displayedGroup = displayedPageTabGroups.find((g) => g.id === groupId);
     const groupDef = pageTabGroups.find((g) => g.id === groupId);
     const currentGroup = tabPreferences[groupId] ?? {};
     const isCurrentlyVisible = currentGroup[tabKey] !== false;
 
     if (isCurrentlyVisible) {
-      const visibleCountInGroup = groupDef
-        ? groupDef.tabs.filter(([id]) => currentGroup[id] !== false).length
-        : 0;
+      const activeTabsInGroup = displayedGroup?.tabs ?? groupDef?.tabs ?? [];
+      const visibleCountInGroup = activeTabsInGroup.filter(([id]) => currentGroup[id] !== false).length;
 
       if (visibleCountInGroup <= 1) {
         toast({
@@ -352,7 +354,7 @@ export function AdvancedDisplaySettings() {
     writePageTabPreferences(next);
     const groupLabel = groupDef?.label ?? 'Trang';
     setLastChange(`${groupLabel} — ${tabLabel}: ${nextValue ? 'đang hiện' : 'đã ẩn'}.`);
-  }, [tabPreferences, toast]);
+  }, [displayedPageTabGroups, tabPreferences, toast]);
 
   const showAllTabsInGroup = useCallback((groupId: PageTabGroupId) => {
     const group = pageTabGroups.find((g) => g.id === groupId);

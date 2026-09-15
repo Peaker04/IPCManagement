@@ -147,7 +147,8 @@ Mỗi run có thư mục immutable theo timestamp/run-id; không ghi đè failed
 - screenshot cuối chỉ để reviewer xem.
 
 Runner phải fail exit code khi assertion fail. JSON có `verdict`, `failures[]`, `needsEvidence[]`; không chỉ in
-counter rồi để agent tự diễn giải.
+counter rồi để agent tự diễn giải. Dùng [artifact retention policy](ARTIFACTS.md): manifest/result nhỏ được giữ,
+build tree và browser profile bị xóa sau teardown, attempt không được chọn phải để prune thay vì tích lũy vô hạn.
 
 ## 9. Recheck và định nghĩa Done
 

@@ -16,11 +16,13 @@ import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { ChefMaterial } from '../chefDashboardTypes'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import { typography } from '@/lib/typography'
 
 interface MaterialChecklistProps {
   materials: ChefMaterial[]
-  onMaterialSignoff?: (materialId: string, signed: boolean) => void
+  onMaterialSignoff?: (materialId: string, signed: boolean, hasDiscrepancy?: boolean, discrepancyNote?: string) => Promise<boolean>
   pageLabel?: string
   totalSignedCount?: number
   totalSourceCount?: number
@@ -52,7 +54,17 @@ const groupMaterialsByStableIdentity = (materials: ChefMaterial[]): MaterialGrou
 export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, totalSignedCount, totalSourceCount }: MaterialChecklistProps) {
   const [pendingMaterialId, setPendingMaterialId] = useState<string | null>(null)
   const [expandedGroupKey, setExpandedGroupKey] = useState<string | null>(null)
+  const [countedMaterialIds, setCountedMaterialIds] = useState<Record<string, boolean>>({})
+  const [hasDiscrepancy, setHasDiscrepancy] = useState(false)
+  const [discrepancyNote, setDiscrepancyNote] = useState('')
+  const [isConfirming, setIsConfirming] = useState(false)
   const pendingMaterial = materials.find((material) => material.id === pendingMaterialId)
+  const pendingIssueLines = pendingMaterial
+    ? pendingMaterial.issueId
+      ? materials.filter((material) => material.issueId === pendingMaterial.issueId)
+      : [pendingMaterial]
+    : []
+  const countedIssueLines = pendingIssueLines.filter((material) => countedMaterialIds[material.id]).length
   const materialGroups = useMemo(() => groupMaterialsByStableIdentity(materials), [materials])
 
   const signedCount = materials.filter((m) => m.signed).length
@@ -70,7 +82,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
       className={cn(typography.body, 'ipc-chef-checklist-panel')}
     >
         <TableViewport ariaLabel="Checklist ký nhận nguyên liệu bếp" caption="Danh sách nguyên liệu cần ký nhận" className="ipc-chef-checklist-shell">
-          <Table aria-label="Checklist ký nhận nguyên liệu bếp" className="ipc-chef-checklist-table text-xs">
+          <Table aria-label="Bảng ký nhận nguyên liệu bếp" className="ipc-chef-checklist-table text-xs">
             <TableHeader>
               <TableRow className="border-slate-200 hover:bg-transparent">
                 <TableHead className="w-20 text-slate-600 font-semibold">Thao tác</TableHead>
@@ -101,7 +113,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                         <TableCell className="text-slate-500">{material.issueCode ?? 'Theo kế hoạch'}</TableCell>
                         <TableCell className="text-slate-500 text-right">{formatUnit(material.unit)}</TableCell>
                         <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
-                        <TableCell><StatusBadge variant={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
+                        <TableCell><StatusBadge tone={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
                       </TableRow>
                     )]
                   }
@@ -114,7 +126,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                       <TableCell className="text-slate-500">{issueCount} phiếu xuất</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(group.unit)}</TableCell>
                       <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-900')}>{formatQuantity(group.quantity)}</TableCell>
-                      <TableCell><StatusBadge variant={signedLines === group.lines.length ? 'success' : 'warning'}>{signedLines === group.lines.length ? 'Đã nhận đủ' : `Đã nhận ${signedLines}/${group.lines.length}`}</StatusBadge></TableCell>
+                      <TableCell><StatusBadge tone={signedLines === group.lines.length ? 'success' : 'warning'}>{signedLines === group.lines.length ? 'Đã nhận đủ' : `Đã nhận ${signedLines}/${group.lines.length}`}</StatusBadge></TableCell>
                     </TableRow>
                   )
                   if (!expanded) return [summary]
@@ -126,7 +138,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                       <TableCell className={cn(typography.code, 'text-xs text-slate-600')}>{material.issueCode ?? material.issueId ?? material.id}</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(material.unit)}</TableCell>
                       <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
-                      <TableCell><StatusBadge variant={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
+                      <TableCell><StatusBadge tone={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
                     </TableRow>
                   ))]
                 })
@@ -134,23 +146,42 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
             </TableBody>
           </Table>
         </TableViewport>
-        <Dialog open={Boolean(pendingMaterial)} onOpenChange={(open) => { if (!open) setPendingMaterialId(null) }}>
-          <DialogContent aria-label="Xác nhận đã nhận nguyên liệu" className="max-w-md">
+        <Dialog open={Boolean(pendingMaterial)} onOpenChange={(open) => { if (!open && !isConfirming) setPendingMaterialId(null) }}>
+          <DialogContent aria-label="Kiểm đếm và ký nhận phiếu xuất" className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Xác nhận đã nhận nguyên liệu?</DialogTitle>
+              <DialogTitle>Kiểm đếm phiếu {pendingMaterial?.issueCode ?? 'xuất kho'}</DialogTitle>
               <DialogDescription>
-                Chỉ xác nhận sau khi đã kiểm đếm thực tế {pendingMaterial?.name} từ phiếu {pendingMaterial?.issueCode ?? 'xuất kho'}.
+                Có thể kiểm đếm từng nguyên liệu. Hành động ký nhận toàn bộ sẽ xác nhận tất cả dòng trong phiếu xuất này trên hệ thống.
               </DialogDescription>
             </DialogHeader>
-            <div className="rounded-sm border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-              {pendingMaterial ? `${formatQuantity(pendingMaterial.quantity)} ${formatUnit(pendingMaterial.unit)}` : ''}
-            </div>
+            <ul className="grid max-h-64 gap-2 overflow-y-auto" aria-label="Nguyên liệu trong phiếu xuất">
+              {pendingIssueLines.map((material) => <li key={material.id} className="flex items-center justify-between gap-3 rounded-sm border border-slate-200 bg-slate-50 p-3 text-sm">
+                <span><strong className="block text-slate-900">{material.name}</strong>{formatQuantity(material.quantity)} {formatUnit(material.unit)}</span>
+                <Button type="button" size="sm" variant={countedMaterialIds[material.id] ? 'outline' : 'default'} onClick={() => setCountedMaterialIds((current) => ({ ...current, [material.id]: !current[material.id] }))}>
+                  {countedMaterialIds[material.id] ? 'Đã kiểm đếm' : 'Nhận nguyên liệu này'}
+                </Button>
+              </li>)}
+            </ul>
+            <p className="text-xs font-medium text-slate-600">Đã kiểm đếm {countedIssueLines}/{pendingIssueLines.length} dòng trong phiếu.</p>
+            <label className="flex min-h-11 items-center gap-2 text-sm font-medium"><Checkbox checked={hasDiscrepancy} onCheckedChange={(checked) => setHasDiscrepancy(checked === true)} />Có chênh lệch khi nhận</label>
+            {hasDiscrepancy && <label className="grid gap-1 text-sm font-medium">Mô tả chênh lệch<Textarea value={discrepancyNote} onChange={(event) => setDiscrepancyNote(event.target.value)} placeholder="Nêu dòng nguyên liệu, số thực nhận hoặc tình trạng hàng" /></label>}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setPendingMaterialId(null)}>Chưa nhận</Button>
-              <Button type="button" onClick={() => {
-                if (pendingMaterial) onMaterialSignoff?.(pendingMaterial.id, true)
+              <Button type="button" variant="outline" disabled={isConfirming} onClick={() => setPendingMaterialId(null)}>Để sau</Button>
+              <Button type="button" disabled={isConfirming || pendingIssueLines.length === 0 || countedIssueLines < pendingIssueLines.length || hasDiscrepancy && !discrepancyNote.trim()} onClick={async () => {
+                if (!pendingMaterial || !onMaterialSignoff) return
+                setIsConfirming(true)
+                const success = await onMaterialSignoff(pendingMaterial.id, true, hasDiscrepancy, discrepancyNote)
+                setIsConfirming(false)
+                if (!success) return
+                setCountedMaterialIds((current) => {
+                  const next = { ...current }
+                  pendingIssueLines.forEach((material) => delete next[material.id])
+                  return next
+                })
+                setHasDiscrepancy(false)
+                setDiscrepancyNote('')
                 setPendingMaterialId(null)
-              }}>Đã kiểm đếm và nhận</Button>
+              }}>{isConfirming ? 'Đang ký nhận...' : 'Ký nhận toàn bộ phiếu'}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

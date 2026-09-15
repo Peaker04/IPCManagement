@@ -67,13 +67,15 @@ export function usePurchaseSummary({
   const aggregatePage = queryView?.phase === 'ready' ? queryView.data : undefined
   const presentation = aggregatePage ? {
     ...localPresentation,
-    usesDemand: aggregatePage.totalCount > 0,
+    // An empty filtered server result is still a daily handoff view, not the whole-week BOM fallback.
+    usesDemand: true,
     totalItems: aggregatePage.totalCount,
     totalPages: aggregatePage.totalPages,
     pageIndex: Math.max(0, aggregatePage.pageNumber - 1),
     demandRows: aggregatePage.items,
     materialRows: [],
-    shortageCount: aggregatePage.shortageCount,
+    shortageCount: aggregatePage.remainingToIssueCount,
+    pendingKitchenCount: aggregatePage.pendingKitchenReceiptCount,
   } : localPresentation
 
   const exportWarehouseReport = () => {

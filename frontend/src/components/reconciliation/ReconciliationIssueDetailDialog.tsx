@@ -24,13 +24,12 @@ interface Props {
   title?: string
   ariaLabel?: string
   description?: string
+  showOpenBatch?: boolean
   onClose: (reason?: 'escape' | 'backdrop' | 'close-control') => void
   onOpenBatch?: (batchId: string, issueId: string) => void
 }
 
-const optionalText = (value?: string | null) => value?.trim() || 'Không có trong dữ liệu đã lưu'
-
-export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueId), expectedBatchId, initialIssue, title, ariaLabel = 'Chi tiết giao dịch xuất kho đối chiếu', description = 'Định danh chính xác bằng mã phiếu; vai trò giao dịch không được suy đoán khi chưa có dữ liệu lưu.', onClose, onOpenBatch }: Props) {
+export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueId), expectedBatchId, initialIssue, title, ariaLabel = 'Chi tiết giao dịch xuất kho đối chiếu', description, showOpenBatch = true, onClose, onOpenBatch }: Props) {
   const detailQuery = useGetReconciliationIssueQuery(issueId ?? '', { skip: !open || !issueId })
   const fetchedIssue = open ? detailQuery.currentData ?? detailQuery.data : undefined
   const issue = fetchedIssue ?? (initialIssue?.issueId === issueId ? initialIssue : undefined)
@@ -47,7 +46,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
     <DrawerContent aria-label={ariaLabel}>
       <DrawerHeader>
         <DrawerTitle>{title || issue?.issueCode || 'Chi tiết giao dịch xuất kho'}</DrawerTitle>
-        <DrawerDescription>{description}</DrawerDescription>
+        {description && <DrawerDescription>{description}</DrawerDescription>}
         {detailQuery.isFetching && issue && <p className="mt-2 flex items-center gap-2 text-xs text-slate-600" role="status"><RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />Đang cập nhật dữ liệu chi tiết...</p>}
       </DrawerHeader>
 
@@ -74,8 +73,8 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
             <dt className="text-slate-600">Người tạo</dt><dd className="font-medium text-slate-950">{issueActorLabel(issue)}</dd>
             <dt className="text-slate-600">Thời điểm tạo</dt><dd className="font-medium text-slate-950">{formatDateTime(issue.createdAt)}</dd>
             <dt className="text-slate-600">Ngày phiếu</dt><dd className="font-medium text-slate-950">{formatDateOnly(issue.issueDate)}</dd>
-            <dt className="text-slate-600">Người nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? optionalText(fetchedIssue.receivedByName) : 'Đang cập nhật...'}</dd>
-            <dt className="text-slate-600">Thời điểm nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? fetchedIssue.receivedAt ? formatDateTime(fetchedIssue.receivedAt) : 'Chưa được ghi nhận' : 'Đang cập nhật...'}</dd>
+            <dt className="text-slate-600">Người nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? (fetchedIssue.receivedByName?.trim() || (fetchedIssue.receivedAt ? 'Nhân viên bếp' : 'Chờ Bếp tiếp nhận')) : 'Đang cập nhật...'}</dd>
+            <dt className="text-slate-600">Thời điểm nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? (fetchedIssue.receivedAt ? formatDateTime(fetchedIssue.receivedAt) : 'Chờ Bếp xác nhận bàn giao') : 'Đang cập nhật...'}</dd>
             <dt className="text-slate-600">Số dòng</dt><dd className="font-medium text-slate-950">{issue.lines.length}</dd>
           </dl>
 
@@ -123,7 +122,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
               {fetchedIssue.lines.map((issueLine) => {
                 const line = batch.lines.find((candidate) => candidate.batchLineId === issueLine.reconciliationBatchLineId)
                 if (!line?.disposition) return null
-                return <div key={issueLine.issueLineId} className="rounded-md bg-slate-50 p-3"><p className="font-medium">{line.ingredientName || issueLine.ingredientName || 'Nguyên liệu chưa đặt tên'}: {dispositionCategoryLabel(line.disposition.category)}</p><p className="mt-1 text-slate-700">{line.disposition.reason}</p><p className="mt-1 text-xs text-slate-500">Kết luận ở cấp dòng lô, không phải phân loại loại phiếu.</p></div>
+                return <div key={issueLine.issueLineId} className="rounded-md bg-slate-50 p-3"><p className="font-medium">{line.ingredientName || issueLine.ingredientName || 'Nguyên liệu chưa đặt tên'}: {dispositionCategoryLabel(line.disposition.category)}</p><p className="mt-1 text-slate-700">{line.disposition.reason}</p></div>
               })}
             </div>}
           </section>}
@@ -131,7 +130,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
       </DrawerBody>
 
       <DrawerFooter>
-        {fetchedIssue && !linkageMismatch && fetchedIssue.reconciliationBatchId && (onOpenBatch
+        {showOpenBatch && fetchedIssue && !linkageMismatch && fetchedIssue.reconciliationBatchId && (onOpenBatch
           ? <Button type="button" variant="outline" onClick={() => onOpenBatch(fetchedIssue.reconciliationBatchId!, fetchedIssue.issueId)}>Mở lô đối chiếu <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" /></Button>
           : <a className={buttonVariants({ variant: 'outline' })} href={`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(fetchedIssue.reconciliationBatchId)}&issueId=${encodeURIComponent(fetchedIssue.issueId)}`}>Mở lô đối chiếu <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" /></a>)}
         <Button type="button" onClick={() => onClose('close-control')}>Đóng</Button>

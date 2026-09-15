@@ -34,6 +34,22 @@ không đoán `PASS`. Tuy nhiên screenshot có orphan control/heading, panel tr
 broken adjacency là **candidate finding bắt buộc triage**, không được bỏ qua. Agent phải chuyển tín hiệu ảnh
 thành selector/DOM geometry/source assertion trước production edit.
 
+### Screenshot intake chuẩn hóa
+
+Ảnh người dùng cung cấp là candidate evidence, không phải verdict. Trước khi phân tích hoặc tạo before/after,
+nhập ảnh vào artifact bất biến:
+
+```bash
+node tools/ui-screenshot-intake.mjs <đường-dẫn-ảnh> [output-root]
+```
+
+Command chỉ nhận `.png`, `.jpg` hoặc `.jpeg`, sao chép ảnh vào run directory có timestamp + SHA-256 và tạo
+`manifest.json` gồm kích thước, aspect ratio, hash và các trường linkage bắt buộc: route, actor, operation mode,
+state, viewport, DOM selector, source owner và rule ID. Manifest chỉ lưu basename và đường dẫn bản sao tương đối
+trong run; không lưu đường dẫn tuyệt đối của input/output. Input sai extension hoặc ảnh hỏng phải trả exit khác 0,
+không tạo manifest và không để lại Chrome do command sở hữu. Sau triage, điền linkage trong evidence của wave;
+không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
+
 ## 2. Vòng lặp thực thi — reproduce once, fix once, prove once
 
 1. Chọn `L0/L1/L2` theo [`harness/DELIVERY.md`](harness/DELIVERY.md).

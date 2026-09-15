@@ -34,93 +34,15 @@
   color: var(--ipc-primary);
 }
 
-.ipc-dashboard-incident {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1.35fr) minmax(350px, 0.85fr);
-  align-items: stretch;
-  overflow: hidden;
-  border: 1px solid #cbd9ea;
-  border-radius: var(--ipc-radius-md);
-  background: #ffffff;
-}
-
 .ipc-dashboard-signal::before {
   content: "";
 }
 
-.ipc-dashboard-incident.is-success {
-  border-left: 4px solid var(--ipc-success);
-}
-
-.ipc-dashboard-incident.is-warning {
-  border-left: 4px solid var(--ipc-warning);
-}
-
-.ipc-dashboard-incident.is-danger {
-  border-left: 4px solid var(--ipc-danger);
-}
-
-.ipc-dashboard-incident-main {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: var(--ipc-space-3);
-  padding: 12px 14px;
-}
-
-.ipc-dashboard-incident h2 {
-  margin: 1px 0 0;
-  color: var(--ipc-slate-900);
-  font-size: 1.05rem;
-  font-weight: 850;
-  line-height: 1.25;
-}
-
-.ipc-dashboard-incident p {
-  max-width: 68ch;
-  margin: 3px 0 0;
-  color: var(--ipc-slate-500);
-  font-size: 0.8125rem;
-  line-height: 1.45;
-}
-
-.ipc-dashboard-readiness-metrics {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  border-left: 1px solid #d8e2ef;
-  background: #fbfdff;
-}
-
-.ipc-dashboard-readiness-metrics > div {
-  display: flex;
-  min-height: 72px;
-  flex-direction: column;
-  justify-content: center;
-  border-right: 1px solid #e2eaf4;
-  padding: 9px 12px;
-}
-
-.ipc-dashboard-readiness-metrics > div:last-child {
-  border-right: 0;
-}
-
-.ipc-dashboard-readiness-metrics span,
 .ipc-dashboard-signal-copy span {
   color: var(--ipc-slate-500);
   font-size: 0.75rem;
   font-weight: 800;
   line-height: 1.25;
-}
-
-.ipc-dashboard-readiness-metrics strong {
-  color: var(--ipc-slate-900);
-  font-size: 1.35rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 850;
-  line-height: 1.1;
 }
 
 .ipc-dashboard-risk-board {
@@ -405,14 +327,8 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .ipc-dashboard-incident,
   .ipc-dashboard-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ipc-dashboard-readiness-metrics {
-    border-top: 1px solid #d8e2ef;
-    border-left: 0;
   }
 }
 
@@ -439,26 +355,14 @@
 }
 
 @media (max-width: 640px) {
-  .ipc-dashboard-incident-main,
   .ipc-dashboard-panel-header,
   .ipc-dashboard-task {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .ipc-dashboard-readiness-metrics,
   .ipc-dashboard-risk-board,
   .ipc-dashboard-queue-filters {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .ipc-dashboard-readiness-metrics > div {
-    min-height: 58px;
-    border-right: 0;
-    border-bottom: 1px solid #e2eaf4;
-  }
-
-  .ipc-dashboard-readiness-metrics > div:last-child {
-    border-bottom: 0;
   }
 
   .ipc-dashboard-panel-header {

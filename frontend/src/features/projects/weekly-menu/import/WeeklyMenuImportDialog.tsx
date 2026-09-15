@@ -14,7 +14,7 @@ export const WeeklyMenuImportDialog = ({ workflow }: { workflow: WeeklyMenuImpor
   return (
     <>
       <Dialog open={state.isOpen} onOpenChange={actions.onOpenChange}>
-        <DialogContent aria-label="Nhập thực đơn từ Excel" className="ipc-weekly-dialog max-w-6xl">
+        <DialogContent aria-label="Nhập thực đơn từ Excel" className="ipc-weekly-dialog max-w-6xl gap-0">
           <DialogHeader className="static flex flex-row items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <DialogTitle className="text-lg font-bold text-slate-900">Nhập thực đơn từ Excel</DialogTitle>
             <Button type="button" variant="outline" size="xs" onClick={actions.close} aria-label="Đóng modal nhập thực đơn" title="Đóng">

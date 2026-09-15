@@ -50,9 +50,11 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
         <SearchField
           id="purchase-order-line-search"
           label="Tìm nguyên liệu hoặc mã dòng đơn mua"
+          hideLabel
           width="wide"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          placeholder="Nhập tên nguyên liệu hoặc mã dòng..."
           inputClassName="bg-white"
         />
       </div>

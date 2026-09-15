@@ -5,6 +5,7 @@ import reconciliationSource from '@/features/reconciliation/pages/Reconciliation
 import issueHistorySource from '@/components/reconciliation/ReconciliationIssueHistoryTable.tsx?raw'
 import drawerSource from '@/components/ui/drawer.tsx?raw'
 import adminBomSource from '@/app/pages/admin-data/AdminBomPanel.tsx?raw'
+import adminSourceChangesSource from '@/app/pages/admin-data/AdminSourceChangesPanel.tsx?raw'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 
 describe('material reconciliation UI contracts', () => {
@@ -61,8 +62,9 @@ describe('material reconciliation UI contracts', () => {
     expect(reconciliationSource).not.toContain('data-drawer-open')
   })
 
-  it('keeps one batch-scoped source-change owner on the reconciliation workspace', () => {
-    expect(reconciliationSource).toContain('<ReconciliationSourceChangeLog batchId={batch.batchId} />')
+  it('keeps one batch-scoped source-change owner on the admin data workspace', () => {
+    expect(adminSourceChangesSource).toContain('<ReconciliationSourceChangeLog batchId={effectiveBatchId} standalone />')
+    expect(reconciliationSource).not.toContain('<ReconciliationSourceChangeLog')
     expect(warehouseSource).not.toContain('ReconciliationSourceChangeLog')
   })
 

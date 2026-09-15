@@ -19,6 +19,7 @@ extracted_from: ../../MEMORY.md
 - Mode này có đúng các khu vực nghiệp vụ: Dashboard, Thực đơn tuần, Kho nguyên liệu, Đối chiếu, Quản trị dữ liệu; Advanced Settings chỉ là cấu hình admin.
 - Mode này **không có Thu mua, Báo cáo, KHSX hay MaterialDemand của DEFAULT**. Không mount/fetch/mutate owner Purchasing/default-demand và không hướng người dùng sang Thu mua để tiếp tục MRX.
 - `DEFAULT` và `MATERIAL_RECONCILIATION` dùng chung master data và physical stock, nhưng workflow record/lineage/query/mutation/audit của hai family phải tách tuyệt đối. Không chuyển, copy, re-parent hoặc cộng chéo record khi đổi mode.
+- Mọi API read sở hữu batch/report của MRX phải khai báo `ReconciliationOnly`; route ẩn không phải ranh giới API. Shared InventoryIssue read phải ràng buộc `sourceFamily` với mode hiện hành trước repository access, không cho caller tự chọn family chéo mode.
 - Trước mọi screenshot, browser action hoặc verdict phải gọi `GET /api/system-operation-mode` và assert đúng mode. Evidence từ mode khác không có giá trị. Không đổi mode khi Kỳ đang kiểm thử thủ công; harness đổi mode phải ghi version trước/sau và phục hồi mode gốc.
 
 ### 2. Authority và grain nguồn
@@ -67,7 +68,8 @@ extracted_from: ../../MEMORY.md
 ### 7. Phiếu xuất thêm
 
 - Chỉ được phép sau initial issue, khi batch là `IN_PROGRESS`; `COMPLETED` read-only.
-- Mỗi supplemental transaction chọn đúng **một ingredient đã có trong frozen batch**, quantity dương và một lý do tiếng Việt bắt buộc.
+- Mỗi supplemental transaction chọn **một hoặc nhiều ingredient đã có trong frozen batch** (chọn trực tiếp hoặc tính theo món và số suất phát sinh từ BOM hiện hành), quantity dương và lý do tiếng Việt bắt buộc. Phép tính theo món chỉ hợp lệ khi mỗi BOM nguồn ánh xạ duy nhất tới một frozen batch line cùng nguyên liệu; lineage mâu thuẫn phải fail-closed và hướng người dùng chọn nguyên liệu trực tiếp, không tùy ý chọn contributor đầu tiên. Sau khi đã có phiếu xuất đầu tiên, màn hình Thực đơn tuần phải dẫn thẳng tới đúng `batchId` ở Kho; thay đổi số suất không được âm thầm ghi đè `RequiredQuantity` đã khóa.
+- Projection món cho xuất thêm giữ chính xác contributor → frozen line; nếu nguyên liệu trên BOM hiện hành đã đổi và không còn khớp frozen ingredient, phải fail closed thay vì gắn ingredient mới vào ID dòng cũ. Định lượng/suất sau quy đổi giữ precision cho phép nhân số suất; chỉ làm tròn quantity cuối đến 6 chữ số, không làm tròn rate nhỏ về 0 trước phép nhân. Đây là read projection, không sửa frozen requirement/contributor. Consumer xuất thêm phải phân biệt đang tải, thành công không có món và lỗi định lượng; lỗi phải hiển thị lý do/thử lại, vẫn cho phép chọn trực tiếp frozen ingredient. Không tính xuất theo món từ dữ liệu lỗi hoặc cache của batch khác.
 - Mỗi lần xuất thêm tạo `InventoryIssue` mới với cùng batch/frozen-line lineage. Không sửa issue trước, không tạo frozen material row mới và không cho ingredient ngoài lô.
 - Một ingredient có thể có nhiều supplemental issue; history/audit/stock movement của từng giao dịch phải giữ append-only và hiển thị được.
 - Lifecycle transition của initial và supplemental issue cùng batch phải dùng aggregate sequence tăng theo batch version; không được tái dùng sequence `1`, vì unique lifecycle fence sẽ biến lần xuất thêm hợp lệ thành lỗi 500.

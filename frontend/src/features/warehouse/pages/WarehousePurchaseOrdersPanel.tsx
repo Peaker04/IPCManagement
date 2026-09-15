@@ -2,7 +2,6 @@ import { ReceiptText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { IdentifierText, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { PurchaseOrderLineGroups } from '../PurchaseOrderLineGroups';
 
@@ -94,9 +93,11 @@ export function WarehousePurchaseOrdersPanel({
                   <IdentifierText value={order.purchaseRequestCode} />
                 </td>
                 <td className="ipc-badge-cell whitespace-nowrap">
-                  <StatusBadge variant={order.status === 'COMPLETED' ? 'success' : order.status === 'ORDERED' ? 'info' : order.status === 'PARTIALLY_RECEIVED' ? 'warning' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
-                    {formatWorkflowStatus(order.status)}
-                  </StatusBadge>
+                  <StatusBadge
+                    status={order.status}
+                    domain="purchase"
+                    className="ipc-table-badge ipc-table-badge--status"
+                  />
                 </td>
                 <td className="whitespace-nowrap">
                   {completedLines}/{order.lines.length} dòng đã đủ
@@ -134,9 +135,7 @@ export function WarehousePurchaseOrdersPanel({
           )}
         </div>
       </div>
-      <TableViewport ariaLabel={`Chi tiết đơn mua ${selectedPurchaseOrder.purchaseOrderCode}`} caption="Các dòng và yêu cầu bằng chứng nhập kho do máy chủ cung cấp." className="max-h-[320px]">
-        <PurchaseOrderLineGroups lines={selectedPurchaseOrder.lines} canReceive={canReceivePurchases} onReceive={onSelectReceiptLine} />
-      </TableViewport>
+      <PurchaseOrderLineGroups lines={selectedPurchaseOrder.lines} canReceive={canReceivePurchases} onReceive={onSelectReceiptLine} />
     </div>
   )}
 </SectionPanel>
