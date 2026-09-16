@@ -10,6 +10,7 @@ public sealed partial class ServiceRunService
 {
     private async Task<ServiceRunProjectionData> LoadProjectionDataAsync(
         IReadOnlyCollection<ServiceRun> runs,
+        bool includeProjectionFields,
         bool includeOperationalFields,
         CancellationToken cancellationToken)
     {
@@ -23,10 +24,12 @@ public sealed partial class ServiceRunService
             .Include(line => line.QuantityPlanLine).ThenInclude(line => line.QuantityPlan)
             .Include(line => line.QuantityPlanLine).ThenInclude(line => line.MenuSchedule)
             .Where(line => planIds.Contains(line.PlanId)).ToListAsync(cancellationToken);
-        var demandLines = await context.Materialrequestlines.AsNoTracking()
+        var demandLineQuery = context.Materialrequestlines.AsNoTracking()
             .Include(line => line.Request).Include(line => line.PlanLine)
-            .Include(line => line.Ingredient).Include(line => line.Unit)
-            .Where(line => planIds.Contains(line.Request.PlanId)).ToListAsync(cancellationToken);
+            .Where(line => planIds.Contains(line.Request.PlanId));
+        if (includeProjectionFields)
+            demandLineQuery = demandLineQuery.Include(line => line.Ingredient).Include(line => line.Unit);
+        var demandLines = await demandLineQuery.ToListAsync(cancellationToken);
         var sourceLines = await context.Servicerunsourcelines.AsNoTracking()
             .Where(item => runIds.Contains(item.ServiceRunId)).ToListAsync(cancellationToken);
         var requestIds = demandLines.Select(line => line.RequestId).Distinct().ToList();
@@ -45,14 +48,21 @@ public sealed partial class ServiceRunService
                            item.EntityId != null && issueIds.Contains(item.EntityId))
             .Select(item => item.EntityId)
             .ToListAsync(cancellationToken);
-        var adjustments = await context.Servicerunadjustments.AsNoTracking()
-            .Where(item => runIds.Contains(item.ServiceRunId)).ToListAsync(cancellationToken);
-        var declarations = await (
-            from declaration in context.Servicerunvariancedeclarations.AsNoTracking()
-            join actor in context.Users.AsNoTracking() on declaration.DeclaredBy equals actor.UserId
-            where runIds.Contains(declaration.ServiceRunId)
-            select new VarianceDeclarationRow(declaration, actor.FullName))
-            .ToListAsync(cancellationToken);
+        var adjustments = includeProjectionFields
+            ? await context.Servicerunadjustments.AsNoTracking()
+                .Where(item => runIds.Contains(item.ServiceRunId)).ToListAsync(cancellationToken)
+            : [];
+        var declarations = includeProjectionFields
+            ? await (
+                from declaration in context.Servicerunvariancedeclarations.AsNoTracking()
+                join actor in context.Users.AsNoTracking() on declaration.DeclaredBy equals actor.UserId
+                where runIds.Contains(declaration.ServiceRunId)
+                select new VarianceDeclarationRow(declaration, actor.FullName))
+                .ToListAsync(cancellationToken)
+            : await context.Servicerunvariancedeclarations.AsNoTracking()
+                .Where(declaration => runIds.Contains(declaration.ServiceRunId))
+                .Select(declaration => new VarianceDeclarationRow(declaration, string.Empty))
+                .ToListAsync(cancellationToken);
         var declarationIds = declarations.Select(item => item.Declaration.ServiceRunVarianceDeclarationId).ToList();
         var waivers = declarationIds.Count == 0
             ? []
@@ -96,22 +106,13 @@ public sealed partial class ServiceRunService
 
     private static ServiceRunMappedRow BuildProjection(ServiceRun run, ProductionPlan plan, ServiceRunProjectionData data)
     {
-        var planLines = data.PlanLines.Where(line => SameId(line.PlanId, run.PlanId) && line.ShiftName == run.ShiftName).ToList();
-        var demandLines = data.DemandLines.Where(line => SameId(line.Request.PlanId, run.PlanId) && line.PlanLine.ShiftName == run.ShiftName).ToList();
-        var scopedSourceLineIds = data.SourceLines.Where(item => SameId(item.ServiceRunId, run.ServiceRunId)).Select(item => item.MaterialRequestLineId);
-        var scopedDemandLines = SelectScopedDemandLines(demandLines, scopedSourceLineIds);
-        var scopedPlanLineIds = scopedDemandLines.Select(line => line.PlanLineId).ToList();
-        var scopedPlanLines = planLines.Where(line => scopedPlanLineIds.Any(id => SameId(id, line.PlanLineId))).ToList();
-        var planRequestIds = scopedDemandLines.Select(line => line.RequestId).ToList();
-        var issues = data.Issues.Where(issue => issue.IssueDate == plan.PlanDate && issue.MaterialRequestId is not null &&
-            planRequestIds.Any(id => SameId(id, issue.MaterialRequestId))).ToList();
-        var relevantIssueLines = SelectRelevantIssueLines(issues, scopedDemandLines, run.ShiftName);
-        var relevantIssues = issues.Where(issue => issue.Inventoryissuelines.Any(relevantIssueLines.Contains)).ToList();
-        var relevantIssueIds = relevantIssues.Select(issue => issue.IssueId).ToList();
-        var openSupplementalCount = data.SupplementalRows.Count(item => item.Status != "FULFILLED" && item.Status != "REJECTED" &&
-            relevantIssueIds.Any(id => SameId(id, item.IssueId)));
-        var hasReceiptDiscrepancy = data.DiscrepancyIssueIds.Any(issueId => issueId is not null && relevantIssueIds.Any(id => SameId(id, issueId)));
-        var runDeclarations = data.Declarations.Where(item => SameId(item.Declaration.ServiceRunId, run.ServiceRunId)).ToList();
+        var mappedStatus = MapLifecycleStatus(run, plan, data);
+        var demandLines = mappedStatus.DemandLines;
+        var scopedDemandLines = mappedStatus.ScopedDemandLines;
+        var issues = mappedStatus.Issues;
+        var relevantIssues = mappedStatus.RelevantIssues;
+        var openSupplementalCount = mappedStatus.OpenSupplementalCount;
+        var runDeclarations = mappedStatus.RunDeclarations;
         var pendingDeclarations = runDeclarations
             .Where(item => !data.Waivers.Any(waiver => SameId(waiver.ServiceRunVarianceDeclarationId, item.Declaration.ServiceRunVarianceDeclarationId)))
             .OrderByDescending(item => item.Declaration.DeclaredAt)
@@ -123,9 +124,6 @@ public sealed partial class ServiceRunService
                 DeclaredByLabel = item.DeclaredByLabel,
                 DeclaredAt = item.Declaration.DeclaredAt,
             }).ToList();
-        var hasApprovedVarianceWaiver = runDeclarations.Any(item => data.Waivers.Any(waiver =>
-            SameId(waiver.ServiceRunVarianceDeclarationId, item.Declaration.ServiceRunVarianceDeclarationId) &&
-            !item.Declaration.DeclaredBy.SequenceEqual(waiver.ApprovedBy)));
         var scopedSourceLineOptions = scopedDemandLines
             .Where(line => run.CustomerId is not null && SameId(line.PlanLine.CustomerId, run.CustomerId) && line.PriceTierAmount == run.PriceTierAmount)
             .Select(line => new ServiceRunSourceLineOptionDto
@@ -136,32 +134,11 @@ public sealed partial class ServiceRunService
                 UnitLabel = line.Unit.UnitName,
             })
             .OrderBy(line => line.IngredientLabel).ThenBy(line => line.SourceLineId).ToList();
-        var hasBomBlocker = scopedPlanLines.Any(line => !data.Boms.Any(bom =>
-            SameId(bom.DishId, line.DishId) && bom.PriceTierAmount == line.QuantityPlanLine.MenuSchedule.MenuPrice &&
-            bom.EffectiveFrom <= plan.PlanDate && (bom.EffectiveTo == null || bom.EffectiveTo >= plan.PlanDate) &&
-            (bom.CustomerId is null || SameId(bom.CustomerId, line.CustomerId))));
-        var requiredByItem = scopedDemandLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.TotalRequiredQty));
-        var issuedByItem = relevantIssueLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.IssuedQty));
-        var plannedServings = scopedPlanLines.GroupBy(line => Convert.ToBase64String(line.QuantityPlanLineId)).Sum(group => group.Max(line => line.TotalServings));
-        var input = new ServiceRunLifecycleInput(
-            IsPlanSignedOff: scopedPlanLines.Count > 0 && scopedPlanLines.All(line => line.QuantityPlanLine.QuantityPlan.Status == "COMPLETED"),
-            HasGeneratedMaterialDemand: scopedDemandLines.Count > 0,
-            HasBomBlocker: hasBomBlocker,
-            HasOpenSupply: requiredByItem.Any(item => issuedByItem.GetValueOrDefault(item.Key) < item.Value),
-            HasUnreceivedIssue: relevantIssues.Any(issue => issue.ReceivedAt is null),
-            HasOpenSupplemental: openSupplementalCount > 0,
-            HasRecordedActualServings: run.ActualServingsRecordedAt is not null,
-            HasUnresolvedVariance: issues.SelectMany(issue => issue.Inventoryreturns).Any(item => item.ReceivedAt is null) ||
-                                   (hasReceiptDiscrepancy && run.VarianceResolvedAt is null) || pendingDeclarations.Count > 0,
-            HasUnresolvedServingVariance: run.ActualServings is not null && run.ActualServings != plannedServings && run.ServingVarianceResolvedAt is null,
-            HasServiceConfirmation: run.ServiceConfirmedAt is not null,
-            IsServiceConfirmationWaived: run.ServiceConfirmationWaivedAt is not null,
-            IsClosed: run.ClosedAt is not null,
-            HasApprovedVarianceWaiver: hasApprovedVarianceWaiver);
-        var lifecycle = ServiceRunLifecycle.Evaluate(input);
-        var isConfirmationPending = run.ServiceConfirmedAt is null && run.ServiceConfirmationWaivedAt is null;
-        var canSetConfirmationOutcome = run.ClosedAt is null && isConfirmationPending && CanConfirmOrWaive(lifecycle.Blockers);
-        var status = run.StartedAt is not null && lifecycle.Status == ServiceRunStatus.ReadyToProduce ? ServiceRunStatus.InService : lifecycle.Status;
+        var lifecycle = mappedStatus.Lifecycle;
+        var canSetConfirmationOutcome = mappedStatus.CanSetConfirmationOutcome;
+        var status = mappedStatus.Status;
+        var plannedServings = mappedStatus.PlannedServings;
+        var hasBomBlocker = mappedStatus.HasBomBlocker;
         var runAdjustments = data.Adjustments.Where(item => SameId(item.ServiceRunId, run.ServiceRunId)).ToList();
         var latestCorrection = runAdjustments.OrderByDescending(item => item.CreatedAt).FirstOrDefault();
         var projection = new ServiceRunLifecycleProjectionDto
@@ -193,6 +170,59 @@ public sealed partial class ServiceRunService
         return new ServiceRunMappedRow(projection, demandLines);
     }
 
+    private static ServiceRunStatusMap MapLifecycleStatus(ServiceRun run, ProductionPlan plan, ServiceRunProjectionData data)
+    {
+        var planLines = data.PlanLines.Where(line => SameId(line.PlanId, run.PlanId) && line.ShiftName == run.ShiftName).ToList();
+        var demandLines = data.DemandLines.Where(line => SameId(line.Request.PlanId, run.PlanId) && line.PlanLine.ShiftName == run.ShiftName).ToList();
+        var scopedSourceLineIds = data.SourceLines.Where(item => SameId(item.ServiceRunId, run.ServiceRunId)).Select(item => item.MaterialRequestLineId);
+        var scopedDemandLines = SelectScopedDemandLines(demandLines, scopedSourceLineIds);
+        var scopedPlanLineIds = scopedDemandLines.Select(line => line.PlanLineId).ToList();
+        var scopedPlanLines = planLines.Where(line => scopedPlanLineIds.Any(id => SameId(id, line.PlanLineId))).ToList();
+        var planRequestIds = scopedDemandLines.Select(line => line.RequestId).ToList();
+        var issues = data.Issues.Where(issue => issue.IssueDate == plan.PlanDate && issue.MaterialRequestId is not null &&
+            planRequestIds.Any(id => SameId(id, issue.MaterialRequestId))).ToList();
+        var relevantIssueLines = SelectRelevantIssueLines(issues, scopedDemandLines, run.ShiftName);
+        var relevantIssues = issues.Where(issue => issue.Inventoryissuelines.Any(relevantIssueLines.Contains)).ToList();
+        var relevantIssueIds = relevantIssues.Select(issue => issue.IssueId).ToList();
+        var openSupplementalCount = data.SupplementalRows.Count(item => item.Status != "FULFILLED" && item.Status != "REJECTED" &&
+            relevantIssueIds.Any(id => SameId(id, item.IssueId)));
+        var hasReceiptDiscrepancy = data.DiscrepancyIssueIds.Any(issueId => issueId is not null && relevantIssueIds.Any(id => SameId(id, issueId)));
+        var runDeclarations = data.Declarations.Where(item => SameId(item.Declaration.ServiceRunId, run.ServiceRunId)).ToList();
+        var pendingDeclarationCount = runDeclarations.Count(item => !data.Waivers.Any(waiver =>
+            SameId(waiver.ServiceRunVarianceDeclarationId, item.Declaration.ServiceRunVarianceDeclarationId)));
+        var hasApprovedVarianceWaiver = runDeclarations.Any(item => data.Waivers.Any(waiver =>
+            SameId(waiver.ServiceRunVarianceDeclarationId, item.Declaration.ServiceRunVarianceDeclarationId) &&
+            !item.Declaration.DeclaredBy.SequenceEqual(waiver.ApprovedBy)));
+        var hasBomBlocker = scopedPlanLines.Any(line => !data.Boms.Any(bom =>
+            SameId(bom.DishId, line.DishId) && bom.PriceTierAmount == line.QuantityPlanLine.MenuSchedule.MenuPrice &&
+            bom.EffectiveFrom <= plan.PlanDate && (bom.EffectiveTo == null || bom.EffectiveTo >= plan.PlanDate) &&
+            (bom.CustomerId is null || SameId(bom.CustomerId, line.CustomerId))));
+        var requiredByItem = scopedDemandLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.TotalRequiredQty));
+        var issuedByItem = relevantIssueLines.GroupBy(line => ItemKey(line.IngredientId, line.UnitId)).ToDictionary(group => group.Key, group => group.Sum(line => line.IssuedQty));
+        var plannedServings = scopedPlanLines.GroupBy(line => Convert.ToBase64String(line.QuantityPlanLineId)).Sum(group => group.Max(line => line.TotalServings));
+        var input = new ServiceRunLifecycleInput(
+            IsPlanSignedOff: scopedPlanLines.Count > 0 && scopedPlanLines.All(line => line.QuantityPlanLine.QuantityPlan.Status == "COMPLETED"),
+            HasGeneratedMaterialDemand: scopedDemandLines.Count > 0,
+            HasBomBlocker: hasBomBlocker,
+            HasOpenSupply: requiredByItem.Any(item => issuedByItem.GetValueOrDefault(item.Key) < item.Value),
+            HasUnreceivedIssue: relevantIssues.Any(issue => issue.ReceivedAt is null),
+            HasOpenSupplemental: openSupplementalCount > 0,
+            HasRecordedActualServings: run.ActualServingsRecordedAt is not null,
+            HasUnresolvedVariance: issues.SelectMany(issue => issue.Inventoryreturns).Any(item => item.ReceivedAt is null) ||
+                                   (hasReceiptDiscrepancy && run.VarianceResolvedAt is null) || pendingDeclarationCount > 0,
+            HasUnresolvedServingVariance: run.ActualServings is not null && run.ActualServings != plannedServings && run.ServingVarianceResolvedAt is null,
+            HasServiceConfirmation: run.ServiceConfirmedAt is not null,
+            IsServiceConfirmationWaived: run.ServiceConfirmationWaivedAt is not null,
+            IsClosed: run.ClosedAt is not null,
+            HasApprovedVarianceWaiver: hasApprovedVarianceWaiver);
+        var lifecycle = ServiceRunLifecycle.Evaluate(input);
+        var status = run.StartedAt is not null && lifecycle.Status == ServiceRunStatus.ReadyToProduce ? ServiceRunStatus.InService : lifecycle.Status;
+        var isConfirmationPending = run.ServiceConfirmedAt is null && run.ServiceConfirmationWaivedAt is null;
+        return new ServiceRunStatusMap(status, lifecycle, demandLines, scopedDemandLines, issues, relevantIssues,
+            runDeclarations, openSupplementalCount, plannedServings, hasBomBlocker,
+            run.ClosedAt is null && isConfirmationPending && CanConfirmOrWaive(lifecycle.Blockers));
+    }
+
     private static bool SameId(byte[] left, byte[] right) => left.SequenceEqual(right);
 
     private sealed record SupplementalRow(byte[] IssueId, string RequestCode, string Status);
@@ -200,6 +230,18 @@ public sealed partial class ServiceRunService
     private sealed record PurchaseCostRow(byte[] PlanId, string ShiftName, byte[] PurchaseRequestLineId, decimal EstimatedCost);
     private sealed record ReceivedCostRow(byte[] PlanId, string ShiftName, decimal Cost);
     private sealed record ServiceRunMappedRow(ServiceRunLifecycleProjectionDto Lifecycle, List<MaterialRequestLine> DemandLines);
+    private sealed record ServiceRunStatusMap(
+        string Status,
+        ServiceRunLifecycleEvaluation Lifecycle,
+        List<MaterialRequestLine> DemandLines,
+        List<MaterialRequestLine> ScopedDemandLines,
+        List<InventoryIssue> Issues,
+        List<InventoryIssue> RelevantIssues,
+        List<VarianceDeclarationRow> RunDeclarations,
+        int OpenSupplementalCount,
+        int PlannedServings,
+        bool HasBomBlocker,
+        bool CanSetConfirmationOutcome);
     private sealed record ServiceRunProjectionData(
         List<ProductionPlanLine> PlanLines,
         List<MaterialRequestLine> DemandLines,

@@ -62,6 +62,7 @@ function CompactQuantity({ value, unit }: { value: number; unit: string }) {
 export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false }: { canManage: boolean; canDisposition?: boolean }) {
   const [supplementalPage, setSupplementalPage] = useState(1);
   const [returnPage, setReturnPage] = useState(1);
+  const [allocationPage, setAllocationPage] = useState(1);
   const [supplementalSearch, setSupplementalSearch] = useState('');
   const [returnSearch, setReturnSearch] = useState('');
   const deferredSupplementalSearch = useDeferredValue(supplementalSearch.trim());
@@ -110,6 +111,9 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
   const selectedReturn = returnDetailView.phase === 'ready' ? returnDetailView.data : undefined;
   const allocationView = toLabeledQueryView(allocationQuery, 'đối soát nguyên liệu theo dòng chứng từ');
   const allocationRows: ReturnAllocationBalance[] = allocationView.phase === 'ready' ? allocationView.data : [];
+  const allocationPageSize = 20;
+  const visibleAllocationPage = Math.min(allocationPage, Math.max(1, Math.ceil(allocationRows.length / allocationPageSize)));
+  const allocationPageRows = allocationRows.slice((visibleAllocationPage - 1) * allocationPageSize, visibleAllocationPage * allocationPageSize);
 
   const returnQuantity = useMemo(
     () => selectedReturn?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0,
@@ -329,11 +333,12 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
           <TableViewport ariaLabel="Đối chiếu trả kho, hao hụt và dư thừa theo dòng chứng từ" caption="Quyết định điều chuyển giữa khách hàng chỉ xuất hiện khi hệ thống xác nhận đủ điều kiện.">
             <table className="ipc-data-table min-w-[1120px]">
               <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th className="text-right">Đã xuất</th><th className="text-right">Đã trả</th><th className="text-right">Hao hụt</th><th className="text-right">Còn dư</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
-              <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationRows.map((row) => (
+              <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationPageRows.map((row) => (
                 <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td><td className="text-right tabular-nums"><CompactQuantity value={row.issuedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.returnedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.wastedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.excessQuantity} unit={row.unitName ?? ''} /></td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
               ))}</tbody>
             </table>
           </TableViewport>
+          <PaginationBar page={visibleAllocationPage} pageSize={allocationPageSize} totalItems={allocationRows.length} isPending={allocationView.phase === 'ready' && allocationView.isRefreshing} onPageChange={setAllocationPage} />
         </QueryViewBoundary>
       </SectionPanel>
 

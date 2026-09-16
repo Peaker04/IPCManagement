@@ -153,8 +153,8 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                   {priceVarianceRows.length === 0 ? (
                     <EmptyRow colSpan={6} isError={priceVarianceResult.isError} />
                   ) : (
-                    priceVarianceRows.map((item, index) => (
-                      <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                    priceVarianceRows.map((item) => (
+                      <tr key={item.id} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
                           <span className="ipc-report-material">
                             {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="var(--ipc-slate-600)" />}

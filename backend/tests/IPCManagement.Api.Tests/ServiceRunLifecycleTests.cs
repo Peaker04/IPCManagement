@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Pomelo.EntityFrameworkCore.MySql.Infrastructure;
 using System.Data.Common;
+using System.Text.Json;
 
 namespace IPCManagement.Api.Tests;
 
@@ -286,6 +287,245 @@ public sealed class ServiceRunLifecycleTests
     }
 
     [Fact]
+    public async Task StatusFilteredServiceRunPage_Should_PreserveCanonicalMembershipCountOrderAndHydrateOnlyPagePlans()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var counter = new SelectCommandCounter();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(counter)
+            .Options;
+        await using var context = new SqliteServiceRunContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        var actorId = GuidHelper.NewId();
+        var now = DateTime.UtcNow;
+        var blockedRuns = new List<(byte[] RunId, byte[] PlanId, DateTime UpdatedAt)>();
+        var closedRunIds = new List<byte[]>();
+        for (var index = 0; index < 24; index++)
+        {
+            var planId = GuidHelper.NewId();
+            var runId = GuidHelper.NewId();
+            var customerId = GuidHelper.NewId();
+            var updatedAt = now.AddMinutes(index >= 22 ? 23 : index);
+            context.Productionplans.Add(new ProductionPlan
+            {
+                PlanId = planId,
+                PlanCode = $"KHSX-STATUS-{index:00}",
+                PlanDate = new DateOnly(2026, 8, 5),
+                Status = "CREATED",
+                CreatedBy = actorId,
+                CreatedAt = now,
+                UpdatedAt = updatedAt,
+            });
+            var isClosed = index % 3 == 0;
+            var run = new ServiceRun
+            {
+                ServiceRunId = runId,
+                PlanId = planId,
+                CustomerId = customerId,
+                ServiceDate = new DateOnly(2026, 8, 5),
+                ShiftName = "MORNING",
+                PriceTierAmount = 25000m,
+                Status = isClosed ? "OPEN" : "CLOSE",
+                ClosedAt = isClosed ? updatedAt : null,
+                OpenedBy = actorId,
+                CreatedAt = now,
+                UpdatedAt = updatedAt,
+            };
+            if (isClosed)
+            {
+                run.CloseSnapshotJson = JsonSerializer.Serialize(new ServiceRunCloseSnapshotDto
+                {
+                    OperationalRow = new ServiceRunOperationalRowDto
+                    {
+                        Lifecycle = new ServiceRunLifecycleProjectionDto
+                        {
+                            ServiceRunId = GuidHelper.ToGuidString(runId),
+                            Status = ServiceRunStatus.Planned,
+                        },
+                    },
+                });
+                closedRunIds.Add(runId);
+            }
+            else
+            {
+                blockedRuns.Add((runId, planId, updatedAt));
+            }
+            context.Serviceruns.Add(run);
+        }
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = new ServiceRunService(context);
+        var byteOrder = Comparer<byte[]>.Create((left, right) => left.AsSpan().SequenceCompareTo(right));
+        var expectedBlocked = blockedRuns.OrderByDescending(item => item.UpdatedAt).ThenBy(item => item.RunId, byteOrder).ToList();
+
+        counter.Reset();
+        var page = await service.GetPageAsync(new ServiceRunPageQuery
+        {
+            AllCustomers = true,
+            Status = ServiceRunStatus.Blocked,
+            PageNumber = 2,
+            PageSize = 5,
+        });
+
+        page.TotalCount.Should().Be(expectedBlocked.Count);
+        page.Items.Select(item => item.Lifecycle.ServiceRunId).Should().Equal(
+            expectedBlocked.Skip(5).Take(5).Select(item => GuidHelper.ToGuidString(item.RunId)));
+        page.Items.Should().OnlyContain(item => item.Lifecycle.Status == ServiceRunStatus.Blocked);
+        var purchaseHydration = counter.CommandRecords.Single(record =>
+            record.Text.Contains("PurchaseRequestLines", StringComparison.OrdinalIgnoreCase) &&
+            record.Text.Contains("EstimatedUnitPrice", StringComparison.OrdinalIgnoreCase));
+        var pagePlanIds = expectedBlocked.Skip(5).Take(5).Select(item => Convert.ToHexString(item.PlanId)).ToList();
+        var offPagePlanId = Convert.ToHexString(expectedBlocked.Skip(10).First().PlanId);
+        purchaseHydration.ParameterValues.Should().Contain(value => pagePlanIds.Any(id => value.Contains(id, StringComparison.Ordinal)));
+        purchaseHydration.ParameterValues.Should().NotContain(value => value.Contains(offPagePlanId, StringComparison.Ordinal));
+
+        var closedPage = await service.GetPageAsync(new ServiceRunPageQuery
+        {
+            AllCustomers = true,
+            Status = ServiceRunStatus.Closed,
+            PageNumber = 1,
+            PageSize = 20,
+        });
+        closedPage.TotalCount.Should().Be(closedRunIds.Count);
+        closedPage.Items.Should().OnlyContain(item => item.Lifecycle.Status == ServiceRunStatus.Closed && item.IsCloseSnapshot);
+
+        counter.Reset();
+        var beyondLastPage = await service.GetPageAsync(new ServiceRunPageQuery
+        {
+            AllCustomers = true,
+            Status = ServiceRunStatus.Blocked,
+            PageNumber = 99,
+            PageSize = 5,
+        });
+        beyondLastPage.TotalCount.Should().Be(expectedBlocked.Count);
+        beyondLastPage.Items.Should().BeEmpty();
+        counter.CommandRecords.Should().NotContain(record =>
+            record.Text.Contains("PurchaseRequestLines", StringComparison.OrdinalIgnoreCase) &&
+            record.Text.Contains("EstimatedUnitPrice", StringComparison.OrdinalIgnoreCase));
+        counter.CommandRecords.Should().NotContain(record =>
+            record.Text.Contains("InventoryReceiptLines", StringComparison.OrdinalIgnoreCase) &&
+            record.Text.Contains("UnitPrice", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task StatusFilteredServiceRunPage_SelectCount_Should_NotGrowWithCandidatePopulation()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var counter = new SelectCommandCounter();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(counter)
+            .Options;
+        await using var context = new SqliteServiceRunContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        var actorId = GuidHelper.NewId();
+        var now = DateTime.UtcNow;
+        byte[]? oneCustomerId = null;
+        for (var index = 0; index < 20; index++)
+        {
+            var planId = GuidHelper.NewId();
+            var customerId = GuidHelper.NewId();
+            oneCustomerId ??= customerId;
+            context.Productionplans.Add(new ProductionPlan
+            {
+                PlanId = planId, PlanCode = $"KHSX-STATUS-COUNT-{index:00}", PlanDate = new DateOnly(2026, 8, 5),
+                Status = "CREATED", CreatedBy = actorId, CreatedAt = now, UpdatedAt = now.AddMinutes(index),
+            });
+            context.Serviceruns.Add(new ServiceRun
+            {
+                ServiceRunId = GuidHelper.NewId(), PlanId = planId, CustomerId = customerId, ServiceDate = new DateOnly(2026, 8, 5),
+                ShiftName = "MORNING", PriceTierAmount = 25000m, Status = "CLOSE", OpenedBy = actorId,
+                CreatedAt = now, UpdatedAt = now.AddMinutes(index),
+            });
+        }
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = new ServiceRunService(context);
+
+        counter.Reset();
+        var oneCandidate = await service.GetPageAsync(new ServiceRunPageQuery
+        {
+            CustomerId = GuidHelper.ToGuidString(oneCustomerId!), Status = ServiceRunStatus.Blocked, PageNumber = 1, PageSize = 1,
+        });
+        var oneCandidateSelectCount = counter.SelectCount;
+        counter.Reset();
+        var manyCandidates = await service.GetPageAsync(new ServiceRunPageQuery
+        {
+            AllCustomers = true, Status = ServiceRunStatus.Blocked, PageNumber = 1, PageSize = 1,
+        });
+        var manyCandidateSelectCount = counter.SelectCount;
+
+        oneCandidate.TotalCount.Should().Be(1);
+        manyCandidates.TotalCount.Should().Be(20);
+        manyCandidateSelectCount.Should().Be(oneCandidateSelectCount);
+        manyCandidateSelectCount.Should().Be(20);
+    }
+
+    [Fact]
+    public async Task PlanSourceLineQuery_SelectCount_Should_NotGrowFromOneToTwentyRequests()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var counter = new SelectCommandCounter();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(counter)
+            .Options;
+        await using var context = new SqliteServiceRunContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        var planId = GuidHelper.NewId();
+        var actorId = GuidHelper.NewId();
+        for (var index = 0; index < 20; index++)
+        {
+            var requestId = GuidHelper.NewId();
+            context.Materialrequests.Add(new MaterialRequest
+            {
+                RequestId = requestId,
+                RequestCode = $"MR-BATCH-{index:00}",
+                PlanId = planId,
+                RequestDate = new DateOnly(2026, 8, 5),
+                RequestScope = "SERVICE_RUN",
+                Status = "GENERATED",
+                CreatedBy = actorId,
+            });
+            context.Materialrequestlines.Add(new MaterialRequestLine
+            {
+                RequestLineId = GuidHelper.NewId(),
+                RequestId = requestId,
+                PlanLineId = GuidHelper.NewId(),
+                IngredientId = GuidHelper.NewId(),
+                UnitId = GuidHelper.NewId(),
+                TotalRequiredQty = 1,
+            });
+        }
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        counter.Reset();
+        var oneRequestLines = await ServiceRunService.SelectPlanSourceLines(
+                context.Materialrequestlines,
+                context.Materialrequests.Where(request => request.RequestCode == "MR-BATCH-00"),
+                planId)
+            .ToListAsync();
+        var oneRequestSelectCount = counter.SelectCount;
+        counter.Reset();
+        var twentyRequestLines = await ServiceRunService.SelectPlanSourceLines(context.Materialrequestlines, context.Materialrequests, planId)
+            .ToListAsync();
+        var twentyRequestSelectCount = counter.SelectCount;
+
+        oneRequestLines.Should().ContainSingle();
+        twentyRequestLines.Should().HaveCount(20);
+        oneRequestSelectCount.Should().Be(1);
+        twentyRequestSelectCount.Should().Be(oneRequestSelectCount);
+    }
+
+    [Fact]
     public void ScopedSourceLineQuery_Should_TranslateForMySqlWithoutClientSideBase64Keys()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
@@ -478,15 +718,19 @@ public sealed class ServiceRunLifecycleTests
         }
     }
 
+    private sealed record CommandRecord(string Text, List<string> ParameterValues);
+
     private sealed class SelectCommandCounter : DbCommandInterceptor
     {
         public int SelectCount { get; private set; }
         public List<string> Commands { get; } = [];
+        public List<CommandRecord> CommandRecords { get; } = [];
 
         public void Reset()
         {
             SelectCount = 0;
             Commands.Clear();
+            CommandRecords.Clear();
         }
 
         public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
@@ -499,6 +743,11 @@ public sealed class ServiceRunLifecycleTests
             {
                 SelectCount++;
                 Commands.Add(command.CommandText);
+                CommandRecords.Add(new CommandRecord(command.CommandText, command.Parameters.Cast<DbParameter>()
+                    .Select(parameter => parameter.Value is byte[] bytes
+                        ? Convert.ToBase64String(bytes)
+                        : Convert.ToString(parameter.Value) ?? string.Empty)
+                    .ToList()));
             }
             return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
         }

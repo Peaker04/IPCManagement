@@ -28,6 +28,12 @@ public class StockMovementReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>.SuccessResult(
             await _reportService.GetCurrentStockAsync(query)));
 
+    [HttpGet("current-stock/allocation")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCurrentStockAllocationAsync([FromQuery] CurrentStockAllocationQueryDto query)
+        => Ok(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>.SuccessResult(
+            await _reportService.GetCurrentStockAllocationAsync(query)));
+
     [HttpGet("current-stock/page")]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<CurrentStockSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCurrentStockPageAsync([FromQuery] CurrentStockPageQueryDto query)

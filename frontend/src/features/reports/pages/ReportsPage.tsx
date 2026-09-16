@@ -145,8 +145,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={8} /> : ingredientDemandRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={8} /> : ingredientDemandRows.map((row) => (
+                    <tr key={row.id}>
                       <td className="whitespace-nowrap">{row.serviceDate ? formatDateOnly(row.serviceDate) : 'Chưa xác định'}</td>
                       <td>{row.material}</td>
                       <td>{row.source}</td>
@@ -278,8 +278,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row) => (
+                    <tr key={row.id}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
@@ -342,8 +342,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row) => (
+                    <tr key={row.id}>
                       <td className={typography.code}>{row.issueCode}</td>
                       <td>{formatDateOnly(row.issueDate)}</td>
                       <td>{row.shiftName ?? 'Cả ngày'}</td>
@@ -387,8 +387,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row) => (
+                    <tr key={row.id}>
                       <td className={typography.code}>{row.issueCode}</td>
                       <td>{formatDateOnly(row.issueDate)}</td>
                       <td>{row.shiftName ?? 'Cả ngày'}</td>
@@ -483,8 +483,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {auditRows.length === 0 ? <EmptyRow colSpan={7} isError={auditResult.isError} /> : auditRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {auditRows.length === 0 ? <EmptyRow colSpan={7} isError={auditResult.isError} /> : auditRows.map((row) => (
+                    <tr key={row.id}>
                       <td>{formatDateTime(row.timestamp)}</td>
                       <td><span title={row.actor}>{formatAuditActor(row.actor)}</span></td>
                       <td>{row.businessArea}</td>

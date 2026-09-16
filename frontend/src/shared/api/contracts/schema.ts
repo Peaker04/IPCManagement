@@ -4511,6 +4511,7 @@ export interface paths {
                 readonly query?: {
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
+                    readonly PurchaseOrderId?: string;
                     readonly PurchaseOrderOnly?: boolean;
                     readonly SearchKeyword?: string;
                     readonly SortBy?: string;
@@ -9251,6 +9252,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -9312,6 +9314,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -9369,6 +9372,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -9430,6 +9434,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -9439,6 +9444,46 @@ export interface paths {
                     readonly SupplierId?: string;
                     readonly WarehouseId?: string;
                     readonly WarningOnly?: boolean;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["CurrentStockSummaryDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["CurrentStockSummaryDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["CurrentStockSummaryDtoIReadOnlyListApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/workflow-reports/current-stock/allocation": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query: {
+                    readonly MaterialRequestId: string;
+                    readonly WarehouseId: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -9491,6 +9536,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -9555,6 +9601,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -9702,6 +9749,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -9766,6 +9814,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -9827,6 +9876,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -9891,6 +9941,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -9954,6 +10005,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10015,6 +10067,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -10078,6 +10131,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10139,6 +10193,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -10202,6 +10257,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -10303,6 +10359,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10364,6 +10421,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10425,6 +10483,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -10488,6 +10547,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10549,6 +10609,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -10612,6 +10673,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10673,6 +10735,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -10736,6 +10799,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10797,6 +10861,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10858,6 +10923,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -10922,6 +10988,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -10983,6 +11050,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -11047,6 +11115,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -11108,6 +11177,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -11169,6 +11239,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly SearchKeyword?: string;
@@ -11231,6 +11302,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -11294,6 +11366,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -11353,6 +11426,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -11414,6 +11488,7 @@ export interface paths {
                     readonly GroupBy?: string;
                     readonly IngredientId?: string;
                     readonly Limit?: number;
+                    readonly MaterialRequestId?: string;
                     readonly MovementType?: string;
                     readonly PriceTier?: number;
                     readonly ServiceDate?: string;
@@ -15507,6 +15582,7 @@ export interface components {
             /** Format: date */
             readonly receiptDate: string;
             readonly receiptId: string;
+            readonly receiptLineId: string;
             /** Format: double */
             readonly referencePrice: number;
             readonly supplierId: string;
@@ -15618,11 +15694,22 @@ export interface components {
             readonly ingredientId: string;
             readonly ingredientName?: string | null;
         };
+        readonly ReconciliationBatchDishScopeDto: {
+            /** Format: int32 */
+            readonly additionalServings: number;
+            /** Format: int32 */
+            readonly currentServings: number;
+            /** Format: int32 */
+            readonly frozenServings: number;
+            readonly serviceDate: string;
+            readonly shiftName: string;
+        };
         readonly ReconciliationBatchDishSummaryDto: {
             readonly dishCode: string;
             readonly dishId: string;
             readonly dishName: string;
             readonly materials: readonly components["schemas"]["ReconciliationBatchDishMaterialDto"][];
+            readonly scopes?: readonly components["schemas"]["ReconciliationBatchDishScopeDto"][] | null;
         };
         readonly ReconciliationBatchDishSummaryDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["ReconciliationBatchDishSummaryDto"][] | null;
@@ -15647,6 +15734,10 @@ export interface components {
             readonly status: string;
             /** Format: int64 */
             readonly version: number;
+            /** Format: date */
+            readonly weekEndDate?: string | null;
+            /** Format: date */
+            readonly weekStartDate?: string | null;
         };
         readonly ReconciliationBatchDtoApiResponse: {
             readonly data?: components["schemas"]["ReconciliationBatchDto"];

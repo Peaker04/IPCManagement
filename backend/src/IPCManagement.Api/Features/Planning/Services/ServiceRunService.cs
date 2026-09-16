@@ -13,6 +13,8 @@ public sealed partial class ServiceRunService(IpcManagementContext context) : IS
 {
     internal static IQueryable<MaterialRequestLine> SelectRequestSourceLines(IQueryable<MaterialRequestLine> sourceLines, byte[] requestId)
         => ServiceRunSourceSelection.SelectRequestSourceLines(sourceLines, requestId);
+    internal static IQueryable<MaterialRequestLine> SelectPlanSourceLines(IQueryable<MaterialRequestLine> sourceLines, IQueryable<MaterialRequest> requests, byte[] planId)
+        => sourceLines.Where(line => requests.Any(request => request.PlanId.SequenceEqual(planId) && request.RequestId.SequenceEqual(line.RequestId)));
     internal static IReadOnlyList<InventoryIssueLine> SelectRelevantIssueLines(IEnumerable<InventoryIssue> issues, IEnumerable<MaterialRequestLine> demandLines, string shiftName)
         => ServiceRunSourceSelection.SelectRelevantIssueLines(issues, demandLines);
     internal static List<MaterialRequestLine> SelectScopedDemandLines(IEnumerable<MaterialRequestLine> demandLines, IEnumerable<byte[]> sourceLineIds)
@@ -34,16 +36,8 @@ public sealed partial class ServiceRunService(IpcManagementContext context) : IS
             ?? throw new ArgumentException("Phải chọn khách hàng cho Ca phục vụ.");
         if (!plan.Productionplanlines.Any(line => line.ShiftName == shiftName && line.CustomerId.SequenceEqual(requestedCustomerId)))
             throw new ArgumentException("Kế hoạch sản xuất không có ca phục vụ của khách hàng đã chọn.");
-        var requestIds = await context.Materialrequests
-            .Where(request => request.PlanId.SequenceEqual(planId))
-            .Select(request => request.RequestId)
+        var planSourceLines = await SelectPlanSourceLines(context.Materialrequestlines, context.Materialrequests, planId)
             .ToListAsync(cancellationToken);
-        var planSourceLines = new List<MaterialRequestLine>();
-        foreach (var requestId in requestIds)
-        {
-            planSourceLines.AddRange(await SelectRequestSourceLines(context.Materialrequestlines, requestId)
-                .ToListAsync(cancellationToken));
-        }
         var scopedPlanLineIds = plan.Productionplanlines
             .Where(line => line.CustomerId.SequenceEqual(requestedCustomerId) && line.ShiftName == shiftName)
             .Select(line => line.PlanLineId)
@@ -105,7 +99,7 @@ public sealed partial class ServiceRunService(IpcManagementContext context) : IS
             .FirstOrDefaultAsync(item => item.PlanId.SequenceEqual(run.PlanId), cancellationToken);
         if (plan is null) return null;
         run.Plan = plan;
-        var data = await LoadProjectionDataAsync([run], includeOperationalFields: false, cancellationToken);
+        var data = await LoadProjectionDataAsync([run], includeProjectionFields: true, includeOperationalFields: false, cancellationToken);
         return BuildProjection(run, plan, data).Lifecycle;
     }
 
@@ -144,13 +138,30 @@ public sealed partial class ServiceRunService(IpcManagementContext context) : IS
         var hasStatusFilter = !string.IsNullOrWhiteSpace(query.Status);
         var orderedRuns = runs.OrderByDescending(item => item.UpdatedAt).ThenBy(item => item.ServiceRunId);
         var totalCount = hasStatusFilter ? 0 : await orderedRuns.CountAsync(cancellationToken);
-        var candidateRuns = hasStatusFilter
-            ? await orderedRuns.ToListAsync(cancellationToken)
-            : await orderedRuns.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize).ToListAsync(cancellationToken);
-        if (candidateRuns.Count == 0)
+        List<ServiceRun> pageRuns;
+        if (hasStatusFilter)
+        {
+            var candidateRuns = await orderedRuns.ToListAsync(cancellationToken);
+            if (candidateRuns.Count == 0)
+                return PagedResponseDto<ServiceRunOperationalRowDto>.Create([], 0, query.PageNumber, query.PageSize);
+            var statusData = await LoadProjectionDataAsync(candidateRuns, includeProjectionFields: false, includeOperationalFields: false, cancellationToken);
+            var requestedStatus = query.Status!.Trim().ToUpperInvariant();
+            var matchingRunIds = candidateRuns
+                .Where(run => MapLifecycleStatus(run, run.Plan, statusData).Status == requestedStatus)
+                .Select(run => run.ServiceRunId)
+                .ToList();
+            totalCount = matchingRunIds.Count;
+            var pageRunIds = matchingRunIds.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize).ToList();
+            pageRuns = candidateRuns.Where(run => pageRunIds.Any(id => id.SequenceEqual(run.ServiceRunId))).ToList();
+        }
+        else
+        {
+            pageRuns = await orderedRuns.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize).ToListAsync(cancellationToken);
+        }
+        if (pageRuns.Count == 0)
             return PagedResponseDto<ServiceRunOperationalRowDto>.Create([], totalCount, query.PageNumber, query.PageSize);
-        var data = await LoadProjectionDataAsync(candidateRuns, includeOperationalFields: true, cancellationToken);
-        var rows = candidateRuns.Select(run =>
+        var data = await LoadProjectionDataAsync(pageRuns, includeProjectionFields: true, includeOperationalFields: true, cancellationToken);
+        var rows = pageRuns.Select(run =>
         {
             var mapped = BuildProjection(run, run.Plan, data);
             var materialRequestIds = mapped.DemandLines.Select(item => item.RequestId).ToList();
@@ -178,12 +189,6 @@ public sealed partial class ServiceRunService(IpcManagementContext context) : IS
                 ? ToClosedSnapshot(snapshotRow)
                 : operationalRow;
         }).ToList();
-        if (hasStatusFilter)
-        {
-            rows = rows.Where(row => row.Lifecycle.Status == query.Status!.Trim().ToUpperInvariant()).ToList();
-            totalCount = rows.Count;
-            rows = rows.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize).ToList();
-        }
         return PagedResponseDto<ServiceRunOperationalRowDto>.Create(rows, totalCount, query.PageNumber, query.PageSize);
     }
 

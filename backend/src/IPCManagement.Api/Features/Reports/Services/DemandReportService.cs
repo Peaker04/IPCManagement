@@ -20,6 +20,7 @@ public class DemandReportService : IDemandReportService
     public async Task<IReadOnlyList<IngredientDemandReportDto>> GetIngredientDemandAsync(WorkflowReportQueryDto query)
     {
         var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var materialRequestId = GuidHelper.ParseFilterIdOrThrow(query.MaterialRequestId, "yêu cầu nguyên liệu");
         var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
@@ -32,6 +33,11 @@ public class DemandReportService : IDemandReportService
         if (ingredientId is not null)
         {
             lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (materialRequestId is not null)
+        {
+            lines = lines.Where(item => item.RequestId.SequenceEqual(materialRequestId));
         }
 
         if (dateFrom is not null)
@@ -57,7 +63,7 @@ public class DemandReportService : IDemandReportService
         return await lines
             .OrderByDescending(item => item.Request.RequestDate)
             .ThenBy(item => item.Ingredient.IngredientName)
-            .Take(NormalizeLimit(query.Limit))
+            .Take(materialRequestId is null ? NormalizeLimit(query.Limit) : int.MaxValue)
             .Select(item => new IngredientDemandReportDto
             {
                 MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),

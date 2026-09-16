@@ -261,6 +261,24 @@ describe('WarehouseExceptionsWorkbench', () => {
     })));
   });
 
+  it('renders allocation rows in bounded pages instead of mounting the full retained dataset', () => {
+    mocks.allocationQuery.mockReturnValue(readyQuery(Array.from({ length: 25 }, (_, index) => ({
+      ...allocationRow,
+      sourceIssueLineId: `source-line-${index + 1}`,
+      customerName: `Khách hàng ${index + 1}`,
+      customerCode: `KH${index + 1}`,
+    }))));
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByText('Khách hàng 1 (KH1)')).toBeInTheDocument();
+    expect(screen.queryByText('Khách hàng 21 (KH21)')).toBeNull();
+    const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
+    fireEvent.click(within(allocationSection!).getByRole('button', { name: /trang 2 trong 2/i }));
+    expect(screen.getByText('Khách hàng 21 (KH21)')).toBeInTheDocument();
+    expect(screen.queryByText('Khách hàng 1 (KH1)')).toBeNull();
+  });
+
   it('renders exact allocation scope and submits only a backend-authorized disposition', async () => {
     render(<WarehouseExceptionsWorkbench canManage canDisposition />);
 
@@ -285,7 +303,7 @@ describe('WarehouseExceptionsWorkbench', () => {
     render(<WarehouseExceptionsWorkbench canManage />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Không tải được yêu cầu cấp bổ sung');
-    expect(screen.queryByText('Không có yêu cầu bổ sung trong phạm vi kho.')).toBeNull();
+    expect(screen.getByText('Không có yêu cầu bổ sung trong phạm vi kho.').closest('[aria-hidden="true"]')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }));
     expect(mocks.refetchSupplemental).toHaveBeenCalledOnce();
   });
@@ -297,7 +315,7 @@ describe('WarehouseExceptionsWorkbench', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Bạn không có quyền xem yêu cầu cấp bổ sung.');
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
-    expect(screen.queryByText('Không có yêu cầu bổ sung trong phạm vi kho.')).toBeNull();
+    expect(screen.getByText('Không có yêu cầu bổ sung trong phạm vi kho.').closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('keeps supplemental rows visible while refreshing', () => {
@@ -319,7 +337,7 @@ describe('WarehouseExceptionsWorkbench', () => {
     render(<WarehouseExceptionsWorkbench canManage />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Không tải được phiếu trả');
-    expect(screen.queryByText('Không có phiếu trả hoặc hao hụt đang chờ kho.')).toBeNull();
+    expect(screen.getByText('Không có phiếu trả hoặc hao hụt đang chờ kho.').closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('keeps return-detail forbidden distinct from an empty receipt form', () => {

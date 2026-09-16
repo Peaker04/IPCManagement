@@ -86,7 +86,7 @@ export const mapPurchasePlanRow = (item: PurchasePlanReportDto): PurchasePlanRow
 });
 
 export const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVarianceRow => ({
-  id: `${item.receiptId}-${item.ingredientId}-${item.unitId}`,
+  id: item.receiptLineId,
   name: item.ingredientName ?? item.ingredientId,
   unit: item.unitName ?? '',
   receiptCode: item.receiptCode,

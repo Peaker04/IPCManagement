@@ -37,6 +37,7 @@ const expectedEndpointNames = [
   'getAuditChangePage',
   'getAuditChanges',
   'getCurrentStock',
+  'getCurrentStockAllocation',
   'getCurrentStockPage',
   'getDailyProductionPlan',
   'getDataQuality',
@@ -142,6 +143,7 @@ const expectedHookNames = [
   'useGetApprovalRulesQuery',
   'useGetAuditChangePageQuery',
   'useGetAuditChangesQuery',
+  'useGetCurrentStockAllocationQuery',
   'useGetCurrentStockPageQuery',
   'useGetCurrentStockQuery',
   'useGetDailyProductionPlanQuery',
@@ -225,6 +227,6 @@ describe('workflow API public surface', () => {
       .sort();
 
     expect(hooks).toEqual(expectedHookNames);
-    expect(hooks).toHaveLength(100);
+    expect(hooks).toHaveLength(101);
   });
 });

@@ -154,6 +154,7 @@ export {
   useGetPriceVarianceByDishGroupQuery,
   useGetPriceVarianceByDishGroupPageQuery,
   useGetCurrentStockQuery,
+  useGetCurrentStockAllocationQuery,
   useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
   useGetKitchenIssuesPageQuery,

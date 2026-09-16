@@ -6028,6 +6028,13 @@
             }
           },
           {
+            "name": "PurchaseOrderId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "PageNumber",
             "in": "query",
             "schema": {
@@ -12130,6 +12137,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -12319,6 +12333,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -12520,6 +12541,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -12692,6 +12720,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -12903,6 +12938,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -13127,6 +13169,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -13345,6 +13394,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -13540,6 +13596,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -13729,6 +13792,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -13946,6 +14016,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -14135,6 +14212,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -14352,6 +14436,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -14547,6 +14638,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -14736,6 +14834,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -14960,6 +15065,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -15149,6 +15261,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -15366,6 +15485,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -15555,6 +15681,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -15772,6 +15905,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -15961,6 +16101,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -16178,6 +16325,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -16373,6 +16527,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -16562,6 +16723,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -16786,6 +16954,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -16975,6 +17150,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -17176,6 +17358,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -17371,6 +17560,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -17517,6 +17713,53 @@
         }
       }
     },
+    "/api/workflow-reports/current-stock/allocation": {
+      "get": {
+        "tags": [
+          "WorkflowReports"
+        ],
+        "parameters": [
+          {
+            "name": "WarehouseId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/workflow-reports/current-stock/page": {
       "get": {
         "tags": [
@@ -17583,6 +17826,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -17778,6 +18028,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -17986,6 +18243,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -18181,6 +18445,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -18370,6 +18641,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -18600,6 +18878,13 @@
             }
           },
           {
+            "name": "MaterialRequestId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "SupplierId",
             "in": "query",
             "schema": {
@@ -18812,6 +19097,13 @@
           },
           {
             "name": "IngredientId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "MaterialRequestId",
             "in": "query",
             "schema": {
               "type": "string"
@@ -33260,6 +33552,7 @@
           "receiptCode",
           "receiptDate",
           "receiptId",
+          "receiptLineId",
           "referencePrice",
           "supplierId",
           "unitId",
@@ -33268,6 +33561,9 @@
         ],
         "type": "object",
         "properties": {
+          "receiptLineId": {
+            "type": "string"
+          },
           "receiptId": {
             "type": "string"
           },
@@ -33669,6 +33965,37 @@
         },
         "additionalProperties": false
       },
+      "ReconciliationBatchDishScopeDto": {
+        "required": [
+          "additionalServings",
+          "currentServings",
+          "frozenServings",
+          "serviceDate",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "frozenServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "additionalServings": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
       "ReconciliationBatchDishSummaryDto": {
         "required": [
           "dishCode",
@@ -33692,6 +34019,13 @@
             "items": {
               "$ref": "#/components/schemas/ReconciliationBatchDishMaterialDto"
             }
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationBatchDishScopeDto"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -33780,6 +34114,16 @@
           },
           "customerCode": {
             "type": "string",
+            "nullable": true
+          },
+          "weekStartDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "weekEndDate": {
+            "type": "string",
+            "format": "date",
             "nullable": true
           }
         },

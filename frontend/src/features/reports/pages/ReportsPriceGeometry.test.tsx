@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import source from './ReportsPricePanel.tsx?raw';
 
 describe('reports price variance geometry', () => {
+  it('uses backend receipt-line identity without page or index suffixes', () => {
+    expect(source).toContain('key={item.id}');
+    expect(source).not.toContain('pricePage}-${index}');
+  });
+
   it('keeps change, status and proposal action in one flexible semantic row', () => {
     expect(source).toContain('ipc-price-variance-summary');
     expect(source).toContain('▲ +${formatPercent(item.change)}');

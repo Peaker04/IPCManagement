@@ -27,7 +27,8 @@ describe('WarehousePage permission contract', () => {
   });
 
   it('waits for every issue allocation projection before allowing another stock issue', () => {
-    expect(warehousePageSource).toMatch(/useGetKitchenIssuesQuery\(\s*\{ limit: 500 \}/);
+    expect(warehousePageSource).toMatch(/useGetKitchenIssuesQuery\(\s*selectedIssueCandidate \? \{ materialRequestId: selectedIssueCandidate\.materialRequestId \} : skipToken/);
+    expect(warehousePageSource).not.toContain('limit: 500');
     expect(warehousePageSource).toContain('isFetching: isFetchingKitchenIssues');
     expect(warehousePageSource).toContain('const isAllocationSourceError = isSelectedDemandError || isSelectedWarehouseStockError || isKitchenIssueError');
     expect(warehousePageSource).toContain('const isIssueAllocationRefreshing = isFetchingSelectedDemand');

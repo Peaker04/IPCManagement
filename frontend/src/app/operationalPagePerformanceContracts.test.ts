@@ -69,10 +69,17 @@ describe('operational page performance contracts', () => {
     expect(warehouseContractSource).toContain("const isIssueView = activeView === 'demand'");
     expect(warehouseContractSource.match(/skip: !isReceivingView/g)).toHaveLength(1);
     expect(warehouseContractSource).toContain("{ skip: activeView === 'exceptions' }");
-    expect(warehouseContractSource.match(/skip: !isIssueView/g)).toHaveLength(3);
+    expect(warehouseContractSource.match(/skip: !isIssueView/g)).toHaveLength(1);
+    expect(warehouseContractSource).toContain(': skipToken');
     expect(warehouseContractSource).toContain('{isReceivingView && selectedPurchaseOrder && <WarehouseReceiptLifecyclePanel');
     expect(warehouseContractSource).toContain('const roleInboxItems = buildRoleInbox(workflowDocuments, [], []);');
     expect(warehouseContractSource).not.toContain('useWorkflowOverview');
+    expect(warehouseContractSource).toContain('useGetCurrentStockAllocationQuery');
+    expect(warehouseContractSource.match(/materialRequestId: selectedIssueCandidate\.materialRequestId/g)).toHaveLength(4);
+    expect(warehouseContractSource).not.toContain('limit: -1');
+    expect(warehouseContractSource).not.toContain('limit: 500');
+    expect(warehouseContractSource).not.toContain('isViewPending');
+    expect(warehouseContractSource).not.toContain('RefreshStatus');
     expect(warehouseContractSource).toContain('duration-150 motion-reduce:transition-none');
   });
 

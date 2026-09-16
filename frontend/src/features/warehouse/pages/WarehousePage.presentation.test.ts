@@ -19,7 +19,7 @@ describe('WarehousePage presentation', () => {
 
   it('keeps issue date/shift context through creation and preserves retry state on failure', () => {
     expect(warehousePageSource).toContain('shiftName: issueShiftName(selectedIssueCandidate.requestScope)');
-    expect(warehousePageSource).toContain('shiftName: issueShiftName(selectedIssueCandidate.requestScope) ?? undefined');
+    expect(warehousePageSource.match(/materialRequestId: selectedIssueCandidate\.materialRequestId/g)).toHaveLength(4);
     expect(warehousePageSource).toContain('if (!issueCommandId) setIssueCommandId');
     expect(warehousePageSource).not.toContain("selectWarehouseView('exceptions');");
   });

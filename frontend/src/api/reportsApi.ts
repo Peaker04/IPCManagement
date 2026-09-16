@@ -287,6 +287,14 @@ export const reportsApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<CurrentStockSummaryDto[]>) => getData(response).map(mapCurrentStock),
       providesTags: [workflowCacheTags.currentStock],
     }),
+    getCurrentStockAllocation: builder.query<CurrentStockRow[], { warehouseId: string; materialRequestId: string }>({
+      query: (query) => ({
+        url: '/workflow-reports/current-stock/allocation',
+        params: query,
+      }),
+      transformResponse: (response: ApiResponse<CurrentStockSummaryDto[]>) => getData(response).map(mapCurrentStock),
+      providesTags: [workflowCacheTags.currentStock],
+    }),
     getStockLedgerReconciliation: builder.query<StockLedgerReconciliationRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/stock-ledger-reconciliation',
@@ -547,6 +555,7 @@ export const {
   useGetPriceVarianceByDishGroupQuery,
   useGetPriceVarianceByDishGroupPageQuery,
   useGetCurrentStockQuery,
+  useGetCurrentStockAllocationQuery,
   useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
   useGetKitchenIssuesPageQuery,
