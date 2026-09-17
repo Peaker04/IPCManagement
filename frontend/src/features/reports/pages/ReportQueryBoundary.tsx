@@ -33,9 +33,15 @@ export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps
 
   return (
     <div className="relative grid">
-      <div className="relative z-10 col-start-1 row-start-1">
-        {isBlocked ? <BlockingStatus view={view} /> : view.isRefreshing ? <RefreshStatus>Đang cập nhật...</RefreshStatus> : null}
-      </div>
+      {isBlocked ? (
+        <div className="relative z-10 col-start-1 row-start-1">
+          <BlockingStatus view={view} />
+        </div>
+      ) : view.isRefreshing ? (
+        <div className="pointer-events-none relative z-10 col-start-1 row-start-1">
+          <RefreshStatus>Đang cập nhật...</RefreshStatus>
+        </div>
+      ) : null}
       <div
         className={`col-start-1 row-start-1 ${isBlocked ? 'invisible' : ''}`}
         inert={isBlocked || undefined}

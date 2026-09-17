@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { ConfirmDialog, TableViewport } from '@/components/common'
+import { TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -14,10 +14,12 @@ export function WeeklyScheduleEditorDialog({
   workflow,
   servingRows = [],
   layoutRows,
+  surface = 'dialog',
 }: {
   workflow: WeeklyScheduleEditorWorkflow
   servingRows?: QuickServingRow[]
   layoutRows?: ImportedLayoutRow[]
+  surface?: 'dialog' | 'page'
 }) {
   const { scope, state, status, actions, presentation } = workflow
   const reasonRef = useRef<HTMLTextAreaElement>(null)
@@ -194,10 +196,8 @@ export function WeeklyScheduleEditorDialog({
     )
   }
 
-  return (
-    <>
-    <Dialog open={state.isEditorOpen} onOpenChange={(open) => !open && requestClose()}>
-      <DialogContent aria-label="Chỉnh sửa thực đơn tuần" className="ipc-weekly-dialog max-w-6xl !p-0 !overflow-hidden flex flex-col h-[85vh] max-h-[85vh]">
+  const content = (
+      <DialogContent role={surface === 'page' ? 'region' : 'dialog'} aria-modal={surface === 'page' ? false : undefined} aria-label="Chỉnh sửa thực đơn tuần" className={surface === 'page' ? 'max-h-none max-w-none !overflow-visible !p-0 shadow-none' : 'ipc-weekly-dialog max-w-6xl !p-0 !overflow-hidden flex flex-col h-[85vh] max-h-[85vh]'}>
         {/* Header: Clean & minimal */}
         <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-200 bg-white px-6 py-3 shrink-0">
           <div>
@@ -411,17 +411,20 @@ export function WeeklyScheduleEditorDialog({
               {status.isSavingMenu || status.isSavingQuickServings ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
             </Button>
           </div>
+          {confirmClose && (
+            <div role="alert" className="mx-6 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+              <span><strong>Bỏ các thay đổi chưa lưu?</strong> Các món hoặc số suất đang chỉnh sẽ không được lưu.</span>
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => setConfirmClose(false)}>Tiếp tục chỉnh sửa</Button>
+                <Button type="button" variant="destructive" size="sm" onClick={() => { setConfirmClose(false); actions.closeEditor() }}>Bỏ thay đổi</Button>
+              </div>
+            </div>
+          )}
         </DialogFooter>
       </DialogContent>
-    </Dialog>
-    <ConfirmDialog
-      open={confirmClose}
-      title="Bỏ các thay đổi chưa lưu?"
-      description="Các món hoặc số suất đang chỉnh sẽ không được lưu."
-      confirmLabel="Bỏ thay đổi"
-      onConfirm={() => { setConfirmClose(false); actions.closeEditor() }}
-      onOpenChange={setConfirmClose}
-    />
-    </>
   )
+
+  return surface === 'page'
+    ? content
+    : <Dialog open={state.isEditorOpen} onOpenChange={(open) => !open && requestClose()}>{content}</Dialog>
 }

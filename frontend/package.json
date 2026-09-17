@@ -37,6 +37,8 @@
     "perf:load": "node scripts/perf-probe.mjs --load",
     "perf:inp": "node scripts/perf-probe.mjs --inp",
     "perf:overflow": "node scripts/perf-probe.mjs --overflow",
+    "perf:dual-mode": "node scripts/dual-mode-fluidity-audit.mjs",
+    "test:perf-contract": "node --test scripts/perf-probe-metrics.test.mjs",
     "check:route-budgets": "node scripts/check-route-budgets.mjs",
     "check:workflow-api-boundary": "node scripts/check-workflow-api-boundary.mjs",
     "depcruise": "depcruise src --config .dependency-cruiser.cjs --ignore-known .dependency-cruiser-known-violations.json --output-type err",

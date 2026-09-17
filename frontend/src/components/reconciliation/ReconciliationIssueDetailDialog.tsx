@@ -88,7 +88,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
                     ? batch?.lines.find((candidate) => candidate.batchLineId === line.reconciliationBatchLineId)
                     : undefined
                   const ingredientName = line.ingredientName || batchLine?.ingredientName || 'Nguyên liệu chưa đặt tên'
-                  const unitLabel = line.unitName || batchLine?.canonicalUnitName || line.unitId
+                  const unitLabel = line.unitName || batchLine?.canonicalUnitName || 'Chưa có tên đơn vị'
                   return <tr key={line.issueLineId}>
                     <td className="font-medium text-slate-950">{ingredientName}</td>
                     <td className="text-right tabular-nums">{formatQuantityWithUnit(line.issuedQty, '', { maximumFractionDigits: 6 })}</td>

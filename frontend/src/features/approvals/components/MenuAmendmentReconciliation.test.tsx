@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -48,6 +48,19 @@ describe('MenuAmendmentReconciliation', () => {
     expect(screen.getByText(/35.000/)).toBeInTheDocument()
     expect(screen.getByText('1 dòng chứng từ')).toBeInTheDocument()
     expect(document.body).not.toHaveTextContent(/tier|source-line|append-only/i)
+  })
+
+  it('keeps correction submission available and focuses its validation error', async () => {
+    mocks.decisionQuery = { data: { data: { items: [item], page: 1, pageSize: 20, totalCount: 1 } }, isError: false, isLoading: false, refetch: mocks.refetch }
+    render(<MenuAmendmentReconciliation />)
+    fireEvent.change(screen.getByLabelText('Khách hàng'), { target: { value: 'anv' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Xem chi tiết' }))
+    const submit = screen.getByRole('button', { name: 'Ghi nhận điều chỉnh' })
+    expect(submit).toBeEnabled()
+    fireEvent.click(submit)
+    expect(await screen.findByText('Nhập lý do điều chỉnh.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText('Lý do điều chỉnh')).toHaveFocus())
+    expect(mocks.execute).not.toHaveBeenCalled()
   })
 
   it('keeps the server action token internal while showing a human action label', async () => {

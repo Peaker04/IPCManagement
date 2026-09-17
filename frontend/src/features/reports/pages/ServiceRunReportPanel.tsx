@@ -36,10 +36,13 @@ export function CorrectionOverlay({ correctionOverlay, isCloseSnapshot }: { corr
 
 export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const currentAccountId = readStoredAuthSnapshot().user?.id;
   const serviceDate = dateFrom && dateFrom === dateTo ? dateFrom : undefined;
-  const { data, isFetching, isError, refetch } = useGetServiceRunPageQuery({ pageNumber: page, pageSize: 20, serviceDate, shiftName: shiftName || undefined });
+  const { data, isLoading, isFetching, isError, refetch } = useGetServiceRunPageQuery({ pageNumber: page, pageSize, serviceDate, shiftName: shiftName || undefined });
   const rows = data?.items ?? [];
+
+  if (isLoading) return <p role="status" className="sr-only">Đang tải Ca phục vụ...</p>;
 
   return <SectionPanel title="Ca phục vụ và chứng từ nguồn" icon={<ClipboardList size={18} />} description="Trạng thái được tổng hợp từ kế hoạch sản xuất, nhu cầu, phiếu xuất/trả và cấp bổ sung. Bản chốt đóng ca được giữ nguyên; điều chỉnh hậu kiểm luôn hiển thị tách riêng, không mở lại ca.">
     {isError ? <EmptyState variant="error" title="Không tải được Ca phục vụ" description="Dữ liệu đóng ca hiện tại chưa được xác nhận." onRetry={() => void refetch()} isRetrying={isFetching} /> : <>
@@ -66,7 +69,7 @@ export function ServiceRunReportPanel({ dateFrom, dateTo, shiftName }: Props) {
           </tbody>
         </table>}
       </TableViewport>
-      <PaginationBar page={data?.pageNumber ?? page} pageSize={data?.pageSize ?? 20} totalItems={data?.totalCount ?? 0} onPageChange={setPage} />
+      <PaginationBar page={data?.pageNumber ?? page} pageSize={data?.pageSize ?? pageSize} totalItems={data?.totalCount ?? 0} pageSizeOptions={[10, 20, 50]} onPageSizeChange={(nextSize) => { setPageSize(nextSize); setPage(1); }} onPageChange={setPage} />
     </>}
   </SectionPanel>;
 }

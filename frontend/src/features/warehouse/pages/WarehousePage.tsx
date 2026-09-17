@@ -34,12 +34,13 @@ import { getWarehouseMutationErrorMessage } from '../warehouseError';
 import { WarehousePurchaseOrdersPanel } from './WarehousePurchaseOrdersPanel';
 import { WarehouseMovementPanel } from './WarehouseMovementPanel';
 import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
+import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench';
 import { resolveSelectedPurchaseOrder } from './warehousePurchaseOrderSelection';
 const ReconciliationWarehousePage = lazy(() => import('./ReconciliationWarehousePage'))
 const WarehouseIssueDialog = lazy(() => import('./WarehouseIssueDialog'))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
-const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
+
 const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
 
@@ -53,7 +54,7 @@ export function WarehouseIssueCreationBlocker({ reason }: { reason: string }) {
 
 function DefaultWarehousePage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const canReceivePurchases = useHasRole(['dieuphoi']);
+  const canReceivePurchases = useHasRole(['thukho']);
   const canCreateInventoryIssues = useHasRole(['thukho']);
   const canDispositionReturns = useHasRole(['admin']);
   type WarehouseView = 'receiving' | 'movement' | 'demand' | 'exceptions';
@@ -72,6 +73,7 @@ function DefaultWarehousePage() {
     setSearchParams(next, { replace: true });
   };
   const [purchaseOrderPageNumber, setPurchaseOrderPageNumber] = useState(1);
+  const [purchaseOrderPageSize, setPurchaseOrderPageSize] = useState(8);
   const selectedPurchaseOrderId = searchParams.get('purchaseOrderId');
   const selectedReceiptId = searchParams.get('receiptId') ?? undefined;
   const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
@@ -79,9 +81,11 @@ function DefaultWarehousePage() {
   const [selectedReceiptLine, setSelectedReceiptLine] = useState<PurchaseOrderLineDto>();
   const [isBatchReceiptOpen, setIsBatchReceiptOpen] = useState(false);
   const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [currentStockPageSize, setCurrentStockPageSize] = useState(8);
   const [currentStockSearch, setCurrentStockSearch] = useState('');
   const deferredCurrentStockSearch = useDeferredValue(currentStockSearch.trim());
   const [demandPage, setDemandPage] = useState(1);
+  const [demandPageSize, setDemandPageSize] = useState(8);
   const [demandSearch, setDemandSearch] = useState('');
   const deferredDemandSearch = useDeferredValue(demandSearch.trim());
   const [issueCandidatePageNumber, setIssueCandidatePageNumber] = useState(1);
@@ -110,7 +114,7 @@ function DefaultWarehousePage() {
   } = useGetPurchaseOrdersPageQuery(
     {
       pageNumber: purchaseOrderPageNumber,
-      pageSize: 8,
+      pageSize: purchaseOrderPageSize,
     },
     { skip: !isReceivingView },
   );
@@ -129,7 +133,7 @@ function DefaultWarehousePage() {
   } = useGetIngredientDemandAggregatePageQuery(
     {
       pageNumber: demandPage,
-      pageSize: 8,
+      pageSize: demandPageSize,
       dateFrom: demandDateFrom,
       dateTo: demandDateTo,
       searchKeyword: deferredDemandSearch || undefined,
@@ -173,7 +177,7 @@ function DefaultWarehousePage() {
     {
       searchKeyword: deferredCurrentStockSearch || undefined,
       pageNumber: currentStockPage,
-      pageSize: 8,
+      pageSize: currentStockPageSize,
     },
     { skip: activeView !== 'movement' },
   );
@@ -436,8 +440,13 @@ function DefaultWarehousePage() {
         purchaseOrderDetailsHref={purchaseOrderDetailsHref}
         onSelectReceiptLine={setSelectedReceiptLine}
         pageNumber={purchaseOrderPageResponse?.page.pageNumber ?? purchaseOrderPageNumber}
-        pageSize={purchaseOrderPageResponse?.page.pageSize ?? 8}
+        pageSize={purchaseOrderPageResponse?.page.pageSize ?? purchaseOrderPageSize}
         totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
+        onPageSizeChange={(nextSize) => {
+          setPurchaseOrderPageSize(nextSize);
+          setPurchaseOrderPageNumber(1);
+          setSelectedReceiptLine(undefined);
+        }}
         onPageChange={(page) => {
           setPurchaseOrderPageNumber(page);
           setSelectedReceiptLine(undefined);
@@ -465,9 +474,10 @@ function DefaultWarehousePage() {
               currentStockView={currentStockView}
               currentStockRows={currentStockRows}
               currentStockPage={currentStockPageResponse?.pageNumber ?? currentStockPage}
-              currentStockPageSize={currentStockPageResponse?.pageSize ?? 8}
+              currentStockPageSize={currentStockPageResponse?.pageSize ?? currentStockPageSize}
               currentStockTotalItems={currentStockPageResponse?.totalCount ?? 0}
               onCurrentStockPageChange={setCurrentStockPage}
+              onCurrentStockPageSizeChange={(nextSize) => { setCurrentStockPageSize(nextSize); setCurrentStockPage(1); }}
               stockMovementSearch={stockMovementSearch}
               onStockMovementSearchChange={(value) => { setStockMovementSearch(value); setStockMovementCursors([]); }}
               stockMovementView={stockMovementView}
@@ -499,9 +509,10 @@ function DefaultWarehousePage() {
             onRetry={refetchDemandPage}
             lines={demandLines}
             page={demandPageResponse?.pageNumber ?? demandPage}
-            pageSize={demandPageResponse?.pageSize ?? 8}
+            pageSize={demandPageResponse?.pageSize ?? demandPageSize}
             totalItems={demandPageResponse?.totalCount ?? 0}
             onPageChange={setDemandPage}
+            onPageSizeChange={(nextSize) => { setDemandPageSize(nextSize); setDemandPage(1); }}
               inboxItems={warehouseInbox}
             />
           </Suspense>

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -86,7 +87,8 @@ function shortenDocumentNo(docNo: string): string {
 
 export function StockMovementTable({ movements, pageSize = 8, className, cursorPagination }: StockMovementTableProps) {
   const { toast } = useToast();
-  const pagination = useLocalPagination(movements, pageSize);
+  const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
+  const pagination = useLocalPagination(movements, selectedPageSize);
   const visibleMovements = cursorPagination ? movements : pagination.rows;
 
   const handleCopyDocumentNo = async (docNo: string) => {
@@ -189,7 +191,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
           ariaLabel={cursorPagination.ariaLabel ?? 'Phân trang biến động kho'}
         />
       ) : (
-        <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
+        <PaginationBar page={pagination.page} pageSize={selectedPageSize} totalItems={pagination.totalItems} pageSizeOptions={[8, 20, 50]} onPageSizeChange={(nextSize) => { setSelectedPageSize(nextSize); pagination.setPage(1); }} onPageChange={pagination.setPage} />
       )}
     </div>
   );

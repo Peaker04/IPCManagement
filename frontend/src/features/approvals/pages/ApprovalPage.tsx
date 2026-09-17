@@ -47,6 +47,7 @@ export default function ApprovalPage() {
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   const [approvalPagination, setApprovalPagination] = useState<{ scopeKey: string; cursors: string[] }>({ scopeKey: '', cursors: [] });
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
+  const [purchaseRequestPageSize, setPurchaseRequestPageSize] = useState(8);
   const [approvalSearch, setApprovalSearch] = useState('');
   const deferredApprovalSearch = useDeferredValue(approvalSearch.trim());
   const requestedTargetType = searchParams.get('target') ?? searchParams.get('targetType');
@@ -79,7 +80,7 @@ export default function ApprovalPage() {
 
   const purchaseRequestQuery = useGetPurchaseRequestsPageQuery({
     pageNumber: purchaseRequestPage,
-    pageSize: 8,
+    pageSize: purchaseRequestPageSize,
   });
   const purchaseRequestView = toQueryView(purchaseRequestQuery, {
     instruction: 'Đang chờ khởi tạo danh sách đề xuất mua hàng.',
@@ -318,7 +319,9 @@ export default function ApprovalPage() {
               setSelectedPrId={setSelectedPrId}
               purchaseRequestView={purchaseRequestView}
               purchaseRequestPage={purchaseRequestPage}
+              purchaseRequestPageSize={purchaseRequestPageSize}
               setPurchaseRequestPage={setPurchaseRequestPage}
+              setPurchaseRequestPageSize={setPurchaseRequestPageSize}
               historyView={historyView}
               historyItems={historyItems}
             />

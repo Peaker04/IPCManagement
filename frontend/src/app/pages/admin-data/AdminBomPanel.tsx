@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Download, HelpCircle, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
-import { ConfirmDialog, FieldRow, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { ConfirmDialog, FieldRow, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SearchField, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -20,7 +20,7 @@ const EMPTY_BOM_SELECT_VALUE = '__empty_bom_select__';
 
 export function AdminBomPanel({ model }: AdminBomPanelProps) {
   const [isGuidanceOpen, setIsGuidanceOpen] = useState(false);
-  const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
+  const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, ingredientSearch, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomSearch, setClosingBom, setIngredientSearch, setIsBomDialogOpen } = model;
   const isReconciliationMode = 'isReconciliationMode' in model && model.isReconciliationMode;
   const selectedImportContract = customerContracts?.find((contract) => contract.customerId === bomImportCustomerId);
   const selectedDish = dishCatalog.find((dish) => dish.id === bomForm.dishId);
@@ -30,7 +30,6 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
       <KeepAliveTabPanel id="admin-bom-import" active={effectiveActiveView === 'bom-import'} className="flex flex-col gap-4">
         <AdminQueryBoundary queries={[
           { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
-          { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
           ...(!isReconciliationMode ? [{ label: 'hợp đồng khách hàng', view: queryViews.contracts }] : []),
         ]}>
           <SectionPanel
@@ -220,16 +219,14 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   </div>
                   {bomPanelMode === 'current' && (
                     <div className="flex min-w-0 flex-1 gap-2 sm:max-w-xl sm:justify-end">
-                      <label className="relative min-w-0 flex-1 sm:max-w-xs">
-                        <span className="sr-only">Tìm món hoặc nguyên liệu</span>
-                        <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-                        <Input
-                          className="w-full pl-9"
-                          value={bomSearch}
-                          onChange={(event) => setBomSearch(event.target.value)}
-                          placeholder="Tìm món, nguyên liệu..."
-                        />
-                      </label>
+                      <SearchField
+                        label="Tìm món hoặc nguyên liệu"
+                        hideLabel
+                        width="full"
+                        value={bomSearch}
+                        onChange={(event) => setBomSearch(event.target.value)}
+                        placeholder="Tìm món, nguyên liệu..."
+                      />
                       <Button variant="default" size="sm" type="button" onClick={openCreateBomDialog}>
                         <PlusCircle size={15} />
                         Thêm dòng
@@ -243,22 +240,18 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     <TableViewport ariaLabel="BOM hiện tại theo đơn giá">
                       <table className="ipc-data-table ipc-erp-grid-table ipc-bom-current-table w-full table-fixed">
                     <colgroup>
+                      <col className="w-[18%]" />
+                      <col className="w-[24%]" />
                       <col className="w-[16%]" />
-                      <col className="w-[22%]" />
-                      <col className="w-[8%]" />
-                      <col className="w-[12%]" />
+                      <col className="w-[16%]" />
                       <col className="w-[10%]" />
-                      <col className="w-[14%]" />
-                      <col className="w-[8%]" />
-                      <col className="w-[10%]" />
+                      <col className="w-[16%]" />
                     </colgroup>
                     <thead>
                       <tr>
                         <th className="text-left">Món</th>
-                        <th className="text-left">Nguyên liệu</th>
-                        <th className="text-center">ĐVT</th>
-                        <th className="text-right">Định lượng/suất</th>
-                        <th className="text-right">Hao hụt</th>
+                        <th className="text-left">Nguyên liệu / ĐVT</th>
+                        <th className="text-right">Định lượng / hao hụt</th>
                         <th className="text-left">Hiệu lực</th>
                         <th className="text-center">Trạng thái</th>
                         <th className="whitespace-nowrap text-center">Thao tác</th>
@@ -268,10 +261,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                       {(currentBomPagination?.rows ?? []).map(({ dish, line }) => (
                         <tr key={line.bomId}>
                           <td className="align-top text-left"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
-                          <td className="align-top text-left"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
-                          <td className="align-top whitespace-nowrap text-center text-slate-600">{formatUnit(line.unit)}</td>
-                          <td className="align-top text-right font-semibold tabular-nums">{formatQuantity(line.grossQtyPerServing)}</td>
-                          <td className="align-top text-right tabular-nums">{formatPercent(line.wasteRatePercent)}</td>
+                          <td className="align-top text-left"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode} · {formatUnit(line.unit)}</div></td>
+                          <td className="align-top text-right text-xs tabular-nums"><div className="font-semibold text-slate-900">Định lượng: {formatQuantity(line.grossQtyPerServing)}</div><div className="text-slate-600">Hao hụt: {formatPercent(line.wasteRatePercent)}</div></td>
                           <td className="align-top text-left text-slate-700"><div>{formatDateOnly(line.effectiveFrom)}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${formatDateOnly(line.effectiveTo)}` : 'Không giới hạn'}</div></td>
                           <td className="align-top text-center"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">{getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
                           <td className="align-top text-center">
@@ -286,9 +277,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                           </td>
                         </tr>
                       ))}
-                      {!isDishCatalogLoading && (!currentBomRows || currentBomRows.length === 0) && <EmptyRow colSpan={8} />}
+                      {!isDishCatalogLoading && (!currentBomRows || currentBomRows.length === 0) && <EmptyRow colSpan={6} />}
                       {isDishCatalogLoading && (
-                        <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
+                        <tr><td colSpan={6} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
                       )}
                       </tbody>
                       </table>
@@ -309,10 +300,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                       <tr>
                         <th className="w-16 text-center">Dòng</th>
                         <th className="text-left">Món ăn</th>
-                        <th className="text-left">Nguyên liệu</th>
-                        <th className="text-center">ĐVT</th>
-                        <th className="text-right">Định lượng/suất</th>
-                        <th className="text-right">Hao hụt</th>
+                        <th className="text-left">Nguyên liệu / ĐVT</th>
+                        <th className="text-right">Định lượng / hao hụt</th>
                         <th className="text-left">Thao tác</th>
                         <th className="text-center">Trạng thái</th>
                       </tr>
@@ -322,10 +311,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                         <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
                           <td>{row.rowNumber}</td>
                           <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
-                          <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode}</div></td>
-                          <td>{row.unitCode}</td>
-                          <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantity(row.grossQtyPerServing)}</td>
-                          <td className="text-right tabular-nums font-medium text-slate-700">{formatPercent(row.wasteRatePercent)}</td>
+                          <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode} · {row.unitCode}</div></td>
+                          <td className="text-right text-xs tabular-nums"><div className="font-semibold text-slate-900">Định lượng: {formatQuantity(row.grossQtyPerServing)}</div><div className="font-medium text-slate-700">Hao hụt: {formatPercent(row.wasteRatePercent)}</div></td>
                           <td>{row.action === 'INSERT' ? 'Thêm mới' : row.action === 'UPDATE' ? 'Cập nhật' : row.action === 'DELETE' ? 'Xóa' : row.action === 'NONE' ? 'Giữ nguyên' : row.action}</td>
                           <td>{row.status === 'error'
                             ? <StatusBadge variant="danger">{row.errors?.[0] ?? 'Lỗi'}</StatusBadge>
@@ -334,7 +321,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                               : null}</td>
                         </tr>
                       ))}
-                      {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}
+                      {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={6} />}
                     </tbody>
                   </table>
                   </PaginatedTableFrame>
@@ -393,7 +380,16 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </Select>
                 {bomFormErrors.dishId && <span id="manual-bom-dish-error" className="text-xs font-normal text-red-700">{bomFormErrors.dishId}</span>}
               </label>
-              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-ingredient">
+              <div className="grid gap-1 text-sm font-semibold text-slate-700">
+                <label htmlFor="manual-bom-ingredient-search">Tìm nguyên liệu</label>
+                <Input
+                  id="manual-bom-ingredient-search"
+                  type="search"
+                  value={ingredientSearch}
+                  onChange={(event) => setIngredientSearch(event.target.value)}
+                  placeholder="Tên hoặc mã nguyên liệu"
+                />
+                <label className="flex flex-col gap-1" htmlFor="manual-bom-ingredient">
                 Nguyên liệu <span className="text-rose-600" aria-hidden="true">*</span>
                 <Select
                   value={bomForm.ingredientId || null}
@@ -426,7 +422,8 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   </SelectContent>
                 </Select>
                 {bomFormErrors.ingredientId && <span id="manual-bom-ingredient-error" className="text-xs font-normal text-red-700">{bomFormErrors.ingredientId}</span>}
-              </label>
+                </label>
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">

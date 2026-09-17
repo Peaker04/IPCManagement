@@ -318,6 +318,20 @@ describe('ApprovalPage query state boundary', () => {
     expect(screen.queryByText('Bạn không có quyền xem chứng từ workflow.')).not.toBeInTheDocument();
   });
 
+  it('defers the history detail rail while purchase requests load', async () => {
+    mocks.getPurchaseRequests.mockReturnValue({
+      ...uninitializedQuery(),
+      isUninitialized: false,
+      isLoading: true,
+    });
+
+    renderPage();
+    openHistory();
+
+    expect(await screen.findByText('Đang tải danh sách đề xuất mua hàng...')).toHaveAttribute('role', 'status');
+    expect(screen.queryByLabelText('Tiến trình phê duyệt')).toBeNull();
+  });
+
   it('renders purchase-request forbidden on the history tab without a false empty list', async () => {
     mocks.getPurchaseRequests.mockReturnValue(failedQuery(403));
 
@@ -335,6 +349,21 @@ describe('ApprovalPage query state boundary', () => {
 
     expect(await screen.findByText('Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt')).toBeInTheDocument();
     expect(screen.queryByText('Không tìm thấy bước duyệt nào.')).toBeNull();
+  });
+
+  it('moves keyboard focus to selected history detail and restores it on close', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    openHistory();
+
+    const requestButton = await screen.findByRole('button', { name: /PR-001/ });
+    requestButton.focus();
+    await user.keyboard('{Enter}');
+
+    const detail = (await screen.findByRole('heading', { name: 'Lịch sử phê duyệt' })).closest('[tabindex="-1"]');
+    await waitFor(() => expect(detail).toHaveFocus());
+    await user.click(screen.getByRole('button', { name: 'Đóng' }));
+    await waitFor(() => expect(requestButton).toHaveFocus());
   });
 
   it('renders approval-history forbidden without a retry', async () => {

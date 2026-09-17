@@ -70,13 +70,11 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
         <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
           <thead>{presentation.usesDemand ? <tr>
             <th style={{ width: '10%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Ngày</th>
-            <th style={{ width: '15%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
-            <th style={{ width: '21%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguồn</th>
-            <th style={{ width: '10%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Cần</th>
-            <th style={{ width: '10%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Đã xuất</th>
-            <th style={{ width: '10%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Chưa xuất</th>
-            <th style={{ width: '12%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Trạng thái</th>
-            <th style={{ width: '12%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Tiếp theo</th>
+            <th style={{ width: '27%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu / nguồn</th>
+            <th style={{ width: '12%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Cần</th>
+            <th style={{ width: '19%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Bàn giao</th>
+            <th style={{ width: '15%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Trạng thái</th>
+            <th style={{ width: '17%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Tiếp theo</th>
           </tr> : <tr>
             <th style={{ width: '20%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
             <th style={{ width: '8%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">ĐV</th>
@@ -92,11 +90,9 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               const variance = available - line.required
               return <tr key={`${line.id}-${presentation.pageIndex}-${index}`}>
                 <td className="text-center whitespace-nowrap text-slate-600">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>
-                <td className="text-left font-medium text-slate-900">{line.material}</td>
-                <td className="text-left text-slate-700">{line.source}</td>
+                <td className="text-left"><span className="block font-medium text-slate-900">{line.material}</span><span className="block text-xs text-slate-500">{line.source}</span></td>
                 <td className="text-right tabular-nums">{formatQuantityWithUnit(line.required, line.unit)}</td>
-                <td className="text-right tabular-nums">{formatQuantityWithUnit(available, line.unit)}</td>
-                <td className={cn('text-right tabular-nums font-semibold', variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700')}>{line.projection === 'physical-handoff' ? formatQuantityWithUnit(line.remainingToIssueQty ?? 0, line.unit) : formatQuantityVariance(variance, line.unit)}</td>
+                <td className={cn('text-right text-xs tabular-nums', variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700')}><span className="block">Đã xuất: {formatQuantityWithUnit(available, line.unit)}</span><span className="block font-semibold">Chưa xuất: {line.projection === 'physical-handoff' ? formatQuantityWithUnit(line.remainingToIssueQty ?? 0, line.unit) : formatQuantityVariance(variance, line.unit)}</span></td>
                 <td className="text-center whitespace-nowrap px-1">
                   <StatusBadge variant={line.tone} size="sm">
                     {renderStatusIcon(line.tone)}
@@ -127,7 +123,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               <td className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
               <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
             </tr>)}
-            {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 8 : 7}>Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.</td></tr>}
+            {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 6 : 7}>Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.</td></tr>}
           </tbody>
         </table>
       </TableViewport>

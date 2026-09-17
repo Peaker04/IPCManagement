@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -33,6 +33,17 @@ describe('MenuAmendmentInbox actor ownership', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xử lý' }))
     expect(screen.getByRole('button', { name: 'Duyệt' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Thực thi' })).toBeNull()
+  })
+
+  it('keeps reject available and focuses its field-local validation', async () => {
+    render(<MenuAmendmentInbox />)
+    fireEvent.click(screen.getByRole('button', { name: 'Xử lý' }))
+    const reject = screen.getByRole('button', { name: 'Từ chối' })
+    expect(reject).toBeEnabled()
+    fireEvent.click(reject)
+    expect(await screen.findByText('Nhập lý do từ chối.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('textbox', { name: /Lý do khi từ chối/ })).toHaveFocus())
+    expect(mocks.review).not.toHaveBeenCalled()
   })
 
   it('lets Admin execute an approved amendment but does not review it', () => {

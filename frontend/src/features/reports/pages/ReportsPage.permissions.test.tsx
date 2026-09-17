@@ -184,7 +184,10 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
     });
     mocks.ingredientDemandPage.mockReturnValue(readyResult({ ...emptyReadyPage, items: [row], totalCount: 42, remainingToIssueCount: 17 }));
     renderReportsPage(role, '/reports?view=demand');
-    expect(screen.getByRole('columnheader', { name: 'Đã xuất' })).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getByRole('columnheader', { name: 'Bàn giao' })).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === 'Đã xuất: 0 kg')).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === 'Chưa xuất: 200 kg')).toBeInTheDocument();
     expect(screen.getByText('Kho xử lý xuất')).toBeInTheDocument();
     expect(screen.getByText('Khách A · 25k · 2 dòng nhu cầu')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Mở thu mua|Đề xuất mua|Mở checklist/ })).not.toBeInTheDocument();
@@ -386,13 +389,16 @@ describe('ReportsPage query state boundary', () => {
 
     expect(await screen.findByText(/Đối soát.*theo dòng nhu cầu/)).toBeInTheDocument();
     expect(screen.getByText('MR-TEST-001')).toBeInTheDocument();
-    expect(screen.getAllByRole('columnheader', { name: 'Đã xuất' })).toHaveLength(2);
+    expect(screen.getByRole('columnheader', { name: 'Luồng kho / Bếp' })).toBeInTheDocument();
+    expect(screen.getByText(/Nhập: 10 kg/)).toBeInTheDocument();
+    expect(screen.getByText(/Xuất: 10 kg/)).toBeInTheDocument();
+    expect(screen.getByText(/Bếp nhận: 8 kg/)).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /Bổ sung/ })).toBeInTheDocument();
     expect(screen.getByText('3 kg / 2 kg / 2,5 kg')).toBeInTheDocument();
     expect(screen.getByText('Cần quyết định · 3 dòng')).toBeInTheDocument();
   });
 
-  it('bounds long audit values in a fixed-layout seven-column table', () => {
+  it('bounds long audit values in a fixed-layout seven-column table', async () => {
     mocks.auditChangePage.mockReturnValue(readyResult({
       items: [{
         id: 'audit-1',
@@ -410,6 +416,10 @@ describe('ReportsPage query state boundary', () => {
     }));
 
     renderReportsPage('admin', '/reports?view=audit');
+
+    const auditHeading = screen.getByRole('heading', { name: /Nhật ký thay đổi định mức nguyên liệu/ });
+    const serviceRunHeading = await screen.findByRole('heading', { name: 'Ca phục vụ và chứng từ nguồn' });
+    expect(auditHeading.compareDocumentPosition(serviceRunHeading) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     const table = document.querySelector<HTMLTableElement>('table.ipc-reports-audit-table');
     if (!table) throw new Error('Không tìm thấy bảng Audit.')
@@ -620,6 +630,11 @@ describe('ReportsPage composition ownership', () => {
 
     renderReportsPage('thumua', '/reports?view=purchase');
 
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getByRole('columnheader', { name: 'Kỳ / nguyên liệu' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Cân đối' })).toBeInTheDocument();
+    expect(screen.getAllByText((_, element) => element?.textContent === 'Tồn: 2 kg')).toHaveLength(4);
+    expect(screen.getAllByText((_, element) => element?.textContent === 'Đang chờ xử lý: 3 kg')).toHaveLength(4);
     expect(screen.getByText('Thiếu báo giá')).toBeInTheDocument();
     expect(screen.getByText('Chờ nhập kho')).toBeInTheDocument();
     expect(screen.getByText('Còn thiếu')).toBeInTheDocument();

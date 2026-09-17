@@ -22,11 +22,11 @@ export function useReportsDemandPurchaseViewModel({ activeView, initialPage, rep
   const [purchasePlanGroupBy, setPurchasePlanGroupBy] = useState<'day' | 'week'>('day');
   const [demandPageSize, setDemandPageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [demandPage, setDemandPage] = useState(initialPage);
-  const [demandSearch, setDemandSearch] = useState('');
+  const [demandSearch, setDemandSearch] = useState(() => activeView === 'demand' ? searchParams.get('search') ?? '' : '');
   const deferredDemandSearch = useDeferredValue(demandSearch.trim());
   const [purchasePageSize, setPurchasePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [purchasePage, setPurchasePage] = useState(initialPage);
-  const [purchaseSearch, setPurchaseSearchState] = useState('');
+  const [purchaseSearch, setPurchaseSearchState] = useState(() => activeView === 'purchase' ? searchParams.get('search') ?? '' : '');
   const deferredPurchaseSearch = useDeferredValue(purchaseSearch.trim());
   const ingredientDemandResult = useGetIngredientDemandAggregatePageQuery({
     ...reportQuery,

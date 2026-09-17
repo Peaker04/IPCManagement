@@ -71,6 +71,23 @@ describe('shared dialog contract', () => {
     expect(input).toHaveValue('800')
     expect(input).toHaveFocus()
   })
+  it('DIALOG-03 recovers background interaction when a portal is removed unexpectedly', async () => {
+    render(<Fixture />)
+    const opener = screen.getByRole('button', { name: 'Opener' })
+    const appRoot = opener.parentElement
+    const portal = document.querySelector<HTMLElement>('[data-ipc-dialog-portal="true"]')
+
+    expect(appRoot).toHaveAttribute('inert')
+    expect(document.body.style.overflow).toBe('hidden')
+    expect(document.body).toHaveClass('ipc-modal-open')
+    portal?.remove()
+
+    await waitFor(() => expect(appRoot).not.toHaveAttribute('inert'))
+    expect(document.body.style.overflow).not.toBe('hidden')
+    expect(document.body).not.toHaveClass('ipc-modal-open')
+    if (portal) document.body.append(portal)
+  })
+
   it('DIALOG-04 derives the accessible dialog name from DialogTitle', () => {
     render(<Fixture />)
     expect(screen.getByRole('dialog', { name: 'Thao tác có xác nhận' })).toHaveAttribute('aria-labelledby')
@@ -87,6 +104,30 @@ describe('shared dialog contract', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(document.body.style.overflow).not.toBe('hidden')
     unmount()
+  })
+
+  it('DIALOG-06 promotes the surviving dialog when an orphaned top portal is removed', async () => {
+    const user = userEvent.setup()
+    function OrphanedNestedFixture() {
+      const [firstOpen, setFirstOpen] = useState(true)
+      const [secondOpen, setSecondOpen] = useState(true)
+      return <>
+        <Dialog open={firstOpen} onOpenChange={setFirstOpen}><DialogContent><DialogTitle>Dialog còn lại</DialogTitle><button>Tiếp tục</button></DialogContent></Dialog>
+        <Dialog open={secondOpen} onOpenChange={setSecondOpen}><DialogContent><DialogTitle>Dialog bị gỡ</DialogTitle><button>Đóng</button></DialogContent></Dialog>
+      </>
+    }
+
+    render(<OrphanedNestedFixture />)
+    const surviving = await screen.findByRole('dialog', { name: 'Dialog còn lại' })
+    const removed = await screen.findByRole('dialog', { name: 'Dialog bị gỡ' })
+    const removedPortal = removed.closest('[data-ipc-dialog-portal="true"]')
+    removedPortal?.remove()
+
+    await waitFor(() => expect(surviving.closest('[data-ipc-dialog-portal="true"]')).not.toHaveAttribute('inert'))
+    expect(document.body.style.overflow).toBe('hidden')
+    if (removedPortal) document.body.append(removedPortal)
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Dialog còn lại' })).not.toBeInTheDocument())
   })
 
   it('DIALOG-06 handles nested modal stacking with proper depth, inert isolation, and scoped Escape', async () => {

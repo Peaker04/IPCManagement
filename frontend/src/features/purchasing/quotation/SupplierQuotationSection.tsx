@@ -186,7 +186,8 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
             <form onSubmit={workflow.submit} className="border-t border-slate-200 pt-4">
               <div className="mb-2 font-medium text-slate-700">{workflow.editingId ? 'Sửa báo giá' : 'Thêm báo giá mới'}</div>
               <div className="ipc-quotation-form-grid grid grid-cols-1 gap-3 md:grid-cols-5">
-                <div>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Nhà cung cấp
                   <Select value={workflow.form.supplierId || EMPTY_SELECT_VALUE} onValueChange={(value) => workflow.setForm({ ...workflow.form, supplierId: value === EMPTY_SELECT_VALUE ? '' : (value ?? '') })} disabled={Boolean(workflow.editingId)}>
                     <SelectTrigger className="w-full" aria-label="Nhà cung cấp" aria-invalid={Boolean(workflow.validationErrors.supplierId) || undefined} aria-describedby={workflow.validationErrors.supplierId ? 'quotation-supplier-error' : undefined}>
                       <SelectValue>
@@ -200,17 +201,25 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                     </SelectContent>
                   </Select>
                   {workflow.validationErrors.supplierId && <p id="quotation-supplier-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.supplierId.title}</span>{' '}{workflow.validationErrors.supplierId.message}</p>}
-                </div>
-                <div>
-                  <Input type="number" aria-label="Đơn giá" className="text-slate-700 placeholder:text-slate-600" aria-invalid={Boolean(workflow.validationErrors.unitPrice) || undefined} aria-describedby={workflow.validationErrors.unitPrice ? 'quotation-unit-price-error' : undefined} placeholder="Đơn giá" value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Đơn giá (VNĐ / đơn vị)
+                  <Input type="number" aria-label="Đơn giá" className="text-slate-700 placeholder:text-slate-600" aria-invalid={Boolean(workflow.validationErrors.unitPrice) || undefined} aria-describedby={workflow.validationErrors.unitPrice ? 'quotation-unit-price-error' : undefined} value={workflow.form.unitPrice} onChange={(event) => workflow.setForm({ ...workflow.form, unitPrice: event.target.value })} />
                   {workflow.validationErrors.unitPrice && <p id="quotation-unit-price-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.unitPrice.title}</span>{' '}{workflow.validationErrors.unitPrice.message}</p>}
-                </div>
-                <div>
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Hiệu lực từ
                   <Input type="date" aria-label="Hiệu lực từ" className="text-slate-700 placeholder:text-slate-600" aria-invalid={Boolean(workflow.validationErrors.effectiveFrom) || undefined} aria-describedby={workflow.validationErrors.effectiveFrom ? 'quotation-effective-from-error' : undefined} value={workflow.form.effectiveFrom} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveFrom: event.target.value })} />
                   {workflow.validationErrors.effectiveFrom && <p id="quotation-effective-from-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{workflow.validationErrors.effectiveFrom.title}</span>{' '}{workflow.validationErrors.effectiveFrom.message}</p>}
-                </div>
-                <Input type="date" aria-label="Hiệu lực đến" className="text-slate-700 placeholder:text-slate-600" value={workflow.form.effectiveTo} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveTo: event.target.value })} />
-                <Input type="text" aria-label="Ghi chú" className="text-slate-700 placeholder:text-slate-600" placeholder="Ghi chú" value={workflow.form.note} onChange={(event) => workflow.setForm({ ...workflow.form, note: event.target.value })} />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Hiệu lực đến
+                  <Input type="date" aria-label="Hiệu lực đến" className="text-slate-700 placeholder:text-slate-600" value={workflow.form.effectiveTo} onChange={(event) => workflow.setForm({ ...workflow.form, effectiveTo: event.target.value })} />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Ghi chú
+                  <Input type="text" aria-label="Ghi chú" className="text-slate-700 placeholder:text-slate-600" value={workflow.form.note} onChange={(event) => workflow.setForm({ ...workflow.form, note: event.target.value })} />
+                </label>
               </div>
               {workflow.saveError && <div role="alert" className="mt-3"><InlineAlert title="Chưa thể lưu báo giá" variant="danger">{workflow.saveError}</InlineAlert></div>}
               <div className="mt-3 flex gap-2">

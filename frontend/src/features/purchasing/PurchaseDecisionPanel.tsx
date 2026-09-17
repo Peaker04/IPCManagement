@@ -158,6 +158,7 @@ export function PurchaseDecisionPanel({
   const [selectedDemandId, setSelectedDemandId] = useState('');
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const [errorMessage, setErrorMessage] = useState('');
+  const [validationError, setValidationError] = useState<{ field: 'price' | 'date' | 'terms'; message: string }>();
   const [successMessage, setSuccessMessage] = useState('');
   const safeActionRef = useRef<HTMLButtonElement>(null);
 
@@ -208,6 +209,22 @@ export function PurchaseDecisionPanel({
 
   const closeConfirmation = () => {
     if (!isPending) setConfirmation(undefined);
+  };
+
+  const requestSupplierConfirmation = () => {
+    const invalid = Number(proposedUnitPrice) <= 0
+      ? { field: 'price' as const, message: 'Nhập giá đề xuất lớn hơn 0.' }
+      : !proposedDeliveryDate
+        ? { field: 'date' as const, message: 'Chọn ngày giao.' }
+        : !purchasingTerms.trim()
+          ? { field: 'terms' as const, message: 'Nhập điều khoản mua.' }
+          : undefined;
+    setValidationError(invalid);
+    if (invalid) {
+      requestAnimationFrame(() => document.getElementById(`purchase-decision-${invalid.field}`)?.focus());
+      return;
+    }
+    setConfirmation({ type: 'supplier' });
   };
 
   const executeConfirmation = async () => {
@@ -391,11 +408,13 @@ export function PurchaseDecisionPanel({
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Giá đề xuất</span>
-                        <input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        <input id="purchase-decision-price" type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => { setProposedUnitPrice(event.target.value); setValidationError(undefined); }} aria-invalid={validationError?.field === 'price' || undefined} aria-describedby={validationError?.field === 'price' ? 'purchase-decision-price-error' : undefined} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        {validationError?.field === 'price' && <span id="purchase-decision-price-error" role="alert" className="text-xs font-normal text-red-700">{validationError.message}</span>}
                       </label>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Ngày giao</span>
-                        <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} className="min-h-9 w-full bg-white" />
+                        <Input id="purchase-decision-date" type="date" value={proposedDeliveryDate} onChange={(event) => { setProposedDeliveryDate(event.target.value); setValidationError(undefined); }} aria-invalid={validationError?.field === 'date' || undefined} aria-describedby={validationError?.field === 'date' ? 'purchase-decision-date-error' : undefined} className="min-h-9 w-full bg-white" />
+                        {validationError?.field === 'date' && <span id="purchase-decision-date-error" role="alert" className="text-xs font-normal text-red-700">{validationError.message}</span>}
                       </label>
                       <div className="space-y-2 text-body text-slate-900">
                         <span className="font-semibold">Kho vận hành</span>
@@ -405,7 +424,8 @@ export function PurchaseDecisionPanel({
                       </div>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Điều khoản mua</span>
-                        <input value={purchasingTerms} onChange={(event) => setPurchasingTerms(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        <input id="purchase-decision-terms" value={purchasingTerms} onChange={(event) => { setPurchasingTerms(event.target.value); setValidationError(undefined); }} aria-invalid={validationError?.field === 'terms' || undefined} aria-describedby={validationError?.field === 'terms' ? 'purchase-decision-terms-error' : undefined} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        {validationError?.field === 'terms' && <span id="purchase-decision-terms-error" role="alert" className="text-xs font-normal text-red-700">{validationError.message}</span>}
                       </label>
                     </div>
                     {warehouseQuery.isError || warehouseContext.state === 'blocked' ? (
@@ -422,8 +442,8 @@ export function PurchaseDecisionPanel({
                 <Button
                   data-inp-action="confirm-supplier"
                   className="min-h-11 sm:min-h-9"
-                  disabled={!selectedEvidence || Number(proposedUnitPrice) <= 0 || !proposedDeliveryDate || warehouseContext.state !== 'ready' || !purchasingTerms.trim() || warehouseQuery.isError || Boolean(evidence?.blocker)}
-                  onClick={() => setConfirmation({ type: 'supplier' })}
+                  disabled={!selectedEvidence || warehouseContext.state !== 'ready' || warehouseQuery.isError || Boolean(evidence?.blocker)}
+                  onClick={requestSupplierConfirmation}
                 >
                   Xác nhận nhà cung cấp
                 </Button>

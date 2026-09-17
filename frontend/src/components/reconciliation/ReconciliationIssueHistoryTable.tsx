@@ -28,7 +28,7 @@ export function ReconciliationIssueHistoryTable({
     const matched = (line.reconciliationBatchLineId ? batchLineMap.get(line.reconciliationBatchLineId) : undefined)
       ?? (line.ingredientId ? batchLines?.find((item) => item.ingredientId === line.ingredientId) : undefined)
     const ingredientName = line.ingredientName || matched?.ingredientName || 'Nguyên liệu chưa đặt tên'
-    const unitLabel = line.unitName || matched?.canonicalUnitName || line.unitId
+    const unitLabel = line.unitName || matched?.canonicalUnitName || 'Chưa có tên đơn vị'
     return { ingredientName, unitLabel }
   }
 

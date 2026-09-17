@@ -6,6 +6,7 @@ import {
   PaginationBar,
   SearchField,
   SectionPanel,
+  SkeletonTableRow,
   TableViewport,
 } from '@/components/common';
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary';
@@ -61,8 +62,11 @@ function CompactQuantity({ value, unit }: { value: number; unit: string }) {
 
 export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false }: { canManage: boolean; canDisposition?: boolean }) {
   const [supplementalPage, setSupplementalPage] = useState(1);
+  const [supplementalPageSize, setSupplementalPageSize] = useState(8);
   const [returnPage, setReturnPage] = useState(1);
+  const [returnPageSize, setReturnPageSize] = useState(8);
   const [allocationPage, setAllocationPage] = useState(1);
+  const [allocationPageSize, setAllocationPageSize] = useState(20);
   const [supplementalSearch, setSupplementalSearch] = useState('');
   const [returnSearch, setReturnSearch] = useState('');
   const deferredSupplementalSearch = useDeferredValue(supplementalSearch.trim());
@@ -89,8 +93,8 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
   const [allocationQuantity, setAllocationQuantity] = useState('');
   const [allocationReason, setAllocationReason] = useState('');
 
-  const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: supplementalPage, pageSize: 8, searchKeyword: deferredSupplementalSearch || undefined });
-  const returnsQuery = useGetInventoryReturnsQuery({ pageNumber: returnPage, pageSize: 8, isReceived: false, searchKeyword: deferredReturnSearch || undefined });
+  const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: supplementalPage, pageSize: supplementalPageSize, searchKeyword: deferredSupplementalSearch || undefined });
+  const returnsQuery = useGetInventoryReturnsQuery({ pageNumber: returnPage, pageSize: returnPageSize, isReceived: false, searchKeyword: deferredReturnSearch || undefined });
   const returnDetailQuery = useGetInventoryReturnByIdQuery(selectedReturnId, { skip: !selectedReturnId });
   const allocationQuery = useGetReturnAllocationBalancesQuery();
   const [fulfill, fulfillState] = useFulfillSupplementalMaterialRequestMutation();
@@ -111,7 +115,6 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
   const selectedReturn = returnDetailView.phase === 'ready' ? returnDetailView.data : undefined;
   const allocationView = toLabeledQueryView(allocationQuery, 'đối soát nguyên liệu theo dòng chứng từ');
   const allocationRows: ReturnAllocationBalance[] = allocationView.phase === 'ready' ? allocationView.data : [];
-  const allocationPageSize = 20;
   const visibleAllocationPage = Math.min(allocationPage, Math.max(1, Math.ceil(allocationRows.length / allocationPageSize)));
   const allocationPageRows = allocationRows.slice((visibleAllocationPage - 1) * allocationPageSize, visibleAllocationPage * allocationPageSize);
 
@@ -324,7 +327,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
             </tbody>
           </table>
         </TableViewport>
-        <PaginationBar page={supplementalData?.pageNumber ?? supplementalPage} pageSize={supplementalData?.pageSize ?? 8} totalItems={supplementalData?.totalCount ?? 0} isPending={supplementalView.phase === 'ready' && supplementalView.isRefreshing} onPageChange={setSupplementalPage} />
+        <PaginationBar page={supplementalData?.pageNumber ?? supplementalPage} pageSize={supplementalData?.pageSize ?? supplementalPageSize} totalItems={supplementalData?.totalCount ?? 0} pageSizeOptions={[8, 20, 50]} onPageSizeChange={(nextSize) => { setSupplementalPageSize(nextSize); setSupplementalPage(1); }} isPending={supplementalView.phase === 'ready' && supplementalView.isRefreshing} onPageChange={setSupplementalPage} />
         </QueryViewBoundary>
       </SectionPanel>
 
@@ -332,13 +335,17 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         <QueryViewBoundary queries={[{ label: 'đối soát nguyên liệu theo dòng chứng từ', view: allocationView }]} refreshLabel="Đang cập nhật số liệu đối soát">
           <TableViewport ariaLabel="Đối chiếu trả kho, hao hụt và dư thừa theo dòng chứng từ" caption="Quyết định điều chuyển giữa khách hàng chỉ xuất hiện khi hệ thống xác nhận đủ điều kiện.">
             <table className="ipc-data-table min-w-[1120px]">
-              <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th className="text-right">Đã xuất</th><th className="text-right">Đã trả</th><th className="text-right">Hao hụt</th><th className="text-right">Còn dư</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
-              <tbody>{allocationRows.length === 0 ? <tr><td colSpan={8} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationPageRows.map((row) => (
-                <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span></td><td className="text-right tabular-nums"><CompactQuantity value={row.issuedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.returnedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.wastedQuantity} unit={row.unitName ?? ''} /></td><td className="text-right tabular-nums"><CompactQuantity value={row.excessQuantity} unit={row.unitName ?? ''} /></td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
-              ))}</tbody>
+              <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th className="text-right">Xuất / trả</th><th className="text-right">Hao hụt / còn dư</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
+              {allocationView.phase === 'loading' ? (
+                <SkeletonTableRow columns={6} rowCount={20} density="comfortable" />
+              ) : (
+                <tbody>{allocationRows.length === 0 ? <tr><td colSpan={6} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationPageRows.map((row) => (
+                  <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span><span className="text-xs text-slate-500">{row.unitName || 'Chưa có tên đơn vị'}</span></td><td className="text-right text-xs tabular-nums"><span className="block">Xuất: <CompactQuantity value={row.issuedQuantity} unit={row.unitName ?? ''} /></span><span className="block">Trả: <CompactQuantity value={row.returnedQuantity} unit={row.unitName ?? ''} /></span></td><td className="text-right text-xs tabular-nums"><span className="block">Hao hụt: <CompactQuantity value={row.wastedQuantity} unit={row.unitName ?? ''} /></span><span className="block font-semibold">Còn dư: <CompactQuantity value={row.excessQuantity} unit={row.unitName ?? ''} /></span></td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
+                ))}</tbody>
+              )}
             </table>
           </TableViewport>
-          <PaginationBar page={visibleAllocationPage} pageSize={allocationPageSize} totalItems={allocationRows.length} isPending={allocationView.phase === 'ready' && allocationView.isRefreshing} onPageChange={setAllocationPage} />
+          <PaginationBar page={visibleAllocationPage} pageSize={allocationPageSize} totalItems={allocationRows.length} pageSizeOptions={[10, 20, 50]} onPageSizeChange={(nextSize) => { setAllocationPageSize(nextSize); setAllocationPage(1); }} isPending={allocationView.phase === 'ready' && allocationView.isRefreshing} onPageChange={setAllocationPage} />
         </QueryViewBoundary>
       </SectionPanel>
 
@@ -372,7 +379,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
             </tbody>
           </table>
         </TableViewport>
-        <PaginationBar page={returnsData?.pageNumber ?? returnPage} pageSize={returnsData?.pageSize ?? 8} totalItems={returnsData?.totalCount ?? 0} isPending={returnsView.phase === 'ready' && returnsView.isRefreshing} onPageChange={setReturnPage} />
+        <PaginationBar page={returnsData?.pageNumber ?? returnPage} pageSize={returnsData?.pageSize ?? returnPageSize} totalItems={returnsData?.totalCount ?? 0} pageSizeOptions={[8, 20, 50]} onPageSizeChange={(nextSize) => { setReturnPageSize(nextSize); setReturnPage(1); }} isPending={returnsView.phase === 'ready' && returnsView.isRefreshing} onPageChange={setReturnPage} />
         </QueryViewBoundary>
       </SectionPanel>
 

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { CheckCircle2, Play, ShieldCheck } from 'lucide-react'
 import type { ProductionPlan, ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
@@ -103,6 +103,9 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
   const [waiverReason, setWaiverReason] = useState('')
   const [declaredByCurrentActor, setDeclaredByCurrentActor] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [validationError, setValidationError] = useState<{ fieldId: string; message: string } | null>(null)
+  const fieldPrefix = useId()
+  const fieldIds = { varianceTrack: `${fieldPrefix}-variance-track`, varianceReason: `${fieldPrefix}-variance-reason`, sourceLines: `${fieldPrefix}-source-lines`, waiverDeclaration: `${fieldPrefix}-waiver-declaration`, waiverReason: `${fieldPrefix}-waiver-reason`, actual: `${fieldPrefix}-actual`, decisionReason: `${fieldPrefix}-decision-reason`, correctedActual: `${fieldPrefix}-corrected-actual`, adjustmentReason: `${fieldPrefix}-adjustment-reason` } as const
   const user = useSelector((state: { auth: AuthState }) => state.auth.user)
   const { data: persistedRun, isFetching, isError, refetch } = useGetServiceRunByPlanQuery({ planId: plan.planId, shiftName })
   const scopedRun = useGetServiceRunByScopeQuery(scope!, { skip: !scope || !isExactServiceRunScope(scope) })
@@ -135,9 +138,17 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
   }
   const isMutating = openState.isLoading || startState.isLoading || recordState.isLoading || confirmState.isLoading || resolveVarianceState.isLoading || resolveServingVarianceState.isLoading || waiveConfirmationState.isLoading || closeState.isLoading || createAdjustmentState.isLoading || declareVarianceState.isLoading || approveWaiverState.isLoading
   const scopeLabel = getScopeLabel(plan, scope)
+  const requireFields = (fields: Array<{ id: string; valid: boolean; message: string }>) => {
+    const missing = fields.find((field) => !field.valid)
+    if (!missing) { setValidationError(null); return true }
+    setValidationError({ fieldId: missing.id, message: missing.message })
+    requestAnimationFrame(() => document.getElementById(missing.id)?.focus())
+    return false
+  }
+  const fieldError = (id: string) => validationError?.fieldId === id ? <span id={`${id}-error`} className="text-xs font-normal text-red-700">{validationError.message}</span> : null
 
   return <article className="rounded-sm border border-slate-200 bg-white p-3" aria-busy={isMutating || activeQuery.isFetching}>
-    <div className="flex flex-wrap items-start justify-between gap-2"><div><span className="text-sm font-medium text-slate-800">{plan.planCode}</span>{scopeLabel && <p className="mt-0.5 text-xs text-slate-600">{scopeLabel}</p>}</div>{run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? run.status}</StatusBadge>}</div>
+    <div className="flex flex-wrap items-start justify-between gap-2"><div><span className="text-sm font-medium text-slate-800">{plan.planCode}</span>{scopeLabel && <p className="mt-0.5 text-xs text-slate-600">{scopeLabel}</p>}</div>{run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? 'Trạng thái chưa xác định'}</StatusBadge>}</div>
     {activeQuery.isFetching && !run && <p className="mt-2 text-xs text-slate-500" role="status">Đang tải trạng thái Ca phục vụ…</p>}
     {activeQuery.isError && !localRun ? <div className="mt-3 flex flex-wrap items-center gap-2" role="alert"><p className="text-xs text-red-700">Không tải được trạng thái Ca phục vụ. Hãy tải lại trước khi mở ca.</p><Button type="button" size="sm" variant="outline" onClick={() => void activeQuery.refetch()}>Tải lại</Button></div> : !run && !activeQuery.isFetching ? scope?.allCustomers ? <p className="mt-3 text-xs text-slate-600">Tổng hợp không có thao tác. Mở một phạm vi khách hàng cụ thể để tiếp tục.</p> : !plan.sentToKitchenAt ? <p className="mt-3 text-xs text-amber-800" role="status">Kế hoạch chưa gửi Bếp. Hoàn tất bước gửi kế hoạch trước khi mở Ca phục vụ.</p> : scope && isExactServiceRunScope(scope) ? <Button size="sm" className="mt-3" disabled={openState.isLoading} onClick={() => void act(() => open({ planId: plan.planId, shiftName, customerId: scope.customerId, priceTierAmount: scope.priceTierAmount }).unwrap())}>Mở Ca phục vụ</Button> : <p className="mt-3 text-xs text-amber-800" role="status">Chọn khách hàng và tier giá chính xác trước khi mở Ca phục vụ.</p> : run && <>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-4">
@@ -166,43 +177,62 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
         <legend className="px-1 font-medium text-amber-900">Khai báo ngoại lệ</legend>
         <p className="text-amber-900">Chọn nguyên liệu liên quan và nêu lý do. Khai báo không tự đóng ca.</p>
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="grid gap-1 font-medium text-slate-700">Phạm vi ngoại lệ<select aria-label="Phạm vi ngoại lệ" value={varianceTrack} onChange={(event) => setVarianceTrack(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn phạm vi</option>{declarationTracks.map((track) => <option key={track} value={track}>{formatServiceRunVarianceTrack(track)}</option>)}</select></label>
-          <label className="grid gap-1 font-medium text-slate-700">Lý do<Input aria-label="Lý do khai báo ngoại lệ" value={varianceReason} onChange={(event) => setVarianceReason(event.target.value)} placeholder="Bắt buộc" /></label>
+          <label className="grid gap-1 font-medium text-slate-700">Phạm vi ngoại lệ<select id={fieldIds.varianceTrack} aria-label="Phạm vi ngoại lệ" value={varianceTrack} onChange={(event) => { setVarianceTrack(event.target.value); setValidationError(null) }} aria-invalid={validationError?.fieldId === fieldIds.varianceTrack || undefined} aria-describedby={validationError?.fieldId === fieldIds.varianceTrack ? `${fieldIds.varianceTrack}-error` : undefined} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn phạm vi</option>{declarationTracks.map((track) => <option key={track} value={track}>{formatServiceRunVarianceTrack(track)}</option>)}</select>{fieldError(fieldIds.varianceTrack)}</label>
+          <label className="grid gap-1 font-medium text-slate-700">Lý do<Input id={fieldIds.varianceReason} aria-label="Lý do khai báo ngoại lệ" value={varianceReason} onChange={(event) => { setVarianceReason(event.target.value); setValidationError(null) }} placeholder="Bắt buộc" aria-invalid={validationError?.fieldId === fieldIds.varianceReason || undefined} aria-describedby={validationError?.fieldId === fieldIds.varianceReason ? `${fieldIds.varianceReason}-error` : undefined} />{fieldError(fieldIds.varianceReason)}</label>
         </div>
-        <fieldset className="max-h-48 overflow-y-auto rounded border border-amber-200 bg-white p-2" aria-label="Nguyên liệu liên quan">
+        <fieldset id={fieldIds.sourceLines} tabIndex={validationError?.fieldId === fieldIds.sourceLines ? -1 : undefined} aria-invalid={validationError?.fieldId === fieldIds.sourceLines || undefined} aria-describedby={validationError?.fieldId === fieldIds.sourceLines ? `${fieldIds.sourceLines}-error` : undefined} className="max-h-48 overflow-y-auto rounded border border-amber-200 bg-white p-2" aria-label="Nguyên liệu liên quan">
           <legend className="px-1 font-medium text-slate-700">Nguyên liệu liên quan</legend>
-          {sourceLineOptions.length ? <div className="grid gap-1 sm:grid-cols-2">{sourceLineOptions.map((line) => <label key={line.sourceLineId} className="flex min-w-0 items-start gap-2 rounded px-2 py-1.5 hover:bg-amber-50 cursor-pointer"><Checkbox className="mt-0.5" checked={varianceSourceLines.includes(line.sourceLineId)} onCheckedChange={(checked) => setVarianceSourceLines((current) => checked === true ? [...current, line.sourceLineId] : current.filter((id) => id !== line.sourceLineId))} /><span className="min-w-0"><strong className="block truncate text-slate-800">{line.ingredientLabel}</strong><span className="text-slate-600">Cần {line.requiredQuantity} {line.unitLabel}</span></span></label>)}</div> : <p className="text-slate-600">Chưa có dòng nguyên liệu cho ca này.</p>}
+          {sourceLineOptions.length ? <div className="grid gap-1 sm:grid-cols-2">{sourceLineOptions.map((line) => <label key={line.sourceLineId} className="flex min-w-0 items-start gap-2 rounded px-2 py-1.5 hover:bg-amber-50 cursor-pointer"><Checkbox className="mt-0.5" checked={varianceSourceLines.includes(line.sourceLineId)} onCheckedChange={(checked) => { setValidationError(null); setVarianceSourceLines((current) => checked === true ? [...current, line.sourceLineId] : current.filter((id) => id !== line.sourceLineId)) }} /><span className="min-w-0"><strong className="block truncate text-slate-800">{line.ingredientLabel}</strong><span className="text-slate-600">Cần {line.requiredQuantity} {line.unitLabel}</span></span></label>)}</div> : <p className="text-slate-600">Chưa có dòng nguyên liệu cho ca này.</p>}
+          {fieldError(fieldIds.sourceLines)}
         </fieldset>
-        <div><Button size="sm" variant="outline" disabled={!varianceTrack || varianceSourceLines.length === 0 || !varianceReason.trim() || declareVarianceState.isLoading} onClick={() => void act(async () => {
+        <div><Button size="sm" variant="outline" disabled={declareVarianceState.isLoading} onClick={() => {
+          if (!requireFields([
+            { id: fieldIds.varianceTrack, valid: Boolean(varianceTrack), message: 'Chọn phạm vi ngoại lệ.' },
+            { id: fieldIds.sourceLines, valid: varianceSourceLines.length > 0, message: 'Chọn ít nhất một nguyên liệu liên quan.' },
+            { id: fieldIds.varianceReason, valid: Boolean(varianceReason.trim()), message: 'Nhập lý do khai báo ngoại lệ.' },
+          ])) return
+          void act(async () => {
           await declareVariance({ id: run.serviceRunId, body: { commandId: `service-run-variance-${crypto.randomUUID()}`, expectedVersion: run.currentVersion, track: varianceTrack, sourceLineIds: varianceSourceLines, reason: varianceReason } }).unwrap()
           setDeclaredByCurrentActor(true)
           setVarianceSourceLines([])
           setVarianceReason('')
-        })}>Gửi khai báo ngoại lệ</Button></div>
+        })}}>Gửi khai báo ngoại lệ</Button></div>
       </fieldset>}
       {run.status !== 'CLOSED' && isAdmin && !declaredByCurrentActor && <fieldset className="mt-3 grid gap-2 rounded border border-slate-200 bg-slate-50 p-2 text-xs" aria-label="Phê duyệt miễn xác nhận ngoại lệ">
         <legend className="px-1 font-medium text-slate-800">Phê duyệt miễn xác nhận</legend>
         <p className="text-slate-600">Chỉ phê duyệt khai báo của người khác. Hệ thống từ chối tự phê duyệt và tải lại kết quả sau thao tác.</p>
-        <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Khai báo chờ duyệt<select aria-label="Khai báo chờ duyệt" value={waiverDeclarationId} onChange={(event) => setWaiverDeclarationId(event.target.value)} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn khai báo</option>{pendingDeclarations.map((item) => <option key={item.declarationId} value={item.declarationId}>{item.declaredByLabel} · {formatServiceRunVarianceTrack(item.trackLabel)} · {item.reason}</option>)}</select></label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do miễn xác nhận<Input aria-label="Lý do phê duyệt miễn xác nhận" value={waiverReason} onChange={(event) => setWaiverReason(event.target.value)} placeholder="Bắt buộc" /></label></div>
-        <div><Button size="sm" disabled={!waiverDeclarationId.trim() || !waiverReason.trim() || approveWaiverState.isLoading} onClick={() => void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { commandId: `service-run-waiver-${crypto.randomUUID()}`, expectedVersion: run.currentVersion, reason: waiverReason } }).unwrap())}>Phê duyệt miễn xác nhận</Button></div>
+        <div className="grid gap-2 sm:grid-cols-3"><label className="grid gap-1 font-medium text-slate-700">Khai báo chờ duyệt<select id={fieldIds.waiverDeclaration} aria-label="Khai báo chờ duyệt" value={waiverDeclarationId} onChange={(event) => { setWaiverDeclarationId(event.target.value); setValidationError(null) }} aria-invalid={validationError?.fieldId === fieldIds.waiverDeclaration || undefined} aria-describedby={validationError?.fieldId === fieldIds.waiverDeclaration ? `${fieldIds.waiverDeclaration}-error` : undefined} className="h-8 rounded border border-slate-300 bg-white px-2"><option value="">Chọn khai báo</option>{pendingDeclarations.map((item) => <option key={item.declarationId} value={item.declarationId}>{item.declaredByLabel} · {formatServiceRunVarianceTrack(item.trackLabel)} · {item.reason}</option>)}</select>{fieldError(fieldIds.waiverDeclaration)}</label><label className="grid gap-1 font-medium text-slate-700 sm:col-span-2">Lý do miễn xác nhận<Input id={fieldIds.waiverReason} aria-label="Lý do phê duyệt miễn xác nhận" value={waiverReason} onChange={(event) => { setWaiverReason(event.target.value); setValidationError(null) }} placeholder="Bắt buộc" aria-invalid={validationError?.fieldId === fieldIds.waiverReason || undefined} aria-describedby={validationError?.fieldId === fieldIds.waiverReason ? `${fieldIds.waiverReason}-error` : undefined} />{fieldError(fieldIds.waiverReason)}</label></div>
+        <div><Button size="sm" disabled={approveWaiverState.isLoading} onClick={() => {
+          if (!requireFields([
+            { id: fieldIds.waiverDeclaration, valid: Boolean(waiverDeclarationId.trim()), message: 'Chọn khai báo chờ duyệt.' },
+            { id: fieldIds.waiverReason, valid: Boolean(waiverReason.trim()), message: 'Nhập lý do miễn xác nhận.' },
+          ])) return
+          void act(() => approveWaiver({ id: run.serviceRunId, declarationId: waiverDeclarationId, body: { commandId: `service-run-waiver-${crypto.randomUUID()}`, expectedVersion: run.currentVersion, reason: waiverReason } }).unwrap())
+        }}>Phê duyệt miễn xác nhận</Button></div>
       </fieldset>}
       <div className="mt-3 flex flex-wrap items-end gap-2">
         {run.canStartService && <Button size="sm" disabled={startState.isLoading} onClick={() => void act(() => start(run.serviceRunId).unwrap())}>Bắt đầu phục vụ</Button>}
         {run.canRecordActualServings && <>
-          <label className="grid gap-1 text-xs font-medium text-slate-700">Suất thực tế<Input aria-label="Số suất thực tế" type="number" min="0" value={actual} onChange={(event) => setActual(event.target.value)} className="h-8 w-28" /></label>
-          <label className="grid gap-1 text-xs font-medium text-slate-700">Lý do chênh lệch / quyết định<Input aria-label="Lý do chênh lệch hoặc quyết định quản lý" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Bắt buộc nếu lệch" className="h-8 w-56" /></label>
-          <Button size="sm" disabled={recordState.isLoading || actual === ''} onClick={() => void act(() => record({ id: run.serviceRunId, body: { actualServings: Number(actual), reason: reason || null } }).unwrap())}>Ghi nhận</Button>
+          <label className="grid gap-1 text-xs font-medium text-slate-700">Suất thực tế<Input id={fieldIds.actual} aria-label="Số suất thực tế" type="number" min="0" value={actual} onChange={(event) => { setActual(event.target.value); setValidationError(null) }} aria-invalid={validationError?.fieldId === fieldIds.actual || undefined} aria-describedby={validationError?.fieldId === fieldIds.actual ? `${fieldIds.actual}-error` : undefined} className="h-8 w-28" />{fieldError(fieldIds.actual)}</label>
+          <label className="grid gap-1 text-xs font-medium text-slate-700">Lý do chênh lệch / quyết định<Input id={fieldIds.decisionReason} aria-label="Lý do chênh lệch hoặc quyết định quản lý" value={reason} onChange={(event) => { setReason(event.target.value); setValidationError(null) }} placeholder="Bắt buộc nếu lệch" aria-invalid={validationError?.fieldId === fieldIds.decisionReason || undefined} aria-describedby={validationError?.fieldId === fieldIds.decisionReason ? `${fieldIds.decisionReason}-error` : undefined} className="h-8 w-56" />{fieldError(fieldIds.decisionReason)}</label>
+          <Button size="sm" disabled={recordState.isLoading} onClick={() => { if (requireFields([{ id: fieldIds.actual, valid: actual !== '', message: 'Nhập số suất thực tế.' }])) void act(() => record({ id: run.serviceRunId, body: { actualServings: Number(actual), reason: reason || null } }).unwrap()) }}>Ghi nhận</Button>
         </>}
         {run.canConfirmService && <Button size="sm" disabled={confirmState.isLoading} onClick={() => void act(() => confirm(run.serviceRunId).unwrap())}><CheckCircle2 className="size-4" />Xác nhận phục vụ</Button>}
-        {run.canResolveVariance && canManageServiceRun && <Button size="sm" variant="outline" disabled={resolveVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết toán chênh lệch</Button>}
-        {run.canResolveServingVariance && canManageServiceRun && <Button size="sm" variant="outline" disabled={resolveServingVarianceState.isLoading || !reason.trim()} onClick={() => void act(() => resolveServingVariance({ id: run.serviceRunId, body: { reason } }).unwrap())}>Quyết định chênh lệch suất</Button>}
-        {run.canWaiveServiceConfirmation && canManageServiceRun && <Button size="sm" variant="outline" disabled={waiveConfirmationState.isLoading || !reason.trim()} onClick={() => void act(() => waiveConfirmation({ id: run.serviceRunId, body: { reason } }).unwrap())}>Miễn xác nhận</Button>}
+        {run.canResolveVariance && canManageServiceRun && <Button size="sm" variant="outline" disabled={resolveVarianceState.isLoading} onClick={() => { if (requireFields([{ id: fieldIds.decisionReason, valid: Boolean(reason.trim()), message: 'Nhập lý do quyết toán chênh lệch.' }])) void act(() => resolveVariance({ id: run.serviceRunId, body: { reason } }).unwrap()) }}>Quyết toán chênh lệch</Button>}
+        {run.canResolveServingVariance && canManageServiceRun && <Button size="sm" variant="outline" disabled={resolveServingVarianceState.isLoading} onClick={() => { if (requireFields([{ id: fieldIds.decisionReason, valid: Boolean(reason.trim()), message: 'Nhập lý do quyết định chênh lệch suất.' }])) void act(() => resolveServingVariance({ id: run.serviceRunId, body: { reason } }).unwrap()) }}>Quyết định chênh lệch suất</Button>}
+        {run.canWaiveServiceConfirmation && canManageServiceRun && <Button size="sm" variant="outline" disabled={waiveConfirmationState.isLoading} onClick={() => { if (requireFields([{ id: fieldIds.decisionReason, valid: Boolean(reason.trim()), message: 'Nhập lý do miễn xác nhận.' }])) void act(() => waiveConfirmation({ id: run.serviceRunId, body: { reason } }).unwrap()) }}>Miễn xác nhận</Button>}
         {run.canClose && canManageServiceRun && <Button size="sm" disabled={closeState.isLoading} onClick={() => void act(() => close(run.serviceRunId).unwrap())}><ShieldCheck className="size-4" />Đóng ca</Button>}
         {run.canClose && !canManageServiceRun && <p className="text-xs text-slate-600">Chờ Quản lý đóng ca.</p>}
         {run.status === 'CLOSED' && canManageServiceRun && <>
-            <label className="grid gap-1 text-xs font-medium text-slate-700">Suất điều chỉnh<Input aria-label="Số suất điều chỉnh hậu kiểm" type="number" min="0" value={correctedActual} onChange={(event) => setCorrectedActual(event.target.value)} className="h-8 w-28" /></label>
-            <label className="grid gap-1 text-xs font-medium text-slate-700">Lý do hậu kiểm<Input aria-label="Lý do điều chỉnh hậu kiểm" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Bắt buộc" className="h-8 w-56" /></label>
-            <Button size="sm" variant="outline" disabled={createAdjustmentState.isLoading || correctedActual === '' || !reason.trim()} onClick={() => void act(() => createAdjustment({ id: run.serviceRunId, body: { correctedActualServings: Number(correctedActual), reason } }).unwrap())}>Ghi điều chỉnh hậu kiểm</Button>
+            <label className="grid gap-1 text-xs font-medium text-slate-700">Suất điều chỉnh<Input id={fieldIds.correctedActual} aria-label="Số suất điều chỉnh hậu kiểm" type="number" min="0" value={correctedActual} onChange={(event) => { setCorrectedActual(event.target.value); setValidationError(null) }} aria-invalid={validationError?.fieldId === fieldIds.correctedActual || undefined} aria-describedby={validationError?.fieldId === fieldIds.correctedActual ? `${fieldIds.correctedActual}-error` : undefined} className="h-8 w-28" />{fieldError(fieldIds.correctedActual)}</label>
+            <label className="grid gap-1 text-xs font-medium text-slate-700">Lý do hậu kiểm<Input id={fieldIds.adjustmentReason} aria-label="Lý do điều chỉnh hậu kiểm" value={reason} onChange={(event) => { setReason(event.target.value); setValidationError(null) }} placeholder="Bắt buộc" aria-invalid={validationError?.fieldId === fieldIds.adjustmentReason || undefined} aria-describedby={validationError?.fieldId === fieldIds.adjustmentReason ? `${fieldIds.adjustmentReason}-error` : undefined} className="h-8 w-56" />{fieldError(fieldIds.adjustmentReason)}</label>
+            <Button size="sm" variant="outline" disabled={createAdjustmentState.isLoading} onClick={() => {
+              if (!requireFields([
+                { id: fieldIds.correctedActual, valid: correctedActual !== '', message: 'Nhập số suất điều chỉnh.' },
+                { id: fieldIds.adjustmentReason, valid: Boolean(reason.trim()), message: 'Nhập lý do điều chỉnh hậu kiểm.' },
+              ])) return
+              void act(() => createAdjustment({ id: run.serviceRunId, body: { correctedActualServings: Number(correctedActual), reason } }).unwrap())
+            }}>Ghi điều chỉnh hậu kiểm</Button>
           </>}
       </div>
     </>}

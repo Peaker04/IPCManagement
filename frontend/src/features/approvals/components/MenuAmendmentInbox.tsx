@@ -31,11 +31,17 @@ export function MenuAmendmentInbox() {
   const [selected, setSelected] = useState<MenuAmendmentInboxItem>()
   const [reason, setReason] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [reasonError, setReasonError] = useState('')
   const rows = query.data?.data ?? []
   if (!enabled) return null
 
   const reviewSelected = async (approved: boolean) => {
-    if (!selected || (!approved && !reason.trim())) return
+    if (!selected) return
+    if (!approved && !reason.trim()) {
+      setReasonError('Nhập lý do từ chối.')
+      requestAnimationFrame(() => document.getElementById('menu-amendment-reject-reason')?.focus())
+      return
+    }
     try {
       await review({ id: selected.menuAmendmentId, approved, reason: reason.trim() || undefined }).unwrap()
       setFeedback(approved ? 'Đã duyệt yêu cầu thay đổi thực đơn.' : 'Đã từ chối yêu cầu thay đổi thực đơn.')
@@ -73,7 +79,7 @@ export function MenuAmendmentInbox() {
                     <td>{item.reason}</td>
                     <td>{item.requiresReconciliation ? 'Đã có chứng từ · cần đối soát' : `${item.affectedDemandCount} nhu cầu · ${item.affectedPurchaseRequestCount} đề xuất mua`}</td>
                     <td><StatusBadge variant={status.tone} size="sm">{status.label}</StatusBadge></td>
-                    <td className="text-right">{actionable ? <Button size="sm" onClick={() => { setSelected(item); setReason('') }}>Xử lý</Button> : <span className="text-xs text-slate-500">Theo dõi</span>}</td>
+                    <td className="text-right">{actionable ? <Button size="sm" onClick={() => { setSelected(item); setReason(''); setReasonError('') }}>Xử lý</Button> : <span className="text-xs text-slate-500">Theo dõi</span>}</td>
                   </tr>
                 })}</tbody>
               </table>
@@ -81,8 +87,8 @@ export function MenuAmendmentInbox() {
 
       {selected && <Dialog open onOpenChange={(open) => { if (!open) setSelected(undefined) }}>
         <DialogContent><DialogHeader><DialogTitle>{canReview ? 'Duyệt điều chỉnh thực đơn' : 'Thực thi điều chỉnh thực đơn'}</DialogTitle><DialogDescription>{selected.customerName} · tuần {formatDateOnly(selected.weekStartDate)}</DialogDescription></DialogHeader>
-          <div className="space-y-2 text-sm"><p><strong>Lý do:</strong> {selected.reason}</p><p>{selected.requiresReconciliation ? 'Yêu cầu đã có chứng từ vật lý và phải xử lý tại vùng đối soát.' : 'Sau khi thực thi, nhu cầu nguyên liệu của phạm vi còn mutable cần được tính lại.'}</p>{canReview && <label className="block font-medium">Lý do khi từ chối<Input className="mt-1" value={reason} onChange={(event) => setReason(event.target.value)} /></label>}</div>
-          <DialogFooter><Button variant="outline" onClick={() => setSelected(undefined)}>Đóng</Button>{canReview ? <><Button variant="outline" disabled={!reason.trim() || reviewState.isLoading} onClick={() => void reviewSelected(false)}>Từ chối</Button><Button disabled={reviewState.isLoading} onClick={() => void reviewSelected(true)}>Duyệt</Button></> : <Button disabled={executeState.isLoading} onClick={() => void executeSelected()}>Thực thi</Button>}</DialogFooter>
+          <div className="space-y-2 text-sm"><p><strong>Lý do:</strong> {selected.reason}</p><p>{selected.requiresReconciliation ? 'Yêu cầu đã có chứng từ vật lý và phải xử lý tại vùng đối soát.' : 'Sau khi thực thi, nhu cầu nguyên liệu của phạm vi còn mutable cần được tính lại.'}</p>{canReview && <label className="block font-medium" htmlFor="menu-amendment-reject-reason">Lý do khi từ chối<Input id="menu-amendment-reject-reason" className="mt-1" value={reason} onChange={(event) => { setReason(event.target.value); setReasonError('') }} aria-invalid={Boolean(reasonError) || undefined} aria-describedby={reasonError ? 'menu-amendment-reject-reason-error' : undefined} />{reasonError && <span id="menu-amendment-reject-reason-error" className="mt-1 block text-xs text-red-700">{reasonError}</span>}</label>}</div>
+          <DialogFooter><Button variant="outline" onClick={() => setSelected(undefined)}>Đóng</Button>{canReview ? <><Button variant="outline" disabled={reviewState.isLoading} onClick={() => void reviewSelected(false)}>Từ chối</Button><Button disabled={reviewState.isLoading} onClick={() => void reviewSelected(true)}>Duyệt</Button></> : <Button disabled={executeState.isLoading} onClick={() => void executeSelected()}>Thực thi</Button>}</DialogFooter>
         </DialogContent>
       </Dialog>}
     </div>

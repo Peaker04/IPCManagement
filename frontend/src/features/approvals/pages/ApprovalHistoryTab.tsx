@@ -1,5 +1,5 @@
 import { Clock, ArrowRight, ClipboardCheck } from 'lucide-react'
-import type { Dispatch, SetStateAction } from 'react'
+import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
 import { Button } from '@/components/ui/button'
 import { EmptyState, InlineAlert, QueryErrorAlert, RefreshStatus, SectionPanel, StatusBadge } from '@/components/common'
 import { PaginationBar } from '@/components/common/PaginationBar'
@@ -16,7 +16,9 @@ interface ApprovalHistoryTabProps {
   setSelectedPrId: Dispatch<SetStateAction<string | null>>
   purchaseRequestView: QueryView<PageNumberPage<PurchaseRequestResult>>
   purchaseRequestPage: number
+  purchaseRequestPageSize: number
   setPurchaseRequestPage: Dispatch<SetStateAction<number>>
+  setPurchaseRequestPageSize: Dispatch<SetStateAction<number>>
   historyView: QueryView<ApiResponse<ApprovalHistoryItem[]>>
   historyItems: ApprovalHistoryItem[]
 }
@@ -26,21 +28,34 @@ export default function ApprovalHistoryTab({
   setSelectedPrId,
   purchaseRequestView,
   purchaseRequestPage,
+  purchaseRequestPageSize,
   setPurchaseRequestPage,
+  setPurchaseRequestPageSize,
   historyView,
   historyItems,
 }: ApprovalHistoryTabProps) {
   const purchaseRequests = purchaseRequestView.phase === 'ready' ? purchaseRequestView.data.items : []
+  const detailRef = useRef<HTMLDivElement>(null)
+  const selectedRequestButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (selectedPrId) detailRef.current?.focus()
+  }, [selectedPrId])
+
+  const closeDetail = () => {
+    setSelectedPrId(null)
+    requestAnimationFrame(() => selectedRequestButtonRef.current?.focus())
+  }
 
   return (
     <SplitWorkbench
       detailLabel="Tiến trình phê duyệt"
       detailClassName="border-0 bg-transparent p-0"
-      detail={selectedPrId ? (
-        <div className="p-5 space-y-5 relative">
+      detail={purchaseRequestView.phase !== 'ready' ? null : selectedPrId ? (
+        <div ref={detailRef} tabIndex={-1} className="p-5 space-y-5 relative outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
           <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <h3 className="font-semibold text-slate-800">Lịch sử phê duyệt</h3>
-            <Button onClick={() => setSelectedPrId(null)} variant="outline" size="xs">Đóng</Button>
+            <Button onClick={closeDetail} variant="outline" size="xs">Đóng</Button>
           </div>
           {historyView.phase === 'forbidden' ? (
             <InlineAlert title="Không có quyền xem lịch sử phê duyệt" variant="danger"><span role="alert">{historyView.message}</span></InlineAlert>
@@ -85,7 +100,7 @@ export default function ApprovalHistoryTab({
         ) : purchaseRequestView.phase === 'error' ? (
           <QueryErrorAlert title="Không tải được đề xuất mua hàng" isRetrying={purchaseRequestView.isRetrying} onRetry={purchaseRequestView.retry}>Danh sách lịch sử chưa thể hiển thị khi dữ liệu chưa tải xong.</QueryErrorAlert>
         ) : purchaseRequestView.phase === 'loading' ? (
-          <InlineAlert title="Đang tải đề xuất mua hàng" variant="info">Danh sách đề xuất mua đang được đồng bộ.</InlineAlert>
+          <p role="status" className="py-4 text-sm text-slate-600">Đang tải danh sách đề xuất mua hàng...</p>
         ) : purchaseRequestView.phase === 'uninitialized' ? (
           <InlineAlert title="Chưa khởi tạo đề xuất mua hàng" variant="info">{purchaseRequestView.instruction}</InlineAlert>
         ) : (
@@ -94,14 +109,17 @@ export default function ApprovalHistoryTab({
             {purchaseRequests.length === 0 ? <EmptyState title="Không có đề xuất mua hàng nào." className="!min-h-0 !p-4" /> : (
               <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
                 {purchaseRequests.map((request) => (
-                  <Button key={request.purchaseRequestId} onClick={() => setSelectedPrId(request.purchaseRequestId)} variant="outline" textWrap="wrap" className={`w-full items-stretch justify-start p-3 text-left transition-colors flex flex-col gap-1 ${selectedPrId === request.purchaseRequestId ? 'bg-blue-50/50' : ''}`}>
+                  <Button key={request.purchaseRequestId} onClick={(event) => {
+                    selectedRequestButtonRef.current = event.currentTarget
+                    setSelectedPrId(request.purchaseRequestId)
+                  }} variant="outline" textWrap="wrap" className={`w-full items-stretch justify-start p-3 text-left transition-colors flex flex-col gap-1 ${selectedPrId === request.purchaseRequestId ? 'bg-blue-50/50' : ''}`}>
                     <div className="flex items-center justify-between"><span className="font-semibold text-slate-800 text-sm">{request.purchaseRequestCode}</span><StatusBadge status={request.status} domain="purchase" /></div>
                     <div className="flex items-center justify-between text-xs text-slate-700"><span>Ngày mua: {request.purchaseForDate} {request.shiftName ? `(${request.shiftName})` : ''}</span><span>{request.lines?.length ?? 0} dòng</span></div>
                   </Button>
                 ))}
               </div>
             )}
-            <PaginationBar page={purchaseRequestView.data.pageNumber || purchaseRequestPage} pageSize={purchaseRequestView.data.pageSize || 8} totalItems={purchaseRequestView.data.totalCount || 0} onPageChange={setPurchaseRequestPage} />
+            <PaginationBar page={purchaseRequestView.data.pageNumber || purchaseRequestPage} pageSize={purchaseRequestView.data.pageSize || purchaseRequestPageSize} totalItems={purchaseRequestView.data.totalCount || 0} pageSizeOptions={[8, 20, 50]} onPageSizeChange={(nextSize) => { setPurchaseRequestPageSize(nextSize); setPurchaseRequestPage(1); }} onPageChange={setPurchaseRequestPage} />
           </>
         )}
       </SectionPanel>

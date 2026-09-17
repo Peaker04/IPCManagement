@@ -220,7 +220,7 @@ describe('Admin BOM form feedback', () => {
     expect(viewport).toContainElement(table);
     expect(table).toHaveClass('ipc-bom-current-table');
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
-      'Món', 'Nguyên liệu', 'ĐVT', 'Định lượng/suất', 'Hao hụt', 'Hiệu lực', 'Trạng thái', 'Thao tác',
+      'Món', 'Nguyên liệu / ĐVT', 'Định lượng / hao hụt', 'Hiệu lực', 'Trạng thái', 'Thao tác',
     ]);
     expect(screen.getByRole('navigation', { name: 'Phân trang danh sách' })).not.toHaveClass('ipc-table-viewport');
   });

@@ -15,24 +15,36 @@ export function ReconciliationDispositionDrawer({ line, lines, onClose, onRefetc
   const [reason, setReason] = useState(firstLine?.disposition?.reason ?? '')
   const [error, setError] = useState<{ message: string; canRefetch: boolean }>()
   const [reasonTouched, setReasonTouched] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<{ category?: string; reason?: string }>({})
   const [save, { isLoading }] = useSetReconciliationDispositionMutation()
   const { data: categories = [], isLoading: categoriesLoading, isError: categoriesError, refetch: refetchCategories } = useListReconciliationDispositionCategoriesQuery()
-  const invalid = !category || !reason.trim() || categoriesError
   const selectedCategoryLabel = categories.find((option) => option.value === category)?.label
+  const validate = () => {
+    const next = {
+      ...(!category ? { category: 'Chọn nhóm xử lý.' } : {}),
+      ...(!reason.trim() ? { reason: 'Nhập lý do xử lý.' } : {}),
+    }
+    setFieldErrors(next)
+    setReasonTouched(true)
+    if (Object.keys(next).length) requestAnimationFrame(() => document.querySelector<HTMLElement>('[data-disposition-error="true"]')?.focus())
+    return Object.keys(next).length === 0
+  }
   if (!firstLine) return null
 
   return <Dialog open onOpenChange={(open) => { if (!open && !isLoading) onClose() }} onCloseRequest={() => !isLoading}>
-    <DialogContent aria-label="Xử lý chênh lệch đối chiếu" size="md" className="gap-0">
+    <DialogContent aria-label="Xử lý chênh lệch đối chiếu" size="md">
     <DialogHeader><DialogTitle>{isBulk ? `Xử lý hàng loạt (${targetLines.length})` : 'Xử lý chênh lệch'}</DialogTitle>
     <DialogDescription>{isBulk ? `Áp dụng cùng một kết luận cho ${targetLines.length} nguyên liệu đang cần kiểm tra.` : `Ghi nhận kết luận xử lý cho ${firstLine.ingredientName || 'nguyên liệu chưa đặt tên'}.`}</DialogDescription></DialogHeader>
     <div className="mt-4 text-sm"><span id="reconciliation-disposition-category-label">Nhóm xử lý</span>
-      <Select value={category || null} onValueChange={(value) => { setCategory(value ?? ''); setError(undefined) }} disabled={categoriesLoading || categoriesError}>
-        <SelectTrigger className="mt-1 w-full" aria-labelledby="reconciliation-disposition-category-label"><SelectValue placeholder={categoriesLoading ? 'Đang tải nhóm xử lý...' : 'Chọn nhóm xử lý'}>{selectedCategoryLabel}</SelectValue></SelectTrigger>
+      <Select value={category || null} onValueChange={(value) => { setCategory(value ?? ''); setFieldErrors((current) => ({ ...current, category: undefined })); setError(undefined) }} disabled={categoriesLoading || categoriesError}>
+        <SelectTrigger className="mt-1 w-full" aria-labelledby="reconciliation-disposition-category-label" aria-invalid={Boolean(fieldErrors.category) || undefined} aria-describedby={fieldErrors.category ? 'reconciliation-disposition-category-error' : undefined}><SelectValue placeholder={categoriesLoading ? 'Đang tải nhóm xử lý...' : 'Chọn nhóm xử lý'}>{selectedCategoryLabel}</SelectValue></SelectTrigger>
         <SelectContent>{categories.map((option) => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}</SelectContent>
       </Select>
+      {fieldErrors.category && <p id="reconciliation-disposition-category-error" tabIndex={-1} data-disposition-error="true" className="mt-1 text-xs text-red-700">{fieldErrors.category}</p>}
       {categoriesError && <p className="mt-2 text-sm text-red-700" role="alert">Không tải được nhóm xử lý. <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetchCategories()}>Thử lại</Button></p>}
     </div>
-    <label className="mt-3 block text-sm">Lý do<Textarea className="mt-1" value={reason} onBlur={() => setReasonTouched(true)} onChange={(event) => { setReason(event.target.value); setError(undefined) }} aria-invalid={reasonTouched && !reason.trim()} aria-describedby="reconciliation-disposition-help" /></label>
+    <label className="mt-3 block text-sm">Lý do<Textarea className="mt-1" value={reason} onBlur={() => setReasonTouched(true)} onChange={(event) => { setReason(event.target.value); setFieldErrors((current) => ({ ...current, reason: undefined })); setError(undefined) }} aria-invalid={Boolean(fieldErrors.reason) || reasonTouched && !reason.trim()} aria-describedby={fieldErrors.reason ? 'reconciliation-disposition-reason-error reconciliation-disposition-help' : 'reconciliation-disposition-help'} /></label>
+    {fieldErrors.reason && <p id="reconciliation-disposition-reason-error" tabIndex={-1} data-disposition-error="true" className="mt-1 text-xs text-red-700">{fieldErrors.reason}</p>}
     <div className="mt-1.5 flex flex-wrap gap-1.5" aria-label="Gợi ý lý do xử lý">
       {[
         'Chấp nhận hao hụt thực tế',
@@ -40,30 +52,23 @@ export function ReconciliationDispositionDrawer({ line, lines, onClose, onRefetc
         'Đã xuất bù thực tế trong ca',
         'Sai số đo lường lúc xuất kho',
       ].map((preset) => (
-        <span
+        <Button
           key={preset}
-          role="button"
-          tabIndex={0}
-          className="inline-flex cursor-pointer items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs text-slate-700 transition hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          onClick={() => { setReason(preset); setError(undefined); setReasonTouched(true) }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              setReason(preset)
-              setError(undefined)
-              setReasonTouched(true)
-            }
-          }}
+          type="button"
+          variant="outline"
+          size="xs"
+          onClick={() => { setReason(preset); setFieldErrors((current) => ({ ...current, reason: undefined })); setError(undefined); setReasonTouched(true) }}
         >
           {preset}
-        </span>
+        </Button>
       ))}
     </div>
     <p id="reconciliation-disposition-help" className="mt-2 text-xs text-slate-500">Chọn nhóm xử lý và nhập lý do để xác nhận kết luận.</p>
     {error && <div className="mt-3 space-y-2" role="alert"><p className="text-sm text-red-700">{error.message}</p>{error.canRefetch && <Button type="button" variant="outline" size="sm" onClick={() => { onRefetch(); setError(undefined) }}>Tải lại dữ liệu</Button>}</div>}
-    <DialogFooter className="mt-5">
+    <DialogFooter>
       <Button type="button" variant="outline" disabled={isLoading} onClick={onClose}>Hủy</Button>
-      <Button type="button" disabled={isLoading || invalid} onClick={async () => {
+      <Button type="button" disabled={isLoading || categoriesLoading || categoriesError} onClick={async () => {
+        if (!validate()) return
         setError(undefined)
         try {
           for (const targetLine of targetLines) {

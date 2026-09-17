@@ -112,6 +112,13 @@ const uninitializedQuery = () => ({
   refetch: vi.fn(),
 });
 
+const loadingQuery = () => ({
+  ...uninitializedQuery(),
+  isUninitialized: false,
+  isLoading: true,
+  isFetching: true,
+});
+
 const failedQuery = (status: number, refetch: () => unknown = vi.fn()) => ({
   ...uninitializedQuery(),
   isUninitialized: false,
@@ -259,6 +266,29 @@ describe('WarehouseExceptionsWorkbench', () => {
       discrepancyNote: 'Chỉ nhận 1.5 kg còn sử dụng được',
       adjustedLines: [{ returnLineId: 'return-line-1', newQuantity: 1.5 }],
     })));
+  });
+
+  it('composes allocation quantities into six decision columns without losing facts', () => {
+    render(<WarehouseExceptionsWorkbench canManage canDisposition />);
+
+    const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
+    expect(within(allocationSection!).getAllByRole('columnheader')).toHaveLength(6);
+    expect(within(allocationSection!).getByRole('columnheader', { name: 'Xuất / trả' })).toBeInTheDocument();
+    expect(within(allocationSection!).getByRole('columnheader', { name: 'Hao hụt / còn dư' })).toBeInTheDocument();
+    expect(within(allocationSection!).getAllByText((_, element) => element?.textContent === 'Xuất: 5 kg')).not.toHaveLength(0);
+    expect(within(allocationSection!).getAllByText((_, element) => element?.textContent === 'Trả: 1 kg')).not.toHaveLength(0);
+    expect(within(allocationSection!).getAllByText((_, element) => element?.textContent === 'Hao hụt: 1 kg')).not.toHaveLength(0);
+    expect(within(allocationSection!).getByText((_, element) => element?.textContent === 'Còn dư: 3 kg')).toBeInTheDocument();
+  });
+
+  it('reserves the bounded allocation page footprint during initial loading', () => {
+    mocks.allocationQuery.mockReturnValue(loadingQuery());
+
+    const { container } = render(<WarehouseExceptionsWorkbench canManage />);
+
+    const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
+    expect(within(allocationSection!).getByText('Đang tải đối soát nguyên liệu theo dòng chứng từ')).toBeInTheDocument();
+    expect(container.querySelectorAll('.ipc-skeleton-tbody .ipc-skeleton-row')).toHaveLength(20);
   });
 
   it('renders allocation rows in bounded pages instead of mounting the full retained dataset', () => {

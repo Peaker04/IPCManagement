@@ -16,6 +16,8 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
   const customerError = state.setupErrors.customer
   const weekError = state.setupErrors.weekStartDate
   const fileError = state.setupErrors.file
+  const quickCustomerCodeError = state.setupErrors.quickCustomerCode
+  const quickCustomerNameError = state.setupErrors.quickCustomerName
   const selectedCustomerLabel = selectedCustomer
     ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}`
     : 'Chọn khách hàng'
@@ -135,13 +137,15 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
       {state.isQuickCustomerFormOpen && (
         <div className="grid grid-cols-1 gap-4 rounded-md border border-blue-200 bg-blue-50/60 p-4 md:grid-cols-[180px_minmax(220px,1fr)_auto]">
           <FieldRow label="Mã khách hàng" hint="VD: ANV, DAV" htmlFor="weekly-menu-import-quick-customer-code" required>
-            <Input id="weekly-menu-import-quick-customer-code" aria-label="Mã khách hàng" type="text" required value={state.quickCustomerCode} onChange={(event) => actions.setQuickCustomerCode(event.target.value.toUpperCase())} placeholder="ANV" disabled={status.isCreatingCustomer} />
+            <Input id="weekly-menu-import-quick-customer-code" aria-label="Mã khách hàng" type="text" required value={state.quickCustomerCode} onChange={(event) => actions.setQuickCustomerCode(event.target.value.toUpperCase())} placeholder="ANV" disabled={status.isCreatingCustomer} aria-invalid={Boolean(quickCustomerCodeError) || undefined} aria-describedby={quickCustomerCodeError ? 'weekly-menu-import-quick-customer-code-error' : undefined} />
+            {quickCustomerCodeError && <span id="weekly-menu-import-quick-customer-code-error" role="alert" className="text-xs font-normal text-red-700">{quickCustomerCodeError.message}</span>}
           </FieldRow>
           <FieldRow label="Tên khách hàng" hint="Tên đơn vị sẽ hiển thị trong danh sách" htmlFor="weekly-menu-import-quick-customer-name" required>
-            <Input id="weekly-menu-import-quick-customer-name" aria-label="Tên khách hàng" type="text" required value={state.quickCustomerName} onChange={(event) => actions.setQuickCustomerName(event.target.value)} placeholder="Tên khách hàng" disabled={status.isCreatingCustomer} />
+            <Input id="weekly-menu-import-quick-customer-name" aria-label="Tên khách hàng" type="text" required value={state.quickCustomerName} onChange={(event) => actions.setQuickCustomerName(event.target.value)} placeholder="Tên khách hàng" disabled={status.isCreatingCustomer} aria-invalid={Boolean(quickCustomerNameError) || undefined} aria-describedby={quickCustomerNameError ? 'weekly-menu-import-quick-customer-name-error' : undefined} />
+            {quickCustomerNameError && <span id="weekly-menu-import-quick-customer-name-error" role="alert" className="text-xs font-normal text-red-700">{quickCustomerNameError.message}</span>}
           </FieldRow>
           <div className="flex items-end">
-            <Button type="button" size="sm" onClick={() => void actions.createQuickCustomer()} className="w-full" disabled={status.isCreatingCustomer || !state.quickCustomerCode.trim() || !state.quickCustomerName.trim()}>
+            <Button type="button" size="sm" onClick={() => void actions.createQuickCustomer()} className="w-full" disabled={status.isCreatingCustomer}>
               {status.isCreatingCustomer ? 'Đang tạo...' : 'Tạo và chọn'}
             </Button>
           </div>

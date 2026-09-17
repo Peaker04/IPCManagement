@@ -28,6 +28,15 @@ describe('Weekly Menu Coordination query ownership contract', () => {
     expect(weeklyMenuSource).toContain("systemOperation?.capabilities.pageTabs['weekly-menu']")
   })
 
+  it('makes page-scale import and editor workflow state URL-owned', () => {
+    expect(weeklyMenuSource).toContain("searchParams.get('workflow')")
+    expect(weeklyMenuSource).toContain("next.set('workflow', workflow)")
+    expect(weeklyMenuSource).toContain("next.delete('workflow')")
+    expect(weeklyMenuSource).toContain("requestedWorkflow === 'import'")
+    expect(weeklyMenuSource).toContain('surface="page"')
+    expect(weeklyMenuSource).toContain("requestedWorkflow === 'editor'")
+  })
+
   it('uses common presentation boundaries without adding a feature-to-feature import', () => {
     expect(weeklyMenuSource).toContain('<QueryViewBoundary preserveFallback')
     expect(importHistorySource).toContain('<QueryViewBoundary')

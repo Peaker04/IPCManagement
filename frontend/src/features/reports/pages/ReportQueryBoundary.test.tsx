@@ -40,10 +40,12 @@ describe('ReportQueryBoundary', () => {
     rerender(<ReportQueryBoundary view={ready}><ReportShell onMount={onMount} /></ReportQueryBoundary>)
     expect(screen.getByTestId('report-shell')).toBe(shell)
     expect(shell.parentElement).not.toHaveClass('invisible')
+    expect(shell.parentElement?.parentElement?.querySelector('.z-10')).toBeNull()
 
     rerender(<ReportQueryBoundary view={refreshing}><ReportShell onMount={onMount} /></ReportQueryBoundary>)
     expect(screen.getByTestId('report-shell')).toBe(shell)
     expect(screen.getByText('Đang cập nhật...')).toBeInTheDocument()
+    expect(shell.parentElement?.parentElement?.querySelector('.z-10')).toHaveClass('pointer-events-none')
     expect(onMount).toHaveBeenCalledTimes(1)
   })
 })

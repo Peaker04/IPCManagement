@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import type { OrderRow } from '../types'
 import { getMenuDishSlotLabel, groupMenuDishes, type MenuDishRole } from '../dishRole'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerBody, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Button } from '@/components/ui/button'
 import { NotificationBadge } from '@/components/common'
 import { useLazyGetMenuSchedulesQuery } from '@/api/coordinationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
@@ -71,12 +72,13 @@ export function DishDetailDialog({ order, onClose }: DishDetailDialogProps) {
     && (menuSchedulesView.phase === 'error' || menuSchedulesView.phase === 'forbidden')
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent aria-label="Chi tiết thực đơn" className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Chi tiết thực đơn</DialogTitle>
-          <DialogDescription>{order.customerName} · {order.menuName || order.mealType}</DialogDescription>
-        </DialogHeader>
+    <Drawer open onOpenChange={(open) => !open && onClose()}>
+      <DrawerContent aria-label="Chi tiết thực đơn">
+        <DrawerHeader>
+          <DrawerTitle>Chi tiết thực đơn</DrawerTitle>
+          <DrawerDescription>{order.customerName} · {order.menuName || order.mealType}</DrawerDescription>
+        </DrawerHeader>
+        <DrawerBody>
         <div className="grid gap-4">
           <section aria-labelledby="coordination-dish-list-title">
             <div className="mb-2 flex items-center justify-between gap-3">
@@ -130,7 +132,9 @@ export function DishDetailDialog({ order, onClose }: DishDetailDialogProps) {
             </section>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+        </DrawerBody>
+        <DrawerFooter><Button type="button" variant="outline" onClick={onClose}>Đóng</Button></DrawerFooter>
+      </DrawerContent>
+    </Drawer>
   )
 }

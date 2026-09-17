@@ -12,7 +12,7 @@ const reportGroups: ReportGroup[] = [
 ];
 
 export function ReportsNavigation({ model }: ReportsNavigationProps) {
-  const { activeReportView, activeView, isViewPending, priceSubView, resetReportPages, setRequestedView, startViewTransition, updateSearchState, visibleReportTabs } = model;
+  const { activeReportView, activeView, isViewPending, priceSubView, reportSearchByView, resetReportPages, setRequestedView, startViewTransition, updateSearchState, visibleReportTabs } = model;
   const visibleTabsByView = new Map(visibleReportTabs.map((tab) => [tab.id.replace('reports-', '') as ReportView, tab]));
   const visibleGroups = reportGroups.map((group) => ({ ...group, views: group.views.filter((view) => visibleTabsByView.has(view)) })).filter((group) => group.views.length > 0);
   const activeGroup = visibleGroups.find((group) => group.views.includes(activeView)) ?? visibleGroups[0];
@@ -20,7 +20,7 @@ export function ReportsNavigation({ model }: ReportsNavigationProps) {
   const openView = (nextView: ReportView) => startViewTransition(() => {
     setRequestedView(nextView);
     resetReportPages();
-    updateSearchState({ view: nextView, subview: nextView === 'price' ? priceSubView : undefined, page: undefined, pageSize: undefined });
+    updateSearchState({ view: nextView, subview: nextView === 'price' ? priceSubView : undefined, page: undefined, pageSize: undefined, search: reportSearchByView[nextView]?.trim() || undefined });
   });
 
   return <>

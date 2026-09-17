@@ -27,7 +27,8 @@ GSD `.planning/` là process/state owner duy nhất. `.artifacts/` giữ output 
 3. Chọn lane ở [DELIVERY.md](DELIVERY.md).
 4. Dùng `docs/README.md` để mở đúng product/domain contract.
 5. Đọc skill đầy đủ khi task khớp. Không auto-load HISTORY, LESSONS, planning tree hoặc evidence.
-6. Nếu resume, theo đúng GSD checkpoint; nếu task mới, không tự chạy campaign cũ.
+6. Nếu đầu vào là audit/review/prompt dài hoặc chỉ thị từ chat yêu cầu chiến dịch nhiều bước, GSD parent phải đọc đầy đủ, fact-check và chuẩn hóa thành **một checklist + một ledger bền vững** trước production edit. Chat/subagent output không phải task state; kết luận chưa persist không được coi là đã giao hoặc được session sau tự nhớ.
+7. Nếu resume, theo đúng GSD checkpoint; nếu task mới, không tự chạy campaign cũ.
 
 ## Authority
 

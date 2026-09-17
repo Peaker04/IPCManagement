@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import React from 'react';
 
 const mocks = vi.hoisted(() => ({
@@ -103,6 +103,25 @@ describe('Reports server-search ownership', () => {
     }), { skip: false }));
   });
 
+  it('debounces rapid user edits to the final Price server-search value', async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useReportsPriceViewModel({
+        activeView: 'price', initialPage: 1, priceSubView: 'lines', reportQuery: {}, searchParams: new URLSearchParams(),
+      }));
+      act(() => {
+        result.current.setPriceSearch('G');
+        result.current.setPriceSearch('Gạ');
+        result.current.setPriceSearch('Gạo');
+      });
+      expect(mocks.price).not.toHaveBeenLastCalledWith(expect.objectContaining({ searchKeyword: 'Gạo' }), { skip: false });
+      await act(async () => { await vi.advanceTimersByTimeAsync(300); });
+      expect(mocks.price).toHaveBeenLastCalledWith(expect.objectContaining({ searchKeyword: 'Gạo', pageNumber: 1 }), { skip: false });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('sends the trimmed price search on the owned first page', async () => {
     const { result } = renderHook(() => useReportsPriceViewModel({
       activeView: 'price',
@@ -140,6 +159,63 @@ describe('Reports filter changes reset pagination (IA-17B)', () => {
     mocks.supplyLineReconciliation.mockReturnValue(readyQuery([]));
   });
 
+  it('rehydrates visible controls and query arguments on same-route Back navigation', async () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <MemoryRouter
+        initialEntries={[
+          '/reports?view=demand&dateFrom=2026-08-01&search=Gạo&page=2&pageSize=8',
+          '/reports?view=stock&dateFrom=2026-09-01&search=Kho&page=3&pageSize=20',
+        ]}
+        initialIndex={1}
+      >
+        {children}
+      </MemoryRouter>
+    );
+    const { result } = renderHook(() => ({ model: useReportsPageModel(defaultPermissions), navigate: useNavigate() }), { wrapper });
+
+    await waitFor(() => expect(result.current.model.activeView).toBe('stock'));
+    expect(result.current.model.stockSearch).toBe('Kho');
+    expect(result.current.model.stockPage).toBe(3);
+
+    act(() => result.current.navigate(-1));
+
+    await waitFor(() => expect(result.current.model.activeView).toBe('demand'));
+    expect(result.current.model.dateFrom).toBe('2026-08-01');
+    expect(result.current.model.demandSearch).toBe('Gạo');
+    expect(result.current.model.demandPage).toBe(2);
+    await waitFor(() => expect(mocks.demand).toHaveBeenLastCalledWith(expect.objectContaining({
+      dateFrom: '2026-08-01', searchKeyword: 'Gạo', pageNumber: 2, pageSize: 8,
+    }), { skip: false }));
+  });
+
+  it('rehydrates Price line search, page and page size on same-route Back navigation', async () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <MemoryRouter
+        initialEntries={[
+          '/reports?view=price&subview=lines&search=Gạo&page=3&pageSize=6',
+          '/reports?view=demand&page=1&pageSize=8',
+        ]}
+        initialIndex={1}
+      >
+        {children}
+      </MemoryRouter>
+    );
+    const { result } = renderHook(() => ({ model: useReportsPageModel(defaultPermissions), navigate: useNavigate() }), { wrapper });
+
+    act(() => result.current.navigate(-1));
+
+    await waitFor(() => expect(result.current.model.activeView).toBe('price'));
+    expect(result.current.model.priceSubView).toBe('lines');
+    expect(result.current.model.priceSearch).toBe('Gạo');
+    expect(result.current.model.pricePage).toBe(3);
+    expect(result.current.model.pricePageSize).toBe(6);
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(result.current.model.pricePage).toBe(3);
+    await waitFor(() => expect(mocks.price).toHaveBeenLastCalledWith(expect.objectContaining({
+      searchKeyword: 'Gạo', pageNumber: 3, pageSize: 6,
+    }), { skip: false }));
+  });
+
   it('resets numbered pages and URL page when dateFrom changes', async () => {
     const { result } = renderHook(
       () => useReportsPageModel(defaultPermissions),
@@ -160,6 +236,7 @@ describe('Reports filter changes reset pagination (IA-17B)', () => {
     expect(result.current.demandPage).toBe(1);
     expect(result.current.searchParams.get('page')).not.toBe('5');
     expect(result.current.searchParams.get('pageSize')).toBe('8');
+    expect(result.current.searchParams.get('dateFrom')).toBe('2026-08-01');
     expect(result.current.activeView).toBe('demand');
 
     // Query must be invoked with new date and pageNumber 1
@@ -204,6 +281,7 @@ describe('Reports filter changes reset pagination (IA-17B)', () => {
     expect(result.current.periodPage).toBe(1);
     expect(result.current.dishGroupPage).toBe(1);
     expect(result.current.searchParams.get('page')).not.toBe('3');
+    expect(result.current.searchParams.get('dateTo')).toBe('2026-08-31');
 
     // Query must be invoked with new dateTo and pageNumber 1
     await waitFor(() => expect(mocks.priceBySupplier).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -236,6 +314,7 @@ describe('Reports filter changes reset pagination (IA-17B)', () => {
 
     expect(result.current.shiftName).toBe('Ca sáng');
     expect(result.current.movementCursors).toHaveLength(0);
+    expect(result.current.searchParams.get('shift')).toBe('Ca sáng');
     expect(result.current.activeView).toBe('movement');
 
     // Query must be invoked with shift and without cursor
@@ -245,6 +324,43 @@ describe('Reports filter changes reset pagination (IA-17B)', () => {
       cursorId: undefined,
       cursorOffset: undefined,
     }), { skip: false }));
+  });
+
+  it('hydrates and persists the active view search in the URL', () => {
+    const { result } = renderHook(
+      () => useReportsPageModel(defaultPermissions),
+      { wrapper: createWrapper(['/reports?view=demand&search=thit+heo']) },
+    );
+    expect(result.current.demandSearch).toBe('thit heo');
+    act(() => result.current.setDemandSearch('  cá hồi  '));
+    expect(result.current.searchParams.get('search')).toBe('cá hồi');
+    expect(result.current.searchParams.get('page')).toBe('1');
+    act(() => result.current.resetReportPagesAndUrl());
+    expect(result.current.searchParams.get('search')).toBeNull();
+    expect(result.current.demandSearch).toBe('');
+  });
+
+  it('hydrates shareable filters and sort from the URL', () => {
+    const { result } = renderHook(
+      () => useReportsPageModel(defaultPermissions),
+      { wrapper: createWrapper(['/reports?view=audit&dateFrom=2026-08-01&dateTo=2026-08-31&shift=Ca+sáng&sort=asc']) },
+    );
+
+    expect(result.current.dateFrom).toBe('2026-08-01');
+    expect(result.current.dateTo).toBe('2026-08-31');
+    expect(result.current.shiftName).toBe('Ca sáng');
+    expect(result.current.sortDirection).toBe('asc');
+  });
+
+  it('persists audit sort and resets cursor ownership', () => {
+    const { result } = renderHook(
+      () => useReportsPageModel(defaultPermissions),
+      { wrapper: createWrapper(['/reports?view=audit']) },
+    );
+    act(() => result.current.setAuditCursors([{ cursorDate: '2026-08-01', cursorId: 'audit-1', cursorOffset: 20 }]));
+    act(() => result.current.setSortDirection('asc'));
+    expect(result.current.auditCursors).toHaveLength(0);
+    expect(result.current.searchParams.get('sort')).toBe('asc');
   });
 
   it('does not reset pagination when filter value is unchanged', () => {

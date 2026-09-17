@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -57,6 +57,8 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
   const [countedMaterialIds, setCountedMaterialIds] = useState<Record<string, boolean>>({})
   const [hasDiscrepancy, setHasDiscrepancy] = useState(false)
   const [discrepancyNote, setDiscrepancyNote] = useState('')
+  const [discrepancyError, setDiscrepancyError] = useState('')
+  const discrepancyRef = useRef<HTMLTextAreaElement>(null)
   const [isConfirming, setIsConfirming] = useState(false)
   const pendingMaterial = materials.find((material) => material.id === pendingMaterialId)
   const pendingIssueLines = pendingMaterial
@@ -164,10 +166,15 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
             </ul>
             <p className="text-xs font-medium text-slate-600">Đã kiểm đếm {countedIssueLines}/{pendingIssueLines.length} dòng trong phiếu.</p>
             <label className="flex min-h-11 items-center gap-2 text-sm font-medium"><Checkbox checked={hasDiscrepancy} onCheckedChange={(checked) => setHasDiscrepancy(checked === true)} />Có chênh lệch khi nhận</label>
-            {hasDiscrepancy && <label className="grid gap-1 text-sm font-medium">Mô tả chênh lệch<Textarea value={discrepancyNote} onChange={(event) => setDiscrepancyNote(event.target.value)} placeholder="Nêu dòng nguyên liệu, số thực nhận hoặc tình trạng hàng" /></label>}
+            {hasDiscrepancy && <label className="grid gap-1 text-sm font-medium">Mô tả chênh lệch<Textarea ref={discrepancyRef} value={discrepancyNote} onChange={(event) => { setDiscrepancyNote(event.target.value); setDiscrepancyError(''); }} placeholder="Nêu dòng nguyên liệu, số thực nhận hoặc tình trạng hàng" aria-invalid={Boolean(discrepancyError) || undefined} aria-describedby={discrepancyError ? 'material-checklist-discrepancy-error' : undefined} />{discrepancyError && <span id="material-checklist-discrepancy-error" role="alert" className="text-xs font-normal text-red-700">{discrepancyError}</span>}</label>}
             <DialogFooter>
               <Button type="button" variant="outline" disabled={isConfirming} onClick={() => setPendingMaterialId(null)}>Để sau</Button>
-              <Button type="button" disabled={isConfirming || pendingIssueLines.length === 0 || countedIssueLines < pendingIssueLines.length || hasDiscrepancy && !discrepancyNote.trim()} onClick={async () => {
+              <Button type="button" disabled={isConfirming || pendingIssueLines.length === 0 || countedIssueLines < pendingIssueLines.length} onClick={async () => {
+                if (hasDiscrepancy && !discrepancyNote.trim()) {
+                  setDiscrepancyError('Mô tả chênh lệch trước khi ký nhận.')
+                  requestAnimationFrame(() => discrepancyRef.current?.focus())
+                  return
+                }
                 if (!pendingMaterial || !onMaterialSignoff) return
                 setIsConfirming(true)
                 const success = await onMaterialSignoff(pendingMaterial.id, true, hasDiscrepancy, discrepancyNote)
@@ -180,6 +187,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                 })
                 setHasDiscrepancy(false)
                 setDiscrepancyNote('')
+                setDiscrepancyError('')
                 setPendingMaterialId(null)
               }}>{isConfirming ? 'Đang ký nhận...' : 'Ký nhận toàn bộ phiếu'}</Button>
             </DialogFooter>

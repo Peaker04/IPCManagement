@@ -1,4 +1,5 @@
-import { useDeferredValue, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
   useGetPriceVarianceByDishGroupPageQuery,
   useGetPriceVarianceByPeriodPageQuery,
@@ -33,24 +34,19 @@ type ReportsPriceViewModelArgs = {
 export function useReportsPriceViewModel({ activeView, initialPage, priceSubView, reportQuery, searchParams }: ReportsPriceViewModelArgs) {
   const [pricePageSize, setPricePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 6, pricePageSizeOptions));
   const [pricePage, setPricePage] = useState(initialPage);
-  const [priceSearch, setPriceSearchState] = useState('');
-  const [debouncedPriceSearch, setDebouncedPriceSearch] = useState('');
+  const [priceSearch, setPriceSearchState] = useState(() => activeView === 'price' && priceSubView === 'lines' ? searchParams.get('search') ?? '' : '');
+  const deferredPriceSearch = useDebouncedValue(priceSearch.trim(), 300);
   const [selectedWarningId, setSelectedWarningId] = useState<string | null>(null);
-  const deferredPriceSearch = useDeferredValue(debouncedPriceSearch);
   const [priceAggregatePageSize, setPriceAggregatePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [supplierPage, setSupplierPage] = useState(initialPage);
   const [periodPage, setPeriodPage] = useState(initialPage);
   const [dishGroupPage, setDishGroupPage] = useState(initialPage);
 
-  useEffect(() => {
-    const timer = globalThis.setTimeout(() => {
-      setDebouncedPriceSearch(priceSearch.trim());
-      setPricePage(1);
-    }, 300);
-    return () => globalThis.clearTimeout(timer);
-  }, [priceSearch]);
-
   const setPriceSearch = (value: string) => {
+    setPriceSearchState(value);
+    setPricePage(1);
+  };
+  const hydratePriceSearch = (value: string) => {
     setPriceSearchState(value);
   };
 
@@ -154,6 +150,7 @@ export function useReportsPriceViewModel({ activeView, initialPage, priceSubView
     activePriceView,
     dishGroupPage,
     exportConfig,
+    hydratePriceSearch,
     periodPage,
     priceAggregatePageSize,
     pricePage,

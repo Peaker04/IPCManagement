@@ -276,7 +276,7 @@ export function mapPurchasePlanLines(
     ingredientId: row.ingredientId,
     sourceDocumentCode: row.periodKey,
     serviceDate: row.periodStart,
-    material: row.ingredientName ?? row.ingredientId,
+    material: row.ingredientName ?? 'Chưa có tên nguyên liệu',
     required: row.requiredQty,
     available: row.currentStockQty + row.pendingReceiptQty,
     reserved: 0,

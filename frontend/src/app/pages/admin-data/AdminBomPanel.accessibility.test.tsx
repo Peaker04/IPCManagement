@@ -83,6 +83,21 @@ function createMinimalBomModel(overrides?: Partial<AdminDataPageModel>): AdminDa
 }
 
 describe('AdminBomPanel file input accessibility & selection contract', () => {
+  it('does not block the BOM panel on the dialog-only ingredient query', () => {
+    const uninitializedView = { phase: 'uninitialized', instruction: 'Chưa khởi tạo danh mục nguyên liệu' } as const;
+    render(<AdminBomPanel model={createMinimalBomModel({
+      isBomDialogOpen: false,
+      queryViews: {
+        dishCatalog: { phase: 'ready', data: [], isRefreshing: false, truncation: null },
+        ingredientCatalog: uninitializedView,
+        contracts: { phase: 'ready', data: [], isRefreshing: false, truncation: null },
+      },
+    } as unknown as Partial<AdminDataPageModel>)} />);
+
+    expect(screen.getByRole('heading', { name: 'Import BOM theo đơn giá' })).toBeInTheDocument();
+    expect(screen.queryByText('Chưa khởi tạo danh mục nguyên liệu')).not.toBeInTheDocument();
+  });
+
   it('preserves accessible names, valid extensions, and mutation-free file selection', () => {
     const handleCommitBomImport = vi.fn();
     const handlePreviewBomImport = vi.fn();
@@ -218,7 +233,10 @@ describe('AdminBomPanel file input accessibility & selection contract', () => {
     expect(within(rows[1]).getByText('Cập nhật')).toBeInTheDocument();
     expect(within(rows[2]).getByText('Định lượng phải lớn hơn 0.')).toBeInTheDocument();
     expect(within(rows[2]).getByText('blocked')).toBeInTheDocument();
-    expect(screen.getByRole('table')).toHaveTextContent('2Cơm gàMON-01GạoNL-01KG0,125%Thêm mới');
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getByRole('columnheader', { name: 'Nguyên liệu / ĐVT' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Định lượng / hao hụt' })).toBeInTheDocument();
+    expect(screen.getByRole('table')).toHaveTextContent('2Cơm gàMON-01GạoNL-01 · KGĐịnh lượng: 0,12Hao hụt: 5%Thêm mới');
     expect(screen.getByRole('button', { name: 'Nhập dữ liệu' })).toBeDisabled();
     expect(screen.queryByText('Hợp lệ')).not.toBeInTheDocument();
   });

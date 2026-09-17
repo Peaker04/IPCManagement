@@ -40,6 +40,8 @@ import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { ReportsNavigation } from './ReportsNavigation';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
+import { ReportsFilters } from './ReportsFilters';
+import { ServiceRunReportPanel } from './ServiceRunReportPanel';
 import { formatReconciliationDisposition } from '@/lib/workflowConfig';
 
 const compactPurchaseWarning = (warning: string) => {
@@ -52,8 +54,8 @@ const compactPurchaseWarning = (warning: string) => {
 
 const ReportsPricePanel = lazy(() => import('./ReportsPricePanel').then(({ ReportsPricePanel: component }) => ({ default: component })))
 const ReportsDataQualityPanel = lazy(() => import('./ReportsDataQualityPanel').then(({ ReportsDataQualityPanel: component }) => ({ default: component })))
-const ReportsFilters = lazy(() => import('./ReportsFilters').then(({ ReportsFilters: component }) => ({ default: component })))
-const ServiceRunReportPanel = lazy(() => import('./ServiceRunReportPanel').then(({ ServiceRunReportPanel: component }) => ({ default: component })))
+
+
 const LegacyLineageDispositionPanel = lazy(() => import('../LegacyLineageDispositionPanel').then(({ LegacyLineageDispositionPanel: component }) => ({ default: component })))
 const reportCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
@@ -102,12 +104,10 @@ const ReportsPage = () => {
             </>
           }
         >
-          <Suspense fallback={<div aria-hidden="true" className="min-h-8 w-[32rem] rounded-md bg-slate-50" />}>
-            <ReportsFilters
-              activeView={activeView} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} sortDirection={sortDirection}
-              onDateFromChange={changeDateFrom} onDateToChange={changeDateTo} onShiftNameChange={changeShiftName} onSortDirectionChange={setSortDirection}
-            />
-          </Suspense>
+          <ReportsFilters
+            activeView={activeView} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} sortDirection={sortDirection}
+            onDateFromChange={changeDateFrom} onDateToChange={changeDateTo} onShiftNameChange={changeShiftName} onSortDirectionChange={setSortDirection}
+          />
         </CommandBar>
       }
     >
@@ -135,24 +135,20 @@ const ReportsPage = () => {
                 <thead>
                   <tr>
                     <th>Ngày</th>
-                    <th>Nguyên liệu</th>
-                    <th>Nguồn</th>
+                    <th>Nguyên liệu / nguồn</th>
                     <th className="text-right">Cần</th>
-                    <th className="text-right">Đã xuất</th>
-                    <th className="text-right">Chưa xuất</th>
+                    <th className="text-right">Bàn giao</th>
                     <th>Trạng thái</th>
                     <th>Chuyển xử lý</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={8} /> : ingredientDemandRows.map((row) => (
+                  {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={6} /> : ingredientDemandRows.map((row) => (
                     <tr key={row.id}>
                       <td className="whitespace-nowrap">{row.serviceDate ? formatDateOnly(row.serviceDate) : 'Chưa xác định'}</td>
-                      <td>{row.material}</td>
-                      <td>{row.source}</td>
+                      <td><span className="block font-medium text-slate-900">{row.material}</span><span className="block text-xs text-slate-500">{row.source}</span></td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.required, row.unit)}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.issuedQty ?? 0, row.unit)}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.remainingToIssueQty ?? 0, row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right text-xs tabular-nums"><span className="block">Đã xuất: {formatQuantityWithUnit(row.issuedQty ?? 0, row.unit)}</span><span className="block font-semibold">Chưa xuất: {formatQuantityWithUnit(row.remainingToIssueQty ?? 0, row.unit)}</span></td>
                       <td className="ipc-badge-cell text-center"><StatusBadge className="ipc-demand-status-control" variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
                       <td className="ipc-demand-action-cell">{row.actionHref
                         ? <Link className="ipc-button ipc-button-ghost ipc-demand-action-control" to={row.actionHref}>{row.nextAction}</Link>
@@ -212,24 +208,20 @@ const ReportsPage = () => {
               <table className="ipc-data-table ipc-status-action-table min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Kỳ</th>
-                    <th>Nguyên liệu</th>
+                    <th>Kỳ / nguyên liệu</th>
                     <th className="text-right">Cần</th>
-                    <th className="text-right">Tồn</th>
-                    <th className="text-right">{uiCopy.reports.pending}</th>
+                    <th className="text-right">Cân đối</th>
                     <th className="text-right">Đề xuất mua</th>
                     <th>Nhà cung cấp</th>
                     <th>Cảnh báo</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} isError={purchasePlanResult.isError} /> : purchasePlanRows.map((row) => (
+                  {purchasePlanRows.length === 0 ? <EmptyRow colSpan={6} isError={purchasePlanResult.isError} /> : purchasePlanRows.map((row) => (
                     <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
-                      <td>{row.periodKey}</td>
-                      <td>{row.ingredientName ?? row.ingredientId}</td>
+                      <td><span className="block font-medium text-slate-900">{row.ingredientName ?? 'Chưa có tên nguyên liệu'}</span><span className="block text-xs text-slate-500">{row.periodKey}</span></td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.requiredQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.currentStockQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.pendingReceiptQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-right text-xs tabular-nums"><span className="block">Tồn: {formatQuantityWithUnit(row.currentStockQty, row.unitName ?? '')}</span><span className="block">{uiCopy.reports.pending}: {formatQuantityWithUnit(row.pendingReceiptQty, row.unitName ?? '')}</span></td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.shortageQty, row.unitName ?? '')}</td>
                       <td>{row.supplierName ?? 'Chưa có báo giá'}</td>
                       <td className="ipc-badge-cell">
@@ -422,33 +414,25 @@ const ReportsPage = () => {
               <table className="ipc-data-table min-w-[1300px]">
                 <thead>
                   <tr>
-                    <th>Nhu cầu nguồn</th>
-                    <th>Nguyên liệu</th>
+                    <th>Nhu cầu / nguyên liệu</th>
                     <th className="text-right">Cần</th>
                     <th className="text-right">PR/PO</th>
-                    <th className="text-right">Đã nhập kho</th>
-                    <th className="text-right">Đã xuất</th>
-                    <th className="text-right">Bếp nhận</th>
+                    <th className="text-right">Luồng kho / Bếp</th>
                     <th className="text-right">Bổ sung<br />(YC/cấp/PR)</th>
                     <th className="text-right">Hoàn/Hao</th>
-                    <th className="text-right">Delta</th>
-                    <th>Kết quả đối soát</th>
+                    <th>Kết quả / Delta</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reconciliationRows.length === 0 ? <EmptyRow colSpan={11} isError={reconciliationResult.isError} /> : reconciliationRows.map((row) => (
+                  {reconciliationRows.length === 0 ? <EmptyRow colSpan={7} isError={reconciliationResult.isError} /> : reconciliationRows.map((row) => (
                     <tr key={row.materialRequestLineId}>
-                      <td className={typography.code}>{row.materialRequestCode}</td>
-                      <td>{row.ingredientName ?? row.ingredientId}</td>
+                      <td><span className="block font-medium text-slate-900">{row.ingredientName ?? 'Chưa có tên nguyên liệu'}</span><span className={`${typography.code} block text-slate-500`}>{row.materialRequestCode}</span></td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.demandQty, row.unitName ?? '')}</td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.purchaseRequestAllocatedQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.purchaseOrderAllocatedQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.postedAcceptedReceiptQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.issuedQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.kitchenAcknowledgedQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-xs"><span className="block">Nhập: {formatQuantityWithUnit(row.postedAcceptedReceiptQty, row.unitName ?? '')}</span><span className="block">Xuất: {formatQuantityWithUnit(row.issuedQty, row.unitName ?? '')}</span><span className="block">Bếp nhận: {formatQuantityWithUnit(row.kitchenAcknowledgedQty, row.unitName ?? '')}</span></td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.supplementalRequestedQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalFulfilledQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalPurchaseAllocatedQty, row.unitName ?? '')}</td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.returnedQty + row.wastedQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell font-bold">{formatQuantityWithUnit(row.deltaQty, row.unitName ?? '')}</td>
-                      <td className="ipc-badge-cell"><StatusBadge variant={reconciliationTone(row.disposition)}>{row.legacyLineageExceptionCount > 0 ? `${formatReconciliationDisposition(row.disposition)} · ${row.legacyLineageExceptionCount} dòng` : formatReconciliationDisposition(row.disposition)}</StatusBadge></td>
+                      <td className="ipc-badge-cell"><StatusBadge variant={reconciliationTone(row.disposition)}>{row.legacyLineageExceptionCount > 0 ? `${formatReconciliationDisposition(row.disposition)} · ${row.legacyLineageExceptionCount} dòng` : formatReconciliationDisposition(row.disposition)}</StatusBadge><span className="mt-1 block text-right text-xs font-bold tabular-nums">Delta {formatQuantityWithUnit(row.deltaQty, row.unitName ?? '')}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -464,9 +448,6 @@ const ReportsPage = () => {
       </KeepAliveTabPanel>
 
       <KeepAliveTabPanel id="reports-audit" active={activeView === 'audit'}>
-        <Suspense fallback={reportCapabilityFallback}>
-          <ServiceRunReportPanel key={`${dateFrom}-${dateTo}-${shiftName}`} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} />
-        </Suspense>
         <ReportQueryBoundary view={reportViews.audit}>
           <SectionPanel title={`${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
             <TableViewport className="ipc-reports-audit-shell" ariaLabel="Bảng audit thay đổi hệ thống">
@@ -506,6 +487,7 @@ const ReportsPage = () => {
             />
           </SectionPanel>
         </ReportQueryBoundary>
+        <ServiceRunReportPanel key={`${dateFrom}-${dateTo}-${shiftName}`} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} />
       </KeepAliveTabPanel>
 
       <KeepAliveTabPanel id="reports-data-quality" active={activeView === 'data-quality'} fallback={reportCapabilityFallback}>

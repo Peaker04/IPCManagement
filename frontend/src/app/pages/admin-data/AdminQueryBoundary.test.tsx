@@ -68,18 +68,20 @@ describe('AdminQueryBoundary', () => {
     expect(shell.parentElement).not.toHaveClass('invisible');
   });
 
-  it('renders children for an authoritative ready-empty result', () => {
-    renderBoundary([ready()]);
+  it('renders children for an authoritative ready-empty result without a hit-test overlay', () => {
+    const { container } = renderBoundary([ready()]);
 
     expect(screen.getByText('Kết quả quản trị')).toBeInTheDocument();
+    expect(container.querySelector('.z-10')).toBeNull();
   });
 
-  it('keeps ready children visible while refreshing', () => {
-    renderBoundary([ready(true)]);
+  it('keeps ready children interactive while refreshing', () => {
+    const { container } = renderBoundary([ready(true)]);
 
     expect(screen.getByText('Kết quả quản trị')).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Đang cập nhật nguồn 1' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).toBeNull();
+    expect(container.querySelector('.z-10')).toHaveClass('pointer-events-none');
   });
 
   it('blocks the whole group when one required query fails', () => {

@@ -94,7 +94,7 @@ export function ApprovalDecisionDialog({ open, status, reason, error, isDeciding
                     <p className="mt-1 text-xs text-slate-600">{receipt.receiptCode} · kiểm tra lúc {receipt.qualityCheckedAt ? formatDateTime(receipt.qualityCheckedAt) : 'chưa xác định'}</p>
                     <ul className="mt-2 grid max-h-48 gap-2 overflow-y-auto text-sm">
                       {receipt.lines.map((line) => <li key={line.receiptLineId} className="rounded border border-slate-200 bg-white p-2">
-                        <strong>{line.ingredientName ?? line.ingredientId}</strong>
+                        <strong>{line.ingredientName ?? 'Chưa có tên nguyên liệu'}</strong>
                         <span className="mt-1 block text-slate-700">Đạt {formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '')} · Không đạt {formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '')}</span>
                         {(line.rejectedQuantity ?? 0) > 0 && <span className="block text-amber-800">Lý do: {line.qualityReason || 'Chưa có lý do'}</span>}
                       </li>)}

@@ -101,7 +101,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
   const [LoadedDishDetailDialog, setLoadedDishDetailDialog] = useState<DishDetailDialogComponent | null>(
     () => cachedDishDetailDialog,
   )
-  const pageSize = 12
+  const [pageSize, setPageSize] = useState(12)
   const filteredOrders = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('vi-VN')
     if (!needle) return orders
@@ -447,7 +447,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
           </tbody>
         </table>
       </TableViewport>
-      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
+      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} pageSizeOptions={[12, 24, 48]} onPageSizeChange={(nextSize) => { setPageSize(nextSize); setPage(1); }} onPageChange={setPage} />
       {selectedOrder && (LoadedDishDetailDialog ? (
         <LoadedDishDetailDialog order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
       ) : (

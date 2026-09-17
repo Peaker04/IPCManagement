@@ -25,9 +25,11 @@ describe('physical handoff consumers', () => {
           customerLabel: 'Khách A', weekLabel: 'Tuần đang xem', demandRows: [aggregate(issued, received)], materialRows: [] },
       } as unknown as PurchaseSummaryWorkflow
       render(<PurchaseSummarySection workflow={workflow} />)
-      expect(screen.getByRole('columnheader', { name: 'Đã xuất' })).toBeInTheDocument()
-      expect(screen.getByRole('columnheader', { name: 'Chưa xuất' })).toBeInTheDocument()
-      expect(screen.getByRole('columnheader', { name: 'Nguồn' })).toBeInTheDocument()
+      expect(screen.getAllByRole('columnheader')).toHaveLength(6)
+      expect(screen.getByRole('columnheader', { name: 'Bàn giao' })).toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'Nguyên liệu / nguồn' })).toBeInTheDocument()
+      expect(screen.getByText((_, element) => element?.textContent === `Đã xuất: ${issued} kg`)).toBeInTheDocument()
+      expect(screen.getByText((_, element) => element?.textContent === `Chưa xuất: ${200 - issued} kg`)).toBeInTheDocument()
       expect(screen.getByText(status, { selector: 'span' })).toBeInTheDocument()
       expect(screen.queryByText('Đủ hàng')).not.toBeInTheDocument()
       expect(screen.queryByText('Tồn khả dụng')).not.toBeInTheDocument()
@@ -39,8 +41,9 @@ describe('physical handoff consumers', () => {
 
   it('warehouse shared summary distinguishes gross issue from allocation and cannot offer buying', () => {
     render(<DemandSummary lines={[aggregate(0, 0)]} showServiceDate />)
-    expect(screen.getByRole('columnheader', { name: 'Đã xuất' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: 'Chưa xuất' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Bàn giao' })).toBeInTheDocument()
+    expect(screen.getByText((_, element) => element?.textContent === 'Đã xuất: 0 kg')).toBeInTheDocument()
+    expect(screen.getByText((_, element) => element?.textContent === 'Chưa xuất: 200 kg')).toBeInTheDocument()
     expect(screen.getByText('Kho xử lý xuất')).toBeInTheDocument()
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
     expect(screen.queryByText('Đủ hàng')).not.toBeInTheDocument()

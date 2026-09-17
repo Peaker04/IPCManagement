@@ -835,9 +835,9 @@ export default function ReconciliationWarehousePage() {
               </div>
             )}
             {visibleSupplementalMode === 'by_dish' && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-              <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-700">
+              <div className="grid gap-1.5 text-xs font-semibold text-slate-700">
                 <span>Món ăn phát sinh</span>
-                <Input aria-label="Tìm món cần xuất thêm" type="search" placeholder="Tìm theo tên hoặc mã món" value={supplementalDishSearch} onChange={(event) => setSupplementalDishSearch(event.target.value)} className="h-9" />
+                <SearchField label="Tìm món cần xuất thêm" hideLabel width="full" placeholder="Tìm theo tên hoặc mã món" value={supplementalDishSearch} onChange={(event) => setSupplementalDishSearch(event.target.value)} />
                 <Select
                   value={supplementalDishId || null}
                   onValueChange={(val) => {
@@ -861,7 +861,7 @@ export default function ReconciliationWarehousePage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </label>
+              </div>
 
               <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-700">
                 <span>Số suất tăng thêm</span>

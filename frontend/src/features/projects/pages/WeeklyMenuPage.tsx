@@ -1,4 +1,4 @@
-import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react'; import { useSearchParams } from 'react-router-dom';
+import { lazy, Suspense, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'; import { useSearchParams } from 'react-router-dom';
 import { WeeklyMenuCommandBar } from '../weekly-menu/shell/WeeklyMenuCommandBar';
 import { WeeklyMenuReadiness } from '../weekly-menu/shell/WeeklyMenuReadiness';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
@@ -376,6 +376,41 @@ const DefaultWeeklyMenuPage = () => {
     onMenuFeedback: setMenuFeedback,
     onQuickServingFeedback: setScheduleFeedback,
   });
+  const requestedWorkflow = searchParams.get('workflow') as 'import' | 'editor' | null;
+  const setWorkflowRoute = useCallback((workflow: 'import' | 'editor' | null, replace = false) => {
+    const next = new URLSearchParams(searchParams);
+    if (workflow) next.set('workflow', workflow);
+    else next.delete('workflow');
+    setSearchParams(next, { replace });
+  }, [searchParams, setSearchParams]);
+  const openImportWorkflow = () => {
+    setWorkflowRoute('import');
+    importWorkflow.actions.open();
+  };
+  const closeImportWorkflow = () => {
+    setWorkflowRoute(null);
+    importWorkflow.actions.close();
+  };
+  const openScheduleWorkflow = () => {
+    setWorkflowRoute('editor');
+    scheduleWorkflow.actions.openEditor();
+  };
+  const closeScheduleWorkflow = () => {
+    setWorkflowRoute(null);
+    scheduleWorkflow.actions.closeEditor();
+  };
+  const routedImportWorkflow = {
+    ...importWorkflow,
+    actions: {
+      ...importWorkflow.actions,
+      close: closeImportWorkflow,
+      onOpenChange: (open: boolean) => open ? openImportWorkflow() : closeImportWorkflow(),
+    },
+  };
+  const routedScheduleWorkflow = {
+    ...scheduleWorkflow,
+    actions: { ...scheduleWorkflow.actions, closeEditor: closeScheduleWorkflow },
+  };
   const productionPlanWorkflow = useWeeklyProductionPlan(
     weeklyScheduleScope,
     activeView === 'production-plan' && Boolean(committedMenu?.weekStartDate),
@@ -414,6 +449,25 @@ const DefaultWeeklyMenuPage = () => {
     () => scheduleWorkflow.presentation.buildQuickServingRows(weeklyPlanRows),
     [scheduleWorkflow.presentation, weeklyPlanRows],
   );
+  useEffect(() => {
+    if (requestedWorkflow === 'import' && !importWorkflow.state.isOpen) importWorkflow.actions.open();
+    if (requestedWorkflow !== 'import' && importWorkflow.state.isOpen) {
+      const hasDraft = Boolean(importWorkflow.state.selectedFile)
+        || importWorkflow.state.jobs.length > 0
+        || Boolean(importWorkflow.state.quickCustomerCode.trim())
+        || Boolean(importWorkflow.state.quickCustomerName.trim());
+      if (hasDraft && !window.confirm('Bạn có thay đổi nhập thực đơn chưa lưu. Bạn có chắc muốn rời khỏi quy trình này?')) {
+        setWorkflowRoute('import');
+      } else importWorkflow.actions.close();
+    }
+    if (requestedWorkflow === 'editor' && !scheduleWorkflow.state.isEditorOpen) scheduleWorkflow.actions.openEditor();
+    if (requestedWorkflow !== 'editor' && scheduleWorkflow.state.isEditorOpen) {
+      const hasDraft = scheduleWorkflow.presentation.pendingChangeCount > 0 || quickServingRows.some((row) => row.hasDraftChange);
+      if (hasDraft && !window.confirm('Bạn có thay đổi lịch tuần chưa lưu. Bạn có chắc muốn rời khỏi quy trình này?')) {
+        setWorkflowRoute('editor');
+      } else scheduleWorkflow.actions.closeEditor();
+    }
+  }, [importWorkflow.actions, importWorkflow.state.isOpen, importWorkflow.state.jobs.length, importWorkflow.state.quickCustomerCode, importWorkflow.state.quickCustomerName, importWorkflow.state.selectedFile, quickServingRows, requestedWorkflow, scheduleWorkflow.actions, scheduleWorkflow.presentation.pendingChangeCount, scheduleWorkflow.state.isEditorOpen, setWorkflowRoute]);
   const materialSummary = buildPlanRowsMaterialSummary(weeklyPlanRows, dishesById, dishesByName, {
     customerId: effectiveMenuCustomerId,
     priceTier: menuPrice,
@@ -509,8 +563,8 @@ const DefaultWeeklyMenuPage = () => {
         isImporting={importWorkflow.status.isImporting}
         canPublish={canPublishWeeklyMenu && Boolean(publishableSchedule)}
         isPublishing={isPublishingMenu}
-        onEdit={scheduleWorkflow.actions.openEditor}
-        onImport={importWorkflow.actions.open}
+        onEdit={openScheduleWorkflow}
+        onImport={openImportWorkflow}
         onExport={isMaterialReconciliationMode ? undefined : purchaseSummaryWorkflow.actions.exportWarehouseReport}
         onPublish={() => void publishWeeklyMenu()}
         onCustomerChange={(customerId) => {
@@ -556,7 +610,11 @@ const DefaultWeeklyMenuPage = () => {
           hasSelectedCustomer={Boolean(effectiveMenuCustomerId)}
         />
 
-        <div
+        {requestedWorkflow === 'import' || importWorkflow.state.isOpen ? (
+          <Suspense fallback={null}><WeeklyMenuImportDialog workflow={routedImportWorkflow} surface="page" /></Suspense>
+        ) : requestedWorkflow === 'editor' || scheduleWorkflow.state.isEditorOpen ? (
+          <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={routedScheduleWorkflow} servingRows={quickServingRows} layoutRows={committedLayoutRows} surface="page" /></Suspense>
+        ) : <div
           className={`${typography.body} relative`}
           aria-busy={isViewPending}
           aria-live="polite"
@@ -570,7 +628,7 @@ const DefaultWeeklyMenuPage = () => {
             isPublishingMenu={isPublishingMenu}
             onPublishMenu={() => void publishWeeklyMenu()}
             incompleteServingPlanCount={incompleteServingPlanCount}
-            onEditServings={scheduleWorkflow.actions.openEditor}
+            onEditServings={openScheduleWorkflow}
             canInitializeTolerance={canPublishWeeklyMenu}
             scopeLabel={selectedCustomer && displayedWeekStartDate
               ? `${selectedCustomer.customerCode} · tuần ${formatImportDate(displayedWeekStartDate)}`
@@ -589,11 +647,7 @@ const DefaultWeeklyMenuPage = () => {
             purchaseSummaryWorkflow={purchaseSummaryWorkflow}
             dishMaterialsWorkflow={dishMaterialsWorkflow}
           />}
-        </div>
-
-        {importWorkflow.state.isOpen && <Suspense fallback={null}><WeeklyMenuImportDialog workflow={importWorkflow} /></Suspense>}
-
-        {scheduleWorkflow.state.isEditorOpen && <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={scheduleWorkflow} servingRows={quickServingRows} layoutRows={committedLayoutRows} /></Suspense>}
+        </div>}
       </QueryViewBoundary>
     </OperationalFrame>
   );

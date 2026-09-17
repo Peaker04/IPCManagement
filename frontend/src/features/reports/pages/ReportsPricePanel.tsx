@@ -98,7 +98,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
           startViewTransition(() => {
             setRequestedPriceSubView(nextSubView);
             resetReportPages();
-            updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined });
+            updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined, search: nextSubView === 'lines' ? priceSearch.trim() || undefined : undefined });
           });
         }}>
           <SelectTrigger id="price-analysis-view" className="h-8 w-full max-w-xs text-xs" aria-label="Góc nhìn phân tích biến động giá">

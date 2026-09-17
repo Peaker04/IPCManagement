@@ -74,6 +74,36 @@ Route có table scroll cục bộ hợp lệ không bị coi là overflow toàn 
 Gate này **chưa đủ** để kết luận visual composition PASS. Mọi route được sửa về layout phải bổ sung scoped
 browser assertion theo `V1`–`V10`; thiếu assertion đó là `NEEDS_EVIDENCE`, không được suy từ `issueCount: 0`.
 
+## Interaction fluidity oracle
+
+Dùng oracle này khi claim navigation/click/tab/search/form/overlay/table/sidebar/scroll hoặc continuous interaction
+“mượt”, “nhanh”, “đơ” hay “jank”. Audit hiện hành ghi finding bền vững tại
+[`perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md`](perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md); checklist thực thi
+thuộc GSD plan, không thuộc file oracle này.
+
+1. **DEV versus preview trước:** cùng browser/machine/actor/lane/viewport/data/route/state/action. Tách cold
+   module/chunk compile, warm navigation và application work. Phân loại `DEVELOPMENT_ONLY`,
+   `DEVELOPMENT_DOMINANT` hoặc `PERSISTS_IN_PRODUCTION`; không sửa production architecture từ DEV-only trace.
+2. **Đo theo phase:** khi hỗ trợ, lưu input delay, processing duration, presentation delay và total interaction.
+   Network-bound action thêm request/server/response; hover/scroll đã load không được quy cho backend nếu thiếu
+   causal evidence.
+3. **Frame distribution:** báo median/p95 frame time, số frame >8.33/16.67/33.3ms, LoAF count và longest frame.
+   8.33/16.67ms chỉ là reference 120/60Hz, không tự thành NFR. API không hỗ trợ là `NEEDS_EVIDENCE`, không ghi 0.
+4. **Control versus heavy:** luôn có ít nhất một route đối chứng và một route data/interaction-heavy. Mọi route
+   cùng xấu mới mở candidate shell/global CSS/runtime; một route xấu ưu tiên owner cục bộ.
+5. **Attribution trước optimization:** React commit cao mới dùng Profiler/state-owner analysis; React yên nhưng
+   layout/paint cao thì dùng browser pipeline trace. Source scan listener/layout read chỉ là inventory cho tới khi
+   gắn được với interaction tái hiện.
+6. **Retained/hidden UI:** phân loại `cheap`, `expensive but justified`, `owner candidate` hoặc
+   `NEEDS_PROFILER_EVIDENCE`; cấm global KeepAlive removal. Memoization, virtualization, debounce, layer promotion,
+   motion removal hoặc skeleton/min-height chỉ hợp lệ khi before evidence chỉ đúng owner và after đo cùng điều kiện.
+7. **Manifest:** content-sensitive source identity, DEV/preview mode, browser/version, viewport/throttle,
+   route/view/state/action, preload state, repeats, probe flags, errors và bounded verdict. Runner success không là
+   interaction PASS; screenshot không chứng minh frame/commit/paint cost.
+
+Mỗi optimization package phải có red-capable interaction oracle, before/after distribution, control-route check,
+focused correctness/accessibility regression và rollback nếu improvement không material hoặc làm metric khác xấu đi.
+
 ## Visual composition oracle
 
 Screenshot được dùng để phát hiện candidate defect, sau đó phải chuyển thành DOM measurement. Với route/layout

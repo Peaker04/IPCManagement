@@ -46,13 +46,15 @@ export function AdminQueryBoundary({ queries, children, loadingFallback, minHeig
 
   return (
     <div className={cn('relative grid', minHeight)}>
-      <div className="relative z-10 col-start-1 row-start-1">
-        {blocking
-          ? <BlockingAdminState entry={blocking} loadingFallback={loadingFallback} />
-          : refreshingLabels.length > 0
-            ? <RefreshStatus ariaLabel={`Đang cập nhật ${refreshingLabels.join(', ')}`}>Đang cập nhật dữ liệu quản trị</RefreshStatus>
-            : null}
-      </div>
+      {blocking ? (
+        <div className="relative z-10 col-start-1 row-start-1">
+          <BlockingAdminState entry={blocking} loadingFallback={loadingFallback} />
+        </div>
+      ) : refreshingLabels.length > 0 ? (
+        <div className="pointer-events-none relative z-10 col-start-1 row-start-1">
+          <RefreshStatus ariaLabel={`Đang cập nhật ${refreshingLabels.join(', ')}`}>Đang cập nhật dữ liệu quản trị</RefreshStatus>
+        </div>
+      ) : null}
       <div
         className={cn('col-start-1 row-start-1', blocking && 'invisible')}
         inert={Boolean(blocking) || undefined}

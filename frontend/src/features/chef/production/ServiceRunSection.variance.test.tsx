@@ -47,6 +47,7 @@ vi.mock('../chefApi', () => {
 import { ServiceRunSection } from './ServiceRunSection'
 
 const plans = [{ planId: 'plan-1', planCode: 'KHSX-01', lines: [{ shiftName: 'MORNING' }] }]
+const twoPlans = [...plans, { planId: 'plan-2', planCode: 'KHSX-02', lines: [{ shiftName: 'MORNING' }] }]
 const exactScope = { customerId: 'customer-1', serviceDate: '2026-08-12', shiftName: 'MORNING', priceTierAmount: 25000 }
 const resolved = () => ({ unwrap: () => Promise.resolve(run) })
 
@@ -61,11 +62,30 @@ describe('ServiceRun variance controls', () => {
     mocks.scopeQueries = []
   })
 
+  it('keeps validation IDs and focus scoped to the submitted Service Run card', async () => {
+    render(<ServiceRunSection plans={twoPlans as never[]} shiftName="MORNING" />)
+    const submitButtons = screen.getAllByRole('button', { name: 'Gửi khai báo ngoại lệ' })
+    const trackFields = screen.getAllByLabelText('Phạm vi ngoại lệ')
+
+    fireEvent.click(submitButtons[1])
+
+    expect(await screen.findByText('Chọn phạm vi ngoại lệ.')).toBeInTheDocument()
+    await waitFor(() => expect(trackFields[1]).toHaveFocus())
+    expect(trackFields[0]).not.toHaveFocus()
+    expect(trackFields[0].id).not.toBe(trackFields[1].id)
+    expect(trackFields[1]).toHaveAttribute('aria-describedby', `${trackFields[1].id}-error`)
+  })
+
   it('lets a Manager select user-labelled ingredients without typing technical source IDs', async () => {
     render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)
     expect(screen.getByRole('group', { name: 'Khai báo ngoại lệ Ca phục vụ' })).toBeInTheDocument()
     expect(screen.queryByRole('group', { name: 'Phê duyệt miễn xác nhận ngoại lệ' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Gửi khai báo ngoại lệ' })).toBeDisabled()
+    const declareButton = screen.getByRole('button', { name: 'Gửi khai báo ngoại lệ' })
+    expect(declareButton).toBeEnabled()
+    fireEvent.click(declareButton)
+    expect(await screen.findByText('Chọn phạm vi ngoại lệ.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText('Phạm vi ngoại lệ')).toHaveFocus())
+    expect(mocks.declare).not.toHaveBeenCalled()
 
     fireEvent.change(screen.getByLabelText('Phạm vi ngoại lệ'), { target: { value: 'RECONCILIATION' } })
     expect(screen.queryByLabelText('Dòng chứng từ liên quan')).not.toBeInTheDocument()
@@ -119,7 +139,12 @@ describe('ServiceRun variance controls', () => {
     render(<ServiceRunSection plans={plans as never[]} shiftName="MORNING" />)
     expect(screen.queryByRole('group', { name: 'Khai báo ngoại lệ Ca phục vụ' })).not.toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Phê duyệt miễn xác nhận ngoại lệ' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Phê duyệt miễn xác nhận' })).toBeDisabled()
+    const approveButton = screen.getByRole('button', { name: 'Phê duyệt miễn xác nhận' })
+    expect(approveButton).toBeEnabled()
+    fireEvent.click(approveButton)
+    expect(await screen.findByText('Chọn khai báo chờ duyệt.')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByLabelText('Khai báo chờ duyệt')).toHaveFocus())
+    expect(mocks.approve).not.toHaveBeenCalled()
 
     expect(screen.queryByLabelText('Mã tham chiếu khai báo')).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('Khai báo chờ duyệt'), { target: { value: 'declaration-1' } })

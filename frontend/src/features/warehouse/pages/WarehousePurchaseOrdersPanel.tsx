@@ -18,6 +18,7 @@ interface WarehousePurchaseOrdersPanelProps {
   pageSize: number;
   totalItems: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   onOpenBatchReceipt: () => void;
 }
 
@@ -34,6 +35,7 @@ export function WarehousePurchaseOrdersPanel({
   pageSize,
   totalItems,
   onPageChange,
+  onPageSizeChange,
   onOpenBatchReceipt,
 }: WarehousePurchaseOrdersPanelProps) {
   return (
@@ -114,7 +116,7 @@ export function WarehousePurchaseOrdersPanel({
       </tbody>
     </table>
   </TableViewport>
-  <PaginationBar page={pageNumber} pageSize={pageSize} totalItems={totalItems} onPageChange={onPageChange} />
+  <PaginationBar page={pageNumber} pageSize={pageSize} totalItems={totalItems} pageSizeOptions={[8, 20, 50]} onPageSizeChange={onPageSizeChange} onPageChange={onPageChange} />
 
   {selectedPurchaseOrder && (
     <div className="mt-4 rounded-sm border border-slate-300 bg-slate-50 p-3">

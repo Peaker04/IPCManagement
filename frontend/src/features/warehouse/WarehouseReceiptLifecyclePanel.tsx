@@ -24,7 +24,6 @@ type ReceiptAction = 'quality' | 'post' | 'rework' | 'void' | 'correction';
 const WarehouseReceiptLifecycleDialogs = lazy(() => import('./WarehouseReceiptLifecycleDialogs').then(({ WarehouseReceiptLifecycleDialogs: component }) => ({ default: component })));
 
 const commandId = (prefix: string) => `${prefix}-${crypto.randomUUID()}`;
-const RECEIPT_PAGE_SIZE = 20;
 
 const messageFromError = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -49,7 +48,8 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
   const canCorrect = canPost;
   const canVoid = canPost;
   const [receiptPageNumber, setReceiptPageNumber] = useState(1);
-  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ purchaseOrderId, pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE, purchaseOrderOnly: true });
+  const [receiptPageSize, setReceiptPageSize] = useState(20);
+  const { data: receiptPage, isError, isFetching, refetch } = useGetInventoryReceiptsQuery({ purchaseOrderId, pageNumber: receiptPageNumber, pageSize: receiptPageSize, purchaseOrderOnly: true });
   const [qualityOpen, setQualityOpen] = useState(false);
   const [postOpen, setPostOpen] = useState(false);
   const [reworkOpen, setReworkOpen] = useState(false);
@@ -266,8 +266,15 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
       {!isError && (
         <PaginationBar
           page={receiptPage?.pageNumber ?? receiptPageNumber}
-          pageSize={receiptPage?.pageSize ?? RECEIPT_PAGE_SIZE}
+          pageSize={receiptPage?.pageSize ?? receiptPageSize}
           totalItems={receiptPage?.totalCount ?? 0}
+          pageSizeOptions={[10, 20, 50]}
+          onPageSizeChange={(nextSize) => {
+            setReceiptPageSize(nextSize);
+            setReceiptPageNumber(1);
+            onSelectReceipt(undefined);
+            setFeedback(undefined);
+          }}
           onPageChange={(page) => {
             setReceiptPageNumber(page);
             onSelectReceipt(undefined);
@@ -300,7 +307,7 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
             <ul className="grid max-h-72 gap-1 overflow-y-auto p-2 text-xs text-slate-700" aria-label="Danh sách dòng nguyên liệu">
               {receipt.lines.map((line) => <li key={line.receiptLineId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-sm border border-slate-200 px-3 py-2">
                 <div className="min-w-0">
-                  <strong className="block truncate text-slate-900" title={line.ingredientName ?? line.ingredientId}>{line.ingredientName ?? line.ingredientId}</strong>
+                  <strong className="block truncate text-slate-900" title={line.ingredientName ?? 'Chưa có tên nguyên liệu'}>{line.ingredientName ?? 'Chưa có tên nguyên liệu'}</strong>
                   {line.qualityReason && <span className="mt-0.5 block text-amber-800" title={line.qualityReason}>Lý do: {line.qualityReason}</span>}
                 </div>
                 <div className="text-right leading-5 tabular-nums">

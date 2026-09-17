@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type InputHTMLAttributes, type ReactNode } from 'react';
+import { useDeferredValue, useState } from 'react';
 import { Settings, Plus, Edit2, Trash2, Shield, Layers } from 'lucide-react';
 import {
   OperationalFrame,
@@ -17,6 +17,9 @@ import type { ApprovalAssignmentDto, ApprovalRuleDto, ApprovalRuleRequestDto } f
 import { useGetAdminEmployeesQuery, type AdminEmployee } from '@/features/admin/adminApi';
 import { formatCurrency } from '@/lib/formatters';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toQueryView } from '@/lib/queryView';
 
 interface RuleAssignmentForm {
@@ -26,46 +29,6 @@ interface RuleAssignmentForm {
 
 const EMPTY_APPROVER_USER_VALUE = '__empty_approver_user__';
 const fieldClassName = 'flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
-const Input = (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} className={`${fieldClassName} ${props.className ?? ''}`} />;
-const Checkbox = ({ checked, onCheckedChange, ...props }: Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> & { onCheckedChange: (checked: boolean) => void }) => (
-  <input {...props} type="checkbox" checked={checked} onChange={(event) => onCheckedChange(event.target.checked)} className="size-4 shrink-0 accent-primary" />
-);
-const Dialog = ({ children, open, onOpenChange }: { children: ReactNode; open: boolean; onOpenChange: (open: boolean) => void }) => {
-  const ownerRef = useRef<HTMLDivElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    if (!open) return;
-    returnFocusRef.current = document.activeElement as HTMLElement | null;
-    const owner = ownerRef.current;
-    const focusTarget = owner?.querySelector<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])');
-    focusTarget?.focus();
-    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      onOpenChange(false);
-    };
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape);
-      returnFocusRef.current?.focus();
-    };
-  }, [open, onOpenChange]);
-  const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Escape') { event.preventDefault(); onOpenChange(false); return; }
-    if (event.key !== 'Tab') return;
-    const focusable = [...(ownerRef.current?.querySelectorAll<HTMLElement>('input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])') ?? [])];
-    if (!focusable.length) return;
-    const first = focusable[0]; const last = focusable.at(-1)!;
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-  };
-  return <div ref={ownerRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onKeyDown={onKeyDown}>{children}</div>;
-};
-const DialogContent = ({ children, className = '', ...props }: { children: ReactNode; className?: string; 'aria-label'?: string }) => <div role="dialog" aria-modal="true" {...props} className={`w-full rounded-lg border border-border bg-background p-6 shadow-lg ${className}`}>{children}</div>;
-const DialogHeader = ({ children }: { children: ReactNode }) => <header className="space-y-1.5">{children}</header>;
-const DialogTitle = ({ children }: { children: ReactNode }) => <h2 className="text-lg font-semibold">{children}</h2>;
-const DialogDescription = ({ children }: { children: ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
-const DialogFooter = ({ children, className = '' }: { children: ReactNode; className?: string }) => <footer className={`mt-4 flex justify-end ${className}`}>{children}</footer>;
 
 const formatMutationError = (error: unknown) => {
   const candidate = error as {
@@ -101,6 +64,8 @@ const formatApproverRole = (value: string) => approverRoleLabels[value] ?? value
 export default function ApprovalRulesPage() {
   const { toast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const deferredEmployeeSearch = useDeferredValue(employeeSearch);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [ruleNameError, setRuleNameError] = useState<{ title: string; message: string } | null>(null);
@@ -126,7 +91,7 @@ export default function ApprovalRulesPage() {
   });
   const rules = rulesView.phase === 'ready' ? rulesView.data.data ?? [] : [];
 
-  const employeesQuery = useGetAdminEmployeesQuery({ pageNumber: 1, pageSize: 200 }, { skip: !isModalOpen });
+  const employeesQuery = useGetAdminEmployeesQuery({ pageNumber: 1, pageSize: 50, searchKeyword: deferredEmployeeSearch.trim() || undefined }, { skip: !isModalOpen });
   const employeesView = toQueryView(employeesQuery, {
     instruction: 'Mở biểu mẫu quy tắc để tải danh sách nhân viên.',
     retry: () => employeesQuery.refetch(),
@@ -147,6 +112,7 @@ export default function ApprovalRulesPage() {
 
   const handleOpenCreate = () => {
     setRuleNameError(null);
+    setEmployeeSearch('');
     setSaveError(null);
     setEditingRuleId(null);
     setRuleName('');
@@ -163,6 +129,7 @@ export default function ApprovalRulesPage() {
     if (!rule.ruleId) return;
 
     setRuleNameError(null);
+    setEmployeeSearch('');
     setSaveError(null);
     setEditingRuleId(rule.ruleId);
     setRuleName(rule.ruleName);
@@ -385,7 +352,7 @@ export default function ApprovalRulesPage() {
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent
             aria-label={editingRuleId ? 'Cập nhật quy tắc duyệt' : 'Tạo quy tắc duyệt mới'}
-            className="max-w-2xl overflow-y-auto max-h-[85vh]"
+            size="lg"
           >
             <DialogHeader>
               <DialogTitle>{editingRuleId ? 'Cập nhật quy tắc duyệt' : 'Tạo quy tắc duyệt mới'}</DialogTitle>
@@ -416,8 +383,8 @@ export default function ApprovalRulesPage() {
                   )}
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Loại chứng từ</label>
-                  <select value={documentType} onChange={(event) => setDocumentType(event.target.value)} className={fieldClassName}>
+                  <label htmlFor="approval-rule-document-type" className="text-xs font-semibold text-slate-600">Loại chứng từ</label>
+                  <select id="approval-rule-document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} className={fieldClassName}>
                     {approvalDocumentOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </div>
@@ -425,21 +392,21 @@ export default function ApprovalRulesPage() {
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Giá trị từ (VNĐ)</label>
-                  <Input type="number" value={minAmount} onChange={e => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không giới hạn" />
+                  <label htmlFor="approval-rule-min-amount" className="text-xs font-semibold text-slate-600">Giá trị từ (VNĐ)</label>
+                  <Input id="approval-rule-min-amount" type="number" value={minAmount} onChange={e => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không giới hạn" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Đến giá trị (VNĐ)</label>
-                  <Input type="number" value={maxAmount} onChange={e => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không giới hạn" />
+                  <label htmlFor="approval-rule-max-amount" className="text-xs font-semibold text-slate-600">Đến giá trị (VNĐ)</label>
+                  <Input id="approval-rule-max-amount" type="number" value={maxAmount} onChange={e => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Không giới hạn" />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-600">Thời hạn xử lý (giờ)</label>
-                  <Input type="number" value={slaHours} onChange={e => setSlaHours(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Mặc định: 24" />
+                  <label htmlFor="approval-rule-sla-hours" className="text-xs font-semibold text-slate-600">Thời hạn xử lý (giờ)</label>
+                  <Input id="approval-rule-sla-hours" type="number" value={slaHours} onChange={e => setSlaHours(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Mặc định: 24" />
                 </div>
               </div>
 
               <label className="flex items-center gap-2 py-1 cursor-pointer">
-                <Checkbox id="rule-active-chk" checked={isActive} onCheckedChange={checked => setIsActive(checked === true)} />
+                <Checkbox id="rule-active-chk" checked={isActive} onCheckedChange={(checked) => setIsActive(checked === true)} />
                 <span className="text-xs font-semibold text-slate-700">Đang áp dụng quy tắc này</span>
               </label>
 
@@ -479,10 +446,20 @@ export default function ApprovalRulesPage() {
                 ) : employeesView.phase === 'ready' ? (
                   <>
                     {employeesView.truncation && (
-                      <InlineAlert title="Danh sách nhân viên bị giới hạn" variant="warning">
-                        Đang hiển thị {employeesView.truncation.shown}/{employeesView.truncation.total ?? '?'} nhân viên.
+                      <InlineAlert title="Tìm nhân viên theo tên hoặc tài khoản" variant="info">
+                        Danh sách có {employeesView.truncation.total ?? '?'} nhân viên. Nhập từ khóa để tìm ngoài {employeesView.truncation.shown} kết quả đang hiển thị.
                       </InlineAlert>
                     )}
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600" htmlFor="approval-rule-employee-search">
+                      Tìm nhân viên chỉ định
+                      <Input
+                        id="approval-rule-employee-search"
+                        type="search"
+                        value={employeeSearch}
+                        onChange={(event) => setEmployeeSearch(event.target.value)}
+                        placeholder="Tên hoặc tài khoản"
+                      />
+                    </label>
                   </>
                 ) : null}
 
@@ -493,15 +470,16 @@ export default function ApprovalRulesPage() {
                       
                       <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-600">Vai trò phê duyệt</label>
-                          <select value={assignment.approverRole} onChange={(event) => handleAssignmentChange(idx, 'approverRole', event.target.value)} className={`${fieldClassName} h-8 text-xs`}>
+                          <label htmlFor={`approval-rule-role-${idx}`} className="text-xs font-semibold text-slate-600">Vai trò phê duyệt</label>
+                          <select id={`approval-rule-role-${idx}`} value={assignment.approverRole} onChange={(event) => handleAssignmentChange(idx, 'approverRole', event.target.value)} className={`${fieldClassName} h-8 text-xs`}>
                             {approverRoleOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                           </select>
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-xs font-semibold text-slate-600">Nhân viên chỉ định (Tùy chọn)</label>
+                          <label htmlFor={`approval-rule-user-${idx}`} className="text-xs font-semibold text-slate-600">Nhân viên chỉ định (Tùy chọn)</label>
                           <select
+                            id={`approval-rule-user-${idx}`}
                             value={assignment.approverUserId || EMPTY_APPROVER_USER_VALUE}
                             onChange={(event) => handleAssignmentChange(idx, 'approverUserId', event.target.value === EMPTY_APPROVER_USER_VALUE ? '' : event.target.value)}
                             disabled={employeesView.phase !== 'ready'}
@@ -519,7 +497,7 @@ export default function ApprovalRulesPage() {
                         <Checkbox
                           id={`req-chk-${idx}`}
                           checked={assignment.isRequired}
-                          onCheckedChange={checked => handleAssignmentChange(idx, 'isRequired', checked === true)}
+                          onCheckedChange={(checked) => handleAssignmentChange(idx, 'isRequired', checked === true)}
                         />
                         <label htmlFor={`req-chk-${idx}`} className="text-xs font-medium text-slate-600 cursor-pointer">Bắt buộc</label>
                       </div>

@@ -204,7 +204,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
       }))
       setFeedback({
         title: 'Đã ghi nhận chốt đơn cả ngày',
-        message: `Backend đã khóa ${response.data.lockedLineCount} dòng kế hoạch thuộc ${response.data.lockedShiftNames.length} ca.`,
+        message: `Hệ thống đã khóa ${response.data.lockedLineCount} dòng kế hoạch thuộc ${response.data.lockedShiftNames.length} ca.`,
         variant: 'info',
       })
       setConfirmationAction(null)
@@ -240,7 +240,7 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
 
       const report = (await reportResponse.json()) as ReportRowsResponse
       if (!report.success || !report.data) {
-        throw new Error(report.message || 'Backend chưa trả dữ liệu báo cáo hợp lệ.')
+        throw new Error(report.message || 'Hệ thống chưa trả dữ liệu báo cáo hợp lệ.')
       }
 
       // Log audit entry for export

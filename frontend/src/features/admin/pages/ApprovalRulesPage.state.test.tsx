@@ -161,8 +161,9 @@ describe('ApprovalRulesPage query state boundary', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
 
-    expect(screen.getByText('Danh sách nhân viên bị giới hạn')).toBeInTheDocument();
-    expect(screen.getByText(/1\/201 nhân viên/)).toBeInTheDocument();
+    expect(screen.getByText('Tìm nhân viên theo tên hoặc tài khoản')).toBeInTheDocument();
+    expect(screen.getByText(/201 nhân viên/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Tìm nhân viên chỉ định')).toBeInTheDocument();
   });
 
   it('renders document, role, and employee labels in closed select triggers', async () => {

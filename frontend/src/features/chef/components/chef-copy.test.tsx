@@ -146,6 +146,25 @@ describe('Chef operational copy', () => {
     await waitFor(() => expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true, false, ''));
   });
 
+  it('keeps signoff available and focuses a missing discrepancy explanation', async () => {
+    const onMaterialSignoff = vi.fn().mockResolvedValue(true);
+    render(<MaterialChecklist materials={[
+      { id: 'line-1', name: 'Gạo', unit: 'kg', quantity: 2, status: 'Chờ giao', signed: false, issueId: 'issue-1', issueCode: 'ISS-001' },
+    ]} onMaterialSignoff={onMaterialSignoff} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nhận' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nhận nguyên liệu này' }));
+    fireEvent.click(screen.getByText('Có chênh lệch khi nhận'));
+    const submit = screen.getByRole('button', { name: 'Ký nhận toàn bộ phiếu' });
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+
+    const note = screen.getByPlaceholderText('Nêu dòng nguyên liệu, số thực nhận hoặc tình trạng hàng');
+    await waitFor(() => expect(note).toHaveFocus());
+    expect(note).toHaveAttribute('aria-invalid', 'true');
+    expect(onMaterialSignoff).not.toHaveBeenCalled();
+  });
+
   it('keeps all lines and discrepancy input open when whole-issue receipt fails', async () => {
     const onMaterialSignoff = vi.fn().mockResolvedValue(false);
     render(<MaterialChecklist materials={[

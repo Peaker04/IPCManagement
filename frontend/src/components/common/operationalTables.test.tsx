@@ -120,17 +120,28 @@ describe("DemandSummary", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("composes material/source and quantity flow without losing facts", () => {
+    const physicalLine = { ...demandLines[0], projection: 'physical-handoff' as const, issuedQty: 4, remainingToIssueQty: 6 };
+    render(<DemandSummary lines={[physicalLine]} showServiceDate />);
+
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getByRole('columnheader', { name: 'Nguyên liệu / Nguồn' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Bàn giao' })).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === 'Đã xuất: 4 kg')).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.textContent === 'Chưa xuất: 6 kg')).toBeInTheDocument();
+  });
+
   it("supports a page-specific source column label without changing the default", () => {
     const { rerender } = render(
       <DemandSummary lines={demandLines} sourceLabel="Món ăn" />,
     );
     expect(
-      screen.getByRole("columnheader", { name: "Món ăn" }),
+      screen.getByRole("columnheader", { name: "Nguyên liệu / Món ăn" }),
     ).toBeInTheDocument();
 
     rerender(<DemandSummary lines={demandLines} />);
     expect(
-      screen.getByRole("columnheader", { name: "Nguồn" }),
+      screen.getByRole("columnheader", { name: "Nguyên liệu / Nguồn" }),
     ).toBeInTheDocument();
   });
 
@@ -229,7 +240,7 @@ describe("ApprovalQueue", () => {
       />,
     );
 
-    const table = screen.getByRole("table", { name: "Danh sách chứng từ cần duyệt" });
+    const table = screen.getByRole("table", { name: "Bảng chứng từ cần duyệt" });
     expect(table).toBeInTheDocument();
     expect(screen.getAllByRole("columnheader")).toHaveLength(7);
     expect(screen.getByRole("columnheader", { name: "Chứng từ" })).toHaveAttribute("scope", "col");

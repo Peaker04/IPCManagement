@@ -384,6 +384,26 @@ html { scrollbar-gutter: stable; }
   request khi quay lại cache còn hạn, skeleton count lúc refetch, container delta, request khi modal mở,
   request sau một mutation, request khi tab ẩn và số row render lại. Không đo được phải ghi
   `NEEDS_EVIDENCE`, không kết luận bằng cảm nhận hoặc screenshot.
+- **F25 (MUST)** Lớp trạng thái query chồng cùng grid cell với nội dung chỉ được tồn tại khi thật sự
+  có trạng thái cần hiển thị. Feedback refresh không chặn thao tác phải dùng `pointer-events: none`;
+  lớp rỗng hoặc lớp chỉ báo refresh không được chiếm hit-test của control bên dưới.
+- **F26 (MUST)** Effect đồng bộ query result với URL phải so sánh URL chuẩn hóa trước khi gọi navigation.
+  Không gọi `setSearchParams`/`navigate` cho URL không đổi; background refetch không được tạo vòng
+  navigation → render → navigation làm khóa main thread.
+- **F27 (MUST)** Shared modal stack phải tự phục hồi khi portal bị tháo ngoài cleanup thông thường
+  (route transition, lazy/error boundary hoặc HMR). Khi không còn portal sống, `inert` trên app shell
+  và modal scroll lock phải được giải phóng; không để lại trang chỉ cuộn được nhưng mất click/focus.
+- **F28 (MUST)** Tối ưu interaction fluidity phải có cùng một interaction cell ở DEV và production preview,
+  tách cold compile/warm navigation/application work, và ghi event phases cùng frame/LoAF distribution khi hỗ trợ.
+  DEV-only trace, FPS đơn, source inventory hoặc screenshot không được authorize memoization, virtualization,
+  debounce, layer promotion, motion removal hay thay architecture production.
+- **F29 (MUST)** Workbench detail rail phụ thuộc collection bất đồng bộ không được mount như một vùng rỗng
+  rồi bị đẩy xuống khi list/card sẵn sàng. Hoãn rail cho tới khi collection owner ổn định hoặc giữ nội dung cũ;
+  không dùng page-size `min-height` hay khoảng trắng cố định để che CLS.
+- **F30 (MUST)** Khi hai async section xếp dọc độc lập, section phụ có first-page expansion lớn không được mount
+  compact phía trên rồi đẩy section chính đã hiển thị. Đặt owner chính ổn định trước; trong initial load của section
+  phụ dùng live status `sr-only` hoặc slot không có geometry, sau đó mount content thật. Không dự trữ page-size
+  whitespace và phải đo lại CLS bằng dữ liệu tự nhiên.
 
 ---
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ContextStrip, OperationalFrame } from '@/components/common';
 import { AdminContractsPanel } from './AdminContractsPanel';
@@ -35,6 +35,7 @@ function createMockContractsModel(overrides?: Partial<AdminDataPageModel>): Admi
 
   return {
     contractFeedback: null,
+    contractFieldErrors: {},
     contractForm: {
       customerCode: 'KH-01',
       customerName: 'Nhà máy An Bình',
@@ -105,8 +106,10 @@ describe('AdminContractsPanel presentation & information architecture', () => {
 
     // 3. Work surface controls and fields remain intact
     expect(screen.getByText('Khách hàng', { selector: 'label' })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Ca phục vụ \(cách nhau bằng dấu phẩy\)/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Ngày làm việc/i)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Ca phục vụ' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Ca sáng' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Ngày làm việc' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'T2' })).toBeInTheDocument();
     expect(screen.getByLabelText(/Đơn giá mặc định \/ mức BOM/i)).toBeInTheDocument();
 
     // 4. Contracts table and headers remain intact
@@ -115,6 +118,17 @@ describe('AdminContractsPanel presentation & information architecture', () => {
     expect(screen.getByRole('columnheader', { name: 'Đơn giá' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /Nhà máy An Bình/i })).toBeInTheDocument();
+  });
+
+  it('associates and focuses the first field-local contract error', async () => {
+    render(<AdminContractsPanel model={createMockContractsModel({
+      contractFieldErrors: { activeWeekDays: 'Chọn ít nhất một ngày làm việc.' },
+    } as Partial<AdminDataPageModel>)} />);
+
+    const days = screen.getByRole('group', { name: 'Ngày làm việc' });
+    expect(days).toHaveAttribute('aria-invalid', 'true');
+    expect(days).toHaveAccessibleDescription('Chọn ít nhất một ngày làm việc.');
+    await waitFor(() => expect(days).toHaveFocus());
   });
 
   it('keeps contracts work section clean of internal ContextStrip in isolated panel mount', () => {

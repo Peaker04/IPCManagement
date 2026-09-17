@@ -9,7 +9,7 @@ import { AdminQueryBoundary } from './AdminQueryBoundary';
 type AdminInventoryPanelProps = { model: AdminDataPageModel };
 
 export function AdminInventoryPanel({ model }: AdminInventoryPanelProps) {
-  const { adjustmentMovements, currentStockPage, currentStockPageResponse, currentStockRows, effectiveActiveView, inventoryMovementSearch, queryViews, setCurrentStockPage, setInventoryMovementSearch, setStockMovementCursors, stockMovementCursors, stockMovementResult } = model;
+  const { adjustmentMovements, currentStockPage, currentStockPageSize, currentStockPageResponse, currentStockRows, effectiveActiveView, inventoryMovementSearch, queryViews, setCurrentStockPage, setCurrentStockPageSize, setInventoryMovementSearch, setStockMovementCursors, stockMovementCursors, stockMovementResult } = model;
   return (
     <KeepAliveTabPanel id="admin-inventory" active={effectiveActiveView === 'inventory'} className="flex flex-col gap-4">
       <SectionPanel title="Tồn kho hiện tại">
@@ -38,8 +38,10 @@ export function AdminInventoryPanel({ model }: AdminInventoryPanelProps) {
           </PaginatedTableFrame>
           <PaginationBar
             page={currentStockPageResponse?.pageNumber ?? currentStockPage}
-            pageSize={currentStockPageResponse?.pageSize ?? 8}
+            pageSize={currentStockPageResponse?.pageSize ?? currentStockPageSize}
             totalItems={currentStockPageResponse?.totalCount ?? 0}
+            pageSizeOptions={[8, 20, 50]}
+            onPageSizeChange={(nextSize) => { setCurrentStockPageSize(nextSize); setCurrentStockPage(1); }}
             onPageChange={setCurrentStockPage}
           />
         </AdminQueryBoundary>

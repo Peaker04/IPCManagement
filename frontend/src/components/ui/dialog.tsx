@@ -106,7 +106,24 @@ interface DialogEntry {
 }
 
 let activeDialogs: DialogEntry[] = []
+const orphanedDialogIds = new Set<string>()
+let dialogPortalObserver: MutationObserver | null = null
 const dialogListeners = new Set<() => void>()
+
+function stopDialogPortalObserver() {
+  dialogPortalObserver?.disconnect()
+  dialogPortalObserver = null
+}
+
+function ensureDialogPortalObserver() {
+  if (typeof document === "undefined" || dialogPortalObserver) return
+  dialogPortalObserver = new MutationObserver(() => {
+    if (activeDialogs.some(({ portalRoot }) => portalRoot && !portalRoot.isConnected)) {
+      syncInertState()
+    }
+  })
+  dialogPortalObserver.observe(document.body, { childList: true })
+}
 
 function subscribeDialogStack(listener: () => void) {
   dialogListeners.add(listener)
@@ -126,18 +143,34 @@ function registerDialogEntry(id: string, portalRoot: HTMLElement | null) {
   } else {
     activeDialogs.push({ id, portalRoot })
   }
+  ensureDialogPortalObserver()
   notifyDialogStack()
   syncInertState()
 }
 
 function unregisterDialogEntry(id: string) {
   activeDialogs = activeDialogs.filter((d) => d.id !== id)
+  if (activeDialogs.length === 0) stopDialogPortalObserver()
   notifyDialogStack()
   syncInertState()
 }
 
 function syncInertState() {
   if (typeof document === "undefined") return
+
+  const connectedDialogs: DialogEntry[] = []
+  for (const entry of activeDialogs) {
+    if (entry.portalRoot?.isConnected) {
+      connectedDialogs.push(entry)
+    } else {
+      orphanedDialogIds.add(entry.id)
+      unlockBodyScroll()
+    }
+  }
+  const previousDialogCount = activeDialogs.length
+  activeDialogs = connectedDialogs
+  if (activeDialogs.length !== previousDialogCount) notifyDialogStack()
+  if (activeDialogs.length === 0) stopDialogPortalObserver()
 
   const hasOpenDialogs = activeDialogs.length > 0
   const topDialog = activeDialogs.length > 0 ? activeDialogs[activeDialogs.length - 1] : null
@@ -240,7 +273,9 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
 
     return () => {
       unregisterDialogEntry(portalId)
-      unlockBodyScroll()
+      if (!orphanedDialogIds.delete(portalId)) {
+        unlockBodyScroll()
+      }
       openerRef.current?.focus()
       openerRef.current = null
     }

@@ -4,6 +4,7 @@ import { CheckCircle2 } from 'lucide-react'
 import { EmptyState, IdentifierText, OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerBody, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDateOnly, formatQuantity, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
@@ -354,9 +355,10 @@ export default function ReconciliationPage() {
         <DialogFooter><Button type="button" variant="outline" disabled={isCompletionPending || isRefreshingCompletion} onClick={() => void refreshCompletion()}>{isRefreshingCompletion ? 'Đang tải lại...' : 'Tải lại dữ liệu'}</Button><Button type="button" variant="outline" onClick={closeCompletion}>Hủy</Button><Button type="button" disabled={isCompletionPending || isRefreshingCompletion || completionVersion == null} onClick={() => void complete()}>{isCompletionPending ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
-    <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
-      <DialogContent aria-label="Chi tiết nguyên liệu" size="md">
-        <DialogHeader><DialogTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DialogTitle></DialogHeader>
+    <Drawer open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
+      <DrawerContent aria-label="Chi tiết nguyên liệu">
+        <DrawerHeader><DrawerTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DrawerTitle></DrawerHeader>
+        <DrawerBody>
         {detailLine && <>
           <dl className="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-5 gap-y-2.5 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
             <dt className="text-slate-600">Mã nguyên liệu</dt>
@@ -402,12 +404,11 @@ export default function ReconciliationPage() {
             <dt className="text-slate-400 text-xs pt-1 border-t border-slate-200">ID dòng lô</dt>
             <dd className="min-w-0 text-xs text-slate-500 pt-1 border-t border-slate-200"><IdentifierText value={detailLine.batchLineId} /></dd>
           </dl>
-          <div className="mt-5 flex justify-end">
-            <Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button>
-          </div>
         </>}
-      </DialogContent>
-    </Dialog>
+        </DrawerBody>
+        <DrawerFooter><Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button></DrawerFooter>
+      </DrawerContent>
+    </Drawer>
     {disposingLine && <ReconciliationDispositionDrawer line={disposingLine} onClose={() => setDisposingLine(undefined)} onRefetch={() => batchQuery.refetch()} />}
     {bulkDispositionOpen && <ReconciliationDispositionDrawer lines={actionableLines} onClose={() => setBulkDispositionOpen(false)} onRefetch={() => batchQuery.refetch()} />}
   </OperationalFrame>
