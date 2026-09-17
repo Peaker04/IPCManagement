@@ -9,6 +9,19 @@ extracted_from: ../../MEMORY.md
 
 > Contract này được extract nguyên nghĩa từ working memory ngày 08/09/2026. Source/runtime có thể phát hiện implementation lệch contract nhưng không tự thay đổi expected behavior. Mọi thay đổi nghiệp vụ cần owner decision và cập nhật tài liệu này trong cùng task.
 
+## PLANNED BUSINESS CHANGE — daily issue and kitchen export · 17/09/2026
+
+The next implementation campaign is owned by `.planning/notes/MRX-DAILY-ISSUE-KITCHEN-EXPORT-PLAN.md`. Owner decisions:
+
+- Warehouse issue is changing from one weekly initial issue to independent issue transactions per service date.
+- UI provides `Tất cả | Thứ 2 … Chủ nhật`; `Tất cả` is overview-only and cannot submit an issue.
+- Daily and weekly statuses must come from one backend ledger-derived projection. The active filter must never change weekly status.
+- Daily frozen authority requires durable `batch × serviceDate × ingredient × unit` lineage; do not simulate this by filtering weekly aggregate lines.
+- Kitchen cooking export is generated from frozen batch facts with servings, dish, ingredient, BOM-per-serving and total required quantity; it excludes IDs, versions, fingerprints, price and purchasing data.
+- Existing protected batches are not silently rewritten. Compatibility must be explicit and tested before migration.
+
+The sections below describe the current implemented contract and are the baseline to migrate from. Where the planned change conflicts with the current weekly-issue wording, the new checklist governs implementation only after its red gates and additive lineage design are approved in source/tests.
+
 ## BUSINESS CONTRACT HIỆN HÀNH — MATERIAL_RECONCILIATION · 04/09/2026
 
 > Đây là memory ưu tiên cao và là bản nghiệp vụ tự đủ phải được đọc trước mọi task liên quan MRX. Nó supersede mọi ghi chú lịch sử phía dưới nếu có mâu thuẫn, đặc biệt các câu cũ nói issued quantity không nhập tay, issue chỉ được tạo một lần hoặc shortage là hành vi dự kiến.
