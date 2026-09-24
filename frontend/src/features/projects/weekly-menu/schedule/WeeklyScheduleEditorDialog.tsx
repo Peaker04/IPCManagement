@@ -1,8 +1,8 @@
 import { X } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { TableViewport } from '@/components/common'
+import { TableViewport, TabContentSkeleton } from '@/components/common'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix'
@@ -14,11 +14,13 @@ export function WeeklyScheduleEditorDialog({
   workflow,
   servingRows = [],
   layoutRows,
+  isLoading = false,
   surface = 'dialog',
 }: {
   workflow: WeeklyScheduleEditorWorkflow
   servingRows?: QuickServingRow[]
   layoutRows?: ImportedLayoutRow[]
+  isLoading?: boolean
   surface?: 'dialog' | 'page'
 }) {
   const { scope, state, status, actions, presentation } = workflow
@@ -197,7 +199,7 @@ export function WeeklyScheduleEditorDialog({
   }
 
   const content = (
-      <DialogContent role={surface === 'page' ? 'region' : 'dialog'} aria-modal={surface === 'page' ? false : undefined} aria-label="Chỉnh sửa thực đơn tuần" className={surface === 'page' ? 'max-h-none max-w-none !overflow-visible !p-0 shadow-none' : 'ipc-weekly-dialog max-w-6xl !p-0 !overflow-hidden flex flex-col h-[85vh] max-h-[85vh]'}>
+      <DialogContent scrollMode={surface === 'page' ? 'content' : 'body'} role={surface === 'page' ? 'region' : 'dialog'} aria-modal={surface === 'page' ? false : undefined} aria-label="Chỉnh sửa thực đơn tuần" className={surface === 'page' ? 'max-h-none max-w-none !overflow-visible !p-0 shadow-none' : 'ipc-weekly-dialog max-w-6xl !p-0'}>
         {/* Header: Clean & minimal */}
         <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-200 bg-white px-6 py-3 shrink-0">
           <div>
@@ -210,7 +212,10 @@ export function WeeklyScheduleEditorDialog({
         </DialogHeader>
 
         {/* Scrollable Matrix Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-4 min-h-0">
+        <DialogBody aria-busy={isLoading || undefined} className={surface === 'page' ? 'flex-none overflow-visible px-6 py-4 flex flex-col gap-4' : 'px-6 py-4 flex flex-col gap-4'}>
+          {isLoading ? (
+            <TabContentSkeleton geometry="table" rows={10} columns={7} message="Đang tải lịch thực đơn tuần..." />
+          ) : <>
           {incompleteServingsCount > 0 && actions.completeAllQuickServings && (
             <div className="sticky top-0 z-30 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 shadow-sm">
               <span className="text-sm font-medium text-amber-900">Còn {incompleteServingsCount} ngày/ca chưa hoàn tất. Dùng “Lưu tất cả thay đổi” để lưu thực đơn và hoàn tất số suất.</span>
@@ -389,7 +394,8 @@ export function WeeklyScheduleEditorDialog({
               </label>
             </div>
           )}
-        </div>
+          </>}
+        </DialogBody>
 
         {/* Footer: Clean, flat, concise */}
         <DialogFooter className="!flex-row !items-center !justify-between border-t border-slate-200 bg-slate-50 px-6 py-3 shrink-0">

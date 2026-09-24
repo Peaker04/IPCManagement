@@ -16,6 +16,27 @@ const workflow = {
   presentation: { pendingChangeCount: 0, sections: [], getDishName: vi.fn(), isLocked: vi.fn(), getServiceDate: vi.fn(), getSlotServingInfo: vi.fn(), getLinePricing: vi.fn(), buildQuickServingRows: vi.fn(), getQuickServingRow: vi.fn() },
 } as unknown as WeeklyScheduleEditorWorkflow
 
+it('gives the matrix modal one primary vertical scroll owner', () => {
+  render(<WeeklyScheduleEditorDialog workflow={workflow} />)
+  const dialog = screen.getByRole('dialog', { name: 'Chỉnh sửa thực đơn tuần' })
+  const body = dialog.querySelector<HTMLElement>('[data-slot="dialog-body"]')
+  expect(dialog).toHaveAttribute('data-scroll-mode', 'body')
+  expect(dialog).toHaveClass('overflow-hidden')
+  expect(body).toHaveClass('overflow-y-auto', 'overscroll-contain')
+  expect(body).not.toContainElement(screen.getByRole('button', { name: 'Lưu tất cả thay đổi' }))
+  expect(dialog.querySelectorAll('.overflow-y-auto')).toHaveLength(1)
+})
+
+it('keeps the bounded shell stable while weekly data is loading', () => {
+  render(<WeeklyScheduleEditorDialog workflow={workflow} isLoading />)
+  const dialog = screen.getByRole('dialog', { name: 'Chỉnh sửa thực đơn tuần' })
+  const body = dialog.querySelector<HTMLElement>('[data-slot="dialog-body"]')
+  expect(body).toHaveAttribute('aria-busy', 'true')
+  expect(screen.getByRole('status')).toHaveTextContent('Đang tải lịch thực đơn tuần...')
+  expect(screen.queryByText('CA SÁNG')).not.toBeInTheDocument()
+  expect(dialog).toHaveClass('h-[calc(100dvh-2rem)]')
+})
+
 it('allows a completed day/shift serving count to be corrected before source freeze', () => {
   const { rerender } = render(<WeeklyScheduleEditorDialog workflow={workflow} servingRows={[{
     key: 'mon-morning', dayKey: 'mon', dayLabel: 'Thứ Hai', date: '31/08/2026', serviceDate: '2026-08-31', shiftName: 'MORNING', shiftLabel: 'Ca Sáng', quantityPlanIds: ['plan'], lines: [], currentServings: 800, importedServings: 800, inputValue: '800', hasPlanLines: true, hasDraftChange: false, isConfirmed: true, isCompleted: true, statusLabel: 'Đã hoàn tất',

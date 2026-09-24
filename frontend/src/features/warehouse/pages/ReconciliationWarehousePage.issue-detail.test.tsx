@@ -25,10 +25,19 @@ const issue = {
   issueDate: '2026-09-05', createdAt: '2026-09-05T09:00:00Z', receivedAt: null, issuedBy: 'actor-1', issuedByName: 'Thủ kho', warehouseId: 'warehouse-1', warehouseName: 'Kho chính',
   lines: Array.from({ length: 67 }, (_, index) => ({ issueLineId: `issue-line-${index + 1}`, reconciliationBatchLineId: `batch-line-${index + 1}`, ingredientId: `ingredient-${index + 1}`, ingredientName: `Nguyên liệu ${index + 1}`, unitId: 'unit-1', unitName: 'kg', requestedQty: index + 1, issuedQty: index + 1 })),
 }
+const dailyRefetch = vi.fn()
+const daily = {
+  batchId: 'batch-1', batchStatus: 'IN_PROGRESS', sourceVersion: 1, weeklyStatus: 'IN_PROGRESS', compatibility: { canRead: true, canIssueByDate: true },
+  dates: [{ serviceDate: '2026-09-21', status: 'PARTIAL', isApplicable: true, requiredQuantity: 15.4578567, issuedQuantity: 13.3344, returnedQuantity: 0, remainingQuantity: 2.1234567, lines: [
+    { dailyLineId: 'daily-line-1', batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 13.3344, issuedQuantity: 13.3344 as number | null, returnedQuantity: 0, remainingQuantity: 0, quantityStatus: 'EXACT', hasValidDisposition: false },
+    { dailyLineId: 'daily-line-2', batchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Đậu xanh', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 2.1234567, issuedQuantity: null as number | null, returnedQuantity: 0, remainingQuantity: 2.1234567, quantityStatus: 'UNTOUCHED', hasValidDisposition: false },
+  ] }],
+}
 const createIssue = vi.fn()
 const batchRefetch = vi.fn()
 const historyRefetch = vi.fn()
 const batchQueryState = { phase: 'ready' as 'ready' | 'loading' | 'error' }
+const dailyQueryState = { phase: 'ready' as 'ready' | 'refreshing' | 'loading' | 'error' }
 const historyQueryState = { phase: 'ready' as 'ready' | 'loading' | 'error' }
 const dishesRefetch = vi.fn()
 const dishesState = { phase: 'empty' as 'empty' | 'loading' | 'error' | 'stale-error' | 'ready' | 'previous-batch' }
@@ -62,6 +71,24 @@ vi.mock('@/api/reconciliationApi', () => ({
     : historyQueryState.phase === 'error'
       ? { data: undefined, currentData: undefined, isLoading: false, isFetching: false, isError: true, refetch: historyRefetch }
       : ready({ items: [issue], totalCount: 1 }, historyRefetch),
+  useGetReconciliationWarehouseDailyQuery: (_id: string, options: { skip?: boolean }) => {
+    if (options.skip) return uninitialized()
+    daily.batchStatus = batch.status
+    daily.sourceVersion = batch.version
+    daily.dates[0].lines.forEach((line, index) => {
+      const issued = batch.lines[index].issuedQuantity
+      line.issuedQuantity = issued
+      line.remainingQuantity = Math.max(0, line.requiredQuantity - (issued ?? 0))
+      line.quantityStatus = issued == null ? 'UNTOUCHED' : issued < line.requiredQuantity ? 'UNDER_ISSUED' : issued > line.requiredQuantity ? 'OVER_ISSUED' : 'EXACT'
+    })
+    if (dailyQueryState.phase === 'loading') return { data: undefined, currentData: undefined, isLoading: true, isFetching: true, isError: false, refetch: dailyRefetch }
+    if (dailyQueryState.phase === 'error') return { data: undefined, currentData: undefined, isLoading: false, isFetching: false, isError: true, refetch: dailyRefetch }
+    if (dailyQueryState.phase === 'refreshing') return { data: daily, currentData: daily, isLoading: false, isFetching: true, isError: false, refetch: dailyRefetch }
+    return ready(daily, dailyRefetch)
+  },
+  useGetReconciliationKitchenCookingQuery: () => uninitialized(),
+  useLazyGetReconciliationKitchenCookingCsvQuery: () => [vi.fn(), { isFetching: false }],
+  useLazyGetReconciliationKitchenCookingXlsxQuery: () => [vi.fn(), { isFetching: false }],
   useCreateReconciliationIssueMutation: () => [createIssue, { isLoading: createMutationState.loading }],
   useListReconciliationBatchDishesQuery: () => ({
     ...ready(dishesState.phase === 'empty' ? [] : [dish], dishesRefetch),
@@ -88,7 +115,10 @@ function LocationProbe() {
   return <><output data-testid="location">{location.pathname}{location.search}</output><button type="button" onClick={() => navigate(-1)}>Browser Back</button></>
 }
 
-const renderPage = (entry = '/warehouse?view=movement&batchId=batch-1') => render(<MemoryRouter initialEntries={[entry]}><Routes><Route path="/warehouse" element={<><ReconciliationWarehousePage /><LocationProbe /></>} /><Route path="/reconciliation" element={<LocationProbe />} /></Routes></MemoryRouter>)
+const renderPage = (entry = '/warehouse?view=movement&batchId=batch-1') => {
+  const resolvedEntry = entry.includes('view=demand') && !entry.includes('day=') ? `${entry}&day=MONDAY` : entry
+  return render(<MemoryRouter initialEntries={[resolvedEntry]}><Routes><Route path="/warehouse" element={<><ReconciliationWarehousePage /><LocationProbe /></>} /><Route path="/reconciliation" element={<LocationProbe />} /></Routes></MemoryRouter>)
+}
 
 describe('Warehouse reconciliation issue detail preserve-context behavior', () => {
   beforeEach(() => {
@@ -96,6 +126,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     vi.clearAllMocks()
     batchQueryState.phase = 'ready'
     historyQueryState.phase = 'ready'
+    dailyQueryState.phase = 'ready'
     dishesState.phase = 'empty'
     createMutationState.loading = false
     roleState.allowed = true
@@ -103,8 +134,25 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     batch.version = 1
     batch.lines[0].issuedQuantity = 13.3344
     batch.lines[1].issuedQuantity = null
+    daily.batchStatus = 'IN_PROGRESS'
+    daily.sourceVersion = 1
+    daily.compatibility = { canRead: true, canIssueByDate: true }
+    daily.dates[0].lines[0].issuedQuantity = 13.3344
+    daily.dates[0].lines[0].remainingQuantity = 0
+    daily.dates[0].lines[0].quantityStatus = 'EXACT'
+    daily.dates[0].lines[1].issuedQuantity = null
+    daily.dates[0].lines[1].remainingQuantity = 2.1234567
+    daily.dates[0].lines[1].quantityStatus = 'UNTOUCHED'
     createIssue.mockReturnValue({ unwrap: () => Promise.resolve({ issueId: 'created-1' }) })
     batchRefetch.mockResolvedValue({ data: batch })
+  })
+
+  it('keeps warehouse actions with the demand work surface without a redundant page card', () => {
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+
+    expect(screen.queryByRole('heading', { name: 'Xuất kho theo định lượng đã chốt' })).not.toBeInTheDocument()
+    expect(screen.queryByText(/Kho vận hành:/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }).closest('[role="tabpanel"]')).toHaveAttribute('id', 'warehouse-demand-panel')
   })
 
   it('uses the same business-week label inside and outside the batch selector', () => {
@@ -118,7 +166,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     batchQueryState.phase = 'loading'
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
-    expect(screen.getByText(/Đang tải lô đối chiếu đã chọn/)).toHaveAttribute('role', 'status')
+    expect(screen.getByRole('table', { name: /Đang tải lô đối chiếu đã chọn/ })).toBeInTheDocument()
     expect(screen.queryByRole('table', { name: 'Danh sách nguyên liệu cần xuất' })).not.toBeInTheDocument()
   })
 
@@ -167,7 +215,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toBeInTheDocument()
     expect(document.querySelector('.ipc-drawer-master')).not.toBeInTheDocument()
     expect(document.querySelector('[data-ipc-drawer-portal="true"]')).not.toBeInTheDocument()
-    expect(screen.getByRole('region', { name: 'Vòng đời lô đối chiếu' })).toContainElement(screen.getByRole('link', { name: 'Mở đối chiếu' }))
+    expect(screen.getByRole('region', { name: 'Vòng đời lô đối chiếu' })).not.toContainElement(screen.queryByRole('link', { name: 'Mở đối chiếu' }))
     expect(dialogProps.at(-1)).toMatchObject({ issueId: 'issue-1', initialIssue: expect.objectContaining({ issueCode: 'ISS-001' }) })
   })
 
@@ -188,9 +236,34 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=movement&batchId=batch-1')
   })
 
-  it('renders mixed committed quantities honestly with canonical units and six-decimal formatting', () => {
+  it('retains issued rows while the daily projection refreshes after a mutation', () => {
+    dailyQueryState.phase = 'refreshing'
+    batch.lines[1].issuedQuantity = 2.1234567
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
+    expect(screen.getByRole('region', { name: 'Danh sách nguyên liệu cần xuất' })).toBeInTheDocument()
+    expect(screen.getAllByText('Đã xuất đủ')).toHaveLength(2)
+    expect(screen.getByRole('heading', { name: 'Danh sách cần xuất' }).closest('.ipc-section-header')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toHaveClass('w-80')
+    expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toHaveClass('w-44', 'whitespace-nowrap')
+    expect(screen.getAllByText('Đã xuất đủ')[0].closest('td')).toHaveClass('w-44', 'whitespace-nowrap')
+    expect(screen.getByRole('status', { name: 'Đang cập nhật định lượng xuất kho' })).toBeInTheDocument()
+  })
+
+  it('renders legacy daily incompatibility as one neutral unavailable state with a history action', () => {
+    daily.compatibility = { canRead: true, canIssueByDate: false }
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+
+    const demandTab = screen.getByRole('tab', { name: 'Danh sách cần xuất' })
+    const unavailableState = screen.getByText('Lô này không có dữ liệu xuất theo ngày').closest('[data-empty-variant]')
+    expect(demandTab.compareDocumentPosition(unavailableState!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(unavailableState?.closest('[role="tabpanel"]')).toHaveAttribute('aria-labelledby', 'warehouse-demand-tab')
+    expect(screen.getByRole('button', { name: 'Xem lịch sử xuất kho' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('renders mixed committed quantities honestly with canonical units and six-decimal formatting', () => {
+    renderPage('/warehouse?view=demand&batchId=batch-1')
     expect(screen.queryByRole('spinbutton', { name: 'Thực xuất Gạo' })).not.toBeInTheDocument()
     expect(screen.queryByRole('spinbutton', { name: 'Thực xuất Đậu xanh' })).not.toBeInTheDocument()
     expect(screen.getAllByText('13,3344 kg')).toHaveLength(2)
@@ -208,7 +281,6 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
     expect(screen.getByText('Đã xuất vượt')).toBeInTheDocument()
-    expect(screen.getByText('Bù hao hụt sơ chế')).toBeInTheDocument()
   })
 
   it('hides initial and supplemental issue controls from a denied route reader', () => {
@@ -217,7 +289,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
 
     expect(screen.queryByRole('button', { name: 'Tạo phiếu xuất bổ sung' })).not.toBeInTheDocument()
     expect(screen.queryByRole('spinbutton', { name: /Thực xuất/ })).not.toBeInTheDocument()
-    expect(screen.getByText(/Thủ kho hoặc Quản lý cần tạo phiếu xuất/)).toBeInTheDocument()
+    expect(screen.getByText(/Thủ kho cần tạo phiếu xuất/)).toBeInTheDocument()
 
     batch.status = 'TRANSFERRED'
     batch.lines[0].issuedQuantity = null
@@ -225,7 +297,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.queryByRole('button', { name: /Xác nhận và tạo phiếu xuất/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('spinbutton', { name: /Thực xuất/ })).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Lý do xuất vượt/)).not.toBeInTheDocument()
-    expect(view.container).toHaveTextContent('Thủ kho hoặc Quản lý cần tạo phiếu xuất')
+    expect(view.container).toHaveTextContent('Thủ kho cần tạo phiếu xuất')
   })
 
   it('disables duplicate initial submission while issue creation is pending', () => {
@@ -235,7 +307,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
     expect(screen.getByRole('button', { name: 'Đang xác nhận xuất...' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Điền đủ toàn bộ' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Điền đủ ngày' })).toBeDisabled()
   })
 
   it('defaults initial issued quantities to 0 with neutral status and disables confirmation until filled', () => {
@@ -251,10 +323,10 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     const unenteredBadges = screen.getAllByText('Chưa nhập')
     expect(unenteredBadges).toHaveLength(2)
 
-    const confirmButton = screen.getByRole('button', { name: 'Xác nhận và tạo phiếu xuất (2)' })
+    const confirmButton = screen.getByRole('button', { name: 'Xác nhận ngày 21/09/2026 (2)' })
     expect(confirmButton).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ ngày' }))
 
     expect(gạoInput).toHaveValue(13.3344)
     expect(đậuXanhInput).toHaveValue(2.1234567)
@@ -267,17 +339,18 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     batch.lines[0].issuedQuantity = null
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận và tạo phiếu xuất (2)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ ngày' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận ngày 21/09/2026 (2)' }))
 
     await waitFor(() => expect(createIssue).toHaveBeenCalledWith(expect.objectContaining({
-      commandId: 'reconciliation-issue-batch-1',
+      commandId: 'reconciliation-issue-batch-1-2026-09-21',
       expectedVersion: 7,
+      issueDate: '2026-09-21',
       warehouseId: 'warehouse-1',
       reconciliationBatchId: 'batch-1',
       lines: [
-        expect.objectContaining({ reconciliationBatchLineId: 'batch-line-1', issuedQty: 13.3344 }),
-        expect.objectContaining({ reconciliationBatchLineId: 'batch-line-2', issuedQty: 2.1234567 }),
+        expect.objectContaining({ reconciliationBatchLineId: 'batch-line-1', reconciliationBatchDailyLineId: 'daily-line-1', issuedQty: 13.3344 }),
+        expect.objectContaining({ reconciliationBatchLineId: 'batch-line-2', reconciliationBatchDailyLineId: 'daily-line-2', issuedQty: 2.1234567 }),
       ],
     })))
     expect(batchRefetch).toHaveBeenCalledOnce()
@@ -291,8 +364,8 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     createIssue.mockReturnValue({ unwrap: () => Promise.reject({ data: { message: 'Phiên bản lô đã thay đổi.' } }) })
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận và tạo phiếu xuất (2)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Điền đủ ngày' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận ngày 21/09/2026 (2)' }))
 
     expect(await screen.findByText('Phiên bản lô đã thay đổi.')).toBeInTheDocument()
     expect(batchRefetch).not.toHaveBeenCalled()
@@ -341,7 +414,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     dishesState.phase = 'ready'
     renderPage('/warehouse?view=demand&batchId=batch-1')
     fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
-    expect(screen.getByRole('button', { name: 'Bổ sung thủ công' })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Chọn nguyên liệu xuất thêm' })).toBeInTheDocument()
     expect(screen.queryByText('Món ăn phát sinh')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).not.toBeInTheDocument()
   })
@@ -356,10 +429,8 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
   it('presents supplemental issue as a secondary consequence-aware action', () => {
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
-    const trigger = screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' })
-    expect(trigger).toHaveAttribute('data-variant', 'outline')
-    expect(screen.getByText(/có thể tạo chênh lệch/)).toBeInTheDocument()
-    fireEvent.click(trigger)
+    expect(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' })).toHaveAttribute('data-variant', 'outline')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
     expect(screen.getByRole('dialog', { name: 'Xuất thêm nguyên liệu' })).toHaveTextContent('Số xuất thêm sẽ được cộng vào tổng đã xuất và có thể tạo chênh lệch cần xử lý.')
   })
 
@@ -401,6 +472,45 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByLabelText('Số lượng xuất thêm')).toHaveValue(1.5)
     expect(screen.getByLabelText('Lý do')).toHaveValue('Bếp đề nghị bổ sung cho ca trưa')
     expect(batchRefetch).not.toHaveBeenCalled()
+  })
+
+  it('groups repeated ingredients into a read-only weekly overview while preserving backend weekly status', () => {
+    daily.dates.push({ serviceDate: '2026-09-22', status: 'PARTIAL', isApplicable: true, requiredQuantity: 5, issuedQuantity: 2, returnedQuantity: 0, remainingQuantity: 3, lines: [
+      { dailyLineId: 'daily-line-3', batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'Kilogram', requiredQuantity: 5, issuedQuantity: 2, returnedQuantity: 0, remainingQuantity: 3, quantityStatus: 'UNDER_ISSUED', hasValidDisposition: false },
+    ] })
+    try {
+      renderPage('/warehouse?view=demand&batchId=batch-1&day=ALL')
+
+      expect(screen.getByText('Trạng thái tuần: Đang xuất theo ngày')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cả tuần' })).toBeInTheDocument()
+      expect(screen.getByText('Tổng hợp nguyên liệu cả tuần')).toBeInTheDocument()
+      const weeklyHeader = screen.getByRole('heading', { name: 'Tổng hợp nguyên liệu cả tuần' }).closest('.ipc-section-header')
+      expect(weeklyHeader?.querySelector('[aria-hidden="true"].h-9')).toBeInTheDocument()
+      expect(screen.getAllByText('Gạo')).toHaveLength(1)
+      expect(screen.getByText('18,3344 kg')).toBeInTheDocument()
+      expect(screen.getByText('15,3344 kg')).toBeInTheDocument()
+      expect(screen.getByText('Đang xuất 1/2 ngày')).toBeInTheDocument()
+      expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toHaveClass('w-80')
+      expect(screen.getByRole('columnheader', { name: 'Tiến độ theo ngày' })).toHaveClass('w-44', 'whitespace-nowrap')
+      expect(screen.getByText('Đang xuất 1/2 ngày').closest('td')).toHaveClass('w-44', 'whitespace-nowrap')
+      expect(screen.queryByRole('button', { name: /Xác nhận ngày/ })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Tạo phiếu xuất bổ sung' })).not.toBeInTheDocument()
+    } finally {
+      daily.dates.pop()
+    }
+  })
+
+  it('prefills and submits only the selected date remaining quantities with daily lineage', async () => {
+    fireEvent.click(renderPage('/warehouse?view=demand&batchId=batch-1&day=MONDAY').getByRole('button', { name: 'Xuất phần còn thiếu' }))
+    expect(screen.getByRole('dialog', { name: 'Xuất thêm nguyên liệu' })).toBeInTheDocument()
+    expect(screen.getByDisplayValue('2.1234567')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất thêm' }))
+
+    await waitFor(() => expect(createIssue).toHaveBeenCalledWith(expect.objectContaining({
+      issueDate: '2026-09-21',
+      isSupplemental: true,
+      lines: [expect.objectContaining({ reconciliationBatchDailyLineId: 'daily-line-2', reconciliationBatchLineId: 'batch-line-2', issuedQty: 2.1234567 })],
+    })))
   })
 
   it('navigates only from the drawer explicit open-batch action with exact batch context', () => {

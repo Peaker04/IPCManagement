@@ -72,6 +72,8 @@ export interface ReconciliationSelectionPreferences {
   batchId?: string;
   warehouseView?: ReconciliationWarehouseView;
   customerId?: string;
+  weekStartDate?: string;
+  weekEndDate?: string;
 }
 
 export const readReconciliationSelection = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage): ReconciliationSelectionPreferences => {
@@ -85,10 +87,18 @@ export const readReconciliationSelection = (storage: Storage | undefined = typeo
     const customerId = typeof (parsed as Record<string, unknown>).customerId === 'string'
       ? (parsed as Record<string, string>).customerId.trim()
       : '';
+    const weekStartDate = typeof (parsed as Record<string, unknown>).weekStartDate === 'string'
+      ? (parsed as Record<string, string>).weekStartDate.trim()
+      : '';
+    const weekEndDate = typeof (parsed as Record<string, unknown>).weekEndDate === 'string'
+      ? (parsed as Record<string, string>).weekEndDate.trim()
+      : '';
     const warehouseView = (parsed as Record<string, unknown>).warehouseView;
     return {
       ...(batchId ? { batchId } : {}),
       ...(customerId ? { customerId } : {}),
+      ...(weekStartDate ? { weekStartDate } : {}),
+      ...(weekEndDate ? { weekEndDate } : {}),
       ...(warehouseView === 'demand' || warehouseView === 'movement' ? { warehouseView } : {}),
     };
   } catch {
@@ -101,13 +111,16 @@ export const writeReconciliationSelection = (selection: ReconciliationSelectionP
   const next: ReconciliationSelectionPreferences = {
     ...(selection.batchId?.trim() ? { batchId: selection.batchId.trim() } : {}),
     ...(selection.customerId?.trim() ? { customerId: selection.customerId.trim() } : {}),
+    ...(selection.weekStartDate?.trim() ? { weekStartDate: selection.weekStartDate.trim() } : {}),
+    ...(selection.weekEndDate?.trim() ? { weekEndDate: selection.weekEndDate.trim() } : {}),
     ...(selection.warehouseView ? { warehouseView: selection.warehouseView } : {}),
   };
   if (Object.keys(next).length === 0) {
     removeStorage(storage, RECONCILIATION_SELECTION_STORAGE_KEY);
     return;
   }
-  writeStorage(storage, RECONCILIATION_SELECTION_STORAGE_KEY, JSON.stringify(next));
+  const written = writeStorage(storage, RECONCILIATION_SELECTION_STORAGE_KEY, JSON.stringify(next));
+  if (written && storage === browserStorage()) window.dispatchEvent(new Event('ipc:reconciliation-selection-changed'));
 };
 
 export const clearReconciliationSelection = (storage: Storage | undefined = browserStorage()) => {

@@ -6,9 +6,9 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiSlice } from '@/api/apiSlice'
-import authReducer from '@/features/auth/authSlice'
-import type { User } from '@/features/auth/authTypes'
-import { coordinationReducer } from '../index'
+import authReducer from '@/lib/auth/authSlice'
+import type { User } from '@/lib/auth/authTypes'
+import coordinationReducer from '../coordinationSlice'
 import type { OrderRow, ShiftType } from '../types'
 import type { QuerySnapshot } from '@/lib/queryView'
 import CoordinationPage from './CoordinationPage'
@@ -49,7 +49,7 @@ const testUser: User = {
   roleCode: 'DIEUPHOI',
   roleName: 'Điều phối viên',
   isAdminFullAccess: false,
-  permissions: ['coordination.read', 'coordination.write', 'coordination.lock', 'coordination.send'],
+  permissions: ['coordination.read'],
 }
 
 const sampleOrder: OrderRow = {
@@ -186,6 +186,29 @@ describe('CoordinationPage state presentation', () => {
     expect(screen.queryByRole('button', { name: /xuất báo cáo/i })).not.toBeInTheDocument()
   })
 
+  it('does not carry a completed banner into a newly selected date while its query is loading', async () => {
+    mocks.ordersQuery.mockReturnValue(
+      buildQuerySnapshot({
+        isFetching: true,
+        data: { success: true, data: [sampleOrder] },
+      }),
+    )
+    mocks.plansQuery.mockReturnValue(
+      buildQuerySnapshot({
+        isFetching: true,
+        data: {
+          success: true,
+          data: [{ quantityPlanId: 'old-plan', status: 'COMPLETED', lines: [] }],
+        },
+      }),
+    )
+
+    renderWithStore(<CoordinationPage />)
+
+    expect(await screen.findByText('Chưa có đơn phục vụ phù hợp.')).toBeInTheDocument()
+    expect(screen.queryByText('Ca này đã hoàn tất')).not.toBeInTheDocument()
+  })
+
   it('mounts one visible semantic heading for the scoped work surface', async () => {
     mocks.ordersQuery.mockReturnValue(
       buildQuerySnapshot({
@@ -287,7 +310,7 @@ describe('CoordinationPage state presentation', () => {
       renderWithStore(<CoordinationPage />)
 
       expect(screen.getByText('Đang tải danh sách suất ăn')).toBeInTheDocument()
-      expect(screen.queryByText('Chưa có đơn phục vụ phù hợp.')).not.toBeInTheDocument()
+      expect(screen.getByText('Chưa có đơn phục vụ phù hợp.').closest('[aria-hidden="true"]')).toBeInTheDocument()
     })
 
     it('preserves forbidden alert without rendering ready-empty state', async () => {
@@ -307,7 +330,7 @@ describe('CoordinationPage state presentation', () => {
       renderWithStore(<CoordinationPage />)
 
       expect(screen.getByText('Không có quyền xem danh sách suất ăn')).toBeInTheDocument()
-      expect(screen.queryByText('Chưa có đơn phục vụ phù hợp.')).not.toBeInTheDocument()
+      expect(screen.getByText('Chưa có đơn phục vụ phù hợp.').closest('[aria-hidden="true"]')).toBeInTheDocument()
     })
 
     it('preserves error alert without rendering ready-empty state', async () => {
@@ -327,7 +350,7 @@ describe('CoordinationPage state presentation', () => {
       renderWithStore(<CoordinationPage />)
 
       expect(screen.getByText('Không tải được danh sách suất ăn')).toBeInTheDocument()
-      expect(screen.queryByText('Chưa có đơn phục vụ phù hợp.')).not.toBeInTheDocument()
+      expect(screen.getByText('Chưa có đơn phục vụ phù hợp.').closest('[aria-hidden="true"]')).toBeInTheDocument()
     })
 
     it('preserves fallback rows and context when current query has error but cached data exists', async () => {

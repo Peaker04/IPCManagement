@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ReportsNavigation } from './ReportsNavigation';
 import type { ReportsPageModel } from './useReportsPageModel';
 
-const model = (activeView = 'demand') => ({ activeReportView: { phase: 'ready', isRefreshing: false }, activeView, isViewPending: false, priceSubView: 'lines', resetReportPages: vi.fn(), setRequestedView: vi.fn(), startViewTransition: (callback: () => void) => callback(), updateSearchState: vi.fn(), visibleReportTabs: [
+const model = (activeView = 'demand') => ({ activeReportView: { phase: 'ready', isRefreshing: false }, activeView, isViewPending: false, priceSubView: 'lines', reportSearchByView: {}, resetReportPages: vi.fn(), setRequestedView: vi.fn(), startViewTransition: (callback: () => void) => callback(), updateSearchState: vi.fn(), visibleReportTabs: [
   { id: 'reports-price', label: 'Biến động giá' }, { id: 'reports-demand', label: 'Nhu cầu nguyên liệu' }, { id: 'reports-purchase', label: 'Kế hoạch thu mua' }, { id: 'reports-stock', label: 'Tồn kho' }, { id: 'reports-movement', label: 'Nhập/xuất kho' }, { id: 'reports-kitchen', label: 'Xuất bếp' }, { id: 'reports-usage', label: 'Sử dụng thực tế' }, { id: 'reports-audit', label: 'Nhật ký thay đổi' }, { id: 'reports-data-quality', label: 'Chất lượng dữ liệu' },
 ] }) as unknown as ReportsPageModel;
 

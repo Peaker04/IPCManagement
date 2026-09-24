@@ -141,11 +141,12 @@ it('offers the stock workflow action only for the exact menu source', () => {
   expect(screen.queryByRole('link', { name: /mở danh sách cần xuất/i })).not.toBeInTheDocument()
 })
 
-it('points post-issue serving changes to the exact supplemental warehouse flow', () => {
+it('does not invent a serving-change warning from batch lifecycle alone', () => {
   render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-progress" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
 
-  expect(screen.getByText('Số suất thay đổi sau khi đã khóa định lượng')).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Mở phiếu xuất bổ sung' })).toHaveAttribute('href', '/warehouse?view=demand&batchId=batch-progress')
+  expect(screen.queryByText('Số suất thay đổi sau khi đã khóa định lượng')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Mở phiếu xuất bổ sung' })).not.toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Mở đối chiếu' })).toHaveAttribute('href', '/reconciliation?batchId=batch-progress')
 })
 
 it.each([

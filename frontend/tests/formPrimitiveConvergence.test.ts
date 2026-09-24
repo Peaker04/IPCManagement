@@ -12,36 +12,34 @@ const production = readProductionSources()
 
 const checkboxExceptionLocations = [
   'src/components/common/TablePreferencesControl.tsx:105',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:31',
 ]
 
 const fileExceptionLocations = [
-  'src/app/pages/admin-data/AdminBomPanel.tsx:154',
-  'src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:81',
+  'src/app/pages/admin-data/AdminBomPanel.tsx:153',
+  'src/features/projects/weekly-menu/import/WeeklyMenuImportSetup.tsx:83',
 ]
 
 const pathExceptionLocations = [
   'src/components/ui/VietnameseDateInput.tsx:93',
-  'src/components/common/PaginationBar.tsx:105',
-  'src/components/common/PaginationBar.tsx:148',
+  'src/components/common/PaginationBar.tsx:103',
+  'src/components/common/PaginationBar.tsx:146',
   'src/components/ui/textarea.tsx:7',
-  'src/features/approvals/components/MenuAmendmentReconciliation.tsx:70',
-  'src/features/chef/production/ServiceRunSection.tsx:169',
-  'src/features/chef/production/ServiceRunSection.tsx:186',
-  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:389',
+  'src/features/approvals/components/MenuAmendmentReconciliation.tsx:76',
+  'src/features/chef/production/ServiceRunSection.tsx:180',
+  'src/features/chef/production/ServiceRunSection.tsx:204',
+  'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:402',
   'src/components/common/TablePreferencesControl.tsx:129',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:29',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:420',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:497',
-  'src/features/admin/pages/ApprovalRulesPage.tsx:504',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:387',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:474',
+  'src/features/admin/pages/ApprovalRulesPage.tsx:481',
   // Route-critical controls intentionally stay native to avoid pulling Base UI field closures into eager chunks.
   'src/features/projects/weekly-menu/schedule/QuickServingCell.tsx:29',
-  'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx:97',
+  'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx:110',
   'src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:83',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:323',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:394',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:408',
-  'src/features/purchasing/PurchaseDecisionPanel.tsx:418',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:340',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:411',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:427',
+  'src/features/purchasing/PurchaseDecisionPanel.tsx:438',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

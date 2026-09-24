@@ -52,6 +52,7 @@ export function SearchableDishPicker({
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const filtered = useMemo(() => {
+    if (!open) return []
     const needle = normalize(query)
     return options
       .map((dish) => ({ dish, score: scoreDish(dish, needle, value) }))
@@ -59,7 +60,7 @@ export function SearchableDishPicker({
       .sort((left, right) => right.score - left.score || Number(right.dish.bomReady) - Number(left.dish.bomReady) || left.dish.name.localeCompare(right.dish.name, 'vi'))
       .slice(0, needle ? 8 : 6)
       .map(({ dish }) => dish)
-  }, [options, query, value])
+  }, [open, options, query, value])
   const activeDish = filtered[Math.min(activeIndex, Math.max(filtered.length - 1, 0))]
   const selectDish = (dish: DishOption) => {
     onChange(dish.id)

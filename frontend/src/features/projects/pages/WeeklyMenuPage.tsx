@@ -5,11 +5,11 @@ import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewConten
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore';
 import { useAppDispatch } from '@/lib/reduxHooks';
 import { setWeeklyMenu } from '@/lib/coordinationActions';
-import { OperationalFrame, RefreshStatus } from '@/components/common';
+import { OperationalFrame, RefreshStatus, ConfirmDialog } from '@/components/common';
 import { typography } from '@/lib/typography';
 import { useHasRole } from '@/lib/useHasRole';
 import { DAYS_OF_WEEK } from '@/lib/constants';
-import { visibleTabIds } from '@/lib/navigationPreferences';
+import { visibleTabIds, readReconciliationSelection } from '@/lib/navigationPreferences';
 import { eligiblePageTabs } from '@/lib/systemOperationEligibility';
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import { useGetIngredientDemandAggregatePageQuery } from '@/api/reportsApi';
@@ -45,7 +45,12 @@ const DefaultWeeklyMenuPage = () => {
   const systemOperation = useSystemOperation();
   const isMaterialReconciliationMode = systemOperation?.mode === 'MATERIAL_RECONCILIATION';
   const [searchParams, setSearchParams] = useSearchParams();
+  const [pendingWorkflowClose, setPendingWorkflowClose] = useState<null | {
+    kind: 'import' | 'editor';
+    target: 'import' | 'editor' | null;
+  }>(null);
   const reconciliationRouteScope = readReconciliationWeeklyMenuRoute(searchParams);
+  const persistedReconciliationScope = readReconciliationSelection();
   const reduxWeeklyMenu = useCoordinationStoreSelector((state) => state.coordination.weeklyMenu);
   const orders = useCoordinationStoreSelector((state) => state.coordination.orders);
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts);
@@ -84,13 +89,13 @@ const DefaultWeeklyMenuPage = () => {
     () => readWeeklyMenuSelection(LAST_WEEKLY_MENU_CUSTOMER_KEY),
   );
   const effectiveMenuCustomerId = isMaterialReconciliationMode
-    ? reconciliationRouteScope.customerId || selectedMenuCustomerId
+    ? reconciliationRouteScope.customerId || persistedReconciliationScope.customerId || selectedMenuCustomerId
     : selectedMenuCustomerId;
   const [committedMenuWeekStartDate, setCommittedMenuWeekStartDate] = useState(
     getStoredWeekStartDate,
   );
   const effectiveWeekStartDate = isMaterialReconciliationMode
-    ? normalizeWeekStartDate(reconciliationRouteScope.weekStartDate || committedMenuWeekStartDate)
+    ? normalizeWeekStartDate(reconciliationRouteScope.weekStartDate || persistedReconciliationScope.weekStartDate || committedMenuWeekStartDate)
     : committedMenuWeekStartDate;
   const weeklyMenuQueryArgs = {
     customerId: effectiveMenuCustomerId,
@@ -456,18 +461,22 @@ const DefaultWeeklyMenuPage = () => {
         || importWorkflow.state.jobs.length > 0
         || Boolean(importWorkflow.state.quickCustomerCode.trim())
         || Boolean(importWorkflow.state.quickCustomerName.trim());
-      if (hasDraft && !window.confirm('Bạn có thay đổi nhập thực đơn chưa lưu. Bạn có chắc muốn rời khỏi quy trình này?')) {
+      if (hasDraft) {
+        // URL navigation is external state; queue the confirmation state for the next render.
+        if (!pendingWorkflowClose) queueMicrotask(() => setPendingWorkflowClose({ kind: 'import', target: requestedWorkflow }));
         setWorkflowRoute('import');
       } else importWorkflow.actions.close();
     }
     if (requestedWorkflow === 'editor' && !scheduleWorkflow.state.isEditorOpen) scheduleWorkflow.actions.openEditor();
     if (requestedWorkflow !== 'editor' && scheduleWorkflow.state.isEditorOpen) {
       const hasDraft = scheduleWorkflow.presentation.pendingChangeCount > 0 || quickServingRows.some((row) => row.hasDraftChange);
-      if (hasDraft && !window.confirm('Bạn có thay đổi lịch tuần chưa lưu. Bạn có chắc muốn rời khỏi quy trình này?')) {
+      if (hasDraft) {
+        // URL navigation is external state; queue the confirmation state for the next render.
+        if (!pendingWorkflowClose) queueMicrotask(() => setPendingWorkflowClose({ kind: 'editor', target: requestedWorkflow }));
         setWorkflowRoute('editor');
       } else scheduleWorkflow.actions.closeEditor();
     }
-  }, [importWorkflow.actions, importWorkflow.state.isOpen, importWorkflow.state.jobs.length, importWorkflow.state.quickCustomerCode, importWorkflow.state.quickCustomerName, importWorkflow.state.selectedFile, quickServingRows, requestedWorkflow, scheduleWorkflow.actions, scheduleWorkflow.presentation.pendingChangeCount, scheduleWorkflow.state.isEditorOpen, setWorkflowRoute]);
+  }, [importWorkflow.actions, importWorkflow.state.isOpen, importWorkflow.state.jobs.length, importWorkflow.state.quickCustomerCode, importWorkflow.state.quickCustomerName, importWorkflow.state.selectedFile, pendingWorkflowClose, quickServingRows, requestedWorkflow, scheduleWorkflow.actions, scheduleWorkflow.presentation.pendingChangeCount, scheduleWorkflow.state.isEditorOpen, setWorkflowRoute]);
   const materialSummary = buildPlanRowsMaterialSummary(weeklyPlanRows, dishesById, dishesByName, {
     customerId: effectiveMenuCustomerId,
     priceTier: menuPrice,
@@ -610,11 +619,33 @@ const DefaultWeeklyMenuPage = () => {
           hasSelectedCustomer={Boolean(effectiveMenuCustomerId)}
         />
 
-        {requestedWorkflow === 'import' || importWorkflow.state.isOpen ? (
-          <Suspense fallback={null}><WeeklyMenuImportDialog workflow={routedImportWorkflow} surface="page" /></Suspense>
-        ) : requestedWorkflow === 'editor' || scheduleWorkflow.state.isEditorOpen ? (
-          <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={routedScheduleWorkflow} servingRows={quickServingRows} layoutRows={committedLayoutRows} surface="page" /></Suspense>
-        ) : <div
+        {(requestedWorkflow === 'import' || importWorkflow.state.isOpen) && (
+          <Suspense fallback={null}><WeeklyMenuImportDialog workflow={routedImportWorkflow} /></Suspense>
+        )}
+        {(requestedWorkflow === 'editor' || scheduleWorkflow.state.isEditorOpen) && (
+          <Suspense fallback={null}><WeeklyScheduleEditorDialog workflow={routedScheduleWorkflow} servingRows={quickServingRows} layoutRows={committedLayoutRows} isLoading={isCatalogLoading || isCommittedMenuFetching || mealQuantityPlansView.phase === 'loading' || menuSchedulesView.phase === 'loading'} /></Suspense>
+        )}
+        <ConfirmDialog
+          open={pendingWorkflowClose !== null}
+          title="Rời khỏi thay đổi chưa lưu?"
+          description={pendingWorkflowClose?.kind === 'import'
+            ? 'Các file và thông tin nhập thực đơn chưa lưu sẽ bị bỏ.'
+            : 'Các thay đổi lịch tuần và số suất chưa lưu sẽ bị bỏ.'}
+          confirmLabel="Rời khỏi"
+          variant="destructive"
+          onOpenChange={(open) => {
+            if (!open) setPendingWorkflowClose(null);
+          }}
+          onConfirm={() => {
+            const pending = pendingWorkflowClose;
+            setPendingWorkflowClose(null);
+            if (pending?.kind === 'import') importWorkflow.actions.close();
+            if (pending?.kind === 'editor') scheduleWorkflow.actions.closeEditor();
+            setWorkflowRoute(pending?.target ?? null);
+          }}
+        />
+        <div
+          data-weekly-menu-work-surface="true"
           className={`${typography.body} relative`}
           aria-busy={isViewPending}
           aria-live="polite"
@@ -647,7 +678,7 @@ const DefaultWeeklyMenuPage = () => {
             purchaseSummaryWorkflow={purchaseSummaryWorkflow}
             dishMaterialsWorkflow={dishMaterialsWorkflow}
           />}
-        </div>}
+        </div>
       </QueryViewBoundary>
     </OperationalFrame>
   );

@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react';
-import { useGetIngredientDemandAggregatePageQuery, useGetPurchasePlanPageQuery } from '@/features/reports/reportsApi';
+import { useGetIngredientDemandAggregatePageQuery, useGetPurchasePlanPageQuery } from '@/api/reportsApi';
 import type { WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { uiCopy } from '@/lib/uiCopy';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';

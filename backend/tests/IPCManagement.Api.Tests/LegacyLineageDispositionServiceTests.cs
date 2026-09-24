@@ -593,6 +593,8 @@ public sealed class LegacyLineageDispositionServiceTests
                     unitId BLOB NOT NULL,
                     materialRequestLineId BLOB NULL,
                     reconciliationBatchLineId BLOB NULL,
+                    reconciliationBatchDailyLineId BLOB NULL,
+                    reconciliationServiceDate TEXT NULL,
                     requestedQty NUMERIC NOT NULL,
                     issuedQty NUMERIC NOT NULL
                 );

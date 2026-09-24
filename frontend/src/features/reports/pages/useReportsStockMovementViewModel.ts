@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react';
-import { useGetCurrentStockPageQuery, useGetStockMovementPageQuery } from '@/features/reports/reportsApi';
+import { useGetCurrentStockPageQuery, useGetStockMovementPageQuery } from '@/api/reportsApi';
 import { toNextReportCursor, type ReportCursor, type WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { formatDateTime } from '@/lib/formatters';

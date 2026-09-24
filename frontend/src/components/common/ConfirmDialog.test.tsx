@@ -62,7 +62,7 @@ describe('ConfirmDialog', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Hủy' }));
     expect(onOpenChange).toHaveBeenCalledWith(false, 'close-control');
   });
@@ -82,7 +82,7 @@ describe('ConfirmDialog', () => {
       />,
     );
 
-    expect(screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' })).toHaveAttribute('aria-labelledby');
+    expect(screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' })).not.toHaveAttribute('aria-labelledby');
     expect(screen.getByRole('button', { name: 'Đang xóa...' })).toBeDisabled();
   });
 });

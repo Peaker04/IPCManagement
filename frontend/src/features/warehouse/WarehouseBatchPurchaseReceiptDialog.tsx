@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { InlineAlert } from '@/components/common';
 import type { PurchaseOrderDto, WarehouseDto, WarehousePurchaseReceiptResult } from '@/api/workflowApiTypes';
 import { useRecordWarehousePurchaseReceiptMutation } from '@/api/warehouseApi';
-import { useBatchReceiptCommandId } from './useBatchReceiptCommandId';
 
 interface Props { open: boolean; order: PurchaseOrderDto; warehouses: WarehouseDto[]; week?: string; onOpenChange: (open: boolean) => void; onSuccess: (result: WarehousePurchaseReceiptResult) => void; }
 type Field = 'warehouse' | 'receiptDate' | 'lotPrefix' | 'manufactureDate' | 'expiryDate';
@@ -24,7 +23,7 @@ export function WarehouseBatchPurchaseReceiptDialog({ open, order, warehouses, w
   const [error, setError] = useState('');
   const [errors, setErrors] = useState<Partial<Record<Field, string>>>({});
   const [recordReceipt, { isLoading }] = useRecordWarehousePurchaseReceiptMutation();
-  const idempotencyKey = useBatchReceiptCommandId();
+  const [idempotencyKey] = useState(() => `warehouse-po-batch-${crypto.randomUUID()}`);
 
   const validate = () => {
     const next: Partial<Record<Field, string>> = {};

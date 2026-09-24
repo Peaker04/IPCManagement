@@ -18,6 +18,10 @@ public partial class InventoryIssueLine
 
     public byte[]? ReconciliationBatchLineId { get; set; }
 
+    public byte[]? ReconciliationBatchDailyLineId { get; set; }
+
+    public DateOnly? ReconciliationServiceDate { get; set; }
+
     public decimal RequestedQty { get; set; }
 
     public decimal IssuedQty { get; set; }
@@ -29,6 +33,8 @@ public partial class InventoryIssueLine
     public virtual MaterialRequestLine? MaterialRequestLine { get; set; }
 
     public virtual ReconciliationBatchLine? ReconciliationBatchLine { get; set; }
+
+    public virtual ReconciliationBatchDailyLine? ReconciliationBatchDailyLine { get; set; }
 
     public virtual Unit Unit { get; set; } = null!;
 }

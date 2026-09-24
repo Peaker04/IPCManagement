@@ -30,7 +30,7 @@ export { DocumentRail } from './DocumentRail';
 export { ViewSwitcher } from './ViewSwitcher';
 export { KeepAliveTabPanel } from './KeepAliveTabPanel';
 export { ToastProvider } from './ToastProvider';
-export { ActionGuard } from './ActionGuard';
+export { ActionGuard } from '@/components/common/ActionGuard';
 export { useToast } from './useToast';
 export { ConfirmDialog } from './ConfirmDialog';
 export type { ToastItem, ToastOptions, ToastVariant } from './toast-context';

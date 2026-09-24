@@ -35,7 +35,7 @@ export default function CoordinationPage() {
     instruction: 'Chọn ngày và ca để tải trạng thái chốt số suất.',
   })
   const plansResponse = plansView.phase === 'ready'
-    ? plansView.data
+    ? plansQuery.currentData
     : plansView.phase === 'error' ? plansQuery.currentData : undefined
   const plans = plansResponse?.data ?? []
   const currentOrdersResponse = ordersQuery.currentData?.success ? ordersQuery.currentData : undefined

@@ -208,7 +208,7 @@ describe('MaterialDemandSection — xác nhận tính lại nhu cầu đã duy�
     fireEvent.click(screen.getByRole('button', { name: 'Tính lại nhu cầu' }))
 
     expect(generate).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: 'Tính lại nhu cầu đã duyệt?' })).toHaveTextContent(
+    expect(screen.getByRole('dialog', { name: 'Xác nhận tính lại nhu cầu' })).toHaveTextContent(
       'Nhu cầu ngày đang xem đã được duyệt. Tính lại sẽ cập nhật dữ liệu nguồn cho quy trình thu mua. Bạn có muốn tiếp tục?',
     )
   })

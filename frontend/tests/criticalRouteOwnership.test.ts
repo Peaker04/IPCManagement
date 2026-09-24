@@ -52,7 +52,7 @@ describe('critical route initial ownership', () => {
     expect(warehousePageSource).toContain("const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog')");
     expect(warehousePageSource).toContain("const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog')");
     expect(warehousePageSource).toContain("const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel')");
-    expect(warehousePageSource).toContain("const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench')");
+    expect(warehousePageSource).toContain("import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench'");
     expect(purchasingPageSource).toContain("const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench')");
     expect(purchasingPageSource).toContain("const SupplierQuotationSection = lazy(() => import('../quotation/SupplierQuotationSection')");
     expect(weeklyMenuPageSource).toContain("const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog')");

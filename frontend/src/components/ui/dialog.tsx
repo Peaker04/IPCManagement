@@ -27,8 +27,6 @@ const inertSiblings = new Map<HTMLElement, { count: number; hadInert: boolean; v
 
 let activeDialogCount = 0
 let originalBodyOverflow: string | null = null
-let lockedMainScrollTop = 0
-let activeCleanupFn: (() => void) | null = null
 
 export function lockBodyScroll() {
   if (typeof document === "undefined") return
@@ -37,45 +35,6 @@ export function lockBodyScroll() {
     originalBodyOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
     document.body.classList.add("ipc-modal-open")
-
-    const mainContent = document.getElementById("ipc-main-content")
-    let onMainScroll: (() => void) | null = null
-    if (mainContent) {
-      lockedMainScrollTop = mainContent.scrollTop
-      onMainScroll = () => {
-        if (mainContent.scrollTop !== lockedMainScrollTop) {
-          mainContent.scrollTop = lockedMainScrollTop
-        }
-      }
-      mainContent.addEventListener("scroll", onMainScroll, { passive: false })
-    }
-
-    const onWheel = (event: WheelEvent) => {
-      const target = event.target as HTMLElement | null
-      const insideDialog = target?.closest('[role="dialog"]')
-      if (!insideDialog) {
-        event.preventDefault()
-      }
-    }
-
-    const onTouchMove = (event: TouchEvent) => {
-      const target = event.target as HTMLElement | null
-      const insideDialog = target?.closest('[role="dialog"]')
-      if (!insideDialog) {
-        event.preventDefault()
-      }
-    }
-
-    window.addEventListener("wheel", onWheel, { passive: false })
-    window.addEventListener("touchmove", onTouchMove, { passive: false })
-
-    activeCleanupFn = () => {
-      if (mainContent && onMainScroll) {
-        mainContent.removeEventListener("scroll", onMainScroll)
-      }
-      window.removeEventListener("wheel", onWheel)
-      window.removeEventListener("touchmove", onTouchMove)
-    }
   }
 }
 
@@ -85,11 +44,6 @@ export function unlockBodyScroll() {
   if (activeDialogCount <= 0) {
     activeDialogCount = 0
     document.body.classList.remove("ipc-modal-open")
-
-    if (activeCleanupFn) {
-      activeCleanupFn()
-      activeCleanupFn = null
-    }
 
     if (originalBodyOverflow !== null) {
       document.body.style.overflow = originalBodyOverflow
@@ -225,6 +179,12 @@ function getFocusableElements(dialog: HTMLElement) {
   ).filter((element) => !element.hasAttribute("aria-hidden"))
 }
 
+function closeOpenSelectPopups() {
+  document.querySelectorAll<HTMLElement>('[role="combobox"][aria-expanded="true"]').forEach((trigger) => {
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+  })
+}
+
 export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogProps) {
   const titleId = React.useId()
   const portalId = React.useId()
@@ -267,6 +227,7 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
     }
 
     const portalRoot = document.getElementById(portalId)
+    closeOpenSelectPopups()
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     registerDialogEntry(portalId, portalRoot)
     lockBodyScroll()
@@ -333,7 +294,7 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
         />
         <div
           data-ipc-dialog-outside="true"
-          className="fixed inset-0 flex items-start justify-center overflow-y-auto p-4 sm:items-center overscroll-contain"
+          className="fixed inset-0 flex items-start justify-center overflow-hidden p-4 sm:items-center overscroll-contain"
           style={{ zIndex: contentZ, overscrollBehavior: 'contain' }}
           onClick={(event) => {
             if (event.target === event.currentTarget && isTopDialog) requestClose("backdrop")
@@ -356,6 +317,7 @@ const dialogSizeClasses: Record<DialogSize, string> = {
 
 interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: DialogSize
+  scrollMode?: "content" | "body"
 }
 
 export function DialogContent({
@@ -364,6 +326,7 @@ export function DialogContent({
   onClick,
   role = "dialog",
   size = "md",
+  scrollMode = "content",
   ...props
 }: DialogContentProps) {
   const context = React.useContext(DialogContext)
@@ -371,7 +334,7 @@ export function DialogContent({
   const ariaModal = role === "dialog" && props["aria-modal"] === undefined
     ? true
     : props["aria-modal"]
-  const labelledBy = props["aria-labelledby"] ?? context?.titleId
+  const labelledBy = props["aria-label"] ? undefined : props["aria-labelledby"] ?? context?.titleId
 
   const handleClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
     event.stopPropagation()
@@ -408,8 +371,12 @@ export function DialogContent({
       aria-labelledby={labelledBy}
       data-size={size}
       data-depth={context?.depth ?? 1}
+      data-scroll-mode={scrollMode}
       className={cn(
-        "flex max-h-[85vh] w-full flex-col overflow-y-auto gap-4 rounded-md bg-white p-4 outline-none sm:p-6",
+        "flex max-h-[85vh] w-full flex-col gap-4 rounded-md bg-white p-4 outline-none sm:p-6",
+        scrollMode === "body"
+          ? "h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] overflow-hidden"
+          : "overflow-y-auto",
         isNested
           ? "border border-slate-300 shadow-2xl ring-1 ring-slate-900/10"
           : "border border-slate-200 shadow-xl",
@@ -424,6 +391,16 @@ export function DialogContent({
   )
 }
 
+export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]", className)}
+      {...props}
+    />
+  )
+}
+
 export function DialogHeader({
   className,
   ...props
@@ -431,7 +408,7 @@ export function DialogHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 flex flex-col space-y-1.5 bg-inherit text-center sm:text-left",
+        "sticky top-0 z-10 flex shrink-0 flex-col space-y-1.5 bg-inherit text-center sm:text-left",
         className,
       )}
       {...props}
@@ -446,7 +423,7 @@ export function DialogFooter({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-10 flex flex-col-reverse flex-wrap gap-2 bg-inherit sm:flex-row sm:justify-end",
+        "sticky bottom-0 z-10 flex shrink-0 flex-col-reverse flex-wrap gap-2 bg-inherit sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

@@ -12,7 +12,7 @@ import {
   type BomImportPreview,
   type CatalogIngredient,
 } from '@/api/dishCatalogApi';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 import {
   createDefaultBomForm,
   getBomTemplateTypeLabel,
@@ -89,8 +89,8 @@ export function useAdminBomPanelModel(
       .sort((left, right) => left.dish.name.localeCompare(right.dish.name, 'vi') || left.line.name.localeCompare(right.line.name, 'vi'));
   }, [bomImportCustomerId, bomImportTier, debouncedBomSearch, flattenedBomLines, isBomView]);
   const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading;
-  const currentBomPagination = usePaginatedRows(currentBomRows, 8);
-  const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);
+  const currentBomPagination = useLocalPagination(currentBomRows, 8);
+  const bomPreviewPagination = useLocalPagination(bomImportPreview?.rows ?? [], 20);
 
   const handleDownloadBomTemplate = async (templateType: BomTemplateType) => {
     if (templateType === 'dish' && !bomTemplateDishId) {

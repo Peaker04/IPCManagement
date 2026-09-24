@@ -27,7 +27,7 @@ import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseCo
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { buildRoleInbox } from '@/api/workflowOverviewModel';
 
-import { addIsoDays } from '../warehouseDateRange';
+import { addIsoDays } from '@/lib/warehouseDateRange';
 import { typography } from '@/lib/typography';
 import { buildWarehousePageHeader } from './WarehousePageHeader';
 import { getWarehouseMutationErrorMessage } from '../warehouseError';

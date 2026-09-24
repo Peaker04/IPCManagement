@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
 import { PurchaseServiceDateWorkbench } from './PurchaseServiceDateWorkbench';
@@ -147,9 +147,11 @@ describe('PurchaseServiceDateWorkbench terminal state', () => {
     expect(screen.getAllByText('Gạo')).toHaveLength(1);
     expect(screen.getByText('15 kg')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Xem 2 nguồn' }));
-    expect(screen.getByText('line-1')).toBeInTheDocument();
-    expect(screen.getByText('line-2')).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Mở dòng nguồn' })[1]);
+    const sources = screen.getByRole('list', { name: 'Các dòng nguồn của Gạo' })
+    expect(within(sources).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(sources).getByText('10 kg')).toBeInTheDocument()
+    expect(within(sources).getByText('5 kg')).toBeInTheDocument()
+    fireEvent.click(within(sources).getAllByRole('button', { name: 'Mở dòng nguồn' })[1]);
     expect(onLineChange).toHaveBeenCalledWith('line-2');
   });
 });

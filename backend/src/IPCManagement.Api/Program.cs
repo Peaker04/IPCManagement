@@ -165,6 +165,14 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehousePurchaseReceiveRoles));
     options.AddPolicy(AuthorizationPolicies.ReportAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReportRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationReadRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationSourceReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationSourceReadRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationWarehouseReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationWarehouseReadRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationKitchenAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationKitchenRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationDispositionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationDecisionRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationCompleteAccess, policy =>

@@ -89,7 +89,7 @@ public class InventoryIssuesController : ControllerBase
         {
             if (!string.IsNullOrWhiteSpace(dto.ReconciliationBatchId) &&
                 !_currentUserService.GetRoleNames(User).Any(role =>
-                    AuthorizationPolicies.WarehouseRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
+                    AuthorizationPolicies.ReconciliationWarehouseIssueRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
                     ApiResponse.FailResult("Chỉ người phụ trách Kho được tạo phiếu xuất cho lô đối chiếu."));

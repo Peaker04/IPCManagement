@@ -269,9 +269,9 @@
   --alert-success-bg: var(--status-success-bg);
   --alert-success-border: var(--status-success-border);
   --alert-success-fg: var(--status-success-fg);
-  --alert-warning-bg: var(--status-warning-bg);
-  --alert-warning-border: var(--status-warning-border);
-  --alert-warning-fg: var(--status-warning-fg);
+  --alert-warning-bg: #fffbeb;
+  --alert-warning-border: #e7d7a8;
+  --alert-warning-fg: #8a5a13;
   --alert-danger-bg: var(--status-danger-bg);
   --alert-danger-border: var(--status-danger-border);
   --alert-danger-fg: var(--status-danger-fg);

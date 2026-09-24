@@ -234,7 +234,7 @@ context phải cùng tone trên mọi màn. Không tự thêm mapping local ho�
 
 ### M2. Hiển thị & hành vi
 
-- **M2.1 (MUST)** Kích thước modal theo thang cố định (sm / md / lg / full) kèm `max-height: min(85vh, ...)`. Body cuộn bên trong; header và footer dính. Modal MUST NOT tự giãn theo dữ liệu async.
+- **M2.1 (MUST)** Kích thước modal theo thang cố định (sm / md / lg / full), bị chặn bởi dynamic viewport và safe margin của positioning layer (`max-height: calc(100dvh - 2 × inset)`). Body cuộn bên trong; header và footer dính. Modal MUST NOT tự giãn theo dữ liệu async hoặc dùng phép trừ `vh` riêng theo từng consumer.
 - **M2.2 (MUST)** Nút hành động nằm ở footer, thứ tự nhất quán toàn app, chỉ một primary. Nhãn nút mô tả hành động cụ thể, MUST NOT dùng "OK".
 - **M2.3 (MUST)** Đóng được bằng `Esc`, click backdrop, và nút đóng. Nhưng nếu form có thay đổi chưa lưu thì MUST chặn đóng vô tình và hỏi xác nhận; với form dài, SHOULD tắt đóng bằng backdrop.
 - **M2.4 (MUST)** Focus trap trong modal; focus trả về đúng phần tử đã kích hoạt khi đóng; nền được đánh dấu `inert`.
@@ -246,6 +246,7 @@ context phải cùng tone trên mọi màn. Không tự thêm mapping local ho�
 - **M2.10 (SHOULD)** Modal quan trọng nên có state trên URL để refresh và nút Back hoạt động đúng; Back đóng modal thay vì rời trang.
 - **M2.11 (MUST)** Nội dung trong modal tuân thủ toàn bộ rule `L`, `S`, `T`, `E`, `A` như mọi màn hình khác. Modal không phải vùng miễn trừ.
 - **M2.12 (MUST)** `DialogContent` dùng bố cục một chiều có `gap` token làm owner khoảng cách mặc định giữa header, body/error và footer. Consumer MUST NOT cộng thêm `mt-*`/`mb-*` tại cùng ranh giới. Chỉ modal/editor tự quản **khoảng cách giữa các region** bằng margin/padding riêng mới opt out rõ bằng `gap-0`; việc có body scroll riêng không tự tạo ngoại lệ. Modal có body scroll riêng phải giữ một body `min-h-0` với scroll owner duy nhất. Padding bên trong field group không thay thế hoặc cộng vào khoảng cách giữa các region.
+- **M2.13 (MUST)** Positioning/portal layer của modal chỉ căn vị trí và bắt backdrop; MUST NOT là vertical scroll owner. Luồng đọc dài có đúng một primary body scroller với `overscroll-behavior: contain` và stable scrollbar gutter. Bảng/list lồng chỉ được vertical-scroll khi là collection độc lập có accessible region; không chia cùng một luồng đọc qua nhiều scrollbar.
 
 ### M3. Hiệu năng khi hiển thị modal
 
@@ -264,6 +265,7 @@ context phải cùng tone trên mọi màn. Không tự thêm mapping local ho�
 - **M3.13 (MUST)** Ngân sách mở modal: khung đầu tiên (skeleton) **dưới 100ms**; dữ liệu đầy đủ **dưới 1s**; quá 1s thì skeleton, quá 10s thì thanh tiến trình có phần trăm kèm nút huỷ.
 - **M3.14 (MUST)** Modal MUST NOT gây layout shift cho trang nền, và nội dung bên trong MUST có skeleton khớp kích thước thật (xem `C`).
 - **M3.15 (SHOULD)** Toast và notification dùng chung một container ở lớp overlay, giới hạn số lượng hiển thị đồng thời, và tự gộp khi trùng loại.
+- **M3.16 (MUST)** Khoá nền bằng inert/CSS/body-scroll state; MUST NOT cài global non-passive `wheel` hoặc `touchmove` listener cho mọi event modal trừ khi trace chứng minh platform fallback bắt buộc. Geometry listener của popup chỉ tồn tại khi popup mở, dùng passive scroll observation và coalesce bằng `requestAnimationFrame`.
 
 ---
 

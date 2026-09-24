@@ -207,6 +207,21 @@ describe('Weekly Menu Import setup feedback', () => {
     expect(screen.getByText('Tên khách hàng', { selector: 'span' }).closest('label')).toHaveTextContent('*')
   })
 
+  it('gives the modal workflow one primary vertical scroll owner', () => {
+    const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
+    act(() => result.current.actions.open())
+    render(<WeeklyMenuImportDialog workflow={result.current} />)
+
+    const dialog = screen.getByRole('dialog', { name: 'Nhập thực đơn từ Excel' })
+    const body = dialog.querySelector<HTMLElement>('[data-slot="dialog-body"]')
+    expect(dialog).toHaveAttribute('data-scroll-mode', 'body')
+    expect(dialog).toHaveClass('overflow-hidden')
+    expect(body).toHaveClass('overflow-y-auto', 'overscroll-contain')
+    expect(body).toContainElement(screen.getAllByText('Lịch sử import thực đơn tuần')[0])
+    expect(body).not.toContainElement(screen.getAllByRole('button', { name: /^Đóng$/ }).at(-1) ?? null)
+    expect(dialog.querySelectorAll('.overflow-y-auto')).toHaveLength(1)
+  })
+
   it('offers a retry action when the customer query fails', () => {
     const { result } = renderHook(() => useWeeklyMenuImport(makeOptions({ isCustomerError: true })))
     act(() => result.current.actions.open())

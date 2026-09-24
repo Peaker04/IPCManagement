@@ -5,7 +5,7 @@ import {
   useGetPriceVarianceByPeriodPageQuery,
   useGetPriceVarianceBySupplierPageQuery,
   useGetPriceVariancePageQuery,
-} from '@/features/reports/reportsApi';
+} from '@/api/reportsApi';
 import type {
   PriceVarianceByDishGroupDto,
   PriceVarianceByPeriodDto,

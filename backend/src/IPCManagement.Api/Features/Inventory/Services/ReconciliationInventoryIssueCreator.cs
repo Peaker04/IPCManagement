@@ -72,26 +72,41 @@ internal sealed class ReconciliationInventoryIssueCreator
                 var batch = await _context.Reconciliationbatches
                     .Include(item => item.Lines).ThenInclude(line => line.Ingredient)
                     .Include(item => item.Lines).ThenInclude(line => line.CanonicalUnit)
+                    .Include(item => item.Lines).ThenInclude(line => line.DailyLines)
                     .SingleOrDefaultAsync(item => item.BatchId == batchId, token)
                     ?? throw new BusinessRuleException("Không tìm thấy lô đối chiếu để xuất kho.");
                 var isSupplemental = dto.IsSupplemental == true;
-                if ((isSupplemental ? batch.Status != "IN_PROGRESS" : batch.Status != "TRANSFERRED") || batch.Version != dto.ExpectedVersion)
+                var statusAllowsIssue = isSupplemental
+                    ? batch.Status == "IN_PROGRESS"
+                    : batch.Status is "TRANSFERRED" or "IN_PROGRESS";
+                if (!statusAllowsIssue || batch.Version != dto.ExpectedVersion)
                     throw new DbUpdateConcurrencyException("Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.");
+                var allDailyLines = batch.Lines.SelectMany(line => line.DailyLines).ToList();
+                if (allDailyLines.Count == 0)
+                    throw new BusinessRuleException("LEGACY_DAILY_LINEAGE_MISSING: Lô cũ chưa có định lượng đóng băng theo ngày nên không thể tạo phiếu xuất theo ngày.");
+                var dateSources = allDailyLines.Where(line => line.ServiceDate == dto.IssueDate).ToList();
+                if (dateSources.Count == 0)
+                    throw new BusinessRuleException("Ngày xuất không thuộc nguồn định lượng theo ngày của lô đối chiếu.");
                 if (dto.Lines.Count == 0)
                     throw new ArgumentException(isSupplemental
                         ? "Phiếu xuất thêm phải có ít nhất một nguyên liệu trong lô."
                         : "Phiếu xuất kho phải có ít nhất một dòng nguồn.");
-                var sourceById = batch.Lines.ToDictionary(line => Convert.ToHexString(line.BatchLineId), StringComparer.Ordinal);
-                var resolved = new List<(ReconciliationBatchLine Source, decimal Quantity, string? VarianceReason)>();
+                var sourceById = dateSources.ToDictionary(line => Convert.ToHexString(line.DailyLineId), StringComparer.Ordinal);
+                var resolved = new List<(ReconciliationBatchDailyLine Source, decimal Quantity, string? VarianceReason)>();
                 foreach (var requested in dto.Lines)
                 {
                     if (!string.IsNullOrWhiteSpace(requested.MaterialRequestLineId)
-                        || string.IsNullOrWhiteSpace(requested.ReconciliationBatchLineId))
-                        throw new BusinessRuleException("Dòng xuất phải thuộc đúng nguồn lô đối chiếu của phiếu.");
+                        || string.IsNullOrWhiteSpace(requested.ReconciliationBatchLineId)
+                        || string.IsNullOrWhiteSpace(requested.ReconciliationBatchDailyLineId))
+                        throw new BusinessRuleException("Dòng xuất phải thuộc đúng nguồn theo ngày của lô đối chiếu.");
                     var sourceLineId = GuidHelper.ParseGuidString(requested.ReconciliationBatchLineId)
                         ?? throw new ArgumentException("ReconciliationBatchLineId không hợp lệ.");
-                    if (!sourceById.TryGetValue(Convert.ToHexString(sourceLineId), out var source))
-                        throw new BusinessRuleException("Dòng xuất kho không thuộc lô đối chiếu đã chuyển.");
+                    var dailyLineId = GuidHelper.ParseGuidString(requested.ReconciliationBatchDailyLineId)
+                        ?? throw new ArgumentException("ReconciliationBatchDailyLineId không hợp lệ.");
+                    if (!sourceById.TryGetValue(Convert.ToHexString(dailyLineId), out var source))
+                        throw new BusinessRuleException("Dòng xuất kho không thuộc ngày đã chọn của lô đối chiếu.");
+                    if (!source.BatchLineId.SequenceEqual(sourceLineId))
+                        throw new BusinessRuleException("Dòng tổng tuần không khớp nguồn theo ngày đã đóng băng.");
                     if (!source.IngredientId.SequenceEqual(GuidHelper.ParseGuidString(requested.IngredientId) ?? [])
                         || !source.CanonicalUnitId.SequenceEqual(GuidHelper.ParseGuidString(requested.UnitId) ?? []))
                         throw new BusinessRuleException("Nguyên liệu hoặc đơn vị không khớp dòng nguồn đã đóng băng.");
@@ -111,12 +126,13 @@ internal sealed class ReconciliationInventoryIssueCreator
                             : "Cần nhập lý do khi số lượng thực xuất vượt số lượng cần xuất.");
                     resolved.Add((source, issuedQuantity, varianceReason));
                 }
-                if (resolved.Select(item => Convert.ToHexString(item.Source.BatchLineId)).Distinct().Count() != resolved.Count)
-                    throw new BusinessRuleException("Một dòng nguồn không thể xuất lặp trong cùng phiếu.");
+                if (resolved.Select(item => Convert.ToHexString(item.Source.DailyLineId)).Distinct().Count() != resolved.Count)
+                    throw new BusinessRuleException("Một dòng nguồn theo ngày không thể xuất lặp trong cùng phiếu.");
                 if (!isSupplemental && resolved.Count != sourceById.Count)
                     throw new BusinessRuleException("Phiếu xuất đầu tiên phải ghi nhận đủ mọi nguyên liệu của lô đã khóa.");
-                var hasExistingIssue = await _context.Inventoryissues.AnyAsync(item => item.ReconciliationBatchId == batchId, token);
-                if (isSupplemental != hasExistingIssue)
+                var hasExistingIssueForDate = await _context.Inventoryissues.AnyAsync(
+                    item => item.ReconciliationBatchId == batchId && item.IssueDate == dto.IssueDate, token);
+                if (isSupplemental != hasExistingIssueForDate)
                     throw new ResourceConflictException(isSupplemental
                         ? "Lô chưa có phiếu xuất đầu tiên để thực hiện xuất thêm."
                         : "Lô đã có phiếu xuất; hãy dùng chức năng xuất thêm nguyên liệu.");
@@ -154,6 +170,7 @@ internal sealed class ReconciliationInventoryIssueCreator
                     await _modeGuard.ValidateAsync(operationKey, expectedModeVersion, OperationDisposition.ReconciliationOnly, token);
 
                 _context.Entry(batch).Property(item => item.Version).OriginalValue = dto.ExpectedVersion;
+                var previousBatchStatus = batch.Status;
                 batch.Status = "IN_PROGRESS";
                 batch.Version++;
 
@@ -166,13 +183,16 @@ internal sealed class ReconciliationInventoryIssueCreator
                     {
                         IssueLineId = GuidHelper.NewId(), IssueId = issueId, IngredientId = item.Source.IngredientId,
                         UnitId = item.Source.CanonicalUnitId, RequestedQty = isSupplemental ? item.Quantity : item.Source.RequiredQuantity, IssuedQty = item.Quantity,
-                        ReconciliationBatchLineId = item.Source.BatchLineId
+                        ReconciliationBatchLineId = item.Source.BatchLineId,
+                        ReconciliationBatchDailyLineId = item.Source.DailyLineId,
+                        ReconciliationServiceDate = item.Source.ServiceDate
                     }).ToList()
                 };
                 _issueRepository.Add(issue);
                 if (isSupplemental)
                 {
                     var affectedLineIds = resolved.Select(item => item.Source.BatchLineId).ToList();
+                    var affectedDailyLineIds = resolved.Select(item => item.Source.DailyLineId).ToList();
                     var staleDispositions = (await _context.Reconciliationdispositions.ToListAsync(token))
                         .Where(item => affectedLineIds.Any(lineId => lineId.AsSpan().SequenceEqual(item.BatchLineId)))
                         .ToList();
@@ -187,12 +207,26 @@ internal sealed class ReconciliationInventoryIssueCreator
                         });
                         _context.Reconciliationdispositions.Remove(disposition);
                     }
+                    var staleDailyDispositions = (await _context.Reconciliationdailydispositions.ToListAsync(token))
+                        .Where(item => affectedDailyLineIds.Any(lineId => lineId.AsSpan().SequenceEqual(item.DailyLineId)))
+                        .ToList();
+                    foreach (var disposition in staleDailyDispositions)
+                    {
+                        _context.Auditlogs.Add(new AuditLog
+                        {
+                            AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId,
+                            BusinessArea = "RECONCILIATION", EntityName = nameof(ReconciliationDailyDisposition), EntityId = disposition.DispositionId,
+                            FieldName = "Validity", OldValue = $"{disposition.Category}|{disposition.Reason}|v{disposition.Version}", NewValue = "INVALIDATED",
+                            Reason = "Supplemental inventory issue changed the daily linked issued quantity.", CorrelationId = dto.CorrelationId?.Trim()
+                        });
+                        _context.Reconciliationdailydispositions.Remove(disposition);
+                    }
                 }
                 foreach (var item in resolved.Where(item => item.VarianceReason is not null))
                     _context.Auditlogs.Add(new AuditLog
                     {
                         AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId,
-                        BusinessArea = "Inventory", EntityName = nameof(InventoryIssueLine), EntityId = item.Source.BatchLineId,
+                        BusinessArea = "Inventory", EntityName = nameof(InventoryIssueLine), EntityId = item.Source.DailyLineId,
                         FieldName = nameof(InventoryIssueLine.IssuedQty), OldValue = item.Source.RequiredQuantity.ToString(CultureInfo.InvariantCulture),
                         NewValue = item.Quantity.ToString(CultureInfo.InvariantCulture), Reason = item.VarianceReason,
                         CorrelationId = dto.CorrelationId?.Trim()
@@ -203,7 +237,7 @@ internal sealed class ReconciliationInventoryIssueCreator
                 await _unitOfWork.SaveChangesAsync();
                 var result = new InventoryIssueCreatedDto { IssueId = GuidHelper.ToGuidString(issueId), IssueCode = issue.IssueCode, ConcurrencyVersion = 1 };
                 var response = JsonSerializer.Serialize(result);
-                recorder.Stage(new LifecycleTransitionRequest(nameof(InventoryIssue), batchId, commandId, checked((int)batch.Version), isSupplemental ? "IN_PROGRESS" : "TRANSFERRED", isSupplemental ? "SUPPLEMENTAL_ISSUED" : "ISSUED", actorId,
+                recorder.Stage(new LifecycleTransitionRequest(nameof(InventoryIssue), batchId, commandId, checked((int)batch.Version), previousBatchStatus, isSupplemental ? "SUPPLEMENTAL_ISSUED" : "ISSUED", actorId,
                     dto.ExpectedVersion, isSupplemental ? $"Tạo phiếu xuất thêm {issue.IssueCode} cho lô đối chiếu." : $"Tạo phiếu xuất {issue.IssueCode} từ lô đối chiếu.", dto.CorrelationId, dto.CausationId, response, response));
                 await _unitOfWork.SaveChangesAsync();
                 return result;

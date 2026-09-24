@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('react-redux', () => ({ useSelector: (selector: (state: unknown) => unknown) => selector({ auth: { user: mocks.user } }) }))
-vi.mock('../chefApi', () => {
+vi.mock('@/api/chefApi', () => {
   const idle = () => [vi.fn(), { isLoading: false }]
   return {
     useGetServiceRunByPlanQuery: () => ({ data: mocks.persistedRun, isFetching: false, isError: false, refetch: mocks.refetch }),

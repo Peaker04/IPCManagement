@@ -86,9 +86,10 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
             {
                 var lineIsMaterial = !string.IsNullOrWhiteSpace(line.MaterialRequestLineId);
                 var lineIsReconciliation = !string.IsNullOrWhiteSpace(line.ReconciliationBatchLineId);
+                var lineIsDailyReconciliation = !string.IsNullOrWhiteSpace(line.ReconciliationBatchDailyLineId);
                 var validForHeader = headerIsMaterial
-                    ? !lineIsReconciliation
-                    : lineIsReconciliation && !lineIsMaterial;
+                    ? !lineIsReconciliation && !lineIsDailyReconciliation
+                    : lineIsReconciliation && lineIsDailyReconciliation && !lineIsMaterial;
                 if (!validForHeader)
                 {
                     context.AddFailure(nameof(request.Lines), "Dòng DEFAULT có thể suy ra nguồn chuẩn; dòng đối chiếu phải có đúng nguồn đối chiếu và cùng loại với phiếu xuất.");
@@ -108,10 +109,15 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
         RuleFor(x => x).Must(x =>
                 string.IsNullOrWhiteSpace(x.MaterialRequestLineId) || string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
             .WithMessage("Dòng xuất không được đồng thời tham chiếu cả hai loại dòng nguồn.");
+        RuleFor(x => x).Must(x =>
+                string.IsNullOrWhiteSpace(x.ReconciliationBatchDailyLineId) || !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
+            .WithMessage("Dòng nguồn theo ngày phải thuộc một dòng tổng tuần đối chiếu.");
         When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestLineId), () =>
             RuleFor(x => x.MaterialRequestLineId).Must(BeValidGuid).WithMessage("MaterialRequestLineId phải là GUID hợp lệ."));
         When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId), () =>
             RuleFor(x => x.ReconciliationBatchLineId).Must(BeValidGuid).WithMessage("ReconciliationBatchLineId phải là GUID hợp lệ."));
+        When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchDailyLineId), () =>
+            RuleFor(x => x.ReconciliationBatchDailyLineId).Must(BeValidGuid).WithMessage("ReconciliationBatchDailyLineId phải là GUID hợp lệ."));
 
         RuleFor(x => x.IngredientId)
             .NotEmpty().WithMessage("Nguyên liệu không được để trống.")

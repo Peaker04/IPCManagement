@@ -159,6 +159,13 @@ describe('Admin BOM form feedback', () => {
     expect(document.getElementById('manual-bom-dish')).toHaveTextContent('MON-01 - Món 1');
     expect(document.getElementById('manual-bom-ingredient')).toHaveTextContent('NL-01 - Gạo (kg)');
     expect(document.getElementById('manual-bom-status')).toHaveTextContent('Áp dụng');
+    const search = document.getElementById('manual-bom-ingredient-search')!;
+    const dish = document.getElementById('manual-bom-dish')!;
+    const ingredient = document.getElementById('manual-bom-ingredient')!;
+    expect(search.compareDocumentPosition(dish)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(dish.parentElement?.parentElement).toBe(ingredient.parentElement?.parentElement);
+    expect(dish.parentElement?.textContent).toContain('Món ăn *');
+    expect(ingredient.parentElement?.textContent).toContain('Nguyên liệu *');
     expect(document.getElementById('manual-bom-dish')).not.toHaveTextContent('dish-1');
   });
 

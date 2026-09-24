@@ -667,9 +667,8 @@
 }
 
 .ipc-weekly-dialog {
-  max-height: min(86dvh, 760px);
-  overflow-x: hidden;
-  overflow-y: auto;
+  max-height: min(calc(100dvh - 2rem), 760px);
+  overflow: hidden;
   overscroll-behavior: contain;
 }
 

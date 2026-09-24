@@ -15,7 +15,7 @@ import {
   useCreateReceiptCorrectionMutation,
   useReworkWarehousePurchaseReceiptMutation,
   useVoidWarehousePurchaseReceiptMutation,
-} from './warehouseApi';
+} from '@/api/warehouseApi';
 
 type QualityDraft = Record<string, { acceptedQuantity: string; reason: string }>;
 type CorrectionDraft = Record<string, string>;

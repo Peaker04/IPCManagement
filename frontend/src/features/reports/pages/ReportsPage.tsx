@@ -31,7 +31,7 @@ import { formatCurrency, formatDateOnly, formatDateTime, formatQuantityWithUnit 
 import { uiCopy } from '@/lib/uiCopy';
 import { formatWorkflowStatus } from '@/lib/workflowConfig'; import { formatAuditActor } from '@/lib/auditPresentation';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
-import { useGetSupplyLineReconciliationQuery } from '@/features/reports/reportsApi';
+import { useGetSupplyLineReconciliationQuery } from '@/api/reportsApi';
 import {
   standardPageSizeOptions,
   useReportsPageModel,

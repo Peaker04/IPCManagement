@@ -32,7 +32,7 @@ import type {
 } from '@/api/workflowApiTypes';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
-import type { CreateReturnAllocationDisposition, ReturnAllocationBalance, ReturnAllocationDispositionResult } from './returnAllocationTypes';
+import type { CreateReturnAllocationDisposition, ReturnAllocationBalance, ReturnAllocationDispositionResult } from '@/api/returnAllocationTypes';
 
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 

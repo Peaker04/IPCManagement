@@ -223,6 +223,8 @@ public class CreateInventoryIssueLineRequest
 
     public string? ReconciliationBatchLineId { get; set; }
 
+    public string? ReconciliationBatchDailyLineId { get; set; }
+
     [Required]
     public string IngredientId { get; set; } = string.Empty;
 

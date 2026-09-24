@@ -103,7 +103,7 @@ Một page composition hợp lệ phải giữ các invariant sau:
 | Empty/prerequisite | `EmptyState` hoặc shared prerequisite primitive | Một state surface, title/reason/action |
 | Repeated work section | `SectionPanel` | Heading/content adjacency; route-primary mặc định `h2` dưới shell `h1`; nested/detail phải khai `h3`/`h4` tường minh; không tạo khoảng trắng vô nghĩa |
 | Data comparison | table primitives | Chỉ mount khi có selected work object hoặc purposeful empty state |
-| Dialog/detail | canonical Dialog/Drawer | Dialog chặn luồng và trap focus; drawer master–detail chỉ đọc dùng portal/side geometry nhưng không backdrop chặn, không trap focus hoặc khóa nền |
+| Dialog/detail | canonical Dialog/Drawer | Dialog chặn luồng và trap focus; positioning layer không scroll; luồng dài dùng một `DialogBody` primary vertical scroll owner với header/footer cố định. Nested vertical collection phải độc lập và có accessible region. Drawer master–detail chỉ đọc dùng portal/side geometry nhưng không backdrop chặn, không trap focus hoặc khóa nền |
 
 Nếu một screenshot cho thấy lỗi bố cục, phải xác định primitive/owner trong bảng này trước khi sửa class ở page.
 

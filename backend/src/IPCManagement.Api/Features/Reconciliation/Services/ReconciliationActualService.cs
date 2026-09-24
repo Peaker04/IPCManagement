@@ -73,6 +73,96 @@ public sealed class ReconciliationActualService(
             cancellationToken: token);
     }
 
+    public async Task SetDailyDispositionAsync(string dailyLineId, SetReconciliationDispositionRequest request, string actorId, CancellationToken token = default)
+    {
+        var category = ReconciliationDispositionCategories.RequireValid(request.Category);
+        if (string.IsNullOrWhiteSpace(request.Reason)) throw new ArgumentException("Cần nhập lý do xử lý chênh lệch.");
+        var dailyLineBytes = ReconciliationBatchService.RequiredId(dailyLineId);
+        var actor = ReconciliationBatchService.RequiredId(actorId);
+        var protection = RequiredProtection();
+        var resultingVersion = request.ExpectedVersion.GetValueOrDefault() + 1;
+
+        await transactions.ExecuteProtectedAsync(
+            protection.OperationKey, protection.ExpectedVersion,
+            async operationToken =>
+            {
+                var inMemory = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
+                ReconciliationBatchDailyLine? dailyLine;
+                string batchStatus;
+                if (inMemory)
+                {
+                    dailyLine = (await context.Reconciliationbatchdailylines.ToListAsync(operationToken))
+                        .SingleOrDefault(line => line.DailyLineId.SequenceEqual(dailyLineBytes));
+                    if (dailyLine is null) throw new KeyNotFoundException();
+                    var weeklyLine = (await context.Reconciliationbatchlines.ToListAsync(operationToken))
+                        .Single(line => line.BatchLineId.SequenceEqual(dailyLine.BatchLineId));
+                    batchStatus = (await context.Reconciliationbatches.ToListAsync(operationToken))
+                        .Single(batch => batch.BatchId.SequenceEqual(weeklyLine.BatchId)).Status;
+                }
+                else
+                {
+                    dailyLine = await context.Reconciliationbatchdailylines.Include(line => line.BatchLine).ThenInclude(line => line.Batch)
+                        .SingleOrDefaultAsync(line => line.DailyLineId == dailyLineBytes, operationToken);
+                    if (dailyLine is null) throw new KeyNotFoundException();
+                    batchStatus = dailyLine.BatchLine.Batch.Status;
+                }
+                if (batchStatus != "IN_PROGRESS")
+                    throw new InvalidOperationException("Chỉ lô đang đối chiếu mới được cập nhật hướng xử lý theo ngày.");
+                var issueRows = inMemory
+                    ? (await context.Inventoryissuelines.AsNoTracking().ToListAsync(operationToken))
+                        .Where(line => line.ReconciliationBatchDailyLineId is not null && line.ReconciliationBatchDailyLineId.SequenceEqual(dailyLineBytes)).ToList()
+                    : await context.Inventoryissuelines.AsNoTracking()
+                        .Where(line => line.ReconciliationBatchDailyLineId == dailyLineBytes).ToListAsync(operationToken);
+                if (issueRows.Count == 0) throw new InvalidOperationException("Cần có phiếu xuất kho theo ngày liên kết trước khi xử lý chênh lệch.");
+                var issueLineIds = issueRows.Select(line => line.IssueLineId).ToList();
+                var returns = inMemory
+                    ? (await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return).ToListAsync(operationToken))
+                        .Where(line => line.SourceIssueLineId is not null && line.Return.ReceivedAt is not null
+                            && issueLineIds.Any(idValue => idValue.SequenceEqual(line.SourceIssueLineId))).ToList()
+                    : await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return)
+                        .Where(line => line.SourceIssueLineId != null && issueLineIds.Contains(line.SourceIssueLineId) && line.Return.ReceivedAt != null)
+                        .ToListAsync(operationToken);
+                var returnedByIssueLine = returns.GroupBy(line => Convert.ToHexString(line.SourceIssueLineId!))
+                    .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity), StringComparer.Ordinal);
+                var netIssued = issueRows.Sum(line => line.IssuedQty - returnedByIssueLine.GetValueOrDefault(Convert.ToHexString(line.IssueLineId)));
+                var lineStatus = ReconciliationDailyIssuePolicy.ResolveLineStatus(dailyLine.RequiredQuantity, netIssued, false);
+                if (lineStatus.QuantityStatus != "OVER_ISSUED")
+                    throw new InvalidOperationException("Chỉ dòng xuất vượt theo ngày mới cần hướng xử lý hoàn tất.");
+
+                var current = inMemory
+                    ? (await context.Reconciliationdailydispositions.ToListAsync(operationToken))
+                        .SingleOrDefault(item => item.DailyLineId.SequenceEqual(dailyLineBytes))
+                    : await context.Reconciliationdailydispositions.SingleOrDefaultAsync(item => item.DailyLineId == dailyLineBytes, operationToken);
+                if (current is null)
+                {
+                    if (request.ExpectedVersion.HasValue) throw new DbUpdateConcurrencyException("Hướng xử lý theo ngày đã thay đổi.");
+                    current = new ReconciliationDailyDisposition
+                    {
+                        DispositionId = GuidHelper.NewId(), DailyLineId = dailyLineBytes, Category = category,
+                        Reason = request.Reason.Trim(), Version = 1, DisposedBy = actor, DisposedAt = DateTime.UtcNow
+                    };
+                    context.Reconciliationdailydispositions.Add(current);
+                }
+                else
+                {
+                    if (current.Version != request.ExpectedVersion) throw new DbUpdateConcurrencyException("Hướng xử lý theo ngày đã thay đổi.");
+                    context.Entry(current).Property(item => item.Version).OriginalValue = request.ExpectedVersion!.Value;
+                    current.Category = category;
+                    current.Reason = request.Reason.Trim();
+                    current.Version++;
+                    current.DisposedBy = actor;
+                    current.DisposedAt = DateTime.UtcNow;
+                }
+                resultingVersion = current.Version;
+                await context.SaveChangesAsync(operationToken);
+                return true;
+            },
+            verifySucceeded: verifyToken => context.Reconciliationdailydispositions.AsNoTracking()
+                .AnyAsync(item => item.DailyLineId == dailyLineBytes && item.Version == resultingVersion, verifyToken),
+            isolationLevel: IsolationLevel.Serializable,
+            cancellationToken: token);
+    }
+
     public async Task SetDispositionAsync(string lineId, SetReconciliationDispositionRequest request, string actorId, CancellationToken token = default)
     {
         var category = ReconciliationDispositionCategories.RequireValid(request.Category);

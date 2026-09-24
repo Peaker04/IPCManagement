@@ -22,12 +22,12 @@ import {
   useResolveServiceRunServingVarianceMutation,
   useStartServiceRunMutation,
   useWaiveServiceRunConfirmationMutation,
-} from '../chefApi'
+} from '@/api/chefApi'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
 import { formatServiceRunVarianceTrack } from '@/lib/workflowConfig'
 import { formatCurrency, formatDateOnly } from '@/lib/formatters'
-import type { ServiceRunScope } from '../serviceRunScopeTypes'
-import { describeServiceRunScope, isExactServiceRunScope } from '../serviceRunScopeTypes'
+import type { ServiceRunScope } from '@/api/serviceRunScopeTypes'
+import { describeServiceRunScope, isExactServiceRunScope } from '@/api/serviceRunScopeTypes'
 
 type Props = { plans: ProductionPlan[]; shiftName: string; scope?: ServiceRunScope }
 

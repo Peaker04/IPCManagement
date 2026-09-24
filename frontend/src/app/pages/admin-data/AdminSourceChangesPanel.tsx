@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { InfoNote, KeepAliveTabPanel } from '@/components/common'
+import { InfoNote, KeepAliveTabPanel, QueryViewBoundary } from '@/components/common'
+import { toQueryView } from '@/lib/queryView'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useListReconciliationBatchesQuery } from '@/api/reconciliationApi'
 import { formatDateTime } from '@/lib/formatters'
-import { getReconciliationLifecyclePresentation } from '@/features/reconciliation/reconciliationLifecyclePresentation'
+import { getReconciliationLifecyclePresentation } from '@/lib/reconciliationLifecyclePresentation'
 import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
 import { ReconciliationSourceChangeLog } from '@/features/reconciliation/ReconciliationSourceChangeLog'
 import type { AdminView } from './adminDataPageTypes'
@@ -18,7 +19,13 @@ interface AdminSourceChangesPanelProps {
 export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps) {
   const [searchParams, setSearchParams] = useSearchParams()
   const batchesQuery = useListReconciliationBatchesQuery()
-  const batches = useMemo(() => batchesQuery.currentData ?? batchesQuery.data ?? [], [batchesQuery.currentData, batchesQuery.data])
+  const batchesView = toQueryView(batchesQuery, {
+    instruction: 'Mở lịch sử thay đổi nguồn để tải danh sách lô.',
+    retry: () => batchesQuery.refetch(),
+    errorMessage: 'Không tải được danh sách lô đối chiếu.',
+    forbiddenMessage: 'Bạn không có quyền xem lịch sử thay đổi nguồn.',
+  })
+  const batches = useMemo(() => batchesView.phase === 'ready' ? batchesView.data : [], [batchesView])
 
   const persisted = readReconciliationSelection()
   const requestedBatchId = searchParams.get('batchId') ?? persisted.batchId ?? ''
@@ -110,6 +117,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
 
   return (
     <KeepAliveTabPanel id="admin-source-changes" active={isActive} className="space-y-4">
+      <QueryViewBoundary queries={[{ label: 'danh sách lô đối chiếu', view: batchesView }]} geometry="workspace" minHeight="min-h-[24rem]">
       <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-xs" data-ui-work-surface="admin-source-changes-scope">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-1.5 shrink-0">
@@ -222,6 +230,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
           </p>
         </section>
       )}
+      </QueryViewBoundary>
     </KeepAliveTabPanel>
   )
 }

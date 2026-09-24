@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapDemandAggregateLine } from './reportMappers'
+import { mapDemandAggregateLine } from '@/api/reportMappers'
 
 describe('ingredient demand aggregate presentation', () => {
   it.each([

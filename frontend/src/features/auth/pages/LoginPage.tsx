@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '@/lib/reduxHooks';
-import { setCredentials } from '../authSlice';
+import { setCredentials } from '@/lib/auth/authSlice';
 import { useLoginMutation } from '../authApi';
-import { normalizeUserRole, type AppRole } from '../roleUtils';
+import { normalizeUserRole, type AppRole } from '@/lib/auth/roleUtils';
 import { ROUTES } from '@/lib/routeConfig';
 import { ChefHat, Eye, EyeOff } from 'lucide-react';
 import { FieldRow } from '@/components/common';

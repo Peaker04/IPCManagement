@@ -140,7 +140,7 @@ describe('Chef operational copy', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nhận' }));
 
     expect(onMaterialSignoff).not.toHaveBeenCalled();
-    expect(screen.getByRole('dialog', { name: 'Kiểm đếm phiếu ISS-SUP-001' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Kiểm đếm và ký nhận phiếu xuất' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Nhận nguyên liệu này' }));
     fireEvent.click(screen.getByRole('button', { name: 'Ký nhận toàn bộ phiếu' }));
     await waitFor(() => expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true, false, ''));
@@ -179,7 +179,7 @@ describe('Chef operational copy', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Ký nhận toàn bộ phiếu' }));
 
     await waitFor(() => expect(onMaterialSignoff).toHaveBeenCalledWith('line-1', true, true, 'Cá thiếu 0,5 kg'));
-    expect(screen.getByRole('dialog', { name: 'Kiểm đếm phiếu ISS-001' })).toBeVisible();
+    expect(screen.getByRole('dialog', { name: 'Kiểm đếm và ký nhận phiếu xuất' })).toBeVisible();
     expect(screen.getByDisplayValue('Cá thiếu 0,5 kg')).toBeVisible();
   });
 

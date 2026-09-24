@@ -53,7 +53,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Configuration CRUD query and dialog state is not a business entity lifecycle.",
         "sources": [
-          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:100-123"
+          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:66-93"
         ]
       },
       "backendBacked": false,

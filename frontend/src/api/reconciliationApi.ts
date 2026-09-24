@@ -22,6 +22,11 @@ export interface ReconciliationBatch {
   weekEndDate?: string | null
 }
 export type ReconciliationWarehouseTransfer = components['schemas']['ReconciliationWarehouseTransferDto']
+export interface ReconciliationWarehouseDailyLine { dailyLineId: string; batchLineId: string; ingredientId: string; ingredientCode?: string | null; ingredientName?: string | null; canonicalUnitId: string; canonicalUnitName?: string | null; requiredQuantity: number; issuedQuantity?: number | null; returnedQuantity: number; remainingQuantity: number; quantityStatus: 'UNTOUCHED'|'UNDER_ISSUED'|'EXACT'|'OVER_ISSUED'; hasValidDisposition: boolean }
+export interface ReconciliationWarehouseDay { serviceDate: string; status: 'NO_REQUIREMENT'|'UNTOUCHED'|'PARTIAL'|'OVERAGE_REQUIRES_RESOLUTION'|'COMPLETE'; isApplicable: boolean; requiredQuantity: number; issuedQuantity: number; returnedQuantity: number; remainingQuantity: number; lines: ReconciliationWarehouseDailyLine[] }
+export interface ReconciliationWarehouseDaily { batchId: string; batchStatus: ReconciliationBatch['status']; sourceVersion: number; weeklyStatus: 'WEEK_UNTOUCHED'|'IN_PROGRESS'|'VARIANCE_REQUIRES_RESOLUTION'|'WEEK_COMPLETE'|'LEGACY_INCOMPATIBLE'; compatibility: { canRead: boolean; canIssueByDate: boolean; reasonCode?: string | null }; dates: ReconciliationWarehouseDay[] }
+export interface ReconciliationKitchenCookingRow { serviceDate: string; weekday: string; shiftName: string; dishCode: string; dishName: string; servings: number; ingredientCode: string; ingredientName: string; unitName: string; bomQuantityPerServing: number; wasteRatePercent?: number | null; totalRequiredQuantity: number }
+export interface ReconciliationKitchenCookingExport { batchId: string; sourceVersion: number; rows: ReconciliationKitchenCookingRow[] }
 export type CreateReconciliationIssueRequest = components['schemas']['CreateInventoryIssueRequest']
 export type ReconciliationIssueCreated = components['schemas']['InventoryIssueCreatedDto']
 export type ReconciliationIssueHistoryLine = components['schemas']['InventoryIssueLineDto']
@@ -42,6 +47,8 @@ export interface ReconciliationBatchDishMaterial {
   ingredientName?: string | null
   canonicalUnitId: string
   canonicalUnitName?: string | null
+  dailyLineId?: string
+  serviceDate?: string
   grossQtyPerServing: number
 }
 
@@ -64,6 +71,9 @@ export const reconciliationOwnedQueryEndpointNames = new Set([
   'getReconciliationIssue',
   'listReconciliationSourceChanges',
   'listReconciliationBatchDishes',
+  'getReconciliationWarehouseDaily',
+  'getReconciliationKitchenCooking',
+  'getReconciliationKitchenCookingCsv',
 ])
 
 export const reconciliationOwnedMutationEndpointNames = new Set([
@@ -144,7 +154,11 @@ export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder =
   getReconciliationIssue: builder.query<ReconciliationIssueHistoryItem, string>({ query: issueId => ({ url: `/inventory-issues/${issueId}`, params: { sourceFamily: 'MATERIAL_RECONCILIATION' } }), transformResponse: (r: ApiResponse<ReconciliationIssueHistoryItem>) => r.data!, providesTags: (_result, _error, issueId) => [{ type: 'ReconciliationIssueHistory', id: issueId }] }),
   listReconciliationSourceChanges: builder.query<ReconciliationSourceChange[], string>({ query: batchId => `/reconciliation/batches/${batchId}/source-changes`, transformResponse: (r: ApiResponse<ReconciliationSourceChange[]>) => r.data ?? [], providesTags: (_result, _error, batchId) => [{ type: 'ReconciliationBatches', id: batchId }] }),
   listReconciliationBatchDishes: builder.query<ReconciliationBatchDishSummary[], string>({ query: id => `/reconciliation/batches/${id}/dishes`, transformResponse: (r: ApiResponse<ReconciliationBatchDishSummary[]>) => r.data ?? [], providesTags: (_result, _error, id) => [{ type: 'ReconciliationBatches', id: `${id}-dishes` }] }),
-  createReconciliationIssue: builder.mutation<ReconciliationIssueCreated, CreateReconciliationIssueRequest>({ query: body => ({ url: '/inventory-issues', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationIssueCreated>) => r.data!, invalidatesTags: (_result, _error, body) => [{ type: 'ReconciliationBatches', id: body.reconciliationBatchId! }, { type: 'ReconciliationIssueHistory', id: body.reconciliationBatchId! }] }),
+  getReconciliationWarehouseDaily: builder.query<ReconciliationWarehouseDaily, string>({ query: id => `/reconciliation/batches/${id}/warehouse-daily`, transformResponse: (r: ApiResponse<ReconciliationWarehouseDaily>) => r.data!, providesTags: (_result, _error, id) => [{ type: 'ReconciliationBatches', id }] }),
+  getReconciliationKitchenCooking: builder.query<ReconciliationKitchenCookingExport, string>({ query: id => `/reconciliation/batches/${id}/kitchen-cooking`, transformResponse: (r: ApiResponse<ReconciliationKitchenCookingExport>) => r.data!, providesTags: (_result, _error, id) => [{ type: 'ReconciliationBatches', id: `${id}-kitchen-cooking` }] }),
+  getReconciliationKitchenCookingCsv: builder.query<Blob, string>({ query: id => ({ url: `/reconciliation/batches/${id}/kitchen-cooking/csv`, responseHandler: response => response.blob() }) }),
+  getReconciliationKitchenCookingXlsx: builder.query<Blob, string>({ query: id => ({ url: `/reconciliation/batches/${id}/kitchen-cooking/xlsx`, responseHandler: response => response.blob() }) }),
+  createReconciliationIssue: builder.mutation<ReconciliationIssueCreated, CreateReconciliationIssueRequest>({ query: body => ({ url: '/inventory-issues', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationIssueCreated>) => r.data!, invalidatesTags: (_result, _error, body) => ['ReconciliationBatches', { type: 'ReconciliationBatches', id: body.reconciliationBatchId! }, { type: 'ReconciliationIssueHistory', id: body.reconciliationBatchId! }] }),
   completeReconciliationBatch: builder.mutation<ReconciliationBatch,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/complete`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags:['ReconciliationBatches'] }),
   setReconciliationDisposition: builder.mutation<void,{lineId:string;category:string;reason:string;expectedVersion?:number}>({query:({lineId,...body})=>({url:`/reconciliation/lines/${lineId}/disposition`,method:'PUT',body}),invalidatesTags:['ReconciliationBatches']}),
 })})
@@ -163,6 +177,10 @@ export const {
   useGetReconciliationIssueQuery,
   useListReconciliationSourceChangesQuery,
   useListReconciliationBatchDishesQuery,
+  useGetReconciliationWarehouseDailyQuery,
+  useGetReconciliationKitchenCookingQuery,
+  useLazyGetReconciliationKitchenCookingCsvQuery,
+  useLazyGetReconciliationKitchenCookingXlsxQuery,
   useCreateReconciliationIssueMutation,
   useCompleteReconciliationBatchMutation,
   useGetReconciliationBatchQuery,

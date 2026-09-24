@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi'
-import { useGetDailyProductionPlanQuery } from '@/features/chef/chefApi'
+import { useGetDailyProductionPlanQuery } from '@/api/chefApi'
 import type { KitchenIssueRow } from '@/api/workflowApiTypes'
 import type { OrderRow, ShiftType } from '@/types/coordination'
 import { toChefView } from '../chefQueryView'

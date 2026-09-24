@@ -5,7 +5,7 @@ import {
   MRX_QUANTITY_TAB_LABEL,
   getReconciliationLifecyclePresentation,
   getReconciliationResultPresentation,
-} from './reconciliationLifecyclePresentation'
+} from '@/lib/reconciliationLifecyclePresentation'
 
 describe('MRX reconciliation lifecycle presentation contract', () => {
   it('uses the approved MRX quantity tab label', () => {

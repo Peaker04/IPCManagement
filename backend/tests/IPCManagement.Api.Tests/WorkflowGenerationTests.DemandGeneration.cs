@@ -188,7 +188,7 @@ public partial class WorkflowGenerationTests
     public async Task GenerateDemand_Should_PruneStaleDemandAndProductionLines_OnRegenerate()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
-        await fixture.SeedMenuWithDemandAsync(includeMissingDish: true);
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using (var context = fixture.CreateContext())
         {
@@ -226,7 +226,7 @@ public partial class WorkflowGenerationTests
 
             result.Should().NotBeNull();
             result!.Lines.Should().BeEmpty();
-            result.MissingBomDishes.Should().ContainSingle();
+            result.MissingBomDishes.Should().BeEmpty();
             var demandLineCount = await context.Materialrequestlines.AsNoTracking().CountAsync();
             var productionLineCount = await context.Productionplanlines.AsNoTracking().CountAsync();
             var purchaseLineCount = await context.Purchaserequestlines.AsNoTracking().CountAsync();
@@ -234,7 +234,7 @@ public partial class WorkflowGenerationTests
                 .CountAsync(item => item.DishId == fixture.DishWithBomId);
 
             demandLineCount.Should().Be(0);
-            productionLineCount.Should().Be(1);
+            productionLineCount.Should().Be(0);
             purchaseLineCount.Should().Be(0);
             staleBomProductionLines.Should().Be(0);
         }

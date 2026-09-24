@@ -5,7 +5,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { apiSlice } from '@/api/apiSlice'
-import { coordinationReducer } from '@/features/coordination'
+import coordinationReducer from '@/features/coordination/coordinationSlice'
 import authReducer from '@/lib/auth/authSlice'
 import { ROUTES } from '@/lib/routeConfig'
 import { SystemOperationProvider } from './SystemOperationProvider'

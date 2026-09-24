@@ -41,15 +41,14 @@ describe('Reports page-model ownership contract', () => {
     expect(auditQualitySource).toContain("{ skip: activeView !== 'data-quality' }");
   });
 
-  it('defers the two Reports server searches while preserving their 300 ms request debounce', () => {
+  it('debounces the two Reports server searches for 300 ms and resets pagination on input', () => {
     expect(auditQualitySource).toContain('const deferredDataQualitySearch = useDeferredValue(debouncedDataQualitySearch);');
+    expect(auditQualitySource).toContain('globalThis.setTimeout(() => setDebouncedDataQualitySearch(dataQualitySearch.trim()), 300)');
     expect(auditQualitySource).toContain('searchKeyword: deferredDataQualitySearch || undefined');
     expect(auditQualitySource).toContain('setDataQualityPage(1);');
-    expect(priceSource).toContain('const deferredPriceSearch = useDeferredValue(debouncedPriceSearch);');
+    expect(priceSource).toContain('const deferredPriceSearch = useDebouncedValue(priceSearch.trim(), 300);');
     expect(priceSource).toContain('searchKeyword: deferredPriceSearch || undefined');
     expect(priceSource).toContain('setPricePage(1);');
-    expect(auditQualitySource).toContain('globalThis.setTimeout')
-    expect(priceSource).toContain('globalThis.setTimeout')
   });
 
   it('retains the public compatibility model type', () => {

@@ -1,11 +1,9 @@
 import { Fragment, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ChevronDown, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { InlineAlert, TableViewport } from '@/components/common'
+import { InlineAlert, TableViewport, TabContentSkeleton } from '@/components/common'
 import { formatDateOnly, formatNumber, formatQuantity } from '@/lib/formatters'
 import { ReconciliationLifecycleStrip } from '@/components/reconciliation/ReconciliationLifecycleStrip'
-import { ROUTES } from '@/lib/routeConfig'
 import {
   useCommitReconciliationQuantityImportMutation,
   useInitializeReconciliationToleranceMutation,
@@ -200,8 +198,8 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
       </TableViewport>
       {previewSummary.ingredientTotals.length > 0 && <details className="group border-t border-slate-200"><summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"><span>Xem tổng nguyên liệu ({previewSummary.ingredientTotals.length})</span><ChevronDown className="size-4 text-slate-500 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="max-h-80 overflow-auto border-t border-slate-200"><table className="ipc-data-table w-full table-fixed text-sm"><thead className="sticky top-0 bg-slate-50 text-left text-xs text-slate-600"><tr><th scope="col" className="px-4 py-2">Nguyên liệu</th><th scope="col" className="px-4 py-2 text-right">Tổng lượng cần</th></tr></thead><tbody className="divide-y divide-slate-200">{previewSummary.ingredientTotals.map((material) => <tr key={`${material.code}:${material.unit}`}><td className="px-4 py-2 text-slate-900">{material.name}</td><td className="px-4 py-2 text-right font-medium tabular-nums">{formatQuantity(material.quantity, { maximumFractionDigits: 6 })} {material.unit}</td></tr>)}</tbody></table></div></details>}
     </div>}
-    {batch && <div className="mt-3 space-y-2"><ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={['TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'].includes(batch.status)} /><p className="text-sm text-slate-600">{batch.lines?.length ?? 0} nguyên liệu{batch.status !== 'DRAFT' ? ' · Định lượng đã khóa; thay đổi sau đó không tự ghi đè lô này.' : ''}</p>{['TRANSFERRED', 'IN_PROGRESS'].includes(batch.status) && <InlineAlert title="Số suất thay đổi sau khi đã khóa định lượng" variant="warning">Lô vẫn giữ số suất đã khóa và không tự tăng theo giá trị mới. {batch.status === 'TRANSFERRED' ? 'Kho cần tạo phiếu xuất ban đầu trước; sau đó nút “Tạo phiếu xuất bổ sung” sẽ xuất hiện để xử lý phần tăng.' : 'Mở đúng lô tại Kho và dùng “Tạo phiếu xuất bổ sung”.'} Có thể chọn món cùng số suất tăng thêm để hệ thống tính nguyên liệu theo định mức hiện hành.<div className="mt-2"><Button nativeButton={false} size="sm" variant="outline" render={<Link to={`${ROUTES.WAREHOUSE}?view=demand&batchId=${encodeURIComponent(batch.batchId)}`} />}>{batch.status === 'TRANSFERRED' ? 'Mở Kho để xuất ban đầu' : 'Mở phiếu xuất bổ sung'}</Button></div></InlineAlert>}</div>}
-    {isLoading && <p className="mt-3 text-sm text-slate-600">Đang tải định lượng đã chốt...</p>}
+    {batch && <div className="mt-3 space-y-2"><ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={['TRANSFERRED', 'IN_PROGRESS', 'COMPLETED'].includes(batch.status)} /><p className="text-sm text-slate-600">{batch.lines?.length ?? 0} nguyên liệu{batch.status !== 'DRAFT' ? ' · Định lượng đã khóa và không tự thay đổi theo dữ liệu mới.' : ''}</p></div>}
+    {isLoading && <div className="mt-3"><TabContentSkeleton geometry="section" rows={3} columns={5} message="Đang tải định lượng đã chốt..." /></div>}
     {isError && <p className="mt-3 text-sm text-red-700" role="alert">Không tải được định lượng xuất kho. <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetch()}>Thử lại</Button></p>}
     {!isLoading && !isError && !menuVersionId && <p className="mt-3 text-sm text-slate-600">Chọn đúng khách hàng và tuần có kế hoạch đã nhập để mở định lượng xuất kho.</p>}
     {!isLoading && !isError && menuVersionId && isMenuPublished && incompleteServingPlanCount === 0 && !batch && !preview && <p className="mt-3 flex items-start gap-2 text-sm text-slate-600"><TriangleAlert className="mt-0.5 shrink-0" size={16} aria-hidden="true" />Chưa có lô định lượng. Hãy kiểm tra nguồn để xác nhận thực đơn, định mức nguyên liệu và số suất đã sẵn sàng.</p>}

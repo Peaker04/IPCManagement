@@ -1,7 +1,7 @@
 import { apiSlice } from '@/api/apiSlice';
 import { workflowDocumentsApi } from '@/api/workflowDocumentsApi';
 import { dashboardApi } from '@/api/dashboardApi';
-import { reportsApi } from '@/features/reports/reportsApi';
+import { reportsApi } from '@/api/reportsApi';
 import { purchasingApi } from '@/api/purchasingApi';
 import { warehouseApi } from '@/api/warehouseApi';
 import { chefApi } from '@/api/chefApi';
@@ -136,7 +136,7 @@ export {
 } from '@/api/workflowDocumentsApi';
 export {
   useGetOperationalKpisQuery,
-} from '@/features/dashboard/dashboardApi';
+} from '@/api/dashboardApi';
 export {
   useGetIngredientDemandQuery,
   useGetPurchasePlanQuery,
@@ -173,7 +173,7 @@ export {
   useGetDataQualityQuery,
   useGetDataQualityPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
-} from '@/features/reports/reportsApi';
+} from '@/api/reportsApi';
 export {
   useGetSuppliersQuery,
   useGetPurchaseWorkbenchQuery,
@@ -249,4 +249,4 @@ export {
   useDeleteApprovalRuleMutation,
 } from '@/features/admin/adminWorkflowApi';
 
-export { useWorkflowOverview } from '@/features/reports/reportsApi';
+export { useWorkflowOverview } from '@/api/reportsApi';

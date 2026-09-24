@@ -13,6 +13,7 @@ import { QueryViewBoundary } from '@/components/common/QueryViewBoundary';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -37,7 +38,7 @@ import {
   useRouteSupplementalMaterialRequestToPurchasingMutation,
 } from '@/api/warehouseApi';
 import type { SupplementalMaterialRequestResult } from '@/api/workflowApiTypes';
-import type { ReturnAllocationBalance } from './returnAllocationTypes';
+import type { ReturnAllocationBalance } from '@/api/returnAllocationTypes';
 
 type Feedback = { title: string; message: string; variant: 'info' | 'warning' | 'danger' };
 type FieldFeedback = Pick<Feedback, 'title' | 'message'>;
@@ -417,9 +418,10 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
 
       {Boolean(selectedReturnId) && (
         <Dialog open={Boolean(selectedReturnId)} onOpenChange={(open) => { if (!open) { setSelectedReturnId(''); setDiscrepancyValidation(undefined); setAdjustedQuantityErrors({}); setReturnError(undefined); } }}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl" aria-labelledby="return-receipt-title" aria-describedby="return-receipt-description">
+          <DialogContent scrollMode="body" className="sm:max-w-2xl" aria-labelledby="return-receipt-title" aria-describedby="return-receipt-description">
             <DialogHeader><DialogTitle id="return-receipt-title">Tiếp nhận nguyên liệu trả</DialogTitle><DialogDescription id="return-receipt-description">Kiểm đếm và nhập số lượng thực nhận cho từng nguyên liệu.</DialogDescription></DialogHeader>
-            <QueryViewBoundary queries={[{ label: 'chi tiết phiếu trả', view: returnDetailView }]} refreshLabel="Đang cập nhật chi tiết phiếu trả">
+            <DialogBody className="grid gap-4">
+              <QueryViewBoundary queries={[{ label: 'chi tiết phiếu trả', view: returnDetailView }]} refreshLabel="Đang cập nhật chi tiết phiếu trả">
             {selectedReturn && <div className="grid gap-4">
               <InlineAlert title={`${selectedReturn.returnCode} · ${selectedReturn.returnType === 'WASTE' ? 'Hao hụt' : 'Trả kho'}`} variant={selectedReturn.returnType === 'WASTE' ? 'warning' : 'info'}>Bếp khai báo tổng {returnQuantity}; kho nhập số thực nhận cho từng dòng.</InlineAlert>
               {selectedReturn.lines.map((line) => {
@@ -437,6 +439,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
             </div>}
             </QueryViewBoundary>
             {returnError && <div role="alert"><InlineAlert title={returnError.title} variant="danger">{returnError.message}</InlineAlert></div>}
+            </DialogBody>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setSelectedReturnId('')}>Hủy</Button><Button type="button" disabled={!selectedReturn || confirmReturnState.isLoading} onClick={() => void submitReturnReceipt()}>{confirmReturnState.isLoading ? 'Đang cập nhật...' : 'Xác nhận tiếp nhận'}</Button></DialogFooter>
           </DialogContent>
         </Dialog>

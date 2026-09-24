@@ -39,10 +39,9 @@ function CompactQuantity({ quantity, unit, isDifference = false }: { quantity: n
   return <span className={colorClass} title={`Giá trị chính xác: ${prefix}${formatQuantity(quantity, { maximumFractionDigits: 6 })}${suffix}`}>{formatted}</span>
 }
 
-export function ReconciliationComparisonTable({ lines, showAll = false, onDisposition, onDetail }: {
+export function ReconciliationComparisonTable({ lines, showAll = false, onDetail }: {
   lines: ReconciliationLine[]
   showAll?: boolean
-  onDisposition?: (line: ReconciliationLine) => void
   onDetail?: (line: ReconciliationLine) => void
 }) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -124,8 +123,8 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
               className={cn(
                 'h-7 rounded-md px-2.5 text-xs font-semibold',
                 statusFilter === 'NEEDS_REVIEW'
-                  ? 'bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:text-white'
-                  : 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-300',
+                  ? 'border-amber-300 bg-amber-50 text-amber-900'
+                  : 'border-amber-200 bg-white text-amber-800 hover:bg-amber-50',
               )}
               onClick={() => {
                 setStatusFilter('NEEDS_REVIEW')
@@ -186,7 +185,7 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
             <TableHead scope="col" className="text-right">Đã xuất kho</TableHead>
             <TableHead scope="col" className="text-right">Sai lệch</TableHead>
             <TableHead scope="col">Kết quả</TableHead>
-            <TableHead scope="col">Thao tác</TableHead>
+            <TableHead scope="col" className="w-28">Chi tiết</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -204,15 +203,7 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
               const difference = line.issuedQuantity == null
                 ? null
                 : line.issuedRequiredDifference ?? line.issuedQuantity - line.requiredQuantity
-              const rowHighlight = line.disposition
-                ? 'bg-blue-50/20'
-                : line.status === 'NEEDS_REVIEW'
-                ? difference != null && difference > 0
-                  ? 'bg-amber-50/25'
-                  : difference != null && difference < 0
-                  ? 'bg-rose-50/25'
-                  : undefined
-                : undefined
+              const rowHighlight = undefined
               return (
                 <TableRow key={line.batchLineId} className={rowHighlight}>
                   <TableCell>
@@ -233,10 +224,7 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDispos
                     })()}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap items-center gap-2">
-                      {onDetail && <Button type="button" variant="outline" size="sm" onClick={() => onDetail(line)}>Chi tiết</Button>}
-                      {onDisposition && line.status === 'NEEDS_REVIEW' && <Button type="button" variant="secondary" size="sm" onClick={() => onDisposition(line)}>{line.disposition ? 'Cập nhật xử lý' : 'Xử lý chênh lệch'}</Button>}
-                    </div>
+                    {onDetail && <Button type="button" variant="outline" size="xs" className="w-full" onClick={() => onDetail(line)}>Thao tác</Button>}
                   </TableCell>
                 </TableRow>
               )

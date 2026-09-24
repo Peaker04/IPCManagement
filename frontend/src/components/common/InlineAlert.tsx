@@ -26,7 +26,7 @@ const alertClasses: Record<InlineAlertVariant, string> = {
 };
 
 const titleClasses: Record<InlineAlertVariant, string> = {
-  warning: 'text-[var(--status-warning-fg,#c05621)]',
+  warning: 'text-[var(--alert-warning-fg,#8a5a13)]',
   danger: 'text-[var(--status-danger-fg,#c53030)]',
   info: 'text-[var(--status-info-fg,#1a56a8)]',
   success: 'text-[var(--status-success-fg,#0f766e)]',
@@ -34,7 +34,7 @@ const titleClasses: Record<InlineAlertVariant, string> = {
 };
 
 const defaultIcons: Record<InlineAlertVariant, ReactNode> = {
-  warning: <AlertTriangle size={20} className="text-[var(--status-warning-fg,#c05621)]" />,
+  warning: <AlertTriangle size={20} className="text-[var(--alert-warning-fg,#8a5a13)]" />,
   danger: <AlertTriangle size={20} className="text-[var(--status-danger-fg,#c53030)]" />,
   info: <Info size={20} className="text-[var(--status-info-fg,#1a56a8)]" />,
   success: <CheckCircle2 size={20} className="text-[var(--status-success-fg,#0f766e)]" />,
@@ -46,8 +46,8 @@ export function InlineAlert({ title, icon, action, children, variant = 'warning'
   const HeadingTag = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
 
   return (
-    <aside role={role} className={cn('ipc-inline-alert-enter flex flex-wrap items-center justify-between gap-3 rounded-[3px] border px-3 py-2.5', alertClasses[variant], className)}>
-      <div className="flex min-w-0 items-center gap-3.5">
+    <aside role={role} className={cn('ipc-inline-alert-enter flex flex-wrap items-start justify-between gap-3 rounded-[3px] border px-3 py-2.5', alertClasses[variant], className)}>
+      <div className="flex min-w-0 items-start gap-3.5">
         {displayIcon && <div className="flex shrink-0 items-center justify-center opacity-80">{displayIcon}</div>}
         <div>
           {title && <HeadingTag className={cn(typography.sectionTitle, 'm-0 mb-1', titleClasses[variant])}>{title}</HeadingTag>}

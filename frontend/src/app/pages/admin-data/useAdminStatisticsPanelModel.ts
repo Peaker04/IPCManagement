@@ -3,7 +3,7 @@ import {
   useGetIngredientDemandAggregatePageQuery,
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
-} from '@/features/reports/reportsApi';
+} from '@/api/reportsApi';
 import type { AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
 

@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Info, Plus, Trash2 } from 'lucide-react'
-import { InfoNote, InlineAlert, OperationalFrame, PaginationBar, SearchField, SectionPanel, StatusBadge, TableViewport, ViewSwitcher } from '@/components/common'
+import { EmptyState, InfoNote, InlineAlert, OperationalFrame, PaginationBar, SearchField, SectionPanel, StatusBadge, TableSkeleton, TabContentSkeleton, TableViewport, ViewSwitcher } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
 import { Input } from '@/components/ui/input'
@@ -10,14 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useGetWarehouseSelectorQuery } from '@/api/warehouseApi'
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext'
-import { formatDateOnly, formatQuantityWithUnit, formatUnit, roundQuantity } from '@/lib/formatters'
+import { formatDateOnly, formatQuantityWithUnit, formatUnit, getDateTimeFormat, roundQuantity } from '@/lib/formatters'
 import { compareIssueQuantity, issueQuantityDifference } from './reconciliationIssueQuantity'
 import { buildWeeklyMenuRoute, ROUTES } from '@/lib/routeConfig'
 import { readReconciliationSelection, type ReconciliationWarehouseView, writeReconciliationSelection, visibleTabIds } from '@/lib/navigationPreferences'
 import { cn } from '@/lib/utils'
 import { eligiblePageTabs } from '@/lib/systemOperationEligibility'
 import { useSystemOperation } from '@/lib/systemOperationContext'
-import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, useListReconciliationBatchDishesQuery, useListReconciliationIssueHistoryQuery, type ReconciliationIssueHistoryItem, type ReconciliationLine } from '@/api/reconciliationApi'
+import { useCreateReconciliationIssueMutation, useGetReconciliationBatchQuery, useGetReconciliationWarehouseDailyQuery, useListReconciliationBatchesQuery, useListReconciliationBatchDishesQuery, useListReconciliationIssueHistoryQuery, type ReconciliationIssueHistoryItem, type ReconciliationLine, type ReconciliationWarehouseDailyLine } from '@/api/reconciliationApi'
 import { ReconciliationIssueDetailDialog } from '@/components/reconciliation/ReconciliationIssueDetailDialog'
 import { ReconciliationIssueHistoryTable } from '@/components/reconciliation/ReconciliationIssueHistoryTable'
 import { ReconciliationLifecycleStrip } from '@/components/reconciliation/ReconciliationLifecycleStrip'
@@ -27,6 +27,13 @@ import { useLocalPagination } from '@/lib/useLocalPagination'
 
 const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
 
+const weeklyStatusLabel: Record<string, string> = {
+  WEEK_UNTOUCHED: 'Chưa xuất',
+  IN_PROGRESS: 'Đang xuất theo ngày',
+  VARIANCE_REQUIRES_RESOLUTION: 'Cần xử lý chênh lệch',
+  WEEK_COMPLETE: 'Đã xuất đủ',
+}
+
 const errorMessage = (error: unknown, fallback = 'Không tạo được phiếu xuất. Hãy tải lại danh sách cần xuất rồi thử lại.') => {
   if (typeof error === 'object' && error && 'data' in error) {
     const data = (error as { data?: { message?: string } }).data
@@ -35,8 +42,41 @@ const errorMessage = (error: unknown, fallback = 'Không tạo được phiếu 
   return fallback
 }
 
+type DailyDemandLine = ReconciliationLine & { dailyLineId: string; serviceDate: string }
+type WeeklyDemandLine = {
+  batchLineId: string
+  ingredientCode?: string | null
+  ingredientName?: string | null
+  canonicalUnitName?: string | null
+  requiredQuantity: number
+  issuedQuantity: number | null
+  remainingQuantity: number
+  applicableDateCount: number
+  completedDateCount: number
+  hasUnresolvedOverage: boolean
+}
+
+const WeeklyDemandRow = memo(function WeeklyDemandRow({ line }: { line: WeeklyDemandLine }) {
+  const untouched = line.issuedQuantity == null
+  const complete = line.completedDateCount === line.applicableDateCount
+  const label = line.hasUnresolvedOverage
+    ? 'Cần xử lý chênh lệch'
+    : complete
+      ? `Đã xử lý đủ ${line.completedDateCount}/${line.applicableDateCount} ngày`
+      : untouched
+        ? 'Chưa xuất'
+        : `Đang xuất ${line.completedDateCount}/${line.applicableDateCount} ngày`
+  return <tr>
+    <td className="w-80"><span className="block font-medium">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span>{line.ingredientCode && <span className="text-xs text-slate-500">{line.ingredientCode}</span>}</td>
+    <td className="text-right tabular-nums">{formatQuantityWithUnit(line.requiredQuantity, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</td>
+    <td className="text-right tabular-nums">{untouched ? <span className="text-slate-600">Chưa xuất</span> : formatQuantityWithUnit(line.issuedQuantity!, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</td>
+    <td className="text-right tabular-nums">{formatQuantityWithUnit(line.remainingQuantity, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</td>
+    <td className="w-44 whitespace-nowrap"><StatusBadge tone={line.hasUnresolvedOverage ? 'warning' : complete ? 'success' : untouched ? 'neutral' : 'info'}>{label}</StatusBadge></td>
+  </tr>
+})
+
 interface ReconciliationDemandRowProps {
-  line: ReconciliationLine
+  line: DailyDemandLine
   enteredQuantity?: string
   varianceReason?: string
   canCreateIssue: boolean
@@ -54,6 +94,7 @@ const ReconciliationDemandRow = memo(function ReconciliationDemandRow({
   onQuantityChange,
   onReasonChange,
 }: ReconciliationDemandRowProps) {
+  const inputId = line.dailyLineId
   const entered = Number(enteredQuantity ?? 0)
   const relation = compareIssueQuantity(entered, line.requiredQuantity)
   const committedRelation = line.issuedQuantity == null ? null : compareIssueQuantity(line.issuedQuantity, line.requiredQuantity)
@@ -74,22 +115,22 @@ const ReconciliationDemandRow = memo(function ReconciliationDemandRow({
 
   return (
     <tr className={rowHighlight}>
-      <td><span className="block font-medium">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span></td>
+      <td className="w-80"><span className="block font-medium">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span>{line.ingredientCode && <span className="text-xs text-slate-500">{line.ingredientCode}</span>}</td>
       <td className="text-right tabular-nums">{formatQuantityWithUnit(line.requiredQuantity, line.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</td>
       <td className="text-right tabular-nums">
         {canCreateIssue && !hasLinkedIssue ? (
           <>
-            <label className="sr-only" htmlFor={`issued-${line.batchLineId}`}>Thực xuất {line.ingredientName}</label>
+            <label className="sr-only" htmlFor={`issued-${inputId}`}>Thực xuất {line.ingredientName}</label>
             <div className="flex items-center justify-end gap-2">
               <Input
-                id={`issued-${line.batchLineId}`}
+                id={`issued-${inputId}`}
                 aria-label={`Thực xuất ${line.ingredientName}`}
                 type="number"
                 min="0"
                 step="0.000001"
                 inputMode="decimal"
                 value={enteredQuantity ?? '0'}
-                onChange={(event) => onQuantityChange(line.batchLineId, event.target.value)}
+                onChange={(event) => onQuantityChange(inputId, event.target.value)}
                 className="w-36 text-right tabular-nums"
               />
               <span className="w-16 text-xs text-slate-600">{formatUnit(line.canonicalUnitName ?? '')}</span>
@@ -108,7 +149,7 @@ const ReconciliationDemandRow = memo(function ReconciliationDemandRow({
               <Textarea
                 aria-label={`Lý do xuất vượt ${line.ingredientName}`}
                 value={varianceReason ?? ''}
-                onChange={(event) => onReasonChange(line.batchLineId, event.target.value)}
+                onChange={(event) => onReasonChange(inputId, event.target.value)}
                 placeholder="Nhập lý do xuất vượt"
                 rows={2}
                 className="min-h-16 min-w-48 resize-y text-xs"
@@ -120,11 +161,11 @@ const ReconciliationDemandRow = memo(function ReconciliationDemandRow({
                     role="button"
                     tabIndex={0}
                     className="inline-flex cursor-pointer rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-caption text-slate-700 transition hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    onClick={() => onReasonChange(line.batchLineId, preset)}
+                    onClick={() => onReasonChange(inputId, preset)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        onReasonChange(line.batchLineId, preset)
+                        onReasonChange(inputId, preset)
                       }
                     }}
                   >
@@ -148,7 +189,7 @@ const ReconciliationDemandRow = memo(function ReconciliationDemandRow({
           <span className="text-sm text-slate-600">Không cần</span>
         )}
       </td>
-      <td>
+      <td className="w-44 whitespace-nowrap">
         <StatusBadge tone={statusRelation === 'over' ? 'warning' : statusRelation === 'under' ? 'danger' : statusRelation === 'invalid' ? 'neutral' : 'success'}>
           {statusLabel}
         </StatusBadge>
@@ -226,24 +267,27 @@ export default function ReconciliationWarehousePage() {
       : filteredEligibleBatches[0]?.batchId ?? ''
 
   const batchQuery = useGetReconciliationBatchQuery(batchId, { skip: !batchId, refetchOnMountOrArgChange: true })
+  const dailyQuery = useGetReconciliationWarehouseDailyQuery(batchId, { skip: !batchId, refetchOnMountOrArgChange: true })
   const historyQuery = useListReconciliationIssueHistoryQuery(batchId, { skip: !batchId || activeView !== 'movement', refetchOnMountOrArgChange: true })
   const { data: warehouses = [], isError: warehouseError } = useGetWarehouseSelectorQuery()
   const warehouse = resolveOperationalWarehouseContext(warehouses)
   const [createIssue, { isLoading: isCreating }] = useCreateReconciliationIssueMutation()
-  const canCreateIssue = useHasRole(['quanly', 'thukho'])
+  const canCreateIssue = useHasRole(['thukho'])
   const batch = batchId ? (batchQuery.currentData ?? batchQuery.data) : undefined
+  const selectedBatchSummary = filteredEligibleBatches.find((item) => item.batchId === batchId)
 
   useEffect(() => {
     writeReconciliationSelection({
       ...readReconciliationSelection(),
       batchId: batchId || undefined,
-      customerId: selectedCustomerId !== 'ALL' ? selectedCustomerId : undefined,
+      customerId: selectedBatchSummary?.customerId || (selectedCustomerId !== 'ALL' ? selectedCustomerId : undefined),
+      weekStartDate: selectedBatchSummary?.weekStartDate || undefined,
+      weekEndDate: selectedBatchSummary?.weekEndDate || undefined,
     })
-  }, [batchId, selectedCustomerId])
+  }, [batchId, selectedBatchSummary?.customerId, selectedBatchSummary?.weekEndDate, selectedBatchSummary?.weekStartDate, selectedCustomerId])
 
   const batchLabel = (item: typeof allEligibleBatches[number]) =>
     `${item.customerName ? `[${item.customerName}] ` : item.customerCode ? `[${item.customerCode}] ` : ''}${item.weekStartDate ? `Tuần ${formatDateOnly(item.weekStartDate)}` : 'Chưa xác định tuần phục vụ'} · ${getReconciliationLifecyclePresentation(item.status).label}`
-  const selectedBatchSummary = filteredEligibleBatches.find((item) => item.batchId === batchId)
   const selectedBatchLabel = selectedBatchSummary
     ? batchLabel(selectedBatchSummary)
     : filteredEligibleBatches.length === 0
@@ -269,13 +313,58 @@ export default function ReconciliationWarehousePage() {
     COMPLETED: 'Đã hoàn tất',
   }
   const selectedStatusLabel = batchStatusLabels[batchStatusFilter] ?? 'Tất cả trạng thái'
-  const hasLinkedIssue = Boolean(batch && ['IN_PROGRESS', 'COMPLETED'].includes(batch.status) && batch.lines.some((line) => line.issuedQuantity != null))
-  const remainingLines = useMemo(() => hasLinkedIssue ? [] : batch?.lines ?? [], [batch?.lines, hasLinkedIssue])
+  const dayFilter = searchParams.get('day') ?? 'ALL'
+  const dailyProjection = dailyQuery.currentData ?? (!dailyQuery.isFetching ? dailyQuery.data : undefined)
+  const applicableDates = useMemo(() => dailyProjection?.dates.filter((date) => date.isApplicable) ?? [], [dailyProjection?.dates])
+  const dayKey = (serviceDate: string) => ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'][new Date(`${serviceDate}T00:00:00`).getDay()]
+  const selectedDate = dayFilter === 'ALL' ? undefined : applicableDates.find((date) => dayKey(date.serviceDate) === dayFilter)
+  const hasLinkedIssue = Boolean(selectedDate?.lines.some((line) => line.issuedQuantity != null))
+  const remainingLines = useMemo(() => selectedDate?.lines.filter((line) => line.quantityStatus === 'UNTOUCHED') ?? [], [selectedDate])
 
   const [demandSearch, setDemandSearch] = useState('')
   const [demandPageSize, setDemandPageSize] = useState(15)
 
-  const demandLines = useMemo(() => batch?.lines ?? [], [batch?.lines])
+  const dailyDemandLines = useMemo<DailyDemandLine[]>(() => selectedDate?.lines.map((line: ReconciliationWarehouseDailyLine) => ({
+    ...line,
+    serviceDate: selectedDate.serviceDate,
+    frozenTolerance: 0,
+    purchasedQuantity: null,
+    purchasedVersion: null,
+    issuedVersion: null,
+    purchasedRequiredDifference: null,
+    issuedRequiredDifference: line.issuedQuantity == null ? null : line.issuedQuantity - line.requiredQuantity,
+    purchasedIssuedDifference: null,
+    triggers: [],
+    status: line.quantityStatus === 'EXACT' ? 'MATCHED' : line.quantityStatus === 'UNTOUCHED' ? 'INCOMPLETE' : 'NEEDS_REVIEW',
+    version: 1,
+    disposition: line.hasValidDisposition ? { category: 'ACCEPTED_VARIANCE', reason: '', version: 1, disposedAt: '' } : null,
+  })) ?? [], [selectedDate])
+  const weeklyDemandLines = useMemo<WeeklyDemandLine[]>(() => {
+    const grouped = new Map<string, WeeklyDemandLine>()
+    for (const date of applicableDates) for (const line of date.lines) {
+      const current = grouped.get(line.batchLineId) ?? {
+        batchLineId: line.batchLineId,
+        ingredientCode: line.ingredientCode,
+        ingredientName: line.ingredientName,
+        canonicalUnitName: line.canonicalUnitName,
+        requiredQuantity: 0,
+        issuedQuantity: null,
+        remainingQuantity: 0,
+        applicableDateCount: 0,
+        completedDateCount: 0,
+        hasUnresolvedOverage: false,
+      }
+      current.requiredQuantity += line.requiredQuantity
+      if (line.issuedQuantity != null) current.issuedQuantity = (current.issuedQuantity ?? 0) + line.issuedQuantity
+      current.remainingQuantity += Math.max(0, line.remainingQuantity)
+      current.applicableDateCount += 1
+      if (line.quantityStatus === 'EXACT' || line.hasValidDisposition) current.completedDateCount += 1
+      if (line.quantityStatus === 'OVER_ISSUED' && !line.hasValidDisposition) current.hasUnresolvedOverage = true
+      grouped.set(line.batchLineId, current)
+    }
+    return [...grouped.values()].sort((left, right) => (left.ingredientName ?? '').localeCompare(right.ingredientName ?? '', 'vi'))
+  }, [applicableDates])
+  const demandLines = dayFilter === 'ALL' ? weeklyDemandLines : dailyDemandLines
   const filteredDemandLines = useMemo(() => {
     if (!demandSearch.trim()) return demandLines
     const query = demandSearch.trim().toLowerCase()
@@ -324,7 +413,7 @@ export default function ReconciliationWarehousePage() {
     if (!selectedDish) return []
     const portions = Number(supplementalServings)
     const validPortions = Number.isFinite(portions) && portions > 0 ? portions : 0
-    return selectedDish.materials.map((mat) => {
+    return selectedDish.materials.filter((mat) => mat.serviceDate === selectedDate?.serviceDate).map((mat) => {
       const batchLine = batch?.lines.find((l) => l.batchLineId === mat.batchLineId)
       const baseCalc = validPortions > 0 ? roundQuantity(validPortions * mat.grossQtyPerServing) : 0
       const entered = supplementalDishAdjustments[mat.batchLineId]
@@ -344,7 +433,7 @@ export default function ReconciliationWarehousePage() {
         diffAfter,
       }
     })
-  }, [selectedDish, supplementalServings, supplementalDishAdjustments, batch?.lines])
+  }, [selectedDish, selectedDate?.serviceDate, supplementalServings, supplementalDishAdjustments, batch?.lines])
 
   const changedServiceDates = useMemo(() => [...new Set(availableDishes.flatMap((dish) => dish.scopes ?? []).filter((scope) => scope.additionalServings > 0).map((scope) => scope.serviceDate))].sort(), [availableDishes])
   const selectedChangedDate = supplementalServiceDate || changedServiceDates[0] || ''
@@ -368,6 +457,7 @@ export default function ReconciliationWarehousePage() {
     return [...grouped.values()]
   }, [batch?.lines, changedDishesForDate, supplementalDishAdjustments])
   const visibleSupplementalMode = supplementalMode === 'by_day' && changedServiceDates.length === 0 ? 'custom' : supplementalMode
+  const dishSupplementalEnabled = true
   const displayedSupplementalMaterials = visibleSupplementalMode === 'by_day' ? calculatedDayMaterials : calculatedDishMaterials
   const effectiveSupplementalMode = availableDishes.length > 0 ? visibleSupplementalMode : 'custom'
   const effectiveSupplementalReason = supplementalReason.trim() || (effectiveSupplementalMode === 'by_day' && selectedChangedDate ? `Bổ sung theo thay đổi thực đơn ngày ${selectedChangedDate}` : '')
@@ -378,17 +468,17 @@ export default function ReconciliationWarehousePage() {
   }, [effectiveSupplementalMode, displayedSupplementalMaterials, customSupplementalLines])
 
   const issueInputInvalid = remainingLines.some((line) => {
-    const quantity = Number(issuedQuantities[line.batchLineId] ?? 0)
+    const quantity = Number(issuedQuantities[line.dailyLineId] ?? 0)
     const relation = compareIssueQuantity(quantity, line.requiredQuantity)
-    return relation === 'invalid' || (relation === 'over' && !varianceReasons[line.batchLineId]?.trim())
+    return relation === 'invalid' || (relation === 'over' && !varianceReasons[line.dailyLineId]?.trim())
   })
 
   const fillExactRequiredQuantities = () => {
-    setIssuedQuantities(Object.fromEntries(remainingLines.map((line) => [line.batchLineId, String(line.requiredQuantity)])))
+    setIssuedQuantities(Object.fromEntries(remainingLines.map((line) => [line.dailyLineId, String(line.requiredQuantity)])))
     setVarianceReasons({})
   }
 
-  const updateRoute = (updates: { view?: ReconciliationWarehouseView; batchId?: string }) => {
+  const updateRoute = (updates: { view?: ReconciliationWarehouseView; batchId?: string; day?: string }) => {
     const next = new URLSearchParams(searchParams)
     if (updates.batchId !== undefined) {
       if (updates.batchId) next.set('batchId', updates.batchId)
@@ -398,6 +488,10 @@ export default function ReconciliationWarehousePage() {
     if (updates.view !== undefined) {
       next.set('view', updates.view)
       if (updates.view !== 'movement') next.delete('issueId')
+    }
+    if (updates.day !== undefined) {
+      if (updates.day) next.set('day', updates.day)
+      else next.delete('day')
     }
     setSearchParams(next, { replace: true })
   }
@@ -439,22 +533,23 @@ export default function ReconciliationWarehousePage() {
   }, [activeView, batchId])
 
   const create = async () => {
-    if (!batch || !warehouse.warehouse?.warehouseId || remainingLines.length === 0) return
+    if (!batch || !selectedDate || !warehouse.warehouse?.warehouseId || remainingLines.length === 0) return
     setFeedback(undefined)
     try {
       await createIssue({
-        commandId: `reconciliation-issue-${batch.batchId}`,
+        commandId: `reconciliation-issue-${batch.batchId}-${selectedDate.serviceDate}`,
         expectedVersion: batch.version,
-        issueDate: new Date().toISOString().slice(0, 10),
+        issueDate: selectedDate.serviceDate,
         warehouseId: warehouse.warehouse.warehouseId,
         reconciliationBatchId: batch.batchId,
         lines: remainingLines.map((line) => ({
           ingredientId: line.ingredientId,
           unitId: line.canonicalUnitId,
           reconciliationBatchLineId: line.batchLineId,
+          reconciliationBatchDailyLineId: line.dailyLineId,
           requestedQty: line.requiredQuantity,
-          issuedQty: Number(issuedQuantities[line.batchLineId] ?? 0),
-          varianceReason: varianceReasons[line.batchLineId]?.trim() || undefined,
+          issuedQty: Number(issuedQuantities[line.dailyLineId] ?? 0),
+          varianceReason: varianceReasons[line.dailyLineId]?.trim() || undefined,
         })),
       }).unwrap()
       setFeedback('Đã tạo phiếu xuất kho từ đúng lô đối chiếu. Số đã xuất đang được cập nhật từ phiếu liên kết.')
@@ -465,13 +560,24 @@ export default function ReconciliationWarehousePage() {
     }
   }
 
+  const openSupplemental = (fillRemaining = false) => {
+    if (!selectedDate) return
+    setSupplementalMode('custom')
+    setCustomSupplementalLines(fillRemaining
+      ? selectedDate.lines.filter((line) => line.remainingQuantity > 0).map((line) => ({ lineId: line.dailyLineId, quantity: String(line.remainingQuantity) }))
+      : [{ lineId: '', quantity: '' }])
+    setSupplementalReason(fillRemaining ? `Xuất phần còn thiếu ngày ${formatDateOnly(selectedDate.serviceDate)}` : '')
+    setSupplementalOpen(true)
+  }
+
   const createSupplemental = async () => {
-    if (!batch || !warehouse.warehouse?.warehouseId || !effectiveSupplementalReason) return
+    if (!batch || !selectedDate || !warehouse.warehouse?.warehouseId || !effectiveSupplementalReason) return
 
     const linesToIssue: Array<{
       ingredientId: string
       unitId: string
       reconciliationBatchLineId: string
+      reconciliationBatchDailyLineId?: string
       quantity: number
     }> = effectiveSupplementalMode === 'by_day' || effectiveSupplementalMode === 'by_dish'
       ? displayedSupplementalMaterials
@@ -480,17 +586,19 @@ export default function ReconciliationWarehousePage() {
             ingredientId: material.ingredientId,
             unitId: material.canonicalUnitId,
             reconciliationBatchLineId: material.batchLineId,
+            reconciliationBatchDailyLineId: material.dailyLineId,
             quantity: material.actualQty,
           }))
       : customSupplementalLines
           .map((item) => {
-            const batchLine = batch.lines.find((line) => line.batchLineId === item.lineId)
+            const dailyLine = selectedDate.lines.find((line) => line.dailyLineId === item.lineId)
             const quantity = Number(item.quantity)
-            if (!batchLine || !Number.isFinite(quantity) || quantity <= 0) return null
+            if (!dailyLine || !Number.isFinite(quantity) || quantity <= 0) return null
             return {
-              ingredientId: batchLine.ingredientId,
-              unitId: batchLine.canonicalUnitId,
-              reconciliationBatchLineId: batchLine.batchLineId,
+              ingredientId: dailyLine.ingredientId,
+              unitId: dailyLine.canonicalUnitId,
+              reconciliationBatchLineId: dailyLine.batchLineId,
+              reconciliationBatchDailyLineId: dailyLine.dailyLineId,
               quantity,
             }
           })
@@ -503,7 +611,7 @@ export default function ReconciliationWarehousePage() {
       await createIssue({
         commandId: `reconciliation-supplemental-${crypto.randomUUID()}`,
         expectedVersion: batch.version,
-        issueDate: new Date().toISOString().slice(0, 10),
+        issueDate: selectedDate.serviceDate,
         warehouseId: warehouse.warehouse.warehouseId,
         reconciliationBatchId: batch.batchId,
         isSupplemental: true,
@@ -511,6 +619,7 @@ export default function ReconciliationWarehousePage() {
           ingredientId: line.ingredientId,
           unitId: line.unitId,
           reconciliationBatchLineId: line.reconciliationBatchLineId,
+          reconciliationBatchDailyLineId: 'reconciliationBatchDailyLineId' in line ? line.reconciliationBatchDailyLineId : selectedDate.lines.find((dailyLine) => dailyLine.batchLineId === line.reconciliationBatchLineId)?.dailyLineId,
           requestedQty: line.quantity,
           issuedQty: line.quantity,
           varianceReason: effectiveSupplementalReason,
@@ -523,27 +632,29 @@ export default function ReconciliationWarehousePage() {
       setCustomSupplementalLines([{ lineId: '', quantity: '' }])
       setSupplementalReason('')
       setFeedback(`Đã tạo phiếu xuất thêm gồm ${linesToIssue.length} nguyên liệu và cộng dồn vào lô đối chiếu.`)
-      await batchQuery.refetch()
-    } catch (error) { setFeedback(errorMessage(error)) }
+      await Promise.all([batchQuery.refetch(), dailyQuery.refetch(), historyQuery.refetch()])
+    } catch (error) {
+      setFeedback(errorMessage(error))
+    }
   }
+
+  const demandActions = canCreateIssue && dailyProjection?.compatibility.canIssueByDate && activeView === 'demand' && selectedDate
+    ? <div className="flex flex-wrap justify-end gap-2">
+        {hasLinkedIssue && batch?.status === 'IN_PROGRESS' && <>
+          {selectedDate.lines.some((line) => line.remainingQuantity > 0) && <Button type="button" variant="outline" size="sm" disabled={isCreating} onClick={() => openSupplemental(true)}>Xuất phần còn thiếu</Button>}
+          <Button type="button" variant="outline" size="sm" disabled={isCreating} onClick={() => openSupplemental(false)}>Tạo phiếu xuất bổ sung</Button>
+        </>}
+        {remainingLines.length > 0 && ['TRANSFERRED', 'IN_PROGRESS'].includes(batch?.status ?? '') && <>
+          <Button type="button" variant="outline" size="sm" disabled={isCreating} onClick={fillExactRequiredQuantities}>Điền đủ ngày</Button>
+          <Button type="button" size="sm" disabled={warehouse.state !== 'ready' || isCreating || issueInputInvalid} onClick={() => void create()}>{isCreating ? 'Đang xác nhận xuất...' : `Xác nhận ngày ${formatDateOnly(selectedDate.serviceDate)} (${remainingLines.length})`}</Button>
+        </>}
+      </div>
+    : undefined
 
   if (tabs.length === 0) return <OperationalFrame><section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Không còn khu vực Kho đang hiển thị</h2><p className="mt-2 text-sm text-slate-600">Mở Thiết lập nâng cao để khôi phục một tab được chế độ hiện tại cho phép.</p><Link className="ipc-button ipc-button-primary mt-4" to={ROUTES.ADVANCED_SETTINGS}>Mở thiết lập hiển thị</Link></section></OperationalFrame>
 
   return <OperationalFrame>
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs">
-        <div><h2 className="text-base font-bold text-slate-950">Xuất kho theo định lượng đã chốt</h2><p className="text-xs text-slate-600">Kho vận hành: {warehouse.warehouse?.warehouseName ?? 'Chưa xác định'}.</p></div>
-        {canCreateIssue && activeView === 'demand' && batch?.status === 'IN_PROGRESS' && hasLinkedIssue && <div className="shrink-0">
-            <Button type="button" variant="outline" size="sm" onClick={() => setSupplementalOpen(true)}>
-              Tạo phiếu xuất bổ sung
-            </Button>
-            <span className="sr-only">
-              Nhập số suất tăng để xem lượng cần xuất thêm, ghi thực xuất; phần còn thiếu có thể bổ sung tiếp và có thể tạo chênh lệch cần xử lý.
-            </span>
-          </div>}
-        {canCreateIssue && activeView === 'demand' && batch?.status === 'TRANSFERRED' && !hasLinkedIssue && <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" size="sm" disabled={remainingLines.length === 0 || isCreating} onClick={fillExactRequiredQuantities}>Điền đủ toàn bộ</Button><Button type="button" size="sm" disabled={remainingLines.length === 0 || warehouse.state !== 'ready' || isCreating || issueInputInvalid} onClick={() => void create()}>{isCreating ? 'Đang xác nhận xuất...' : `Xác nhận và tạo phiếu xuất (${remainingLines.length})`}</Button></div>}
-        {!canCreateIssue && activeView === 'demand' && batch && ['TRANSFERRED', 'IN_PROGRESS'].includes(batch.status) && <p className="max-w-sm text-right text-xs text-slate-600">Thủ kho hoặc Quản lý cần tạo phiếu xuất cho lô này.</p>}
-      </div>
       {(batchesQuery.data?.length ?? 0) > 0 && (
         <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-xs" data-ui-work-surface="warehouse-batch-scope">
           <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -620,14 +731,14 @@ export default function ReconciliationWarehousePage() {
               </label>
 
               <label className="flex items-center gap-1.5 text-xs font-medium text-slate-800 font-semibold">
-                <span className="text-slate-700 text-xs whitespace-nowrap">Lô:</span>
+                <span className="text-slate-700 text-xs whitespace-nowrap">Lô ({filteredEligibleBatches.length}):</span>
                 <Select value={batchId || null} onValueChange={(value) => value && updateRoute({ batchId: value, view: activeView ?? 'demand' })}>
-                  <SelectTrigger className="h-8 min-w-[280px] max-w-sm sm:max-w-md w-auto text-xs" aria-label="Chọn lô cần xuất">
-                    <SelectValue placeholder="Chọn lô" className="whitespace-nowrap">{selectedBatchLabel}</SelectValue>
+                  <SelectTrigger className="h-8 w-80 max-w-[calc(100vw-3rem)] text-xs sm:w-[28rem]" aria-label="Chọn lô cần xuất" title={selectedBatchLabel}>
+                    <SelectValue placeholder="Chọn lô" className="min-w-0 truncate whitespace-nowrap">{selectedBatchLabel}</SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-72 w-80 max-w-[calc(100vw-3rem)] overflow-y-auto sm:w-[28rem]">
                     {filteredEligibleBatches.map((item) => (
-                      <SelectItem key={item.batchId} value={item.batchId}>{batchLabel(item)}</SelectItem>
+                      <SelectItem key={item.batchId} value={item.batchId} title={batchLabel(item)} className="truncate">{batchLabel(item)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -636,7 +747,8 @@ export default function ReconciliationWarehousePage() {
           </div>
         </div>
       )}
-      {batchId && batch && <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={activeView === 'movement'} />}
+      {batchId && dailyQuery.isError && <InlineAlert variant="danger" action={<Button type="button" variant="link" className="h-auto p-0" onClick={() => void dailyQuery.refetch()}>Thử lại</Button>}>Không tải được định lượng xuất kho theo ngày. Lịch sử và thông tin lô vẫn có thể xem.</InlineAlert>}
+      {batchId && batch && <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />}
       {feedback && <p role="status" className="rounded-md border border-slate-200 bg-white p-3 text-sm">{feedback}</p>}
       {warehouseError && <InlineAlert variant="danger">Không tải được kho vận hành. Chưa thể tạo phiếu xuất.</InlineAlert>}
       {(batchesQuery.data?.length ?? 0) > 0 && filteredEligibleBatches.length === 0 && (
@@ -660,7 +772,7 @@ export default function ReconciliationWarehousePage() {
         </section>
       )}
       {!batchId && (filteredEligibleBatches.length > 0 || (batchesQuery.data?.length ?? 0) === 0) && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Chưa chọn lô cần xuất</h2><p className="mt-2 text-sm text-slate-600">Mở Định lượng xuất kho từ Thực đơn tuần để giữ đúng phạm vi khách hàng và tuần.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
-      {batchId && batchQuery.isLoading && <p role="status" className="rounded-lg border border-slate-200 bg-white p-6 text-sm text-slate-600">Đang tải lô đối chiếu đã chọn...</p>}
+      {batchId && batchQuery.isLoading && <TabContentSkeleton geometry="workspace" rows={5} columns={6} message="Đang tải lô đối chiếu đã chọn..." />}
       {batchId && batchQuery.isError && (
         <InlineAlert
           role="alert"
@@ -674,16 +786,37 @@ export default function ReconciliationWarehousePage() {
       {batchId && !batchQuery.isLoading && !batchQuery.isError && !batch && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Không tìm thấy lô đối chiếu đã chọn</h2><p className="mt-2 text-sm text-slate-600">Liên kết có thể đã cũ hoặc lô không còn thuộc phạm vi hiện tại.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
       {batchId && batch && activeView && !batchQuery.isLoading && !batchQuery.isError && <>
         <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => updateRoute({ view: id.replace('warehouse-', '') as ReconciliationWarehouseView })} />
-        {activeView === 'demand' && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><SectionPanel
-          title="Danh sách cần xuất"
-          description={
-            batch.customerName
+        {activeView === 'demand' && dailyProjection && !dailyProjection.compatibility.canIssueByDate && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><EmptyState
+          variant="empty"
+          title="Lô này không có dữ liệu xuất theo ngày"
+          description="Bạn vẫn có thể xem các phiếu đã xuất trong lịch sử xuất kho."
+          action={<Button type="button" variant="outline" onClick={() => updateRoute({ view: 'movement' })}>Xem lịch sử xuất kho</Button>}
+          className="rounded-lg border border-slate-200 bg-white"
+        /></div>}
+        {activeView === 'demand' && dailyQuery.isFetching && dailyProjection && <span className="sr-only" role="status" aria-label="Đang cập nhật định lượng xuất kho">Đang cập nhật định lượng xuất kho</span>}
+        {activeView === 'demand' && !dailyProjection && dailyQuery.isFetching && <TabContentSkeleton geometry="table" rows={6} columns={5} message="Đang tải định lượng xuất kho..." />}
+        {activeView === 'demand' && dailyProjection?.compatibility.canIssueByDate && <div className="rounded-lg border border-slate-200 bg-white p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div><p className="text-sm font-semibold text-slate-900">Trạng thái tuần: {weeklyStatusLabel[dailyProjection.weeklyStatus] ?? 'Chưa xác định'}</p></div>
+            <div className="flex flex-wrap gap-1" role="group" aria-label="Lọc ngày xuất kho">
+              <Button type="button" size="sm" variant={dayFilter === 'ALL' ? 'default' : 'outline'} onClick={() => updateRoute({ day: 'ALL' })}>Cả tuần</Button>
+              {applicableDates.map((date) => { const key = dayKey(date.serviceDate); return <Button key={date.serviceDate} type="button" size="sm" variant={dayFilter === key ? 'default' : 'outline'} onClick={() => updateRoute({ day: key })}>{getDateTimeFormat('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }).format(new Date(`${date.serviceDate}T00:00:00`))}</Button> })}
+            </div>
+          </div>
+        </div>}
+        {activeView === 'demand' && dailyProjection?.compatibility.canIssueByDate && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><SectionPanel
+          title={dayFilter === 'ALL' ? 'Tổng hợp nguyên liệu cả tuần' : 'Danh sách cần xuất'}
+          actions={dayFilter === 'ALL' ? <span aria-hidden="true" className="block h-9 w-px" /> : demandActions}
+          description={dayFilter === 'ALL'
+            ? (batch.customerName ? `Khách hàng: ${batch.customerName}` : undefined)
+            : batch.customerName
               ? `Khách hàng: ${batch.customerName} · ${hasLinkedIssue ? 'Phiếu xuất của lô đã được tạo. Số thực xuất bên dưới chỉ đọc và được dùng để đối chiếu.' : 'Nhập số thực tế xuất cho từng nguyên liệu. Nếu xuất vượt số cần, nhập lý do trước khi xác nhận phiếu.'}`
               : hasLinkedIssue
               ? 'Phiếu xuất của lô đã được tạo. Số thực xuất bên dưới chỉ đọc và được dùng để đối chiếu.'
               : 'Nhập số thực tế xuất cho từng nguyên liệu. Nếu xuất vượt số cần, nhập lý do trước khi xác nhận phiếu.'
           }
         >
+          {!canCreateIssue && batch && ['TRANSFERRED', 'IN_PROGRESS'].includes(batch.status) && <p className="mb-3 text-xs text-slate-600">Thủ kho cần tạo phiếu xuất cho lô này.</p>}
           {demandLines.length > 5 && (
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 rounded-lg border border-slate-200/80 bg-slate-50/50 p-2.5">
               <div className="w-full sm:w-72">
@@ -705,22 +838,25 @@ export default function ReconciliationWarehousePage() {
               </p>
             </div>
           )}
-          <TableViewport ariaLabel="Danh sách nguyên liệu cần xuất" caption="Danh sách nguyên liệu của đúng lô đối chiếu">
-            <table className="ipc-data-table">
-              <thead><tr><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Cần xuất</th><th scope="col" className="text-right">Thực xuất</th><th scope="col">Lý do xuất vượt</th><th scope="col">Trạng thái</th></tr></thead>
+          <TableViewport ariaLabel={dayFilter === 'ALL' ? 'Tổng hợp nguyên liệu cần xuất cả tuần' : 'Danh sách nguyên liệu cần xuất'} caption={dayFilter === 'ALL' ? 'Mỗi nguyên liệu được gộp một dòng cho toàn bộ tuần' : 'Danh sách nguyên liệu của ngày đang chọn'}>
+            {dayFilter === 'ALL' ? <table className="ipc-data-table">
+              <thead><tr><th scope="col" className="w-80">Nguyên liệu</th><th scope="col" className="text-right">Tổng cần tuần</th><th scope="col" className="text-right">Đã xuất</th><th scope="col" className="text-right">Còn lại</th><th scope="col" className="w-44 whitespace-nowrap">Tiến độ theo ngày</th></tr></thead>
+              <tbody>{demandPagination.rows.map((line) => <WeeklyDemandRow key={line.batchLineId} line={line as WeeklyDemandLine} />)}</tbody>
+            </table> : <table className="ipc-data-table">
+              <thead><tr><th scope="col" className="w-80">Nguyên liệu</th><th scope="col" className="text-right">Cần xuất</th><th scope="col" className="text-right">Thực xuất</th><th scope="col">Lý do xuất vượt</th><th scope="col" className="w-44 whitespace-nowrap">Trạng thái</th></tr></thead>
               <tbody>{demandPagination.rows.map((line) => (
                 <ReconciliationDemandRow
-                  key={line.batchLineId}
-                  line={line}
-                  enteredQuantity={issuedQuantities[line.batchLineId]}
-                  varianceReason={varianceReasons[line.batchLineId]}
-                  canCreateIssue={canCreateIssue}
+                  key={(line as DailyDemandLine).dailyLineId}
+                  line={line as DailyDemandLine}
+                  enteredQuantity={issuedQuantities[(line as DailyDemandLine).dailyLineId]}
+                  varianceReason={varianceReasons[(line as DailyDemandLine).dailyLineId]}
+                  canCreateIssue={canCreateIssue && Boolean(selectedDate)}
                   hasLinkedIssue={hasLinkedIssue}
                   onQuantityChange={handleQuantityChange}
                   onReasonChange={handleReasonChange}
                 />
               ))}</tbody>
-            </table>
+            </table>}
           </TableViewport>
           {filteredDemandLines.length > 10 && (
             <div className="mt-3">
@@ -740,8 +876,16 @@ export default function ReconciliationWarehousePage() {
           )}
         </SectionPanel></div>}
         {activeView === 'movement' && <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"><SectionPanel title="Lịch sử xuất kho" description="Chỉ các phiếu xuất có liên kết chính xác với lô đang chọn.">
+          <div className="min-h-[112px]">
           {historyQuery.isLoading ? (
-            <p role="status">Đang tải lịch sử xuất kho...</p>
+            <TableSkeleton
+              rows={1}
+              columns={[
+                { width: '1.25fr' }, { width: '0.9fr' }, { width: '0.8fr', align: 'right' },
+                { width: '1.8fr' }, { width: '0.9fr' }, { width: '0.9fr' }, { width: '1fr' },
+              ]}
+              ariaLabel="Đang tải lịch sử xuất kho..."
+            />
           ) : historyQuery.isError ? (
             <InlineAlert
               role="alert"
@@ -755,6 +899,7 @@ export default function ReconciliationWarehousePage() {
           ) : (
             <ReconciliationIssueHistoryTable issues={historyQuery.data?.items ?? []} batchLines={batch?.lines} onOpenIssue={openIssue} />
           )}
+          </div>
         </SectionPanel></div>}
       </>}
     </div>
@@ -799,9 +944,10 @@ export default function ReconciliationWarehousePage() {
           <p>Lô chưa có định lượng món để tính xuất thêm. Chọn trực tiếp nguyên liệu đã đóng băng bên dưới để xuất thêm.</p>
         ) : null}
 
-        {availableDishes.length > 0 && (
+        {dishSupplementalEnabled && availableDishes.length > 0 && (
           <div className="flex rounded-lg border border-slate-200 p-1 bg-slate-100/70 text-xs font-medium mt-1">
             {changedServiceDates.length > 0 && <button type="button" className={cn("flex-1 py-1.5 px-3 rounded-md transition-all text-center", supplementalMode === 'by_day' ? "bg-white text-slate-950 font-semibold shadow-xs" : "text-slate-600 hover:text-slate-900")} onClick={() => setSupplementalMode('by_day')}>Theo ngày đã chỉnh</button>}
+            <button type="button" className={cn("flex-1 py-1.5 px-3 rounded-md transition-all text-center", visibleSupplementalMode === 'by_dish' ? "bg-white text-slate-950 font-semibold shadow-xs" : "text-slate-600 hover:text-slate-900")} onClick={() => setSupplementalMode('by_dish')}>Theo món</button>
             <button
               type="button"
               className={cn(
@@ -817,7 +963,7 @@ export default function ReconciliationWarehousePage() {
           </div>
         )}
 
-        {(visibleSupplementalMode === 'by_day' || visibleSupplementalMode === 'by_dish') && availableDishes.length > 0 ? (
+        {dishSupplementalEnabled && (visibleSupplementalMode === 'by_day' || visibleSupplementalMode === 'by_dish') && availableDishes.length > 0 ? (
           <div className="space-y-3">
             {visibleSupplementalMode === 'by_day' && (
               <div className="space-y-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-slate-700">
@@ -947,7 +1093,7 @@ export default function ReconciliationWarehousePage() {
             {customSupplementalLines.length === 1 ? (
               <>
                 {(() => {
-                  const singleLine = batch?.lines.find((l) => l.batchLineId === customSupplementalLines[0]?.lineId)
+                  const singleLine = selectedDate?.lines.find((line) => line.dailyLineId === customSupplementalLines[0]?.lineId)
                   const amt = Number(customSupplementalLines[0]?.quantity)
                   const total = singleLine && Number.isFinite(amt) && amt > 0 ? (singleLine.issuedQuantity ?? 0) + amt : null
                   return (
@@ -965,8 +1111,8 @@ export default function ReconciliationWarehousePage() {
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                              {batch?.lines.map((line) => (
-                                <SelectItem key={line.batchLineId} value={line.batchLineId}>
+                              {selectedDate?.lines.map((line) => (
+                                <SelectItem key={line.dailyLineId} value={line.dailyLineId}>
                                   {line.ingredientName}
                                 </SelectItem>
                               ))}
@@ -1039,7 +1185,7 @@ export default function ReconciliationWarehousePage() {
               <div className="space-y-2.5">
                 <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
                   {customSupplementalLines.map((row, index) => {
-                    const currentLine = batch?.lines.find((l) => l.batchLineId === row.lineId)
+                    const currentLine = selectedDate?.lines.find((line) => line.dailyLineId === row.lineId)
                     const qty = Number(row.quantity)
                     const currentIssued = currentLine?.issuedQuantity ?? 0
                     const totalAfter = Number.isFinite(qty) && qty > 0 ? currentIssued + qty : currentIssued
@@ -1056,9 +1202,9 @@ export default function ReconciliationWarehousePage() {
                               <SelectValue placeholder="Chọn nguyên liệu trong lô">{currentLine?.ingredientName}</SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                              {batch?.lines.map((l) => (
-                                <SelectItem key={l.batchLineId} value={l.batchLineId}>
-                                  {l.ingredientName} ({formatUnit(l.canonicalUnitName ?? '')})
+                              {selectedDate?.lines.map((line) => (
+                                <SelectItem key={line.dailyLineId} value={line.dailyLineId}>
+                                  {line.ingredientName} ({formatUnit(line.canonicalUnitName ?? '')})
                                 </SelectItem>
                               ))}
                             </SelectContent>

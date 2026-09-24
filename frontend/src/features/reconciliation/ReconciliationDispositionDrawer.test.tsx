@@ -46,7 +46,7 @@ it('uses the canonical dialog focus contract and identifies the ingredient in us
 
   render(<ReconciliationDispositionDrawer line={line} onClose={onClose} onRefetch={vi.fn()} />)
 
-  expect(await screen.findByRole('dialog', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
+  expect(await screen.findByRole('dialog', { name: 'Xử lý chênh lệch đối chiếu' })).toBeInTheDocument()
   expect(screen.getByText('Ghi nhận kết luận xử lý cho Gạo thơm.')).toBeInTheDocument()
   expect(screen.queryByText(/GAO-01/)).not.toBeInTheDocument()
   expect(document.body.style.overflow).toBe('hidden')

@@ -351,37 +351,9 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
             { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
           ]}>
           <form className="mt-4 grid gap-4" onSubmit={(event) => void handleSaveBomLine(event)}>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-dish">
-                Món ăn <span className="text-rose-600" aria-hidden="true">*</span>
-                <Select
-                  value={bomForm.dishId || null}
-                  disabled={Boolean(editingBom)}
-                  required
-                  onValueChange={(value) => setBomForm((prev) => ({
-                    ...prev,
-                    dishId: !value || value === EMPTY_BOM_SELECT_VALUE ? '' : value,
-                  }))}
-                >
-                  <SelectTrigger
-                    id="manual-bom-dish"
-                    className="w-full"
-                    aria-invalid={Boolean(bomFormErrors.dishId) || undefined}
-                    aria-describedby={bomFormErrors.dishId ? 'manual-bom-dish-error' : undefined}
-                  >
-                    <SelectValue>{selectedDish ? `${selectedDish.code} - ${selectedDish.name}` : 'Chọn món'}</SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={EMPTY_BOM_SELECT_VALUE}>Chọn món</SelectItem>
-                    {dishCatalog.filter((dish) => dish.isActive).map((dish) => (
-                      <SelectItem key={dish.id} value={dish.id}>{dish.code} - {dish.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {bomFormErrors.dishId && <span id="manual-bom-dish-error" className="text-xs font-normal text-red-700">{bomFormErrors.dishId}</span>}
-              </label>
-              <div className="grid gap-1 text-sm font-semibold text-slate-700">
-                <label htmlFor="manual-bom-ingredient-search">Tìm nguyên liệu</label>
+            <div className="grid gap-4">
+              <label className="grid gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-ingredient-search">
+                Tìm nguyên liệu
                 <Input
                   id="manual-bom-ingredient-search"
                   type="search"
@@ -389,46 +361,76 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                   onChange={(event) => setIngredientSearch(event.target.value)}
                   placeholder="Tên hoặc mã nguyên liệu"
                 />
-                <label className="flex flex-col gap-1" htmlFor="manual-bom-ingredient">
-                Nguyên liệu <span className="text-rose-600" aria-hidden="true">*</span>
-                <Select
-                  value={bomForm.ingredientId || null}
-                  required
-                  disabled={isIngredientCatalogLoading}
-                  onValueChange={(value) => setBomForm((prev) => ({
-                    ...prev,
-                    ingredientId: !value || value === EMPTY_BOM_SELECT_VALUE ? '' : value,
-                  }))}
-                >
-                  <SelectTrigger
-                    id="manual-bom-ingredient"
-                    className="w-full"
-                    aria-invalid={Boolean(bomFormErrors.ingredientId) || undefined}
-                    aria-describedby={bomFormErrors.ingredientId ? 'manual-bom-ingredient-error' : undefined}
+              </label>
+              <div className="grid items-start gap-3 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-dish">
+                  <span>Món ăn <span className="text-rose-600" aria-hidden="true">*</span></span>
+                  <Select
+                    value={bomForm.dishId || null}
+                    disabled={Boolean(editingBom)}
+                    required
+                    onValueChange={(value) => setBomForm((prev) => ({
+                      ...prev,
+                      dishId: !value || value === EMPTY_BOM_SELECT_VALUE ? '' : value,
+                    }))}
                   >
-                    <SelectValue>
-                      {selectedIngredient
-                        ? `${selectedIngredient.ingredientCode} - ${selectedIngredient.ingredientName} (${selectedIngredient.unitName ?? 'ĐVT'})`
-                        : 'Chọn nguyên liệu'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={EMPTY_BOM_SELECT_VALUE}>Chọn nguyên liệu</SelectItem>
-                    {ingredientCatalog.map((ingredient) => (
-                      <SelectItem key={ingredient.ingredientId} value={ingredient.ingredientId}>
-                        {ingredient.ingredientCode} - {ingredient.ingredientName} ({ingredient.unitName ?? 'ĐVT'})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {bomFormErrors.ingredientId && <span id="manual-bom-ingredient-error" className="text-xs font-normal text-red-700">{bomFormErrors.ingredientId}</span>}
+                    <SelectTrigger
+                      id="manual-bom-dish"
+                      className="w-full"
+                      aria-invalid={Boolean(bomFormErrors.dishId) || undefined}
+                      aria-describedby={bomFormErrors.dishId ? 'manual-bom-dish-error' : undefined}
+                    >
+                      <SelectValue>{selectedDish ? `${selectedDish.code} - ${selectedDish.name}` : 'Chọn món'}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={EMPTY_BOM_SELECT_VALUE}>Chọn món</SelectItem>
+                      {dishCatalog.filter((dish) => dish.isActive).map((dish) => (
+                        <SelectItem key={dish.id} value={dish.id}>{dish.code} - {dish.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {bomFormErrors.dishId && <span id="manual-bom-dish-error" className="text-xs font-normal text-red-700">{bomFormErrors.dishId}</span>}
+                </label>
+                <label className="grid gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-ingredient">
+                  <span>Nguyên liệu <span className="text-rose-600" aria-hidden="true">*</span></span>
+                  <Select
+                    value={bomForm.ingredientId || null}
+                    required
+                    disabled={isIngredientCatalogLoading}
+                    onValueChange={(value) => setBomForm((prev) => ({
+                      ...prev,
+                      ingredientId: !value || value === EMPTY_BOM_SELECT_VALUE ? '' : value,
+                    }))}
+                  >
+                    <SelectTrigger
+                      id="manual-bom-ingredient"
+                      className="w-full"
+                      aria-invalid={Boolean(bomFormErrors.ingredientId) || undefined}
+                      aria-describedby={bomFormErrors.ingredientId ? 'manual-bom-ingredient-error' : undefined}
+                    >
+                      <SelectValue>
+                        {selectedIngredient
+                          ? `${selectedIngredient.ingredientCode} - ${selectedIngredient.ingredientName} (${selectedIngredient.unitName ?? 'ĐVT'})`
+                          : 'Chọn nguyên liệu'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={EMPTY_BOM_SELECT_VALUE}>Chọn nguyên liệu</SelectItem>
+                      {ingredientCatalog.map((ingredient) => (
+                        <SelectItem key={ingredient.ingredientId} value={ingredient.ingredientId}>
+                          {ingredient.ingredientCode} - {ingredient.ingredientName} ({ingredient.unitName ?? 'ĐVT'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {bomFormErrors.ingredientId && <span id="manual-bom-ingredient-error" className="text-xs font-normal text-red-700">{bomFormErrors.ingredientId}</span>}
                 </label>
               </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-qty">
-                Định lượng/suất <span className="text-rose-600" aria-hidden="true">*</span>
+                <span>Định lượng/suất <span className="text-rose-600" aria-hidden="true">*</span></span>
                 <Input id="manual-bom-qty" type="number" min="0.000001" step="0.000001" required aria-invalid={Boolean(bomFormErrors.grossQtyPerServing) || undefined} aria-describedby={bomFormErrors.grossQtyPerServing ? 'manual-bom-qty-error' : undefined} value={bomForm.grossQtyPerServing} onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))} />
                 {bomFormErrors.grossQtyPerServing && <span id="manual-bom-qty-error" className="text-xs font-normal text-red-700">{bomFormErrors.grossQtyPerServing}</span>}
               </label>
@@ -453,7 +455,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-from">
-                Hiệu lực từ <span className="text-rose-600" aria-hidden="true">*</span>
+                <span>Hiệu lực từ <span className="text-rose-600" aria-hidden="true">*</span></span>
                 <Input id="manual-bom-from" type="date" required value={bomForm.effectiveFrom} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))} />
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-to">
@@ -464,7 +466,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
             </div>
 
             <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-reason">
-              Lý do điều chỉnh {editingBom && <span className="text-rose-600">*</span>}
+              <span>Lý do điều chỉnh {editingBom && <span className="text-rose-600" aria-hidden="true">*</span>}</span>
               <Textarea id="manual-bom-reason" className="min-h-20" maxLength={500} required={Boolean(editingBom)} aria-invalid={Boolean(bomFormErrors.reason) || undefined} aria-describedby={bomFormErrors.reason ? 'manual-bom-reason-error' : undefined} value={bomForm.reason} onChange={(event) => setBomForm((prev) => ({ ...prev, reason: event.target.value }))} placeholder={editingBom ? 'Ví dụ: cập nhật định lượng theo bảng tháng 07/2026' : 'Ghi chú nếu cần'} />
               {bomFormErrors.reason && <span id="manual-bom-reason-error" className="text-xs font-normal text-red-700">{bomFormErrors.reason}</span>}
             </label>

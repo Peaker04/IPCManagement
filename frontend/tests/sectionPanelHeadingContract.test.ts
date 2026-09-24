@@ -84,9 +84,9 @@ describe('SectionPanel semantic heading classification', () => {
     }
   })
 
-  it('keeps the manifest bounded to the current 64 production callsites', () => {
-    expect(manifest.callsites).toHaveLength(64)
-    expect(manifest.callsites.filter(({ classification }) => classification === 'route-primary')).toHaveLength(59)
+  it('keeps the manifest bounded to the current 65 production callsites', () => {
+    expect(manifest.callsites).toHaveLength(65)
+    expect(manifest.callsites.filter(({ classification }) => classification === 'route-primary')).toHaveLength(60)
     expect(manifest.callsites.filter(({ classification }) => classification === 'nested-detail')).toHaveLength(3)
     expect(manifest.callsites.filter(({ classification }) => classification === 'conditional')).toHaveLength(1)
     expect(manifest.callsites.filter(({ classification }) => classification === 'headingless')).toHaveLength(1)

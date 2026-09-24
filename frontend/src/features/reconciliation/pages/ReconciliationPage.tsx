@@ -4,7 +4,6 @@ import { CheckCircle2 } from 'lucide-react'
 import { EmptyState, IdentifierText, OperationalFrame, QueryViewBoundary, SectionPanel } from '@/components/common'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerBody, DrawerContent, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDateOnly, formatQuantity, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
@@ -13,11 +12,12 @@ import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDra
 import { useCompleteReconciliationBatchMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
-import { dispositionCategoryLabel } from '../reconciliationIssueCorrelation'
-import { ReconciliationLifecycleStrip } from '../ReconciliationLifecycleStrip'
-import { ReconciliationIssueDetailDialog } from '../ReconciliationIssueDetailDialog'
-import { getReconciliationLifecyclePresentation, getReconciliationResultPresentation } from '../reconciliationLifecyclePresentation'
+import { dispositionCategoryLabel } from '@/lib/reconciliationIssueCorrelation'
+import { ReconciliationLifecycleStrip } from '@/components/reconciliation/ReconciliationLifecycleStrip'
+import { ReconciliationIssueDetailDialog } from '@/components/reconciliation/ReconciliationIssueDetailDialog'
+import { getReconciliationLifecyclePresentation, getReconciliationResultPresentation } from '@/lib/reconciliationLifecyclePresentation'
 import { useHasRole } from '@/lib/useHasRole'
+import { KitchenCookingExport } from '@/features/reconciliation/KitchenCookingExport'
 
 export default function ReconciliationPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -98,12 +98,15 @@ export default function ReconciliationPage() {
   }, [batchesQuery.isSuccess, searchParams, selectedId, setSearchParams])
 
   useEffect(() => {
+    const selected = filteredBatches.find((item) => item.batchId === selectedId)
     writeReconciliationSelection({
       ...readReconciliationSelection(),
       batchId: selectedId || undefined,
-      customerId: selectedCustomerId !== 'ALL' ? selectedCustomerId : undefined,
+      customerId: selected?.customerId || (selectedCustomerId !== 'ALL' ? selectedCustomerId : undefined),
+      weekStartDate: selected?.weekStartDate || undefined,
+      weekEndDate: selected?.weekEndDate || undefined,
     })
-  }, [selectedId, selectedCustomerId])
+  }, [filteredBatches, selectedId, selectedCustomerId])
 
   const [showAll, setShowAll] = useState(false)
   const [detailLine, setDetailLine] = useState<ReconciliationLine>()
@@ -118,6 +121,8 @@ export default function ReconciliationPage() {
   const [completeBatch] = useCompleteReconciliationBatchMutation()
   const canComplete = useHasRole(['quanly'])
   const canSetDisposition = canComplete
+  const canViewReconciliationDetails = canComplete
+  const canViewKitchen = useHasRole(['beptruong'])
   const batch = selectedId ? (batchQuery.currentData ?? batchQuery.data) : undefined
   const actionableLines = useMemo(() => batch?.lines.filter((line) => line.status === 'NEEDS_REVIEW' && !line.disposition) ?? [], [batch?.lines])
   const actionableCount = actionableLines.length
@@ -278,14 +283,14 @@ export default function ReconciliationPage() {
                 </label>
 
                 <label className="flex items-center gap-1.5 text-xs font-medium text-slate-800 font-semibold">
-                  <span className="text-slate-700 text-xs whitespace-nowrap">Lô:</span>
+                  <span className="text-slate-700 text-xs whitespace-nowrap">Lô ({filteredBatches.length}):</span>
                   <Select value={selectedId || null} onValueChange={(value) => value && setSearchParams({ batchId: value })}>
-                    <SelectTrigger className="h-8 min-w-[280px] max-w-sm sm:max-w-md w-auto text-xs" aria-label="Chọn lô đối chiếu">
-                      <SelectValue placeholder="Chọn lô" className="whitespace-nowrap">{selectedBatchSummary ? batchLabel(selectedBatchSummary) : filteredBatches.length === 0 ? 'Không có lô phù hợp' : 'Chọn lô'}</SelectValue>
+                    <SelectTrigger className="h-8 w-80 max-w-[calc(100vw-3rem)] text-xs sm:w-[28rem]" aria-label="Chọn lô đối chiếu" title={selectedBatchSummary ? batchLabel(selectedBatchSummary) : undefined}>
+                      <SelectValue placeholder="Chọn lô" className="min-w-0 truncate whitespace-nowrap">{selectedBatchSummary ? batchLabel(selectedBatchSummary) : filteredBatches.length === 0 ? 'Không có lô phù hợp' : 'Chọn lô'}</SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-72 w-80 max-w-[calc(100vw-3rem)] overflow-y-auto sm:w-[28rem]">
                       {filteredBatches.map((item) => (
-                        <SelectItem key={item.batchId} value={item.batchId}>{batchLabel(item)}</SelectItem>
+                        <SelectItem key={item.batchId} value={item.batchId} title={batchLabel(item)} className="truncate">{batchLabel(item)}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -326,18 +331,18 @@ export default function ReconciliationPage() {
         description="Hoàn tất định lượng nguyên liệu và chuyển danh sách cần xuất sang Kho trước khi đối chiếu số đã xuất."
         action={<Link className={buttonVariants()} to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở định lượng xuất kho</Link>}
       /> : batchesView.phase === 'ready' && selectedId ? <QueryViewBoundary geometry="table" queries={[{ label: 'lô đối chiếu đã chọn', view: batchView }]}>
-        {batch && <div className="space-y-4">
+        {batch && (canViewReconciliationDetails ? <div className="space-y-4">
           <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />
           <SectionPanel
             title={resultPresentation.title}
             description={batch.customerName ? `Khách hàng: ${batch.customerName} · ${resultPresentation.description}` : resultPresentation.description}
-            actions={<div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{batch.status === 'IN_PROGRESS' && canSetDisposition && actionableLines.length > 1 && <Button type="button" variant="secondary" size="sm" onClick={() => setBulkDispositionOpen(true)}>Xử lý hàng loạt ({actionableLines.length})</Button>}{completionReady && canComplete && <Button type="button" size="sm" onClick={openCompletion}>Hoàn tất đối chiếu</Button>}</div>}
+            actions={<div className="flex flex-wrap justify-end gap-2">{canViewKitchen && <KitchenCookingExport batchId={batch.batchId} />}<Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{batch.status === 'IN_PROGRESS' && canSetDisposition && actionableLines.length > 1 && <Button type="button" variant="secondary" size="sm" onClick={() => setBulkDispositionOpen(true)}>Xử lý hàng loạt ({actionableLines.length})</Button>}{completionReady && canComplete && <Button type="button" size="sm" onClick={openCompletion}>Hoàn tất đối chiếu</Button>}</div>}
           >
-            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} onDisposition={batch.status === 'IN_PROGRESS' && canSetDisposition ? setDisposingLine : undefined} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title={batch.status === 'COMPLETED' ? 'Đã hoàn tất đối chiếu' : 'Sẵn sàng hoàn tất'} description={batch.status === 'COMPLETED' ? `${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp và lô đã hoàn tất đối chiếu thành công.` : `${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
+            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title={batch.status === 'COMPLETED' ? 'Đã hoàn tất đối chiếu' : 'Sẵn sàng hoàn tất'} description={batch.status === 'COMPLETED' ? `${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp và lô đã hoàn tất đối chiếu thành công.` : `${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
             {batch.status === 'IN_PROGRESS' && actionableCount > 0 && !canSetDisposition && <p role="status" className="mt-3 text-sm text-slate-600">Quản trị hoặc Quản lý cần xử lý chênh lệch trước khi lô có thể hoàn tất.</p>}
             {completionReady && !canComplete && <p role="status" className="mt-3 text-sm text-slate-600">Lô đã đủ điều kiện; Quản trị hoặc Quản lý cần xác nhận hoàn tất đối chiếu.</p>}
           </SectionPanel>
-        </div>}
+        </div> : canViewKitchen ? <SectionPanel title="Phiếu nấu" description={batch.customerName ? `Khách hàng: ${batch.customerName} · Định lượng đã chốt cho Bếp.` : 'Định lượng đã chốt cho Bếp.'} actions={<KitchenCookingExport batchId={batch.batchId} />}><p className="text-sm text-slate-600">Chọn Xuất phiếu nấu để xem theo ngày, ca, món và nguyên liệu.</p></SectionPanel> : <EmptyState variant="forbidden" title="Không có quyền xem chi tiết lô" description="Tài khoản này không thuộc vai trò xử lý đối chiếu hoặc Bếp." />)}
       </QueryViewBoundary> : null}
     </section>
 
@@ -355,10 +360,9 @@ export default function ReconciliationPage() {
         <DialogFooter><Button type="button" variant="outline" disabled={isCompletionPending || isRefreshingCompletion} onClick={() => void refreshCompletion()}>{isRefreshingCompletion ? 'Đang tải lại...' : 'Tải lại dữ liệu'}</Button><Button type="button" variant="outline" onClick={closeCompletion}>Hủy</Button><Button type="button" disabled={isCompletionPending || isRefreshingCompletion || completionVersion == null} onClick={() => void complete()}>{isCompletionPending ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
-    <Drawer open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
-      <DrawerContent aria-label="Chi tiết nguyên liệu">
-        <DrawerHeader><DrawerTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DrawerTitle></DrawerHeader>
-        <DrawerBody>
+    <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
+      <DialogContent size="lg" aria-label="Chi tiết nguyên liệu">
+        <DialogHeader><DialogTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DialogTitle></DialogHeader>
         {detailLine && <>
           <dl className="grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-5 gap-y-2.5 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
             <dt className="text-slate-600">Mã nguyên liệu</dt>
@@ -405,10 +409,16 @@ export default function ReconciliationPage() {
             <dd className="min-w-0 text-xs text-slate-500 pt-1 border-t border-slate-200"><IdentifierText value={detailLine.batchLineId} /></dd>
           </dl>
         </>}
-        </DrawerBody>
-        <DrawerFooter><Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button></DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+        <DialogFooter>
+          {detailLine && batch?.status === 'IN_PROGRESS' && canSetDisposition && detailLine.status === 'NEEDS_REVIEW' && (
+            <Button type="button" variant="secondary" onClick={() => { setDetailLine(undefined); setDisposingLine(detailLine) }}>
+              {detailLine.disposition ? 'Cập nhật xử lý' : 'Xử lý chênh lệch'}
+            </Button>
+          )}
+          <Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     {disposingLine && <ReconciliationDispositionDrawer line={disposingLine} onClose={() => setDisposingLine(undefined)} onRefetch={() => batchQuery.refetch()} />}
     {bulkDispositionOpen && <ReconciliationDispositionDrawer lines={actionableLines} onClose={() => setBulkDispositionOpen(false)} onRefetch={() => batchQuery.refetch()} />}
   </OperationalFrame>

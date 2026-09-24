@@ -12,7 +12,7 @@ import { typography } from '@/lib/typography';
 import { useAppSelector } from '@/app/hooks';
 import { selectCurrentUser } from '@/features/auth';
 import type { TablePreferenceConfig } from '@/components/common/tablePreferences';
-import { formatAuditActor, presentAudit } from './auditPresentation';
+import { formatAuditActor, presentAudit } from '@/lib/auditPresentation';
 import { AuditIssueEventDialog } from './AuditIssueEventDialog';
 
 type AdminAuditPanelProps = { model: AdminDataPageModel | ReconciliationAdminDataPageModel };

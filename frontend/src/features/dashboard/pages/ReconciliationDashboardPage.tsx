@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, ArrowUpRight, CalendarDays, Layers, Scale, Warehouse } from 'lucide-react'
-import { CommandBar, InfoNote, OperationalFrame, PaginationBar, StatusBadge } from '@/components/common'
+import { CommandBar, InfoNote, OperationalFrame, PaginationBar, QueryViewBoundary, StatusBadge } from '@/components/common'
+import { toQueryView } from '@/lib/queryView'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ROUTES } from '@/lib/routeConfig'
 import { useListReconciliationBatchesQuery } from '@/api/reconciliationApi'
-import { getReconciliationLifecyclePresentation } from '@/features/reconciliation/reconciliationLifecyclePresentation'
+import { getReconciliationLifecyclePresentation } from '@/lib/reconciliationLifecyclePresentation'
 import { formatDateTime } from '@/lib/formatters'
 import { useLocalPagination } from '@/lib/useLocalPagination'
 import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
@@ -20,7 +21,13 @@ const steps = [
 export function ReconciliationDashboardPage() {
   const persistedSelection = readReconciliationSelection()
   const batchesQuery = useListReconciliationBatchesQuery()
-  const batches = batchesQuery.data ?? []
+  const batchesView = toQueryView(batchesQuery, {
+    instruction: 'Mở tổng quan đối chiếu để tải danh sách lô.',
+    retry: () => batchesQuery.refetch(),
+    errorMessage: 'Không tải được danh sách lô đối chiếu.',
+    forbiddenMessage: 'Bạn không có quyền xem tổng quan đối chiếu.',
+  })
+  const batches = useMemo(() => batchesView.phase === 'ready' ? batchesView.data : [], [batchesView])
 
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(persistedSelection.customerId ?? 'ALL')
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ALL')
@@ -78,7 +85,8 @@ export function ReconciliationDashboardPage() {
   const selectedPeriodLabel = periodLabels[selectedPeriod] ?? 'Toàn thời gian'
 
   return (
-    <OperationalFrame
+    <QueryViewBoundary queries={[{ label: 'tổng quan đối chiếu', view: batchesView }]} geometry="workspace" minHeight="min-h-[28rem]">
+      <OperationalFrame
       className="ipc-dashboard-frame"
       command={
         <CommandBar
@@ -262,6 +270,7 @@ export function ReconciliationDashboardPage() {
           )}
         </section>
       </div>
-    </OperationalFrame>
+      </OperationalFrame>
+    </QueryViewBoundary>
   )
 }

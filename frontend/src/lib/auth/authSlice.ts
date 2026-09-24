@@ -1,8 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
-import type { AuthState, User } from './authTypes';
-import { clearStoredAuth, persistAuthSnapshot, readStoredAuthSnapshot } from './authStorage';
-import { resetSessionExpiredNotice } from './sessionEvents';
+import type { AuthState, User } from '@/lib/auth/authTypes';
+import { clearStoredAuth, persistAuthSnapshot, readStoredAuthSnapshot } from '@/lib/auth/authStorage';
+import { resetSessionExpiredNotice } from '@/lib/auth/sessionEvents';
 
 const storedAuth = readStoredAuthSnapshot();
 

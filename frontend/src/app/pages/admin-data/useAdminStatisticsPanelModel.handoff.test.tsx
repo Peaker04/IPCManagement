@@ -5,7 +5,7 @@ import { useAdminStatisticsPanelModel } from './useAdminStatisticsPanelModel'
 const calls = vi.hoisted(() => ({ demand: vi.fn() }))
 const ready = (data: unknown) => ({ data, currentData: data, isSuccess: true, refetch: vi.fn() })
 vi.mock('@/api/dashboardApi', () => ({ useGetOperationalKpisQuery: () => ready({}) }))
-vi.mock('@/features/reports/reportsApi', () => ({
+vi.mock('@/api/reportsApi', () => ({
   useGetIngredientDemandAggregatePageQuery: (args: unknown) => {
     calls.demand(args)
     return ready({ items: [], totalCount: 42, shortageCount: 0, remainingToIssueCount: 17 })

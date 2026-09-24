@@ -101,7 +101,7 @@ describe('DashboardPage query state boundary', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Không tải được tổng quan workflow')
     expect(screen.queryByText('Tổng quan ca hôm nay')).toBeNull()
-    expect(screen.queryByText('Không có việc cần xử lý trong ca này.')).toBeNull()
+    expect(screen.getByText('Không có việc cần xử lý trong ca này.').closest('[aria-hidden="true"]')).toBeInTheDocument()
   })
 
   it('retries only the failed workflow overview owner', async () => {

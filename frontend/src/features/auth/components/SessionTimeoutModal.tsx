@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ROUTES } from '@/lib/routeConfig';
-import { subscribeSessionExpired } from '../sessionEvents';
+import { subscribeSessionExpired } from '@/lib/auth/sessionEvents';
 
 const AUTO_REDIRECT_MS = 1800;
 

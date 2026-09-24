@@ -529,7 +529,7 @@ public class AuditReportService : IAuditReportService
     }
 
     private static int NormalizeLimit(int limit)
-        => Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+        => Math.Clamp(limit <= 0 ? 100 : limit, 1, 1000);
 
     private static int NormalizePageLimit(int limit)
         => Math.Clamp(limit <= 0 ? 20 : limit, 1, 100);

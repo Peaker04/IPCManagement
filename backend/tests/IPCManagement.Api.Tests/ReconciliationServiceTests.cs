@@ -541,7 +541,7 @@ public sealed partial class ReconciliationServiceTests
     private sealed class StubCurrentUser : IPCManagement.Api.Security.ICurrentUserService
     {
         public string? GetUserId(System.Security.Claims.ClaimsPrincipal user) => Guid.Empty.ToString();
-        public IReadOnlyList<string> GetRoleNames(System.Security.Claims.ClaimsPrincipal user) => ["COORDINATION"];
+        public IReadOnlyList<string> GetRoleNames(System.Security.Claims.ClaimsPrincipal user) => ["Coordinator"];
         public string? GetWarehouseId(System.Security.Claims.ClaimsPrincipal user) => null;
     }
 
@@ -565,7 +565,7 @@ public sealed partial class ReconciliationServiceTests
             var included = new HashSet<Type>
             {
                 typeof(MenuVersion), typeof(QuantityImportBatch), typeof(MealQuantityPlan), typeof(MenuSchedule), typeof(MealQuantityPlanLine),
-                typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
+                typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchDailyLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationDailyDisposition), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
                 typeof(ReconciliationDisposition), typeof(BomAdjustment), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
                 typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog), typeof(Dish), typeof(DishBom)
             };
@@ -622,6 +622,11 @@ public sealed partial class ReconciliationServiceTests
             modelBuilder.Entity<ReconciliationBatchLine>().HasOne(x => x.CanonicalUnit).WithMany().HasForeignKey(x => x.CanonicalUnitId);
             modelBuilder.Entity<ReconciliationBatchContributor>().HasKey(x => x.ContributorId);
             modelBuilder.Entity<ReconciliationBatchContributor>().HasOne(x => x.BatchLine).WithMany(x => x.Contributors).HasForeignKey(x => x.BatchLineId);
+            modelBuilder.Entity<ReconciliationBatchDailyLine>().HasKey(x => x.DailyLineId);
+            modelBuilder.Entity<ReconciliationBatchDailyLine>().HasOne(x => x.BatchLine).WithMany(x => x.DailyLines).HasForeignKey(x => x.BatchLineId);
+            modelBuilder.Entity<ReconciliationBatchContributor>().HasOne(x => x.DailyLine).WithMany(x => x.Contributors).HasForeignKey(x => x.DailyLineId);
+            modelBuilder.Entity<ReconciliationDailyDisposition>().HasKey(x => x.DispositionId);
+            modelBuilder.Entity<ReconciliationDailyDisposition>().HasOne(x => x.DailyLine).WithOne(x => x.Disposition).HasForeignKey<ReconciliationDailyDisposition>(x => x.DailyLineId);
             modelBuilder.Entity<ReconciliationActual>().HasKey(x => x.ActualId);
             modelBuilder.Entity<ReconciliationActual>().Property(x => x.Version).IsConcurrencyToken();
             modelBuilder.Entity<ReconciliationActual>().HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId);

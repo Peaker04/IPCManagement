@@ -725,6 +725,7 @@
 
 body.ipc-modal-open .ipc-main,
 body.ipc-modal-open main {
+  overflow: hidden;
   pointer-events: none;
   user-select: none;
 }

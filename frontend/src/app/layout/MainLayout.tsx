@@ -11,10 +11,12 @@ import { getWorkflowContextForPath, toneFromStatus } from '@/lib/workflowConfig'
 import { apiSlice } from '@/api/apiSlice';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { uiCopy } from '@/lib/uiCopy';
-import { readNavigationPreferences, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
+import { readNavigationPreferences, readReconciliationSelection, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
 import { useSystemOperation } from '@/lib/systemOperationContext';
 import { SystemOperationProvider } from '@/app/providers/SystemOperationProvider';
 import { isRouteVisibleToPermissions } from '@/lib/systemOperationEligibility';
+import { canAccessRole, type AppRole } from '@/lib/auth/roleUtils';
+import { getDateTimeFormat } from '@/lib/formatters';
 import {
   ChefHat,
   LayoutDashboard,
@@ -33,21 +35,21 @@ import {
   X,
 } from 'lucide-react';
 
-const serviceDateFormatter = new Intl.DateTimeFormat('vi-VN');
+const serviceDateFormatter = getDateTimeFormat('vi-VN');
 
 const preloadNavigationTarget = (path: string, mode: 'DEFAULT' | 'MATERIAL_RECONCILIATION') => {
   void preloadRoute(path, mode);
   void preloadRouteData(path, mode);
 };
 
-const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenceKey: NavigationPreferenceKey; requiredPermissions?: string[]; reconciliationOnly?: boolean }> = [
+const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenceKey: NavigationPreferenceKey; requiredPermissions?: string[]; reconciliationOnly?: boolean; reconciliationRoles?: AppRole[] }> = [
   { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} />, preferenceKey: 'dashboard' },
-  { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, preferenceKey: 'weekly-menu', requiredPermissions: ['coordination.read'] },
+  { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, preferenceKey: 'weekly-menu', requiredPermissions: ['coordination.read'], reconciliationRoles: ['admin', 'dieuphoi'] },
   { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, preferenceKey: 'meal-orders', requiredPermissions: ['coordination.read'] },
   { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, preferenceKey: 'approvals', requiredPermissions: ['purchase.request.approve'] },
   { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, preferenceKey: 'purchasing', requiredPermissions: ['purchase.read'] },
-  { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'] },
-  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'reconciliation', requiredPermissions: ['report.read'], reconciliationOnly: true },
+  { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'], reconciliationRoles: ['admin', 'thukho'] },
+  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'reconciliation', requiredPermissions: ['report.read'], reconciliationOnly: true, reconciliationRoles: ['admin', 'quanly', 'beptruong'] },
   { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, preferenceKey: 'chef-dashboard', requiredPermissions: ['production.read'] },
   { path: ROUTES.REPORTS, label: 'Báo cáo vận hành', icon: <TrendingUp size={18} />, preferenceKey: 'reports', requiredPermissions: ['report.read'] },
   { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, preferenceKey: 'admin-data', requiredPermissions: ['*'] },
@@ -62,6 +64,7 @@ const MainLayoutContent = () => {
   const systemOperation = useSystemOperation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [navigationPreferences, setNavigationPreferences] = useState(readNavigationPreferences);
+  const [reconciliationSelection, setReconciliationSelection] = useState(readReconciliationSelection);
 
   const handleLogout = async () => {
     await logoutSession(dispatch, store.getState);
@@ -71,6 +74,7 @@ const MainLayoutContent = () => {
   const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
   const visibleMenuItems = useMemo(() => menuItems.filter((item) => {
     if (item.reconciliationOnly && systemOperation?.mode !== 'MATERIAL_RECONCILIATION') return false;
+    if (systemOperation?.mode === 'MATERIAL_RECONCILIATION' && item.reconciliationRoles && !canAccessRole(currentUser, item.reconciliationRoles)) return false;
     if (!navigationPreferences[item.preferenceKey]) return false;
     return isRouteVisibleToPermissions(
       systemOperation?.mode ?? 'DEFAULT',
@@ -79,15 +83,20 @@ const MainLayoutContent = () => {
       currentUser?.permissions,
       isAdmin,
     );
-  }), [currentUser?.permissions, isAdmin, navigationPreferences, systemOperation]);
+  }), [currentUser, isAdmin, navigationPreferences, systemOperation]);
 
   useEffect(() => {
     const refresh = () => setNavigationPreferences(readNavigationPreferences());
+    const refreshReconciliationSelection = () => setReconciliationSelection(readReconciliationSelection());
     window.addEventListener('storage', refresh);
     window.addEventListener('ipc:navigation-preferences-changed', refresh);
+    window.addEventListener('storage', refreshReconciliationSelection);
+    window.addEventListener('ipc:reconciliation-selection-changed', refreshReconciliationSelection);
     return () => {
       window.removeEventListener('storage', refresh);
       window.removeEventListener('ipc:navigation-preferences-changed', refresh);
+      window.removeEventListener('storage', refreshReconciliationSelection);
+      window.removeEventListener('ipc:reconciliation-selection-changed', refreshReconciliationSelection);
     };
   }, []);
 
@@ -129,8 +138,11 @@ const MainLayoutContent = () => {
   const scopedServiceDate = location.pathname === ROUTES.WEEKLY_MENU
     ? new URLSearchParams(location.search).get('weekStartDate')
     : null;
-  const serviceDate = scopedServiceDate
-    ? serviceDateFormatter.format(new Date(`${scopedServiceDate}T00:00:00`))
+  const selectedReconciliationWeek = systemOperation?.mode === 'MATERIAL_RECONCILIATION'
+    ? reconciliationSelection.weekStartDate
+    : undefined;
+  const serviceDate = scopedServiceDate || selectedReconciliationWeek
+    ? `Tuần ${serviceDateFormatter.format(new Date(`${scopedServiceDate || selectedReconciliationWeek}T00:00:00`))}`
     : serviceDateFormatter.format(new Date());
   const showHeaderState = location.pathname !== ROUTES.MEAL_ORDERS;
   const statusTone = toneFromStatus(pageContext.state);

@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { apiSlice } from '../api/apiSlice';
 import authReducer from '@/lib/auth/authSlice';
-import { coordinationReducer } from '../features/coordination';
+import coordinationReducer from '../features/coordination/coordinationSlice';
 
 export const store = configureStore({
   reducer: {

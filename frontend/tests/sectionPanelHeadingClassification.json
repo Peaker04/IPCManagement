@@ -322,6 +322,14 @@
       "headingLevel": 2
     },
     {
+      "path": "src/features/reconciliation/pages/ReconciliationPage.tsx",
+      "occurrence": 2,
+      "title": "Phiếu nấu",
+      "classification": "route-primary",
+      "rationale": "Role-specific selected route work surface directly below the shell-owned route h1.",
+      "headingLevel": 2
+    },
+    {
       "path": "src/features/reconciliation/ReconciliationSourceChangeLog.tsx",
       "occurrence": 1,
       "title": "Lịch sử thay đổi nguồn",

@@ -29,7 +29,7 @@ public sealed partial class ReconciliationServiceTests
     }
 
     [Fact]
-    public async Task ListDishes_Should_RejectChangedBomIngredientRatherThanMislabelFrozenLine()
+    public async Task ListDishes_Should_PreserveFrozenLineageAfterBomIngredientChanges()
     {
         await using var context = CreateContext();
         var (batch, bom) = Seed(context);
@@ -43,8 +43,8 @@ public sealed partial class ReconciliationServiceTests
         context.Add(replacement);
         await context.SaveChangesAsync();
 
-        await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            Service(context).ListDishesAsync(GuidHelper.ToGuidString(batch.BatchId)));
+        var dishes = await Service(context).ListDishesAsync(GuidHelper.ToGuidString(batch.BatchId));
+        Assert.Equal(GuidHelper.ToGuidString(batch.Lines.Single().IngredientId), Assert.Single(Assert.Single(dishes).Materials).IngredientId);
     }
 
     [Fact]
@@ -85,7 +85,9 @@ public sealed partial class ReconciliationServiceTests
         var bom = new DishBom { BomId = GuidHelper.NewId(), DishId = dish.DishId, Dish = dish, IngredientId = ingredient.IngredientId, Ingredient = ingredient, UnitId = gram.UnitId, Unit = gram, GrossQtyPerServing = 1m };
         var batch = new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = "IN_PROGRESS", Version = 4, CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow };
         var line = new ReconciliationBatchLine { BatchLineId = GuidHelper.NewId(), BatchId = batch.BatchId, Batch = batch, IngredientId = ingredient.IngredientId, Ingredient = ingredient, CanonicalUnitId = kg.UnitId, CanonicalUnit = kg, RequiredQuantity = 10m, ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1" };
-        line.Contributors.Add(new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, BatchLine = line, DishBomId = bom.BomId, MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(), SourceQuantity = 10m });
+        var dailyLine = new ReconciliationBatchDailyLine { DailyLineId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, BatchLine = line, BatchId = batch.BatchId, IngredientId = ingredient.IngredientId, CanonicalUnitId = kg.UnitId, ServiceDate = new DateOnly(2026, 8, 25), RequiredQuantity = 10m, Version = 1 };
+        line.DailyLines.Add(dailyLine);
+        line.Contributors.Add(new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, BatchLine = line, DailyLineId = dailyLine.DailyLineId, DailyLine = dailyLine, DishBomId = bom.BomId, DishId = dish.DishId, FrozenShiftName = "MORNING", FrozenDishCode = dish.DishCode, FrozenDishName = dish.DishName, FrozenServings = 1000, FrozenBomQuantityPerServing = 0.0000004m, FrozenWasteRatePercent = 0m, MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(), SourceQuantity = 10m });
         batch.Lines.Add(line);
         context.AddRange(kg, gram, ingredient, dish, bom, batch);
         return (batch, bom);
