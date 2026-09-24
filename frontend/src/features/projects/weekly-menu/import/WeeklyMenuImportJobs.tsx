@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Search } from 'lucide-react'
-import { ConfirmDialog, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ConfirmDialog, SearchField, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/formatters'
 import { typography } from '@/lib/typography'
@@ -36,16 +34,15 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
       description="Kiểm tra lỗi ngày, món ăn hoặc dòng trùng trước khi lưu thực đơn."
       actions={
         <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
-          <div className="relative w-64 max-w-full">
-            <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Tìm khách hàng, file..."
-              aria-label="Tìm trong danh sách file thực đơn"
-              className="h-8 border-slate-300 bg-slate-50 pl-8 text-xs focus:bg-white"
-            />
-          </div>
+          <SearchField
+            label="Tìm trong danh sách file thực đơn"
+            hideLabel
+            width="compact"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm khách hàng, file..."
+            inputClassName="border-slate-300 bg-slate-50 text-xs focus:bg-white"
+          />
           <Button type="button" variant="outline" size="xs" onClick={() => void actions.previewAllJobs()} disabled={status.isImporting || state.jobs.length === 0}>
             {status.isPreviewing ? 'Đang kiểm tra...' : 'Kiểm tra tất cả'}
           </Button>
@@ -56,12 +53,11 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
       }
     >
       <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className={cn(typography.body, 'max-h-[260px]')} ariaLabel="Danh sách file thực đơn chờ kiểm tra" frozenFirstIdentifier={false}>
-        <table className="ipc-data-table table-fixed">
+        <table className="ipc-data-table min-w-[1040px] table-fixed">
           <thead><tr>
-            <th className="text-left whitespace-nowrap">Khách hàng</th><th className="text-left whitespace-nowrap">Tuần</th>
-            <th className="text-center whitespace-nowrap">Định mức</th><th className="text-left whitespace-nowrap">File</th>
-            <th className="text-center whitespace-nowrap">File đọc</th><th className="text-right whitespace-nowrap">Dòng món</th>
-            <th className="text-center whitespace-nowrap">Trạng thái</th><th className="w-[190px] text-right whitespace-nowrap">Thao tác</th>
+            <th className="text-left whitespace-nowrap">Khách hàng</th><th className="text-left whitespace-nowrap">Tuần / định mức</th>
+            <th className="text-left whitespace-nowrap">File</th><th className="text-left whitespace-nowrap">Kết quả đọc</th>
+            <th className="text-center whitespace-nowrap">Trạng thái</th><th className="w-[220px] text-right whitespace-nowrap">Thao tác</th>
           </tr></thead>
           <tbody>
             {filteredJobs.map((job) => {
@@ -69,22 +65,20 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
               return (
                 <tr key={job.jobId} className={cn(selectedJob?.jobId === job.jobId && 'bg-blue-50/70')}>
                   <td className="text-left"><Button type="button" variant="outline" size="xs" textWrap="wrap" onClick={() => actions.selectJob(job.jobId)} className="w-full justify-start text-left font-bold text-slate-900 hover:text-blue-700">{job.customerCode} - {job.customerName}</Button></td>
-                  <td className="text-left font-medium whitespace-nowrap">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</td>
-                  <td className="text-center whitespace-nowrap"><span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">{formatBomTierLabel(job.priceTierAmount)}</span></td>
+                  <td className="text-left"><span className="block font-medium whitespace-nowrap">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</span><span className="mt-1 inline-block rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">{formatBomTierLabel(job.priceTierAmount)}</span></td>
                   <td className="text-left"><div className="flex min-w-0 flex-col"><span className="break-words font-semibold text-slate-800">{job.fileName}</span><span className="text-xs text-slate-500">{formatFileSize(job.fileSize)}</span></div></td>
-                  <td className="text-center whitespace-nowrap">{preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}</td>
-                  <td className={cn(typography.numeric, 'whitespace-nowrap text-right tabular-nums')}>{preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</td>
+                  <td className="text-left text-xs"><span className="block">Bố cục: {preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : 'Chưa đọc'}</span><span className="block font-semibold tabular-nums">Dòng món: {preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</span></td>
                   <td className="text-center whitespace-nowrap"><StatusBadge variant={getImportJobStatusTone(job.status)} className="min-w-[116px] justify-center whitespace-nowrap">{getImportJobStatusLabel(job.status)}</StatusBadge></td>
                   <td className="text-right"><div data-testid="import-job-actions" className="flex flex-nowrap justify-end gap-1.5 whitespace-nowrap">
-                    <Button type="button" variant="outline" size="xs" className="shrink-0" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'}>Kiểm tra</Button>
-                    <Button type="button" size="xs" className="shrink-0" onClick={() => setCommitTarget({ kind: 'job', jobId: job.jobId })} disabled={status.isImporting || job.status !== 'previewed'}>Lưu</Button>
-                    <Button type="button" variant="outline" size="xs" className="shrink-0" onClick={() => actions.removeJob(job.jobId)} disabled={status.isImporting}>Xóa</Button>
+                    <Button type="button" variant="outline" size="xs" className="min-w-0 shrink-0 px-2" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'}>Kiểm tra</Button>
+                    <Button type="button" size="xs" className="min-w-0 shrink-0 px-2" onClick={() => setCommitTarget({ kind: 'job', jobId: job.jobId })} disabled={status.isImporting || job.status !== 'previewed'}>Lưu</Button>
+                    <Button type="button" variant="outline" size="xs" className="min-w-0 shrink-0 px-2" onClick={() => actions.removeJob(job.jobId)} disabled={status.isImporting}>Xóa</Button>
                   </div></td>
                 </tr>
               )
             })}
-            {state.jobs.length === 0 && <tr><td colSpan={8} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có file nào. Chọn khách hàng, tuần, định mức và file Excel rồi bấm Thêm file.</td></tr>}
-            {state.jobs.length > 0 && filteredJobs.length === 0 && <tr><td colSpan={8} className="p-5 text-center text-sm font-medium text-slate-500">Không tìm thấy file thực đơn phù hợp.</td></tr>}
+            {state.jobs.length === 0 && <tr><td colSpan={6} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có file nào. Chọn khách hàng, tuần, định mức và file Excel rồi bấm Thêm file.</td></tr>}
+            {state.jobs.length > 0 && filteredJobs.length === 0 && <tr><td colSpan={6} className="p-5 text-center text-sm font-medium text-slate-500">Không tìm thấy file thực đơn phù hợp.</td></tr>}
           </tbody>
         </table>
       </TableViewport>

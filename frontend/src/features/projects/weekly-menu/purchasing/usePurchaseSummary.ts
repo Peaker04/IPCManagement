@@ -5,6 +5,7 @@ import type { DemandLine } from '@/types/workflow'
 import type { MaterialSummary } from '../model/types'
 import type { WeeklyScheduleFeedback } from '../schedule/types'
 import { buildPurchaseSummaryPresentation, buildWarehouseCsv } from './purchaseSummaryModel'
+import { addIsoDays } from '@/lib/warehouseDateRange'
 
 type Options = {
   enabled?: boolean
@@ -17,13 +18,6 @@ type Options = {
   materialSummary: MaterialSummary
   demandLines: DemandLine[]
   aggregatedDemandLines: DemandLine[]
-}
-
-const addIsoDays = (value: string, days: number) => {
-  const date = new Date(`${value}T00:00:00Z`)
-  if (Number.isNaN(date.valueOf())) return ''
-  date.setUTCDate(date.getUTCDate() + days)
-  return date.toISOString().slice(0, 10)
 }
 
 export function usePurchaseSummary({
@@ -67,13 +61,15 @@ export function usePurchaseSummary({
   const aggregatePage = queryView?.phase === 'ready' ? queryView.data : undefined
   const presentation = aggregatePage ? {
     ...localPresentation,
-    usesDemand: aggregatePage.totalCount > 0,
+    // An empty filtered server result is still a daily handoff view, not the whole-week BOM fallback.
+    usesDemand: true,
     totalItems: aggregatePage.totalCount,
     totalPages: aggregatePage.totalPages,
     pageIndex: Math.max(0, aggregatePage.pageNumber - 1),
     demandRows: aggregatePage.items,
     materialRows: [],
-    shortageCount: aggregatePage.shortageCount,
+    shortageCount: aggregatePage.remainingToIssueCount,
+    pendingKitchenCount: aggregatePage.pendingKitchenReceiptCount,
   } : localPresentation
 
   const exportWarehouseReport = () => {

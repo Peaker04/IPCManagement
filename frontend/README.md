@@ -147,6 +147,9 @@ and `font-src 'self'` browser evidence is indexed in `docs/EVIDENCE-INDEX.md`.
 
 ### State Management
 
+Import canonical owners directly: reducers from their slice modules and local collection pagination from
+`@/lib/useLocalPagination`. Do not add one-export feature barrels or compatibility hooks that only rename these owners.
+
 ```typescript
 import { useAppDispatch, useAppSelector } from './app/hooks';
 import { apiSlice } from './api/apiSlice';

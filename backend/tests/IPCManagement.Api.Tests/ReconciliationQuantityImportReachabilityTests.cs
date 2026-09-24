@@ -494,7 +494,7 @@ public sealed class ReconciliationQuantityImportReachabilityTests
     private sealed class StubCurrentUser(string userId) : ICurrentUserService
     {
         public string? GetUserId(ClaimsPrincipal user) => userId;
-        public IReadOnlyList<string> GetRoleNames(ClaimsPrincipal user) => ["COORDINATION"];
+        public IReadOnlyList<string> GetRoleNames(ClaimsPrincipal user) => ["Coordinator"];
         public string? GetWarehouseId(ClaimsPrincipal user) => null;
     }
 

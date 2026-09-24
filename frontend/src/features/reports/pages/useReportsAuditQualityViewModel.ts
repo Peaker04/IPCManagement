@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react';
-import { useGetAuditChangePageQuery, useGetDataQualityPageQuery } from '@/features/reports/reportsApi';
+import { useGetAuditChangePageQuery, useGetDataQualityPageQuery } from '@/api/reportsApi';
 import { toNextReportCursor, type ReportCursor, type WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { uiCopy } from '@/lib/uiCopy';
 import { formatDateTime } from '@/lib/formatters';
@@ -17,13 +17,14 @@ type ReportsAuditQualityViewModelArgs = {
   reportPageSize: number;
   reportQuery: WorkflowReportQuery;
   sortDirection: 'desc' | 'asc';
+  searchParams?: URLSearchParams;
 };
 
-export function useReportsAuditQualityViewModel({ activeView, initialPage, operationalPageSize, reportPageSize, reportQuery, sortDirection }: ReportsAuditQualityViewModelArgs) {
+export function useReportsAuditQualityViewModel({ activeView, initialPage, operationalPageSize, reportPageSize, reportQuery, sortDirection, searchParams = new URLSearchParams() }: ReportsAuditQualityViewModelArgs) {
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const [dataQualityPage, setDataQualityPage] = useState(initialPage);
-  const [dataQualitySearch, setDataQualitySearchState] = useState('');
-  const [debouncedDataQualitySearch, setDebouncedDataQualitySearch] = useState('');
+  const [dataQualitySearch, setDataQualitySearchState] = useState(() => activeView === 'data-quality' ? searchParams.get('search') ?? '' : '');
+  const [debouncedDataQualitySearch, setDebouncedDataQualitySearch] = useState(() => activeView === 'data-quality' ? searchParams.get('search') ?? '' : '');
   const deferredDataQualitySearch = useDeferredValue(debouncedDataQualitySearch);
 
   useEffect(() => {

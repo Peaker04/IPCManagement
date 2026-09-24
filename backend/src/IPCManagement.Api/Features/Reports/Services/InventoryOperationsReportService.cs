@@ -119,10 +119,11 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
 
     public async Task<IReadOnlyList<KitchenIssueReportDto>> GetKitchenIssuesAsync(WorkflowReportQueryDto query)
     {
+        var materialRequestId = GuidHelper.ParseFilterIdOrThrow(query.MaterialRequestId, "yêu cầu nguyên liệu");
         var lines = await QueryIssueLines(query)
             .OrderByDescending(item => item.Issue.IssueDate)
             .ThenBy(item => item.Ingredient.IngredientName)
-            .Take(NormalizeLimit(query.Limit))
+            .Take(materialRequestId is null ? NormalizeLimit(query.Limit) : int.MaxValue)
             .ToListAsync();
 
         return lines.Select(MapKitchenIssue).ToList();
@@ -437,6 +438,7 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
     {
         var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
         var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var materialRequestId = GuidHelper.ParseFilterIdOrThrow(query.MaterialRequestId, "yêu cầu nguyên liệu");
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
@@ -467,6 +469,11 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
         if (ingredientId is not null)
         {
             lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (materialRequestId is not null)
+        {
+            lines = lines.Where(item => item.Issue.MaterialRequestId != null && item.Issue.MaterialRequestId.SequenceEqual(materialRequestId));
         }
 
         if (dateFrom is not null)

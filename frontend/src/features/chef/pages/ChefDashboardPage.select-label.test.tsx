@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router-dom'
 
 const mocks = vi.hoisted(() => ({
   exceptions: vi.fn(),
@@ -11,8 +12,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/components/common', () => ({
   CommandBar: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
-  ContextStrip: () => null,
-  InlineAlert: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
+  ContextStrip: ({ items }: { items: Array<{ label: string; value: ReactNode }> }) => (
+    <dl role="group" aria-label="Tóm tắt ca bếp">{items.map((item) => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}</dl>
+  ),
+  InlineAlert: ({ title, children }: { title?: ReactNode; children?: ReactNode }) => <div><strong>{title}</strong>{children}</div>,
   KeepAliveTabPanel: ({ children }: { children?: ReactNode }) => <div>{children}</div>,
   OperationalFrame: ({ command, context, children }: { command?: ReactNode; context?: ReactNode; children?: ReactNode }) => <>{command}{context}{children}</>,
   TabContentSkeleton: () => <div role="status">Đang tải nội dung...</div>,
@@ -47,17 +50,40 @@ describe('ChefDashboardPage select labels', () => {
     })
     mocks.production.mockReturnValue({
       status: { isCatalogEmpty: false, isDailyPlanLoading: false, isDailyPlanError: false },
-      productionPlan: { date: '2026-07-27', shift: 'Ca Sáng', kitchenAssignment: { kitchenName: 'Bếp', kitchenCode: 'B01', responsibleChefs: [] }, totalMeals: 0, activeDishes: [], receivedMaterials: [], plannedMaterials: [] },
+      productionPlan: { date: '2026-07-27', shift: 'Ca Sáng', kitchenAssignment: { kitchenName: 'Bếp', kitchenCode: 'B01', responsibleChefs: [] }, totalMeals: 1, activeDishes: [], receivedMaterials: [], plannedMaterials: [] },
       queryViews: { dailyPlan: ready }, dailyPlanWarnings: ['Có kế hoạch chưa gửi bếp.'], isLocked: false, dailyPlan: undefined,
-      isSendingDailyPlan: false, receiveDailyPlan: vi.fn(),
+
     })
     mocks.exceptions.mockReturnValue({ queryView: ready, activeReturns: [], isCreatingReturn: false, isSubmittingSupplemental: false, requestSupplemental: vi.fn(), recordReturn: vi.fn() })
     mocks.journal.mockReturnValue({ queryViews: { documents: ready, movements: ready }, returnDocuments: [], kitchenMovements: [] })
 
-    render(<ChefDashboardPage />)
+    render(<MemoryRouter><ChefDashboardPage /></MemoryRouter>)
 
     expect(await screen.findByRole('combobox', { name: 'Chọn ca sản xuất' })).toHaveTextContent('Ca Sáng')
     expect(screen.getByRole('combobox', { name: 'Chọn ca sản xuất' })).not.toHaveTextContent('MORNING')
-    expect(screen.getByText('Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.')).toBeInTheDocument()
+    expect(screen.getByText('Kế hoạch điều phối chưa chốt')).toBeInTheDocument()
+    expect(screen.queryByText('Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.')).toBeNull()
+    expect(screen.queryByText('Trạng thái dữ liệu bếp')).toBeNull()
+  })
+
+  it('keeps plan, receipt and return facts with their workflow owners instead of a duplicate page summary', () => {
+    mocks.receipts.mockReturnValue({
+      hasAdditionalPages: false, queryView: ready, rows: [], pendingCount: 0, page: 1, pageSize: 20,
+      totalCount: 0, totalSignedCount: 0, actionRowCount: 0, allReceived: false, isConfirming: false,
+      signedMaterials: [], actionRows: [], signOff: vi.fn(), setPage: vi.fn(),
+    })
+    mocks.production.mockReturnValue({
+      status: { isCatalogEmpty: false, isDailyPlanLoading: false, isDailyPlanError: false },
+      productionPlan: { date: '2026-07-27', shift: 'Ca Sáng', kitchenAssignment: { kitchenName: 'Bếp', kitchenCode: 'B01', responsibleChefs: [] }, totalMeals: 1, activeDishes: [], receivedMaterials: [], plannedMaterials: [] },
+      queryViews: { catalog: ready, dailyPlan: ready }, dailyPlanWarnings: [], isLocked: true,
+      dailyPlan: { totalPlans: 1, sentPlans: 1, plans: [] }, dailyPlanLines: [],
+    })
+    mocks.exceptions.mockReturnValue({ queryView: ready, activeReturns: [], isCreatingReturn: false, isSubmittingSupplemental: false, requestSupplemental: vi.fn(), recordReturn: vi.fn() })
+    mocks.journal.mockReturnValue({ queryViews: { documents: ready, movements: ready }, returnDocuments: [], kitchenMovements: [] })
+
+    render(<MemoryRouter><ChefDashboardPage /></MemoryRouter>)
+
+    expect(screen.queryByRole('group', { name: 'Tóm tắt ca bếp' })).not.toBeInTheDocument()
+    expect(screen.getByText('Lệnh sản xuất chính thức')).toBeInTheDocument()
   })
 })

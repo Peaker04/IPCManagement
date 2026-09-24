@@ -152,6 +152,13 @@ export interface DemandLine {
   appliedPortionRatePercent?: number;
   bomRatePercent?: number;
   yieldLossPercent?: number | null;
+  // Only aggregate rows project gross DEFAULT handoff; generic demand keeps its own allocation semantics.
+  projection?: 'physical-handoff';
+  customerId?: string;
+  historicalAllocatedQty?: number;
+  issuedQty?: number;
+  receivedByKitchenQty?: number;
+  remainingToIssueQty?: number;
   pendingKitchenReceiptQty?: number;
   unissuedQty?: number;
   actionHref?: string;

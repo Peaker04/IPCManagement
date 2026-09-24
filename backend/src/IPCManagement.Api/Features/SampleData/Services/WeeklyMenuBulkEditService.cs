@@ -96,7 +96,9 @@ internal sealed class WeeklyMenuBulkEditService(
                         var variantKey = slot.SlotType.Contains("Vegetarian", StringComparison.OrdinalIgnoreCase)
                             ? "vegetarian"
                             : "savory";
-                        var dishSlot = $"{variantKey}-main";
+                        var dishSlot = slot.SlotType.Contains('-')
+                            ? slot.SlotType
+                            : $"{variantKey}-main";
                         var menuItem = schedule.Menu.Menuitems.FirstOrDefault(item => item.DishSlot == dishSlot);
                         if (menuItem is not null)
                         {
@@ -144,9 +146,11 @@ internal sealed class WeeklyMenuBulkEditService(
                                         slot.ShiftName.Equals("Ca sáng", StringComparison.OrdinalIgnoreCase)
                             ? "MORNING"
                             : "AFTERNOON";
-                        var dishSlot = slot.SlotType.Contains("Vegetarian", StringComparison.OrdinalIgnoreCase)
-                            ? "vegetarian-main"
-                            : "savory-main";
+                        var dishSlot = slot.SlotType.Contains('-')
+                            ? slot.SlotType
+                            : (slot.SlotType.Contains("Vegetarian", StringComparison.OrdinalIgnoreCase)
+                                ? "vegetarian-main"
+                                : "savory-main");
                         var persisted = await context.Menuschedules
                             .AsNoTracking()
                             .Where(schedule =>

@@ -52,6 +52,23 @@ describe('OrderTable request ownership', () => {
     mocks.updateForecast.mockReturnValue({ unwrap: () => Promise.resolve({ success: true }) })
   })
 
+  it('shows the locked baseline, adjusted servings and signed increase after lock', () => {
+    render(
+      <OrderTable
+        orders={[{ ...order, actualQuantity: 135 }]}
+        canEditForecast={false}
+        canRequestAdjustment={false}
+        useFinalServings
+      />,
+    )
+
+    expect(screen.getByRole('columnheader', { name: 'Suất đã chốt' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Suất sau chỉnh' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: 'Tăng/giảm' })).toBeInTheDocument()
+    expect(screen.getByText('+15')).toBeInTheDocument()
+    expect(screen.getByText('Cần tính lại nguyên liệu')).toBeInTheDocument()
+  })
+
   it('keeps actual servings local while typing and sends one request when editing finishes', async () => {
     render(
       <OrderTable

@@ -514,6 +514,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             New("inventoryissuelines", "IssueLineId", line.Id, [GeneratedGuid("IssueLineId", line.Id)],
                 ("IssueId", GuidValue(issue.Id)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
                 ("MaterialRequestLineId", NullValue), ("ReconciliationBatchLineId", GuidValue(fixture.IssueLineId)),
+                ("ReconciliationBatchDailyLineId", GuidValue(fixture.IssueDailyLineId)),
+                ("ReconciliationServiceDate", DateValue(new DateOnly(2026, 8, 30))),
                 ("RequestedQty", DecimalValue(5m)), ("IssuedQty", DecimalValue(5m))),
             ExistingGeneratedKey("currentstock", stockKey, [GeneratedUtc("LastUpdated", window, "issue-stock-time"), GeneratedExact("RowVersion", CellValue(before.Canonical, "currentstock", stockKey, "RowVersion"), "SQLite fixture preserves the MySQL-generated rowversion")], ("CurrentQty", DecimalValue(stock.Qty))),
             Existing("reconciliationbatches", "BatchId", fixture.IssueBatchId,
@@ -740,6 +742,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         private readonly byte[] completionLine = GuidHelper.NewId();
         private readonly byte[] issueBatch = GuidHelper.NewId();
         private readonly byte[] issueLine = GuidHelper.NewId();
+        private readonly byte[] issueDailyLine = GuidHelper.NewId();
         private readonly byte[] actualBatch = GuidHelper.NewId();
         private readonly byte[] actualLine = GuidHelper.NewId();
 
@@ -778,6 +781,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         public string CompletionLineId => Id(completionLine)!;
         public string IssueBatchId => Id(issueBatch)!;
         public string IssueLineId => Id(issueLine)!;
+        public string IssueDailyLineId => Id(issueDailyLine)!;
         public string ActualLineId => Id(actualLine)!;
 
         public static async Task<Fixture> CreateAsync()
@@ -829,12 +833,43 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             await Context.SaveChangesAsync();
         }
 
-        private ReconciliationBatch Batch(byte[] id, byte[] lineId, string status, long version, decimal quantity) => new()
+        private ReconciliationBatch Batch(byte[] id, byte[] lineId, string status, long version, decimal quantity)
         {
-            BatchId = id, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = status, Version = version, CreatedBy = actor, CreatedAt = DateTime.UtcNow,
-            Lines = [new ReconciliationBatchLine { BatchLineId = lineId, IngredientId = ingredient, CanonicalUnitId = unit, RequiredQuantity = quantity, FrozenTolerance = 0.1m, ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1", Version = 1,
-                Contributors = [new ReconciliationBatchContributor { ContributorId = GuidHelper.NewId(), MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(), DishBomId = GuidHelper.NewId(), SourceQuantity = quantity }] }]
-        };
+            var dailyLineId = lineId.SequenceEqual(issueLine) ? issueDailyLine : GuidHelper.NewId();
+            return new ReconciliationBatch
+            {
+                BatchId = id, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(), Status = status, Version = version, CreatedBy = actor, CreatedAt = DateTime.UtcNow,
+                Lines =
+                [
+                    new ReconciliationBatchLine
+                    {
+                        BatchLineId = lineId, BatchId = id, IngredientId = ingredient, CanonicalUnitId = unit,
+                        RequiredQuantity = quantity, FrozenTolerance = 0.1m, ToleranceSourceKind = "SYSTEM_DEFAULT",
+                        ToleranceSourceVersion = "1", Version = 1,
+                        DailyLines = lineId.SequenceEqual(issueLine)
+                            ?
+                            [
+                                new ReconciliationBatchDailyLine
+                                {
+                                    DailyLineId = dailyLineId, BatchLineId = lineId, BatchId = id, IngredientId = ingredient,
+                                    CanonicalUnitId = unit, ServiceDate = new DateOnly(2026, 8, 30), RequiredQuantity = quantity, Version = 1
+                                }
+                            ]
+                            : [],
+                        Contributors =
+                        [
+                            new ReconciliationBatchContributor
+                            {
+                                ContributorId = GuidHelper.NewId(), BatchLineId = lineId,
+                                DailyLineId = lineId.SequenceEqual(issueLine) ? dailyLineId : null,
+                                MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(),
+                                DishBomId = GuidHelper.NewId(), SourceQuantity = quantity
+                            }
+                        ]
+                    }
+                ]
+            };
+        }
 
         public async Task<SystemOperationModeDto> SwitchAsync(string mode, string reason)
         {
@@ -851,11 +886,15 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             RequestContext.Disposition = disposition;
         }
 
-        public CreateInventoryIssueRequest IssueCommand() => new()
+        public CreateInventoryIssueRequest IssueCommand()
         {
-            CommandId = "p30-recon-issue", ExpectedVersion = 2, ReconciliationBatchId = IssueBatchId, IssueDate = new DateOnly(2026, 8, 30), WarehouseId = Id(warehouse)!,
-            Lines = [new CreateInventoryIssueLineRequest { ReconciliationBatchLineId = IssueLineId, IngredientId = Id(ingredient)!, UnitId = Id(unit)!, RequestedQty = 5m, IssuedQty = 5m }]
-        };
+            var dailyLineId = issueDailyLine;
+            return new CreateInventoryIssueRequest
+            {
+                CommandId = "p30-recon-issue", ExpectedVersion = 2, ReconciliationBatchId = IssueBatchId, IssueDate = new DateOnly(2026, 8, 30), WarehouseId = Id(warehouse)!,
+                Lines = [new CreateInventoryIssueLineRequest { ReconciliationBatchLineId = IssueLineId, ReconciliationBatchDailyLineId = Id(dailyLineId), IngredientId = Id(ingredient)!, UnitId = Id(unit)!, RequestedQty = 5m, IssuedQty = 5m }]
+            };
+        }
 
         public CreateInventoryReturnRequest ReturnCommand(string issueId, string sourceLineId) => new()
         {
@@ -1012,7 +1051,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             };
         }
 
-        private const string ExpectedScalarSchemaHash = "A418BB491D230291E25D50C007BF3979EEB973DFC59CFB2D472B20E57767092C";
+        private const string ExpectedScalarSchemaHash = "2B9684307C39634493C8C5233CD2991C51A25A0FDD5C119555392482BF5CF76E";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 
@@ -1063,7 +1102,10 @@ public sealed class Phase30InactiveReconciliationOwnerTests
 CREATE TABLE systemoperationmodes (id INTEGER PRIMARY KEY, mode TEXT NOT NULL, version INTEGER NOT NULL, updatedAt TEXT NOT NULL, updatedBy BLOB NOT NULL, reason TEXT NULL);
 CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
 CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
-CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, sourceQuantity TEXT NOT NULL);
+CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
+CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL, FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL, FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL);
+CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
+CREATE UNIQUE INDEX IX_reconciliationdailydispositions_DailyLineId ON reconciliationdailydispositions(dailyLineId);
 CREATE TABLE reconciliationactuals (actualId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, side TEXT NOT NULL, quantity TEXT NOT NULL, version INTEGER NOT NULL, enteredBy BLOB NOT NULL, enteredAt TEXT NOT NULL);
 CREATE UNIQUE INDEX IX_reconciliationactuals_BatchLineId_Side ON reconciliationactuals(batchLineId, side);
 CREATE TABLE reconciliationactualrevisions (revisionId BLOB PRIMARY KEY, actualId BLOB NOT NULL, oldQuantity TEXT NOT NULL, newQuantity TEXT NOT NULL, reason TEXT NOT NULL, changedBy BLOB NOT NULL, changedAt TEXT NOT NULL);

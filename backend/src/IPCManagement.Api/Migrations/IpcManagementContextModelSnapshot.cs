@@ -18,7 +18,7 @@ namespace IPCManagement.Api.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasAnnotation("ProductVersion", "9.0.16")
+                .HasAnnotation("ProductVersion", "9.0.20")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
@@ -1168,11 +1168,21 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("materialRequestLineId")
                         .IsFixedLength();
 
+                    b.Property<byte[]>("ReconciliationBatchDailyLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("reconciliationBatchDailyLineId")
+                        .IsFixedLength();
+
                     b.Property<byte[]>("ReconciliationBatchLineId")
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("reconciliationBatchLineId")
                         .IsFixedLength();
+
+                    b.Property<DateOnly?>("ReconciliationServiceDate")
+                        .HasColumnType("date")
+                        .HasColumnName("reconciliationServiceDate");
 
                     b.Property<decimal>("RequestedQty")
                         .HasPrecision(18, 6)
@@ -1189,12 +1199,16 @@ namespace IPCManagement.Api.Migrations
                     b.HasKey("IssueLineId")
                         .HasName("PRIMARY");
 
+                    b.HasIndex("ReconciliationBatchDailyLineId", "ReconciliationBatchLineId", "IngredientId", "UnitId", "ReconciliationServiceDate");
+
                     b.HasIndex(new[] { "IngredientId" }, "ingredientId")
                         .HasDatabaseName("ingredientId1");
 
                     b.HasIndex(new[] { "IssueId" }, "issueId");
 
                     b.HasIndex(new[] { "MaterialRequestLineId" }, "ixInventoryIssueLinesMaterialRequestLine");
+
+                    b.HasIndex(new[] { "ReconciliationBatchDailyLineId" }, "ixInventoryIssueLinesReconciliationBatchDailyLine");
 
                     b.HasIndex(new[] { "ReconciliationBatchLineId" }, "ixInventoryIssueLinesReconciliationBatchLine");
 
@@ -1203,7 +1217,7 @@ namespace IPCManagement.Api.Migrations
 
                     b.ToTable("inventoryissuelines", null, t =>
                         {
-                            t.HasCheckConstraint("ckInventoryIssueLinesSourceFamily", "(`materialRequestLineId` IS NOT NULL AND `reconciliationBatchLineId` IS NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NOT NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NULL)");
+                            t.HasCheckConstraint("ckInventoryIssueLinesSourceFamily", "((`materialRequestLineId` IS NOT NULL AND `reconciliationBatchLineId` IS NULL AND `reconciliationBatchDailyLineId` IS NULL AND `reconciliationServiceDate` IS NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NOT NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NULL AND `reconciliationBatchDailyLineId` IS NULL AND `reconciliationServiceDate` IS NULL)) AND ((`reconciliationBatchDailyLineId` IS NULL AND `reconciliationServiceDate` IS NULL) OR (`reconciliationBatchDailyLineId` IS NOT NULL AND `reconciliationBatchLineId` IS NOT NULL AND `reconciliationServiceDate` IS NOT NULL))");
                         });
                 });
 
@@ -4596,11 +4610,44 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .IsFixedLength();
 
+                    b.Property<byte[]>("DailyLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
                     b.Property<byte[]>("DishBomId")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .IsFixedLength();
+
+                    b.Property<byte[]>("DishId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal?>("FrozenBomQuantityPerServing")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("FrozenDishCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("FrozenDishName")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int?>("FrozenServings")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FrozenShiftName")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<decimal?>("FrozenWasteRatePercent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)");
 
                     b.Property<byte[]>("MealQuantityPlanLineId")
                         .IsRequired()
@@ -4628,7 +4675,64 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasIndex("MenuScheduleId");
 
+                    b.HasIndex("DailyLineId", "BatchLineId");
+
                     b.ToTable("reconciliationbatchcontributors", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", b =>
+                {
+                    b.Property<byte[]>("DailyLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("BatchLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CanonicalUnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("RequiredQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("DailyLineId");
+
+                    b.HasIndex("BatchLineId", "ServiceDate")
+                        .IsUnique();
+
+                    b.HasIndex("BatchLineId", "BatchId", "IngredientId", "CanonicalUnitId");
+
+                    b.ToTable("reconciliationbatchdailylines", null, t =>
+                        {
+                            t.HasCheckConstraint("ckReconciliationBatchDailyLineRequiredQuantity", "`requiredQuantity` > 0");
+                        });
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationBatchLine", b =>
@@ -4688,6 +4792,52 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("reconciliationbatchlines", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationDailyDisposition", b =>
+                {
+                    b.Property<byte[]>("DispositionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<byte[]>("DailyLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("DisposedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte[]>("DisposedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.HasKey("DispositionId");
+
+                    b.HasIndex("DailyLineId")
+                        .IsUnique();
+
+                    b.HasIndex("DisposedBy");
+
+                    b.ToTable("reconciliationdailydispositions", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationDisposition", b =>
@@ -6497,11 +6647,20 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryissuelines_ibfk_3");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", "ReconciliationBatchDailyLine")
+                        .WithMany("InventoryIssueLines")
+                        .HasForeignKey("ReconciliationBatchDailyLineId", "ReconciliationBatchLineId", "IngredientId", "UnitId", "ReconciliationServiceDate")
+                        .HasPrincipalKey("DailyLineId", "BatchLineId", "IngredientId", "CanonicalUnitId", "ServiceDate")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("inventoryissuelines_ibfk_6");
+
                     b.Navigation("Ingredient");
 
                     b.Navigation("Issue");
 
                     b.Navigation("MaterialRequestLine");
+
+                    b.Navigation("ReconciliationBatchDailyLine");
 
                     b.Navigation("ReconciliationBatchLine");
 
@@ -7478,6 +7637,26 @@ namespace IPCManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", "DailyLine")
+                        .WithMany("Contributors")
+                        .HasForeignKey("DailyLineId", "BatchLineId")
+                        .HasPrincipalKey("DailyLineId", "BatchLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BatchLine");
+
+                    b.Navigation("DailyLine");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchLine", "BatchLine")
+                        .WithMany("DailyLines")
+                        .HasForeignKey("BatchLineId", "BatchId", "IngredientId", "CanonicalUnitId")
+                        .HasPrincipalKey("BatchLineId", "BatchId", "IngredientId", "CanonicalUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("BatchLine");
                 });
 
@@ -7506,6 +7685,23 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("CanonicalUnit");
 
                     b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationDailyDisposition", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", "DailyLine")
+                        .WithOne("Disposition")
+                        .HasForeignKey("IPCManagement.Api.Models.Entities.ReconciliationDailyDisposition", "DailyLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("DisposedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DailyLine");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationDisposition", b =>
@@ -8129,9 +8325,20 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Lines");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", b =>
+                {
+                    b.Navigation("Contributors");
+
+                    b.Navigation("Disposition");
+
+                    b.Navigation("InventoryIssueLines");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationBatchLine", b =>
                 {
                     b.Navigation("Contributors");
+
+                    b.Navigation("DailyLines");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Role", b =>

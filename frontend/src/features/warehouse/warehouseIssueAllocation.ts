@@ -5,10 +5,13 @@ import type {
 } from '@/api/workflowApiTypes';
 import type { DemandLine } from '@/types/workflow';
 import { formatDateOnly } from '@/lib/formatters';
+import { formatShiftName } from '@/lib/workflowConfig';
 
 const QUANTITY_EPSILON = 0.000001;
 
 const lineKey = (ingredientId: string, unitId: string) => `${ingredientId}|${unitId}`;
+
+export const issueScopeLabel = (requestScope: string) => requestScope === 'FULLDAY' ? 'Cả ngày' : formatShiftName(requestScope);
 
 export const formatIssueCandidateLabel = (candidate: {
   requestDate: string;
@@ -16,7 +19,10 @@ export const formatIssueCandidateLabel = (candidate: {
   materialRequestCode: string;
   customerName?: string;
   customerCode?: string;
-}) => `${candidate.customerName || 'Khách hàng chưa xác định'}${candidate.customerCode ? ` (${candidate.customerCode})` : ''} · Ngày ${formatDateOnly(candidate.requestDate)} · ${candidate.actionableLineCount} nhóm nguyên liệu · Chứng từ ${candidate.materialRequestCode}`;
+  requestScope: string;
+}) => `${candidate.customerName || 'Khách hàng chưa xác định'}${candidate.customerCode ? ` (${candidate.customerCode})` : ''} · Ngày ${formatDateOnly(candidate.requestDate)} · ${issueScopeLabel(candidate.requestScope)} · ${candidate.actionableLineCount} nhóm nguyên liệu · Chứng từ ${candidate.materialRequestCode}`;
+
+export const issueShiftName = (requestScope: string) => requestScope === 'FULLDAY' ? null : requestScope;
 
 export interface WarehouseIssueAllocation {
   lines: CreateInventoryIssueLineRequest[];

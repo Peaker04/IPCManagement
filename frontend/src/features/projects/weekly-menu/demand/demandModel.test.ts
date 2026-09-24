@@ -16,6 +16,21 @@ import {
 } from './demandModel'
 
 describe('material demand model', () => {
+  it('retains customer/tier aggregate identity when attaching dish detail', () => {
+    const line = { id: 'aggregate', projection: 'physical-handoff', customerId: 'customer-a',
+      serviceDate: '2026-08-15', ingredientId: 'rice', unitId: 'kg', priceTierAmount: 25000,
+      material: 'Gạo', source: 'Khách A · 25k · 2 dòng nhu cầu', required: 200, available: 0, reserved: 0,
+      unit: 'kg', remainingToIssueQty: 200, status: 'Chưa xuất', nextAction: 'Kho xử lý xuất', tone: 'warning' } as DemandLine
+    expect(attachDemandDishSources([line], [], '2026-08-15')[0].source).toBe(line.source)
+    expect(partitionDemandLines([line]).exceptionLines).toEqual([line])
+  })
+
+  it('keeps overlapping whole-filter issue and ack counts distinct on an empty page', () => {
+    expect(getDemandInventoryStatus([], 42, 0, { remainingToIssueCount: 17, pendingKitchenReceiptCount: 11 })).toMatchObject({
+      totalCount: 42, shortageCount: 17, pendingKitchenCount: 11, enoughCount: 25, label: 'Chưa xuất', tone: 'warning',
+    })
+  })
+
   it('uses server totals when summarizing a paged inventory result', () => {
     const lines = [{
       tone: 'warning',

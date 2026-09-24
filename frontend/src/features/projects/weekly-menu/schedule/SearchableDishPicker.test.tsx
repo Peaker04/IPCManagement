@@ -44,6 +44,51 @@ describe('SearchableDishPicker', () => {
     expect(screen.getByText('Chọn món ăn')).toBeInTheDocument()
   })
 
+  it('coalesces burst scroll and resize positioning into one animation frame', () => {
+    let frame: FrameRequestCallback | undefined
+    const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      frame = callback
+      return requestFrame.mock.calls.length
+    })
+    const cancelFrame = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined)
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 100,
+      right: 420,
+      top: 20,
+      bottom: 56,
+      width: 320,
+      height: 36,
+      x: 100,
+      y: 20,
+      toJSON: () => ({}),
+    })
+
+    const { unmount } = render(<SearchableDishPicker value="" options={dishes} label="Tìm món" onChange={vi.fn()} />)
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Tìm món' }))
+    rect.mockClear()
+
+    fireEvent.scroll(window)
+    fireEvent.scroll(window)
+    fireEvent(window, new Event('resize'))
+
+    expect(requestFrame).toHaveBeenCalledTimes(1)
+    expect(rect).not.toHaveBeenCalled()
+    frame?.(0)
+    expect(rect).toHaveBeenCalledTimes(1)
+
+    fireEvent.scroll(window)
+    expect(requestFrame).toHaveBeenCalledTimes(2)
+    unmount()
+    expect(cancelFrame).toHaveBeenCalledWith(2)
+    fireEvent.scroll(window)
+    fireEvent(window, new Event('resize'))
+    expect(requestFrame).toHaveBeenCalledTimes(2)
+
+    requestFrame.mockRestore()
+    cancelFrame.mockRestore()
+    rect.mockRestore()
+  })
+
   it('supports arrow navigation and Enter across multiple results', () => {
     const onChange = vi.fn()
     render(<SearchableDishPicker value="" options={dishes} label="Tìm món" onChange={onChange} />)

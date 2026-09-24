@@ -1015,6 +1015,8 @@ public partial class WorkflowGenerationTests
                     issueId BLOB NOT NULL,
                     materialRequestLineId BLOB NULL,
                     reconciliationBatchLineId BLOB NULL,
+                    reconciliationBatchDailyLineId BLOB NULL,
+                    reconciliationServiceDate TEXT NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
                     requestedQty TEXT NOT NULL,

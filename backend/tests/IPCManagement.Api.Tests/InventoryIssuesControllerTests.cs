@@ -7,6 +7,8 @@ using NSubstitute;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Controllers;
 using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
@@ -87,6 +89,28 @@ public class InventoryIssuesControllerTests
         response.Message.Should().Be("Unknown inventory issue source family 'UNKNOWN'.");
     }
 
+    [Theory]
+    [InlineData(SystemOperationEligibility.Default, InventoryIssueSourceFamilies.MaterialReconciliation)]
+    [InlineData(SystemOperationEligibility.MaterialReconciliation, InventoryIssueSourceFamilies.Default)]
+    public async Task GetAll_Should_RejectSourceFamilyOutsideActiveMode(string mode, string sourceFamily)
+    {
+        var result = await CreateController(mode).GetAllAsync(new InventoryIssueFilterRequestDto { SourceFamily = sourceFamily });
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+        await _inventoryIssueService.DidNotReceive().GetPagedAsync(Arg.Any<InventoryIssueFilterRequestDto>());
+    }
+
+    [Theory]
+    [InlineData(SystemOperationEligibility.Default, InventoryIssueSourceFamilies.MaterialReconciliation)]
+    [InlineData(SystemOperationEligibility.MaterialReconciliation, InventoryIssueSourceFamilies.Default)]
+    public async Task GetById_Should_RejectSourceFamilyOutsideActiveMode(string mode, string sourceFamily)
+    {
+        var result = await CreateController(mode).GetByIdAsync("issue-id", sourceFamily);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+        await _inventoryIssueService.DidNotReceive().GetByIdAsync(Arg.Any<string>(), Arg.Any<string>());
+    }
+
     [Fact]
     public async Task Create_Should_ReturnForbidden_WhenProductionRoleCreatesReconciliationIssue()
     {
@@ -157,8 +181,8 @@ public class InventoryIssuesControllerTests
         conflict.StatusCode.Should().Be(StatusCodes.Status409Conflict);
     }
 
-    private InventoryIssuesController CreateController()
-        => new(_inventoryIssueService, _currentUserService)
+    private InventoryIssuesController CreateController(string? mode = null)
+        => new(_inventoryIssueService, _currentUserService, new SystemOperationRequestContext { Mode = mode })
         {
             ControllerContext = new ControllerContext
             {

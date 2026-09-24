@@ -12,7 +12,7 @@ interface HeadChefDashboardProps {
   isSubmittingSupplementalRequest?: boolean
   onSupplementalRequest?: (data: SupplementalRequest) => Promise<boolean>
   onExcessMaterialReturn?: (data: ExcessMaterial) => void
-  onMaterialSignoff?: (materialId: string, signed: boolean) => void
+  onMaterialSignoff?: (materialId: string, signed: boolean, hasDiscrepancy?: boolean, discrepancyNote?: string) => Promise<boolean>
   checklistPagination?: ReactNode
   checklistPageLabel?: string
   checklistTotalSignedCount?: number

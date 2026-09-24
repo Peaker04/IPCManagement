@@ -8,25 +8,17 @@ interface TableProps extends React.ComponentProps<"table"> {
   bordered?: boolean
 }
 
-function Table({ className, bordered = true, "aria-label": ariaLabel, ...props }: TableProps) {
+function Table({ className, bordered = true, ...props }: TableProps) {
   return (
-    <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto rounded-md border border-slate-200 bg-white shadow-xs"
-      tabIndex={ariaLabel ? 0 : undefined}
-      aria-label={ariaLabel ? `${ariaLabel} (có thể cuộn ngang)` : undefined}
-    >
-      <table
-        data-slot="table"
-        aria-label={ariaLabel}
-        className={cn(
-          "w-full table-fixed caption-bottom border-collapse text-sm",
-          bordered && "[&_th]:border-r [&_th]:border-slate-200 [&_th:last-child]:border-r-0 [&_td]:border-r [&_td]:border-slate-200 [&_td:last-child]:border-r-0",
-          className,
-        )}
-        {...props}
-      />
-    </div>
+    <table
+      data-slot="table"
+      className={cn(
+        "w-full table-fixed caption-bottom border-collapse text-sm",
+        bordered && "[&_th]:border-r [&_th]:border-slate-200 [&_th:last-child]:border-r-0 [&_td]:border-r [&_td]:border-slate-200 [&_td:last-child]:border-r-0",
+        className,
+      )}
+      {...props}
+    />
   )
 }
 
@@ -68,7 +60,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-slate-200 transition-colors hover:bg-blue-50/30 has-aria-expanded:bg-blue-50/40 data-[state=selected]:bg-blue-50/50",
+        "border-b border-slate-200 transition-colors has-aria-expanded:bg-blue-50/40 data-[state=selected]:bg-blue-50/50",
         className
       )}
       {...props}

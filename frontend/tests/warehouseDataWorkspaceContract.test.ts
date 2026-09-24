@@ -9,7 +9,8 @@ import {
   validateWarehouseAiFinding, validateWarehouseAiReviewInput, validateWarehouseCapture, validateWarehouseCaptureManifest, warehouseDataWorkspaceContract,
   WAREHOUSE_CONTRACT_VERSION, WAREHOUSE_SCENARIOS, WAREHOUSE_VIEWPORTS, type WarehouseCapture,
 } from './warehouseDataWorkspaceContract';
-import { buildWarehouseSelectionManifest, classifyRailRelation, evaluateWarehouseManifest, splitWorkbenchConsumerInventory } from './warehouseDeterministicRules';
+import { collectWarehouseHeadingEvidence } from './warehouseEvidenceCollector';
+import { buildWarehouseSelectionManifest, classifyRailRelation, evaluateWarehouseManifest, hasValidWarehouseHeadingHierarchy, splitWorkbenchConsumerInventory } from './warehouseDeterministicRules';
 
 const validCapture = (state: WarehouseCapture['state'] = 'ready', viewport = WAREHOUSE_VIEWPORTS[0]): WarehouseCapture => {
   const forbidden = state === 'route-forbidden';
@@ -21,7 +22,7 @@ const validCapture = (state: WarehouseCapture['state'] = 'ready', viewport = WAR
     viewport: { ...viewport }, fixtureRecordIds: forbidden ? [] : warehouseFixtureRecordIds, screenshotPath: `controlled/${state}.png`,
     ariaSnapshot: '- heading "Kho nguyên liệu" [level=1] [box=0,0,100,20]', ariaSnapshotOptions: { mode: 'ai', boxes: true },
     geometry: Object.fromEntries(ids.map((id, index) => [id, { box: { x: index * 20, y: index * 20, width: 10, height: 10 }, scroll: { clientWidth: 10, scrollWidth: 10, clientHeight: 10, scrollHeight: 10 }, style: { display: 'block', overflowX: 'visible', paddingLeft: '16px', paddingRight: '16px' } }])),
-    document: { clientWidth: viewport.width, scrollWidth: viewport.width, h1Count: 1, headingLevels: [1, 3, 3], primaryActionCount: 0 },
+    document: { clientWidth: viewport.width, scrollWidth: viewport.width, h1Count: 1, headingLevels: forbidden ? [1, 2] : [1, 2, 2], primaryActionCount: 0 },
     domOrder: ids, focusOrder: ['tab', 'stock-search', 'history-search'], activeElement: 'BODY', consoleErrors: [], pageErrors: [], nonGetRequests: [],
     owners: Object.fromEntries(ids.map((id) => [id, id === 'warehouse-route-forbidden' ? 'RoleGuard' : id === 'warehouse-document-rail' ? 'SplitWorkbench/DocumentRail' : 'WarehouseMovementPanel/SectionPanel'])),
   };
@@ -83,6 +84,57 @@ describe('Warehouse Data Workspace contract', () => {
     expect(source).toContain('Không tải được tồn kho hiện tại');
     expect(source).toContain('Không có quyền xem tồn kho hiện tại');
     expect(source).not.toContain("phase: 'refreshing'");
+  });
+
+  it.each([false, true])('collects production-shaped headings in logical shell-to-work order (overlay=%s)', (withOverlay) => {
+    document.body.innerHTML = `
+      <aside><h2 id="sidebar-heading">Điều hướng kho</h2></aside>
+      <header><h1 id="shell-heading">Kho nguyên liệu</h1></header>
+      <main id="ipc-main-content">
+        <section><h2 id="stock-heading">Tồn kho hiện tại</h2></section>
+        <section><h2 id="movement-heading">Luân chuyển kho</h2></section>
+        <div role="tabpanel" hidden><h4 id="keepalive-heading">Nội dung tab ẩn</h4></div>
+      </main>
+      <div hidden><h3 id="hidden-other-heading">Shell ẩn</h3></div>
+      ${withOverlay ? '<div role="dialog"><h2 id="overlay-heading">Chi tiết phiếu kho</h2></div>' : ''}
+    `;
+
+    const rawVisibleLevels = Array.from(document.querySelectorAll('h1,h2,h3,h4,h5,h6'))
+      .filter((heading) => !heading.closest('[hidden]'))
+      .map((heading) => Number(heading.tagName.slice(1)));
+    const evidence = collectWarehouseHeadingEvidence(document);
+
+    expect(rawVisibleLevels).toEqual(withOverlay ? [2, 1, 2, 2, 2] : [2, 1, 2, 2]);
+    expect(hasValidWarehouseHeadingHierarchy(rawVisibleLevels)).toBe(false);
+    expect(evidence.records.map(({ name }) => name)).toEqual([
+      'Điều hướng kho', 'Kho nguyên liệu', 'Tồn kho hiện tại', 'Luân chuyển kho', 'Nội dung tab ẩn', 'Shell ẩn',
+      ...(withOverlay ? ['Chi tiết phiếu kho'] : []),
+    ]);
+    expect(evidence.records.map(({ owner, visible }) => [owner, visible])).toEqual([
+      ['other-shell', true], ['shell-header', true], ['main', true], ['main', true],
+      ['hidden-keepalive', false], ['hidden-other', false], ...(withOverlay ? [['overlay', true] as const] : []),
+    ]);
+    expect(evidence.levels).toEqual(withOverlay ? [1, 2, 2, 2, 2] : [1, 2, 2, 2]);
+    expect(evidence.names).toEqual([
+      'Kho nguyên liệu', 'Tồn kho hiện tại', 'Luân chuyển kho', 'Điều hướng kho',
+      ...(withOverlay ? ['Chi tiết phiếu kho'] : []),
+    ]);
+    expect(evidence.selectors).toEqual([
+      '#shell-heading', '#stock-heading', '#movement-heading', '#sidebar-heading',
+      ...(withOverlay ? ['#overlay-heading'] : []),
+    ]);
+  });
+
+  it.each([
+    { levels: [1, 2], valid: true, scenario: 'route h1 followed by a route-primary h2' },
+    { levels: [1, 2, 3], valid: true, scenario: 'nested h3 follows its h2 ancestor' },
+    { levels: [1, 2, 3, 4], valid: true, scenario: 'nested h4 follows h2 and h3 ancestors' },
+    { levels: [1, 3], valid: false, scenario: 'h1 skips directly to h3' },
+    { levels: [1, 2, 4], valid: false, scenario: 'h4 has no h3 ancestor' },
+    { levels: [1, 1, 2], valid: false, scenario: 'duplicate h1' },
+    { levels: [2, 3], valid: false, scenario: 'missing h1' },
+  ])('validates ordered visible headings: $scenario', ({ levels, valid }) => {
+    expect(hasValidWarehouseHeadingHierarchy(levels)).toBe(valid);
   });
 
   it('evaluates known evidence before AI and preserves the expected wide responsive failure', () => {

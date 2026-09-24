@@ -1,14 +1,15 @@
-import { useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { ContextStripItem } from '@/components/common';
 import type { WorkflowReportQuery } from '@/api/workflowApiTypes';
-import { uiCopy } from '@/lib/uiCopy';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { buildCsv, downloadCsv } from './reportCsv';
 import {
+  pricePageSizeOptions,
   priceSubViewTabs,
+  readPageSize,
   readPositiveInteger,
   reportTabs,
+  standardPageSizeOptions,
   validReportViews,
   type PriceSubView,
   type ReportExportConfig,
@@ -73,10 +74,11 @@ export const useReportsPageModel = ({
   const priceSubView: PriceSubView = visiblePriceSubViewTabs.some((tab) => tab.id === requestedPriceSubView)
     ? requestedPriceSubView
     : visiblePriceSubViewTabs[0]?.id ?? 'lines';
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [shiftName, setShiftName] = useState('');
-  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
+  const [dateFrom, setDateFrom] = useState(searchParams.get('dateFrom') ?? '');
+  const [dateTo, setDateTo] = useState(searchParams.get('dateTo') ?? '');
+  const [shiftName, setShiftName] = useState(searchParams.get('shift') ?? '');
+  const initialSort = searchParams.get('sort');
+  const [sortDirection, setSortDirectionState] = useState<'desc' | 'asc'>(initialSort === 'asc' ? 'asc' : 'desc');
   const reportPageSize = 20;
   const reportQuery = useMemo<WorkflowReportQuery>(() => ({
     dateFrom: dateFrom || undefined,
@@ -119,7 +121,70 @@ export const useReportsPageModel = ({
     reportPageSize,
     reportQuery,
     sortDirection,
+    searchParams,
   });
+
+  useEffect(() => {
+    let cancelled = false
+    const syncFromUrl = () => {
+      if (cancelled) return
+    const urlView = searchParams.get('view');
+    const nextView = visibleReportViews.includes(urlView as ReportView) ? urlView as ReportView : visibleReportViews[0] ?? 'demand';
+    const urlSubView = searchParams.get('subview');
+    const nextSubView = visiblePriceSubViewTabs.some((tab) => tab.id === urlSubView) ? urlSubView as PriceSubView : visiblePriceSubViewTabs[0]?.id ?? 'lines';
+    const nextPage = readPositiveInteger(searchParams.get('page'), 1);
+    const nextPageSize = readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions);
+    const nextPricePageSize = readPageSize(searchParams.get('pageSize'), 6, pricePageSizeOptions);
+    const nextSearch = searchParams.get('search') ?? '';
+
+    setRequestedView(nextView);
+    setRequestedPriceSubView(nextSubView);
+    setDateFrom(searchParams.get('dateFrom') ?? '');
+    setDateTo(searchParams.get('dateTo') ?? '');
+    setShiftName(searchParams.get('shift') ?? '');
+    setSortDirectionState(searchParams.get('sort') === 'asc' ? 'asc' : 'desc');
+
+    if (nextView === 'price') {
+      priceModel.hydratePriceSearch(nextSubView === 'lines' ? nextSearch : '');
+      priceModel.setPricePage(nextPage);
+      priceModel.setPricePageSize(nextPricePageSize);
+      priceModel.setPriceAggregatePageSize(nextPageSize);
+      priceModel.setSupplierPage(nextPage);
+      priceModel.setPeriodPage(nextPage);
+      priceModel.setDishGroupPage(nextPage);
+    } else if (nextView === 'demand') {
+      demandPurchaseModel.setDemandSearch(nextSearch);
+      demandPurchaseModel.setDemandPage(nextPage);
+      demandPurchaseModel.setDemandPageSize(nextPageSize);
+    } else if (nextView === 'purchase') {
+      demandPurchaseModel.setPurchaseSearch(nextSearch);
+      demandPurchaseModel.setPurchasePage(nextPage);
+      demandPurchaseModel.setPurchasePageSize(nextPageSize);
+    } else if (nextView === 'stock') {
+      stockMovementModel.setStockSearch(nextSearch);
+      stockMovementModel.setStockPage(nextPage);
+      stockMovementModel.setStockPageSize(nextPageSize);
+    } else if (nextView === 'movement') {
+      stockMovementModel.setMovementSearch(nextSearch);
+      stockMovementModel.setMovementCursors([]);
+    } else if (nextView === 'kitchen') {
+      kitchenUsageModel.setKitchenPage(nextPage);
+      kitchenUsageModel.setOperationalPageSize(nextPageSize);
+    } else if (nextView === 'usage') {
+      kitchenUsageModel.setUsagePage(nextPage);
+      kitchenUsageModel.setOperationalPageSize(nextPageSize);
+    } else if (nextView === 'audit') {
+      auditQualityModel.setAuditCursors([]);
+    } else if (nextView === 'data-quality') {
+      auditQualityModel.setDataQualitySearch(nextSearch);
+      auditQualityModel.setDataQualityPage(nextPage);
+    }
+    }
+    queueMicrotask(syncFromUrl)
+    return () => { cancelled = true }
+    // URL changes are the external source of truth; model setters are intentionally omitted because several are view-local callbacks.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, visiblePriceSubViewTabs, visibleReportViews]);
 
   const updateSearchState = (updates: Record<string, string | undefined>) => {
     setSearchParams((current) => {
@@ -170,12 +235,60 @@ export const useReportsPageModel = ({
     auditQualityModel.setDataQualityPage(1);
     resetCursorPages();
   };
-  const resetReportPagesAndUrl = () => {
+  const resetPagesAndUrl = (updates: Record<string, string | undefined> = {}) => {
     resetReportPages();
-    updateSearchState({ page: '1' });
+    updateSearchState({ page: '1', ...updates });
+  };
+  const resetReportPagesAndUrl = () => {
+    setDateFrom('');
+    setDateTo('');
+    setShiftName('');
+    setSortDirectionState('desc');
+    priceModel.setPriceSearch('');
+    demandPurchaseModel.setDemandSearch('');
+    demandPurchaseModel.setPurchaseSearch('');
+    stockMovementModel.setStockSearch('');
+    stockMovementModel.setMovementSearch('');
+    auditQualityModel.setDataQualitySearch('');
+    resetPagesAndUrl({ dateFrom: undefined, dateTo: undefined, shift: undefined, sort: undefined, search: undefined });
+  };
+  const changeDateFrom = (value: string) => {
+    if (value === dateFrom) return;
+    setDateFrom(value);
+    resetPagesAndUrl({ dateFrom: value || undefined });
+  };
+  const changeDateTo = (value: string) => {
+    if (value === dateTo) return;
+    setDateTo(value);
+    resetPagesAndUrl({ dateTo: value || undefined });
+  };
+  const changeShiftName = (value: string) => {
+    if (value === shiftName) return;
+    setShiftName(value);
+    resetPagesAndUrl({ shift: value || undefined });
+  };
+  const changeSortDirection = (value: 'desc' | 'asc') => {
+    if (value === sortDirection) return;
+    setSortDirectionState(value);
+    resetPagesAndUrl({ sort: value === 'desc' ? undefined : value });
+  };
+  const persistSearch = (value: string) => updateSearchState({ page: '1', search: value.trim() || undefined });
+  const changeDemandSearch = (value: string) => { demandPurchaseModel.setDemandSearch(value); demandPurchaseModel.setDemandPage(1); persistSearch(value); };
+  const changePurchaseSearch = (value: string) => { demandPurchaseModel.setPurchaseSearch(value); persistSearch(value); };
+  const changeStockSearch = (value: string) => { stockMovementModel.setStockSearch(value); persistSearch(value); };
+  const changeMovementSearch = (value: string) => { stockMovementModel.setMovementSearch(value); persistSearch(value); };
+  const changePriceSearch = (value: string) => { priceModel.setPriceSearch(value); persistSearch(value); };
+  const changeDataQualitySearch = (value: string) => { auditQualityModel.setDataQualitySearch(value); persistSearch(value); };
+  const reportSearchByView: Partial<Record<ReportView, string>> = {
+    price: priceModel.priceSearch,
+    demand: demandPurchaseModel.demandSearch,
+    purchase: demandPurchaseModel.purchaseSearch,
+    stock: stockMovementModel.stockSearch,
+    movement: stockMovementModel.movementSearch,
+    'data-quality': auditQualityModel.dataQualitySearch,
   };
   const reportViews = {
-    price: priceModel.activePriceView,
+    price: priceView,
     demand: demandPurchaseViews.demand,
     purchase: demandPurchaseViews.purchase,
     stock: stockMovementViews.stock,
@@ -193,6 +306,9 @@ export const useReportsPageModel = ({
     ...kitchenUsageExportConfigs,
     ...auditQualityExportConfigs,
   };
+  const canExportActiveReport =
+    activeReportView.phase === 'ready' &&
+    (exportConfig[activeView]?.rows.length ?? 0) > 0;
   const handleExportActiveReport = () => {
     const config = exportConfig[activeView];
     if (config.rows.length === 0) return;
@@ -200,18 +316,6 @@ export const useReportsPageModel = ({
     const timestamp = new Date().toISOString().slice(0, 10);
     downloadCsv(csv, `${config.filename}-${timestamp}.csv`);
   };
-  const reportContextItems: ContextStripItem[] = [
-    ...(canReadReceiptPriceVariance
-      ? [{ label: 'Cảnh báo giá trên trang', value: priceView.phase === 'ready' ? `${priceModel.warningItems.length}/${priceModel.priceVarianceRows.length}` : '—', tone: priceView.phase !== 'ready' ? 'neutral' as const : priceModel.warningItems.length ? 'danger' as const : 'success' as const }]
-      : []),
-    { label: 'Thiếu nguyên liệu', value: demandPurchaseViews.demand.phase === 'ready' ? demandPurchaseModel.shortageCount.toString() : '—', tone: demandPurchaseViews.demand.phase !== 'ready' ? 'neutral' : demandPurchaseModel.shortageCount ? 'danger' : 'success' },
-    { label: 'Dòng tồn kho', value: stockMovementViews.stock.phase === 'ready' ? stockMovementViews.stock.data.totalCount.toString() : '—', tone: 'neutral' },
-    ...(canReadAuditChanges
-      ? [{ label: uiCopy.reports.audit, value: auditQualityViews.audit.phase === 'ready' ? auditQualityModel.auditRows.length.toString() : '—', tone: 'neutral' as const }]
-      : []),
-    { label: uiCopy.reports.dataQuality, value: auditQualityViews['data-quality'].phase === 'ready' ? (auditQualityViews['data-quality'].data.totalIssues ?? 0).toString() : '—', tone: auditQualityViews['data-quality'].phase !== 'ready' ? 'neutral' : auditQualityModel.dataQualityRows.length ? 'warning' : 'success' },
-  ];
-
   return {
     ...priceModel,
     ...demandPurchaseModel,
@@ -220,10 +324,14 @@ export const useReportsPageModel = ({
     ...auditQualityModel,
     activeReportView,
     activeView,
+    canExportActiveReport,
     canReadAuditChanges,
     canReadPurchaseReports,
     canReadReceiptPriceVariance,
     canReadWarehouseReports,
+    changeDateFrom,
+    changeDateTo,
+    changeShiftName,
     dateFrom,
     dateTo,
     exportConfig,
@@ -233,9 +341,9 @@ export const useReportsPageModel = ({
     initialView,
     isViewPending,
     priceSubView,
-    reportContextItems,
     reportPageSize,
     reportQuery,
+    reportSearchByView,
     reportViews,
     requestedPriceSubView,
     requestedView,
@@ -243,15 +351,21 @@ export const useReportsPageModel = ({
     resetReportPages,
     resetReportPagesAndUrl,
     searchParams,
-    setDateFrom,
-    setDateTo,
+    setDateFrom: changeDateFrom,
+    setDataQualitySearch: changeDataQualitySearch,
+    setDemandSearch: changeDemandSearch,
+    setMovementSearch: changeMovementSearch,
+    setPriceSearch: changePriceSearch,
+    setPurchaseSearch: changePurchaseSearch,
+    setStockSearch: changeStockSearch,
+    setDateTo: changeDateTo,
     setNumberedPage,
     setNumberedPageSize,
     setRequestedPriceSubView,
     setRequestedView,
     setSearchParams,
-    setShiftName,
-    setSortDirection,
+    setShiftName: changeShiftName,
+    setSortDirection: changeSortDirection,
     shiftName,
     sortDirection,
     startViewTransition,

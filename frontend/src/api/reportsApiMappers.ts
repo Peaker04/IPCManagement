@@ -59,7 +59,7 @@ export const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
     bomScope: item.bomScope,
     sourceDocumentCode: item.materialRequestCode,
     serviceDate: item.requestDate?.split('T')[0],
-    material: item.ingredientName ?? item.ingredientId,
+    material: item.ingredientName ?? 'Chưa có tên nguyên liệu',
     required: item.totalRequiredQty,
     available: item.currentStockQty,
     reserved: 0,
@@ -86,15 +86,15 @@ export const mapPurchasePlanRow = (item: PurchasePlanReportDto): PurchasePlanRow
 });
 
 export const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVarianceRow => ({
-  id: `${item.receiptId}-${item.ingredientId}-${item.unitId}`,
-  name: item.ingredientName ?? item.ingredientId,
+  id: item.receiptLineId,
+  name: item.ingredientName ?? 'Chưa có tên nguyên liệu',
   unit: item.unitName ?? '',
   receiptCode: item.receiptCode,
   receiptDate: item.receiptDate,
   quantity: item.quantity,
   pricePrev: item.referencePrice,
   priceCurrent: item.unitPrice,
-  supplier: item.supplierName ?? item.supplierId,
+  supplier: item.supplierName ?? 'Chưa có tên nhà cung cấp',
   change: item.variancePercent,
   warning: item.isWarning,
 });
@@ -102,9 +102,9 @@ export const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVari
 export const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   id: `${item.warehouseId}-${item.ingredientId}`,
   warehouseId: item.warehouseId,
-  warehouse: item.warehouseName ?? item.warehouseId,
+  warehouse: item.warehouseName ?? 'Chưa có tên kho',
   ingredientId: item.ingredientId,
-  ingredient: item.ingredientName ?? item.ingredientId,
+  ingredient: item.ingredientName ?? 'Chưa có tên nguyên liệu',
   unitId: item.unitId,
   unit: item.unitName ?? '',
   currentQty: item.currentQty,
@@ -113,9 +113,9 @@ export const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow =
 
 export const mapStockLedgerReconciliation = (item: StockLedgerReconciliationDto): StockLedgerReconciliationRow => ({
   id: `${item.warehouseId}-${item.ingredientId}`,
-  warehouse: item.warehouseName ?? item.warehouseId,
-  ingredient: item.ingredientName ?? item.ingredientId,
-  unit: item.unitName ?? item.unitId,
+  warehouse: item.warehouseName ?? 'Chưa có tên kho',
+  ingredient: item.ingredientName ?? 'Chưa có tên nguyên liệu',
+  unit: item.unitName ?? 'Chưa có tên đơn vị',
   currentQty: item.currentQty,
   ledgerQty: item.ledgerQty,
   differenceQty: item.differenceQty,
@@ -133,10 +133,10 @@ export const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow =>
   sourceShiftName: item.sourceShiftName ?? undefined,
   sourcePriceTierAmount: item.sourcePriceTierAmount ?? undefined,
   warehouseId: item.warehouseId,
-  warehouse: item.warehouseName ?? item.warehouseId,
+  warehouse: item.warehouseName ?? 'Chưa có tên kho',
   materialRequestId: item.materialRequestId,
   ingredientId: item.ingredientId,
-  ingredient: item.ingredientName ?? item.ingredientId,
+  ingredient: item.ingredientName ?? 'Chưa có tên nguyên liệu',
   unitId: item.unitId,
   unit: item.unitName ?? '',
   requestedQty: item.requestedQty,
@@ -149,11 +149,11 @@ export const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow =>
 });
 
 export const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
-  id: `${item.issueId}-${item.ingredientId}-${item.unitId}`,
+  id: item.issueLineId,
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName ?? undefined,
-  ingredient: item.ingredientName ?? item.ingredientId,
+  ingredient: item.ingredientName ?? 'Chưa có tên nguyên liệu',
   unit: item.unitName ?? '',
   issuedQty: item.issuedQty,
   returnedQty: item.returnedQty,

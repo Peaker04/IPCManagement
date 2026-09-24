@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { InlineAlert, QueryErrorAlert, TableSkeleton, RefreshStatus } from '@/components/common';
+import { InlineAlert, QueryErrorAlert, RefreshStatus } from '@/components/common';
 import type { QueryView } from '@/lib/queryView';
 
 interface ReportQueryBoundaryProps {
@@ -7,7 +7,7 @@ interface ReportQueryBoundaryProps {
   children: ReactNode;
 }
 
-export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps) {
+function BlockingStatus({ view }: { view: Exclude<QueryView<unknown>, { phase: 'ready' }> }) {
   if (view.phase === 'forbidden') {
     return (
       <InlineAlert title="Không có quyền xem báo cáo" variant="danger">
@@ -17,11 +17,7 @@ export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps
   }
   if (view.phase === 'error') {
     return (
-      <QueryErrorAlert
-        title="Không tải được dữ liệu báo cáo"
-        isRetrying={view.isRetrying}
-        onRetry={view.retry}
-      >
+      <QueryErrorAlert title="Không tải được dữ liệu báo cáo" isRetrying={view.isRetrying} onRetry={view.retry}>
         {view.message} Dữ liệu báo cáo chưa được xác nhận.
       </QueryErrorAlert>
     );
@@ -29,22 +25,30 @@ export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps
   if (view.phase === 'uninitialized') {
     return <InlineAlert title="Chưa khởi tạo báo cáo" variant="info">{view.instruction}</InlineAlert>;
   }
-  if (view.phase === 'loading') {
-    return (
-      <TableSkeleton
-        columns={6}
-        rows={8}
-        ariaLabel="Đang tải dữ liệu báo cáo..."
-      />
-    );
-  }
+  return <InlineAlert title="Đang tải dữ liệu báo cáo" variant="info">Vui lòng chờ trong giây lát.</InlineAlert>;
+}
+
+export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps) {
+  const isBlocked = view.phase !== 'ready';
 
   return (
-    <div className="relative">
-      {view.isRefreshing && (
-        <RefreshStatus>Đang cập nhật...</RefreshStatus>
-      )}
-      {children}
+    <div className="relative grid">
+      {isBlocked ? (
+        <div className="relative z-10 col-start-1 row-start-1">
+          <BlockingStatus view={view} />
+        </div>
+      ) : view.isRefreshing ? (
+        <div className="pointer-events-none relative z-10 col-start-1 row-start-1">
+          <RefreshStatus>Đang cập nhật...</RefreshStatus>
+        </div>
+      ) : null}
+      <div
+        className={`col-start-1 row-start-1 ${isBlocked ? 'invisible' : ''}`}
+        inert={isBlocked || undefined}
+        aria-hidden={isBlocked || undefined}
+      >
+        {children}
+      </div>
     </div>
   );
 }

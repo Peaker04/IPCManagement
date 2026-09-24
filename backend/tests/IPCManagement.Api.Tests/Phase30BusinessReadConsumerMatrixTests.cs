@@ -311,6 +311,14 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
         });
         filtered.Should().ContainSingle().Which.SourceFamily.Should().Be("MATERIAL_RECONCILIATION");
 
+        var allFamilies = await new AuditReportService(context).GetAuditChangesAsync(new WorkflowReportQueryDto
+        {
+            BusinessArea = "Issue",
+            SourceFamily = "ALL",
+            Limit = 20
+        });
+        allFamilies.Should().HaveCount(3);
+
         issueRows.Select(row => row.SourceFamily).Should().BeEquivalentTo(
             ["DEFAULT", "MATERIAL_RECONCILIATION", "LEGACY_UNCLASSIFIED"]);
         issueRows.GroupBy(row => row.SourceFamily).Should().OnlyContain(group => group.Count() == 1);
@@ -326,6 +334,70 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
         csv.Should().Contain("\"LEGACY_UNCLASSIFIED\"");
         csv.Should().Contain(GuidHelper.ToGuidString(seed.MaterialRequestLineId));
         csv.Should().Contain(GuidHelper.ToGuidString(seed.ReconciliationBatchLineId));
+    }
+
+    [Fact]
+    public async Task Audit_source_family_filter_should_apply_before_source_limit_and_match_csv_scope()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var seed = await SeedCollidingIssuesAsync(context, fixture);
+        var timestamp = new DateTime(2026, 9, 15, 8, 0, 0, DateTimeKind.Utc);
+
+        for (var index = 0; index < 1005; index++)
+        {
+            var issueId = GuidHelper.NewId();
+            var isDefault = index % 2 == 0;
+            context.Inventoryissues.Add(new InventoryIssue
+            {
+                IssueId = issueId,
+                IssueCode = $"ISS-LIMIT-{index:D4}",
+                IssueDate = new DateOnly(2026, 9, 15),
+                ShiftName = "MORNING",
+                WarehouseId = fixture.WarehouseId,
+                MaterialRequestId = isDefault ? seed.MaterialRequest.RequestId : null,
+                ReconciliationBatchId = isDefault ? null : seed.ReconciliationBatchId,
+                IssuedBy = fixture.UserId,
+                CreatedAt = timestamp.AddSeconds(index),
+                Inventoryissuelines =
+                [
+                    new InventoryIssueLine
+                    {
+                        IssueLineId = GuidHelper.NewId(),
+                        IssueId = issueId,
+                        MaterialRequestLineId = isDefault ? seed.MaterialRequestLineId : null,
+                        ReconciliationBatchLineId = isDefault ? null : seed.ReconciliationBatchLineId,
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        RequestedQty = 7,
+                        IssuedQty = 7
+                    }
+                ]
+            });
+        }
+        await context.SaveChangesAsync();
+
+        var service = new AuditReportService(context);
+        var expectedIds = await context.Inventoryissues
+            .Where(issue => issue.MaterialRequestId != null && issue.ReconciliationBatchId == null)
+            .SelectMany(issue => issue.Inventoryissuelines)
+            .OrderByDescending(line => line.Issue.CreatedAt)
+            .Select(line => GuidHelper.ToGuidString(line.IssueLineId))
+            .ToListAsync();
+        var page = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
+        {
+            BusinessArea = "Issue", SourceFamily = "DEFAULT", Limit = 20
+        });
+        var csv = Encoding.UTF8.GetString((await service.ExportAuditChangesCsvAsync(new WorkflowReportQueryDto
+        {
+            BusinessArea = "Issue", SourceFamily = "DEFAULT"
+        })).Content);
+
+        page.Items.Should().HaveCount(20);
+        page.Items.Select(row => row.AuditId).Should().Equal(expectedIds.Take(20));
+        expectedIds.Should().HaveCountLessThan(1000);
+        expectedIds.Should().OnlyContain(id => csv.Contains(id, StringComparison.Ordinal));
     }
 
     [Theory]

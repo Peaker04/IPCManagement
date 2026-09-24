@@ -10,6 +10,7 @@ import {
   StatusBadge,
   TableViewport,
 } from '@/components/common';
+import { resolvePriceVarianceStatus } from '@/lib/status/statusRegistry';
 import { ExceptionLane } from '@/components/common/ExceptionLane';
 import { ROUTES } from '@/lib/routeConfig';
 import { formatCurrency, formatDateOnly, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
@@ -23,6 +24,12 @@ import {
   type PriceSubView,
   type ReportsPageModel,
 } from './useReportsPageModel';
+
+function PriceVarianceStatusBadge({ isWarning, change, className, size }: { isWarning: boolean; change: number; className?: string; size?: 'sm' | 'default' }) {
+  const status = resolvePriceVarianceStatus(isWarning, change);
+  if (!status) return null;
+  return <StatusBadge tone={status.tone} size={size} className={className}>{status.label}</StatusBadge>;
+}
 
 interface ReportsPricePanelProps {
   model: ReportsPageModel;
@@ -91,7 +98,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
           startViewTransition(() => {
             setRequestedPriceSubView(nextSubView);
             resetReportPages();
-            updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined });
+            updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined, search: nextSubView === 'lines' ? priceSearch.trim() || undefined : undefined });
           });
         }}>
           <SelectTrigger id="price-analysis-view" className="h-8 w-full max-w-xs text-xs" aria-label="Góc nhìn phân tích biến động giá">
@@ -113,7 +120,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
               : activePriceView.phase === 'error' || activePriceView.phase === 'forbidden'
                 ? 'Chưa thể tải hàng đợi cảnh báo giá.'
                 : 'Không có nguyên liệu vượt ngưỡng trong kỳ này.'}
-            className="h-[145px] overflow-y-auto"
+            className="max-h-[145px] overflow-y-auto"
             scrollLabel="Hàng đợi cảnh báo giá có thể cuộn"
           />
         )}
@@ -146,8 +153,8 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                   {priceVarianceRows.length === 0 ? (
                     <EmptyRow colSpan={6} isError={priceVarianceResult.isError} />
                   ) : (
-                    priceVarianceRows.map((item, index) => (
-                      <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                    priceVarianceRows.map((item) => (
+                      <tr key={item.id} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
                           <span className="ipc-report-material">
                             {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="var(--ipc-slate-600)" />}
@@ -166,13 +173,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                             <span className={item.warning ? 'font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'font-bold text-[var(--ipc-warning)]' : 'text-slate-600'}>
                               {item.change > 0 ? `▲ +${formatPercent(item.change)}` : '0%'}
                             </span>
-                            {item.warning ? (
-                              <StatusBadge variant="danger" size="sm">Vượt ngưỡng</StatusBadge>
-                            ) : item.change > 0 ? (
-                              <StatusBadge variant="warning" size="sm">Theo dõi</StatusBadge>
-                            ) : (
-                              <StatusBadge variant="success" size="sm">Ổn định</StatusBadge>
-                            )}
+                            <PriceVarianceStatusBadge isWarning={Boolean(item.warning)} change={item.change} size="sm" />
                             {item.warning && (
                               <button
                                 type="button"
@@ -251,18 +252,14 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                     <EmptyRow colSpan={6} isError={priceVarianceBySupplierResult.isError} />
                   ) : (
                     priceVarianceBySupplierRows.map((row) => (
-                      <tr key={`${row.ingredientId}-${row.supplierId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td><div className="font-medium text-slate-800">{row.ingredientName}</div><div className="text-xs text-slate-500">{row.supplierName}</div></td>
+                      <tr key={`${row.ingredientId}-${row.supplierId}-${row.unitId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                        <td><div className="font-medium text-slate-800">{row.ingredientName}</div><div className="text-xs text-slate-500">{row.supplierName} · ĐVT: {formatUnit(row.unitName ?? '') || 'Chưa xác định'}</div></td>
                         <td className="ipc-numeric-cell">{row.receiptCount}</td>
                         <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
                         <td className="ipc-numeric-cell"><div>{formatCurrency(row.minUnitPrice)}</div><div className="text-xs text-slate-500">đến {formatCurrency(row.maxUnitPrice)}</div></td>
                         <td className="ipc-numeric-cell">{formatCurrency(row.referencePrice)}</td>
                         <td className="text-right"><div className="tabular-nums">{formatPercent(row.variancePercent)}</div><div className="mt-1 flex justify-end">
-                          {row.isWarning ? (
-                            <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
-                          ) : (
-                            <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
-                          )}
+                          <PriceVarianceStatusBadge isWarning={Boolean(row.isWarning)} change={row.variancePercent} className="ipc-table-badge ipc-table-badge--status" />
                         </div></td>
                       </tr>
                     ))
@@ -304,8 +301,8 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                     <EmptyRow colSpan={6} isError={priceVarianceByPeriodResult.isError} />
                   ) : (
                     priceVarianceByPeriodRows.map((row) => (
-                      <tr key={`${row.ingredientId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
-                        <td>{row.ingredientName}</td>
+                      <tr key={`${row.ingredientId}-${row.unitId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                        <td><div>{row.ingredientName}</div><div className="text-xs text-slate-500">ĐVT: {formatUnit(row.unitName ?? '') || 'Chưa xác định'}</div></td>
                         <td>{row.periodLabel}</td>
                         <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
                         <td className="ipc-numeric-cell">{formatPercent(row.variancePercentVsReference)}</td>
@@ -313,11 +310,7 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                           {row.variancePercentVsPreviousPeriod == null ? '—' : formatPercent(row.variancePercentVsPreviousPeriod)}
                         </td>
                         <td className="ipc-badge-cell">
-                          {row.isWarning ? (
-                            <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
-                          ) : (
-                            <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
-                          )}
+                          <PriceVarianceStatusBadge isWarning={Boolean(row.isWarning)} change={row.variancePercentVsReference} className="ipc-table-badge ipc-table-badge--status" />
                         </td>
                       </tr>
                     ))

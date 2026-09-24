@@ -25,14 +25,17 @@ describe('ChefQueryBoundary', () => {
     renderBoundary([{ phase: 'uninitialized', instruction: 'Chọn ca sản xuất.' }])
 
     expect(screen.getByText('Chọn ca sản xuất.')).toBeInTheDocument()
-    expect(screen.queryByText('Kết quả bếp')).toBeNull()
+    expect(screen.getByText('Kết quả bếp').parentElement).toHaveClass('invisible')
   })
 
   it('blocks children while loading', () => {
     renderBoundary([{ phase: 'loading' }])
 
     expect(screen.getByText('Đang tải nguồn 1')).toBeInTheDocument()
-    expect(screen.queryByText('Kết quả bếp')).toBeNull()
+    const shell = screen.getByText('Kết quả bếp').parentElement
+    expect(shell).toHaveClass('invisible')
+    expect(shell).toHaveAttribute('inert')
+    expect(shell).toHaveAttribute('aria-hidden', 'true')
   })
 
   it('renders forbidden without retry', () => {
@@ -52,13 +55,21 @@ describe('ChefQueryBoundary', () => {
     expect(screen.queryByText('Đang tải nguồn 1')).toBeNull()
   })
 
+  it('never exposes fallback content when access becomes forbidden', () => {
+    renderBoundary([{ phase: 'forbidden', message: 'Không có quyền.' }], true)
+    const shell = screen.getByText('Kết quả bếp').parentElement
+    expect(shell).toHaveClass('invisible')
+    expect(shell).toHaveAttribute('inert')
+    expect(shell).toHaveAttribute('aria-hidden', 'true')
+  })
+
   it('keeps a non-forbidden error retryable', () => {
     const retry = vi.fn()
     renderBoundary([{ phase: 'error', message: 'Lỗi máy chủ.', retry, isRetrying: false }])
 
     fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }))
     expect(retry).toHaveBeenCalledOnce()
-    expect(screen.queryByText('Kết quả bếp')).toBeNull()
+    expect(screen.getByText('Kết quả bếp').parentElement).toHaveClass('invisible')
   })
 
   it('renders children for ready-empty', () => {
@@ -74,11 +85,12 @@ describe('ChefQueryBoundary', () => {
     expect(screen.getByText('Đang cập nhật nguồn 1')).toBeInTheDocument()
   })
 
-  it('shows partial evidence without hiding ready data', () => {
-    renderBoundary([ready({ truncation: { shown: 20 } })])
+  it('keeps decision-relevant ready notices in normal flow instead of the blocking overlay cell', () => {
+    renderBoundary([ready({ isRefreshing: true, truncation: { shown: 20 } })])
 
     expect(screen.getByText('Kết quả bếp')).toBeInTheDocument()
-    expect(screen.getByText(/20 dòng; kết quả này chưa đầy đủ/)).toBeInTheDocument()
+    expect(screen.getByText('Đang cập nhật nguồn 1').closest('.grid')).toBeNull()
+    expect(screen.getByText(/20 dòng; kết quả này chưa đầy đủ/).closest('.grid')).toBeNull()
   })
 
   it('preserves an explicitly labelled fallback on failure', () => {
@@ -98,7 +110,16 @@ describe('ChefQueryBoundary', () => {
     expect(screen.getByText('Kết quả bếp')).toBeInTheDocument()
   })
 
-  it('reserves geometry only during initial load without rendering empty fallback sections', () => {
+  it('retains the same shell node across initial load and ready', () => {
+    const loading: QueryView<unknown> = { phase: 'loading' }
+    const { rerender } = render(<ChefQueryBoundary stabilizeInitialLoad preserveFallback queries={[{ label: 'kế hoạch', view: loading }]}><div data-testid="chef-shell">Kết quả bếp</div></ChefQueryBoundary>)
+    const shell = screen.getByTestId('chef-shell')
+    rerender(<ChefQueryBoundary stabilizeInitialLoad preserveFallback queries={[{ label: 'kế hoạch', view: ready() }]}><div data-testid="chef-shell">Kết quả bếp</div></ChefQueryBoundary>)
+    expect(screen.getByTestId('chef-shell')).toBe(shell)
+    expect(shell.parentElement).not.toHaveClass('invisible')
+  })
+
+  it('uses the retained shell instead of a generic initial-load reservation', () => {
     const { rerender } = render(
       <ChefQueryBoundary stabilizeInitialLoad preserveFallback queries={[{ label: 'kế hoạch', view: { phase: 'loading' } }]}>
         <div>Kết quả bếp</div>
@@ -107,16 +128,16 @@ describe('ChefQueryBoundary', () => {
 
     const loading = screen.getByText('Đang tải kế hoạch').closest('[data-initial-load]')
     expect(loading).toHaveAttribute('data-initial-load', 'true')
-    expect(loading).toHaveClass('min-h-[32rem]')
-    expect(screen.getByText('Đang tải kế hoạch').closest('.absolute')).not.toBeNull()
-    expect(screen.queryByText('Kết quả bếp')).toBeNull()
+    expect(loading).not.toHaveClass('min-h-[32rem]')
+    expect(screen.getByText('Đang tải kế hoạch').closest('.grid')).not.toBeNull()
+    expect(screen.getByText('Kết quả bếp').parentElement).toHaveClass('invisible')
 
     rerender(
       <ChefQueryBoundary stabilizeInitialLoad preserveFallback queries={[{ label: 'kế hoạch', view: ready() }]}>
         <div>Kết quả bếp</div>
       </ChefQueryBoundary>,
     )
-    expect(screen.getByText('Kết quả bếp').parentElement).not.toHaveClass('min-h-[32rem]')
+    expect(screen.getByText('Kết quả bếp').parentElement).not.toHaveClass('invisible')
   })
 
   it('keeps the reservation until every initial dependency is ready', () => {
@@ -129,8 +150,8 @@ describe('ChefQueryBoundary', () => {
       </ChefQueryBoundary>,
     )
 
-    expect(screen.getByText('Đang tải phiếu xuất').closest('[data-initial-load]')).toHaveClass('min-h-[32rem]')
-    expect(screen.queryByText('Kết quả bếp')).toBeNull()
+    expect(screen.getByText('Đang tải phiếu xuất').closest('[data-initial-load]')).not.toHaveClass('min-h-[32rem]')
+    expect(screen.getByText('Kết quả bếp').parentElement).toHaveClass('invisible')
   })
 
   it('blocks a grouped ready result when one dependency fails', () => {
@@ -139,7 +160,7 @@ describe('ChefQueryBoundary', () => {
       { phase: 'error', message: 'Nguồn phụ lỗi.', retry: vi.fn(), isRetrying: false },
     ])
 
-    expect(screen.queryByText('Kết quả bếp')).toBeNull()
+    expect(screen.getByText('Kết quả bếp').parentElement).toHaveClass('invisible')
     expect(screen.getByText(/Nguồn phụ lỗi/)).toBeInTheDocument()
   })
 })

@@ -98,11 +98,11 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Chốt đơn cả ngày',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:389-400',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:415-426',
       ),
       source: coordinationSource(
         'lock-to-confirmed',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:143,389',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:145,415',
         'backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:89',
       ),
       disposition: 'Known Manager/Coordinator command; intercepted mutation evidence is fixture-only.',
@@ -140,7 +140,7 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Hoàn tất ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:402-413',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:441-452',
       ),
       source: coordinationSource(
         'signoff-to-completed',
@@ -160,11 +160,11 @@ const coordinationRows: PcProjectedRegistryRow[] = [
       expectedControl: coordinationControl(
         'button',
         'Mở khóa ca',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:415-426',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:454-465',
       ),
       source: coordinationSource(
         'unlock-to-draft',
-        'frontend/src/features/coordination/components/action-toolbar.tsx:145,415',
+        'frontend/src/features/coordination/components/action-toolbar.tsx:148,454',
         'backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs:246-264',
       ),
       disposition: 'Manager-only command.',
@@ -206,13 +206,13 @@ const coordinationRows: PcProjectedRegistryRow[] = [
         ? coordinationControl(
             'button',
             'Xuất báo cáo',
-            'frontend/src/features/coordination/components/action-toolbar.tsx:428-439',
+            'frontend/src/features/coordination/components/action-toolbar.tsx:467-478',
           )
         : null,
       source: coordinationSource(
         'export',
         available
-          ? 'frontend/src/features/coordination/components/action-toolbar.tsx:146,428'
+          ? 'frontend/src/features/coordination/components/action-toolbar.tsx:149,467'
           : `frontend/${UNKNOWN}: canExport is false for this scenario`,
         `backend/${UNKNOWN}: no entity-status precondition is canonical`,
       ),
@@ -247,14 +247,14 @@ const materialRows: PcProjectedRegistryRow[] = [
     : {
         role: operation === 'approval' || operation === 'purchasing' ? 'link' : 'button',
         name: name as string,
-        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129',
+        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-160',
         route: weeklyMenuRoute,
         tab: 'Nhu cầu',
       },
   source: [
     'frontend/tests/operationalStateActionRegistry.test.ts:315-356',
     'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129',
+    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-160',
     'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
   ],
   disposition: operation === 'none' ? 'Terminal state intentionally has no business action.' : 'Actor set resolved from route and ActionGuard evidence.',
@@ -282,13 +282,13 @@ const purchasingRows: PcProjectedRegistryRow[] = purchasingOperations.map(([scen
     name: label,
     source: scenarioId === 'receiving'
       ? 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:128-147'
-      : 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-500',
+      : 'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-510',
     route: '/purchasing',
   },
   source: [
     'frontend/tests/operationalStateActionRegistry.test.ts:358-404',
     'frontend/src/features/purchasing/purchasingModel.ts:173-244',
-    'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-500',
+    'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-510',
     'backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseWorkbenchPolicy.cs:1',
   ],
   disposition: ['submitted', 'receiving'].includes(scenarioId)
@@ -381,13 +381,13 @@ export const PC_PROJECTED_REGISTRY_ROWS: readonly PcProjectedRegistryRow[] = [
     expectedControl: {
       role: 'button',
       name: /Duyệt|Từ chối/,
-      source: 'frontend/src/features/approvals/pages/ApprovalPage.tsx:217-239',
+      source: 'frontend/src/features/approvals/pages/ApprovalPage.tsx:200-230',
       route: '/approvals',
     },
     source: [
       'frontend/tests/operationalStateActionRegistry.test.ts:422-458',
       'frontend/src/lib/actionEligibility.ts:20-47',
-      `frontend/src/features/approvals/pages/ApprovalPage.tsx:217-239 — ${UNKNOWN}: approve and reject are both live`,
+      `frontend/src/features/approvals/pages/ApprovalPage.tsx:200-230 — ${UNKNOWN}: approve and reject are both live`,
       'backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs:61-69',
     ],
     disposition: 'Operation, actor and permissions remain unresolved; admin is reachability baseline only.',
@@ -406,13 +406,13 @@ export const PC_PROJECTED_REGISTRY_ROWS: readonly PcProjectedRegistryRow[] = [
     expectedControl: {
       role: 'button',
       name: 'Tạo phiếu xuất kho',
-      source: 'frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50',
+      source: 'frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-32',
       route: '/warehouse',
     },
     source: [
       'frontend/tests/operationalStateActionRegistry.test.ts:460-489',
       'frontend/src/lib/actionEligibility.ts:49-69',
-      `frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50 — ${UNKNOWN}: operation remains page-local`,
+      `frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-32 — ${UNKNOWN}: operation remains page-local`,
       'backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs:1',
     ],
     disposition: 'Operation, actor, entity and permissions remain unresolved; no synthetic canonical operation.',

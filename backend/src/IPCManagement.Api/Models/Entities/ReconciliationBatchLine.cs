@@ -15,4 +15,5 @@ public sealed class ReconciliationBatchLine
     public Ingredient Ingredient { get; set; } = null!;
     public Unit CanonicalUnit { get; set; } = null!;
     public ICollection<ReconciliationBatchContributor> Contributors { get; set; } = [];
+    public ICollection<ReconciliationBatchDailyLine> DailyLines { get; set; } = [];
 }

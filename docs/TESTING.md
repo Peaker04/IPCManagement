@@ -45,6 +45,8 @@ npm run test:unit:watch
 npm run test:coverage
 ```
 
+CI loại các validator gắn với campaign/evidence lịch sử khỏi unit gate mặc định: `phase35GeometryDenominator`, `pcActionCompletenessDisposition`, `uiOwnershipInstrumentationContract` và hidden-state baseline trong `uiStatePurityContract`. Chúng đọc artifact/ledger hoặc opaque tuple của Phase 20/26/35, nên source hợp lệ ở campaign sau không được làm CI sản phẩm đỏ. Khi audit lại đúng campaign, chạy focused test trong workspace sở hữu artifact và regenerate/review ledger; không sửa hash, số dòng hay tuple thủ công chỉ để lấy PASS. Các behavior, accessibility, permission, query-boundary và source-inventory contract hiện hành vẫn chạy trong CI.
+
 Frontend Playwright từ `frontend/`:
 
 ```bash

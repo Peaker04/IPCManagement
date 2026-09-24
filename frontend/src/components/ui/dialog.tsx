@@ -18,6 +18,8 @@ interface DialogProps {
 interface DialogContextValue {
   titleId: string
   requestClose: (reason: DialogCloseReason) => void
+  depth: number
+  isTop: boolean
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null)
@@ -25,8 +27,6 @@ const inertSiblings = new Map<HTMLElement, { count: number; hadInert: boolean; v
 
 let activeDialogCount = 0
 let originalBodyOverflow: string | null = null
-let lockedMainScrollTop = 0
-let activeCleanupFn: (() => void) | null = null
 
 export function lockBodyScroll() {
   if (typeof document === "undefined") return
@@ -35,45 +35,6 @@ export function lockBodyScroll() {
     originalBodyOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
     document.body.classList.add("ipc-modal-open")
-
-    const mainContent = document.getElementById("ipc-main-content")
-    let onMainScroll: (() => void) | null = null
-    if (mainContent) {
-      lockedMainScrollTop = mainContent.scrollTop
-      onMainScroll = () => {
-        if (mainContent.scrollTop !== lockedMainScrollTop) {
-          mainContent.scrollTop = lockedMainScrollTop
-        }
-      }
-      mainContent.addEventListener("scroll", onMainScroll, { passive: false })
-    }
-
-    const onWheel = (event: WheelEvent) => {
-      const target = event.target as HTMLElement | null
-      const insideDialog = target?.closest('[role="dialog"]')
-      if (!insideDialog) {
-        event.preventDefault()
-      }
-    }
-
-    const onTouchMove = (event: TouchEvent) => {
-      const target = event.target as HTMLElement | null
-      const insideDialog = target?.closest('[role="dialog"]')
-      if (!insideDialog) {
-        event.preventDefault()
-      }
-    }
-
-    window.addEventListener("wheel", onWheel, { passive: false })
-    window.addEventListener("touchmove", onTouchMove, { passive: false })
-
-    activeCleanupFn = () => {
-      if (mainContent && onMainScroll) {
-        mainContent.removeEventListener("scroll", onMainScroll)
-      }
-      window.removeEventListener("wheel", onWheel)
-      window.removeEventListener("touchmove", onTouchMove)
-    }
   }
 }
 
@@ -84,11 +45,6 @@ export function unlockBodyScroll() {
     activeDialogCount = 0
     document.body.classList.remove("ipc-modal-open")
 
-    if (activeCleanupFn) {
-      activeCleanupFn()
-      activeCleanupFn = null
-    }
-
     if (originalBodyOverflow !== null) {
       document.body.style.overflow = originalBodyOverflow
       originalBodyOverflow = null
@@ -98,40 +54,120 @@ export function unlockBodyScroll() {
   }
 }
 
-function markSiblingsInert(portalRoot: HTMLElement) {
-  Array.from(document.body.children).forEach((element) => {
-    if (!(element instanceof HTMLElement) || element === portalRoot || element.dataset.ipcDialogPortal === "true") {
-      return
-    }
-
-    const current = inertSiblings.get(element)
-    if (current) {
-      current.count += 1
-      return
-    }
-
-    inertSiblings.set(element, {
-      count: 1,
-      hadInert: element.hasAttribute("inert"),
-      value: element.getAttribute("inert"),
-    })
-    element.setAttribute("inert", "")
-  })
+interface DialogEntry {
+  id: string
+  portalRoot: HTMLElement | null
 }
 
-function restoreSiblingsInert() {
-  inertSiblings.forEach((state, element) => {
-    state.count -= 1
-    if (state.count > 0) {
+let activeDialogs: DialogEntry[] = []
+const orphanedDialogIds = new Set<string>()
+let dialogPortalObserver: MutationObserver | null = null
+const dialogListeners = new Set<() => void>()
+
+function stopDialogPortalObserver() {
+  dialogPortalObserver?.disconnect()
+  dialogPortalObserver = null
+}
+
+function ensureDialogPortalObserver() {
+  if (typeof document === "undefined" || dialogPortalObserver) return
+  dialogPortalObserver = new MutationObserver(() => {
+    if (activeDialogs.some(({ portalRoot }) => portalRoot && !portalRoot.isConnected)) {
+      syncInertState()
+    }
+  })
+  dialogPortalObserver.observe(document.body, { childList: true })
+}
+
+function subscribeDialogStack(listener: () => void) {
+  dialogListeners.add(listener)
+  return () => {
+    dialogListeners.delete(listener)
+  }
+}
+
+function notifyDialogStack() {
+  dialogListeners.forEach((l) => l())
+}
+
+function registerDialogEntry(id: string, portalRoot: HTMLElement | null) {
+  const index = activeDialogs.findIndex((d) => d.id === id)
+  if (index >= 0) {
+    activeDialogs[index].portalRoot = portalRoot
+  } else {
+    activeDialogs.push({ id, portalRoot })
+  }
+  ensureDialogPortalObserver()
+  notifyDialogStack()
+  syncInertState()
+}
+
+function unregisterDialogEntry(id: string) {
+  activeDialogs = activeDialogs.filter((d) => d.id !== id)
+  if (activeDialogs.length === 0) stopDialogPortalObserver()
+  notifyDialogStack()
+  syncInertState()
+}
+
+function syncInertState() {
+  if (typeof document === "undefined") return
+
+  const connectedDialogs: DialogEntry[] = []
+  for (const entry of activeDialogs) {
+    if (entry.portalRoot?.isConnected) {
+      connectedDialogs.push(entry)
+    } else {
+      orphanedDialogIds.add(entry.id)
+      unlockBodyScroll()
+    }
+  }
+  const previousDialogCount = activeDialogs.length
+  activeDialogs = connectedDialogs
+  if (activeDialogs.length !== previousDialogCount) notifyDialogStack()
+  if (activeDialogs.length === 0) stopDialogPortalObserver()
+
+  const hasOpenDialogs = activeDialogs.length > 0
+  const topDialog = activeDialogs.length > 0 ? activeDialogs[activeDialogs.length - 1] : null
+
+  Array.from(document.body.children).forEach((element) => {
+    if (!(element instanceof HTMLElement)) return
+
+    const isDialogPortal = element.dataset.ipcDialogPortal === "true"
+
+    if (!isDialogPortal) {
+      if (hasOpenDialogs) {
+        if (!inertSiblings.has(element)) {
+          inertSiblings.set(element, {
+            count: 1,
+            hadInert: element.hasAttribute("inert"),
+            value: element.getAttribute("inert"),
+          })
+          element.setAttribute("inert", "")
+        }
+      } else {
+        const state = inertSiblings.get(element)
+        if (state) {
+          if (state.hadInert) {
+            element.setAttribute("inert", state.value ?? "")
+          } else {
+            element.removeAttribute("inert")
+          }
+          inertSiblings.delete(element)
+        }
+      }
       return
     }
 
-    if (state.hadInert) {
-      element.setAttribute("inert", state.value ?? "")
-    } else {
+    // For dialog portals:
+    // Only the top-most dialog portal is interactive.
+    // Underlying dialog portals (depth < top) MUST be marked inert!
+    if (topDialog && topDialog.portalRoot && element === topDialog.portalRoot) {
       element.removeAttribute("inert")
+      element.removeAttribute("data-ipc-dialog-under")
+    } else {
+      element.setAttribute("inert", "")
+      element.setAttribute("data-ipc-dialog-under", "true")
     }
-    inertSiblings.delete(element)
   })
 }
 
@@ -141,6 +177,12 @@ function getFocusableElements(dialog: HTMLElement) {
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ),
   ).filter((element) => !element.hasAttribute("aria-hidden"))
+}
+
+function closeOpenSelectPopups() {
+  document.querySelectorAll<HTMLElement>('[role="combobox"][aria-expanded="true"]').forEach((trigger) => {
+    trigger.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }))
+  })
 }
 
 export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogProps) {
@@ -161,28 +203,40 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
     onOpenChangeRef.current(false, reason)
   }, [])
 
+  const stackDepth = React.useSyncExternalStore(
+    subscribeDialogStack,
+    () => {
+      const idx = activeDialogs.findIndex((d) => d.id === portalId)
+      return idx >= 0 ? idx + 1 : 1
+    },
+    () => 1,
+  )
+
+  const isTopDialog = React.useSyncExternalStore(
+    subscribeDialogStack,
+    () => {
+      if (activeDialogs.length === 0) return true
+      return activeDialogs[activeDialogs.length - 1].id === portalId
+    },
+    () => true,
+  )
+
   React.useEffect(() => {
     if (!open) {
       return undefined
     }
 
-    lockBodyScroll()
-    return () => {
-      unlockBodyScroll()
-    }
-  }, [open])
-
-  React.useEffect(() => {
     const portalRoot = document.getElementById(portalId)
-    if (!open || !portalRoot) {
-      return undefined
-    }
-
+    closeOpenSelectPopups()
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    markSiblingsInert(portalRoot)
+    registerDialogEntry(portalId, portalRoot)
+    lockBodyScroll()
 
     return () => {
-      restoreSiblingsInert()
+      unregisterDialogEntry(portalId)
+      if (!orphanedDialogIds.delete(portalId)) {
+        unlockBodyScroll()
+      }
       openerRef.current?.focus()
       openerRef.current = null
     }
@@ -204,6 +258,10 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (!isTopDialog) {
+          // Scoped escape: only the top-most dialog handles Escape
+          return
+        }
         event.preventDefault()
         requestClose("escape")
       }
@@ -211,27 +269,35 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [open, portalId, requestClose])
+  }, [open, portalId, isTopDialog, requestClose])
 
   if (!open || typeof document === "undefined") {
     return null
   }
 
+  const overlayZ = 1000 + (stackDepth - 1) * 20
+  const contentZ = 1001 + (stackDepth - 1) * 20
+
   return createPortal(
     <div id={portalId} data-ipc-dialog-portal="true">
-      <DialogContext.Provider value={{ titleId, requestClose }}>
+      <DialogContext.Provider value={{ titleId, requestClose, depth: stackDepth, isTop: isTopDialog }}>
         <div
           aria-hidden="true"
-          className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px] overscroll-contain"
-          style={{ overscrollBehavior: 'contain' }}
-          onClick={() => requestClose("backdrop")}
+          className={cn(
+            "fixed inset-0 overscroll-contain transition-opacity duration-150",
+            stackDepth > 1 ? "bg-slate-950/60" : "bg-slate-900/50",
+          )}
+          style={{ zIndex: overlayZ, overscrollBehavior: 'contain' }}
+          onClick={() => {
+            if (isTopDialog) requestClose("backdrop")
+          }}
         />
         <div
           data-ipc-dialog-outside="true"
-          className="fixed inset-0 z-[1001] flex items-start justify-center overflow-y-auto p-4 sm:items-center overscroll-contain"
-          style={{ overscrollBehavior: 'contain' }}
+          className="fixed inset-0 flex items-start justify-center overflow-hidden p-4 sm:items-center overscroll-contain"
+          style={{ zIndex: contentZ, overscrollBehavior: 'contain' }}
           onClick={(event) => {
-            if (event.target === event.currentTarget) requestClose("backdrop")
+            if (event.target === event.currentTarget && isTopDialog) requestClose("backdrop")
           }}
         >
           {children}
@@ -251,6 +317,7 @@ const dialogSizeClasses: Record<DialogSize, string> = {
 
 interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: DialogSize
+  scrollMode?: "content" | "body"
 }
 
 export function DialogContent({
@@ -259,13 +326,15 @@ export function DialogContent({
   onClick,
   role = "dialog",
   size = "md",
+  scrollMode = "content",
   ...props
 }: DialogContentProps) {
   const context = React.useContext(DialogContext)
+  const isNested = (context?.depth ?? 1) > 1
   const ariaModal = role === "dialog" && props["aria-modal"] === undefined
     ? true
     : props["aria-modal"]
-  const labelledBy = props["aria-labelledby"] ?? context?.titleId
+  const labelledBy = props["aria-label"] ? undefined : props["aria-labelledby"] ?? context?.titleId
 
   const handleClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
     event.stopPropagation()
@@ -301,8 +370,16 @@ export function DialogContent({
       aria-modal={ariaModal}
       aria-labelledby={labelledBy}
       data-size={size}
+      data-depth={context?.depth ?? 1}
+      data-scroll-mode={scrollMode}
       className={cn(
-        "max-h-[85vh] w-full overflow-y-auto gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-xl outline-none sm:p-6",
+        "flex max-h-[85vh] w-full flex-col gap-4 rounded-md bg-white p-4 outline-none sm:p-6",
+        scrollMode === "body"
+          ? "h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] overflow-hidden"
+          : "overflow-y-auto",
+        isNested
+          ? "border border-slate-300 shadow-2xl ring-1 ring-slate-900/10"
+          : "border border-slate-200 shadow-xl",
         dialogSizeClasses[size],
         className,
       )}
@@ -314,6 +391,16 @@ export function DialogContent({
   )
 }
 
+export function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      data-slot="dialog-body"
+      className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]", className)}
+      {...props}
+    />
+  )
+}
+
 export function DialogHeader({
   className,
   ...props
@@ -321,7 +408,7 @@ export function DialogHeader({
   return (
     <div
       className={cn(
-        "sticky top-0 z-10 flex flex-col space-y-1.5 bg-inherit text-center sm:text-left",
+        "sticky top-0 z-10 flex shrink-0 flex-col space-y-1.5 bg-inherit text-center sm:text-left",
         className,
       )}
       {...props}
@@ -336,7 +423,7 @@ export function DialogFooter({
   return (
     <div
       className={cn(
-        "sticky bottom-0 z-10 flex flex-col-reverse flex-wrap gap-2 bg-inherit sm:flex-row sm:justify-end",
+        "sticky bottom-0 z-10 flex shrink-0 flex-col-reverse flex-wrap gap-2 bg-inherit sm:flex-row sm:justify-end",
         className,
       )}
       {...props}

@@ -53,7 +53,23 @@ export type WarehouseCapture = {
   ariaSnapshot: string;
   ariaSnapshotOptions: { mode: 'ai'; boxes: true };
   geometry: Record<string, WarehouseRegionProbe>;
-  document: { clientWidth: number; scrollWidth: number; h1Count: number; headingLevels: number[]; primaryActionCount: number };
+  document: {
+    clientWidth: number;
+    scrollWidth: number;
+    h1Count: number;
+    headingLevels: number[];
+    headingNames?: string[];
+    headingSelectors?: string[];
+    headingRecords?: Array<{
+      domOrder: number;
+      level: number;
+      name: string;
+      selector: string;
+      visible: boolean;
+      owner: 'shell-header' | 'main' | 'other-shell' | 'overlay' | 'hidden-keepalive' | 'hidden-other';
+    }>;
+    primaryActionCount: number;
+  };
   domOrder: string[];
   focusOrder: string[];
   activeElement: string;

@@ -1,4 +1,5 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react'
+import { useEffect, useRef } from 'react'
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -108,7 +109,15 @@ describe('Weekly Menu Import setup feedback', () => {
     expect(screen.getByLabelText('Khách hàng')).toHaveAttribute('aria-invalid', 'true')
     expect(screen.getByLabelText('Khách hàng')).toHaveAccessibleDescription()
     expect(document.getElementById('weekly-menu-import-file')).toHaveAttribute('aria-invalid', 'true')
-    expect(document.getElementById('weekly-menu-import-file')).toHaveAccessibleDescription()
+    expect(document.getElementById('weekly-menu-import-file')).toHaveAttribute(
+      'aria-describedby',
+      'weekly-menu-import-file-error weekly-menu-import-file-meta',
+    )
+    expect(document.getElementById('weekly-menu-import-file')).toHaveAccessibleDescription(
+      /Vui lòng chọn khách hàng và file Excel trước khi kiểm tra\./,
+    )
+    expect(screen.getAllByRole('alert')).toHaveLength(2)
+    expect(screen.getByText('File Excel').closest('label')).toHaveAttribute('for', 'weekly-menu-import-file')
   })
 
   it('keeps invalid-week validation beside the week field', async () => {
@@ -157,6 +166,62 @@ describe('Weekly Menu Import setup feedback', () => {
     expect(result.current.state.feedback).toBeNull()
   })
 
+  it('keeps quick-customer submit enabled and diagnoses the first missing field', async () => {
+    function Harness() {
+      const workflow = useWeeklyMenuImport(makeOptions())
+      const initialized = useRef(false)
+      useEffect(() => {
+        if (initialized.current) return
+        initialized.current = true
+        workflow.actions.open()
+        workflow.actions.toggleQuickCustomer()
+      }, [workflow.actions])
+      return <WeeklyMenuImportSetup workflow={workflow} />
+    }
+
+    render(<Harness />)
+    const createButton = await screen.findByRole('button', { name: 'Tạo và chọn' })
+    expect(createButton).toBeEnabled()
+    fireEvent.click(createButton)
+
+    const code = screen.getByRole('textbox', { name: 'Mã khách hàng' })
+    await waitFor(() => expect(code).toHaveFocus())
+    expect(code).toHaveAttribute('aria-invalid', 'true')
+    expect(code).toHaveAccessibleDescription('Mã khách hàng là bắt buộc.')
+  })
+
+  it('gives quick-customer inputs programmatic names from their visible labels', () => {
+    const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
+    act(() => result.current.actions.open())
+    act(() => result.current.actions.toggleQuickCustomer())
+
+    render(<WeeklyMenuImportSetup workflow={result.current} />)
+
+    expect(screen.getByRole('textbox', { name: 'Mã khách hàng' })).toHaveAttribute('id', 'weekly-menu-import-quick-customer-code')
+    expect(screen.getByRole('textbox', { name: 'Mã khách hàng' })).toBeRequired()
+    expect(screen.getByText('Mã khách hàng').closest('label')).toHaveAttribute('for', 'weekly-menu-import-quick-customer-code')
+    expect(screen.getByText('Mã khách hàng').closest('label')).toHaveTextContent('*')
+    expect(screen.getByRole('textbox', { name: 'Tên khách hàng' })).toHaveAttribute('id', 'weekly-menu-import-quick-customer-name')
+    expect(screen.getByRole('textbox', { name: 'Tên khách hàng' })).toBeRequired()
+    expect(screen.getByText('Tên khách hàng', { selector: 'span' }).closest('label')).toHaveAttribute('for', 'weekly-menu-import-quick-customer-name')
+    expect(screen.getByText('Tên khách hàng', { selector: 'span' }).closest('label')).toHaveTextContent('*')
+  })
+
+  it('gives the modal workflow one primary vertical scroll owner', () => {
+    const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
+    act(() => result.current.actions.open())
+    render(<WeeklyMenuImportDialog workflow={result.current} />)
+
+    const dialog = screen.getByRole('dialog', { name: 'Nhập thực đơn từ Excel' })
+    const body = dialog.querySelector<HTMLElement>('[data-slot="dialog-body"]')
+    expect(dialog).toHaveAttribute('data-scroll-mode', 'body')
+    expect(dialog).toHaveClass('overflow-hidden')
+    expect(body).toHaveClass('overflow-y-auto', 'overscroll-contain')
+    expect(body).toContainElement(screen.getAllByText('Lịch sử import thực đơn tuần')[0])
+    expect(body).not.toContainElement(screen.getAllByRole('button', { name: /^Đóng$/ }).at(-1) ?? null)
+    expect(dialog.querySelectorAll('.overflow-y-auto')).toHaveLength(1)
+  })
+
   it('offers a retry action when the customer query fails', () => {
     const { result } = renderHook(() => useWeeklyMenuImport(makeOptions({ isCustomerError: true })))
     act(() => result.current.actions.open())
@@ -182,7 +247,18 @@ describe('Weekly Menu Import setup feedback', () => {
     statusLabels.forEach((label) => expect(label.closest('.ipc-status-badge')).toBeInTheDocument())
   })
 
-  it('uses the simple confirmation contract for rollback', () => {
+  it('composes import file parsing details into six decision columns', () => {
+    const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
+    act(() => result.current.actions.open())
+    render(<WeeklyMenuImportDialog workflow={result.current} />)
+
+    const jobsRegion = screen.getByRole('region', { name: 'Danh sách file thực đơn chờ kiểm tra' })
+    expect(within(jobsRegion).getAllByRole('columnheader')).toHaveLength(6)
+    expect(within(jobsRegion).getByRole('columnheader', { name: 'Tuần / định mức' })).toBeInTheDocument()
+    expect(within(jobsRegion).getByRole('columnheader', { name: 'Kết quả đọc' })).toBeInTheDocument()
+  })
+
+  it('keeps rollback confirmation inside the retained import page surface', () => {
     const { result } = renderHook(() => useWeeklyMenuImport(makeOptions()))
     act(() => {
       result.current.actions.open()
@@ -190,9 +266,11 @@ describe('Weekly Menu Import setup feedback', () => {
       result.current.actions.requestRollback('menu-version-1', 'ANV · tuần 27/07/2026')
     })
 
-    render(<WeeklyMenuImportDialog workflow={result.current} />)
+    render(<WeeklyMenuImportDialog workflow={result.current} surface="page" />)
 
-    expect(screen.getByRole('dialog', { name: 'Xác nhận hủy phiên import' })).toHaveTextContent('ANV · tuần 27/07/2026')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Nhập thực đơn từ Excel' })).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('ANV · tuần 27/07/2026')
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hủy' }))
     expect(mocks.rollbackImport).toHaveBeenCalledWith('menu-version-1')
     expect(result.current.historyPage).toBe(3)

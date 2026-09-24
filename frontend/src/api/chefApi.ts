@@ -2,7 +2,6 @@ import { apiSlice } from '@/api/apiSlice';
 import type {
   ProductionPlan,
   DailyProductionPlan,
-  SendDailyProductionPlanRequest,
   ProductionPlanDto,
   DailyProductionPlanDto,
   WorkflowReportQuery,
@@ -78,19 +77,6 @@ export const chefApi = apiSlice.injectEndpoints({
       }),
       transformResponse: normalizeDailyProductionPlan,
       providesTags: [workflowCacheTags.productionPlans],
-    }),
-    sendDailyProductionPlanToKitchen: builder.mutation<DailyProductionPlan, SendDailyProductionPlanRequest>({
-      query: (body) => ({
-        url: '/production-plans/daily/send-to-kitchen',
-        method: 'POST',
-        body,
-      }),
-      transformResponse: normalizeDailyProductionPlan,
-      invalidatesTags: [
-        workflowCacheTags.productionPlans,
-        workflowCacheTags.documents,
-        workflowCacheTags.kitchenIssues,
-      ],
     }),
     openServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, ScopedOpenServiceRunRequest>({
       query: (body) => ({ url: '/service-runs', method: 'POST', body }),
@@ -173,7 +159,6 @@ export const chefApi = apiSlice.injectEndpoints({
 
 export const {
   useGetDailyProductionPlanQuery,
-  useSendDailyProductionPlanToKitchenMutation,
   useOpenServiceRunMutation,
   useGetServiceRunByPlanQuery,
   useGetServiceRunByScopeQuery,

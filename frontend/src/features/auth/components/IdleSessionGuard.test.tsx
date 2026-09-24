@@ -17,7 +17,7 @@ describe('IdleSessionGuard', () => {
     render(<IdleSessionGuard onLogout={onLogout} />);
 
     act(() => vi.advanceTimersByTime(IDLE_TIMEOUT_MS));
-    expect(screen.getByRole('dialog', { name: 'Phiên đăng nhập sắp hết hạn' })).toHaveTextContent(
+    expect(screen.getByRole('dialog', { name: 'Phiên sắp hết hạn do không hoạt động' })).toHaveTextContent(
       `Bạn đã không thao tác trong ${IDLE_TIMEOUT_MINUTES} phút. Phiên sẽ kết thúc sau ${IDLE_WARNING_MINUTES} phút`,
     );
 

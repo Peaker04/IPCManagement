@@ -140,10 +140,10 @@ const unresolvedProjectedRows = PC_PROJECTED_REGISTRY_ROWS.filter((row) => (
 const sorted = (items: readonly string[]) => [...items].sort((left, right) => left.localeCompare(right))
 const hasText = (value: unknown): value is string => typeof value === 'string' && value.trim().length > 0
 const historicalControlSource = new Map<string, string>([
-  ['frontend/src/features/coordination/components/action-toolbar.tsx:389-400', 'frontend/src/features/coordination/components/action-toolbar.tsx:378-388'],
-  ['frontend/src/features/coordination/components/action-toolbar.tsx:402-413', 'frontend/src/features/coordination/components/action-toolbar.tsx:391-401'],
-  ['frontend/src/features/coordination/components/action-toolbar.tsx:415-426', 'frontend/src/features/coordination/components/action-toolbar.tsx:404-414'],
-  ['frontend/src/features/coordination/components/action-toolbar.tsx:428-439', 'frontend/src/features/coordination/components/action-toolbar.tsx:417-427'],
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:415-426', 'frontend/src/features/coordination/components/action-toolbar.tsx:378-388'],
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:441-452', 'frontend/src/features/coordination/components/action-toolbar.tsx:430-440'],
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:454-465', 'frontend/src/features/coordination/components/action-toolbar.tsx:443-453'],
+  ['frontend/src/features/coordination/components/action-toolbar.tsx:467-478', 'frontend/src/features/coordination/components/action-toolbar.tsx:456-466'],
   ['frontend/src/features/coordination/components/order-table.tsx:356', 'frontend/src/features/coordination/components/order-table.tsx:327'],
   ['frontend/src/features/coordination/components/order-table.tsx:386', 'frontend/src/features/coordination/components/order-table.tsx:355'],
   ['frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-129', 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:37-128'],

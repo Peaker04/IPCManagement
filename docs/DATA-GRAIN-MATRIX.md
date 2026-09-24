@@ -40,6 +40,8 @@ Tài liệu này là contract chung cho backend, frontend, export và E2E khi hi
 | Bếp · Checklist nhận | Một ngày + ca | Nhóm trình bày ingredient + unit; action theo inventory issue line | Hiển thị số phiếu/dòng nguồn và dialog xác nhận đúng phiếu. |
 | Bếp · Trả/dư/thiếu | Một ngày + ca + chứng từ | Return/supplemental source-line | Giữ issue ID, ingredient ID và unit ID. |
 | Báo cáo · Nhu cầu | Khoảng ngày, dòng theo ngày | Grain nhu cầu vận hành chuẩn | Có cột Ngày. |
+| Báo cáo · Biến động giá theo nhà cung cấp | Khoảng ngày nhập | Ingredient + supplier + unit | Đơn vị hiển thị cùng metadata nguyên liệu/nhà cung cấp, có trong CSV trang hiện tại và `unitId` nằm trong React row key. |
+| Báo cáo · Biến động giá theo tháng | Khoảng ngày nhập, tổng theo tháng dương lịch | Ingredient + unit + calendar month | Đơn vị hiển thị cùng metadata nguyên liệu, có trong CSV trang hiện tại và `unitId` nằm trong React row key. |
 | Báo cáo · Kế hoạch mua | Người dùng chọn Ngày hoặc Tuần | Grain tương ứng lựa chọn + ingredient + unit | Cột Kỳ và control “Theo ngày / Theo tuần”. |
 | Báo cáo · Tồn hiện tại | Hiện tại | Warehouse + ingredient snapshot | Không có phép cộng xuyên ngày. |
 | Báo cáo · Biến động kho | Khoảng ngày / audit | Movement ID | Không deduplicate dòng lặp cùng nguyên liệu. |
@@ -50,6 +52,25 @@ Tài liệu này là contract chung cho backend, frontend, export và E2E khi hi
 ## Kho vận hành và grain kỹ thuật
 
 UI thông thường chỉ hiển thị một kho vận hành dưới dạng context thụ động. Việc bỏ selector không xóa `warehouseId`: ID vẫn là một phần bắt buộc của FK, current-stock/lot/snapshot grain, stock movement, chứng từ nguồn, purchasing fingerprint, authorization, audit, report, cache, deep-link, export và reconciliation. Zero hoặc multiple operational rows phải chặn thao tác; không được co danh sách bằng index, tên, mã, sort hoặc activity.
+
+## Demand aggregate: phân bổ và bàn giao vật lý
+
+`GET /api/workflow-reports/ingredient-demand/aggregate/page` giữ grain ngày–khách hàng–tier–nguyên liệu–đơn vị.
+`CurrentStockQty` là lượng đã phân bổ khi tạo nhu cầu, không phải snapshot tồn kho hiện tại; `SuggestedPurchaseQty` là đề xuất tại thời điểm tính, không tự cấp quyền mua tại thời điểm xem.
+
+Các trường additive `IssuedQty`, `ReceivedByKitchenQty`, `RemainingToIssueQty` tách lịch sử bàn giao DEFAULT khỏi phân bổ: tổng dòng issue có exact `MaterialRequestLineId` và đúng header request, không có lineage reconciliation; lượng Bếp nhận chỉ tính issue đã có `ReceivedAt`; phần còn xuất là tổng phần dương `required - issued` của từng source-line. Không dùng trạng thái request để suy ra đã xuất. Đây là lịch sử xuất/nhận **gross**, không phải tồn ròng: confirmed return là chứng từ bù riêng, không mở lại hạn mức xuất của nhu cầu gốc (owner `InventoryIssueLineResolver`). MRX vẫn dùng tổng issue trừ confirmed returns theo contract riêng.
+
+Các trường compatibility `FulfilledQty`, `PendingKitchenReceiptQty`, `UnissuedQty`, `OutstandingQty`, `FulfillmentStatus` và page `ShortageCount` còn giữ công thức lịch sử; trước `EXPORTED` chúng có thể dựa trên phân bổ/đề xuất mua. Consumer không được gọi chúng là tồn vật lý hoặc quyền thu mua. Việc chuyển consumer phải tách đếm chưa xuất, chờ Bếp nhận và readiness mua; không đổi nghĩa `ShortageCount` âm thầm. Chưa xuất tự nó không chứng minh cần mua; action mua phải qua owner eligibility/readiness và source-line chính thức.
+
+### Consumer bàn giao DEFAULT
+
+Frontend aggregate mang discriminator `projection: physical-handoff`, explicit `issuedQty`, `receivedByKitchenQty`, `remainingToIssueQty` và `historicalAllocatedQty`. Generic `DemandLine` ngoài aggregate giữ nguyên nghĩa phân bổ của owner; không đổi mọi `available` thành tồn/đã xuất. Alias aggregate `available` là gross đã xuất, `unissuedQty` là phần còn xuất, `pendingKitchenReceiptQty` là gross xuất chưa ký nhận. Các bảng vận hành và export dùng explicit quantities, nhãn **Đã xuất / Chưa xuất / Bếp đã nhận / Chờ Bếp nhận**, không gọi là tồn khả dụng hay thiếu/mua.
+
+Page `RemainingToIssueCount` và `PendingKitchenReceiptCount` đếm **nhóm grain aggregate trên toàn bộ cùng bộ lọc, trước phân trang**. Hai tập có thể giao nhau (xuất một phần đang chờ ký), không trừ cả hai khỏi total để suy số hoàn tất. Summary ngày hiển thị số nhóm đã xuất đủ bằng `total - remainingToIssueCount`, không gọi là số Bếp đã nhận. `ShortageCount` compatibility không đổi và readiness tuần chỉ dùng nó làm tín hiệu kết quả tính/lifecycle cần rà soát, không khẳng định xuất/nhận hoàn tất hoặc quyền mua.
+
+Weekly summary dùng counters server, không kế thừa count trang/local; kết quả lọc rỗng vẫn là bảng ngày rỗng, không trở thành BOM toàn tuần. Fallback không có physical projection chỉ là phân tích BOM dự kiến, không trình bày allocation như vật tư đã xuất. Kho, Báo cáo và Admin dùng counter còn xuất, báo cáo mua vẫn có owner riêng.
+
+Aggregate không có exact source request-line command identity hoặc eligibility mua hiện tại, nên không tạo link mua/Bếp từ thiếu/chưa xuất/tone. Giữ customer/ngày/tier/nguyên liệu/đơn vị và nguồn trên dòng để đọc; hướng xử lý là handoff bằng chữ cho Kho/Bếp/Điều phối. Permission không tham gia RTK response mapper. Workbench/generation và issue candidates hiện hữu vẫn là owner chọn chứng từ/kiểm quyền/thực hiện command; không gửi ID aggregate để mutation.
 
 ## Quy tắc chống double-count
 

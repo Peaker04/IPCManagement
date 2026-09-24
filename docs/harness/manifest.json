@@ -27,6 +27,11 @@
       "status": "canonical-runbook"
     },
     {
+      "id": "artifact-retention",
+      "path": "docs/harness/ARTIFACTS.md",
+      "status": "canonical-runbook"
+    },
+    {
       "id": "mrx-contract",
       "path": "docs/domain/material-reconciliation.md",
       "status": "canonical-domain-contract"

@@ -13,6 +13,13 @@ describe('workflow cache contract', () => {
   it('keeps the canonical tag registry stable', () => {
     expect(workflowCacheTags).toEqual({
       documents: tag('Documents'),
+      customerContracts: tag('CustomerContracts'),
+      weeklyMenus: tag('WeeklyMenus'),
+      menuSchedules: tag('MenuSchedules'),
+      mealQuantityPlans: tag('MealQuantityPlans'),
+      coordinationOrders: tag('CoordinationOrders'),
+      menuAmendments: tag('MenuAmendments'),
+      weeklyMenuImportHistory: tag('WeeklyMenuImportHistory'),
       ingredientDemand: tag('IngredientDemand'),
       materialRequestCandidates: tag('MaterialRequestCandidates'),
       purchasePlan: tag('PurchasePlan'),
@@ -56,6 +63,13 @@ describe('workflow cache contract', () => {
     ]);
     expect(workflowAuditSourceTags).toEqual([
       workflowCacheTags.documents,
+      workflowCacheTags.customerContracts,
+      workflowCacheTags.weeklyMenus,
+      workflowCacheTags.menuSchedules,
+      workflowCacheTags.mealQuantityPlans,
+      workflowCacheTags.coordinationOrders,
+      workflowCacheTags.menuAmendments,
+      workflowCacheTags.weeklyMenuImportHistory,
       workflowCacheTags.ingredientDemand,
       workflowCacheTags.materialRequestCandidates,
       workflowCacheTags.purchasePlan,

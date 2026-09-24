@@ -22,13 +22,15 @@ export function SplitWorkbench({ children, detail, detailLabel, className, prima
       <div className={cn('ipc-split-primary', primaryClassName)}>{children}</div>
 
       {/* Panel phụ: dải ngang bên dưới */}
-      <aside
-        className={cn('ipc-split-detail-strip', detailClassName)}
-        aria-label={typeof detailLabel === 'string' ? detailLabel : undefined}
-      >
-        {detailLabel && <div className="ipc-split-detail-label">{detailLabel}</div>}
-        <div className="ipc-split-detail-strip-body">{detail}</div>
-      </aside>
+      {detail !== null && detail !== undefined && (
+        <aside
+          className={cn('ipc-split-detail-strip', detailClassName)}
+          aria-label={typeof detailLabel === 'string' ? detailLabel : undefined}
+        >
+          {detailLabel && <div className="ipc-split-detail-label">{detailLabel}</div>}
+          <div className="ipc-split-detail-strip-body">{detail}</div>
+        </aside>
+      )}
     </div>
   );
 }

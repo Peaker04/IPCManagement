@@ -21,6 +21,7 @@ export function MenuAmendmentReconciliation() {
   const [selected, setSelected] = useState<MenuAmendmentDecisionItem>()
   const [reason, setReason] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [reasonError, setReasonError] = useState('')
   const allCustomers = scope === ALL_CUSTOMERS
   const customerId = scope && !allCustomers ? scope : undefined
   const customersQuery = useGetCoordinationCustomersQuery()
@@ -37,7 +38,12 @@ export function MenuAmendmentReconciliation() {
   }, [allCustomers, customerId, customersQuery.data])
 
   const complete = async () => {
-    if (!selected || !reason.trim()) return
+    if (!selected) return
+    if (!reason.trim()) {
+      setReasonError('Nhập lý do điều chỉnh.')
+      requestAnimationFrame(() => document.getElementById('menu-reconciliation-reason')?.focus())
+      return
+    }
     const action = selected.allowedActions.find((item) => item === 'APPEND_CORRECTION')
     if (!action) return
     try {
@@ -82,7 +88,7 @@ export function MenuAmendmentReconciliation() {
         </label>
       )}
     >
-      <div className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
+      <div className="space-y-3">
       {feedback && <p role="status" className="mt-3 text-sm text-slate-700">{feedback}</p>}
       {!scope ? (
         <p className="mt-3 text-sm text-slate-700">Chọn khách hàng để xem yêu cầu cần xử lý.</p>
@@ -115,7 +121,7 @@ export function MenuAmendmentReconciliation() {
                 <td className="text-left text-slate-700">{item.accountableRole}</td>
                 <td className="text-center whitespace-nowrap text-slate-600">{formatDateTime(item.dueAt)}</td>
                 <td className="text-center"><StatusBadge variant={presentation.tone} size="sm">{presentation.label}</StatusBadge></td>
-                <td className="text-right"><Button size="sm" onClick={() => setSelected(item)}>Xem chi tiết</Button></td>
+                <td className="text-right"><Button size="sm" onClick={() => { setSelected(item); setReason(''); setReasonError('') }}>Xem chi tiết</Button></td>
               </tr>
             })}</tbody>
           </table>
@@ -127,8 +133,8 @@ export function MenuAmendmentReconciliation() {
       {Boolean(selected) && (
         <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelected(undefined) }}>
           <DialogContent size="lg"><DialogHeader><DialogTitle>Chi tiết yêu cầu đối soát</DialogTitle><DialogDescription>{selected?.customerName} · {selected ? `${formatDateOnly(selected.serviceDate)} · ${formatShiftName(selected.shiftName)}` : ''}</DialogDescription></DialogHeader>
-            {selected && <div className="space-y-3 text-sm"><p><strong>Lý do:</strong> {selected.reason}</p><p><strong>Chứng từ:</strong> {selected.documentIds.join(', ') || 'Chưa có'}</p><p><strong>Dòng chứng từ:</strong> {selected.sourceLineIds.join(', ') || 'Chưa có'}</p>{selected.allowedActions.includes('APPEND_CORRECTION') && <label className="block font-medium">Lý do điều chỉnh<Input className="mt-1" value={reason} onChange={(event) => setReason(event.target.value)} aria-label="Lý do điều chỉnh" /></label>}</div>}
-            <DialogFooter><Button variant="outline" onClick={() => setSelected(undefined)}>Đóng</Button>{selected?.allowedActions.includes('APPEND_CORRECTION') && <Button disabled={!reason.trim() || isSaving} onClick={() => void complete()}>{isSaving ? 'Đang lưu...' : 'Ghi nhận điều chỉnh'}</Button>}</DialogFooter>
+            {selected && <div className="space-y-3 text-sm"><p><strong>Lý do:</strong> {selected.reason}</p><p><strong>Chứng từ:</strong> {selected.documentIds.join(', ') || 'Chưa có'}</p><p><strong>Dòng chứng từ:</strong> {selected.sourceLineIds.join(', ') || 'Chưa có'}</p>{selected.allowedActions.includes('APPEND_CORRECTION') && <label className="block font-medium" htmlFor="menu-reconciliation-reason">Lý do điều chỉnh<Input id="menu-reconciliation-reason" className="mt-1" value={reason} onChange={(event) => { setReason(event.target.value); setReasonError('') }} aria-label="Lý do điều chỉnh" aria-invalid={Boolean(reasonError) || undefined} aria-describedby={reasonError ? 'menu-reconciliation-reason-error' : undefined} />{reasonError && <span id="menu-reconciliation-reason-error" className="mt-1 block text-xs text-red-700">{reasonError}</span>}</label>}</div>}
+            <DialogFooter><Button variant="outline" onClick={() => setSelected(undefined)}>Đóng</Button>{selected?.allowedActions.includes('APPEND_CORRECTION') && <Button disabled={isSaving} onClick={() => void complete()}>{isSaving ? 'Đang lưu...' : 'Ghi nhận điều chỉnh'}</Button>}</DialogFooter>
           </DialogContent>
         </Dialog>
       )}

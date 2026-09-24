@@ -1,7 +1,7 @@
 'use client'
 
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import type { ProductionPlan } from '@/lib/types'
 import { formatDateOnly } from '@/lib/formatters'
 import { typography } from '@/lib/typography'
@@ -31,7 +31,7 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
         <CardContent className="pt-4">
           <p className="text-xs text-slate-500 tracking-wider mb-1">Ca làm việc</p>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="rounded-md border-slate-200 bg-white text-slate-700">
+            <Badge variant="secondary">
               {productionPlan.shift}
             </Badge>
           </div>

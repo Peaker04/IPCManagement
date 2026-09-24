@@ -23,6 +23,7 @@ public class WorkflowReportPaginationTests
                 CREATE TABLE warehouses (warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL, warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT, IsOperationalActive INTEGER NOT NULL DEFAULT 0, OperationalSingletonKey INTEGER);
                 CREATE TABLE ingredients (ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL, ingredientName TEXT NOT NULL, unitId BLOB NOT NULL, warehouseId BLOB NOT NULL, referencePrice REAL NOT NULL, isFreshDaily INTEGER NOT NULL, isActive INTEGER NOT NULL);
                 CREATE TABLE currentstock (warehouseId BLOB NOT NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL, currentQty REAL NOT NULL, lastUpdated TEXT NOT NULL, rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (warehouseId, ingredientId));
+                CREATE TABLE materialrequestlines (requestLineId BLOB PRIMARY KEY, requestId BLOB NOT NULL, planLineId BLOB NOT NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL, bomId BLOB, priceTierAmount REAL NOT NULL DEFAULT 25000, bomScope TEXT NOT NULL DEFAULT 'global', totalServings INTEGER NOT NULL DEFAULT 0, grossQtyPerServing REAL NOT NULL DEFAULT 0, bomRatePercent REAL NOT NULL DEFAULT 100, appliedPortionRuleId BLOB, appliedPortionRuleSource TEXT NOT NULL DEFAULT 'CONTRACT_DEFAULT', appliedPortionRatePercent REAL NOT NULL DEFAULT 100, yieldLossPercent REAL, totalRequiredQty REAL NOT NULL, currentStockQty REAL NOT NULL DEFAULT 0, suggestedPurchaseQty REAL NOT NULL DEFAULT 0);
                 """;
             await command.ExecuteNonQueryAsync();
         }
@@ -110,5 +111,97 @@ public class WorkflowReportPaginationTests
 
         aggregate.Should().HaveCount(2);
         aggregate.Select(row => row.IngredientName).Should().ContainInOrder("Nguyên liệu 1", "Nguyên liệu 2");
+
+        var requestId = Guid.NewGuid().ToByteArray();
+        context.Materialrequestlines.Add(new MaterialRequestLine
+        {
+            RequestLineId = Guid.NewGuid().ToByteArray(),
+            RequestId = requestId,
+            PlanLineId = Guid.NewGuid().ToByteArray(),
+            IngredientId = ingredientIds[1],
+            UnitId = unitId,
+            TotalRequiredQty = 1,
+        });
+        await context.SaveChangesAsync();
+
+        var allocationStocks = await service.GetCurrentStockAllocationAsync(new CurrentStockAllocationQueryDto
+        {
+            WarehouseId = new Guid(warehouseId).ToString(),
+            MaterialRequestId = new Guid(requestId).ToString(),
+        });
+        allocationStocks.Should().ContainSingle().Which.IngredientName.Should().Be("Nguyên liệu 2");
+
+        var otherWarehouse = new Warehouse
+        {
+            WarehouseId = Guid.NewGuid().ToByteArray(),
+            WarehouseCode = "WH-2",
+            WarehouseName = "Kho phụ",
+            WarehouseType = "KHO_BEP",
+        };
+        context.Warehouses.Add(otherWarehouse);
+        context.Currentstocks.Add(new CurrentStock
+        {
+            WarehouseId = otherWarehouse.WarehouseId,
+            IngredientId = ingredientIds[1],
+            UnitId = unitId,
+            CurrentQty = 99,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow,
+            Warehouse = otherWarehouse,
+            Ingredient = ingredients[1],
+            Unit = unit,
+        });
+        context.Materialrequestlines.Add(new MaterialRequestLine
+        {
+            RequestLineId = Guid.NewGuid().ToByteArray(),
+            RequestId = requestId,
+            PlanLineId = Guid.NewGuid().ToByteArray(),
+            IngredientId = ingredientIds[1],
+            UnitId = unitId,
+            TotalRequiredQty = 2,
+        });
+        var bulkIngredients = Enumerable.Range(1, 501).Select(index => new Ingredient
+        {
+            IngredientId = Guid.NewGuid().ToByteArray(),
+            IngredientCode = $"BULK-{index:000}",
+            IngredientName = $"Bulk ingredient {index:000}",
+            UnitId = unitId,
+            WarehouseId = warehouseId,
+            IsActive = true,
+            Warehouse = warehouse,
+            Unit = unit,
+        }).ToArray();
+        context.Ingredients.AddRange(bulkIngredients);
+        context.Currentstocks.AddRange(bulkIngredients.Select(ingredient => new CurrentStock
+        {
+            WarehouseId = warehouseId,
+            IngredientId = ingredient.IngredientId,
+            UnitId = unitId,
+            CurrentQty = 1,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow,
+            Warehouse = warehouse,
+            Ingredient = ingredient,
+            Unit = unit,
+        }));
+        context.Materialrequestlines.AddRange(bulkIngredients.Select(ingredient => new MaterialRequestLine
+        {
+            RequestLineId = Guid.NewGuid().ToByteArray(),
+            RequestId = requestId,
+            PlanLineId = Guid.NewGuid().ToByteArray(),
+            IngredientId = ingredient.IngredientId,
+            UnitId = unitId,
+            TotalRequiredQty = 1,
+        }));
+        await context.SaveChangesAsync();
+
+        var completeAllocationStocks = await service.GetCurrentStockAllocationAsync(new CurrentStockAllocationQueryDto
+        {
+            WarehouseId = new Guid(warehouseId).ToString(),
+            MaterialRequestId = new Guid(requestId).ToString(),
+        });
+        completeAllocationStocks.Should().HaveCount(502, "the scoped allocation read must not inherit the former 500-row ceiling");
+        completeAllocationStocks.Count(row => row.IngredientId == new Guid(ingredientIds[1]).ToString()).Should().Be(1, "duplicate request lines must not duplicate stock rows");
+        completeAllocationStocks.Should().OnlyContain(row => row.WarehouseId == new Guid(warehouseId).ToString());
     }
 }

@@ -45,8 +45,8 @@ vi.mock('@/api/reconciliationApi', async () => {
     },
   }
 })
-vi.mock('../ReconciliationSourceChangeLog', () => ({ ReconciliationSourceChangeLog: ({ batchId }: { batchId: string }) => <div>Nhật ký nguồn lô {batchId}</div> }))
-vi.mock('../ReconciliationIssueDetailDialog', () => ({ ReconciliationIssueDetailDialog: ({ issueId, open, onClose }: { issueId: string | null; open: boolean; onClose: () => void }) => open ? <aside role="dialog" aria-label="Chi tiết giao dịch xuất kho đối chiếu"><span>{issueId}</span><button type="button" onClick={onClose}>Đóng</button></aside> : null }))
+vi.mock('@/features/reconciliation/KitchenCookingExport', () => ({ KitchenCookingExport: () => <button type="button">Xuất phiếu nấu</button> }))
+vi.mock('@/components/reconciliation/ReconciliationIssueDetailDialog', () => ({ ReconciliationIssueDetailDialog: ({ issueId, open, onClose }: { issueId: string | null; open: boolean; onClose: () => void }) => open ? <aside role="dialog" aria-label="Chi tiết giao dịch xuất kho đối chiếu"><span>{issueId}</span><button type="button" onClick={onClose}>Đóng</button></aside> : null }))
 vi.mock('@/lib/navigationPreferences', () => ({ readReconciliationSelection: () => ({}), writeReconciliationSelection: vi.fn() }))
 vi.mock('@/lib/useHasRole', () => ({ useHasRole: () => completionState.allowed }))
 
@@ -91,7 +91,6 @@ describe('MXE-09 reconciliation issue deep link', () => {
 
     expect(screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toHaveTextContent('issue-1')
     expect(screen.getByRole('heading', { name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
-    expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
     expect(screen.getByText('Sẵn sàng hoàn tất')).toBeInTheDocument()
     expect(screen.getAllByText(/nguyên liệu đã khớp/)).toHaveLength(1)
     expect(screen.queryByRole('table', { name: 'Kết quả đối chiếu nguyên liệu' })).not.toBeInTheDocument()
@@ -125,6 +124,15 @@ describe('MXE-09 reconciliation issue deep link', () => {
     expect(screen.queryByText('Chưa khởi tạo lô đối chiếu đã chọn')).not.toBeInTheDocument()
   })
 
+  it('keeps batch filters without repeating the comparison question above its canonical result owner', () => {
+    renderPage('/reconciliation?batchId=batch-1')
+
+    expect(screen.getByRole('combobox', { name: 'Chọn lô đối chiếu' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Đối chiếu theo nguyên liệu' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 3, name: 'Đối chiếu theo nguyên liệu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Cần xuất và đã xuất kho' })).not.toBeInTheDocument()
+  })
+
   it('keeps the show-all toggle focused across short and full table states', () => {
     renderPage('/reconciliation?batchId=batch-1')
 
@@ -149,18 +157,20 @@ describe('MXE-09 reconciliation issue deep link', () => {
 
     renderPage('/reconciliation?batchId=batch-1')
 
-    expect(screen.getByText('Gạo')).toBeInTheDocument()
+    expect(screen.queryByText('Gạo')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Xử lý chênh lệch' })).not.toBeInTheDocument()
-    expect(screen.getByText(/Quản trị hoặc Quản lý cần xử lý chênh lệch/)).toBeInTheDocument()
+    expect(screen.getByText('Không có quyền xem chi tiết lô')).toBeInTheDocument()
   })
 
-  it('shows the disposition action to an authorized decision actor', () => {
+  it('shows the disposition action inside line detail for an authorized decision actor', () => {
     batch.lines[0].status = 'NEEDS_REVIEW'
     batch.lines[0].triggers = ['PURCHASED_REQUIRED']
 
     renderPage('/reconciliation?batchId=batch-1')
 
-    expect(screen.getByRole('button', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Thao tác' })[0])
+    const dialog = screen.getByRole('dialog', { name: 'Chi tiết nguyên liệu' })
+    expect(within(dialog).getByRole('button', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
   })
 
   it('completes an all-matched IN_PROGRESS batch only after explicit confirmation and refetches', async () => {
@@ -168,7 +178,7 @@ describe('MXE-09 reconciliation issue deep link', () => {
 
     expect(screen.getByText(/Lô vẫn ở bước 4\/5/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
-    expect(screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tất' }))
 
     await waitFor(() => expect(completionState.mutate).toHaveBeenCalledWith({ id: 'batch-1', expectedVersion: 1 }))
@@ -180,14 +190,14 @@ describe('MXE-09 reconciliation issue deep link', () => {
     renderPage('/reconciliation?batchId=batch-1')
 
     expect(screen.queryByRole('button', { name: 'Hoàn tất đối chiếu' })).not.toBeInTheDocument()
-    expect(screen.getByText(/Quản trị hoặc Quản lý cần xác nhận/)).toBeInTheDocument()
+    expect(screen.getByText('Không có quyền xem chi tiết lô')).toBeInTheDocument()
   })
 
   it('keeps completion failure and stale-version recovery inside the active dialog', async () => {
     completionState.shouldFail = true
     renderPage('/reconciliation?batchId=batch-1')
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
-    const dialog = screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
 
     expect(await within(dialog).findByRole('alert')).toHaveTextContent('Lô đã thay đổi.')
@@ -212,7 +222,7 @@ describe('MXE-09 reconciliation issue deep link', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
 
-    expect(within(screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })).queryByRole('alert')).not.toBeInTheDocument()
+    expect(within(screen.getByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })).queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('owns completion pending state by dialog session', async () => {
@@ -225,7 +235,7 @@ describe('MXE-09 reconciliation issue deep link', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
     fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
 
-    const dialog = screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })
     expect(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' })).toBeEnabled()
     expect(within(dialog).queryByText('Đang hoàn tất...')).not.toBeInTheDocument()
 
@@ -239,7 +249,7 @@ describe('MXE-09 reconciliation issue deep link', () => {
       await oldCompletion.promise
     })
 
-    expect(screen.getByRole('dialog', { name: 'Hoàn tất đối chiếu?' })).toBe(dialog)
+    expect(screen.getByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })).toBe(dialog)
     expect(within(dialog).getByRole('button', { name: 'Đang hoàn tất...' })).toBeDisabled()
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
 
@@ -263,7 +273,7 @@ describe('MXE-09 reconciliation issue deep link', () => {
       await oldRefresh.promise.catch(() => undefined)
     })
 
-    const dialog = await screen.findByRole('dialog', { name: 'Hoàn tất đối chiếu?' })
+    const dialog = await screen.findByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })
     await waitFor(() => expect(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' })).toBeEnabled())
     expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Xác nhận hoàn tất' }))
@@ -278,6 +288,5 @@ describe('MXE-09 reconciliation issue deep link', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Xem toàn bộ' })[0])
     expect(screen.getByText('Gạo')).toBeInTheDocument()
     expect(screen.getByText('Sữa')).toBeInTheDocument()
-    expect(screen.getByText('Nhật ký nguồn lô batch-1')).toBeInTheDocument()
   })
 })

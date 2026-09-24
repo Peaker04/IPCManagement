@@ -12,7 +12,7 @@ import {
   type BomImportPreview,
   type CatalogIngredient,
 } from '@/api/dishCatalogApi';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 import {
   createDefaultBomForm,
   getBomTemplateTypeLabel,
@@ -32,16 +32,19 @@ type BomFormErrors = Partial<Record<BomFormField, string>>;
 export function useAdminBomPanelModel(
   activeView: AdminView,
   bomTemplateDishId: string | undefined,
+  initialScope?: { priceTier?: number; customerId?: string; effectiveFrom?: string },
 ) {
-  const [bomImportTier, setBomImportTier] = useState(25000);
-  const [bomImportCustomerId, setBomImportCustomerId] = useState('');
-  const [bomImportEffectiveFrom, setBomImportEffectiveFrom] = useState(getTodayInputValue());
+  const [bomImportTier, setBomImportTier] = useState(initialScope?.priceTier ?? 25000);
+  const [bomImportCustomerId, setBomImportCustomerId] = useState(initialScope?.customerId ?? '');
+  const [bomImportEffectiveFrom, setBomImportEffectiveFrom] = useState(initialScope?.effectiveFrom ?? getTodayInputValue());
   const [bomImportFile, setBomImportFile] = useState<File | null>(null);
   const [bomImportPreview, setBomImportPreview] = useState<BomImportPreview | null>(null);
   const [bomImportFeedback, setBomImportFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [bomPanelMode, setBomPanelMode] = useState<BomPanelMode>('current');
   const [bomSearch, setBomSearch] = useState('');
+  const [ingredientSearch, setIngredientSearch] = useState('');
   const debouncedBomSearch = useDebouncedValue(bomSearch, 250);
+  const debouncedIngredientSearch = useDebouncedValue(ingredientSearch, 250);
   const [bomForm, setBomForm] = useState<BomFormState>(createDefaultBomForm);
   const [bomFormErrors, setBomFormErrors] = useState<BomFormErrors>({});
   const [editingBom, setEditingBom] = useState<{ dishId: string; line: CatalogIngredient } | null>(null);
@@ -58,7 +61,10 @@ export function useAdminBomPanelModel(
   const dishCatalogView = toAdminView(dishCatalogQuery, 'danh mục BOM');
   const dishCatalog = dishCatalogView.phase === 'ready' ? dishCatalogView.data : EMPTY_ADMIN_LIST;
   const isDishCatalogLoading = dishCatalogView.phase === 'uninitialized' || dishCatalogView.phase === 'loading';
-  const ingredientCatalogQuery = useGetIngredientsQuery(undefined, { skip: !isBomView });
+  const ingredientCatalogQuery = useGetIngredientsQuery(
+    { searchKeyword: debouncedIngredientSearch.trim() || undefined },
+    { skip: !isBomView || !isBomDialogOpen },
+  );
   const ingredientCatalogView = toAdminView(ingredientCatalogQuery, 'danh mục nguyên liệu');
   const ingredientCatalog = ingredientCatalogView.phase === 'ready' ? ingredientCatalogView.data : EMPTY_ADMIN_LIST;
   const isIngredientCatalogLoading = ingredientCatalogView.phase === 'uninitialized' || ingredientCatalogView.phase === 'loading';
@@ -83,8 +89,8 @@ export function useAdminBomPanelModel(
       .sort((left, right) => left.dish.name.localeCompare(right.dish.name, 'vi') || left.line.name.localeCompare(right.line.name, 'vi'));
   }, [bomImportCustomerId, bomImportTier, debouncedBomSearch, flattenedBomLines, isBomView]);
   const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading;
-  const currentBomPagination = usePaginatedRows(currentBomRows, 8);
-  const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);
+  const currentBomPagination = useLocalPagination(currentBomRows, 8);
+  const bomPreviewPagination = useLocalPagination(bomImportPreview?.rows ?? [], 20);
 
   const handleDownloadBomTemplate = async (templateType: BomTemplateType) => {
     if (templateType === 'dish' && !bomTemplateDishId) {
@@ -166,6 +172,7 @@ export function useAdminBomPanelModel(
     const preferredDish = dishCatalog.find((dish) => dish.id === bomTemplateDishId && dish.isActive)
       ?? dishCatalog.find((dish) => dish.isActive);
     setEditingBom(null);
+    setIngredientSearch('');
     setBomFormErrors({});
     setBomForm({
       ...createDefaultBomForm(),
@@ -182,6 +189,7 @@ export function useAdminBomPanelModel(
       ? [today, getNextDayInputValue(line.effectiveFrom)].sort().at(-1) ?? today
       : line.effectiveFrom;
     setEditingBom({ dishId, line });
+    setIngredientSearch(line.name);
     setBomFormErrors({});
     setBomForm({
       dishId,
@@ -296,6 +304,7 @@ export function useAdminBomPanelModel(
     handlePreviewBomImport,
     handleSaveBomLine,
     ingredientCatalog,
+    ingredientSearch,
     isBomDialogOpen,
     isDishCatalogLoading,
     isIngredientCatalogLoading,
@@ -313,5 +322,6 @@ export function useAdminBomPanelModel(
     setBomSearch,
     setClosingBom,
     setIsBomDialogOpen,
+    setIngredientSearch,
   };
 }

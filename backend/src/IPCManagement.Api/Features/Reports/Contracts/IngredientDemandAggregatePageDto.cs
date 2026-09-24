@@ -21,6 +21,11 @@ public sealed class IngredientDemandAggregateDto
     public decimal TotalRequiredQty { get; set; }
     public decimal CurrentStockQty { get; set; }
     public decimal SuggestedPurchaseQty { get; set; }
+    // Physical DEFAULT handoff totals, independent of allocation and request status.
+    // Gross issue/ack history: confirmed returns do not reopen the original demand.
+    public decimal IssuedQty { get; set; }
+    public decimal ReceivedByKitchenQty { get; set; }
+    public decimal RemainingToIssueQty { get; set; }
     public decimal FulfilledQty { get; set; }
     public decimal PendingKitchenReceiptQty { get; set; }
     public decimal UnissuedQty { get; set; }
@@ -40,4 +45,7 @@ public sealed class IngredientDemandAggregatePageDto
     public bool HasPrev => PageNumber > 1;
     public bool HasNext => PageNumber < TotalPages;
     public int ShortageCount { get; set; }
+    // Whole filtered aggregate groups before pagination; counters can overlap.
+    public int RemainingToIssueCount { get; set; }
+    public int PendingKitchenReceiptCount { get; set; }
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ActiveDishesGrid } from './active-dishes-grid';
 import { ChefHeader } from './chef-header';
@@ -23,12 +23,10 @@ describe('Chef operational copy', () => {
             suggestedPurchaseQty: 0,
           } as never,
         ]}
-        isSending={false}
         isLoading={false}
         isError={false}
         totalPlans={1}
         sentPlans={1}
-        onReceivePlan={vi.fn()}
       />,
     );
     expect(screen.getByText('Ca sáng')).toBeInTheDocument();
@@ -119,8 +117,8 @@ describe('Chef operational copy', () => {
     }
   });
 
-  it('requires explicit confirmation before signing a received issue', () => {
-    const onMaterialSignoff = vi.fn();
+  it('requires per-line counting before signing the whole received issue', async () => {
+    const onMaterialSignoff = vi.fn().mockResolvedValue(true);
     render(
       <MaterialChecklist
         materials={[
@@ -142,10 +140,47 @@ describe('Chef operational copy', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Nhận' }));
 
     expect(onMaterialSignoff).not.toHaveBeenCalled();
-    expect(screen.getByRole('dialog', { name: 'Xác nhận đã nhận nguyên liệu?' })).toBeInTheDocument();
-    expect(screen.getByText('ISS-SUP-001')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Đã kiểm đếm và nhận' }));
-    expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true);
+    expect(screen.getByRole('dialog', { name: 'Kiểm đếm và ký nhận phiếu xuất' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Nhận nguyên liệu này' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ký nhận toàn bộ phiếu' }));
+    await waitFor(() => expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true, false, ''));
+  });
+
+  it('keeps signoff available and focuses a missing discrepancy explanation', async () => {
+    const onMaterialSignoff = vi.fn().mockResolvedValue(true);
+    render(<MaterialChecklist materials={[
+      { id: 'line-1', name: 'Gạo', unit: 'kg', quantity: 2, status: 'Chờ giao', signed: false, issueId: 'issue-1', issueCode: 'ISS-001' },
+    ]} onMaterialSignoff={onMaterialSignoff} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nhận' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nhận nguyên liệu này' }));
+    fireEvent.click(screen.getByText('Có chênh lệch khi nhận'));
+    const submit = screen.getByRole('button', { name: 'Ký nhận toàn bộ phiếu' });
+    expect(submit).toBeEnabled();
+    fireEvent.click(submit);
+
+    const note = screen.getByPlaceholderText('Nêu dòng nguyên liệu, số thực nhận hoặc tình trạng hàng');
+    await waitFor(() => expect(note).toHaveFocus());
+    expect(note).toHaveAttribute('aria-invalid', 'true');
+    expect(onMaterialSignoff).not.toHaveBeenCalled();
+  });
+
+  it('keeps all lines and discrepancy input open when whole-issue receipt fails', async () => {
+    const onMaterialSignoff = vi.fn().mockResolvedValue(false);
+    render(<MaterialChecklist materials={[
+      { id: 'line-1', name: 'Gạo', unit: 'kg', quantity: 2, status: 'Chờ giao', signed: false, issueId: 'issue-1', issueCode: 'ISS-001' },
+      { id: 'line-2', name: 'Cá', unit: 'kg', quantity: 3, status: 'Chờ giao', signed: false, issueId: 'issue-1', issueCode: 'ISS-001' },
+    ]} onMaterialSignoff={onMaterialSignoff} />);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Nhận' })[0]);
+    for (const button of screen.getAllByRole('button', { name: 'Nhận nguyên liệu này' })) fireEvent.click(button);
+    fireEvent.click(screen.getByText('Có chênh lệch khi nhận'));
+    fireEvent.change(screen.getByPlaceholderText('Nêu dòng nguyên liệu, số thực nhận hoặc tình trạng hàng'), { target: { value: 'Cá thiếu 0,5 kg' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Ký nhận toàn bộ phiếu' }));
+
+    await waitFor(() => expect(onMaterialSignoff).toHaveBeenCalledWith('line-1', true, true, 'Cá thiếu 0,5 kg'));
+    expect(screen.getByRole('dialog', { name: 'Kiểm đếm và ký nhận phiếu xuất' })).toBeVisible();
+    expect(screen.getByDisplayValue('Cá thiếu 0,5 kg')).toBeVisible();
   });
 
   it('renders material state through the canonical compact status contract', () => {
@@ -168,8 +203,8 @@ describe('Chef operational copy', () => {
     expect(screen.getByRole('button', { name: 'Nhận' })).toBeInTheDocument();
   });
 
-  it('groups repeated material presentation but keeps source-line signoff ids', () => {
-    const onMaterialSignoff = vi.fn();
+  it('groups repeated material presentation but keeps source-line signoff ids', async () => {
+    const onMaterialSignoff = vi.fn().mockResolvedValue(true);
     render(
       <MaterialChecklist
         materials={[
@@ -188,8 +223,9 @@ describe('Chef operational copy', () => {
     expect(screen.getByText('ISS-B')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Nhận Bột nở từ ISS-A' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Đã kiểm đếm và nhận' }));
-    expect(onMaterialSignoff).toHaveBeenCalledWith('line-a', true);
+    fireEvent.click(screen.getByRole('button', { name: 'Nhận nguyên liệu này' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Ký nhận toàn bộ phiếu' }));
+    await waitFor(() => expect(onMaterialSignoff).toHaveBeenCalledWith('line-a', true, false, ''));
   });
 
   it('does not force the quick-guide heading into uppercase styling', () => {

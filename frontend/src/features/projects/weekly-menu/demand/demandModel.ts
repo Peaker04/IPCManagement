@@ -116,7 +116,18 @@ export const getDemandDayIndex = (
   return activeIndex >= 0 ? activeIndex : 0
 }
 
-export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: number, shortageCount?: number) => {
+export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: number, shortageCount?: number,
+  handoffCounts?: { remainingToIssueCount: number; pendingKitchenReceiptCount: number }) => {
+  if (handoffCounts || (lines.length > 0 && lines.every((line) => line.projection === 'physical-handoff'))) {
+    const total = totalCount ?? lines.length
+    const remaining = handoffCounts?.remainingToIssueCount ?? lines.filter((line) => (line.remainingToIssueQty ?? 0) > 0).length
+    const pending = handoffCounts?.pendingKitchenReceiptCount ?? lines.filter((line) => (line.pendingKitchenReceiptQty ?? 0) > 0).length
+    // Backlog and pending ack can overlap. Do not subtract both to infer completed groups.
+    return { totalCount: total, shortageCount: remaining, pendingKitchenCount: pending, staleCount: 0,
+      warningCount: pending, enoughCount: Math.max(total - remaining, 0),
+      tone: (total === 0 ? 'neutral' : remaining > 0 || pending > 0 ? 'warning' : 'success') as DemandLine['tone'],
+      label: total === 0 ? 'Chưa có vật tư' : remaining > 0 ? 'Chưa xuất' : pending > 0 ? 'Chờ Bếp nhận' : 'Bếp đã nhận' }
+  }
   const pendingKitchenCount = lines.filter((line) => (line.pendingKitchenReceiptQty ?? 0) > 0).length
   const staleCount = lines.filter((line) => line.tone === 'warning' && (line.pendingKitchenReceiptQty ?? 0) <= 0).length
   const shortages = shortageCount ?? lines.filter((line) => (line.unissuedQty ?? Math.max(line.required - (line.available - line.reserved), 0)) > 0).length
@@ -221,7 +232,9 @@ export const attachDemandDishSources = (
 
     return {
       ...line,
-      source: formatMaterialDishSource(foundSources),
+      source: line.projection === 'physical-handoff'
+        ? [line.source, foundSources.length > 0 ? formatMaterialDishSource(foundSources) : ''].filter(Boolean).join(' · ')
+        : formatMaterialDishSource(foundSources),
     }
   })
 }

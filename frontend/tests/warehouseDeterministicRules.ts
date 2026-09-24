@@ -1,7 +1,7 @@
 import { warehouseDataWorkspaceContract, type WarehouseBox, type WarehouseCapture, type WarehouseCaptureManifest, type WarehouseOwnerLevel, type WarehouseVerdict } from './warehouseDataWorkspaceContract';
 
 export const splitWorkbenchConsumerInventory = [
-  { source: 'frontend/src/features/approvals/pages/ApprovalPage.tsx', instances: 1 },
+  { source: 'frontend/src/features/approvals/pages/ApprovalHistoryTab.tsx', instances: 1 },
   { source: 'frontend/src/features/chef/receipts/KitchenReceiptSection.tsx', instances: 1 },
   { source: 'frontend/src/features/warehouse/pages/WarehouseMovementPanel.tsx', instances: 1 },
 ] as const;
@@ -25,6 +25,20 @@ const boxEndX = (box: WarehouseBox) => box.x + box.width;
 const boxEndY = (box: WarehouseBox) => box.y + box.height;
 const overlaps = (a: WarehouseBox, b: WarehouseBox) => a.x < boxEndX(b) - tolerance && boxEndX(a) > b.x + tolerance && a.y < boxEndY(b) - tolerance && boxEndY(a) > b.y + tolerance;
 const ownerLevel = (source: string): WarehouseOwnerLevel => source === 'RoleGuard' ? 'route' : source.includes('SplitWorkbench') ? 'layout' : 'shared-component';
+
+export function hasValidWarehouseHeadingHierarchy(levels: number[]): boolean {
+  if (levels.filter((level) => level === 1).length !== 1 || !levels.includes(2)) return false;
+
+  const openAncestors = new Set<number>();
+  for (let index = 0; index < levels.length; index += 1) {
+    const level = levels[index];
+    if (index > 0 && level - levels[index - 1] > 1) return false;
+    if (level > 1 && !openAncestors.has(level - 1)) return false;
+    for (const ancestor of openAncestors) if (ancestor >= level) openAncestors.delete(ancestor);
+    openAncestors.add(level);
+  }
+  return true;
+}
 
 function finding(capture: WarehouseCapture, input: Omit<WarehouseDeterministicFinding, 'captureIdentity' | 'owner'> & { ownerSource: string }): WarehouseDeterministicFinding {
   const { ownerSource, ...rest } = input;
@@ -56,8 +70,7 @@ function evaluateWorkspace(capture: WarehouseCapture): WarehouseDeterministicFin
   const regionEvidence = regionIds.every((id) => geometry[id] && capture.owners[id]);
   findings.push(finding(capture, { id: `WH-REGIONS-${capture.state}-${capture.viewport.id}`, ruleId: 'D12-REGIONS-OWNERSHIP', verdict: fail(regionEvidence), selector: '[aria-label="Phiếu kho"], section:has(h3)', metric: 'required named region/owner count', expected: '3/3 regions with explicit owners', actual: `${regionIds.filter((id) => geometry[id] && capture.owners[id]).length}/3`, severity: 'blocker', ownerSource: layoutOwner }));
   findings.push(finding(capture, { id: `WH-H1-${capture.state}-${capture.viewport.id}`, ruleId: 'D12-SEMANTIC-H1', verdict: fail(capture.document.h1Count === 1), selector: 'h1', metric: 'H1 count', expected: '1', actual: String(capture.document.h1Count), severity: 'high', ownerSource: 'MainLayout/OperationalFrame' }));
-  const noHeadingSkip = capture.document.headingLevels.includes(1) && capture.document.headingLevels.includes(3);
-  findings.push(finding(capture, { id: `WH-HEADINGS-${capture.state}-${capture.viewport.id}`, ruleId: 'D12-HEADING-ORDER', verdict: fail(noHeadingSkip), selector: 'h1,h2,h3', metric: 'declared heading levels', expected: 'shell H1 and declared H3 dataset headings', actual: capture.document.headingLevels.join(','), severity: 'high', ownerSource: 'WarehouseMovementPanel/SectionPanel' }));
+  findings.push(finding(capture, { id: `WH-HEADINGS-${capture.state}-${capture.viewport.id}`, ruleId: 'D12-HEADING-ORDER', verdict: fail(hasValidWarehouseHeadingHierarchy(capture.document.headingLevels)), selector: 'h1,h2,h3,h4', metric: 'ordered visible heading levels', expected: 'one H1, route-primary H2, and no skipped or orphan nested heading levels', actual: capture.document.headingLevels.join(','), severity: 'high', ownerSource: 'WarehouseMovementPanel/SectionPanel' }));
   findings.push(finding(capture, { id: `WH-OVERFLOW-${capture.state}-${capture.viewport.id}`, ruleId: 'D12-DOCUMENT-OVERFLOW', verdict: fail(capture.document.scrollWidth <= capture.document.clientWidth + tolerance), selector: 'html', metric: 'scrollWidth-clientWidth', expected: '<= 0.5px', actual: `${capture.document.scrollWidth - capture.document.clientWidth}px`, severity: 'high', ownerSource: layoutOwner }));
   const regionClipping = Object.values(geometry).some(({ scroll, style }) =>
     scroll.scrollWidth > scroll.clientWidth + tolerance && scroll.clientWidth > 0 && ['hidden', 'clip'].includes(style.overflowX));

@@ -29,9 +29,9 @@ import { useHasPermission } from '@/lib/useHasPermission';
 import { useHasRole } from '@/lib/useHasRole';
 import { formatCurrency, formatDateOnly, formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig'; import { formatAuditActor } from '@/lib/auditPresentation';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
-import { useGetSupplyLineReconciliationQuery } from '@/features/reports/reportsApi';
+import { useGetSupplyLineReconciliationQuery } from '@/api/reportsApi';
 import {
   standardPageSizeOptions,
   useReportsPageModel,
@@ -40,21 +40,22 @@ import { StockMovementTable } from '@/components/common/StockMovementTable';
 import { ReportsNavigation } from './ReportsNavigation';
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
+import { ReportsFilters } from './ReportsFilters';
+import { ServiceRunReportPanel } from './ServiceRunReportPanel';
 import { formatReconciliationDisposition } from '@/lib/workflowConfig';
 
-const compactPurchaseWarning = (warning?: string) => {
-  if (!warning) return 'Sẵn sàng';
-  const normalized = warning.toLocaleLowerCase('vi-VN');
-  if (normalized.includes('báo giá') || normalized.includes('nhà cung cấp')) return 'Thiếu báo giá';
-  if (normalized.includes('tồn kho')) return 'Thiếu tồn kho';
-  if (normalized.includes('đang xử lý') || normalized.includes('pending')) return 'Đang chờ xử lý';
-  return warning.length > 32 ? `${warning.slice(0, 29).trimEnd()}…` : warning;
+const compactPurchaseWarning = (warning: string) => {
+  const source = warning.trim();
+  if (source === 'Chưa có báo giá NCC đang hiệu lực.') return 'Thiếu báo giá';
+  if (source === 'Có lượng đang chờ nhập kho, cần đối chiếu trước khi đặt mua thêm.') return 'Chờ nhập kho';
+  if (source === 'Còn thiếu so với demand sau khi trừ pending receipt.') return 'Còn thiếu';
+  return source.length > 32 ? `${source.slice(0, 29).trimEnd()}…` : source;
 };
 
 const ReportsPricePanel = lazy(() => import('./ReportsPricePanel').then(({ ReportsPricePanel: component }) => ({ default: component })))
 const ReportsDataQualityPanel = lazy(() => import('./ReportsDataQualityPanel').then(({ ReportsDataQualityPanel: component }) => ({ default: component })))
-const ReportsFilters = lazy(() => import('./ReportsFilters').then(({ ReportsFilters: component }) => ({ default: component })))
-const ServiceRunReportPanel = lazy(() => import('./ServiceRunReportPanel').then(({ ServiceRunReportPanel: component }) => ({ default: component })))
+
+
 const LegacyLineageDispositionPanel = lazy(() => import('../LegacyLineageDispositionPanel').then(({ LegacyLineageDispositionPanel: component }) => ({ default: component })))
 const reportCapabilityFallback = <div aria-busy="true" className="min-h-[360px] rounded-md bg-slate-50 motion-reduce:animate-none" />
 
@@ -70,7 +71,7 @@ const ReportsPage = () => {
   const canReadWarehouseReports = useHasPermission('warehouse.read');
   const canReadAuditChanges = useHasRole(['admin']);
   const model = useReportsPageModel({ canReadAuditChanges, canReadPurchaseReports, canReadWarehouseReports });
-  const { activeView, auditCursors, auditResult, auditRows, currentStockResult, currentStockRows, dateFrom, dateTo, demandPage, demandPageSize, demandSearch, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, movementSearch, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, purchaseSearch, reportContextItems, reportQuery, reportViews, resetReportPagesAndUrl, setAuditCursors, setDateFrom, setDateTo, setDemandPage, setDemandPageSize, setDemandSearch, setKitchenPage, setMovementCursors, setMovementSearch, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setPurchaseSearch, setShiftName, setSortDirection, setStockPage, setStockPageSize, setStockSearch, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, stockSearch, usagePage, usageResult, usageRows } = model;
+  const { activeView, auditCursors, auditResult, auditRows, canExportActiveReport, changeDateFrom, changeDateTo, changeShiftName, currentStockResult, currentStockRows, dateFrom, dateTo, demandPage, demandPageSize, demandSearch, exportConfig, handleExportActiveReport, ingredientDemandResult, ingredientDemandRows, kitchenIssueResult, kitchenIssueRows, kitchenPage, movementCursors, movementSearch, openNextAuditPage, openNextMovementPage, operationalPageSize, purchasePage, purchasePageSize, purchasePlanGroupBy, purchasePlanResult, purchasePlanRows, purchasePlanSummary, purchaseSearch, reportQuery, reportViews, resetReportPagesAndUrl, setAuditCursors, setDemandPage, setDemandPageSize, setDemandSearch, setKitchenPage, setMovementCursors, setMovementSearch, setNumberedPage, setNumberedPageSize, setOperationalPageSize, setPurchasePage, setPurchasePageSize, setPurchasePlanGroupBy, setPurchaseSearch, setSortDirection, setStockPage, setStockPageSize, setStockSearch, setUsagePage, shiftName, sortDirection, stockMovementResult, stockMovementRows, stockPage, stockPageSize, stockSearch, usagePage, usageResult, usageRows } = model;
   const reconciliationResult = useGetSupplyLineReconciliationQuery(reportQuery, { skip: activeView !== 'usage' });
   const reconciliationRows = reconciliationResult.data ?? [];
 
@@ -85,6 +86,7 @@ const ReportsPage = () => {
                 <button
                   type="button"
                   className="ipc-button ipc-button-primary"
+                  disabled={!canExportActiveReport}
                   onClick={handleExportActiveReport}
                 >
                   <Download size={16} />
@@ -102,13 +104,11 @@ const ReportsPage = () => {
             </>
           }
         >
-          <Suspense fallback={<div aria-hidden="true" className="min-h-8 w-[32rem] rounded-md bg-slate-50" />}>
-            <ReportsFilters activeView={activeView} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} sortDirection={sortDirection} onDateFromChange={setDateFrom} onDateToChange={setDateTo} onShiftNameChange={setShiftName} onSortDirectionChange={setSortDirection} />
-          </Suspense>
+          <ReportsFilters
+            activeView={activeView} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} sortDirection={sortDirection}
+            onDateFromChange={changeDateFrom} onDateToChange={changeDateTo} onShiftNameChange={changeShiftName} onSortDirectionChange={setSortDirection}
+          />
         </CommandBar>
-      }
-      context={
-        <ContextStrip items={reportContextItems} />
       }
     >
       <ReportsNavigation model={model} />
@@ -119,7 +119,7 @@ const ReportsPage = () => {
 
       <KeepAliveTabPanel id="reports-demand" active={activeView === 'demand'}>
         <ReportQueryBoundary view={reportViews.demand}>
-          <SectionPanel title="Tổng hợp nhu cầu theo từng ngày trong khoảng đã chọn" icon={<Utensils size={18} />}>
+          <SectionPanel title="Nhu cầu theo ngày trong khoảng chọn" icon={<Utensils size={18} />}>
             <div className="mb-3 max-w-xl">
               <SearchField
                 id="report-demand-search"
@@ -135,24 +135,20 @@ const ReportsPage = () => {
                 <thead>
                   <tr>
                     <th>Ngày</th>
-                    <th>Nguyên liệu</th>
-                    <th>Nguồn</th>
+                    <th>Nguyên liệu / nguồn</th>
                     <th className="text-right">Cần</th>
-                    <th className="text-right">Đã cấp/xuất</th>
-                    <th className="text-right">Chưa xuất</th>
+                    <th className="text-right">Bàn giao</th>
                     <th>Trạng thái</th>
                     <th>Chuyển xử lý</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={8} /> : ingredientDemandRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={6} /> : ingredientDemandRows.map((row) => (
+                    <tr key={row.id}>
                       <td className="whitespace-nowrap">{row.serviceDate ? formatDateOnly(row.serviceDate) : 'Chưa xác định'}</td>
-                      <td>{row.material}</td>
-                      <td>{row.source}</td>
+                      <td><span className="block font-medium text-slate-900">{row.material}</span><span className="block text-xs text-slate-500">{row.source}</span></td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.required, row.unit)}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.available, row.unit)}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.unissuedQty ?? Math.max(row.required - row.available, 0), row.unit)}</td>
+                      <td className="ipc-numeric-cell text-right text-xs tabular-nums"><span className="block">Đã xuất: {formatQuantityWithUnit(row.issuedQty ?? 0, row.unit)}</span><span className="block font-semibold">Chưa xuất: {formatQuantityWithUnit(row.remainingToIssueQty ?? 0, row.unit)}</span></td>
                       <td className="ipc-badge-cell text-center"><StatusBadge className="ipc-demand-status-control" variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
                       <td className="ipc-demand-action-cell">{row.actionHref
                         ? <Link className="ipc-button ipc-button-ghost ipc-demand-action-control" to={row.actionHref}>{row.nextAction}</Link>
@@ -212,32 +208,30 @@ const ReportsPage = () => {
               <table className="ipc-data-table ipc-status-action-table min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Kỳ</th>
-                    <th>Nguyên liệu</th>
+                    <th>Kỳ / nguyên liệu</th>
                     <th className="text-right">Cần</th>
-                    <th className="text-right">Tồn</th>
-                    <th className="text-right">{uiCopy.reports.pending}</th>
+                    <th className="text-right">Cân đối</th>
                     <th className="text-right">Đề xuất mua</th>
                     <th>Nhà cung cấp</th>
                     <th>Cảnh báo</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} isError={purchasePlanResult.isError} /> : purchasePlanRows.map((row) => (
+                  {purchasePlanRows.length === 0 ? <EmptyRow colSpan={6} isError={purchasePlanResult.isError} /> : purchasePlanRows.map((row) => (
                     <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
-                      <td>{row.periodKey}</td>
-                      <td>{row.ingredientName ?? row.ingredientId}</td>
+                      <td><span className="block font-medium text-slate-900">{row.ingredientName ?? 'Chưa có tên nguyên liệu'}</span><span className="block text-xs text-slate-500">{row.periodKey}</span></td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.requiredQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.currentStockQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.pendingReceiptQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-right text-xs tabular-nums"><span className="block">Tồn: {formatQuantityWithUnit(row.currentStockQty, row.unitName ?? '')}</span><span className="block">{uiCopy.reports.pending}: {formatQuantityWithUnit(row.pendingReceiptQty, row.unitName ?? '')}</span></td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.shortageQty, row.unitName ?? '')}</td>
                       <td>{row.supplierName ?? 'Chưa có báo giá'}</td>
                       <td className="ipc-badge-cell">
-                        <span title={row.warnings[0]}>
-                          <StatusBadge variant={row.warnings.length ? 'warning' : 'success'}>
-                            {compactPurchaseWarning(row.warnings[0])}
-                          </StatusBadge>
-                        </span>
+                        {row.warnings[0] && (
+                          <span title={row.warnings[0]}>
+                            <StatusBadge variant="warning">
+                              {compactPurchaseWarning(row.warnings[0])}
+                            </StatusBadge>
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -276,8 +270,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row) => (
+                    <tr key={row.id}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
                       <td className="ipc-numeric-cell text-right tabular-nums">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
@@ -304,8 +298,8 @@ const ReportsPage = () => {
 
       <KeepAliveTabPanel id="reports-movement" active={activeView === 'movement'}>
         <ReportQueryBoundary view={reportViews.movement}>
-          <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh theo khoảng ngày" icon={<ArrowLeftRight size={18} />}>
-            <div className="space-y-3 px-4 pb-4 sm:px-5 sm:pb-5">
+          <SectionPanel title="Lịch sử nhập/xuất theo khoảng ngày" icon={<ArrowLeftRight size={18} />}>
+            <div className="space-y-3">
               <SearchField id="report-movement-search" label="Tìm bút toán trong khoảng ngày" width="wide" value={movementSearch} onChange={(event) => setMovementSearch(event.target.value)} placeholder="Kho, nguyên liệu, loại, lý do hoặc ghi chú" />
               <StockMovementTable
                 movements={stockMovementRows}
@@ -340,8 +334,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row) => (
+                    <tr key={row.id}>
                       <td className={typography.code}>{row.issueCode}</td>
                       <td>{formatDateOnly(row.issueDate)}</td>
                       <td>{row.shiftName ?? 'Cả ngày'}</td>
@@ -370,7 +364,7 @@ const ReportsPage = () => {
 
       <KeepAliveTabPanel id="reports-usage" active={activeView === 'usage'}>
         <ReportQueryBoundary view={reportViews.usage}>
-          <SectionPanel title="Sử dụng thực tế của bếp: đã xuất - hoàn kho" icon={<RotateCcw size={18} />}>
+          <SectionPanel title="Sử dụng thực tế: xuất - hoàn" icon={<RotateCcw size={18} />}>
             <TableViewport ariaLabel="Bảng sử dụng thực tế sau hoàn kho">
               <table className="ipc-data-table min-w-[720px]">
                 <thead>
@@ -385,8 +379,8 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row) => (
+                    <tr key={row.id}>
                       <td className={typography.code}>{row.issueCode}</td>
                       <td>{formatDateOnly(row.issueDate)}</td>
                       <td>{row.shiftName ?? 'Cả ngày'}</td>
@@ -411,7 +405,8 @@ const ReportsPage = () => {
             />
           </SectionPanel>
           <SectionPanel
-            title="Đối soát lifecycle theo dòng nhu cầu"
+            title="Đối soát theo dòng nhu cầu"
+            headingLevel={3}
             icon={<ArrowLeftRight size={18} />}
             description="Không gộp theo tên nguyên liệu. Dòng lịch sử thiếu nguồn được giữ để đối soát."
           >
@@ -419,33 +414,25 @@ const ReportsPage = () => {
               <table className="ipc-data-table min-w-[1300px]">
                 <thead>
                   <tr>
-                    <th>Nhu cầu nguồn</th>
-                    <th>Nguyên liệu</th>
+                    <th>Nhu cầu / nguyên liệu</th>
                     <th className="text-right">Cần</th>
                     <th className="text-right">PR/PO</th>
-                    <th className="text-right">Đã nhập kho</th>
-                    <th className="text-right">Đã xuất</th>
-                    <th className="text-right">Bếp nhận</th>
+                    <th className="text-right">Luồng kho / Bếp</th>
                     <th className="text-right">Bổ sung<br />(YC/cấp/PR)</th>
                     <th className="text-right">Hoàn/Hao</th>
-                    <th className="text-right">Delta</th>
-                    <th>Kết quả đối soát</th>
+                    <th>Kết quả / Delta</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {reconciliationRows.length === 0 ? <EmptyRow colSpan={11} isError={reconciliationResult.isError} /> : reconciliationRows.map((row) => (
+                  {reconciliationRows.length === 0 ? <EmptyRow colSpan={7} isError={reconciliationResult.isError} /> : reconciliationRows.map((row) => (
                     <tr key={row.materialRequestLineId}>
-                      <td className={typography.code}>{row.materialRequestCode}</td>
-                      <td>{row.ingredientName ?? row.ingredientId}</td>
+                      <td><span className="block font-medium text-slate-900">{row.ingredientName ?? 'Chưa có tên nguyên liệu'}</span><span className={`${typography.code} block text-slate-500`}>{row.materialRequestCode}</span></td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.demandQty, row.unitName ?? '')}</td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.purchaseRequestAllocatedQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.purchaseOrderAllocatedQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.postedAcceptedReceiptQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.issuedQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.kitchenAcknowledgedQty, row.unitName ?? '')}</td>
+                      <td className="ipc-numeric-cell text-xs"><span className="block">Nhập: {formatQuantityWithUnit(row.postedAcceptedReceiptQty, row.unitName ?? '')}</span><span className="block">Xuất: {formatQuantityWithUnit(row.issuedQty, row.unitName ?? '')}</span><span className="block">Bếp nhận: {formatQuantityWithUnit(row.kitchenAcknowledgedQty, row.unitName ?? '')}</span></td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.supplementalRequestedQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalFulfilledQty, row.unitName ?? '')} / {formatQuantityWithUnit(row.supplementalPurchaseAllocatedQty, row.unitName ?? '')}</td>
                       <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.returnedQty + row.wastedQty, row.unitName ?? '')}</td>
-                      <td className="ipc-numeric-cell font-bold">{formatQuantityWithUnit(row.deltaQty, row.unitName ?? '')}</td>
-                      <td className="ipc-badge-cell"><StatusBadge variant={reconciliationTone(row.disposition)}>{row.legacyLineageExceptionCount > 0 ? `${formatReconciliationDisposition(row.disposition)} · ${row.legacyLineageExceptionCount} dòng` : formatReconciliationDisposition(row.disposition)}</StatusBadge></td>
+                      <td className="ipc-badge-cell"><StatusBadge variant={reconciliationTone(row.disposition)}>{row.legacyLineageExceptionCount > 0 ? `${formatReconciliationDisposition(row.disposition)} · ${row.legacyLineageExceptionCount} dòng` : formatReconciliationDisposition(row.disposition)}</StatusBadge><span className="mt-1 block text-right text-xs font-bold tabular-nums">Delta {formatQuantityWithUnit(row.deltaQty, row.unitName ?? '')}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -461,9 +448,6 @@ const ReportsPage = () => {
       </KeepAliveTabPanel>
 
       <KeepAliveTabPanel id="reports-audit" active={activeView === 'audit'}>
-        <Suspense fallback={reportCapabilityFallback}>
-          <ServiceRunReportPanel key={`${dateFrom}-${dateTo}-${shiftName}`} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} />
-        </Suspense>
         <ReportQueryBoundary view={reportViews.audit}>
           <SectionPanel title={`${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
             <TableViewport className="ipc-reports-audit-shell" ariaLabel="Bảng audit thay đổi hệ thống">
@@ -480,10 +464,10 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {auditRows.length === 0 ? <EmptyRow colSpan={7} isError={auditResult.isError} /> : auditRows.map((row, index) => (
-                    <tr key={`${row.id}-${index}`}>
+                  {auditRows.length === 0 ? <EmptyRow colSpan={7} isError={auditResult.isError} /> : auditRows.map((row) => (
+                    <tr key={row.id}>
                       <td>{formatDateTime(row.timestamp)}</td>
-                      <td>{row.actor}</td>
+                      <td><span title={row.actor}>{formatAuditActor(row.actor)}</span></td>
                       <td>{row.businessArea}</td>
                       <td>{row.fieldAffected}</td>
                       <td><span className="ipc-reports-audit-value">{row.oldValue}</span></td>
@@ -503,6 +487,7 @@ const ReportsPage = () => {
             />
           </SectionPanel>
         </ReportQueryBoundary>
+        <ServiceRunReportPanel key={`${dateFrom}-${dateTo}-${shiftName}`} dateFrom={dateFrom} dateTo={dateTo} shiftName={shiftName} />
       </KeepAliveTabPanel>
 
       <KeepAliveTabPanel id="reports-data-quality" active={activeView === 'data-quality'} fallback={reportCapabilityFallback}>

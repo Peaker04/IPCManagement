@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
-import { ReconciliationIssueHistoryTable } from './ReconciliationIssueHistoryTable'
+import { ReconciliationIssueHistoryTable } from '@/components/reconciliation/ReconciliationIssueHistoryTable'
 import type { ReconciliationIssueHistoryItem } from '@/api/reconciliationApi'
 
 const issue = (issueId: string, issueCode: string, lines: ReconciliationIssueHistoryItem['lines']): ReconciliationIssueHistoryItem => ({

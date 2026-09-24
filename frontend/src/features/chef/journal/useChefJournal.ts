@@ -5,9 +5,10 @@ import { toChefView } from '../chefQueryView'
 
 const EMPTY_CHEF_LIST: never[] = []
 
-export function useChefJournal(enabled = true) {
-  const documentsQuery = useGetWorkflowDocumentsQuery({ limit: 20 }, { skip: !enabled })
-  const movementsQuery = useGetStockMovementsQuery({ limit: 20 }, { skip: !enabled })
+export function useChefJournal(scope: { serviceDate: string; apiShiftName: string }, enabled = true) {
+  const query = { dateFrom: scope.serviceDate, dateTo: scope.serviceDate, shiftName: scope.apiShiftName, limit: 20 }
+  const documentsQuery = useGetWorkflowDocumentsQuery(query, { skip: !enabled })
+  const movementsQuery = useGetStockMovementsQuery(query, { skip: !enabled })
   const documentsView = toChefView(documentsQuery, 'chứng từ bếp', {
     getTruncation: (documents) => documents.length >= 20 ? { shown: documents.length } : null,
   })
