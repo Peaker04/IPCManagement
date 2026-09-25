@@ -455,7 +455,8 @@ public class Phase42AggregateVerificationTests
 
             result.ExitCode.Should().NotBe(0);
             var output = File.ReadAllText(fixture.Output);
-            output.Should().Contain("\"status\":  \"FAILED\"");
+            using var outputDocument = JsonDocument.Parse(output);
+            outputDocument.RootElement.GetProperty("status").GetString().Should().Be("FAILED");
             output.Should().NotContain("super-secret-value");
         }
         finally

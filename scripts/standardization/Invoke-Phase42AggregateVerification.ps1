@@ -109,13 +109,21 @@ function Get-CommandCounts([AllowEmptyString()][string]$Text) {
 function Invoke-CapturedCommand([string]$Command, [string]$ArtifactPrefix) {
     $directory = Split-Path -Parent $ArtifactPrefix
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
-    $commandFile = "$ArtifactPrefix.cmd"
+    $isWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    $commandFile = "$ArtifactPrefix" + $(if ($isWindows) { '.cmd' } else { '.sh' })
     $stdoutPath = "$ArtifactPrefix.stdout.txt"
     $stderrPath = "$ArtifactPrefix.stderr.txt"
-    [System.IO.File]::WriteAllText($commandFile, "@echo off`r`n$Command`r`n", [System.Text.Encoding]::ASCII)
+    $commandContent = if ($isWindows) { "@echo off`r`n$Command`r`n" } else { "#!/bin/sh`n$Command`n" }
+    [System.IO.File]::WriteAllText($commandFile, $commandContent, [System.Text.Encoding]::ASCII)
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = 'cmd.exe'
-    $startInfo.Arguments = '/d /s /c ""' + $commandFile + '""'
+    if ($isWindows) {
+        $startInfo.FileName = 'cmd.exe'
+        $startInfo.Arguments = '/d /s /c ""' + $commandFile + '""'
+    }
+    else {
+        $startInfo.FileName = '/bin/sh'
+        $startInfo.Arguments = '"' + $commandFile + '"'
+    }
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
     $startInfo.RedirectStandardOutput = $true
