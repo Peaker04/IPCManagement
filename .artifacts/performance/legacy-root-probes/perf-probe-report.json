@@ -1,0 +1,279 @@
+{
+  "startedAt": "2026-08-21T07:45:16.359Z",
+  "baseUrl": "http://127.0.0.1:3037",
+  "profile": "mock=huge",
+  "navigation": "context nguội theo route; tab được kích hoạt và xác minh aria-selected trước t_0",
+  "throttle": {
+    "cpuRate": 4,
+    "downKbps": 500,
+    "upKbps": 500,
+    "latencyMs": 400
+  },
+  "thresholds": {
+    "CGR_MAX": 0.1,
+    "CLS_MAX": 0.1,
+    "SCROLL_GROWTH_MAX_RATIO": 0.5,
+    "INP_MAX": 200,
+    "INP_MAX_LAB_4X": 500,
+    "OVERFLOW_TOLERANCE_PX": 1,
+    "PRESENTATION_DOMINANT_SHARE": 0.6,
+    "REPEATS": 5
+  },
+  "load": [
+    {
+      "id": "reports-data-quality",
+      "route": "reports",
+      "tab": "reports-data-quality",
+      "url": "http://127.0.0.1:3037/reports?mock=huge",
+      "notes": [],
+      "t0": {
+        "t": 7669.699999999255,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#reports-data-quality-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-data-quality-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 482.734375,
+        "anchorHeight": 48,
+        "clientHeight": 438,
+        "scrollHeight": 438,
+        "overflowY": "auto",
+        "rowsData": 0,
+        "rowsSkeleton": 8,
+        "rowHeights": [
+          48,
+          48,
+          48,
+          48,
+          48,
+          48,
+          48,
+          48
+        ],
+        "innerHeight": 900
+      },
+      "settled": {
+        "t": 9555.699999999255,
+        "scopeFound": true,
+        "frameFound": true,
+        "frameSelector": "#reports-data-quality-panel .ipc-table-viewport",
+        "anchorSelector": "#reports-data-quality-panel tbody tr:first-child",
+        "anchorFound": true,
+        "anchorTop": 482.734375,
+        "anchorHeight": 53,
+        "clientHeight": 478,
+        "scrollHeight": 478,
+        "overflowY": "auto",
+        "rowsData": 8,
+        "rowsSkeleton": 0,
+        "rowHeights": [
+          53,
+          53,
+          53,
+          53,
+          53,
+          53,
+          53,
+          53
+        ],
+        "innerHeight": 900
+      },
+      "rowsDataSettled": 8,
+      "rowsSkeletonAtT0": 8,
+      "clsSum": 0.003,
+      "clsWindow": 0.0025,
+      "clsSources": [
+        {
+          "value": 0.002526491769547325,
+          "startTime": 7183.9000000003725,
+          "sources": [
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 489,
+                "y": 80.59375,
+                "w": 208,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 529,
+                "y": 80.59375,
+                "w": 248,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "div.ipc-field-row",
+              "from": {
+                "x": 705,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              },
+              "to": {
+                "x": 785,
+                "y": 80.59375,
+                "w": 130,
+                "h": 55.546875
+              }
+            },
+            {
+              "node": "div.ipc-command-bar-actions.flex.shrink-0",
+              "from": {
+                "x": 1124.015625,
+                "y": 90.359375,
+                "w": 268.984375,
+                "h": 36
+              },
+              "to": {
+                "x": 1119.875,
+                "y": 90.359375,
+                "w": 273.125,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab",
+              "from": {
+                "x": 1204.25,
+                "y": 219.140625,
+                "w": 142.421875,
+                "h": 36
+              },
+              "to": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1074.8125,
+                "y": 219.140625,
+                "w": 129.4375,
+                "h": 36
+              },
+              "to": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.0004956427931295011,
+          "startTime": 9204.300000000745,
+          "sources": [
+            {
+              "node": "div.ipc-header-context",
+              "from": {
+                "x": 953.859375,
+                "y": 12.796875,
+                "w": 460.140625,
+                "h": 30
+              },
+              "to": {
+                "x": 937.203125,
+                "y": 12.796875,
+                "w": 476.796875,
+                "h": 30
+              }
+            },
+            {
+              "node": "button#reports-data-quality-tab.ipc-view-tab.is-active",
+              "from": {
+                "x": 1213.0625,
+                "y": 219.140625,
+                "w": 143.375,
+                "h": 36
+              },
+              "to": {
+                "x": 1233.484375,
+                "y": 219.140625,
+                "w": 145.15625,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-purchase-tab.ipc-view-tab",
+              "from": {
+                "x": 534.734375,
+                "y": 219.140625,
+                "w": 140.765625,
+                "h": 36
+              },
+              "to": {
+                "x": 540.9375,
+                "y": 219.140625,
+                "w": 144.8125,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-audit-tab.ipc-view-tab",
+              "from": {
+                "x": 1082.75,
+                "y": 219.140625,
+                "w": 130.3125,
+                "h": 36
+              },
+              "to": {
+                "x": 1101.015625,
+                "y": 219.140625,
+                "w": 132.46875,
+                "h": 36
+              }
+            },
+            {
+              "node": "button#reports-usage-tab.ipc-view-tab",
+              "from": {
+                "x": 955.328125,
+                "y": 219.140625,
+                "w": 127.421875,
+                "h": 36
+              },
+              "to": {
+                "x": 970.609375,
+                "y": 219.140625,
+                "w": 130.40625,
+                "h": 36
+              }
+            }
+          ]
+        }
+      ],
+      "lcp": {
+        "startTime": 7012,
+        "element": "div.ipc-exception-lane-title",
+        "size": 3240
+      },
+      "deltaTop": 0,
+      "cgrDenominator": 900,
+      "cgr": 0,
+      "growthDenominator": 438,
+      "growthRatio": 0.0913,
+      "growthFrameSelector": "#reports-data-quality-panel .ipc-table-viewport",
+      "gradable": true,
+      "verdicts": {
+        "cgr": "DAT",
+        "cls": "DAT",
+        "growth": "DAT"
+      }
+    }
+  ],
+  "inp": [],
+  "overflow": [],
+  "integrityViolations": [],
+  "counts": {
+    "loadRows": 1,
+    "loadGradable": 1,
+    "inpCells": 0,
+    "inpValueBearing": 0,
+    "overflowRuns": 0,
+    "overflowFailing": 0
+  }
+}

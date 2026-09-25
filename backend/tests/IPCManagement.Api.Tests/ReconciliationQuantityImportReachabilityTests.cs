@@ -136,10 +136,15 @@ public sealed class ReconciliationQuantityImportReachabilityTests
 
     private static string RepositoryRoot()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
-            directory = directory.Parent;
-        return directory?.FullName ?? throw new DirectoryNotFoundException("Repository root not found.");
+        foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
+        {
+            var git = Path.Combine(directory.FullName, ".git");
+            if (File.Exists(git) || Directory.Exists(git))
+                return directory.FullName;
+        }
+
+        throw new DirectoryNotFoundException("Repository root not found.");
     }
 
     public enum MaterialDefect

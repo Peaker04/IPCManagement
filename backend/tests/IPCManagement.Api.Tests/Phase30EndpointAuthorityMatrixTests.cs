@@ -126,10 +126,17 @@ public sealed class Phase30EndpointAuthorityMatrixTests
 
     private static string FindRepositoryRoot()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "IPCManagement.slnx")))
-            directory = directory.Parent;
-        return directory?.FullName ?? throw new DirectoryNotFoundException("Không tìm thấy repository root.");
+        foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "IPCManagement.slnx")))
+                return directory.FullName;
+            var backend = Path.Combine(directory.FullName, "backend");
+            if (File.Exists(Path.Combine(backend, "IPCManagement.slnx")))
+                return backend;
+        }
+
+        throw new DirectoryNotFoundException("Không tìm thấy repository root.");
     }
 
     public sealed record EndpointAuthorityRow(

@@ -40,7 +40,7 @@ const CONFIG = {
     PRESENTATION_DOMINANT_SHARE: 0.6,
     REPEATS: Number(process.env.PROBE_REPEATS || 5),
   },
-  reportPath: process.env.PROBE_REPORT || 'artifacts/perf-probe-report.json',
+  reportPath: process.env.PROBE_REPORT || '.artifacts/performance/perf-probe-report.json',
 }
 
 const ROUTES = [

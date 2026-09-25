@@ -1138,7 +1138,7 @@ function Invoke-D03LocalArchive {
 
     $prefix = Join-Path $EvidenceRoot 'commands/04-local-archive'
     $command = 'dotnet run --project backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj ' +
-        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-local-archive/ ' +
+        '--no-restore --artifacts-path ".artifacts/dotnet/phase42-' + $RunId + '-local-archive" ' +
         '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- ' +
         '--settings "' + $Settings + '" --database "' + $Target + '" --run-id "' + $RunId +
         '" --release "' + $releasePath + '" --output "' + $Output + '"'
@@ -1301,7 +1301,7 @@ function Invoke-D03RestoreDrill {
     }
     $prefix = Join-Path $EvidenceRoot 'commands/06-restore-drill'
     $command = 'dotnet run --project backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj ' +
-        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-restore-drill/ ' +
+        '--no-restore --artifacts-path ".artifacts/dotnet/phase42-' + $RunId + '-restore-drill" ' +
         '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- ' +
         '--mode restore --settings "' + $Settings + '" --database ipcmanagement --run-id "' + $RunId +
         '" --release "' + $releasePath + '" --archive-receipt "' + $archiveReceiptPath +
@@ -1364,7 +1364,7 @@ function Invoke-D03SevenTableRetention {
     $releasePath = [string]$run.revisedTaskCompletions.task3.releasePath
     $prefix = Join-Path $EvidenceRoot 'commands/07-seven-table-retention'
     $command = 'dotnet run --project backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj ' +
-        '--no-restore -p:BaseOutputPath=backend/.artifacts/phase42-' + $RunId + '-retention/ ' +
+        '--no-restore --artifacts-path ".artifacts/dotnet/phase42-' + $RunId + '-retention" ' +
         '-p:EnableDefaultContentItems=false -p:UseAppHost=false -- ' +
         '--mode retention --settings "' + $Settings + '" --database ipcmanagement --run-id "' + $RunId +
         '" --release "' + $releasePath + '" --archive-receipt "' + $archiveReceiptPath +

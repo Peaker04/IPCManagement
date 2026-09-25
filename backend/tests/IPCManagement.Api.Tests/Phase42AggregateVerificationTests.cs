@@ -77,11 +77,30 @@ public class Phase42AggregateVerificationTests
             .Where(command => command.Contains("dotnet ", StringComparison.Ordinal))
             .ToArray();
         dotnetCommands.Should().OnlyContain(command =>
-            command.Contains("BaseOutputPath", StringComparison.Ordinal) &&
+            (command.Contains("--artifacts-path .artifacts/dotnet/", StringComparison.Ordinal) ||
+             command.Contains("ArtifactsPath=(Join-Path (Get-Location) '.artifacts/dotnet/", StringComparison.Ordinal)) &&
             command.Contains("EnableDefaultContentItems", StringComparison.Ordinal));
+        dotnetCommands.Should().NotContain(command =>
+            command.Contains("BaseOutputPath", StringComparison.Ordinal));
         root.GetProperty("gates").EnumerateArray()
             .Single(gate => gate.GetProperty("id").GetString() == "ver-03-root-verify")
-            .GetProperty("command").GetString().Should().Contain("BaseOutputPath");
+            .GetProperty("command").GetString().Should()
+            .Contain("ArtifactsPath=(Join-Path (Get-Location) '.artifacts/dotnet/")
+            .And.NotContain("BaseOutputPath");
+
+        root.GetProperty("gates").EnumerateArray()
+            .Single(gate => gate.GetProperty("id").GetString() == "w0-pending-model")
+            .GetProperty("command").GetString().Should().Contain("--msbuildprojectextensionspath .artifacts/dotnet/");
+
+        var repositoryRoot = FindRepositoryRoot();
+        var buildProps = File.ReadAllText(Path.Combine(repositoryRoot, "Directory.Build.props"));
+        buildProps.Should().Contain("<UseArtifactsOutput>true</UseArtifactsOutput>");
+        buildProps.Should().Contain("<ArtifactsPath>$(MSBuildThisFileDirectory).artifacts/dotnet</ArtifactsPath>");
+        buildProps.Should().Contain("**/.artifacts/**");
+        buildProps.Should().Contain("**/.artifactslk*/**");
+        buildProps.Should().Contain("**/.tmp-*/**");
+        buildProps.Should().Contain("**/bin-*/**");
+        buildProps.Should().Contain("backend/**");
     }
 
     [Theory]
@@ -560,6 +579,7 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
+    [Trait("Category", "EvidenceOwned")]
     public void D05_evidence_release_should_emit_exact_accepted_risk_rows_without_business_execution_claims()
     {
         var root = FindRepositoryRoot();
@@ -626,6 +646,7 @@ public class Phase42AggregateVerificationTests
     }
 
     [Theory]
+    [Trait("Category", "EvidenceOwned")]
     [InlineData("database-connection")]
     [InlineData("runtime-boot")]
     [InlineData("mutation")]
@@ -723,6 +744,8 @@ public class Phase42AggregateVerificationTests
         runner.Should().Contain("Invoke-D03RestoreDrill");
         runner.Should().Contain("Invoke-D03SevenTableRetention");
         runner.Should().Contain("IPCManagement.Phase42ArchiveTool.csproj");
+        runner.Should().Contain("--artifacts-path \".artifacts/dotnet/phase42-");
+        runner.Should().NotContain("BaseOutputPath");
         runner.Should().Contain("Assert-D05Release");
         runner.Should().Contain("Test-Plan05ArtifactGate");
         runner.Should().Contain("{manifest}");
@@ -732,6 +755,7 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
+    [Trait("Category", "EvidenceOwned")]
     public void D03_restore_approval_should_bind_only_the_exact_reviewed_archive()
     {
         var root = FindRepositoryRoot();
@@ -766,6 +790,7 @@ public class Phase42AggregateVerificationTests
     }
 
     [Fact]
+    [Trait("Category", "EvidenceOwned")]
     public void Gap_source_contract_should_bind_fresh_evidence_to_immutable_archive_and_approval_target()
     {
         var root = FindRepositoryRoot();
@@ -823,6 +848,7 @@ public class Phase42AggregateVerificationTests
     }
 
     [Theory]
+    [Trait("Category", "EvidenceOwned")]
     [InlineData("missing-migration")]
     [InlineData("extra-migration")]
     [InlineData("reordered-migrations")]
@@ -887,6 +913,16 @@ public class Phase42AggregateVerificationTests
         {
             Directory.Delete(temp, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Clean_ci_should_run_hermetic_phase42_contracts_and_exclude_only_evidence_owned_cases()
+    {
+        var workflow = File.ReadAllText(Path.Combine(
+            FindRepositoryRoot(), ".github", "workflows", "verify.yml"));
+
+        workflow.Should().Contain("Category!=EvidenceOwned");
+        workflow.Should().NotContain("FullyQualifiedName!~Phase42AggregateVerificationTests");
     }
 
     [Fact]

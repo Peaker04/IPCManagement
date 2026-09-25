@@ -15,6 +15,7 @@ const child = spawn(
     env: {
       ...process.env,
       NODE_OPTIONS: '--max-old-space-size=1024',
+      CI: process.env.CI ?? 'true',
     },
   },
 )

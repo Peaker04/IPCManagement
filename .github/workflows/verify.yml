@@ -80,6 +80,18 @@ jobs:
           HUSKY: "0"
         run: npm ci
 
+      - name: Enforce repository ignore policy
+        run: npm run test:ignore-policy
+
+      - name: Enforce frontend test taxonomy
+        run: npm run test:frontend-test-taxonomy
+
+      - name: Regression test frontend unit launcher arguments
+        run: npm run test:frontend-unit-launcher
+
+      - name: Verify deterministic Phase 05 Golden fixtures
+        run: npm run test:phase05-fixture-determinism
+
       - name: Regression test architecture growth gate
         run: npm run test:architecture-growth
 
@@ -108,6 +120,7 @@ jobs:
           ./.dotnet-tools/dotnet-ef migrations has-pending-model-changes
           --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
           --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+          --msbuildprojectextensionspath .artifacts/dotnet/obj/IPCManagement.Api
           --no-build
 
       - name: Install MySQL client
@@ -119,6 +132,7 @@ jobs:
           ./.dotnet-tools/dotnet-ef dbcontext script \
             --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
             --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
+            --msbuildprojectextensionspath .artifacts/dotnet/obj/IPCManagement.Api \
             --output ./.artifacts/ipc-schema.sql \
             --no-build
 
@@ -129,15 +143,15 @@ jobs:
           mysql -h 127.0.0.1 -uroot -p123456789 ipcmanagement_ci < ./.artifacts/ipc-schema.sql
           mysql -h 127.0.0.1 -uroot -p123456789 -e "SELECT COUNT(*) AS created_tables FROM information_schema.tables WHERE table_schema = 'ipcmanagement_ci';"
 
-      # Hai contract harness dưới đây điều khiển Windows PowerShell và evidence local
-      # không được commit; local Windows full gate vẫn chạy chúng. Linux CI loại đúng
-      # harness platform-specific, không loại production/API/integration tests.
+      # Evidence-owned Phase 42 cases consume ignored local archive/approval receipts and
+      # stay in the Windows evidence lane. Clean CI runs the hermetic Phase 42 contracts.
+      # RecoveryScriptContractTests remains Windows PowerShell-specific.
       # Integration chạy riêng trên database vừa dựng ở bước kế tiếp; loại khỏi lượt
       # unit/application chung để không chạy hai lần và không dùng lại database đã mutate.
       - name: Test backend
         run: >
           npm run test:be --
-          --filter "FullyQualifiedName!~IPCManagement.Api.Tests.Integration&FullyQualifiedName!~Phase42AggregateVerificationTests&FullyQualifiedName!~RecoveryScriptContractTests"
+          --filter "FullyQualifiedName!~IPCManagement.Api.Tests.Integration&Category!=EvidenceOwned&FullyQualifiedName!~RecoveryScriptContractTests"
           --logger "trx"
           --results-directory "${{ github.workspace }}/.artifacts/test-results/backend"
 

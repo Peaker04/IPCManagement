@@ -12,13 +12,43 @@
   },
   "findings": [
     {
+      "id": "frontend:frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx",
+      "kind": "frontend",
+      "name": "frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx",
+      "files": [
+        "frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx"
+      ],
+      "lines": 1320,
+      "level": "WARNING"
+    },
+    {
+      "id": "frontend:frontend/src/features/projects/pages/WeeklyMenuPage.tsx",
+      "kind": "frontend",
+      "name": "frontend/src/features/projects/pages/WeeklyMenuPage.tsx",
+      "files": [
+        "frontend/src/features/projects/pages/WeeklyMenuPage.tsx"
+      ],
+      "lines": 690,
+      "level": "WARNING"
+    },
+    {
+      "id": "frontend:frontend/src/api/reportsApi.ts",
+      "kind": "frontend",
+      "name": "frontend/src/api/reportsApi.ts",
+      "files": [
+        "frontend/src/api/reportsApi.ts"
+      ],
+      "lines": 604,
+      "level": "WARNING"
+    },
+    {
       "id": "service:MaterialDemandService",
       "kind": "service",
       "name": "MaterialDemandService",
       "files": [
         "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
       ],
-      "lines": 1384,
+      "lines": 1394,
       "level": "PLAN_REQUIRED"
     },
     {
@@ -30,6 +60,47 @@
       ],
       "lines": 1152,
       "level": "PLAN_REQUIRED"
+    },
+    {
+      "id": "service:ReconciliationBatchService",
+      "kind": "service",
+      "name": "ReconciliationBatchService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
+      ],
+      "lines": 776,
+      "level": "WARNING"
+    },
+    {
+      "id": "service:ServiceRunService",
+      "kind": "service",
+      "name": "ServiceRunService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.Projection.cs",
+        "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.cs"
+      ],
+      "lines": 730,
+      "level": "WARNING"
+    },
+    {
+      "id": "service:InventoryReturnService",
+      "kind": "service",
+      "name": "InventoryReturnService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReturnService.cs"
+      ],
+      "lines": 618,
+      "level": "WARNING"
+    },
+    {
+      "id": "service:InventoryOperationsReportService",
+      "kind": "service",
+      "name": "InventoryOperationsReportService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Reports/Services/InventoryOperationsReportService.cs"
+      ],
+      "lines": 605,
+      "level": "WARNING"
     }
   ]
 }
