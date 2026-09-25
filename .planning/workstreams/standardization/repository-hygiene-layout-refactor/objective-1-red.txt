@@ -1,0 +1,22 @@
+Architecture growth report (strict production baseline)
+Thresholds: controller >250 lines/>12 actions; plan >400/>20; service >600, plan >1000; FE >600; test >1500.
+[WARNING] frontend frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx: lines=1320; lines 1320>600
+[WARNING] frontend frontend/src/features/projects/pages/WeeklyMenuPage.tsx: lines=690; lines 690>600
+[WARNING] frontend frontend/src/api/reportsApi.ts: lines=604; lines 604>600
+[PLAN_REQUIRED] service MaterialDemandService: lines=1394; lines 1394>600
+[PLAN_REQUIRED] service PurchaseHistoryReconciliationService: lines=1152; lines 1152>600
+[WARNING] service ReconciliationBatchService: lines=776; lines 776>600
+[WARNING] service ServiceRunService: lines=730; lines 730>600
+  files: backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.Projection.cs, backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.cs
+[WARNING] service InventoryReturnService: lines=618; lines 618>600
+[WARNING] service InventoryOperationsReportService: lines=605; lines 605>600
+Summary: 9 finding(s), 2 require a split plan.
+NEW_DEBT frontend:frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx: lines=1320.
+NEW_DEBT frontend:frontend/src/features/projects/pages/WeeklyMenuPage.tsx: lines=690.
+NEW_DEBT frontend:frontend/src/api/reportsApi.ts: lines=604.
+WORSENED_DEBT service:MaterialDemandService: baseline={"id":"service:MaterialDemandService","kind":"service","name":"MaterialDemandService","files":["backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"],"lines":1384,"level":"PLAN_REQUIRED"}, current={"id":"service:MaterialDemandService","kind":"service","name":"MaterialDemandService","files":["backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"],"lines":1394,"level":"PLAN_REQUIRED"}.
+NEW_DEBT service:ReconciliationBatchService: lines=776.
+NEW_DEBT service:ServiceRunService: lines=730.
+NEW_DEBT service:InventoryReturnService: lines=618.
+NEW_DEBT service:InventoryOperationsReportService: lines=605.
+Strict architecture growth gate failed with 8 issue(s).

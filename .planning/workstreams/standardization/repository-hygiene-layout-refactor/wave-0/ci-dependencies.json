@@ -1,0 +1,564 @@
+[
+  {
+    "file": "package.json",
+    "line": 14,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 15,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 16,
+    "roots": [
+      "backend/",
+      "frontend/",
+      ".artifacts/",
+      "artifacts/",
+      "contracts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 17,
+    "roots": [
+      "frontend/",
+      "contracts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 18,
+    "roots": [
+      "frontend/",
+      "contracts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 19,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 20,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 21,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 22,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 24,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 25,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 26,
+    "roots": [
+      "frontend/",
+      "docs/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 28,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 33,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 34,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 35,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 38,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 39,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "package.json",
+    "line": 40,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 15,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 37,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 38,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 39,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 40,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 41,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 42,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": "frontend/package.json",
+    "line": 43,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 45,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 95,
+    "roots": [
+      "scripts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 108,
+    "roots": [
+      "tools/",
+      ".dotnet-tools/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 109,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 110,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 119,
+    "roots": [
+      "tools/",
+      ".dotnet-tools/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 120,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 121,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 122,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 129,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 142,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 148,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 153,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 160,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 173,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 178,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 184,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 189,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 210,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 225,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 226,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 227,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 229,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 233,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 234,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 237,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 242,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/verify.yml",
+    "line": 330,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".github/workflows/codeql.yml",
+    "line": 42,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/dependabot.yml",
+    "line": 45,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/dependabot.yml",
+    "line": 46,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/dependabot.yml",
+    "line": 47,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": ".github/dependabot.yml",
+    "line": 48,
+    "roots": [
+      "backend/",
+      "tools/"
+    ]
+  },
+  {
+    "file": "Dockerfile",
+    "line": 6,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "Dockerfile",
+    "line": 7,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "Dockerfile",
+    "line": 9,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "Dockerfile",
+    "line": 11,
+    "roots": [
+      "backend/"
+    ]
+  },
+  {
+    "file": "vercel.json",
+    "line": 5,
+    "roots": [
+      "frontend/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 8,
+    "roots": [
+      ".planning/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 10,
+    "roots": [
+      "tools/",
+      ".dotnet-tools/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 39,
+    "roots": [
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 40,
+    "roots": [
+      ".artifacts/",
+      "artifacts/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 41,
+    "roots": [
+      "tools/",
+      ".dotnet-tools/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 71,
+    "roots": [
+      "frontend/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 72,
+    "roots": [
+      "frontend/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 74,
+    "roots": [
+      "frontend/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 100,
+    "roots": [
+      "docs/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 102,
+    "roots": [
+      "docs/"
+    ]
+  },
+  {
+    "file": ".dockerignore",
+    "line": 107,
+    "roots": [
+      "scripts/"
+    ]
+  }
+]

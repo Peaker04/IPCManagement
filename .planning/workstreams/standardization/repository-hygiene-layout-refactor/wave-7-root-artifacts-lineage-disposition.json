@@ -1,0 +1,42 @@
+[
+  {
+    "path": "artifacts/perf-probe-wave7-all-load.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-wave7-all-load.md",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-geometry.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-geometry.md",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-inp-smoke-v2.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-inp-search.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-inp-tab.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-admin-audit-pagination.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-coordination-export.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "artifacts/perf-probe-purchasing-submit.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  }
+]

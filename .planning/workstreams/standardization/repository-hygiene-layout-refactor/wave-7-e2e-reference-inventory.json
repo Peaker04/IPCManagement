@@ -1,0 +1,533 @@
+[
+  {
+    "path": "tools/e2e/Extract-Phase05CurrentWeekCommitReceipt.mjs",
+    "bytes": 1824,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/Phase05WeeklyMenuFixtureTool.csproj",
+    "bytes": 376,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/Program.cs",
+    "bytes": 5500,
+    "refs": [
+      "CONTRIBUTING.md",
+      "tools/perf/RUNBOOK.md",
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "docs/CONFIGURATION.md",
+      "docs/ARCHITECTURE.md",
+      "docs/ARCHITECTURE-REDESIGN-2026-07-26.md",
+      "docs/DEPLOYMENT.md",
+      "tools/perf/k6/load.js",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceExportCommandTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceClosureCommandTests.cs",
+      "docs/PA-STATE-ACTION-PERMISSION-AUDIT.md",
+      "docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/DatabaseClonePolicyTests.cs",
+      "scripts/check-ignore-policy.test.mjs",
+      "docs/research/database-current-state-audit-2026-08-10.md",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs",
+      "frontend/tests/weekly-menu-lifecycle-pa2b.spec.ts",
+      "frontend/tests/weekly-menu-lifecycle-pa2b-fixture.ts",
+      "backend/tests/IPCManagement.Api.Tests/WeeklyMenuLifecyclePa2RegistrySourceTests.cs",
+      "backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs"
+    ],
+    "currentRefs": [
+      "CONTRIBUTING.md",
+      "tools/perf/RUNBOOK.md",
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "docs/CONFIGURATION.md",
+      "docs/ARCHITECTURE.md",
+      "docs/ARCHITECTURE-REDESIGN-2026-07-26.md",
+      "docs/DEPLOYMENT.md",
+      "tools/perf/k6/load.js",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceExportCommandTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceClosureCommandTests.cs",
+      "docs/PA-STATE-ACTION-PERMISSION-AUDIT.md",
+      "docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/DatabaseClonePolicyTests.cs",
+      "scripts/check-ignore-policy.test.mjs",
+      "docs/research/database-current-state-audit-2026-08-10.md",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs",
+      "frontend/tests/weekly-menu-lifecycle-pa2b.spec.ts",
+      "frontend/tests/weekly-menu-lifecycle-pa2b-fixture.ts",
+      "backend/tests/IPCManagement.Api.Tests/WeeklyMenuLifecyclePa2RegistrySourceTests.cs",
+      "backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs"
+    ]
+  },
+  {
+    "path": "tools/e2e/Probe-Phase05StickyMenuHeader.mjs",
+    "bytes": 6515,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Read-Phase05CurrentWeekMenuImport.mjs",
+    "bytes": 5102,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05CanonicalMenuImport.mjs",
+    "bytes": 10489,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05CanonicalMenuReadback.mjs",
+    "bytes": 6648,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05CanonicalMenuUiGate.mjs",
+    "bytes": 11925,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05CurrentWeekMenuImport.mjs",
+    "bytes": 7338,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05Exceptions.ps1",
+    "bytes": 3832,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05GoldenPath.ps1",
+    "bytes": 3287,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05Task0UiCorrections.mjs",
+    "bytes": 6828,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Run-Phase05WeekStartNormalizationGate.mjs",
+    "bytes": 5687,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Start-BaselineRuntime.ps1",
+    "bytes": 4096,
+    "refs": [
+      "docs/archive/agent-memory/MEMORY-pre-harness-20260908.md"
+    ],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Start-GoldenDemoRuntime.ps1",
+    "bytes": 4059,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/Test-Phase05GoldenDemoScope.ps1",
+    "bytes": 4546,
+    "refs": [
+      "docs/operations/golden-demo-walkthrough.md",
+      "docs/archive/agent-memory/MEMORY-pre-harness-20260908.md"
+    ],
+    "currentRefs": [
+      "docs/operations/golden-demo-walkthrough.md"
+    ]
+  },
+  {
+    "path": "tools/e2e/Test-Phase05HeadedControl.ps1",
+    "bytes": 7668,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/default-campaign-wave0.mjs",
+    "bytes": 4862,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/default-campaign-weekly-menu-happy.mjs",
+    "bytes": 7930,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/default-campaign-weekly-menu-readback.mjs",
+    "bytes": 5321,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/default-campaign-weekly-menu-worst.mjs",
+    "bytes": 7400,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-ANV.xlsx",
+    "bytes": 8876,
+    "refs": [
+      "docs/EVIDENCE-INDEX.md",
+      "tools/e2e/Run-Phase05Task0UiCorrections.mjs",
+      "tools/e2e/Run-Phase05CurrentWeekMenuImport.mjs",
+      "tools/e2e/Run-Phase05CanonicalMenuImport.mjs",
+      "tools/e2e/Probe-Phase05StickyMenuHeader.mjs",
+      "tools/e2e/Phase05WeeklyMenuFixtureTool/Program.cs"
+    ],
+    "currentRefs": [
+      "docs/EVIDENCE-INDEX.md",
+      "tools/e2e/Run-Phase05Task0UiCorrections.mjs",
+      "tools/e2e/Run-Phase05CurrentWeekMenuImport.mjs",
+      "tools/e2e/Run-Phase05CanonicalMenuImport.mjs",
+      "tools/e2e/Probe-Phase05StickyMenuHeader.mjs",
+      "tools/e2e/Phase05WeeklyMenuFixtureTool/Program.cs"
+    ]
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-DAV.xlsx",
+    "bytes": 8873,
+    "refs": [
+      "docs/EVIDENCE-INDEX.md",
+      "tools/e2e/Run-Phase05CurrentWeekMenuImport.mjs",
+      "tools/e2e/Run-Phase05CanonicalMenuImport.mjs",
+      "tools/e2e/Phase05WeeklyMenuFixtureTool/Program.cs"
+    ],
+    "currentRefs": [
+      "docs/EVIDENCE-INDEX.md",
+      "tools/e2e/Run-Phase05CurrentWeekMenuImport.mjs",
+      "tools/e2e/Run-Phase05CanonicalMenuImport.mjs",
+      "tools/e2e/Phase05WeeklyMenuFixtureTool/Program.cs"
+    ]
+  },
+  {
+    "path": "tools/e2e/phase05-aggregate-golden-viewports.mjs",
+    "bytes": 1603,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-amendment-ui-probe.mjs",
+    "bytes": 2145,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-build-golden-manifest.mjs",
+    "bytes": 10653,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-build-quality-isolation-manifest.mjs",
+    "bytes": 4015,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-chef-checklist-visual-probe.mjs",
+    "bytes": 5108,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-cls-attribution.mjs",
+    "bytes": 1818,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-demand-tab-probe.mjs",
+    "bytes": 7594,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-ambiguous-lineage-readback.mjs",
+    "bytes": 8545,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-excess-disposition.mjs",
+    "bytes": 10692,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-excess-negative.mjs",
+    "bytes": 6766,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-kitchen-discrepancy.mjs",
+    "bytes": 11360,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-retry-matrix-continuation.mjs",
+    "bytes": 11400,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-retry-matrix.mjs",
+    "bytes": 13314,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-return-receipt.mjs",
+    "bytes": 10945,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-service-runs.mjs",
+    "bytes": 13469,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-shared-shortage-blocked-allocation.mjs",
+    "bytes": 10770,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-supplemental-partial.mjs",
+    "bytes": 13314,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-exception-waste.mjs",
+    "bytes": 11383,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-finalize-excess-disposition.mjs",
+    "bytes": 5354,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-finalize-return-receipt.mjs",
+    "bytes": 7873,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-finalize-supplemental-partial.mjs",
+    "bytes": 8465,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-finalize-supplemental-route.mjs",
+    "bytes": 8855,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-approve-demands.mjs",
+    "bytes": 5363,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-approve-purchase-requests.mjs",
+    "bytes": 5572,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-create-issues.mjs",
+    "bytes": 8840,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-create-purchase-orders.mjs",
+    "bytes": 6192,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-create-purchase-requests.mjs",
+    "bytes": 7102,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-create-receipts.mjs",
+    "bytes": 6289,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-five-viewports.mjs",
+    "bytes": 5649,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-kitchen-acknowledgement.mjs",
+    "bytes": 8826,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-receipt-lifecycle.mjs",
+    "bytes": 10164,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-service-runs.mjs",
+    "bytes": 13356,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-stage1-diagnostic.mjs",
+    "bytes": 6945,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-stage1.mjs",
+    "bytes": 17942,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-golden-supplier-decisions.mjs",
+    "bytes": 12052,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-manager-service-run-probe.mjs",
+    "bytes": 2981,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-menu-amendment-correction.mjs",
+    "bytes": 6503,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-menu-amendment-create.mjs",
+    "bytes": 10290,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-menu-amendment-readback.mjs",
+    "bytes": 3259,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-purchasing-tab-split.mjs",
+    "bytes": 4288,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-quality-isolation-approve.mjs",
+    "bytes": 5477,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-quality-isolation-order.mjs",
+    "bytes": 5281,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-quality-isolation-partial.mjs",
+    "bytes": 6566,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-quality-isolation-read-probe.mjs",
+    "bytes": 2462,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-quality-isolation-readback.mjs",
+    "bytes": 4420,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-quality-isolation-receipt.mjs",
+    "bytes": 6210,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-quality-isolation-supplier.mjs",
+    "bytes": 8067,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-readback-kitchen-discrepancy.mjs",
+    "bytes": 6636,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-readback-supplemental-partial.mjs",
+    "bytes": 7491,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-supplemental-clean-dav.mjs",
+    "bytes": 9316,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/phase05-weekly-menu-fulfillment-readback.mjs",
+    "bytes": 4703,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/run-phase28-baseline-recovery.mjs",
+    "bytes": 7436,
+    "refs": [],
+    "currentRefs": []
+  },
+  {
+    "path": "tools/e2e/run-phase28-remediation.mjs",
+    "bytes": 5797,
+    "refs": [],
+    "currentRefs": []
+  }
+]

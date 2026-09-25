@@ -1,0 +1,537 @@
+[
+  {
+    "file": ".gitignore",
+    "line": 5,
+    "pattern": "[Dd]ebug/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 6,
+    "pattern": "[Rr]elease/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 7,
+    "pattern": "x64/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 8,
+    "pattern": "x86/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 9,
+    "pattern": "[Bb]in/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 10,
+    "pattern": "[Oo]bj/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 11,
+    "pattern": "[Ll]og/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 12,
+    "pattern": "[Ll]ogs/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 15,
+    "pattern": ".vs/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 16,
+    "pattern": "*.suo"
+  },
+  {
+    "file": ".gitignore",
+    "line": 17,
+    "pattern": "*.user"
+  },
+  {
+    "file": ".gitignore",
+    "line": 18,
+    "pattern": "*.userosscache"
+  },
+  {
+    "file": ".gitignore",
+    "line": 19,
+    "pattern": "*.sln.docstates"
+  },
+  {
+    "file": ".gitignore",
+    "line": 20,
+    "pattern": "*.rsuser"
+  },
+  {
+    "file": ".gitignore",
+    "line": 23,
+    "pattern": "**/[Pp]ackages/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 24,
+    "pattern": "!**/[Pp]ackages/build/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 25,
+    "pattern": "*.nupkg"
+  },
+  {
+    "file": ".gitignore",
+    "line": 26,
+    "pattern": "**/packages/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 27,
+    "pattern": "project.lock.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 28,
+    "pattern": "project.fragment.lock.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 29,
+    "pattern": "artifacts/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 30,
+    "pattern": "**/.artifacts/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 34,
+    "pattern": "!/.artifacts/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 35,
+    "pattern": "/.artifacts/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 36,
+    "pattern": "!/.artifacts/goal-ui-ux/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 37,
+    "pattern": "/.artifacts/goal-ui-ux/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 38,
+    "pattern": "!/.artifacts/goal-ui-ux/reaudit-async-performance-20260915-sol/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 39,
+    "pattern": "!/.artifacts/goal-ui-ux/reaudit-async-performance-20260915-sol/*.md"
+  },
+  {
+    "file": ".gitignore",
+    "line": 40,
+    "pattern": "!/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 41,
+    "pattern": "/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 42,
+    "pattern": "!/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/metrics.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 43,
+    "pattern": "!/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/teardown.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 44,
+    "pattern": "!/.artifacts/goal-ui-ux/runtime-r3-r4-20260915-sol/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 45,
+    "pattern": "/.artifacts/goal-ui-ux/runtime-r3-r4-20260915-sol/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 46,
+    "pattern": "!/.artifacts/goal-ui-ux/runtime-r3-r4-20260915-sol/teardown-final.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 47,
+    "pattern": "!/.artifacts/shipyard-live/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 48,
+    "pattern": "/.artifacts/shipyard-live/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 49,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 50,
+    "pattern": "/.artifacts/shipyard-live/goal-ui-ux/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 51,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 52,
+    "pattern": "/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 53,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/browser/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 54,
+    "pattern": "/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/browser/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 55,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/browser/manifest.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 56,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/warehouse-exceptions-after-pagination/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 57,
+    "pattern": "/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/warehouse-exceptions-after-pagination/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 58,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/warehouse-exceptions-after-pagination/manifest.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 59,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/final-current-source-retry/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 60,
+    "pattern": "/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/final-current-source-retry/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 61,
+    "pattern": "!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/final-current-source-retry/manifest.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 64,
+    "pattern": "*.suo"
+  },
+  {
+    "file": ".gitignore",
+    "line": 65,
+    "pattern": "*.user"
+  },
+  {
+    "file": ".gitignore",
+    "line": 66,
+    "pattern": "*.userosscache"
+  },
+  {
+    "file": ".gitignore",
+    "line": 67,
+    "pattern": "*.sln.docstates"
+  },
+  {
+    "file": ".gitignore",
+    "line": 70,
+    "pattern": "**/appsettings.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 71,
+    "pattern": "!**/appsettings.json.example"
+  },
+  {
+    "file": ".gitignore",
+    "line": 72,
+    "pattern": "**/appsettings.Development.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 73,
+    "pattern": "**/appsettings.Production.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 74,
+    "pattern": "**/appsettings.Staging.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 79,
+    "pattern": "node_modules/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 80,
+    "pattern": "dist/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 83,
+    "pattern": ".env"
+  },
+  {
+    "file": ".gitignore",
+    "line": 84,
+    "pattern": ".env.local"
+  },
+  {
+    "file": ".gitignore",
+    "line": 85,
+    "pattern": ".env.development.local"
+  },
+  {
+    "file": ".gitignore",
+    "line": 86,
+    "pattern": ".env.test.local"
+  },
+  {
+    "file": ".gitignore",
+    "line": 87,
+    "pattern": ".env.production.local"
+  },
+  {
+    "file": ".gitignore",
+    "line": 90,
+    "pattern": "npm-debug.log*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 91,
+    "pattern": "yarn-debug.log*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 92,
+    "pattern": "yarn-error.log*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 93,
+    "pattern": "pnpm-debug.log*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 94,
+    "pattern": "lerna-debug.log*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 97,
+    "pattern": "frontend/test-results/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 98,
+    "pattern": "frontend/playwright-report/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 101,
+    "pattern": "TestResults/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 102,
+    "pattern": "frontend/coverage/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 107,
+    "pattern": ".idea/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 108,
+    "pattern": "*.swp"
+  },
+  {
+    "file": ".gitignore",
+    "line": 109,
+    "pattern": "*.swo"
+  },
+  {
+    "file": ".gitignore",
+    "line": 110,
+    "pattern": "*~"
+  },
+  {
+    "file": ".gitignore",
+    "line": 111,
+    "pattern": ".vscode/settings.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 116,
+    "pattern": ".DS_Store"
+  },
+  {
+    "file": ".gitignore",
+    "line": 117,
+    "pattern": "Thumbs.db"
+  },
+  {
+    "file": ".gitignore",
+    "line": 118,
+    "pattern": "ehthumbs.db"
+  },
+  {
+    "file": ".gitignore",
+    "line": 119,
+    "pattern": "Desktop.ini"
+  },
+  {
+    "file": ".gitignore",
+    "line": 124,
+    "pattern": ".claude/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 125,
+    "pattern": "**/.planning/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 126,
+    "pattern": "!/.planning/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 127,
+    "pattern": "/.planning/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 128,
+    "pattern": "!/.planning/workstreams/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 129,
+    "pattern": "/.planning/workstreams/*"
+  },
+  {
+    "file": ".gitignore",
+    "line": 130,
+    "pattern": "!/.planning/workstreams/standardization/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 131,
+    "pattern": "!/.planning/workstreams/standardization/**"
+  },
+  {
+    "file": ".gitignore",
+    "line": 132,
+    "pattern": "AGENTS.md"
+  },
+  {
+    "file": ".gitignore",
+    "line": 133,
+    "pattern": "CLAUDE.md"
+  },
+  {
+    "file": ".gitignore",
+    "line": 134,
+    "pattern": ".vercel"
+  },
+  {
+    "file": ".gitignore",
+    "line": 137,
+    "pattern": "skills-lock.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 138,
+    "pattern": "docs/agents/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 139,
+    "pattern": ".scratch/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 142,
+    "pattern": ".docs/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 143,
+    "pattern": "Project_Tracking*.xlsx"
+  },
+  {
+    "file": ".gitignore",
+    "line": 154,
+    "pattern": "__pycache__/"
+  },
+  {
+    "file": ".gitignore",
+    "line": 155,
+    "pattern": "*.pyc"
+  },
+  {
+    "file": ".gitignore",
+    "line": 158,
+    "pattern": ".codex/skills/**/scripts/tests/coverage-*.json"
+  },
+  {
+    "file": ".gitignore",
+    "line": 161,
+    "pattern": "test-results/"
+  },
+  {
+    "file": ".git/info/exclude",
+    "line": 7,
+    "pattern": ".gitnexus/"
+  },
+  {
+    "file": ".git/info/exclude",
+    "line": 8,
+    "pattern": ".claude/worktrees/"
+  },
+  {
+    "file": ".git/info/exclude",
+    "line": 9,
+    "pattern": ".dotnet-tools/"
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/canonical-import-readback.json",
+    "disposition": "RESEAL_CURRENT_BYTES_AFTER_SEMANTIC_REVIEW",
+    "reason": "Current PASS readback supports the indexed ANV/DAV week/version/status/120-row, zero-browser-error and protected-lane-attempt-zero claim. Indexed bytes are unavailable, but current semantics remain aligned."
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/golden/stage1-diagnostic/result.json",
+    "disposition": "RESEAL_CURRENT_BYTES_AFTER_SEMANTIC_REVIEW",
+    "reason": "Current READ_ONLY_PASS diagnostic still proves the described demand-tab activation and is explicitly non-Golden/superseded attempt evidence."
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/browser/service-run-close.json",
+    "disposition": "RETIRE_STALE_REFERENCE",
+    "reason": "Indexed claim says Chef login returned 401 and stopped before business mutation; current file says actor beptruong, status passed, existing closed service run rendered, and zero mutations. Same path now represents a different attempt."
+  },
+  {
+    "path": ".artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-probe.json",
+    "disposition": "RETIRE_STALE_REFERENCE",
+    "reason": "Indexed claim and historical memory describe a Manager retry; current JSON records actor admin. Current bytes cannot support the indexed actor/provenance claim."
+  },
+  {
+    "path": ".artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-1440x900.png",
+    "disposition": "RETIRE_STALE_REFERENCE",
+    "reason": "Indexed claim describes a Manager screenshot; current image visibly shows Admin User. Current bytes cannot support the indexed actor claim."
+  },
+  {
+    "path": ".artifacts/shipyard-live/ui-phase03-wave2-table-performance/manifest.json",
+    "disposition": "RETIRE_STALE_REFERENCE",
+    "reason": "Indexed claim says 35 rendered table instances and a production-build run; current manifest records 31 tables, 44 route probes and development module URLs. Same path no longer supports the indexed denominator/environment claim."
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-service-run-live-20260812-final/submit-approve-create-current-pr/api/result.json",
+    "indexLine": 106,
+    "disposition": "RETIRE_DUPLICATE_STALE_ROW",
+    "reason": "Line 106 describes the earlier 401 attempt. The same path is indexed again on line 107 with the current hash and current failed-after-PO-creation semantics. Retire only line 106; keep line 107."
+  }
+]

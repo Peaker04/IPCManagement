@@ -1,0 +1,32 @@
+[
+  {
+    "path": "frontend/docs/perf/probe-h1-preview-report.json",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": "frontend/docs/perf/probe-h1-preview-report.md",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": ".planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/evidence/28-15-frontend-closeout.txt",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE"
+  },
+  {
+    "path": ".artifacts/information-simplification/f05-20260913-003/",
+    "disposition": "DIRECTORY_ROOT_VALID_SCANNER_FALSE_MISSING",
+    "indexedChildren": 15,
+    "indexedChildrenMatched": 15
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/",
+    "disposition": "DIRECTORY_ROOT_VALID_SCANNER_FALSE_MISSING",
+    "indexedChildren": 4,
+    "indexedChildrenMatched": 4
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/",
+    "disposition": "DIRECTORY_ROOT_VALID_SCANNER_FALSE_MISSING",
+    "indexedChildren": 4,
+    "indexedChildrenMatched": 4
+  }
+]

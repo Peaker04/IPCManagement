@@ -1,0 +1,1699 @@
+{
+  "schemaVersion": 1,
+  "finishedAt": "2026-09-24T17:06:57.008392+00:00",
+  "candidateCount": 270,
+  "deletedThisPass": 67,
+  "alreadyAbsentCount": 203,
+  "failedCount": 0,
+  "remainingCount": 0,
+  "status": "PASS",
+  "results": [
+    {
+      "path": "backend/.artifacts",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifacts",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk3",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk4",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk5",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk6",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.phase05test",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-original-structure-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-template-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-template-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-unit-label-final",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-unit-label-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-vietnamese-units-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-disposition-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-issue-history-lines-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-live-zero-fix",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-manual-issue-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-manual-issue-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-migration-compile",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-goal-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-goal-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-enum-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests3",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-overissue-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-stale-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final3",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-test-output",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/backend",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-gatefix",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-plan04201",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-runnerfix",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-t7",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-task8final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-task8map",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-task8map2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/obj",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/src/obj",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifacts",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk3",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk4",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk5",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk6",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.phase05test",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-original-structure-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-template-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-template-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-unit-label-final",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-unit-label-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-vietnamese-units-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-disposition-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-issue-history-lines-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-live-zero-fix",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-manual-issue-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-manual-issue-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-migration-compile",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-goal-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-goal-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-enum-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests3",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-overissue-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-stale-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final2",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final3",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-tests",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-test-output",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/TestResults",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/backend",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-gatefix",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04201",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-build",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-focused",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-full",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-complete-full",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-complete-sln",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-compile",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-focused",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-focused2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-full",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-sln",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test1",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test3",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test4",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test5",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-exact-outcome",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-build",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-focused",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-full",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-sourceaware-full",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-sourceaware",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04204-final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-runnerfix",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-t7",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-task8final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-task8map",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-task8map2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/obj",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/.artifacts",
+      "status": "deleted",
+      "existsAfter": false,
+      "exitCode": 0,
+      "stderr": ""
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/backend",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04201",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-acceptance",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-full",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-arch-green",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-arch-red",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/obj",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifacts",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk3",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk4",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk5",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk6",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.phase05test",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-original-structure-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-template-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-template-tests2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-unit-label-final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-unit-label-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-vietnamese-units-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-disposition-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-issue-history-lines-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-live-zero-fix",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-manual-issue-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-manual-issue-tests2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-migration-compile",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-goal-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-goal-tests2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-enum-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests3",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-overissue-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-stale-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final3",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-tests",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-test-output",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/backend",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-gatefix",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-plan04201",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-runnerfix",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-t7",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8final",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8map",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8map2",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/obj",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.Phase42ArchiveTool/backend",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.Phase42ArchiveTool/bin",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.Phase42ArchiveTool/obj",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "frontend/dist",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "frontend/test-results",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "logs",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "src",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/annotated_types/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/attr/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_harness/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use/skills/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/_core/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/generated/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/generated/v2/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/v2/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/v2/resources/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/accessibility/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/animation/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/audits/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/autofill/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/backgroundservice/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/bluetoothemulation/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/browser/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/browseruse/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/cachestorage/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/cast/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/console/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/css/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/debugger/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/deviceaccess/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/deviceorientation/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/dom/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domdebugger/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domsnapshot/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domstorage/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/emulation/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/eventbreakpoints/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/extensions/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/fedcm/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/fetch/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/filesystem/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/headlessexperimental/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/heapprofiler/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/indexeddb/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/input/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/inspector/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/io/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/layertree/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/log/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/media/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/memory/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/network/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/overlay/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/page/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/performance/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/performancetimeline/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/preload/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/profiler/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/pwa/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/runtime/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/schema/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/security/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/serviceworker/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/storage/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/systeminfo/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/target/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/tethering/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/tracing/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/webaudio/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/webauthn/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/click/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/dotenv/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/httpx/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/httpx/_transports/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/idna/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/psutil/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/_internal/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/plugin/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_core/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/sources/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/sources/providers/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/filters/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/lexers/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/styles/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/rich/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/rich/_unicode_data/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/typing_inspection/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/websockets/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/websockets/asyncio/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/websockets/extensions/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/win32/lib/__pycache__",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/bin",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/obj",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    },
+    {
+      "path": ".artifacts/dotnet",
+      "status": "already-absent",
+      "existsAfter": false,
+      "exitCode": 0
+    }
+  ]
+}
