@@ -1,0 +1,149 @@
+[
+  {
+    "path": "tools/db/phase05/phase05-shared-shortage-fixture-ipc-lane7-reviewed.sql",
+    "line": 50,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "AEB79EE053ECB28FA3C4D423C7FC1DC8F227CD123BEDA30B691C71C9E682AD13",
+    "actualSha256": "1B1D36C729EA2A69C3AD9FD39F506F6FE056AFB125478D25E7C16867FD70624A",
+    "hashMatches": false,
+    "headSha256": "AEB79EE053ECB28FA3C4D423C7FC1DC8F227CD123BEDA30B691C71C9E682AD13",
+    "workingTreeEqualsHead": false,
+    "history": [
+      {
+        "commit": "e32119eacbc7ec79a98558f054a13adf9beea614",
+        "sha256": "AEB79EE053ECB28FA3C4D423C7FC1DC8F227CD123BEDA30B691C71C9E682AD13",
+        "bytes": 7158,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "tools/db/phase05/phase05-ambiguous-lineage-fixture-ipc-lane7-reviewed.sql",
+    "line": 52,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "591FE22066D8FF2E97E1ED0FE9E4723207DCCB124533E0B1F70B6204F86BCBE0",
+    "actualSha256": "484F8D238CFE19F53F20F2EC3C7DCAA1C03C63F9796785BB7096FD5B60A2D8F6",
+    "hashMatches": false,
+    "headSha256": "591FE22066D8FF2E97E1ED0FE9E4723207DCCB124533E0B1F70B6204F86BCBE0",
+    "workingTreeEqualsHead": false,
+    "history": [
+      {
+        "commit": "5874bbfa5b60219cd79eb5439372f7624f4581c6",
+        "sha256": "591FE22066D8FF2E97E1ED0FE9E4723207DCCB124533E0B1F70B6204F86BCBE0",
+        "bytes": 3785,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-ANV.xlsx",
+    "line": 75,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "BDB76CC7063339E83D427AC021C80F852A34685AEEAA93DBF4CBC13384A698C1",
+    "actualSha256": "2CC485BD146F1F4892DA9830F3F428AD0435387563282177FA94B3B03EA2965E",
+    "hashMatches": false,
+    "headSha256": "2CC485BD146F1F4892DA9830F3F428AD0435387563282177FA94B3B03EA2965E",
+    "workingTreeEqualsHead": true,
+    "history": [
+      {
+        "commit": "cb97d7dbdfb3d47a4c523c9af2d7a02f3bea24c8",
+        "sha256": "2CC485BD146F1F4892DA9830F3F428AD0435387563282177FA94B3B03EA2965E",
+        "bytes": 8876,
+        "matchesExpected": false,
+        "matchesCurrent": true
+      }
+    ]
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-DAV.xlsx",
+    "line": 76,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "F7E14FE5C88A959529E7B80E950A9F7435F019FD18EC551702F9080CC3BE9061",
+    "actualSha256": "2BD34F7D471DF23E63EFD9DA22D2904BC61E68C5E78EB4A18EFDEE940FCB7AAC",
+    "hashMatches": false,
+    "headSha256": "2BD34F7D471DF23E63EFD9DA22D2904BC61E68C5E78EB4A18EFDEE940FCB7AAC",
+    "workingTreeEqualsHead": true,
+    "history": [
+      {
+        "commit": "cb97d7dbdfb3d47a4c523c9af2d7a02f3bea24c8",
+        "sha256": "2BD34F7D471DF23E63EFD9DA22D2904BC61E68C5E78EB4A18EFDEE940FCB7AAC",
+        "bytes": 8873,
+        "matchesExpected": false,
+        "matchesCurrent": true
+      }
+    ]
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-fixture-ipc-lane7-reviewed.sql",
+    "line": 380,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "513CEFC37BC16F299292C8E6705EFA97C1889CD02911071A7D0AD1EE1141432E",
+    "actualSha256": "3AB68EEC52DC49A959B956F562C7202C010A36E0B7672FD4B423EF4AE85FBDCB",
+    "hashMatches": false,
+    "headSha256": "513CEFC37BC16F299292C8E6705EFA97C1889CD02911071A7D0AD1EE1141432E",
+    "workingTreeEqualsHead": false,
+    "history": [
+      {
+        "commit": "0cc7fbf60f72709deff033f352d9b8350837350d",
+        "sha256": "513CEFC37BC16F299292C8E6705EFA97C1889CD02911071A7D0AD1EE1141432E",
+        "bytes": 5827,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-continuation-ipc-lane7-reviewed.sql",
+    "line": 381,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "9F158B803168D90E0A8BC52B3322746112ABAB27397DB7D4B0BB01E985490448",
+    "actualSha256": "68BAAE15D5C358DD03507E0319669F7D455129CE56FFEB2A92583112C5426DF9",
+    "hashMatches": false,
+    "headSha256": "9F158B803168D90E0A8BC52B3322746112ABAB27397DB7D4B0BB01E985490448",
+    "workingTreeEqualsHead": false,
+    "history": [
+      {
+        "commit": "0cc7fbf60f72709deff033f352d9b8350837350d",
+        "sha256": "9F158B803168D90E0A8BC52B3322746112ABAB27397DB7D4B0BB01E985490448",
+        "bytes": 4401,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-final-continuation-ipc-lane7-reviewed.sql",
+    "line": 382,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01",
+    "actualSha256": "8001D580CFA40EA9A58C164101D528190B333AF23D9BAA7E57FE76A3560815F4",
+    "hashMatches": false,
+    "headSha256": "1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01",
+    "workingTreeEqualsHead": false,
+    "history": [
+      {
+        "commit": "0cc7fbf60f72709deff033f352d9b8350837350d",
+        "sha256": "1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01",
+        "bytes": 4191,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  }
+]

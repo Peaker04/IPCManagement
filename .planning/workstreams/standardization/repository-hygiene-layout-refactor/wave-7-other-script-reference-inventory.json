@@ -1,0 +1,729 @@
+[
+  {
+    "path": "scripts/Assert-Phase18Evidence.ps1",
+    "bytes": 5201,
+    "references": [
+      "docs/AGENT-BRIEF-ASSESSMENT-2026-07-30.md",
+      "docs/DEVELOPMENT.md",
+      "docs/TESTING.md",
+      "HISTORY.md"
+    ],
+    "currentReferences": [
+      "docs/AGENT-BRIEF-ASSESSMENT-2026-07-30.md",
+      "docs/DEVELOPMENT.md",
+      "docs/TESTING.md"
+    ]
+  },
+  {
+    "path": "scripts/Assert-TestSuiteDecomposition.ps1",
+    "bytes": 5899,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/Invoke-Iter1ExceptionPathE2E.ps1",
+    "bytes": 7589,
+    "references": [
+      "package.json",
+      "docs/TESTING.md"
+    ],
+    "currentReferences": [
+      "package.json",
+      "docs/TESTING.md"
+    ]
+  },
+  {
+    "path": "scripts/Invoke-Iter1HappyPathE2E.ps1",
+    "bytes": 34688,
+    "references": [
+      "package.json",
+      "README.md",
+      "scripts/Invoke-WeeklyHappyPathE2E.ps1"
+    ],
+    "currentReferences": [
+      "package.json",
+      "README.md",
+      "scripts/Invoke-WeeklyHappyPathE2E.ps1"
+    ]
+  },
+  {
+    "path": "scripts/Invoke-Phase18LaneE2E.ps1",
+    "bytes": 29688,
+    "references": [
+      "docs/DEVELOPMENT.md"
+    ],
+    "currentReferences": [
+      "docs/DEVELOPMENT.md"
+    ]
+  },
+  {
+    "path": "scripts/Invoke-WeeklyHappyPathE2E.ps1",
+    "bytes": 5424,
+    "references": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "package.json",
+      "shipyard/profiles/IPCManagement/hooks/e2e.sh",
+      "scripts/Invoke-Phase18LaneE2E.ps1",
+      "docs/TESTING.md"
+    ],
+    "currentReferences": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "package.json",
+      "shipyard/profiles/IPCManagement/hooks/e2e.sh",
+      "scripts/Invoke-Phase18LaneE2E.ps1",
+      "docs/TESTING.md"
+    ]
+  },
+  {
+    "path": "scripts/architecture-growth-baseline.json",
+    "bytes": 3158,
+    "references": [
+      "docs/ARCHITECTURE.md",
+      "docs/TESTING.md",
+      "scripts/check-architecture-growth.mjs",
+      "HISTORY.md",
+      "scripts/check-architecture-growth.test.mjs"
+    ],
+    "currentReferences": [
+      "docs/ARCHITECTURE.md",
+      "docs/TESTING.md",
+      "scripts/check-architecture-growth.mjs",
+      "scripts/check-architecture-growth.test.mjs"
+    ]
+  },
+  {
+    "path": "scripts/check-architecture-growth.mjs",
+    "bytes": 13714,
+    "references": [
+      "package.json",
+      "scripts/check-architecture-growth.test.mjs",
+      "docs/ARCHITECTURE.md"
+    ],
+    "currentReferences": [
+      "package.json",
+      "scripts/check-architecture-growth.test.mjs",
+      "docs/ARCHITECTURE.md"
+    ]
+  },
+  {
+    "path": "scripts/check-architecture-growth.test.mjs",
+    "bytes": 5258,
+    "references": [
+      "package.json"
+    ],
+    "currentReferences": [
+      "package.json"
+    ]
+  },
+  {
+    "path": "scripts/check-frontend-checklist-integration.mjs",
+    "bytes": 1557,
+    "references": [
+      "package.json"
+    ],
+    "currentReferences": [
+      "package.json"
+    ]
+  },
+  {
+    "path": "scripts/check-frontend-test-count.mjs",
+    "bytes": 2014,
+    "references": [
+      "package.json"
+    ],
+    "currentReferences": [
+      "package.json"
+    ]
+  },
+  {
+    "path": "scripts/database-recovery/ImmutableObjectProvider.ps1",
+    "bytes": 6326,
+    "references": [
+      "backend/tests/IPCManagement.Api.Tests/RecoveryScriptContractTests.cs",
+      "scripts/database-recovery/Invoke-DatabaseRecovery.ps1"
+    ],
+    "currentReferences": [
+      "backend/tests/IPCManagement.Api.Tests/RecoveryScriptContractTests.cs",
+      "scripts/database-recovery/Invoke-DatabaseRecovery.ps1"
+    ]
+  },
+  {
+    "path": "scripts/database-recovery/Invoke-DatabaseRecovery.ps1",
+    "bytes": 15056,
+    "references": [
+      "scripts/database-recovery/README.md",
+      "backend/tests/IPCManagement.Api.Tests/RecoveryScriptContractTests.cs"
+    ],
+    "currentReferences": [
+      "scripts/database-recovery/README.md",
+      "backend/tests/IPCManagement.Api.Tests/RecoveryScriptContractTests.cs"
+    ]
+  },
+  {
+    "path": "scripts/database-recovery/README.md",
+    "bytes": 2772,
+    "references": [
+      "AGENTS.md",
+      "HISTORY.md",
+      "MEMORY.md",
+      "README.md",
+      ".artifacts/goal-ui-ux/reaudit-async-performance-20260915-sol/authority.md",
+      "frontend/README.md",
+      "docs/UI-UX-MEASUREMENT-PROTOCOL.md",
+      "docs/UI-UX-EXECUTION-HARNESS.md",
+      "docs/harness/README.md",
+      "docs/harness/manifest.json",
+      "docs/harness/MAINTENANCE.md",
+      "docs/harness/DELIVERY.md",
+      "docs/README.md",
+      "docs/archive/README.md",
+      "docs/archive/ui-process-history/WAVE-3-AUDIT.md",
+      "docs/archive/ui-process-history/WAVE-2-AUDIT.md",
+      "docs/archive/ui-process-history/WAVE-1A-AUDIT.md",
+      "docs/archive/ui-process-history/WAVE-0-CLOSEOUT.md",
+      "docs/archive/ui-process-history/UI-REFRESH-STATE-AUDIT-2026-08-13.md",
+      "docs/archive/agent-memory/MEMORY-pre-harness-20260908.md",
+      "docs/archive/ui-process-history/TYPOGRAPHY-STANDARDIZATION-CHECKLIST.md",
+      "docs/archive/ui-process-history/SERVICE-RUN-MODEL-HARDENING-CHECKLIST.md",
+      "docs/archive/ui-process-history/SERVICE-RUN-LIFECYCLE-CHECKLIST.md",
+      "docs/AGENT-BRIEF-ASSESSMENT-2026-07-30.md",
+      "docs/archive/ui-process-history/SCHEDULE-LAYOUT-SHIFT-RESEARCH.md",
+      "docs/archive/ui-process-history/ROUTE-BUDGET-AND-UI-UX-COMPLETION-CHECKLIST.md",
+      "tools/check_agent_harness.py"
+    ],
+    "currentReferences": [
+      "AGENTS.md",
+      "README.md",
+      "frontend/README.md",
+      "docs/UI-UX-MEASUREMENT-PROTOCOL.md",
+      "docs/UI-UX-EXECUTION-HARNESS.md",
+      "docs/harness/README.md",
+      "docs/harness/manifest.json",
+      "docs/harness/MAINTENANCE.md",
+      "docs/harness/DELIVERY.md",
+      "docs/README.md",
+      "docs/AGENT-BRIEF-ASSESSMENT-2026-07-30.md",
+      "tools/check_agent_harness.py"
+    ]
+  },
+  {
+    "path": "scripts/database-recovery/RestoreOracle.ps1",
+    "bytes": 1043,
+    "references": [
+      "docs/TESTING.md",
+      "backend/tests/IPCManagement.Api.Tests/RecoveryScriptContractTests.cs",
+      "scripts/database-recovery/Invoke-DatabaseRecovery.ps1"
+    ],
+    "currentReferences": [
+      "docs/TESTING.md",
+      "backend/tests/IPCManagement.Api.Tests/RecoveryScriptContractTests.cs",
+      "scripts/database-recovery/Invoke-DatabaseRecovery.ps1"
+    ]
+  },
+  {
+    "path": "scripts/frontend-unit-runner-args.mjs",
+    "bytes": 379,
+    "references": [
+      "scripts/run-frontend-unit-with-heap.mjs",
+      "scripts/frontend-unit-runner-args.test.mjs"
+    ],
+    "currentReferences": [
+      "scripts/run-frontend-unit-with-heap.mjs",
+      "scripts/frontend-unit-runner-args.test.mjs"
+    ]
+  },
+  {
+    "path": "scripts/frontend-unit-runner-args.test.mjs",
+    "bytes": 705,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/run-frontend-unit-with-heap.mjs",
+    "bytes": 775,
+    "references": [
+      "package.json",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ],
+    "currentReferences": [
+      "package.json",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ]
+  },
+  {
+    "path": "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+    "bytes": 107337,
+    "references": [
+      "scripts/standardization/phase42-verification-gates.json",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ],
+    "currentReferences": [
+      "scripts/standardization/phase42-verification-gates.json",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ]
+  },
+  {
+    "path": "scripts/standardization/New-WeeklyMenuWorkbookCaseMatrix.ps1",
+    "bytes": 5756,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/Start-Phase6Runtime.ps1",
+    "bytes": 3121,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/Stop-Phase6Runtime.ps1",
+    "bytes": 1002,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/current-week-bom-e2e.mjs",
+    "bytes": 13292,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/full-project-lifecycle-e2e.mjs",
+    "bytes": 22116,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/phase42-verification-gates.json",
+    "bytes": 10497,
+    "references": [
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ],
+    "currentReferences": [
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ]
+  },
+  {
+    "path": "scripts/standardization/purchase-supplier-e2e.mjs",
+    "bytes": 39949,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/service-run-lifecycle-e2e.mjs",
+    "bytes": 9839,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/service-run-reports-e2e.mjs",
+    "bytes": 3844,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/service-run-surfaces-e2e.mjs",
+    "bytes": 3291,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/service-run-variance-waiver-e2e.mjs",
+    "bytes": 8296,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "scripts/standardization/weekly-menu-headed-e2e.mjs",
+    "bytes": 20907,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "frontend/scripts/check-route-budgets.mjs",
+    "bytes": 8168,
+    "references": [
+      "docs/perf/BUNDLE-AUDIT-WAVE8.md",
+      "docs/perf/BUNDLE-API-BOUNDARY-RESEARCH.md",
+      "frontend/package.json",
+      "frontend/tests/dashboardUiRulesContracts.test.ts"
+    ],
+    "currentReferences": [
+      "docs/perf/BUNDLE-AUDIT-WAVE8.md",
+      "docs/perf/BUNDLE-API-BOUNDARY-RESEARCH.md",
+      "frontend/package.json",
+      "frontend/tests/dashboardUiRulesContracts.test.ts"
+    ]
+  },
+  {
+    "path": "frontend/scripts/check-workflow-api-boundary.mjs",
+    "bytes": 1248,
+    "references": [
+      "frontend/package.json"
+    ],
+    "currentReferences": [
+      "frontend/package.json"
+    ]
+  },
+  {
+    "path": "frontend/scripts/dual-mode-fluidity-audit.mjs",
+    "bytes": 25714,
+    "references": [
+      "frontend/package.json"
+    ],
+    "currentReferences": [
+      "frontend/package.json"
+    ]
+  },
+  {
+    "path": "frontend/scripts/generate-phase30-request-contract.mjs",
+    "bytes": 546,
+    "references": [
+      "frontend/package.json"
+    ],
+    "currentReferences": [
+      "frontend/package.json"
+    ]
+  },
+  {
+    "path": "frontend/scripts/perf-probe-metrics.mjs",
+    "bytes": 2306,
+    "references": [
+      "frontend/scripts/perf-probe.mjs",
+      "frontend/scripts/perf-probe-metrics.test.mjs"
+    ],
+    "currentReferences": [
+      "frontend/scripts/perf-probe.mjs",
+      "frontend/scripts/perf-probe-metrics.test.mjs"
+    ]
+  },
+  {
+    "path": "frontend/scripts/perf-probe-metrics.test.mjs",
+    "bytes": 2284,
+    "references": [
+      "frontend/package.json"
+    ],
+    "currentReferences": [
+      "frontend/package.json"
+    ]
+  },
+  {
+    "path": "frontend/scripts/perf-probe.mjs",
+    "bytes": 41304,
+    "references": [
+      "frontend/package.json",
+      "docs/archive/ui-process-history/WAVE-3-AUDIT.md",
+      "docs/archive/ui-process-history/WAVE-2-AUDIT.md",
+      "docs/TABLE-STANDARDIZATION-ROADMAP.md",
+      "docs/perf/inp-coverage-research.md",
+      "docs/CODE-CLEANUP-INVENTORY.md"
+    ],
+    "currentReferences": [
+      "frontend/package.json",
+      "docs/TABLE-STANDARDIZATION-ROADMAP.md",
+      "docs/perf/inp-coverage-research.md",
+      "docs/CODE-CLEANUP-INVENTORY.md"
+    ]
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/BackupTableRetirementCommand.cs",
+    "bytes": 6857,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/DataQualityClassificationCommand.cs",
+    "bytes": 7664,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/DatabaseClonePolicy.cs",
+    "bytes": 2152,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/DatabaseSanitizePolicy.cs",
+    "bytes": 896,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/IPCManagement.DatabaseTool.csproj",
+    "bytes": 349,
+    "references": [
+      "backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj",
+      "backend/IPCManagement.slnx",
+      "shipyard/profiles/IPCManagement/hooks/reset.sh",
+      "shipyard/profiles/IPCManagement/hooks/create-template.sh",
+      "scripts/standardization/weekly-menu-headed-e2e.mjs",
+      "scripts/standardization/full-project-lifecycle-e2e.mjs",
+      "scripts/standardization/current-week-bom-e2e.mjs",
+      "scripts/Invoke-Phase18LaneE2E.ps1",
+      "backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj",
+      "docs/TESTING.md",
+      "docs/LIFECYCLE-MIGRATION-RUNBOOK.md"
+    ],
+    "currentReferences": [
+      "backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj",
+      "backend/IPCManagement.slnx",
+      "shipyard/profiles/IPCManagement/hooks/reset.sh",
+      "shipyard/profiles/IPCManagement/hooks/create-template.sh",
+      "scripts/standardization/weekly-menu-headed-e2e.mjs",
+      "scripts/standardization/full-project-lifecycle-e2e.mjs",
+      "scripts/standardization/current-week-bom-e2e.mjs",
+      "scripts/Invoke-Phase18LaneE2E.ps1",
+      "backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj",
+      "docs/TESTING.md",
+      "docs/LIFECYCLE-MIGRATION-RUNBOOK.md"
+    ]
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/Phase42DisposableRehearsalCommand.cs",
+    "bytes": 28904,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/Program.cs",
+    "bytes": 63394,
+    "references": [
+      "CONTRIBUTING.md",
+      "docs/ARCHITECTURE.md",
+      "docs/ARCHITECTURE-REDESIGN-2026-07-26.md",
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "tools/perf/RUNBOOK.md",
+      "docs/CONFIGURATION.md",
+      "docs/DEPLOYMENT.md",
+      "tools/perf/k6/load.js",
+      "docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md",
+      "docs/PA-STATE-ACTION-PERMISSION-AUDIT.md",
+      "docs/research/database-current-state-audit-2026-08-10.md",
+      "scripts/check-ignore-policy.test.mjs",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceExportCommandTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceClosureCommandTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/DatabaseClonePolicyTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs",
+      "frontend/tests/weekly-menu-lifecycle-pa2b.spec.ts",
+      "frontend/tests/weekly-menu-lifecycle-pa2b-fixture.ts",
+      "backend/tests/IPCManagement.Api.Tests/WeeklyMenuLifecyclePa2RegistrySourceTests.cs",
+      "backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs"
+    ],
+    "currentReferences": [
+      "CONTRIBUTING.md",
+      "docs/ARCHITECTURE.md",
+      "docs/ARCHITECTURE-REDESIGN-2026-07-26.md",
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "tools/perf/RUNBOOK.md",
+      "docs/CONFIGURATION.md",
+      "docs/DEPLOYMENT.md",
+      "tools/perf/k6/load.js",
+      "docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md",
+      "docs/PA-STATE-ACTION-PERMISSION-AUDIT.md",
+      "docs/research/database-current-state-audit-2026-08-10.md",
+      "scripts/check-ignore-policy.test.mjs",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceExportCommandTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceClosureCommandTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/DatabaseClonePolicyTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs",
+      "frontend/tests/weekly-menu-lifecycle-pa2b.spec.ts",
+      "frontend/tests/weekly-menu-lifecycle-pa2b-fixture.ts",
+      "backend/tests/IPCManagement.Api.Tests/WeeklyMenuLifecyclePa2RegistrySourceTests.cs",
+      "backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs"
+    ]
+  },
+  {
+    "path": "backend/tools/IPCManagement.Phase42ArchiveTool/IPCManagement.Phase42ArchiveTool.csproj",
+    "bytes": 376,
+    "references": [
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ],
+    "currentReferences": [
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs"
+    ]
+  },
+  {
+    "path": "backend/tools/IPCManagement.Phase42ArchiveTool/Program.cs",
+    "bytes": 58771,
+    "references": [
+      "CONTRIBUTING.md",
+      "tools/perf/RUNBOOK.md",
+      "tools/perf/k6/load.js",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceClosureCommandTests.cs",
+      "docs/ARCHITECTURE.md",
+      "docs/ARCHITECTURE-REDESIGN-2026-07-26.md",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceExportCommandTests.cs",
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "docs/CONFIGURATION.md",
+      "backend/tests/IPCManagement.Api.Tests/DatabaseClonePolicyTests.cs",
+      "docs/DEPLOYMENT.md",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "scripts/check-ignore-policy.test.mjs",
+      "docs/PA-STATE-ACTION-PERMISSION-AUDIT.md",
+      "docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md",
+      "docs/research/database-current-state-audit-2026-08-10.md",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/WeeklyMenuLifecyclePa2RegistrySourceTests.cs",
+      "frontend/tests/weekly-menu-lifecycle-pa2b.spec.ts",
+      "frontend/tests/weekly-menu-lifecycle-pa2b-fixture.ts",
+      "backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs"
+    ],
+    "currentReferences": [
+      "CONTRIBUTING.md",
+      "tools/perf/RUNBOOK.md",
+      "tools/perf/k6/load.js",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceClosureCommandTests.cs",
+      "docs/ARCHITECTURE.md",
+      "docs/ARCHITECTURE-REDESIGN-2026-07-26.md",
+      "backend/tests/IPCManagement.Api.Tests/BusinessEvidenceExportCommandTests.cs",
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "docs/CONFIGURATION.md",
+      "backend/tests/IPCManagement.Api.Tests/DatabaseClonePolicyTests.cs",
+      "docs/DEPLOYMENT.md",
+      "scripts/standardization/Invoke-Phase42AggregateVerification.ps1",
+      "scripts/check-ignore-policy.test.mjs",
+      "docs/PA-STATE-ACTION-PERMISSION-AUDIT.md",
+      "docs/P3-P4-PC-WEEKLY-MENU-AUDIT.md",
+      "docs/research/database-current-state-audit-2026-08-10.md",
+      "backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs",
+      "backend/tests/IPCManagement.Api.Tests/WeeklyMenuLifecyclePa2RegistrySourceTests.cs",
+      "frontend/tests/weekly-menu-lifecycle-pa2b.spec.ts",
+      "frontend/tests/weekly-menu-lifecycle-pa2b-fixture.ts",
+      "backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs"
+    ]
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/config-local.env.example",
+    "bytes": 423,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/boot.sh",
+    "bytes": 694,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/bootstrap.sh",
+    "bytes": 497,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/ci-gate.sh",
+    "bytes": 324,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/create-template.sh",
+    "bytes": 930,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/database-env.sh",
+    "bytes": 1778,
+    "references": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "shipyard/profiles/IPCManagement/hooks/migrate.sh",
+      "shipyard/profiles/IPCManagement/hooks/boot.sh"
+    ],
+    "currentReferences": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "shipyard/profiles/IPCManagement/hooks/migrate.sh",
+      "shipyard/profiles/IPCManagement/hooks/boot.sh"
+    ]
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/e2e.sh",
+    "bytes": 2859,
+    "references": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "docs/DEVELOPMENT.md",
+      "docs/TESTING.md"
+    ],
+    "currentReferences": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "docs/DEVELOPMENT.md",
+      "docs/TESTING.md"
+    ]
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/health.sh",
+    "bytes": 778,
+    "references": [
+      "HISTORY.md",
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md"
+    ],
+    "currentReferences": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md"
+    ]
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/migrate.sh",
+    "bytes": 304,
+    "references": [
+      "shipyard/profiles/IPCManagement/hooks/reset.sh"
+    ],
+    "currentReferences": [
+      "shipyard/profiles/IPCManagement/hooks/reset.sh"
+    ]
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/reset.sh",
+    "bytes": 1227,
+    "references": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "shipyard/profiles/IPCManagement/hooks/e2e.sh",
+      "docs/DEVELOPMENT.md",
+      "docs/TESTING.md"
+    ],
+    "currentReferences": [
+      "docs/ARCHITECTURE-AUDIT-2026-07-26.md",
+      "shipyard/profiles/IPCManagement/hooks/e2e.sh",
+      "docs/DEVELOPMENT.md",
+      "docs/TESTING.md"
+    ]
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/hooks/seed.sh",
+    "bytes": 194,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/integrations.env",
+    "bytes": 344,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/profiles/IPCManagement/profile.env",
+    "bytes": 1474,
+    "references": [],
+    "currentReferences": []
+  },
+  {
+    "path": "shipyard/shipyard.manifest.json",
+    "bytes": 1185,
+    "references": [
+      "docs/archive/agent-memory/MEMORY-pre-harness-20260908.md",
+      "docs/harness/RUNTIMES.md",
+      "docs/SHIPYARD-CLEANUP-INVENTORY.md"
+    ],
+    "currentReferences": [
+      "docs/harness/RUNTIMES.md",
+      "docs/SHIPYARD-CLEANUP-INVENTORY.md"
+    ]
+  }
+]

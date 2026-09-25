@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import config from '../playwright.browser-support.config';
+import config from './config/browser-support.config';
 import {
   CRITICAL_BROWSER_WORKFLOWS,
   EXPECTED_BROWSER_EVIDENCE_CELL_COUNT,

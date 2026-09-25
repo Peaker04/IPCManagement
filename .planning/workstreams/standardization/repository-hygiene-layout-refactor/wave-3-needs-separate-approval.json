@@ -1,0 +1,26 @@
+[
+  {
+    "path": ".dotnet-tools",
+    "bytes": 2430396,
+    "files": 24,
+    "exists": true
+  },
+  {
+    "path": ".gitnexus",
+    "bytes": 1617891523,
+    "files": 95,
+    "exists": true
+  },
+  {
+    "path": "frontend/node_modules",
+    "bytes": 12203494,
+    "files": 211,
+    "exists": true
+  },
+  {
+    "path": "node_modules",
+    "bytes": 669586120,
+    "files": 50769,
+    "exists": true
+  }
+]

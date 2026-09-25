@@ -7,7 +7,7 @@ const root = resolve(import.meta.dirname, '../..')
 const phase = '.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence'
 const evidence = JSON.parse(readFileSync(resolve(root, phase, 'purchasing-phase09-dispositions.json'), 'utf8'))
 const matrix = JSON.parse(readFileSync(resolve(root, phase, 'corrected-authorization-matrix.json'), 'utf8'))
-const visualSpec = readFileSync(resolve(root, 'frontend/tests/visual-routes.spec.ts'), 'utf8')
+const visualSpec = readFileSync(resolve(root, 'frontend/tests/browser/visual-routes.spec.ts'), 'utf8')
 const sha256 = (path: string) => createHash('sha256').update(readFileSync(resolve(root, path))).digest('hex')
 
 const identities = [

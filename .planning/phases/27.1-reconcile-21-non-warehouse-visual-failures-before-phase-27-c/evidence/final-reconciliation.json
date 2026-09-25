@@ -9,7 +9,7 @@
       "identity": "chef-dashboard-desktop",
       "displayOrdinal": 4,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/chef-dashboard-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/chef-dashboard-desktop-chromium-win32.png",
       "cause": "post-fixture stable baseline sealed after readiness correction",
       "beforeSha256": [
         "9f3224d3561f796410ef7276db3534ff4279ed5739a1b4b34652685ce724da04",
@@ -23,14 +23,14 @@
       "newSnapshotSha256": "9f3224d3561f796410ef7276db3534ff4279ed5739a1b4b34652685ce724da04",
       "priorCorrection": {
         "disposition": "fixture-drift",
-        "owner": "frontend/tests/visual-routes.spec.ts"
+        "owner": "frontend/tests/browser/visual-routes.spec.ts"
       }
     },
     {
       "identity": "chef-dashboard-mobile",
       "displayOrdinal": 13,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/chef-dashboard-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/chef-dashboard-mobile-chromium-win32.png",
       "cause": "post-fixture stable baseline sealed after readiness correction",
       "beforeSha256": [
         "d234de166ddcf12be81df377fa5ccc8fb5f21d9e8c64cce41b445ff6de6c5d42",
@@ -44,14 +44,14 @@
       "newSnapshotSha256": "d234de166ddcf12be81df377fa5ccc8fb5f21d9e8c64cce41b445ff6de6c5d42",
       "priorCorrection": {
         "disposition": "fixture-drift",
-        "owner": "frontend/tests/visual-routes.spec.ts"
+        "owner": "frontend/tests/browser/visual-routes.spec.ts"
       }
     },
     {
       "identity": "purchasing-desktop",
       "displayOrdinal": 7,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/purchasing-desktop-chromium-win32.png",
       "cause": "post-fixture stable baseline sealed after readiness correction",
       "beforeSha256": [
         "36fd1f25a0bd791bd2195d2c514685f8a590f80ca3ebfd3eab07e99d31ba877c",
@@ -65,14 +65,14 @@
       "newSnapshotSha256": "36fd1f25a0bd791bd2195d2c514685f8a590f80ca3ebfd3eab07e99d31ba877c",
       "priorCorrection": {
         "disposition": "fixture-drift",
-        "owner": "frontend/tests/visual-routes.spec.ts"
+        "owner": "frontend/tests/browser/visual-routes.spec.ts"
       }
     },
     {
       "identity": "purchasing-mobile",
       "displayOrdinal": 16,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/purchasing-mobile-chromium-win32.png",
       "cause": "post-fixture stable baseline sealed after readiness correction",
       "beforeSha256": [
         "ab7e4d0d79abccb4f37ba6719df6b10992b85192d49421af8cd06c282240cc8e",
@@ -86,14 +86,14 @@
       "newSnapshotSha256": "ab7e4d0d79abccb4f37ba6719df6b10992b85192d49421af8cd06c282240cc8e",
       "priorCorrection": {
         "disposition": "fixture-drift",
-        "owner": "frontend/tests/visual-routes.spec.ts"
+        "owner": "frontend/tests/browser/visual-routes.spec.ts"
       }
     },
     {
       "identity": "dashboard-desktop",
       "displayOrdinal": 1,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png",
       "cause": "two deterministic packets matched current Dashboard rendering while the frozen baseline differed",
       "beforeSha256": [
         "4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f",
@@ -110,7 +110,7 @@
       "identity": "login-mobile",
       "displayOrdinal": 9,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png",
       "cause": "two deterministic packets matched current Login rendering while the frozen baseline differed",
       "beforeSha256": [
         "567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5",
@@ -127,7 +127,7 @@
       "identity": "dashboard-mobile",
       "displayOrdinal": 10,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png",
       "cause": "two deterministic packets matched current Dashboard rendering while the frozen baseline differed",
       "beforeSha256": [
         "6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e",
@@ -144,7 +144,7 @@
       "identity": "meal-orders-desktop",
       "displayOrdinal": 2,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/meal-orders-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/meal-orders-desktop-chromium-win32.png",
       "cause": "two deterministic packets matched current Meal Orders rendering while the frozen baseline differed",
       "beforeSha256": [
         "fe55a622a2d21f81635d0b7e14ff46742baac2f9292ef2b54373ccf11f3552a0",
@@ -161,7 +161,7 @@
       "identity": "weekly-menu-desktop",
       "displayOrdinal": 3,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png",
       "cause": "two deterministic packets matched current Weekly Menu rendering while the frozen baseline differed",
       "beforeSha256": [
         "dbbdbf1a3cf77a716f62c9b5648512b91daade9b19c7bf5622c369a3b6ebd551",
@@ -178,7 +178,7 @@
       "identity": "meal-orders-mobile",
       "displayOrdinal": 11,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/meal-orders-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/meal-orders-mobile-chromium-win32.png",
       "cause": "two deterministic packets matched current Meal Orders rendering while the frozen baseline differed",
       "beforeSha256": [
         "9f8c220046598684d1640c7cd530d96c7d908ae78e0aa96395b389897c78bce2",
@@ -195,7 +195,7 @@
       "identity": "weekly-menu-mobile",
       "displayOrdinal": 12,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/weekly-menu-mobile-chromium-win32.png",
       "cause": "two deterministic packets matched current Weekly Menu rendering while the frozen baseline differed",
       "beforeSha256": [
         "4dc25c2f04d9fd180e1b403393e61cb065b5d6777744cf457feeb1b1e830af71",
@@ -212,7 +212,7 @@
       "identity": "reports-desktop",
       "displayOrdinal": 5,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/reports-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/reports-desktop-chromium-win32.png",
       "cause": "two deterministic packets matched current reports-desktop rendering while the frozen baseline differed",
       "beforeSha256": [
         "afea3886847440b1468e38288dd14c1cbd1f9eba08525ded0e4488d57b355829",
@@ -229,7 +229,7 @@
       "identity": "reports-mobile",
       "displayOrdinal": 14,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/reports-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/reports-mobile-chromium-win32.png",
       "cause": "two deterministic packets matched current reports-mobile rendering while the frozen baseline differed",
       "beforeSha256": [
         "741d5f067e396a7e386fedaa769ca4db7200d0f0c3cfd96d1350c42b4ebbfc23",
@@ -246,7 +246,7 @@
       "identity": "approvals-desktop",
       "displayOrdinal": 6,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/approvals-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/approvals-desktop-chromium-win32.png",
       "cause": "two deterministic packets matched current approvals-desktop rendering while the frozen baseline differed",
       "beforeSha256": [
         "27eed372cf74513309ea7db4fb67c6b7d8432e13a879f5c5dcab006eda17d755",
@@ -263,7 +263,7 @@
       "identity": "approvals-mobile",
       "displayOrdinal": 15,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/approvals-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/approvals-mobile-chromium-win32.png",
       "cause": "two deterministic packets matched current approvals-mobile rendering while the frozen baseline differed",
       "beforeSha256": [
         "5263fded91fdc45ddd424d49f17468901b18acb95820e1f897c09de7d8272253",
@@ -280,7 +280,7 @@
       "identity": "admin-data-desktop",
       "displayOrdinal": 8,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/admin-data-desktop-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/admin-data-desktop-chromium-win32.png",
       "cause": "two deterministic packets matched current admin-data-desktop rendering while the frozen baseline differed",
       "beforeSha256": [
         "b89bd7b0e2f10a90f86f70f78ff99d2aa68ad7ffcf2c0b0631e89a582dc49ca7",
@@ -297,7 +297,7 @@
       "identity": "admin-data-mobile",
       "displayOrdinal": 17,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/admin-data-mobile-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/admin-data-mobile-chromium-win32.png",
       "cause": "two deterministic packets matched current admin-data-mobile rendering while the frozen baseline differed",
       "beforeSha256": [
         "23aa0181e3629eb413a8eeac1c98b5f1011eff1579d0faeb9a56038c74304427",
@@ -314,7 +314,7 @@
       "identity": "purchasing-phase09-1365x900",
       "displayOrdinal": 18,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1365x900-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/purchasing-phase09-1365x900-chromium-win32.png",
       "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
       "beforeSha256": [
         "9219db86bbac1d1a08fade472c3fa280acf5dbe5c71c40d1240ea4fd21182937",
@@ -335,7 +335,7 @@
       "identity": "purchasing-phase09-1280x900",
       "displayOrdinal": 19,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1280x900-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/purchasing-phase09-1280x900-chromium-win32.png",
       "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
       "beforeSha256": [
         "97b18ddef5f5e1b47c9fd8ef62aa923f1b61277792d826874809ab33c7a144bf",
@@ -356,7 +356,7 @@
       "identity": "purchasing-phase09-768x1024",
       "displayOrdinal": 20,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-768x1024-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/purchasing-phase09-768x1024-chromium-win32.png",
       "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
       "beforeSha256": [
         "3d5d13b21fe88698f824a382d835af957547d7e08f34363ff419220afe6d3d16",
@@ -377,7 +377,7 @@
       "identity": "purchasing-phase09-390x844",
       "displayOrdinal": 21,
       "disposition": "stale-baseline",
-      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-390x844-chromium-win32.png",
+      "owner": "frontend/tests/browser/visual-routes.spec.ts-snapshots/purchasing-phase09-390x844-chromium-win32.png",
       "cause": "two deterministic four-width packets matched current Phase-09 rendering while the frozen baseline differed",
       "beforeSha256": [
         "206d9493d8828a7172494dea09355343a95f354d25e95527b1c61175c03dae44",

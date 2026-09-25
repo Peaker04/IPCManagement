@@ -1,0 +1,17 @@
+deleted=12
+kept=1
+deletedBytes=137312
+keptPath=scripts/frontend-unit-runner-args.test.mjs
+
+scripts/Assert-TestSuiteDecomposition.ps1
+scripts/standardization/New-WeeklyMenuWorkbookCaseMatrix.ps1
+scripts/standardization/Start-Phase6Runtime.ps1
+scripts/standardization/Stop-Phase6Runtime.ps1
+scripts/standardization/current-week-bom-e2e.mjs
+scripts/standardization/full-project-lifecycle-e2e.mjs
+scripts/standardization/purchase-supplier-e2e.mjs
+scripts/standardization/service-run-lifecycle-e2e.mjs
+scripts/standardization/service-run-reports-e2e.mjs
+scripts/standardization/service-run-surfaces-e2e.mjs
+scripts/standardization/service-run-variance-waiver-e2e.mjs
+scripts/standardization/weekly-menu-headed-e2e.mjs

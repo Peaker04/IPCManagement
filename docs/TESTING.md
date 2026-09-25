@@ -14,16 +14,38 @@ Gate tĩnh từ project root:
 ```bash
 npm run check:architecture-growth
 npm run check:api-contract
+npm run test:frontend-unit-launcher
 npm run verify
 ```
+
+`npm run test:frontend-unit-launcher` khóa argv của canonical frontend Vitest launcher: invocation mặc định không chèn separator thừa và forwarded arguments chỉ có đúng một npm separator. Gate nhỏ này chạy riêng trong CI trước broad frontend unit suite.
 
 `FeatureDependencyConventionTests` khóa dependency DAG backend và ceiling cho bốn cạnh legacy;
 ceiling chỉ được giảm, không được tăng. Growth gate chạy strict theo
 `scripts/architecture-growth-baseline.json`: test file trên 1.500 dòng, production debt mới,
-metric/severity tăng hoặc baseline không co lại sau cải thiện đều làm gate thất bại. CI còn so
-baseline với commit gốc của push/PR để không thể grandfather nợ bằng cách nâng JSON. Contract gate build vào
+metric/severity tăng hoặc baseline không co lại sau cải thiện đều làm gate thất bại. Baseline là inventory chính
+xác của debt hiện hành, không phải waiver: Wave 6 reconciliation khóa 9 findings hiện có (2 `PLAN_REQUIRED`,
+7 `WARNING`) và mọi tăng trưởng tiếp theo vẫn fail. CI còn so baseline với commit gốc của push/PR để hiển thị
+expansion ngay trong change đưa debt vào. Contract gate build vào
 `.artifacts/contract-build/api`, nên có thể chạy trong khi lane API Release vẫn listen mà không dừng
 process hoặc khóa DLL của lane.
+
+Phase 42 có hai lane rõ ràng trong cùng test class:
+
+- `Category!=EvidenceOwned`: 50 contract tests hermetic, chạy trong clean CI và không cần ignored local artifacts.
+- `Category=EvidenceOwned`: 15 cases dùng archive/approval receipts dưới `.artifacts/shipyard-live/phase-04.2-execution`; chỉ chạy ở evidence-bearing Windows lane/aggregate runner.
+
+Không exclude toàn bộ `Phase42AggregateVerificationTests` khỏi CI. Case dùng local evidence phải gắn trait
+`EvidenceOwned`; case source/config thuần phải giữ hermetic để clean checkout thực thi được. Contract runner tests
+chọn `powershell.exe` trên Windows và `pwsh` trên Linux; fixture command cũng phải dùng cùng executable, và
+captured commands chạy qua `cmd.exe` hoặc `/bin/sh` theo host để Ubuntu CI không phụ thuộc alias Windows-only.
+JSON assertions phải parse field thay vì khóa whitespace do `ConvertTo-Json` khác nhau giữa Windows PowerShell và PowerShell Core.
+
+Toàn bộ .NET build/test output mặc định được gom bởi root `Directory.Build.props` vào `.artifacts/dotnet`. Gate cô lập phải dùng `--artifacts-path .artifacts/dotnet/<run-id>` hoặc `ArtifactsPath` tuyệt đối từ repo root; không dùng `BaseOutputPath` tương đối dưới `backend/`. Với `dotnet ef`, luôn truyền `--msbuildprojectextensionspath` trỏ tới `obj/<project-name>` bên dưới artifacts path tương ứng; nếu không EF có thể báo thiếu target `GetEFProjectMetadata`. Source-scanning tests không được suy ra repository chỉ từ ancestry của `AppContext.BaseDirectory`, vì centralized output không còn nằm dưới `backend/`; dùng working directory và hỗ trợ cả repository-root/backend-root layout. Phase 42 focused contract và solution build còn kiểm tra output mới không chứa recursive `backend/tests`, `.tmp-*`, `.artifactslk*` hoặc `bin-phase*`.
+
+`npm run test:ignore-policy` khóa ranh giới source/generated/secrets cho `.gitignore` và `.dockerignore`, đồng thời fail nếu tracked-but-ignored debt xuất hiện ngoài năm owner legacy hoặc vượt ceiling hiện hành. CI chạy gate này ngay sau `npm ci`; giảm debt phải hạ ceiling, không được nâng để grandfather file mới. GSD state ngoài workstream standardization vẫn local-by-default; raw screenshot/trace/build evidence luôn ignored.
+
+`npm run test:phase05-fixture-determinism` chạy production `Phase05WeeklyMenuFixtureTool` hai lần trong OS temp, yêu cầu ANV/DAV byte-identical giữa hai lượt, khác nhau giữa hai khách hàng, và giữ ba sheet `25k/30k/34k`, tuần sáu ngày cùng menu hai ca. Production workbook builder và fixture population owner đặt cùng fixed ZIP timestamp cho mọi entry; thay đổi nội dung fixture phải cập nhật builder/test/evidence hash trong cùng reviewed batch, không reseal thủ công.
 
 `PersistenceReliabilityConventionTests` khóa production source chỉ còn một
 `BeginTransactionAsync(` trong `EfTransactionRunner` và MySQL luôn bật `EnableRetryOnFailure`.
@@ -45,7 +67,7 @@ npm run test:unit:watch
 npm run test:coverage
 ```
 
-CI loại các validator gắn với campaign/evidence lịch sử khỏi unit gate mặc định: `phase35GeometryDenominator`, `pcActionCompletenessDisposition`, `uiOwnershipInstrumentationContract` và hidden-state baseline trong `uiStatePurityContract`. Chúng đọc artifact/ledger hoặc opaque tuple của Phase 20/26/35, nên source hợp lệ ở campaign sau không được làm CI sản phẩm đỏ. Khi audit lại đúng campaign, chạy focused test trong workspace sở hữu artifact và regenerate/review ledger; không sửa hash, số dòng hay tuple thủ công chỉ để lấy PASS. Các behavior, accessibility, permission, query-boundary và source-inventory contract hiện hành vẫn chạy trong CI.
+CI loại các validator gắn với campaign/evidence lịch sử khỏi unit gate mặc định: `phase35GeometryDenominator`, `pcActionCompletenessDisposition`, `uiOwnershipInstrumentationContract` và hidden-state baseline trong `uiStatePurityContract`. Chúng đọc artifact/ledger hoặc opaque tuple của Phase 20/26/35, nên source hợp lệ ở campaign sau không được làm CI sản phẩm đỏ. Khi audit lại đúng campaign, chạy focused test trong workspace sở hữu artifact và regenerate/review ledger; không sửa hash, số dòng hay tuple thủ công chỉ để lấy PASS. Các behavior, accessibility, permission, query-boundary và source-inventory contract hiện hành vẫn chạy trong CI. Root `npm run verify` dùng backend filter `Category!=EvidenceOwned`, build frontend trước unit tests để emitted-asset contracts có `dist`, và launcher mặc định `CI=true`; `test:ui-completeness` là campaign gate riêng, không phải clean product gate.
 
 Frontend Playwright từ `frontend/`:
 
@@ -129,11 +151,12 @@ không được hiển thị lỗi tải dữ liệu như một empty state hợ
 ## Viết test mới
 
 - Backend đặt test trong `backend/tests/IPCManagement.Api.Tests/` hoặc `backend/tests/IPCManagement.Application.Tests/`, dùng tên class kết thúc bằng `Tests.cs`.
-- Frontend unit test đặt cạnh module với hậu tố test TypeScript/TSX; dùng Testing Library cho component và Vitest cho model/utility.
-- Adapter query-state phải có table-driven test cho đủ uninitialized, loading, ready-empty, ready-success,
-  refreshing, partial/truncation, forbidden và error. `src/lib/queryView.test.ts` là contract test nền;
-  mỗi feature pilot phải bổ sung component/browser assertion cho presentation tương ứng.
-- Browser scenarios đặt trong `frontend/tests/` với hậu tố spec TypeScript; snapshot nằm trong thư mục snapshot tương ứng.
+- Frontend unit/component test đặt cạnh module với hậu tố test TypeScript/TSX; dùng Testing Library cho component và Vitest cho model/utility.
+- Adapter query-state phải có table-driven test cho đủ uninitialized, loading, ready-empty, ready-success, refreshing, partial/truncation, forbidden và error. `src/lib/queryView.test.ts` là contract test nền; mỗi feature pilot phải bổ sung component/browser assertion cho presentation tương ứng.
+- Cross-module contract mới đặt trong `frontend/tests/contracts/`; các contract còn ở root `frontend/tests` là grandfathered debt và không được tăng.
+- Campaign/evidence validator đặt trong `frontend/tests/evidence/`; default CI loại cả directory này, operator chạy focused trong workspace sở hữu artifact.
+- Browser scenarios mới đặt trong `frontend/tests/browser/` với hậu tố spec TypeScript. Các Playwright spec/snapshot root hiện tại giữ nguyên tạm thời vì Phase 27/28 fixtures pin exact path; chỉ move trong một lineage migration riêng.
+- Shared browser/cross-module helper đặt trong `frontend/tests/support/`, fixture trong `frontend/tests/fixtures/`.
 - Dùng `frontend/src/test/setup.ts` cho cleanup và matcher của Testing Library; không đưa side effect dùng chung vào từng test nếu có thể đặt ở setup.
 
 ## Coverage
@@ -204,7 +227,7 @@ update snapshot cũ để làm Bước 10 xanh.
 
 Nếu muốn điều khiển Chrome đã mở sẵn, Chrome đó phải expose remote-debugging và test phải kết nối bằng CDP. Persistent helper hiện tại mở context riêng; không được mô tả nó là attach vào tab Chrome bình thường của người dùng.
 
-`tests/navigation-performance.spec.ts` còn kiểm tra hai hợp đồng lazy-load của sidebar: toàn bộ route module được warm sau idle preload và scheduler phải tắt khi `navigator.connection.saveData` bật. Khi route đã warm, lần click đầu không được mount route-level Suspense fallback. Kết quả Chromium real-stack mới nhất cho tất cả trang sidebar nằm trong `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json`.
+`tests/browser/navigation-performance.spec.ts` còn kiểm tra hai hợp đồng lazy-load của sidebar: toàn bộ route module được warm sau idle preload và scheduler phải tắt khi `navigator.connection.saveData` bật. Khi route đã warm, lần click đầu không được mount route-level Suspense fallback. Kết quả Chromium real-stack mới nhất cho tất cả trang sidebar nằm trong `.artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json`.
 
 ### Gate duplicate request
 
@@ -223,7 +246,7 @@ Browser gate current-source chạy Google Chrome headed đủ năm viewport:
 
 ```powershell
 Set-Location frontend
-npx playwright test tests/request-deduplication.spec.ts --headed
+npx playwright test tests/browser/request-deduplication.spec.ts --headed
 ```
 
 Spec dùng read-only API stub, lưu method + normalized URL, screenshot cuối và console/page error trong
@@ -291,7 +314,7 @@ thực tế của run và không được sửa ngược để giả thành cove
 ### Gate D06 browser support
 
 - `browserSupportPolicy.test.ts` khóa full denominator 672 cells: Windows 10/11 × Chrome/Edge × current/previous × ba desktop viewport × normal/reduced motion × 100/200% × bảy critical workflows. OS/version band nằm trong evidence identity; NVDA là subset riêng.
-- `playwright.browser-support.config.ts` tạo bốn browser/motion projects không có versioned device descriptor hoặc `webServer`, giữ native installed-browser UA và không tự start server. Runner nhận operator-supplied URL/source ref/run ID/OS/version band; các metadata này chưa phải runtime identity verification. `browser-support-evidence.spec.ts` chỉ preflight login/reflow/overflow/native-UA trên ba viewport. Root-font-size 200% chỉ là text-reflow proxy, không phải real browser-zoom/NVDA evidence.
+- `tests/config/browser-support.config.ts` tạo bốn browser/motion projects không có versioned device descriptor hoặc `webServer`, giữ native installed-browser UA và không tự start server. Runner nhận operator-supplied URL/source ref/run ID/OS/version band; các metadata này chưa phải runtime identity verification. `browser-support-evidence.spec.ts` chỉ preflight login/reflow/overflow/native-UA trên ba viewport. Root-font-size 200% chỉ là text-reflow proxy, không phải real browser-zoom/NVDA evidence.
 - Browser current/previous version receipts, workflow actions, keyboard/focus, real zoom, NVDA, console/network và protected mutations vẫn `NEEDS_EVIDENCE`; preflight PASS không được nâng thành browser-support PASS.
 
 ### Gate NFR performance, health và recovery

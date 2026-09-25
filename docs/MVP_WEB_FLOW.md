@@ -15,11 +15,8 @@ Kiểm tra:
 
 - API: `http://localhost:5262/swagger`
 - Web: `http://localhost:5173`
-- Nếu database chưa có dữ liệu demo, xem procedure seed/reset trong:
-
-```powershell
-.docs/MVP_DEMO_RUNBOOK.md
-```
+- Nếu database chưa có dữ liệu phù hợp, không tự seed/reset. Chọn lane và quy trình E2E được ủy quyền trong [`TESTING.md`](TESTING.md); runtime, credential source và database target hiện hành lấy từ `MEMORY.md`.
+- Runbook MVP cũ đã được lưu chỉ để tra cứu tại [`archive/runbooks/MVP_DEMO_RUNBOOK-legacy.md`](archive/runbooks/MVP_DEMO_RUNBOOK-legacy.md).
 
 Credential demo và lane hiện hành lấy từ `MEMORY.md`; không dùng credential mặc định trong tài liệu lịch sử. Các customer/ngày bên dưới chỉ là fixture minh họa.
 

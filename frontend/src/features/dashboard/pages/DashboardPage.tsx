@@ -1,16 +1,16 @@
 import { lazy, Suspense } from 'react'
 import { useSystemOperation } from '@/lib/systemOperationContext'
+import DefaultDashboardPage from './DefaultDashboardPage'
 
-const DefaultDashboardPage = lazy(() => import('./DefaultDashboardPage'))
 const ReconciliationDashboardPage = lazy(() => import('./ReconciliationDashboardPage').then((m) => ({ default: m.ReconciliationDashboardPage })))
 
 export default function DashboardPage() {
   const operation = useSystemOperation()
+  if (operation?.mode !== 'MATERIAL_RECONCILIATION') return <DefaultDashboardPage />
+
   return (
     <Suspense fallback={null}>
-      {operation?.mode === 'MATERIAL_RECONCILIATION'
-        ? <ReconciliationDashboardPage />
-        : <DefaultDashboardPage />}
+      <ReconciliationDashboardPage />
     </Suspense>
   )
 }

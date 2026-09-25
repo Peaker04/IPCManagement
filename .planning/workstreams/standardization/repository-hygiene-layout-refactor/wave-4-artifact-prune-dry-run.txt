@@ -1,0 +1,5 @@
+mode=DRY-RUN candidates=3 size_mib=2.05
+      1.75 MiB  .artifacts/goal-ui-ux/checkpoint-hygiene-20260917
+      0.26 MiB  .artifacts/goal-ui-ux/button-blocker-debug-20260915
+      0.05 MiB  .artifacts/goal-ui-ux/approvals-freeze-debug-20260916
+No files removed. Re-run with --apply after reviewing the list.

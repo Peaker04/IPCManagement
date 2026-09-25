@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { describe,expect,it } from 'vitest'
 import { buildPlaywrightArgv,resolveCliPaths,validateLauncherInput } from './runPhase271Playwright'
-const valid={specs:['tests/visual-routes.spec.ts','tests/pagination-visual.spec.ts'],project:'chromium',workers:1,reporter:'json',config:'playwright.phase271-recovery.config.ts'}
+const valid={specs:['tests/browser/visual-routes.spec.ts','tests/browser/pagination-visual.spec.ts'],project:'chromium',workers:1,reporter:'json',config:'playwright.phase271-recovery.config.ts'}
 describe('closed direct browser launcher',()=>{
  it('builds the exact canonical preflight argv',()=>expect(buildPlaywrightArgv('PW',valid,'preflight')).toEqual(['PW','test',...valid.specs,'--config=playwright.phase271-recovery.config.ts','--project=chromium','--workers=1','--list','--reporter=json']))
  it('builds source argv without command strings',()=>expect(buildPlaywrightArgv('PW',{...valid,outputRoot:'D:/Kì 7/out & | ; $ ` (x)'},'source').at(-1)).toBe('--output=D:/Kì 7/out & | ; $ ` (x)'))

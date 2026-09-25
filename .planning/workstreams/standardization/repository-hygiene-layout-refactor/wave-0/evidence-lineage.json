@@ -1,0 +1,3222 @@
+[
+  {
+    "path": ".artifacts/goal-ui-ux/systemic-final-dual-mode-20260917/summary-final.json",
+    "line": 9,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6C3BEC3ECB45DB7DAC2BA0533148F84607DF48D89C16141E8D656FD0CFB29CAC",
+    "actualSha256": "6C3BEC3ECB45DB7DAC2BA0533148F84607DF48D89C16141E8D656FD0CFB29CAC",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/goal-ui-ux/systemic-final-dual-mode-20260917/teardown-authoritative.json",
+    "line": 10,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "BA3BF82FB37FAC5B2591777B900D952DFB3DA2A8C6C233EF8D7DD9C6106D6D2E",
+    "actualSha256": "BA3BF82FB37FAC5B2591777B900D952DFB3DA2A8C6C233EF8D7DD9C6106D6D2E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-two-customer/runs/20260923-072738/two-customer-result.json",
+    "line": 11,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D1E8016FC9877725401F369CF514BC1E67D79B590309E358DFF55506BE9B69B6",
+    "actualSha256": "D1E8016FC9877725401F369CF514BC1E67D79B590309E358DFF55506BE9B69B6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-two-customer/runs/20260923-072738/teardown.json",
+    "line": 12,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "53FA8081C18412527F5D2F531CCDD26E46F1F152892367701EB50DE4E7F16462",
+    "actualSha256": "53FA8081C18412527F5D2F531CCDD26E46F1F152892367701EB50DE4E7F16462",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/perf/dual-mode-fluidity-20260916/summary.json",
+    "line": 13,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7D6DCC362B412342BFCA914DB66FB93135941047EFD6F461A7DB971E114B3701",
+    "actualSha256": "7D6DCC362B412342BFCA914DB66FB93135941047EFD6F461A7DB971E114B3701",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/perf/dual-mode-fluidity-20260916/teardown.json",
+    "line": 14,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "806A5878334B4419AA60D185E869F260AF08B9B092D070D068707B1915164B24",
+    "actualSha256": "806A5878334B4419AA60D185E869F260AF08B9B092D070D068707B1915164B24",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/perf/interaction-fluidity-closeout-20260916/summary.json",
+    "line": 15,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6EB2919F8EBE0842AF574F8487E9FC831C15E004D1262418650B2C989030D30B",
+    "actualSha256": "6EB2919F8EBE0842AF574F8487E9FC831C15E004D1262418650B2C989030D30B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/perf/interaction-fluidity-if-c-20260916/summary.json",
+    "line": 16,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3B2C9BA7C0C1B4556E0DD4D00406801AF3A6282D8C708B4D8859D275DDA3A58F",
+    "actualSha256": "3B2C9BA7C0C1B4556E0DD4D00406801AF3A6282D8C708B4D8859D275DDA3A58F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/perf/interaction-fluidity-if-b-20260916/summary.json",
+    "line": 17,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B76DBEDB97792EA82BE1BBB19A23C85079E580346F98041EE08088E902ABAB3B",
+    "actualSha256": "B76DBEDB97792EA82BE1BBB19A23C85079E580346F98041EE08088E902ABAB3B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/perf/interaction-fluidity-closeout-20260916/teardown.json",
+    "line": 18,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "483D4EF26A573A4B53B68D96606A805EB07442294425380A220DB528B2103968",
+    "actualSha256": "483D4EF26A573A4B53B68D96606A805EB07442294425380A220DB528B2103968",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/final-current-source-retry/manifest.json",
+    "line": 19,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "51919AE64DA1AE8D83EFB835EFA0244570856528B1AF6E898F893D2227CD18AA",
+    "actualSha256": "51919AE64DA1AE8D83EFB835EFA0244570856528B1AF6E898F893D2227CD18AA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/browser/manifest.json",
+    "line": 20,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "8A08B9478887234A403A088C6A8A28C13EDE337865176CD22AB132CDD303A99A",
+    "actualSha256": "8A08B9478887234A403A088C6A8A28C13EDE337865176CD22AB132CDD303A99A",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/warehouse-exceptions-after-pagination/manifest.json",
+    "line": 21,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "F0E2B4D531DD4AEF2B669F93589F8F545390A44AE84E565A4C934715155AD485",
+    "actualSha256": "F0E2B4D531DD4AEF2B669F93589F8F545390A44AE84E565A4C934715155AD485",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/goal-ui-ux/runtime-r3-r4-20260915-sol/teardown-final.json",
+    "line": 22,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "890A1C95DD1B1F98AE969545D4B49061F7B60E2D299676596AF2680D8F9F38DA",
+    "actualSha256": "5BF00CCEC06205E53DF32996DE3D653B476EE42AF194E61E6EF2B19100078BF6",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/goal-ui-ux/ra08-payload-20260915-sol/metrics.json",
+    "line": 23,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "F42D34E29CB3FFC45D79E02FA4845EE0A26F5B22FB3D401A259CCD54729EDD35",
+    "actualSha256": "6B4BA937A5064B1401A0F3BF4C364534C67F46CBBDF513A73D00C1AD29E13B1F",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/goal-ui-ux/ra08-payload-20260915-sol/teardown.json",
+    "line": 24,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "DC8E9DB84C0592CA11EDE2663F43718365131C7EF002052368E44C3A7EF4CA5E",
+    "actualSha256": "89B1B4C9A3FDCCEA01C6BA95CD7B77D0E43E96C13CED64C0BFE52A87CB8794E7",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/goal-ui-ux/reaudit-async-performance-20260915-sol/synthesis.md",
+    "line": 25,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "039EC4FE3057C12340A477FCA4F907B22CBEF905A1662870C2ADA593B73CD38B",
+    "actualSha256": "039EC4FE3057C12340A477FCA4F907B22CBEF905A1662870C2ADA593B73CD38B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/goal-ui-ux/admin-bom-warehouse-heading-browser-rerun-20260914T152705Z/manifest.json",
+    "line": 26,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3192096D5B035D498567061A070EFDF83E01EE3B5856CD63C0116408DE8A865C",
+    "actualSha256": "3192096D5B035D498567061A070EFDF83E01EE3B5856CD63C0116408DE8A865C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/goal-ui-ux/section-panel-heading-browser-promotion-retry-20260914T151139Z/manifest.json",
+    "line": 27,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "26DDBE15A49DB952A9462662F1E5E5B7EBB8FBCE6EDE2C84B077788F8D6B7976",
+    "actualSha256": "26DDBE15A49DB952A9462662F1E5E5B7EBB8FBCE6EDE2C84B077788F8D6B7976",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/information-simplification/be-resume-p1-20260913-002/red.log",
+    "line": 28,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "2501ECF088E2A99B24CE58B65636DAC65497EC6ACD244E58DF46715D501EAB71",
+    "actualSha256": "2501ECF088E2A99B24CE58B65636DAC65497EC6ACD244E58DF46715D501EAB71",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/information-simplification/be-resume-p1-20260913-002/contracts.log",
+    "line": 29,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9004C64A0D628E684DD466AEDF7AE4F9E53C538785A95F0BB2C290AA68D45F27",
+    "actualSha256": "9004C64A0D628E684DD466AEDF7AE4F9E53C538785A95F0BB2C290AA68D45F27",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/information-simplification/be-resume-p1-20260913-002/build-final.log",
+    "line": 30,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "22746C06994AC051F058CEE7A0CBE700853F8AD81FA78F12D09C566E51BE4D9E",
+    "actualSha256": "22746C06994AC051F058CEE7A0CBE700853F8AD81FA78F12D09C566E51BE4D9E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/information-simplification/be-resume-20260913-001/be-final.log",
+    "line": 31,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D529D7327FD1D4DC356776D2299D75929AEA244AB66D032B6E9AE2A661AA10BF",
+    "actualSha256": "D529D7327FD1D4DC356776D2299D75929AEA244AB66D032B6E9AE2A661AA10BF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/information-simplification/be-resume-20260913-001/fe-focused.log",
+    "line": 32,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "13082A0DDA75900AF20AB85FA9C074DD36F88F45967549E5F36983E0A3112984",
+    "actualSha256": "13082A0DDA75900AF20AB85FA9C074DD36F88F45967549E5F36983E0A3112984",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/information-simplification/be-resume-20260913-001/fe-build-green.log",
+    "line": 33,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C7BDC25322F7A60D34BA3B9814C7B9A53B8DA3E510E4F43569845C4C92199CCE",
+    "actualSha256": "C7BDC25322F7A60D34BA3B9814C7B9A53B8DA3E510E4F43569845C4C92199CCE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/information-simplification/be-resume-20260913-001/fe-lint.log",
+    "line": 34,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "38D2C63DF1021D1425632F584DD7267A6D2F3CD2AF7C7FFA08DB20E67812EA22",
+    "actualSha256": "38D2C63DF1021D1425632F584DD7267A6D2F3CD2AF7C7FFA08DB20E67812EA22",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/nfr-research/20260910/d09-servicing-focused-receipt.json",
+    "line": 35,
+    "exists": true,
+    "tracked": true,
+    "ignored": true,
+    "expectedSha256": "888C538434509759E94B66CB137EF83B1A2529A2FE5D44557121D2175B5D40ED",
+    "actualSha256": "1D2CBB98C60AB50FEDA464C1D91FB8CD2D536532BB7B18F5BCD2D1C135D8D84F",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/db/postflight-compare.json",
+    "line": 36,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5B43F4237D8D721C1783647EF5F20EE3DB674CCA24B956C824889C1164DA2DAA",
+    "actualSha256": "5B43F4237D8D721C1783647EF5F20EE3DB674CCA24B956C824889C1164DA2DAA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/browser/evidence.json",
+    "line": 37,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9C6174A55F631B8691C0172F889BEE50F53E5E4F396EA196CDB7DD42A04E6150",
+    "actualSha256": "9C6174A55F631B8691C0172F889BEE50F53E5E4F396EA196CDB7DD42A04E6150",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/performance/baseline.json",
+    "line": 38,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9EF6C76941A32EFC0493B972244C5AFE2EB8A7A40C95EF9200954CF6215A05B5",
+    "actualSha256": "9EF6C76941A32EFC0493B972244C5AFE2EB8A7A40C95EF9200954CF6215A05B5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/teardown.json",
+    "line": 39,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "FE940765719644434DF9F263D94C87120189A9864E3F7E0EB9FE3A989A870B83",
+    "actualSha256": "FE940765719644434DF9F263D94C87120189A9864E3F7E0EB9FE3A989A870B83",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase29-protected-unified-retry16-20260827-235934/browser-retry16/headed-browser-evidence.json",
+    "line": 40,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "2B88DCC2D33D89072BC26C0585352716A0A5F3C043EA0B2F30D1767EC1EAB431",
+    "actualSha256": "2B88DCC2D33D89072BC26C0585352716A0A5F3C043EA0B2F30D1767EC1EAB431",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase29-protected-unified-retry16-20260827-235934/api/lifecycle.json",
+    "line": 41,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "FE3D982388A17974A1520097A05CD7A8F173BB8427C0E0FCF24FD1B1E78EA407",
+    "actualSha256": "FE3D982388A17974A1520097A05CD7A8F173BB8427C0E0FCF24FD1B1E78EA407",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase29-protected-unified-retry16-20260827-235934/db/guid-dotnet-storage-hex-evidence.json",
+    "line": 42,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "663828ED9FEB77F43E2F490BB974936A7FBC9568613DBAD8D122375DF8B419BF",
+    "actualSha256": "663828ED9FEB77F43E2F490BB974936A7FBC9568613DBAD8D122375DF8B419BF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase29-protected-unified-retry16-20260827-235934/db/browser-control-db-retry16.json",
+    "line": 43,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F7268E7789BE33F64C20FF5C21CBE158CD9F6BB5F9BDA264BF725C4B221061E0",
+    "actualSha256": "F7268E7789BE33F64C20FF5C21CBE158CD9F6BB5F9BDA264BF725C4B221061E0",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase29-protected-unified-retry16-20260827-235934/db/final-retained-state.txt",
+    "line": 44,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F548CD89F651DAC484FA751D490AB6A324C74D82C543DE59BA02824F266DE8F1",
+    "actualSha256": "F548CD89F651DAC484FA751D490AB6A324C74D82C543DE59BA02824F266DE8F1",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/phase28-operational-warehouse/activation-20260824-wh-sample/manifest.json",
+    "line": 45,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0BCCFD47DFD4C285E4D550780C74A47C0FC3B87C373FC2C7FBA2A519406E3B46",
+    "actualSha256": "0BCCFD47DFD4C285E4D550780C74A47C0FC3B87C373FC2C7FBA2A519406E3B46",
+    "hashMatches": true
+  },
+  {
+    "path": ".planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/evidence/28-15-frontend-closeout.txt",
+    "line": 46,
+    "exists": true,
+    "tracked": true,
+    "ignored": true,
+    "expectedSha256": "97609D0134F0BCF942AB80C3E2718715BB743431E77BDB4C9EB471CB9D58C455",
+    "actualSha256": "6599A5C99CF38FF1987AA03A517D7D9AC67A4419C324A962E1174032C8390EE2",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/route-budget-ui-closeout-20260822/closeout-manifest.json",
+    "line": 47,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "65CC8EF7C8B89EFCC897C6C1B71ECA60D442FD3E3F6E1C25703C770469CF882E",
+    "actualSha256": "65CC8EF7C8B89EFCC897C6C1B71ECA60D442FD3E3F6E1C25703C770469CF882E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/manifest.json",
+    "line": 48,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A26E847A5283D9BD6E487733159E5B1E6AEC42547DC889E026CB1F60E21948F8",
+    "actualSha256": "A26E847A5283D9BD6E487733159E5B1E6AEC42547DC889E026CB1F60E21948F8",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/shared-shortage-blocked-allocation/result.json",
+    "line": 49,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "78A9DC843F0E7B941BB32E6C98259BEF586D3C8557BD759C13BE319DAA49C112",
+    "actualSha256": "78A9DC843F0E7B941BB32E6C98259BEF586D3C8557BD759C13BE319DAA49C112",
+    "hashMatches": true
+  },
+  {
+    "path": "tools/db/phase05/phase05-shared-shortage-fixture-ipc-lane7-reviewed.sql",
+    "line": 50,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "AEB79EE053ECB28FA3C4D423C7FC1DC8F227CD123BEDA30B691C71C9E682AD13",
+    "actualSha256": "1B1D36C729EA2A69C3AD9FD39F506F6FE056AFB125478D25E7C16867FD70624A",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/ambiguous-lineage/result.json",
+    "line": 51,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "8C3AEB99C3E39A6A880E79214762A376190EEDB6E0995C3028290651328738D7",
+    "actualSha256": "8C3AEB99C3E39A6A880E79214762A376190EEDB6E0995C3028290651328738D7",
+    "hashMatches": true
+  },
+  {
+    "path": "tools/db/phase05/phase05-ambiguous-lineage-fixture-ipc-lane7-reviewed.sql",
+    "line": 52,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "591FE22066D8FF2E97E1ED0FE9E4723207DCCB124533E0B1F70B6204F86BCBE0",
+    "actualSha256": "484F8D238CFE19F53F20F2EC3C7DCAA1C03C63F9796785BB7096FD5B60A2D8F6",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/quality-isolation/tab-split/result.json",
+    "line": 53,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7D405D55C2E9458456377DB1611FC219E49D442531427B4E83ADE58C7C26E28D",
+    "actualSha256": "7D405D55C2E9458456377DB1611FC219E49D442531427B4E83ADE58C7C26E28D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/quality-isolation/manifest.json",
+    "line": 54,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "E90EF7E7DCB73A82CEED69C6671B1909A4CE3A1FD644782C52AE3583363F7306",
+    "actualSha256": "E90EF7E7DCB73A82CEED69C6671B1909A4CE3A1FD644782C52AE3583363F7306",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/supplemental-clean-dav/result.json",
+    "line": 55,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B66DA3B8C3BA8AE26227F136CAD4EE4C6CC7B8AB0308C0D27CF5560AE4DB7A23",
+    "actualSha256": "B66DA3B8C3BA8AE26227F136CAD4EE4C6CC7B8AB0308C0D27CF5560AE4DB7A23",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/supplemental-partial/result.json",
+    "line": 56,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1E6BA9202C7402B430DE7F37EA08E699C5D610B9D8E57E889F776F410EF45CF7",
+    "actualSha256": "1E6BA9202C7402B430DE7F37EA08E699C5D610B9D8E57E889F776F410EF45CF7",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/excess-negative/result.json",
+    "line": 57,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "CA0A5F38FA8985FFE7777BC9C7A12344E0CFC34000B88161BDCC8221DE5FE085",
+    "actualSha256": "CA0A5F38FA8985FFE7777BC9C7A12344E0CFC34000B88161BDCC8221DE5FE085",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/excess-disposition/result.json",
+    "line": 58,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "66884AF2B0A184B3BEBE406A77BDACF328FE9933B6063DCFA829B99E0C54B4CC",
+    "actualSha256": "66884AF2B0A184B3BEBE406A77BDACF328FE9933B6063DCFA829B99E0C54B4CC",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/waste/result.json",
+    "line": 59,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7D75575ECA54AF0F665AB4A02B78552A8CBF6DDF7883BE3C69F40D913C29F170",
+    "actualSha256": "7D75575ECA54AF0F665AB4A02B78552A8CBF6DDF7883BE3C69F40D913C29F170",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/return-receipt/result.json",
+    "line": 60,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7D6104B8A50E848036E65D520CB4C26F5482295609B6A53D73BE0D72A2D59933",
+    "actualSha256": "7D6104B8A50E848036E65D520CB4C26F5482295609B6A53D73BE0D72A2D59933",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/golden/manifest.json",
+    "line": 61,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "724B56E1F5F7F9718E4791DD12E5836D5C5DA196EEC7D98CB40BB25914BB31E3",
+    "actualSha256": "724B56E1F5F7F9718E4791DD12E5836D5C5DA196EEC7D98CB40BB25914BB31E3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/preflight/task1-manifest.json",
+    "line": 62,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3F46DBB1EC3D3C016AA01BBBD9E3E131BB08378906540681872FB484A9F99655",
+    "actualSha256": "3F46DBB1EC3D3C016AA01BBBD9E3E131BB08378906540681872FB484A9F99655",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/preflight/browser-control.json",
+    "line": 63,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "E437C233D7B888D1E075A2D150EC773F3AAA9753AAAD7002E281E74F383F0C5B",
+    "actualSha256": "E437C233D7B888D1E075A2D150EC773F3AAA9753AAAD7002E281E74F383F0C5B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/golden/stage1/stage1.json",
+    "line": 64,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6C24F4390A36EC1F421FAD056320065F1E2505FE66CF44DB888EEFB71C2B9AFB",
+    "actualSha256": "6C24F4390A36EC1F421FAD056320065F1E2505FE66CF44DB888EEFB71C2B9AFB",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-ui-ownership-final-20260813/manifest.json",
+    "line": 65,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "496C27A1C5A06577B8A3194314D818DF9D7F7B4116704285AE87EE2E7116E70E",
+    "actualSha256": "496C27A1C5A06577B8A3194314D818DF9D7F7B4116704285AE87EE2E7116E70E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-ui-ownership-20260813/interaction-evidence.json",
+    "line": 66,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "CFB37984DE5769D31FABBED46C39C45A1415A0C3AE258C0449DDBFB51E8D0CAD",
+    "actualSha256": "CFB37984DE5769D31FABBED46C39C45A1415A0C3AE258C0449DDBFB51E8D0CAD",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/lane7-cleanup-receipt.json",
+    "line": 67,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B701650FA258FF181D5EBFB6FB9BE7DF3C84F050235E09BA2FEEC52A54772EF2",
+    "actualSha256": "B701650FA258FF181D5EBFB6FB9BE7DF3C84F050235E09BA2FEEC52A54772EF2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/canonical-import-readback.json",
+    "line": 68,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "547AE3BAF3AD1A7C7E13273DA6295D345D989C627C61D5E2CE3BF26CBAF1DB8E",
+    "actualSha256": "50A1FA701B785FFDC48F1BCDE618E7F434C399683842E076D908919A7AB75E71",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/ui-gate/canonical-menu-ui-gate.json",
+    "line": 69,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "ED308FC7EB6A95303B5293E52CF8BF2FC2333F6865CBF025DE5F16424A89F773",
+    "actualSha256": "ED308FC7EB6A95303B5293E52CF8BF2FC2333F6865CBF025DE5F16424A89F773",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/ui-corrections/task0-ui-corrections.json",
+    "line": 70,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "AB1C6275B7B515FAED2FA7AF11A56312750EB7E52859C9B91CDD0CDC3CD7C2A9",
+    "actualSha256": "AB1C6275B7B515FAED2FA7AF11A56312750EB7E52859C9B91CDD0CDC3CD7C2A9",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/current-week-import/current-week-commit-receipt.json",
+    "line": 71,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "34670AFFDB02456B1756E8546F0C980A47223D08E9181F0B42C3BD9F6C188B51",
+    "actualSha256": "34670AFFDB02456B1756E8546F0C980A47223D08E9181F0B42C3BD9F6C188B51",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/current-week-import/current-week-readback.json",
+    "line": 72,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "595A649B2296CCC68E432516B61241A1A22CACEF26EA1C8BEC2272368AFC6611",
+    "actualSha256": "595A649B2296CCC68E432516B61241A1A22CACEF26EA1C8BEC2272368AFC6611",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/week-start-fix/week-start-normalization.json",
+    "line": 73,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "25A288C7B064C2B4BA57FF036E71BF9956C4072322F28C45D9F0D8378EBE6574",
+    "actualSha256": "25A288C7B064C2B4BA57FF036E71BF9956C4072322F28C45D9F0D8378EBE6574",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/cleanup/sticky-header-fix/sticky-header-probe.json",
+    "line": 74,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B3DB4041332942C56C25B87C176A5067982A007B0D88749E2B882B0A86D3A5AD",
+    "actualSha256": "B3DB4041332942C56C25B87C176A5067982A007B0D88749E2B882B0A86D3A5AD",
+    "hashMatches": true
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-ANV.xlsx",
+    "line": 75,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "BDB76CC7063339E83D427AC021C80F852A34685AEEAA93DBF4CBC13384A698C1",
+    "actualSha256": "2CC485BD146F1F4892DA9830F3F428AD0435387563282177FA94B3B03EA2965E",
+    "hashMatches": false
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-DAV.xlsx",
+    "line": 76,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "F7E14FE5C88A959529E7B80E950A9F7435F019FD18EC551702F9080CC3BE9061",
+    "actualSha256": "2BD34F7D471DF23E63EFD9DA22D2904BC61E68C5E78EB4A18EFDEE940FCB7AAC",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/browser/receipt-lifecycle.json",
+    "line": 77,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "959E0C9FFFAF2F7EA8B87F10E729E50F4F39A3B859DE3FFBC43868DB1358A8B1",
+    "actualSha256": "959E0C9FFFAF2F7EA8B87F10E729E50F4F39A3B859DE3FFBC43868DB1358A8B1",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/browser/receipt-lifecycle-resume.json",
+    "line": 78,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "49723D3AEBE441DC4C25A07D1BFF5B4333143A5453008CA6AC9A0F4ABD61F9B6",
+    "actualSha256": "49723D3AEBE441DC4C25A07D1BFF5B4333143A5453008CA6AC9A0F4ABD61F9B6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/db/receipt-postflight.tsv",
+    "line": 79,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D0687E45E97E3CF2C6C0FFC36089CA1ADC385EA0EA6F689F104FB7697FF64D7C",
+    "actualSha256": "D0687E45E97E3CF2C6C0FFC36089CA1ADC385EA0EA6F689F104FB7697FF64D7C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/screenshots/1365x900-receipt-posted-reload.png",
+    "line": 80,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "FFBC0F01C969F5EF9A7B8DD1AF9C53D083B7DFDF3BE9F0790789649C3E401BB0",
+    "actualSha256": "FFBC0F01C969F5EF9A7B8DD1AF9C53D083B7DFDF3BE9F0790789649C3E401BB0",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-service-run-live-20260812-final/service-run-confirm-historical-supplier-decisions/api/result.json",
+    "line": 81,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "FA647D835B03EC42EF9EEBACFB13E87C87183202161AD14B1A91119A1541948D",
+    "actualSha256": "FA647D835B03EC42EF9EEBACFB13E87C87183202161AD14B1A91119A1541948D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-service-run-live-20260812-final/service-run-confirm-banana-conversion/api/result.json",
+    "line": 82,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "981C194643428D545B87C19FFD5699FA7E559B7FC288AAD4933914D6B7C40CE3",
+    "actualSha256": "981C194643428D545B87C19FFD5699FA7E559B7FC288AAD4933914D6B7C40CE3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-service-run-live-20260812-final/service-run-correct-provisional-shrimp-note/api/result.json",
+    "line": 83,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "95BB569F08F1968161DE26D8B3C9AAB217897F3CA9F9DD04705092A697C4411E",
+    "actualSha256": "95BB569F08F1968161DE26D8B3C9AAB217897F3CA9F9DD04705092A697C4411E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-service-run-live-20260812-final/read-current-pr-orders/api/result.json",
+    "line": 84,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1351A59EBADE4430790C4EB8796853E6EE4076E3EF1C5D48B1B0E1A7B47F7ED5",
+    "actualSha256": "1351A59EBADE4430790C4EB8796853E6EE4076E3EF1C5D48B1B0E1A7B47F7ED5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/db/preflight-detail.json",
+    "line": 85,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "983178B3E3660A14CA98BDE6BB0A6B331D93776064F918BCA81572FD4C88DAE4",
+    "actualSha256": "983178B3E3660A14CA98BDE6BB0A6B331D93776064F918BCA81572FD4C88DAE4",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/db/migration-postflight.json",
+    "line": 86,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "78C6DC7B3F1C0D99C83D584DABD5C2CC5CDFA60727F7C01325545780CFE6E5AE",
+    "actualSha256": "78C6DC7B3F1C0D99C83D584DABD5C2CC5CDFA60727F7C01325545780CFE6E5AE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/db/postflight.json",
+    "line": 87,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "ECC778414804B5A972580D8E3AB7EA30B12311FECB9CE42F541BCA6CC29DE3D9",
+    "actualSha256": "ECC778414804B5A972580D8E3AB7EA30B12311FECB9CE42F541BCA6CC29DE3D9",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/browser/headed-void-readback.json",
+    "line": 88,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0B8C1F4CA44898557BB3E820912A1182302FC3B219764E12FB07D81ACC0D01A6",
+    "actualSha256": "0B8C1F4CA44898557BB3E820912A1182302FC3B219764E12FB07D81ACC0D01A6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/screenshots/1365x900-admin-warehouse-voided-reload.png",
+    "line": 89,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1B99391F49510BEAE0C691ACA609EAA4AEE78378E8F746838E34CA5CA7A1D87E",
+    "actualSha256": "1B99391F49510BEAE0C691ACA609EAA4AEE78378E8F746838E34CA5CA7A1D87E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/runtime/teardown.json",
+    "line": 90,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5012FF47DD4E44365131A71ACD85FF35C84D66CAB2B44E0B90CDCEEBE5017F72",
+    "actualSha256": "5012FF47DD4E44365131A71ACD85FF35C84D66CAB2B44E0B90CDCEEBE5017F72",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/api/create-replacement-draft.json",
+    "line": 91,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4F5515E6FB1B041D3A62224B7E60A396EA8BAF458EBA03AFCA5C4778DFB725E3",
+    "actualSha256": "4F5515E6FB1B041D3A62224B7E60A396EA8BAF458EBA03AFCA5C4778DFB725E3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/db/replacement-postflight.json",
+    "line": 92,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9BF632BC36EA66267A0169CD2F224EEE8BDEDE8E5892CF2BC9177D3F8E6A6A16",
+    "actualSha256": "9BF632BC36EA66267A0169CD2F224EEE8BDEDE8E5892CF2BC9177D3F8E6A6A16",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/browser/headed-replacement-draft-readback.json",
+    "line": 93,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3064DA311E03E4442ACCE7A758D0B8CB5F6B07B6A9E7CC48219AF386040248D1",
+    "actualSha256": "3064DA311E03E4442ACCE7A758D0B8CB5F6B07B6A9E7CC48219AF386040248D1",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/screenshots/1365x900-coordinator-replacement-draft-reload.png",
+    "line": 94,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "624093099DDFA52A3538DC4BA1B5BAA86F09F31F4165692A537580A666D625A1",
+    "actualSha256": "624093099DDFA52A3538DC4BA1B5BAA86F09F31F4165692A537580A666D625A1",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/runtime/replacement-teardown.json",
+    "line": 95,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9987BFDC2DA8AF2B9891586A4AAE6D0725E838055CDB01773B17C05DB700388E",
+    "actualSha256": "9987BFDC2DA8AF2B9891586A4AAE6D0725E838055CDB01773B17C05DB700388E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/warehouse-clean-20260812/readback-20260812.json",
+    "line": 96,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D8421234CA3D7A5C7F48ADB346D7B96BDB6E50C60BD8D68DD710A4EB52722D2D",
+    "actualSha256": "D8421234CA3D7A5C7F48ADB346D7B96BDB6E50C60BD8D68DD710A4EB52722D2D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/nfr-research/20260910/d09-broad-backend-attempt.json",
+    "line": 102,
+    "exists": true,
+    "tracked": true,
+    "ignored": true,
+    "expectedSha256": "01872D35D309BDFBBC83DD1AE84C4F1E98DFAC56F23D7232E3097CA929458C58",
+    "actualSha256": "8B53344EE83D3FB739A697616E0B6D209AD8929A450D76579A788BD03B15B37A",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/golden/stage1/partial-checkpoint.json",
+    "line": 103,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "21AC63149E685DE6C1F0D2F9ECDDCE05147B1485815A730D54B1DF0524F526A2",
+    "actualSha256": "21AC63149E685DE6C1F0D2F9ECDDCE05147B1485815A730D54B1DF0524F526A2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/golden/stage1-diagnostic/result.json",
+    "line": 104,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "EB72C5FCEEE960ADEA0A95A40F66C8EA0FAA87001A43DA033C9BB074359AEBD9",
+    "actualSha256": "FD9758E7E935317F0221ADE6E0233DCFF7750C6703A8ED232E9FDA474174E210",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/preflight/browser-control-failed-20260813.json",
+    "line": 105,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "AA2C860B6C79B9BACF33E6D6277C909B5EB73FABF4C0231C43C6D587119D5DB2",
+    "actualSha256": "AA2C860B6C79B9BACF33E6D6277C909B5EB73FABF4C0231C43C6D587119D5DB2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-service-run-live-20260812-final/submit-approve-create-current-pr/api/result.json",
+    "line": 106,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "067E65C0CAB1AF5A1907B6E4DA9032F55BC79F2604C84F040B77D1EA475616F2",
+    "actualSha256": "17A11A6D32085A29BB4421C6CBDD208E4C32DE89ECC3A5ADDD8963FD78100B3E",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-service-run-live-20260812-final/read-current-pr-receipts/api/result.json",
+    "line": 108,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "905B47E6FA269A9A1503F72871EC2EE0CBF8D296246AD6629A2BC453FDF6FE1B",
+    "actualSha256": "905B47E6FA269A9A1503F72871EC2EE0CBF8D296246AD6629A2BC453FDF6FE1B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-void-remediation-20260812/api/create-replacement-draft-wrong-warehouse-attempt.json",
+    "line": 109,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0A8E1C653C06504342B5A7850A3CC5B28D0AC4F69BB52B189BF32BE9A0D0B56F",
+    "actualSha256": "0A8E1C653C06504342B5A7850A3CC5B28D0AC4F69BB52B189BF32BE9A0D0B56F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/browser/service-run-close.json",
+    "line": 110,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "32A47D1F1FF0FD7C65E8ADAE8EFE9C04C9354570F9B7E8A96D07E220C442F1A5",
+    "actualSha256": "5C0C27E76853A2E6D21ECFE5178EDFA41E9A7AB5F6758CB445158AE3DEB6F1E3",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/warehouse-clean-20260812/manifest.json",
+    "line": 112,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "342038CE8A8103746B4DF894671497E2DE109DBE7193EF60E513DD0511BB82EF",
+    "actualSha256": "342038CE8A8103746B4DF894671497E2DE109DBE7193EF60E513DD0511BB82EF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/warehouse-clean-20260812/db/dry-run.json",
+    "line": 113,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0A317A374886C54E437972A9FC5564215AC4E015A4D835C718F704986C04A010",
+    "actualSha256": "0A317A374886C54E437972A9FC5564215AC4E015A4D835C718F704986C04A010",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/warehouse-clean-20260812/db/apply.json",
+    "line": 114,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "8664F74EE6DF479950876F0CAA5B7257A53C0CBAD52AD901088EEFD104F01379",
+    "actualSha256": "8664F74EE6DF479950876F0CAA5B7257A53C0CBAD52AD901088EEFD104F01379",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/warehouse-clean-20260812/db/postflight.json",
+    "line": 115,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7FAA1399742B19A037A20F3A65D2C572074D713234FE73547265EA10D167AEF7",
+    "actualSha256": "7FAA1399742B19A037A20F3A65D2C572074D713234FE73547265EA10D167AEF7",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase02-wave2/manifest.json",
+    "line": 118,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A12B6B28FC06D67ABA901034ACAB35B91FD439BF4F433D555DCF12696C2D1773",
+    "actualSha256": "A12B6B28FC06D67ABA901034ACAB35B91FD439BF4F433D555DCF12696C2D1773",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase02-wave2-corrective-20260811/manifest.json",
+    "line": 119,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F23EED202FCEB47AA41665A34AFCFC913F6FA60CCB0C744CA470B28E17D80629",
+    "actualSha256": "F23EED202FCEB47AA41665A34AFCFC913F6FA60CCB0C744CA470B28E17D80629",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase02-02-ui-runtime/manifest.json",
+    "line": 120,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A203119A3FD9215FFC9C297C4D7A667E92BD9491660641BDE9FBD30A4CA0062B",
+    "actualSha256": "A203119A3FD9215FFC9C297C4D7A667E92BD9491660641BDE9FBD30A4CA0062B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/dashboard-ui-rules-conformance-phase01/manifest.json",
+    "line": 122,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "19AFD8173C76871AD8616A9D2F92548CC27ED3DAFEA2C104507F7E925ADB0A18",
+    "actualSha256": "19AFD8173C76871AD8616A9D2F92548CC27ED3DAFEA2C104507F7E925ADB0A18",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/manifest.json",
+    "line": 123,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C1A015988580CEC13B3E6C16DA46644D882E66DF74720100482C8D83657D55EF",
+    "actualSha256": "C1A015988580CEC13B3E6C16DA46644D882E66DF74720100482C8D83657D55EF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/api/batch-progress.json",
+    "line": 124,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "02D961AD59F61C79D0C31165107F16D59197E995B7580D4F7DA3282CCF6F3882",
+    "actualSha256": "02D961AD59F61C79D0C31165107F16D59197E995B7580D4F7DA3282CCF6F3882",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/db/postflight.json",
+    "line": 125,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "E7D436AC3E800C2AFD0D105087145843DD97FE6A6675476E22D172F35818D268",
+    "actualSha256": "E7D436AC3E800C2AFD0D105087145843DD97FE6A6675476E22D172F35818D268",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/headed-final.json",
+    "line": 126,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "EC3B2B5D916079A0C30CE0FC2C10D59897D88AA62C3B8D22EBD02597676C15D5",
+    "actualSha256": "EC3B2B5D916079A0C30CE0FC2C10D59897D88AA62C3B8D22EBD02597676C15D5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/screenshots/final-1440x900.png",
+    "line": 127,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "00FF434BE2AB738655359CAF079A1B2B20A7A97D24F67242768A6CFEA5A9CEEA",
+    "actualSha256": "00FF434BE2AB738655359CAF079A1B2B20A7A97D24F67242768A6CFEA5A9CEEA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-closeout-20260809/db/reviewed-current-migration.sql",
+    "line": 128,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3441BA9DA18CF3F9B40E7DBC18BED68083E607CEC8480A1426C321301DD1A6AC",
+    "actualSha256": "3441BA9DA18CF3F9B40E7DBC18BED68083E607CEC8480A1426C321301DD1A6AC",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\IPCManagement-backups\\phase4-legacy-lineage-closeout-20260809\\ipc_lane9-before-legacy-lineage-closeout.sql",
+    "line": 129,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0263BC5BF49A8225620382A3392DAE1E7398E37766A65C3E8C95FCD2A8B846FA",
+    "actualSha256": "0263BC5BF49A8225620382A3392DAE1E7398E37766A65C3E8C95FCD2A8B846FA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/manifest.json",
+    "line": 130,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "64EF1674204FDBAE8198E2A21AF62187075C75E1E46C774460969E2D5D974E28",
+    "actualSha256": "64EF1674204FDBAE8198E2A21AF62187075C75E1E46C774460969E2D5D974E28",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/screenshots/02-manager-approved.png",
+    "line": 131,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7D2706FE7C231CC372CE67D41E0BA66E84D572D521B1F222F6F39FA41DFB3B36",
+    "actualSha256": "7D2706FE7C231CC372CE67D41E0BA66E84D572D521B1F222F6F39FA41DFB3B36",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/screenshots/03-admin-applied.png",
+    "line": 132,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "86AA121E462EB58FC0F71AB2503E875D8A56FC575842295C2697481F240528BD",
+    "actualSha256": "86AA121E462EB58FC0F71AB2503E875D8A56FC575842295C2697481F240528BD",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-legacy-lineage-e2e-20260809/screenshots/04-final-1440x900.png",
+    "line": 133,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "956B36A6BDF33FD16BE23B65EB46AD66E1EB23EB2C22375D5A1AD8A885EAD159",
+    "actualSha256": "956B36A6BDF33FD16BE23B65EB46AD66E1EB23EB2C22375D5A1AD8A885EAD159",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\IPCManagement-backups\\phase4-legacy-lineage-e2e-20260809\\ipc_lane9-before-legacy-lineage-e2e.sql",
+    "line": 134,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "395B5E7C0068666A36BF95118779C218ADD7408C2239113702F09ADA08F89989",
+    "actualSha256": "395B5E7C0068666A36BF95118779C218ADD7408C2239113702F09ADA08F89989",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-reconciliation-20260809/reconciliation-headed-readonly.json",
+    "line": 135,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6DEB15A9016D543F19CB193E412C6D62C339F0D6F918DAA18753DAE1BCD1DFD7",
+    "actualSha256": "6DEB15A9016D543F19CB193E412C6D62C339F0D6F918DAA18753DAE1BCD1DFD7",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase4-reconciliation-20260809/1440x900-reports-usage-reconciliation.png",
+    "line": 136,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1EF069000EA7F4F1368B6B9DDB2D3B44F07888E68C6CE3CF7EDC2027800945B2",
+    "actualSha256": "1EF069000EA7F4F1368B6B9DDB2D3B44F07888E68C6CE3CF7EDC2027800945B2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/menu-amendment-e2e-20260807/reversible-executed.json",
+    "line": 137,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "85528B7936934AD6F5B61B5DBD7810FB9AD9E1630168A675516E0FFAF5093E3F",
+    "actualSha256": "85528B7936934AD6F5B61B5DBD7810FB9AD9E1630168A675516E0FFAF5093E3F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/menu-amendment-e2e-20260807/reversible-executed.png",
+    "line": 138,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "DBE0E7D5F13D8115EA23F285CC1896D60E648FCE71B0856CF2DBB78937F72753",
+    "actualSha256": "DBE0E7D5F13D8115EA23F285CC1896D60E648FCE71B0856CF2DBB78937F72753",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-probe.json",
+    "line": 139,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5E08190DD4A017A040079DAF18D165E16DF720282D813C00791BEA38B84A2B67",
+    "actualSha256": "1508713A41E9B003F5718EC9D56E9EC87658BDFFB5ECBCF3EDAC95A3328A50C8",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-reconciliation-1440x900.png",
+    "line": 140,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A7645373FDA3D9548CFAA2EDC38F0D466A4DA77B0BEE354BCF56DD731EF6C0A0",
+    "actualSha256": "FA40CAF1BE014099B47B5E1B029B62388D8508C8BD90048D51565347C44EC4BA",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/lifecycle-e2e-20260805/weekly-api/weekly-20260805-205122681/weekly-happy-path-e2e-summary.md",
+    "line": 141,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A6FE4534AE6D9F28869D719BD74BA24520553A9DC563BE658143FBC04B4111E5",
+    "actualSha256": "A6FE4534AE6D9F28869D719BD74BA24520553A9DC563BE658143FBC04B4111E5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/lifecycle-e2e-20260805/service-run-friday-final/service-run-browser-evidence.json",
+    "line": 142,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0DA2AE1E3ED9E6AB76A72B26E8129DE6EA3BEEEEA94E6F25B49020FF596069BC",
+    "actualSha256": "0DA2AE1E3ED9E6AB76A72B26E8129DE6EA3BEEEEA94E6F25B49020FF596069BC",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/lifecycle-e2e-20260805/service-run-friday-final/service-run-db-evidence.json",
+    "line": 143,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4C021C390A37C9D4E16E5BF4B49B9E4D12E258B36669EED13006F96FFEBB7398",
+    "actualSha256": "4C021C390A37C9D4E16E5BF4B49B9E4D12E258B36669EED13006F96FFEBB7398",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/lifecycle-e2e-20260805/service-run-saturday-blocked/service-run-browser-evidence.json",
+    "line": 144,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "74D18D9781D851179285893E9F98D194393C838ED9C7A75F349B8B25C0A152C3",
+    "actualSha256": "74D18D9781D851179285893E9F98D194393C838ED9C7A75F349B8B25C0A152C3",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-schema-sync-20260803-222854\\ipcmanagement.sql",
+    "line": 145,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "494D9733946F6DAC6FC32A60C68A7B2435DC8396AF68B88536E5FD830113EA88",
+    "actualSha256": "494D9733946F6DAC6FC32A60C68A7B2435DC8396AF68B88536E5FD830113EA88",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-schema-sync-20260803-222854\\ipc_lane1.sql",
+    "line": 146,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C0A6C854FDA13A046B042A0805C9366253E819757749A5C6E44BA48FA686AADC",
+    "actualSha256": "C0A6C854FDA13A046B042A0805C9366253E819757749A5C6E44BA48FA686AADC",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-schema-sync-20260803-222854\\ipc_lane8.sql",
+    "line": 147,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A5E6DF84AA62829E2A0CBA6323F228A7A75BB4A2925C005B065271C2D9922BAA",
+    "actualSha256": "A5E6DF84AA62829E2A0CBA6323F228A7A75BB4A2925C005B065271C2D9922BAA",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-schema-sync-20260803-222854\\ipc_lane9.sql",
+    "line": 148,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D68D9AE00FC43146239563ABA79AA36F49E6185CCFA71F0FDD322E47BC91810E",
+    "actualSha256": "D68D9AE00FC43146239563ABA79AA36F49E6185CCFA71F0FDD322E47BC91810E",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-schema-sync-20260803-222854\\ipc_e2e_template.sql",
+    "line": 149,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "8E0304118AA400619059A4792E832995F7D61FFF1C4B4A1CFBC8EAFC274B943D",
+    "actualSha256": "8E0304118AA400619059A4792E832995F7D61FFF1C4B4A1CFBC8EAFC274B943D",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-schema-sync-20260803-222854\\forward-20260726203853-to-current.sql",
+    "line": 150,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "8186F277300C86C91115A7934B96B00B68B1750E7B26A97824351E90CDD1D4F3",
+    "actualSha256": "8186F277300C86C91115A7934B96B00B68B1750E7B26A97824351E90CDD1D4F3",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-auth-perf-20260803\\ipcmanagement-refreshtokens-before-cap.sql",
+    "line": 151,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "AF76F52D68E1B3F66978390ED7D859838BA047E28ACEEC2ADEAA622241E72BDE",
+    "actualSha256": "AF76F52D68E1B3F66978390ED7D859838BA047E28ACEEC2ADEAA622241E72BDE",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-auth-perf-20260803\\ipc_e2e_template-refreshtokens-before-restore.sql",
+    "line": 152,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B4D4D0AFF055D4AC36BB65F1C108569603FE98E1448938716CC8444145B120D7",
+    "actualSha256": "B4D4D0AFF055D4AC36BB65F1C108569603FE98E1448938716CC8444145B120D7",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/shipyard-current-e2e-20260804-after-purchase-summary/shipyard-current-e2e.json",
+    "line": 153,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1926D5CBD78F6B5C792F8AE54C3D50160EAC65D7055A0C678EA8584585E8C47E",
+    "actualSha256": "1926D5CBD78F6B5C792F8AE54C3D50160EAC65D7055A0C678EA8584585E8C47E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/badge-transition-e2e-20260804/phase6-headed-workbook-e2e.json",
+    "line": 154,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4100E4757D00505AD44BD50ADE46FC6BE4BC9B6DA83BD67FBF0CCBA01BE90511",
+    "actualSha256": "4100E4757D00505AD44BD50ADE46FC6BE4BC9B6DA83BD67FBF0CCBA01BE90511",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-e2e-current-week-20260804\\ipc_e2e_template-20260804-161854.zip",
+    "line": 155,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0DCDAC4B59BA9077C2109B6863496F9993649EB2336CF4EAE91E1E8E6B6C4E88",
+    "actualSha256": "0DCDAC4B59BA9077C2109B6863496F9993649EB2336CF4EAE91E1E8E6B6C4E88",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/current-week-bom-e2e-20260804-verify-final/current-week-bom-e2e.json",
+    "line": 156,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "E1B2EEBCF36B723AFFB0BBAA2709C691DE1D1EE5236067C068F2CD7224008716",
+    "actualSha256": "E1B2EEBCF36B723AFFB0BBAA2709C691DE1D1EE5236067C068F2CD7224008716",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/request-deduplication-20260803/request-deduplication.json",
+    "line": 157,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "101C0E5A3C69E3990CA8D15059449DEE5C59E957645EBB71663B7BE1E6EC4A07",
+    "actualSha256": "101C0E5A3C69E3990CA8D15059449DEE5C59E957645EBB71663B7BE1E6EC4A07",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/request-deduplication-20260803/1920x1080.png",
+    "line": 158,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1E851ADF0369DEA1C1563161CC6AC80E6EAC7C2E691E51FC2242332C51C27A3F",
+    "actualSha256": "1E851ADF0369DEA1C1563161CC6AC80E6EAC7C2E691E51FC2242332C51C27A3F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/request-deduplication-20260803/1440x900.png",
+    "line": 159,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "82694B646A746CDB643CE4594A6E1D59B6A986CEE5FC6F431873018EE8189353",
+    "actualSha256": "82694B646A746CDB643CE4594A6E1D59B6A986CEE5FC6F431873018EE8189353",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/request-deduplication-20260803/1366x768.png",
+    "line": 160,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3393F59FB9B3BC82F99312EC67FC5FD90CA3E9A72448AF129A3A77CAFEC4A44B",
+    "actualSha256": "3393F59FB9B3BC82F99312EC67FC5FD90CA3E9A72448AF129A3A77CAFEC4A44B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/request-deduplication-20260803/1365x900.png",
+    "line": 161,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D9BAE6B1584873E4EB05E9B3FB94238D00E999946200C50D652AEA6BA4D9B70F",
+    "actualSha256": "D9BAE6B1584873E4EB05E9B3FB94238D00E999946200C50D652AEA6BA4D9B70F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/request-deduplication-20260803/1280x900.png",
+    "line": 162,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "34139A376F46D55BE9F1547F97510C555754784DD03772756FD76DDB1B07801C",
+    "actualSha256": "34139A376F46D55BE9F1547F97510C555754784DD03772756FD76DDB1B07801C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/standardization-phase6-20260803/workbooks/workbook-case-matrix.json",
+    "line": 163,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "669B823C427B8ABB6119FCC681B1E71C1865356CF0A24295CBFB2AF07F409865",
+    "actualSha256": "669B823C427B8ABB6119FCC681B1E71C1865356CF0A24295CBFB2AF07F409865",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/standardization-phase6-20260803/phase6-headed-workbook-e2e.json",
+    "line": 164,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4456C7A4CB86A674CC576379E537D911BCD24E56B1AF9513C84DCA422162A5CF",
+    "actualSha256": "4456C7A4CB86A674CC576379E537D911BCD24E56B1AF9513C84DCA422162A5CF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/standardization-phase6-20260803/1280x900-reload-rolled-back-history.png",
+    "line": 165,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1C844B8F04C6D7A81FF9836A796B6E6419AC3156B297EAC8555B2571112B1ED3",
+    "actualSha256": "1C844B8F04C6D7A81FF9836A796B6E6419AC3156B297EAC8555B2571112B1ED3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/standardization-phase6-20260803.zip",
+    "line": 166,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "DB95CA299C0DF2CB53CEE40F83530F0996EF7AFAFEAC7FF00A85E73404260A24",
+    "actualSha256": "DB95CA299C0DF2CB53CEE40F83530F0996EF7AFAFEAC7FF00A85E73404260A24",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/shipyard-pagination-after-20260802/pagination-layout-before.json",
+    "line": 167,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "BDB790DC4DE76D2E3622EA6E0515E58DB842EBD24D9F04AC91C2918175B0FFC2",
+    "actualSha256": "BDB790DC4DE76D2E3622EA6E0515E58DB842EBD24D9F04AC91C2918175B0FFC2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/shipyard-current-e2e-20260802-after-final2/shipyard-current-e2e.json",
+    "line": 168,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B4917359F9724FD565AA52378EC5B028F8ADD03BAE86F81F6DFB795DA2540373",
+    "actualSha256": "B4917359F9724FD565AA52378EC5B028F8ADD03BAE86F81F6DFB795DA2540373",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-current-e2e.json",
+    "line": 169,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "328BBCA2FA0BBAA98E9D7F3972278CD4E7A221E7750F1E2C48243BF4F56596E9",
+    "actualSha256": "328BBCA2FA0BBAA98E9D7F3972278CD4E7A221E7750F1E2C48243BF4F56596E9",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/shipyard-current-e2e-20260802-after-warm/shipyard-live-navigation.json",
+    "line": 170,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9D03360E2B67040CE26B65492ABDBBBBE170D6E62437D024A1E990F1A053A9B8",
+    "actualSha256": "9D03360E2B67040CE26B65492ABDBBBBE170D6E62437D024A1E990F1A053A9B8",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/runtime-preflight.json",
+    "line": 171,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "FA73DEF45214969B645F79AA5E01720B77381F7A5AF2CD2CD17BD39697B16008",
+    "actualSha256": "FA73DEF45214969B645F79AA5E01720B77381F7A5AF2CD2CD17BD39697B16008",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source.json",
+    "line": 172,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5DCED855EF91AF3C62ED4B5099FCCC91099AC0A3BDD381CAFCBBBFF74CB1EDE4",
+    "actualSha256": "5DCED855EF91AF3C62ED4B5099FCCC91099AC0A3BDD381CAFCBBBFF74CB1EDE4",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/1920x1080-admin-statistics-final.png",
+    "line": 173,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5D8A3845E9915A8218F31E0C5651A99474435A8BE3FC9795426561E9DF46035C",
+    "actualSha256": "5D8A3845E9915A8218F31E0C5651A99474435A8BE3FC9795426561E9DF46035C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/1440x900-admin-statistics-final.png",
+    "line": 174,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D0FA46DA5CEBD69FB93620B370E6A8B0D609A9B0C2CD459C2C50D778EA704B1F",
+    "actualSha256": "D0FA46DA5CEBD69FB93620B370E6A8B0D609A9B0C2CD459C2C50D778EA704B1F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/1366x768-admin-statistics-final.png",
+    "line": 175,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "688BF587448DC8B4E5038D5193DEBB6F869BE1391E4E4A195BB6DDE64EEFFDF8",
+    "actualSha256": "688BF587448DC8B4E5038D5193DEBB6F869BE1391E4E4A195BB6DDE64EEFFDF8",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/1365x900-admin-statistics-final.png",
+    "line": 176,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "E6FEF174595D19A8617901637D5FCC4E9B1264B6B6DB5EF72C6445655968011B",
+    "actualSha256": "E6FEF174595D19A8617901637D5FCC4E9B1264B6B6DB5EF72C6445655968011B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/1280x900-admin-statistics-final.png",
+    "line": 177,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3F9DFBEA4F2EDEB777EE76459697931A3EF5321951A576151E4FF85014D8C5CA",
+    "actualSha256": "3F9DFBEA4F2EDEB777EE76459697931A3EF5321951A576151E4FF85014D8C5CA",
+    "hashMatches": true
+  },
+  {
+    "path": ".planning/workstreams/goal-make-every-existing-route-tab-and-declared-canonical-st/phases/20-pc-pd-action-completeness/20-PC-AGGREGATE.json",
+    "line": 178,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C07A2D7C0695A3A3C2BF6E8F689C5779CFAB4BEE24D72117EDE0E11CA8712A28",
+    "actualSha256": "C07A2D7C0695A3A3C2BF6E8F689C5779CFAB4BEE24D72117EDE0E11CA8712A28",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/operational-weekly-menu-e2e.json",
+    "line": 179,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F2AE20CCF34C7FD3D1A36E6D67495C17A89142318EA9DA6C47F4BFBAF9A83493",
+    "actualSha256": "F2AE20CCF34C7FD3D1A36E6D67495C17A89142318EA9DA6C47F4BFBAF9A83493",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/database-after-e2e.json",
+    "line": 180,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B2C6DE7E813512FE063673EA7D4B0E61E17E1E979E00D0A8A325D2FCDB0FD55D",
+    "actualSha256": "B2C6DE7E813512FE063673EA7D4B0E61E17E1E979E00D0A8A325D2FCDB0FD55D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730/database-rollback.json",
+    "line": 181,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "DAD543A9411E3EF518E144DDB46701B54E7E4350AD6000993D8F5C38B74C9743",
+    "actualSha256": "DAD543A9411E3EF518E144DDB46701B54E7E4350AD6000993D8F5C38B74C9743",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/pa2b-operational-weekly-menu-20260730.zip",
+    "line": 182,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "693AA2BDB237A0007A0B4ABE5C4045147FEA40963044DB031DABC4B5DE02157E",
+    "actualSha256": "693AA2BDB237A0007A0B4ABE5C4045147FEA40963044DB031DABC4B5DE02157E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730/pa2b-pc-weekly-menu-fixture.json",
+    "line": 183,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "06FC2F9B9710422AB1962F2AB7AE4CB92641959DF5B42EB235C65EFCBFB9396A",
+    "actualSha256": "06FC2F9B9710422AB1962F2AB7AE4CB92641959DF5B42EB235C65EFCBFB9396A",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/pa2b-pc-weekly-menu-20260730.zip",
+    "line": 184,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9247246BFA3E8A62010CD0AA3E80C9F0619865BD3963AF97FFC2FA706331577C",
+    "actualSha256": "9247246BFA3E8A62010CD0AA3E80C9F0619865BD3963AF97FFC2FA706331577C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730/p4-weekly-menu-capture.json",
+    "line": 185,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B7E8BE033EBAA70E2010AEBA0E32B13063426DE53AAB1C5D1D26333EE97970E2",
+    "actualSha256": "B7E8BE033EBAA70E2010AEBA0E32B13063426DE53AAB1C5D1D26333EE97970E2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/p3-p4-pc-weekly-menu-20260730.zip",
+    "line": 186,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "77BEB3738A3D980C13E65B1581F0228BBD725C124CA7849D4A3BD963156ECBCC",
+    "actualSha256": "77BEB3738A3D980C13E65B1581F0228BBD725C124CA7849D4A3BD963156ECBCC",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729-round2/browser-grain-audit/headed-grain-audit.json",
+    "line": 188,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7852D18CD38474CED42BAA85F994D89D4D11ECF50F029975FCFB25F4A7D077E6",
+    "actualSha256": "7852D18CD38474CED42BAA85F994D89D4D11ECF50F029975FCFB25F4A7D077E6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-18-guardrails-20260729/browser/phase18-headed-audit.json",
+    "line": 189,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "E4032FCF00B2F9DE087007DBEA70680FC2113C8E9414007DE04E710F4025817B",
+    "actualSha256": "E4032FCF00B2F9DE087007DBEA70680FC2113C8E9414007DE04E710F4025817B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit.json",
+    "line": 190,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B5CB0AB87821BD32F173FFB1E87364BCDC9B694D1AB0E18F228927A80930AA13",
+    "actualSha256": "B5CB0AB87821BD32F173FFB1E87364BCDC9B694D1AB0E18F228927A80930AA13",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/all-tabs/headed-all-tabs-audit.json",
+    "line": 191,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D748D0AD84EA146720F9B73919B9379D420E8C17D3476A0C7612F1412B37DE0E",
+    "actualSha256": "D748D0AD84EA146720F9B73919B9379D420E8C17D3476A0C7612F1412B37DE0E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/import-e2e-summary.json",
+    "line": 192,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "FAF0BDE7A21E796FFD5832F1843D65BF001EA025555143A1A23C54F08A85857F",
+    "actualSha256": "FAF0BDE7A21E796FFD5832F1843D65BF001EA025555143A1A23C54F08A85857F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/menu-lifecycle-finalization.json",
+    "line": 193,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "656B50B01726054720CD9235D86FA34B82659982B42E5CCCAE7A60D905E126C6",
+    "actualSha256": "656B50B01726054720CD9235D86FA34B82659982B42E5CCCAE7A60D905E126C6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/browser/headed-weekly-customer-lifecycle-audit.json",
+    "line": 194,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "890C5CDC95709CC48A6205A53A7FCCF13145EAA7BC67ABA7562E4FE3495DF935",
+    "actualSha256": "890C5CDC95709CC48A6205A53A7FCCF13145EAA7BC67ABA7562E4FE3495DF935",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/import-isolation.json",
+    "line": 195,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "AD7FD5C67F6A94270FF6F947E59375FF77E2B40FB0814AD44C77BDF8A4AAED34",
+    "actualSha256": "AD7FD5C67F6A94270FF6F947E59375FF77E2B40FB0814AD44C77BDF8A4AAED34",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/tier-preview-matrix-repeat.json",
+    "line": 196,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9FB52478D7F7C8817A3E6236809E7D65922AC8FE549921DD8E7537B86A007255",
+    "actualSha256": "9FB52478D7F7C8817A3E6236809E7D65922AC8FE549921DD8E7537B86A007255",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/workbook-case-manifest.json",
+    "line": 197,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "EF61E46B9665C14C2F79ECC7DB9B8892DA0C19A88A80CD42A76A7612BE2A9F27",
+    "actualSha256": "EF61E46B9665C14C2F79ECC7DB9B8892DA0C19A88A80CD42A76A7612BE2A9F27",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-18-guardrails-20260729/preflight.json",
+    "line": 198,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "27A0BD5428F8D1E0D5200508C1F3D8D4D5BB4B5A87474453DB5D0CFDAD49EE1B",
+    "actualSha256": "27A0BD5428F8D1E0D5200508C1F3D8D4D5BB4B5A87474453DB5D0CFDAD49EE1B",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-18-guardrails-20260729/import-transition.json",
+    "line": 199,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5C7538E78A961F285B6CB3559CCB2954CA02D29C0BB56199388F975D7AF34F6D",
+    "actualSha256": "5C7538E78A961F285B6CB3559CCB2954CA02D29C0BB56199388F975D7AF34F6D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-18-guardrails-20260729/supplemental-kitchen-confirm.json",
+    "line": 200,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B94054EEBDA1038706C9936CB445671AEB544D99F2AD5DFD7D5303FB6B133957",
+    "actualSha256": "B94054EEBDA1038706C9936CB445671AEB544D99F2AD5DFD7D5303FB6B133957",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/full-project-lifecycle-20260804-case-02-reports-audit/purchase-supplier-e2e.json",
+    "line": 201,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "29538254927772890C46556BE0A674A282D45BD5B4485E96150BA0641891AE81",
+    "actualSha256": "29538254927772890C46556BE0A674A282D45BD5B4485E96150BA0641891AE81",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/full-project-lifecycle-20260804-case-02-reports-audit/database-lifecycle-evidence.json",
+    "line": 202,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9FFD94785BA1D5064DABA1E4ABB70AFA1FC89C78B1C7E71EF85007638EAD3163",
+    "actualSha256": "9FFD94785BA1D5064DABA1E4ABB70AFA1FC89C78B1C7E71EF85007638EAD3163",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/full-project-lifecycle-20260804-case-02-terminal-visual-matrix/purchase-supplier-e2e.json",
+    "line": 203,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "87223DCCB82ED264662D29521FAE02BF834677A3D4812B88A05ECE47B03DBAD2",
+    "actualSha256": "87223DCCB82ED264662D29521FAE02BF834677A3D4812B88A05ECE47B03DBAD2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/evidence-audit-20260805/reports-audit-final/purchase-supplier-e2e.json",
+    "line": 204,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "52974BEDD6427358886A9B34A0638AA2DD1D89476205010ED9014E4593121BAE",
+    "actualSha256": "52974BEDD6427358886A9B34A0638AA2DD1D89476205010ED9014E4593121BAE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/evidence-audit-20260805/terminal-visual-matrix/purchase-supplier-e2e.json",
+    "line": 205,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "52933F557FF686DA042BBAB829760B2BC37221022379F6CCB483CEC0D6C2EEAD",
+    "actualSha256": "52933F557FF686DA042BBAB829760B2BC37221022379F6CCB483CEC0D6C2EEAD",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-lifecycle-20260805/service-run-browser-evidence.json",
+    "line": 206,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "EE6A2C176142F8B2151F2D9A765988EC6AC82CBB179639E5A3BCE335871DC8D3",
+    "actualSha256": "EE6A2C176142F8B2151F2D9A765988EC6AC82CBB179639E5A3BCE335871DC8D3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-lifecycle-20260805/chef-service-run-closed-recheck.png",
+    "line": 207,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5F2E9709841A3FE5750930F27F96DD71F11E1FAC60C1341C4E5CF0BDE0A08DA5",
+    "actualSha256": "5F2E9709841A3FE5750930F27F96DD71F11E1FAC60C1341C4E5CF0BDE0A08DA5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-reports-20260805/service-run-reports-e2e.json",
+    "line": 208,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "74ABEA4A56B77C0CB55CAE795F647BB56A8EF5295DC45ED5149554FA220ECCEE",
+    "actualSha256": "74ABEA4A56B77C0CB55CAE795F647BB56A8EF5295DC45ED5149554FA220ECCEE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-surfaces-20260805/service-run-surfaces-e2e.json",
+    "line": 209,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "335EE76F08A050833BFD8BDABDBE5EE301E5017F4D901E5587CB257C43C458C4",
+    "actualSha256": "335EE76F08A050833BFD8BDABDBE5EE301E5017F4D901E5587CB257C43C458C4",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-final-20260805/service-run-variance-waiver-e2e.json",
+    "line": 210,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "954D6C060963E03E771B52B325065A99566B5A0F3679490A917E396339035070",
+    "actualSha256": "954D6C060963E03E771B52B325065A99566B5A0F3679490A917E396339035070",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-final-20260805/service-run-reports-e2e.json",
+    "line": 211,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D8A2A9DFCF04A10887239EFE164EEE5E2D94B545A4F0D1F32DFC8CEA53654E2F",
+    "actualSha256": "D8A2A9DFCF04A10887239EFE164EEE5E2D94B545A4F0D1F32DFC8CEA53654E2F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-final-20260805/service-run-surfaces-e2e.json",
+    "line": 212,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9A2FFC09583AD5FB7A9B76639D02AC3F63AEB498AAED0CAC986BE94C30431255",
+    "actualSha256": "9A2FFC09583AD5FB7A9B76639D02AC3F63AEB498AAED0CAC986BE94C30431255",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-final-20260805/service-run-db-evidence.json",
+    "line": 213,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "DE7577B2E6311768DFB00221F4E035A3E4917E6B45C7F817437F5A5B7E28CD62",
+    "actualSha256": "DE7577B2E6311768DFB00221F4E035A3E4917E6B45C7F817437F5A5B7E28CD62",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-model-hardening-20260805/service-run-variance-waiver-e2e.json",
+    "line": 214,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "BF320B43C17AB1905AC425DFAF3EB349C4DFA7B60A30AA0C7617EA68927B9D36",
+    "actualSha256": "BF320B43C17AB1905AC425DFAF3EB349C4DFA7B60A30AA0C7617EA68927B9D36",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-model-hardening-20260805/service-run-reports-e2e.json",
+    "line": 215,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5DE99A6D8A8A74AADF3EFB98C11B0C4D71F35D317DE8C081B6F35E900A1B17F2",
+    "actualSha256": "5DE99A6D8A8A74AADF3EFB98C11B0C4D71F35D317DE8C081B6F35E900A1B17F2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/service-run-model-hardening-20260805/service-run-db-evidence.json",
+    "line": 216,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "124F93C74B10A052259FF2358796C1C8AA35C3F39C16C8149D967A406D05B576",
+    "actualSha256": "124F93C74B10A052259FF2358796C1C8AA35C3F39C16C8149D967A406D05B576",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/summary.json",
+    "line": 224,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "974FA80852929A3AEC20B5FC065D20FA775346DD68266A15D0B4A83F4A54EBE3",
+    "actualSha256": "974FA80852929A3AEC20B5FC065D20FA775346DD68266A15D0B4A83F4A54EBE3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/ef-live-comparison.json",
+    "line": 225,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0038F91B94C2D65E409144872E0DE669774449C71AFC946B66361AD9F67DD48F",
+    "actualSha256": "0038F91B94C2D65E409144872E0DE669774449C71AFC946B66361AD9F67DD48F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/business-integrity.tsv",
+    "line": 226,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "BD281F28A53DCB3595B27861B1BBDD0BC1CF7495844F9787C04C4F91BD8CDA83",
+    "actualSha256": "BD281F28A53DCB3595B27861B1BBDD0BC1CF7495844F9787C04C4F91BD8CDA83",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/unit-integrity.tsv",
+    "line": 227,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C971F70E3F8A133042B6F00F104CF1977EA0CDDA1E6A44ACDEBDB433BB3BA82C",
+    "actualSha256": "C971F70E3F8A133042B6F00F104CF1977EA0CDDA1E6A44ACDEBDB433BB3BA82C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/base/unit-integrity.tsv",
+    "line": 228,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C971F70E3F8A133042B6F00F104CF1977EA0CDDA1E6A44ACDEBDB433BB3BA82C",
+    "actualSha256": "C971F70E3F8A133042B6F00F104CF1977EA0CDDA1E6A44ACDEBDB433BB3BA82C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/base/summary.json",
+    "line": 229,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3B42EBC76FF0203BEE8D4388EFD9749B461B502CFEA2BA82F1C0E3632DB1534A",
+    "actualSha256": "3B42EBC76FF0203BEE8D4388EFD9749B461B502CFEA2BA82F1C0E3632DB1534A",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/base/ef-live-comparison.json",
+    "line": 230,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1428749857CD267DA74E928668FA6DB098FBB135877D05EDB7AE569911FC42BF",
+    "actualSha256": "1428749857CD267DA74E928668FA6DB098FBB135877D05EDB7AE569911FC42BF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/base/business-integrity.tsv",
+    "line": 231,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "499524E0850E0944BD1E03E856CBBE2626A2B7EAD93A51C48C029A844808F5F9",
+    "actualSha256": "499524E0850E0944BD1E03E856CBBE2626A2B7EAD93A51C48C029A844808F5F9",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-audit-20260810/backup-summary.json",
+    "line": 232,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "AF57CEFFF3D000C0E30193E39BEAA30A2F583ECDBCB74D4A1049360A034C82EE",
+    "actualSha256": "AF57CEFFF3D000C0E30193E39BEAA30A2F583ECDBCB74D4A1049360A034C82EE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/manifest.json",
+    "line": 238,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4F5594C4E4D0B45087FCE03D3162014853B22C3ECF592E2E0E6A90388E264E6F",
+    "actualSha256": "4F5594C4E4D0B45087FCE03D3162014853B22C3ECF592E2E0E6A90388E264E6F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/review/restore-lane9-schema-integrity.sql",
+    "line": 239,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "DB10ED092D9336A921BA9C0964A4D53CA18C3532A4F4DE01620BBE5DDB590D38",
+    "actualSha256": "DB10ED092D9336A921BA9C0964A4D53CA18C3532A4F4DE01620BBE5DDB590D38",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/review/rollback-lane9-schema-integrity.sql",
+    "line": 240,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "62510F253C54097337F158998B0DA64EDFF4E1BA04DAB97E60C3DE1ABED6B0CA",
+    "actualSha256": "62510F253C54097337F158998B0DA64EDFF4E1BA04DAB97E60C3DE1ABED6B0CA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/review/base-upgrade-44-to-61.sql",
+    "line": 241,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "ECF31FE893EB5838BB8A99E708823ABDE02A508DE64EFD04E764FB26250DE0F0",
+    "actualSha256": "ECF31FE893EB5838BB8A99E708823ABDE02A508DE64EFD04E764FB26250DE0F0",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/review/apply-result.json",
+    "line": 242,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "29A0E31EF3F448592B518EE896F7B99A1E4416450D7CD1C4453D17BC21DD09D3",
+    "actualSha256": "29A0E31EF3F448592B518EE896F7B99A1E4416450D7CD1C4453D17BC21DD09D3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/review/rollback-result.json",
+    "line": 243,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9BD527CF966F6CA7682826F41656C1ADF83CBF153571B728FF2548B9746F7EC1",
+    "actualSha256": "9BD527CF966F6CA7682826F41656C1ADF83CBF153571B728FF2548B9746F7EC1",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/review/migration61-result.json",
+    "line": 244,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "479470F5F360E5113893A419FFAD0428F0D4D18640A1251A572481593412CF2D",
+    "actualSha256": "479470F5F360E5113893A419FFAD0428F0D4D18640A1251A572481593412CF2D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/review/base-promotion-result.json",
+    "line": 245,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "42543785E449E1296C40171A689A729118C60D04A5C2EFCCAFF26EDD1614874D",
+    "actualSha256": "42543785E449E1296C40171A689A729118C60D04A5C2EFCCAFF26EDD1614874D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/migration61-postflight/summary.json",
+    "line": 246,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "CB30A93BD91CF5D11B35649F594E6F133BAB7EC7E512A2BA406300DC5564487F",
+    "actualSha256": "CB30A93BD91CF5D11B35649F594E6F133BAB7EC7E512A2BA406300DC5564487F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-hardening-20260810/db/base-promotion-postflight/summary.json",
+    "line": 247,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C2DB99F33943409A7573CAEEBA3E96227661313A4AA07202D24E4F1778BD5D0D",
+    "actualSha256": "C2DB99F33943409A7573CAEEBA3E96227661313A4AA07202D24E4F1778BD5D0D",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\IPCManagement-backups\\database-hardening-20260810\\ipc_lane9-20260810-005450.zip",
+    "line": 248,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "37C65E6B2085BE9EAC95BAB7656BEE9AD07FDBA98CA2E6F55B544B9FFC5DA76F",
+    "actualSha256": "37C65E6B2085BE9EAC95BAB7656BEE9AD07FDBA98CA2E6F55B544B9FFC5DA76F",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\IPCManagement-backups\\database-hardening-20260810\\ipc_lane9-20260810-010921.zip",
+    "line": 249,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "73612A05BF7A77F9651FDD61557BFA4B4FF4C329EF8EC6AB06C605E1B91C2741",
+    "actualSha256": "73612A05BF7A77F9651FDD61557BFA4B4FF4C329EF8EC6AB06C605E1B91C2741",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\IPCManagement-backups\\base-promotion-20260810\\ipcmanagement-20260810-011337.zip",
+    "line": 250,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1AB63EC4D2879FA99858E1856ED64367652BFFFBE1831C582B6084E665B1A7BC",
+    "actualSha256": "1AB63EC4D2879FA99858E1856ED64367652BFFFBE1831C582B6084E665B1A7BC",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-e2e.json",
+    "line": 256,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "914A83571FD7156888913A5E7C54F5234B62C0203FA338378BE08B22ED84A1EF",
+    "actualSha256": "914A83571FD7156888913A5E7C54F5234B62C0203FA338378BE08B22ED84A1EF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-exceptions-e2e.json",
+    "line": 257,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F4583BFECD40716EC40F4D6C6CBB3010C49AFA073A58894B736FE0DAAAECE567",
+    "actualSha256": "F4583BFECD40716EC40F4D6C6CBB3010C49AFA073A58894B736FE0DAAAECE567",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-post-concurrency-e2e.json",
+    "line": 258,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5808AEF7E704ABE8A08A1AE1D62813C9DB7B087ED04FF9E87CE49E20CEF5D3ED",
+    "actualSha256": "5808AEF7E704ABE8A08A1AE1D62813C9DB7B087ED04FF9E87CE49E20CEF5D3ED",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/receipt-lifecycle-phase3/receipt-phase3-correction-e2e.json",
+    "line": 259,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6B7A570248F0CED2A01A7D7AADAF97445BFA11BDED1C1EE8AA8A84859DF1FB40",
+    "actualSha256": "6B7A570248F0CED2A01A7D7AADAF97445BFA11BDED1C1EE8AA8A84859DF1FB40",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/review/phase4-1-additive-schema.sql",
+    "line": 265,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F0E2E7F750479799347457E6C07F061C114C915EA7DDA18470C550542BA59E09",
+    "actualSha256": "F0E2E7F750479799347457E6C07F061C114C915EA7DDA18470C550542BA59E09",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/review/phase4-1-rollback-to-61.sql",
+    "line": 266,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D28117F42B14DCE072807F5A463BF73AD8809FE275F15DA717E4FD0AFD777D51",
+    "actualSha256": "D28117F42B14DCE072807F5A463BF73AD8809FE275F15DA717E4FD0AFD777D51",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/lane9/preflight.json",
+    "line": 267,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "76D1CFD1DF457F2ABC7CDE1B83EB94CCCC2BA7E651AC3AE9894E8DDAD5CD88E5",
+    "actualSha256": "76D1CFD1DF457F2ABC7CDE1B83EB94CCCC2BA7E651AC3AE9894E8DDAD5CD88E5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/lane9/apply.json",
+    "line": 268,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7B535FEA71A6DB5CBC549A2443E6F1C428E2D4129382359A21585C0A7794B07E",
+    "actualSha256": "7B535FEA71A6DB5CBC549A2443E6F1C428E2D4129382359A21585C0A7794B07E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/lane9/postflight-after-apply.json",
+    "line": 269,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "CD57ACB932219E22C174FF7409623916B436483E563B3975F6123CF791FB7168",
+    "actualSha256": "CD57ACB932219E22C174FF7409623916B436483E563B3975F6123CF791FB7168",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/lane9/rollback.json",
+    "line": 270,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C162B90B1535A950FAC0FE06D66AF4FBD4AB174309B4D76371C585C820208210",
+    "actualSha256": "C162B90B1535A950FAC0FE06D66AF4FBD4AB174309B4D76371C585C820208210",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/lane9/reapply.json",
+    "line": 271,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D66B202174DC9DA7BDE52D2FFABB64A8088F897473070E5F44FBA97FE16EB2CB",
+    "actualSha256": "D66B202174DC9DA7BDE52D2FFABB64A8088F897473070E5F44FBA97FE16EB2CB",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/lane9/outbox-relay.json",
+    "line": 272,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3FAA426A463539D14B1AC5C6F1B7BA14B4743E9C9029D422A1E6CC797DC17CA2",
+    "actualSha256": "3FAA426A463539D14B1AC5C6F1B7BA14B4743E9C9029D422A1E6CC797DC17CA2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/base/preflight.json",
+    "line": 273,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "FBDD463DD76C483C48104270EE8FB124B0FF40C55F8E5D6FC004F28427D2A6A8",
+    "actualSha256": "FBDD463DD76C483C48104270EE8FB124B0FF40C55F8E5D6FC004F28427D2A6A8",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/base/promotion.json",
+    "line": 274,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7FCBA385F9ED11D07CE77E3C9F3259FBBFB713DA302E1B72B3C95C0550FB96C3",
+    "actualSha256": "7FCBA385F9ED11D07CE77E3C9F3259FBBFB713DA302E1B72B3C95C0550FB96C3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/base/outbox-relay.json",
+    "line": 275,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F22605630191FEC2D8733A1F5DA72D487A7B1828CE2CF36FA991FF056931F3EE",
+    "actualSha256": "F22605630191FEC2D8733A1F5DA72D487A7B1828CE2CF36FA991FF056931F3EE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/classification/lane9-data-quality-final.json",
+    "line": 276,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C6B006D479CE708F3BD37F573869DFFF33A569C85411605D44135B98BC5F7B08",
+    "actualSha256": "C6B006D479CE708F3BD37F573869DFFF33A569C85411605D44135B98BC5F7B08",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/classification/base-data-quality-final.json",
+    "line": 277,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4B3BBA03FA9DC1D8BF8AD43944C53624DA52F6A6FC38E4481152D5B370FEBEDB",
+    "actualSha256": "4B3BBA03FA9DC1D8BF8AD43944C53624DA52F6A6FC38E4481152D5B370FEBEDB",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/recovery/recovery-preflight.json",
+    "line": 278,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "04236C515EE3735D32B99ED1B34519FF2CC856B0276D8748412B75D21006EAA1",
+    "actualSha256": "04236C515EE3735D32B99ED1B34519FF2CC856B0276D8748412B75D21006EAA1",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/final-comparison.json",
+    "line": 279,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "73B0ACBCFF2EF8753EEEB0DFE63B9ED3CF70CF1CA82479AC42721F978CA5C981",
+    "actualSha256": "73B0ACBCFF2EF8753EEEB0DFE63B9ED3CF70CF1CA82479AC42721F978CA5C981",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/checkpoints/lane9-before-phase4-1/ipc_lane9-20260810-024331.zip",
+    "line": 280,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "058C8352D93C404CBC22C5C834C92845F082C13D0B08674CCE4F386290B0B8FA",
+    "actualSha256": "058C8352D93C404CBC22C5C834C92845F082C13D0B08674CCE4F386290B0B8FA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/database-remediation-20260810/db/checkpoints/base-before-phase4-1/ipcmanagement-20260810-024643.zip",
+    "line": 281,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "EEDFBCE0E092445E0BFA6185A0CB4BF2D2132FC1EDE5420D758E606988495615",
+    "actualSha256": "EEDFBCE0E092445E0BFA6185A0CB4BF2D2132FC1EDE5420D758E606988495615",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-execution/manifest.json",
+    "line": 287,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A2E497BC62C1C79883DB7702EADCF5A4BB793E917176A8AB3F7307B1BCD2709D",
+    "actualSha256": "A2E497BC62C1C79883DB7702EADCF5A4BB793E917176A8AB3F7307B1BCD2709D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-execution/db/reconciliation/business-release.json",
+    "line": 288,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "33FB324F64B85FA53B43F02EA204D6B0E076F809F2953F1EA2B1347DE0E05482",
+    "actualSha256": "33FB324F64B85FA53B43F02EA204D6B0E076F809F2953F1EA2B1347DE0E05482",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-execution/db/recovery/local-archive.json",
+    "line": 289,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "2F1B3D2E4C6845B7FF92EBBF25E5F4C5F738F3B395203E6767802B79D975A12C",
+    "actualSha256": "2F1B3D2E4C6845B7FF92EBBF25E5F4C5F738F3B395203E6767802B79D975A12C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-execution/db/recovery/restore-drill.json",
+    "line": 290,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F1AE3FCA094D981848EF0E75392C556AB3761E124E654EC0EEE75EA3B9DB9DBF",
+    "actualSha256": "F1AE3FCA094D981848EF0E75392C556AB3761E124E654EC0EEE75EA3B9DB9DBF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-execution/db/cleanup/seven-table-retention.json",
+    "line": 291,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4D5BFE10E0765923B168342FE37A845FDDFD213DDCB0FCDB2F1516D7F7FEE305",
+    "actualSha256": "4D5BFE10E0765923B168342FE37A845FDDFD213DDCB0FCDB2F1516D7F7FEE305",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-execution/db/final/reconciliation-report.json",
+    "line": 292,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "B9408ECF0071879B1F120D367AB29BE096DC6289AC01CC7BB1CE0EEF17C708D9",
+    "actualSha256": "B9408ECF0071879B1F120D367AB29BE096DC6289AC01CC7BB1CE0EEF17C708D9",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-gap-closure-05/manifest.json",
+    "line": 298,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1DE9CD86B3236E4B8437B293DDC4473C8681F0323EEF5DA382A3B894B64CA9B5",
+    "actualSha256": "1DE9CD86B3236E4B8437B293DDC4473C8681F0323EEF5DA382A3B894B64CA9B5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-gap-closure-05/db/preflight/source-contract.json",
+    "line": 299,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "2532B8096A8922093C6644F2BBBA10402ECAFDB90784EFB7D33EE81EAAAD8B77",
+    "actualSha256": "2532B8096A8922093C6644F2BBBA10402ECAFDB90784EFB7D33EE81EAAAD8B77",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-gap-closure-05/db/recovery/restore-drill.json",
+    "line": 300,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "27799965A81FB8B73FBCEADFFC5DCDAE13ED221BAED95ED1E0B5664932CD10C0",
+    "actualSha256": "27799965A81FB8B73FBCEADFFC5DCDAE13ED221BAED95ED1E0B5664932CD10C0",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-gap-closure-05/db/cleanup/seven-table-retention.json",
+    "line": 301,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C80C175AF09EDD6AE22039937471E45C2ED9E1B6E69AA140F9C08D0EFB2C5419",
+    "actualSha256": "C80C175AF09EDD6AE22039937471E45C2ED9E1B6E69AA140F9C08D0EFB2C5419",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-gap-closure-05/db/final/reconciliation-report.json",
+    "line": 302,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "253C87D4513B18D55D8375B669E5D500F5B9CF3DCEF732673CE53590809E27C8",
+    "actualSha256": "253C87D4513B18D55D8375B669E5D500F5B9CF3DCEF732673CE53590809E27C8",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-04.2-gap-closure-05/db/final/reconciliation-report-task13.json",
+    "line": 303,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "08B22E2874BE6C3AD060097442817993C52B4105F53A9E0B1DCD854459C79301",
+    "actualSha256": "08B22E2874BE6C3AD060097442817993C52B4105F53A9E0B1DCD854459C79301",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/typography-standardization-20260811/manifest.json",
+    "line": 309,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "CE34899B19817E023353AD4C7CBC7520DD33EB1AD5389E56C7351F356FBE6488",
+    "actualSha256": "CE34899B19817E023353AD4C7CBC7520DD33EB1AD5389E56C7351F356FBE6488",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/typography-comparison-20260811/manifest.json",
+    "line": 310,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6EB3ADD94180C0268AFEB2B0BDBD87B0BD4B5494727FF319845ABACB847B4DDF",
+    "actualSha256": "6EB3ADD94180C0268AFEB2B0BDBD87B0BD4B5494727FF319845ABACB847B4DDF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase02-wave3-corrective/manifest.json",
+    "line": 316,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "8119E245522E4FF889F531C458F81325FEF3CC9429C14BE278177E1AB3A484AF",
+    "actualSha256": "8119E245522E4FF889F531C458F81325FEF3CC9429C14BE278177E1AB3A484AF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase02-wave3-final/manifest.json",
+    "line": 317,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "EB27F9B3CA2D6B325E5FF49FFB537A9B69148CF0B00D1B7CCE6A0F1EA2BA111D",
+    "actualSha256": "EB27F9B3CA2D6B325E5FF49FFB537A9B69148CF0B00D1B7CCE6A0F1EA2BA111D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/measurement-clean-20260812/manifest.json",
+    "line": 323,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F4B19DE4EB44ED89ACADFA0C7D124703EE3373B906F3CD4037F85CAEF30A75BA",
+    "actualSha256": "F4B19DE4EB44ED89ACADFA0C7D124703EE3373B906F3CD4037F85CAEF30A75BA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/measurement-clean-20260812/db/dry-run.json",
+    "line": 324,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "AB06E59C4AFA543C2013402C5467C117E81010F063D184935BFB418158D3848F",
+    "actualSha256": "AB06E59C4AFA543C2013402C5467C117E81010F063D184935BFB418158D3848F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/measurement-clean-20260812/db/apply.json",
+    "line": 325,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "8A19F1012602AC25E7DD6676E92B782CC4D48933B74961CDC1D01E073468EB82",
+    "actualSha256": "8A19F1012602AC25E7DD6676E92B782CC4D48933B74961CDC1D01E073468EB82",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/measurement-clean-20260812/db/postflight.json",
+    "line": 326,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C1E872A1047E20EA5094BF72B8D893149CE08F2AF7D7B7D9E30A05EBE3FE95F8",
+    "actualSha256": "C1E872A1047E20EA5094BF72B8D893149CE08F2AF7D7B7D9E30A05EBE3FE95F8",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/measurement-clean-20260812/db/unit-policy-audit.json",
+    "line": 327,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "889EDA057294D55060E8AA84F1F0F601802C43EBA0D7A9FC63AEF59D5F94CF31",
+    "actualSha256": "889EDA057294D55060E8AA84F1F0F601802C43EBA0D7A9FC63AEF59D5F94CF31",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-current-e2e.json",
+    "line": 328,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "51BE927EDD625AE889C25EF85EF97088D13EB1D1C07B9AD0D5DB4AC68AD76C65",
+    "actualSha256": "51BE927EDD625AE889C25EF85EF97088D13EB1D1C07B9AD0D5DB4AC68AD76C65",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/shipyard-current-e2e-20260802/shipyard-live-navigation.json",
+    "line": 329,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F74CB09E06D5597A53F580FADECF5706151955144E3D1360B84A5F38AE375DDD",
+    "actualSha256": "F74CB09E06D5597A53F580FADECF5706151955144E3D1360B84A5F38AE375DDD",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/production-report-debug.json",
+    "line": 330,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3813B9CADD4BA76759A3D5FECDEBDD9454FE2A157C07E6677A97C2B6B0B5D323",
+    "actualSha256": "3813B9CADD4BA76759A3D5FECDEBDD9454FE2A157C07E6677A97C2B6B0B5D323",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/current-runtime-desktop-2026-07-27/current-runtime-desktop-audit.json",
+    "line": 331,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "975EEAC84626AA7B9CDEC559621728BEE83FD3BC5954021B7766004D8425C9EA",
+    "actualSha256": "975EEAC84626AA7B9CDEC559621728BEE83FD3BC5954021B7766004D8425C9EA",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/current-runtime-desktop-2026-07-27/warehouse-desktop-cls-probe.json",
+    "line": 332,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5B7AD31365FC31B4BBA13AA977392220D555BC58696899A7E684BD8681027A97",
+    "actualSha256": "5B7AD31365FC31B4BBA13AA977392220D555BC58696899A7E684BD8681027A97",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/sidebar-navigation-performance-2026-07-25.json",
+    "line": 333,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4A3B0892066CCD51DF5FEA006C0E1348AA6F1E7D3CA95D3A1C8463DFD6A89096",
+    "actualSha256": "4A3B0892066CCD51DF5FEA006C0E1348AA6F1E7D3CA95D3A1C8463DFD6A89096",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/live-visual-performance.json",
+    "line": 334,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C525292F627593105648E93944D48593B110A8D10708825B7543B99C2D056B22",
+    "actualSha256": "C525292F627593105648E93944D48593B110A8D10708825B7543B99C2D056B22",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/live-visual-performance-before-admin-dialog-fix.json",
+    "line": 335,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "8A7FC57FADA9BB0277A75C8C6D0E55D3710543A87F81D8A2418852E137904383",
+    "actualSha256": "8A7FC57FADA9BB0277A75C8C6D0E55D3710543A87F81D8A2418852E137904383",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/production-bom-debug.json",
+    "line": 336,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1770D555A92B43DDC39A97F5E13AA7ADC762FD9C5B4887399980E0D03DDB8A4C",
+    "actualSha256": "1770D555A92B43DDC39A97F5E13AA7ADC762FD9C5B4887399980E0D03DDB8A4C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/p19-error-matrix/p19-matrix-results.json",
+    "line": 337,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6BF2E19B9CCD3DC9B660402CD02BFCBA804C3F16108307DAD796A45EF4B4C797",
+    "actualSha256": "6BF2E19B9CCD3DC9B660402CD02BFCBA804C3F16108307DAD796A45EF4B4C797",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/query-view-pilot-performance.json",
+    "line": 338,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "E92D4FD594C0DDAFE3FECB12552C876E3A2B63E3E084C1B459F04B5C63E1F3C7",
+    "actualSha256": "E92D4FD594C0DDAFE3FECB12552C876E3A2B63E3E084C1B459F04B5C63E1F3C7",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/query-view-purchasing-performance.json",
+    "line": 339,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "58919E39B18DF643385DB7AA1C7CA306064F20C31851F469E012D2DD5E85B742",
+    "actualSha256": "58919E39B18DF643385DB7AA1C7CA306064F20C31851F469E012D2DD5E85B742",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/query-view-approvals-performance.json",
+    "line": 340,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7C603BAB4F8407430A62A2892535AFFB8F3C91EF322C36EE69AFD8F7FEAC9CC2",
+    "actualSha256": "7C603BAB4F8407430A62A2892535AFFB8F3C91EF322C36EE69AFD8F7FEAC9CC2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/query-view-reports-performance.json",
+    "line": 341,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "C8B122DFD9ACCF1E38EEC062A8E90F4FCAD386C1E03F707E3CE0ADD00D78F3CD",
+    "actualSha256": "C8B122DFD9ACCF1E38EEC062A8E90F4FCAD386C1E03F707E3CE0ADD00D78F3CD",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/query-view-admin-performance.json",
+    "line": 342,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "976B1B561CEBA53703756271B81FE6DFC8DE340C61CFC274114FB0825A5C8C5E",
+    "actualSha256": "976B1B561CEBA53703756271B81FE6DFC8DE340C61CFC274114FB0825A5C8C5E",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/query-view-chef-performance.json",
+    "line": 343,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "915306C9ECDC5C58A77BBE98BE0AFB207B7914A1B689D49DF0109785247BDBD2",
+    "actualSha256": "915306C9ECDC5C58A77BBE98BE0AFB207B7914A1B689D49DF0109785247BDBD2",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/query-view-coordination-performance.json",
+    "line": 344,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "26CFF37F7DBB6450477E296C26EBACD5ABF0902C3B6350D3C838D30D525664D4",
+    "actualSha256": "26CFF37F7DBB6450477E296C26EBACD5ABF0902C3B6350D3C838D30D525664D4",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/tab-performance-controlled-lazy-2026-07-25.json",
+    "line": 345,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6908D1E62B0871281235FDD32C30D3E5A245AE34B1F946FECC6835F4BF8783A9",
+    "actualSha256": "6908D1E62B0871281235FDD32C30D3E5A245AE34B1F946FECC6835F4BF8783A9",
+    "hashMatches": true
+  },
+  {
+    "path": "D:\\Backups\\ipc-phase18-20260729\\ipc_lane1-20260729-173035.zip",
+    "line": 348,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "027985D01119E8CCB6D64EB156D4200756CCED3B0C8070EC2FE054A32E04FF13",
+    "actualSha256": "027985D01119E8CCB6D64EB156D4200756CCED3B0C8070EC2FE054A32E04FF13",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/readback.json",
+    "line": 355,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "23004E70868469D9974BA5EB5AA1E833B34C33A82E4A67A8342D8304FEED1FDE",
+    "actualSha256": "23004E70868469D9974BA5EB5AA1E833B34C33A82E4A67A8342D8304FEED1FDE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/lifecycle-fulfillment/readback.json",
+    "line": 361,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7A3166065AA1F42570EDCBA82DE0422491EEE544507F72482CA1A6689A4BD054",
+    "actualSha256": "7A3166065AA1F42570EDCBA82DE0422491EEE544507F72482CA1A6689A4BD054",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/decision-fan-remediation.sql",
+    "line": 362,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F682B3878A49123FE0D379DFDC1CF8CF8AE3C2BB9CD6560AE3FB093C604AD049",
+    "actualSha256": "F682B3878A49123FE0D379DFDC1CF8CF8AE3C2BB9CD6560AE3FB093C604AD049",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/ipc_lane7-pre-remediation.sql",
+    "line": 363,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3A64EBBCC152BA7BA3EB49CEE458F9914111801EA0502962C2E075732F545ABC",
+    "actualSha256": "3A64EBBCC152BA7BA3EB49CEE458F9914111801EA0502962C2E075732F545ABC",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/menu-amendment/correction/result.json",
+    "line": 364,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7C9533F2B4A48C6E84CE1F4B27C700560C0A9722D048F988C851108D9633B15A",
+    "actualSha256": "7C9533F2B4A48C6E84CE1F4B27C700560C0A9722D048F988C851108D9633B15A",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/kitchen-discrepancy/result.json",
+    "line": 370,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3586B3AAE2C1C0766EC38BAD23BFED57D590A75DF8D04F594BC0625AD18509EC",
+    "actualSha256": "3586B3AAE2C1C0766EC38BAD23BFED57D590A75DF8D04F594BC0625AD18509EC",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/kitchen-discrepancy/kitchen-discrepancy-reload.png",
+    "line": 371,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "81411A70ACD2A2AB5D045F1E623E2CEDE79C8CD89CCF2E57D084D07F0BCF428D",
+    "actualSha256": "81411A70ACD2A2AB5D045F1E623E2CEDE79C8CD89CCF2E57D084D07F0BCF428D",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/retry-matrix/result.json",
+    "line": 377,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "20AB29D5CE3C8C27E1EF52C1844D568BDA57B25E72F52EEBD9054835E32C52A8",
+    "actualSha256": "20AB29D5CE3C8C27E1EF52C1844D568BDA57B25E72F52EEBD9054835E32C52A8",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/retry-matrix/physical-attempt.json",
+    "line": 378,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "95813803C475D856EDBBF60F9939259C8FBFD3EC009DF725A236C7FE87FAFFC5",
+    "actualSha256": "95813803C475D856EDBBF60F9939259C8FBFD3EC009DF725A236C7FE87FAFFC5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-05-multi-customer-lifecycle/exceptions/manifest.json",
+    "line": 379,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0C0D8CC2197099533A1A5A61950996CD0325331435BFE5CEF913A421C733A8C4",
+    "actualSha256": "0C0D8CC2197099533A1A5A61950996CD0325331435BFE5CEF913A421C733A8C4",
+    "hashMatches": true
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-fixture-ipc-lane7-reviewed.sql",
+    "line": 380,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "513CEFC37BC16F299292C8E6705EFA97C1889CD02911071A7D0AD1EE1141432E",
+    "actualSha256": "3AB68EEC52DC49A959B956F562C7202C010A36E0B7672FD4B423EF4AE85FBDCB",
+    "hashMatches": false
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-continuation-ipc-lane7-reviewed.sql",
+    "line": 381,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "9F158B803168D90E0A8BC52B3322746112ABAB27397DB7D4B0BB01E985490448",
+    "actualSha256": "68BAAE15D5C358DD03507E0319669F7D455129CE56FFEB2A92583112C5426DF9",
+    "hashMatches": false
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-final-continuation-ipc-lane7-reviewed.sql",
+    "line": 382,
+    "exists": true,
+    "tracked": true,
+    "ignored": false,
+    "expectedSha256": "1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01",
+    "actualSha256": "8001D580CFA40EA9A58C164101D528190B333AF23D9BAA7E57FE76A3560815F4",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/ui-phase03-wave1-reports-pilot/manifest.json",
+    "line": 388,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "47205142B955147ACCA120A1401F00BA846B582686813B69FCB082A1588493F3",
+    "actualSha256": "47205142B955147ACCA120A1401F00BA846B582686813B69FCB082A1588493F3",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/ui-phase03-wave1-reports-after/manifest.json",
+    "line": 389,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7867DE46FA86B9426A6B1449E1592713726C74AC20AF231AAC736A05BFD22F15",
+    "actualSha256": "7867DE46FA86B9426A6B1449E1592713726C74AC20AF231AAC736A05BFD22F15",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/ui-phase03-wave2-table-performance/manifest.json",
+    "line": 390,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3C8C4E01441EA72788D510768D01B24C2FFFF876EA3B734EC84707786C1B99CF",
+    "actualSha256": "AF501FA788256642C158D67879FAF7C5590B7FDA1B9731EBF236BFD4978B071C",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-chef-pagination-20260814/manifest.json",
+    "line": 391,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "0B92333368E11E01039CFDA225BD482291EE876410502B1F07EB6BEA5348CC21",
+    "actualSha256": "0B92333368E11E01039CFDA225BD482291EE876410502B1F07EB6BEA5348CC21",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-chef-scope-20260814/manifest.json",
+    "line": 392,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "3455D6F26CF813D88E972D9840EE6269BA8C055A8D3281484F6B6F02C0E2EDC6",
+    "actualSha256": "3455D6F26CF813D88E972D9840EE6269BA8C055A8D3281484F6B6F02C0E2EDC6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-warehouse-receipt-long-20260814.json",
+    "line": 393,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9A775A5EFC86B3DE7D7DF7CC11301422CC1650F89B8DCD5C2B6E73FAF2FB49CF",
+    "actualSha256": "9A775A5EFC86B3DE7D7DF7CC11301422CC1650F89B8DCD5C2B6E73FAF2FB49CF",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-warehouse-receipt-long-20260814.png",
+    "line": 393,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "9A775A5EFC86B3DE7D7DF7CC11301422CC1650F89B8DCD5C2B6E73FAF2FB49CF",
+    "actualSha256": "9BF157F2069735F2DD69ED32A20306B2EF6DD4EE12C47356464A6CAE7CEBE749",
+    "hashMatches": false
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-ui-ux-regression-20260814.json",
+    "line": 394,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "1045F423709F79B274A885EA55AE65E6C8AED4E83FEA3F7D31C6547DDC8CE6B6",
+    "actualSha256": "1045F423709F79B274A885EA55AE65E6C8AED4E83FEA3F7D31C6547DDC8CE6B6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-hidden-copy-scan-20260814.json",
+    "line": 395,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A8740998C5B8407D0E80B24D4D1B8F81B661C462968D7380F6151C415DCC4F0F",
+    "actualSha256": "A8740998C5B8407D0E80B24D4D1B8F81B661C462968D7380F6151C415DCC4F0F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-conditional-table-fixture-20260814.json",
+    "line": 396,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7E190A336512CB67383BBFB0EFABD792A4E45ACBACB59C817B70AE095B18FB9C",
+    "actualSha256": "7E190A336512CB67383BBFB0EFABD792A4E45ACBACB59C817B70AE095B18FB9C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-conditional-table-render-20260814.json",
+    "line": 397,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A281102AB9668B3013BBE1B1383D92FCE153670AADC7DB948A7C2529AB729571",
+    "actualSha256": "A281102AB9668B3013BBE1B1383D92FCE153670AADC7DB948A7C2529AB729571",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-golden-demo-scope-20260824.json",
+    "line": 398,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "4CAF36992E49627BE95AFE64C84AAB15068AAE41B60B98FF768CF158A97BBE23",
+    "actualSha256": "4CAF36992E49627BE95AFE64C84AAB15068AAE41B60B98FF768CF158A97BBE23",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase05-wave2-full-ui-20260814/manifest.json",
+    "line": 399,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "248145A6669203ED9DA3322DAEE2E996694E3B5EEA3A86DF9FAE23BC901DA084",
+    "actualSha256": "248145A6669203ED9DA3322DAEE2E996694E3B5EEA3A86DF9FAE23BC901DA084",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/ipcmanagement-baseline-dashboard-20260816/manifest.json",
+    "line": 405,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "DF107CF8FF5BC9B6B8468FE121FB7B889731DAC0F002CCBC18BC7878FECABFC1",
+    "actualSha256": "DF107CF8FF5BC9B6B8468FE121FB7B889731DAC0F002CCBC18BC7878FECABFC1",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/ipcmanagement-baseline-runtime/advanced-settings-admin-1440x900.png",
+    "line": 406,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "D5297E3DB6B7C093595D144826B36109D4AE1C3ED0546BEE0596D0001C9AD104",
+    "actualSha256": "D5297E3DB6B7C093595D144826B36109D4AE1C3ED0546BEE0596D0001C9AD104",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/ipcmanagement-baseline-runtime/advanced-settings-all-pages-1440x900.png",
+    "line": 407,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "DC729F95D16E78A429FF01D4026859E27D9931BA96F5529B82543AFCC40C5FDD",
+    "actualSha256": "DC729F95D16E78A429FF01D4026859E27D9931BA96F5529B82543AFCC40C5FDD",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase02-warehouse-admin-attribution-recursive-20260811/manifest.json",
+    "line": 440,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "74ACFDB85BE8560C42E01AEFBD9B17E0D74FB81D7029A5438E2181B04AA77FA5",
+    "actualSha256": "74ACFDB85BE8560C42E01AEFBD9B17E0D74FB81D7029A5438E2181B04AA77FA5",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/menu-amendment-e2e-20260807/manager-login-feedback-1440x900.png",
+    "line": 441,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "F76A62709604CAE02E81CEA73BE747756FFAD842C2D9E7906C0FA40E5DC2500C",
+    "actualSha256": "F76A62709604CAE02E81CEA73BE747756FFAD842C2D9E7906C0FA40E5DC2500C",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source-error.json",
+    "line": 442,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "5DD7189E1C844A1275616417338002E746E9913F9056ED6C3FB8AE4F1BB1C144",
+    "actualSha256": "5DD7189E1C844A1275616417338002E746E9913F9056ED6C3FB8AE4F1BB1C144",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/badge-transition-e2e-20260804/phase6-headed-workbook-e2e-error.json",
+    "line": 443,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "067750603E8621E9F2C1447FDE028F08FCA215537B7104976F9A67507A284FF4",
+    "actualSha256": "067750603E8621E9F2C1447FDE028F08FCA215537B7104976F9A67507A284FF4",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/current-week-bom-e2e-20260804/current-week-bom-e2e-error.json",
+    "line": 444,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "6E9E5940E909CEA265DDA7FC0D54B03CE49D4291279078ADDA2CC461DBD388B6",
+    "actualSha256": "6E9E5940E909CEA265DDA7FC0D54B03CE49D4291279078ADDA2CC461DBD388B6",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/current-week-bom-e2e-20260804-verify/current-week-bom-e2e-error.json",
+    "line": 445,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "70A2E15B2A92139DCFA378532476769663D8AC0BCD0730B26554C2205D1B1F8F",
+    "actualSha256": "70A2E15B2A92139DCFA378532476769663D8AC0BCD0730B26554C2205D1B1F8F",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase25-p8-pf-20260802/phase25-headed-current-source-error.png",
+    "line": 446,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "A51DFB76E74A069BB68984A68CD7C9A9BBB0E746D9AC34CF6905620339CDC9EE",
+    "actualSha256": "A51DFB76E74A069BB68984A68CD7C9A9BBB0E746D9AC34CF6905620339CDC9EE",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729-round2/browser-grain-audit/headed-grain-audit-error.png",
+    "line": 447,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "34D9C360D8B17B20FDF78437D0A6BF9F78FF02259F9027E07971EE0C95ADA92A",
+    "actualSha256": "34D9C360D8B17B20FDF78437D0A6BF9F78FF02259F9027E07971EE0C95ADA92A",
+    "hashMatches": true
+  },
+  {
+    "path": ".artifacts/shipyard-live/phase-17-frontend-ownership-20260729/phase17-headed-audit-error.json",
+    "line": 448,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": "7E15E9833E905AFF34DCAF19742CE53F55C16797A8E5A7D53B9FDE18B32F81E2",
+    "actualSha256": "7E15E9833E905AFF34DCAF19742CE53F55C16797A8E5A7D53B9FDE18B32F81E2",
+    "hashMatches": true
+  },
+  {
+    "path": ".planning/notes/project-information-simplification-PLAN.md",
+    "line": 460,
+    "exists": true,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": null,
+    "actualSha256": "84FF8F01C558BC961899B09A86E1BEE0D4D1071D2B895C88312CA1DD97C0AD63",
+    "hashMatches": null
+  },
+  {
+    "path": ".artifacts/information-simplification/f05-20260913-003/",
+    "line": 460,
+    "exists": false,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": null,
+    "actualSha256": null,
+    "hashMatches": null
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/",
+    "line": 482,
+    "exists": false,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": null,
+    "actualSha256": null,
+    "hashMatches": null
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/",
+    "line": 492,
+    "exists": false,
+    "tracked": false,
+    "ignored": false,
+    "expectedSha256": null,
+    "actualSha256": null,
+    "hashMatches": null
+  }
+]

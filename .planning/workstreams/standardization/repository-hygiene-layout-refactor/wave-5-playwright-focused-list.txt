@@ -1,0 +1,12 @@
+Listing tests:
+  [chromium] › route-smoke.spec.ts:10:5 › route smoke › login route renders without app shell at desktop
+  [chromium] › route-smoke.spec.ts:10:5 › route smoke › login route renders without app shell at tablet
+  [chromium] › route-smoke.spec.ts:10:5 › route smoke › login route renders without app shell at mobile-320
+  [chromium] › route-smoke.spec.ts:22:5 › route smoke › protected routes render at desktop
+  [chromium] › route-smoke.spec.ts:22:5 › route smoke › protected routes render at tablet
+  [chromium] › route-smoke.spec.ts:22:5 › route smoke › protected routes render at mobile-320
+  [chromium] › route-smoke.spec.ts:47:3 › route smoke › reports price table exposes paging for long-lived data
+  [chromium] › route-smoke.spec.ts:69:3 › route smoke › reports movement loads the next server cursor page
+  [chromium] › route-smoke.spec.ts:87:3 › route smoke › warehouse movement uses bounded server cursor pages
+  [chromium] › route-smoke.spec.ts:104:3 › route smoke › reports cover filters, export, and audit grouping with seeded workflow stages
+Total: 10 tests in 1 file

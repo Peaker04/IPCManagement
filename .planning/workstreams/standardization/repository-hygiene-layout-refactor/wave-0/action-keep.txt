@@ -1,0 +1,17 @@
+AGENTS.md
+.claude/
+.codex/
+.agents/
+.pi/
+.github/
+backend/
+frontend/
+contracts/
+docs/
+scripts/
+shipyard/
+tools/
+package.json
+package-lock.json
+Dockerfile
+vercel.json

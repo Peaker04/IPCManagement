@@ -92,8 +92,8 @@ export function assertAuthorizationMatrix(matrix: unknown, sourceIdentities: unk
       if (paths.some((path) => path.includes('*') || path.endsWith('/'))) throw new Error('directory and wildcard authorization rejected');
       if (kind === 'production-regression' && paths.some((path) => !path.startsWith('frontend/src/'))) throw new Error('production class must name exact frontend/src owners');
       if (kind === 'stale-baseline' && (paths.length !== 1 || paths.some((path) => !path.includes('-snapshots/') || !path.endsWith('.png')))) throw new Error('stale class must name one exact snapshot');
-      if (kind === 'fixture-drift' && paths.some((path) => !['frontend/tests/visual-routes.spec.ts','frontend/tests/phase9-test-fixture.ts'].includes(path))) throw new Error('fixture class path rejected');
-      if (kind === 'harness-nondeterminism' && paths.some((path) => !['frontend/tests/visual-routes.spec.ts','frontend/tests/visualReconciliationEvidence.ts'].includes(path))) throw new Error('harness class path rejected');
+      if (kind === 'fixture-drift' && paths.some((path) => !['frontend/tests/browser/visual-routes.spec.ts','frontend/tests/phase9-test-fixture.ts'].includes(path))) throw new Error('fixture class path rejected');
+      if (kind === 'harness-nondeterminism' && paths.some((path) => !['frontend/tests/browser/visual-routes.spec.ts','frontend/tests/visualReconciliationEvidence.ts'].includes(path))) throw new Error('harness class path rejected');
     }
     const key = identityKey(identity);
     const sourceIndex = sourceKeys.indexOf(key);
@@ -164,7 +164,7 @@ export function validateDownstreamReadiness(cwd: string, matrix: AuthorizationMa
       const identity = matrix.identitySets[setName].find((item) => item.snapshotName.startsWith(row.identity));
       if (!identity) throw new Error('identity substitution');
       const entry = matrix.entries.find((item) => identityKey(item) === identityKey(identity))!;
-      if (row.disposition !== 'fixture-drift' || row.owner !== 'frontend/tests/visual-routes.spec.ts' || !entry.permittedPaths['fixture-drift']?.includes(row.owner)) throw new Error('matrix class/path authorization mismatch');
+      if (row.disposition !== 'fixture-drift' || row.owner !== 'frontend/tests/browser/visual-routes.spec.ts' || !entry.permittedPaths['fixture-drift']?.includes(row.owner)) throw new Error('matrix class/path authorization mismatch');
       for (const packets of [row.beforeSha256, row.afterSha256]) if (packets.length !== 2 || packets[0] !== packets[1] || !packets.every((hash) => /^[a-f0-9]{64}$/.test(hash))) throw new Error('two equal packets required');
       if (row.beforeSha256[0] === row.afterSha256[0]) throw new Error('corrected-non-stale invariant failed');
       if (!row.semanticOwner) throw new Error('semantic owner invariant failed');
@@ -222,9 +222,9 @@ const PRESERVED_COMMITS=['141da95a95611c7bb9f679a6aeafa93aba1b174b','3f2846265aa
 const PRESERVED_MEMBERS:Record<string,Array<{path:string;sha256:string;gitBlobId:string}>>={
   [PRESERVED_COMMITS[0]]:[{path:'frontend/tests/coreRouteVisualRegression.test.ts',sha256:'7711eef39776aa69c18a0d25fcdbec0f1a98e11d9c9cd959f1478dfa3b537e2c',gitBlobId:'2448b6fe03ca2aa67e8a9b0aae2b536370e222d5'}],
   [PRESERVED_COMMITS[1]]:[
-    {path:'frontend/tests/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png',sha256:'4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f',gitBlobId:'0ff5552471825da92dbd96237b6c2153634f951a'},
-    {path:'frontend/tests/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png',sha256:'6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e',gitBlobId:'bac25ff32b84c95cc1a689cee115bfcf64ae910a'},
-    {path:'frontend/tests/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png',sha256:'567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5',gitBlobId:'5f8bd331776c2403f479d7e111520e3350de0e42'}],
+    {path:'frontend/tests/browser/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png',sha256:'4c3fe39beec602fd050aad022b624dd2032acd76c4d8a644eefef4e8f961e60f',gitBlobId:'0ff5552471825da92dbd96237b6c2153634f951a'},
+    {path:'frontend/tests/browser/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png',sha256:'6a97fb027cbcdfd1fed9bedb1f257417dc71f746afc7654b92a4570b2547c43e',gitBlobId:'bac25ff32b84c95cc1a689cee115bfcf64ae910a'},
+    {path:'frontend/tests/browser/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png',sha256:'567167b90c603ee2306b5db3eed5fd818b5aaef794151cb23b2e775483cd73d5',gitBlobId:'5f8bd331776c2403f479d7e111520e3350de0e42'}],
   [PRESERVED_COMMITS[2]]:[{path:'.planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/core-route-dispositions.json',sha256:'c1c59dc3355fea9e32f25e7913afc70e12f5809a6826acfb997d59fdf5d5e042',gitBlobId:'a0dc1c94f54b79107a4ce9befb92b9e12017b91f'}],
 };
 const VALIDATOR_PATHS = ['frontend/tests/validatePhase271PlanResult.ts','frontend/tests/validatePhase271PlanResult.test.ts','frontend/tests/validateVisualReconciliation.ts','frontend/tests/validateVisualReconciliation.test.ts'] as const;

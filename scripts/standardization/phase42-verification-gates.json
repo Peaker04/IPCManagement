@@ -51,7 +51,7 @@
       "stage": "W0",
       "requirementId": null,
       "kind": "command",
-      "command": "dotnet test backend/tests/IPCManagement.Application.Tests/IPCManagement.Application.Tests.csproj --no-restore -p:BaseOutputPath=backend/.artifacts/phase42-{runId}-application/ -p:EnableDefaultContentItems=false -p:UseAppHost=false",
+      "command": "dotnet test backend/tests/IPCManagement.Application.Tests/IPCManagement.Application.Tests.csproj --no-restore --artifacts-path .artifacts/dotnet/phase42-{runId}-application -p:EnableDefaultContentItems=false -p:UseAppHost=false",
       "versionCommand": "dotnet --version",
       "targetMode": "none",
       "requiredArtifacts": []
@@ -62,7 +62,7 @@
       "stage": "W0",
       "requirementId": null,
       "kind": "command",
-      "command": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore -p:BaseOutputPath=backend/tests/IPCManagement.Api.Tests/bin-phase42-{runId}/ -p:EnableDefaultContentItems=false -p:UseAppHost=false",
+      "command": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore --artifacts-path .artifacts/dotnet/phase42-{runId}-api -p:EnableDefaultContentItems=false -p:UseAppHost=false",
       "versionCommand": "dotnet --version",
       "targetMode": "none",
       "requiredArtifacts": []
@@ -84,7 +84,7 @@
       "stage": "W0",
       "requirementId": null,
       "kind": "command",
-      "command": "dotnet build backend/IPCManagement.slnx --no-restore -p:BaseOutputPath=backend/.artifacts/phase42-{runId}-solution/ -p:EnableDefaultContentItems=false -p:UseAppHost=false",
+      "command": "dotnet build backend/IPCManagement.slnx --no-restore --artifacts-path .artifacts/dotnet/phase42-{runId}-solution -p:EnableDefaultContentItems=false -p:UseAppHost=false",
       "versionCommand": "dotnet --version",
       "targetMode": "none",
       "requiredArtifacts": []
@@ -128,7 +128,7 @@
       "stage": "W0",
       "requirementId": null,
       "kind": "command",
-      "command": "powershell -NoProfile -Command $env:BaseOutputPath='backend/.artifacts/phase42-{runId}-ef/';$env:EnableDefaultContentItems='false';$env:UseAppHost='false';dotnet ef migrations has-pending-model-changes --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj",
+      "command": "powershell -NoProfile -Command $env:ArtifactsPath=(Join-Path (Get-Location) '.artifacts/dotnet/phase42-{runId}-ef');$env:EnableDefaultContentItems='false';$env:UseAppHost='false';dotnet ef migrations has-pending-model-changes --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --msbuildprojectextensionspath .artifacts/dotnet/phase42-{runId}-ef/obj/IPCManagement.Api",
       "versionCommand": "dotnet ef --version",
       "targetMode": "none",
       "requiredArtifacts": ["migration-model-check"]
@@ -249,7 +249,7 @@
       "stage": "VER",
       "requirementId": "VER-03",
       "kind": "command",
-      "command": "powershell -NoProfile -Command $env:BaseOutputPath='backend/.artifacts/phase42-{runId}-root/';$env:EnableDefaultContentItems='false';$env:UseAppHost='false';npm run verify",
+      "command": "powershell -NoProfile -Command $env:ArtifactsPath=(Join-Path (Get-Location) '.artifacts/dotnet/phase42-{runId}-root');$env:EnableDefaultContentItems='false';$env:UseAppHost='false';npm run verify",
       "versionCommand": "npm --version",
       "targetMode": "none",
       "requiredArtifacts": []

@@ -1,0 +1,4083 @@
+[
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.artifacts",
+    "bytes": 4514845892,
+    "files": 63011,
+    "dirs": 35017,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.artifacts",
+    "bytes": 2640770385,
+    "files": 50655,
+    "dirs": 36899,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/backend",
+    "bytes": 1572418094,
+    "files": 10982,
+    "dirs": 1572,
+    "reason": "recursive-backend-output"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/backend",
+    "bytes": 1262004270,
+    "files": 3870,
+    "dirs": 845,
+    "reason": "recursive-backend-output"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin",
+    "bytes": 637991748,
+    "files": 4810,
+    "dirs": 1184,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/.artifacts",
+    "bytes": 370700145,
+    "files": 1876,
+    "dirs": 418,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin",
+    "bytes": 360709777,
+    "files": 1851,
+    "dirs": 1021,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "frontend/dist",
+    "bytes": 356770681,
+    "files": 21737,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/obj",
+    "bytes": 154558591,
+    "files": 294,
+    "dirs": 55,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/backend",
+    "bytes": 147452928,
+    "files": 834,
+    "dirs": 113,
+    "reason": "recursive-backend-output"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk",
+    "bytes": 109301314,
+    "files": 1432,
+    "dirs": 830,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk6",
+    "bytes": 109252851,
+    "files": 1432,
+    "dirs": 830,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk5",
+    "bytes": 109250467,
+    "files": 1432,
+    "dirs": 830,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk2",
+    "bytes": 109247931,
+    "files": 1432,
+    "dirs": 830,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk4",
+    "bytes": 109246335,
+    "files": 1432,
+    "dirs": 830,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk3",
+    "bytes": 109238471,
+    "files": 1432,
+    "dirs": 830,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-stale-tests",
+    "bytes": 103733535,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-test-output",
+    "bytes": 103725743,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-live-zero-fix",
+    "bytes": 103230734,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-goal-tests",
+    "bytes": 102786160,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-overissue-tests",
+    "bytes": 102471710,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-goal-tests2",
+    "bytes": 102471670,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-migration-compile",
+    "bytes": 102068791,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-disposition-tests",
+    "bytes": 101942383,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-template-tests",
+    "bytes": 101799569,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final",
+    "bytes": 101793873,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-tests",
+    "bytes": 101688149,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-manual-issue-tests",
+    "bytes": 101671117,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final2",
+    "bytes": 101642809,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-template-tests2",
+    "bytes": 101639261,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final3",
+    "bytes": 101633565,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-manual-issue-tests2",
+    "bytes": 101510809,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests3",
+    "bytes": 101441692,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests2",
+    "bytes": 101440648,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-unit-label-final",
+    "bytes": 101439412,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-unit-label-tests",
+    "bytes": 101438900,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-enum-tests",
+    "bytes": 100744369,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-issue-history-lines-tests",
+    "bytes": 100638033,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-vietnamese-units-tests",
+    "bytes": 100264154,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-original-structure-tests",
+    "bytes": 99580819,
+    "files": 1460,
+    "dirs": 828,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-build",
+    "bytes": 95356678,
+    "files": 589,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-build",
+    "bytes": 95218602,
+    "files": 589,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-complete-sln",
+    "bytes": 95218506,
+    "files": 589,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-sln",
+    "bytes": 95217418,
+    "files": 589,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-focused",
+    "bytes": 95196511,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-full",
+    "bytes": 95196503,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-exact-outcome",
+    "bytes": 95059055,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-focused",
+    "bytes": 95059055,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-full",
+    "bytes": 95059055,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-complete-full",
+    "bytes": 95058959,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final2",
+    "bytes": 95058959,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-final",
+    "bytes": 95057871,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-full",
+    "bytes": 95057871,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-focused2",
+    "bytes": 95056787,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test2",
+    "bytes": 95048075,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test3",
+    "bytes": 95048075,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test4",
+    "bytes": 95048075,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test5",
+    "bytes": 95047495,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test1",
+    "bytes": 95041667,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-compile",
+    "bytes": 95036279,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-sourceaware",
+    "bytes": 95023495,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-sourceaware-full",
+    "bytes": 95023495,
+    "files": 583,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract2",
+    "bytes": 94883423,
+    "files": 581,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04204-final",
+    "bytes": 94882255,
+    "files": 581,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.phase05test",
+    "bytes": 74448219,
+    "files": 714,
+    "dirs": 235,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-task8final",
+    "bytes": 71546143,
+    "files": 499,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-task8map",
+    "bytes": 71546127,
+    "files": 499,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-task8map2",
+    "bytes": 71546127,
+    "files": 499,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-runnerfix",
+    "bytes": 71546123,
+    "files": 499,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-gatefix",
+    "bytes": 71546115,
+    "files": 499,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04201",
+    "bytes": 71392389,
+    "files": 522,
+    "dirs": 69,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/obj",
+    "bytes": 66539200,
+    "files": 141,
+    "dirs": 32,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.artifacts",
+    "bytes": 62153850,
+    "files": 329,
+    "dirs": 130,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.artifactslk5",
+    "bytes": 58587412,
+    "files": 1064,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.artifactslk6",
+    "bytes": 58587412,
+    "files": 1064,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.artifactslk2",
+    "bytes": 58584876,
+    "files": 1064,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.artifactslk",
+    "bytes": 58584134,
+    "files": 1064,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.artifactslk4",
+    "bytes": 58583280,
+    "files": 1064,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.artifactslk3",
+    "bytes": 58575416,
+    "files": 1064,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-live-zero-fix",
+    "bytes": 57510798,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-stale-tests",
+    "bytes": 57398397,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-test-output",
+    "bytes": 57393597,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-mrx-goal-tests",
+    "bytes": 57388851,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-overissue-tests",
+    "bytes": 57386160,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-mrx-goal-tests2",
+    "bytes": 57386120,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-migration-compile",
+    "bytes": 57342045,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-disposition-tests",
+    "bytes": 57222845,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-bom-template-tests",
+    "bytes": 57126168,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final",
+    "bytes": 57121176,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/bin",
+    "bytes": 57050683,
+    "files": 483,
+    "dirs": 196,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-supplemental-tests",
+    "bytes": 57016012,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-manual-issue-tests",
+    "bytes": 57008640,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests",
+    "bytes": 56874219,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final2",
+    "bytes": 56865895,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-bom-template-tests2",
+    "bytes": 56861643,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final3",
+    "bytes": 56856651,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-manual-issue-tests2",
+    "bytes": 56744115,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests2",
+    "bytes": 56559474,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests3",
+    "bytes": 56559474,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-bom-unit-label-final",
+    "bytes": 56558214,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-bom-unit-label-tests",
+    "bytes": 56557702,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-enum-tests",
+    "bytes": 55346195,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-issue-history-lines-tests",
+    "bytes": 55080623,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-bom-vietnamese-units-tests",
+    "bytes": 54810517,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.tmp-bom-original-structure-tests",
+    "bytes": 54437920,
+    "files": 1062,
+    "dirs": 779,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/backend",
+    "bytes": 51929822,
+    "files": 248,
+    "dirs": 120,
+    "reason": "recursive-backend-output"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-full",
+    "bytes": 48336234,
+    "files": 222,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-arch-green",
+    "bytes": 48336234,
+    "files": 222,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-final",
+    "bytes": 48336202,
+    "files": 222,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-acceptance",
+    "bytes": 48336194,
+    "files": 222,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/menu-bom-mutation-e2e/cleanup-tool/bin",
+    "bytes": 45163042,
+    "files": 310,
+    "dirs": 170,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/.phase05test",
+    "bytes": 45032748,
+    "files": 343,
+    "dirs": 186,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/system-operation-capability/bin",
+    "bytes": 44674276,
+    "files": 230,
+    "dirs": 96,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/dashboard-ui-rules-conformance-phase01/backend-build/bin",
+    "bytes": 43000337,
+    "files": 231,
+    "dirs": 98,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-focused",
+    "bytes": 42731717,
+    "files": 137,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-arch-red",
+    "bytes": 42269059,
+    "files": 132,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin-plan04201",
+    "bytes": 42191445,
+    "files": 151,
+    "dirs": 20,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin-gatefix",
+    "bytes": 42110919,
+    "files": 129,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin-runnerfix",
+    "bytes": 42110915,
+    "files": 129,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin-task8final",
+    "bytes": 42110915,
+    "files": 129,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin-task8map",
+    "bytes": 42110915,
+    "files": 129,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin-task8map2",
+    "bytes": 42110915,
+    "files": 129,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/.artifacts",
+    "bytes": 32277646,
+    "files": 978,
+    "dirs": 744,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04201",
+    "bytes": 24765112,
+    "files": 161,
+    "dirs": 20,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/bin",
+    "bytes": 21011744,
+    "files": 154,
+    "dirs": 85,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.Phase42ArchiveTool/backend",
+    "bytes": 15542321,
+    "files": 105,
+    "dirs": 31,
+    "reason": "recursive-backend-output"
+  },
+  {
+    "path": ".artifacts/contract-baseline-eea626a5/backend/src/IPCManagement.Api/obj",
+    "bytes": 13611697,
+    "files": 30,
+    "dirs": 5,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "frontend/node_modules",
+    "bytes": 12203494,
+    "files": 211,
+    "dirs": 21,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/repair-quick-serving-lifecycle/bin",
+    "bytes": 11909493,
+    "files": 47,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin",
+    "bytes": 11486248,
+    "files": 61,
+    "dirs": 16,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/dashboard-ui-rules-conformance-phase01/backend-build/obj",
+    "bytes": 10404284,
+    "files": 31,
+    "dirs": 5,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/typography-comparison-20260811/before-source/frontend/node_modules",
+    "bytes": 9250858,
+    "files": 79,
+    "dirs": 3,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/test-results",
+    "bytes": 6528990,
+    "files": 3,
+    "dirs": 3,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/obj",
+    "bytes": 4526390,
+    "files": 138,
+    "dirs": 32,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.Phase42ArchiveTool/bin",
+    "bytes": 2006133,
+    "files": 13,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Application.Tests/obj",
+    "bytes": 1654105,
+    "files": 37,
+    "dirs": 8,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin-gatefix",
+    "bytes": 1504742,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin-runnerfix",
+    "bytes": 1504742,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8final",
+    "bytes": 1504742,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8map",
+    "bytes": 1504742,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8map2",
+    "bytes": 1504742,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.phase05test",
+    "bytes": 1498966,
+    "files": 8,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin-plan04201",
+    "bytes": 1422806,
+    "files": 8,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk",
+    "bytes": 1342630,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk2",
+    "bytes": 1342630,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk3",
+    "bytes": 1342630,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk4",
+    "bytes": 1342630,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk5",
+    "bytes": 1342630,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk6",
+    "bytes": 1342630,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-original-structure-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-template-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-template-tests2",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-unit-label-final",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-unit-label-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-vietnamese-units-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-disposition-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-issue-history-lines-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-live-zero-fix",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-manual-issue-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-manual-issue-tests2",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-migration-compile",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-goal-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-goal-tests2",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-enum-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests2",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests3",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-overissue-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-stale-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final2",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final3",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-tests",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-test-output",
+    "bytes": 1342298,
+    "files": 7,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/credential-sync/bin",
+    "bytes": 1242469,
+    "files": 9,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/menu-bom-mutation-e2e/supplemental-variance/cleanup/bin",
+    "bytes": 1194585,
+    "files": 8,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729-round2/db-diagnostic/bin",
+    "bytes": 1174712,
+    "files": 8,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/menu-bom-mutation-e2e/supplemental-variance/verify-cleanup/bin",
+    "bytes": 1173514,
+    "files": 8,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/rich/__pycache__",
+    "bytes": 943626,
+    "files": 58,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/menu-bom-mutation-e2e/cleanup-tool/obj",
+    "bytes": 720102,
+    "files": 39,
+    "dirs": 8,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "frontend/test-results",
+    "bytes": 658984,
+    "files": 4,
+    "dirs": 1,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/__pycache__",
+    "bytes": 530765,
+    "files": 17,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/_internal/__pycache__",
+    "bytes": 458605,
+    "files": 25,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729/repair-quick-serving-lifecycle/obj",
+    "bytes": 448198,
+    "files": 22,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.Phase42ArchiveTool/obj",
+    "bytes": 442151,
+    "files": 22,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/obj",
+    "bytes": 427723,
+    "files": 22,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/click/__pycache__",
+    "bytes": 359344,
+    "files": 13,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/httpx/__pycache__",
+    "bytes": 301251,
+    "files": 17,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/final-focused/Debug/net9.0/bin",
+    "bytes": 281719,
+    "files": 40,
+    "dirs": 12,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/full-api/Debug/net9.0/bin",
+    "bytes": 281719,
+    "files": 40,
+    "dirs": 12,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/solution-build/Debug/net9.0/bin",
+    "bytes": 281719,
+    "files": 40,
+    "dirs": 12,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/daily-lifecycle-e2e-20260812/credential-sync/obj",
+    "bytes": 272772,
+    "files": 22,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/menu-bom-mutation-e2e/supplemental-variance/cleanup/obj",
+    "bytes": 251383,
+    "files": 22,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/goal-runtime-20260729-round2/db-diagnostic/obj",
+    "bytes": 228944,
+    "files": 22,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/menu-bom-mutation-e2e/supplemental-variance/verify-cleanup/obj",
+    "bytes": 226611,
+    "files": 22,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/attr/__pycache__",
+    "bytes": 205933,
+    "files": 13,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_harness/__pycache__",
+    "bytes": 197328,
+    "files": 10,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/psutil/__pycache__",
+    "bytes": 171748,
+    "files": 4,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/combined1/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/final-focused/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/full-api/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green2c/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green2d/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green3/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green3b/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green4/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/red3/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/red4/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/solution-build/Debug/net9.0/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/bin-plan04201",
+    "bytes": 169017,
+    "files": 24,
+    "dirs": 7,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/__pycache__",
+    "bytes": 167801,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/sources/providers/__pycache__",
+    "bytes": 158403,
+    "files": 13,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_core/__pycache__",
+    "bytes": 158352,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/websockets/__pycache__",
+    "bytes": 146291,
+    "files": 14,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/combined1/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green2c/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green2d/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green3/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green3b/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/green4/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/red3/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/build-plan04203/red4/Debug/net9.0/bin",
+    "bytes": 112702,
+    "files": 16,
+    "dirs": 4,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/network/__pycache__",
+    "bytes": 104622,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/page/__pycache__",
+    "bytes": 101040,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/websockets/asyncio/__pycache__",
+    "bytes": 100323,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pygments/__pycache__",
+    "bytes": 83228,
+    "files": 9,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pygments/lexers/__pycache__",
+    "bytes": 81843,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/dom/__pycache__",
+    "bytes": 71107,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use/__pycache__",
+    "bytes": 68689,
+    "files": 4,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/generated/v2/__pycache__",
+    "bytes": 66492,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/storage/__pycache__",
+    "bytes": 64851,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/css/__pycache__",
+    "bytes": 61174,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/v2/resources/__pycache__",
+    "bytes": 60552,
+    "files": 9,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/idna/__pycache__",
+    "bytes": 53858,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/contract-build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/default-feature-campaign/20260923-075251/build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/phase33/closeout/isolated-api-build/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-owned/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/runtime/mxe10-18-resume-20260906-1830/api-publish/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/bin-gatefix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/bin-runnerfix",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/bin-task8final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/bin-task8map",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/bin-task8map2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-authority2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-final",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green2",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-green3",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-red",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-plan05-slots",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract",
+    "bytes": 52951,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/default-full-e2e/runs/20260913-170647/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-red",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-task1",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_gap_closure_05",
+    "bytes": 52900,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260904-110532/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260913-085032/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000438/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d04-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-archive",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-green",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-restore",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": ".artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260923-000758/build/api/backend/tests/IPCManagement.Api.Tests/bin-phase42-phase_04_2_execution-d05-retention",
+    "bytes": 52415,
+    "files": 3,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/emulation/__pycache__",
+    "bytes": 47614,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/sources/__pycache__",
+    "bytes": 46069,
+    "files": 4,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/debugger/__pycache__",
+    "bytes": 44799,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/__pycache__",
+    "bytes": 41565,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/runtime/__pycache__",
+    "bytes": 38747,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pygments/filters/__pycache__",
+    "bytes": 37884,
+    "files": 1,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/httpx/_transports/__pycache__",
+    "bytes": 37814,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/overlay/__pycache__",
+    "bytes": 37273,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/dotenv/__pycache__",
+    "bytes": 36476,
+    "files": 4,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/typing_inspection/__pycache__",
+    "bytes": 35421,
+    "files": 3,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/audits/__pycache__",
+    "bytes": 31999,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/v2/__pycache__",
+    "bytes": 31026,
+    "files": 3,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/target/__pycache__",
+    "bytes": 29876,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use/skills/__pycache__",
+    "bytes": 29614,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/__pycache__",
+    "bytes": 26193,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/browser/__pycache__",
+    "bytes": 24018,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/websockets/extensions/__pycache__",
+    "bytes": 23741,
+    "files": 3,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/bluetoothemulation/__pycache__",
+    "bytes": 23040,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/webaudio/__pycache__",
+    "bytes": 19561,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/webauthn/__pycache__",
+    "bytes": 19347,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/__pycache__",
+    "bytes": 19048,
+    "files": 4,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/annotated_types/__pycache__",
+    "bytes": 18645,
+    "files": 1,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/plugin/__pycache__",
+    "bytes": 18348,
+    "files": 3,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/heapprofiler/__pycache__",
+    "bytes": 17878,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/input/__pycache__",
+    "bytes": 17695,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/fetch/__pycache__",
+    "bytes": 17405,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/accessibility/__pycache__",
+    "bytes": 17376,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/preload/__pycache__",
+    "bytes": 16704,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/animation/__pycache__",
+    "bytes": 16112,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/__pycache__",
+    "bytes": 15647,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/profiler/__pycache__",
+    "bytes": 15200,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/serviceworker/__pycache__",
+    "bytes": 15111,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/layertree/__pycache__",
+    "bytes": 15025,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/security/__pycache__",
+    "bytes": 13552,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domsnapshot/__pycache__",
+    "bytes": 12647,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/indexeddb/__pycache__",
+    "bytes": 12544,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/tracing/__pycache__",
+    "bytes": 11870,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/pwa/__pycache__",
+    "bytes": 11822,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domdebugger/__pycache__",
+    "bytes": 11462,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/memory/__pycache__",
+    "bytes": 11370,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domstorage/__pycache__",
+    "bytes": 11268,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/media/__pycache__",
+    "bytes": 11139,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/fedcm/__pycache__",
+    "bytes": 10423,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/backgroundservice/__pycache__",
+    "bytes": 9704,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/cast/__pycache__",
+    "bytes": 9660,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/autofill/__pycache__",
+    "bytes": 9500,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/cachestorage/__pycache__",
+    "bytes": 8805,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/_core/__pycache__",
+    "bytes": 8549,
+    "files": 3,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/extensions/__pycache__",
+    "bytes": 8057,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/log/__pycache__",
+    "bytes": 7931,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/systeminfo/__pycache__",
+    "bytes": 7544,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/performance/__pycache__",
+    "bytes": 7414,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/deviceaccess/__pycache__",
+    "bytes": 7340,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/inspector/__pycache__",
+    "bytes": 7323,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/performancetimeline/__pycache__",
+    "bytes": 7240,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/pygments/styles/__pycache__",
+    "bytes": 6311,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/browseruse/__pycache__",
+    "bytes": 5968,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/console/__pycache__",
+    "bytes": 5943,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/tethering/__pycache__",
+    "bytes": 5398,
+    "files": 6,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/headlessexperimental/__pycache__",
+    "bytes": 5250,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/io/__pycache__",
+    "bytes": 4851,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests",
+    "bytes": 4692,
+    "files": 2,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/filesystem/__pycache__",
+    "bytes": 4337,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/eventbreakpoints/__pycache__",
+    "bytes": 4282,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/rich/_unicode_data/__pycache__",
+    "bytes": 3802,
+    "files": 2,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/deviceorientation/__pycache__",
+    "bytes": 3646,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/schema/__pycache__",
+    "bytes": 3249,
+    "files": 5,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/__pycache__",
+    "bytes": 2742,
+    "files": 1,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/obj",
+    "bytes": 1729,
+    "files": 1,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/win32/lib/__pycache__",
+    "bytes": 567,
+    "files": 1,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/generated/__pycache__",
+    "bytes": 224,
+    "files": 1,
+    "dirs": 0,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/src/IPCManagement.Api/bin-t7",
+    "bytes": 0,
+    "files": 0,
+    "dirs": 15,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/bin-t7",
+    "bytes": 0,
+    "files": 0,
+    "dirs": 64,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tests/IPCManagement.Api.Tests/TestResults",
+    "bytes": 0,
+    "files": 0,
+    "dirs": 6,
+    "reason": "generated-name-pattern"
+  },
+  {
+    "path": "backend/tools/IPCManagement.DatabaseTool/bin-t7",
+    "bytes": 0,
+    "files": 0,
+    "dirs": 2,
+    "reason": "generated-name-pattern"
+  }
+]

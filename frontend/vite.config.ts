@@ -39,15 +39,13 @@ export default defineConfig({
     // excluded from Git. CI verifies source/unit contracts; operators run evidence validators
     // only in the sealed workspace that owns those artifacts.
     exclude: process.env.CI ? [
+      'tests/evidence/**/*.test.{ts,tsx}',
       'tests/pcActionCompletenessDisposition.test.ts',
-      'tests/phase35GeometryDenominator.test.ts',
       'tests/uiOwnershipInstrumentationContract.test.tsx',
       'tests/uiStatePurityContract.test.ts',
-      'tests/uiAuditBaselineDelta.test.ts',
       'tests/uiAuditBaselineReconciliation.emit.test.ts',
       'tests/uiAuditBaselineReconciliation.test.ts',
       'tests/uiAuditBlindReviewValidator.test.ts',
-      'tests/uiAuditRemediationAttribution.test.ts',
       'tests/uiAuditRemediationReconciliation.test.ts',
       'tests/uiAuditRemediationReconciliation.emit.test.ts',
       'tests/uiAuditRouteOwnerRegression.test.tsx',

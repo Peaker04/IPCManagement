@@ -1,0 +1,33 @@
+## HEAD (no branch)
+ M .dockerignore
+ D .docs/MVP_DEMO_RUNBOOK.md
+ M .github/workflows/verify.yml
+ M .gitignore
+ M README.md
+ M backend/tests/IPCManagement.Api.Tests/Phase30EndpointAuthorityMatrixTests.cs
+ M backend/tests/IPCManagement.Api.Tests/Phase42AggregateVerificationTests.cs
+ M backend/tests/IPCManagement.Api.Tests/ReconciliationQuantityImportReachabilityTests.cs
+ M backend/tests/IPCManagement.Application.Tests/FeatureDependencyConventionTests.cs
+ M backend/tests/IPCManagement.Application.Tests/PersistenceReliabilityConventionTests.cs
+ M docs/ARCHITECTURE.md
+ M docs/MVP_WEB_FLOW.md
+ M docs/TESTING.md
+ M frontend/playwright.config.ts
+ M frontend/playwright.dialog-gap.config.ts
+ M frontend/playwright.field-geometry.config.ts
+ M frontend/playwright.recovery.config.ts
+ M frontend/src/shared/api/contracts/openapi.json
+ M frontend/src/shared/api/contracts/schema.ts
+ D frontend/tests/phase35GeometryDenominator.test.ts
+ D frontend/tests/uiAuditBaselineDelta.test.ts
+ D frontend/tests/uiAuditRemediationAttribution.test.ts
+ M frontend/vite.config.ts
+ M package.json
+ M scripts/standardization/Invoke-Phase42AggregateVerification.ps1
+ M scripts/standardization/phase42-verification-gates.json
+?? Directory.Build.props
+?? docs/archive/runbooks/
+?? frontend/tests/README.md
+?? frontend/tests/evidence/
+?? scripts/check-frontend-test-taxonomy.test.mjs
+?? scripts/check-ignore-policy.test.mjs

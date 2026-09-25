@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-09-24T17:08:40.427117+00:00",
+  "ledgerCount": 270,
+  "remainingAfterVerification": [
+    ".artifacts/dotnet"
+  ],
+  "expectedRegenerated": [
+    ".artifacts/dotnet"
+  ],
+  "unexpectedRemaining": [],
+  "newOutputBadDirectoryCount": 0,
+  "newOutputBadDirectories": [],
+  "regeneratedDotnetBytes": 243674122,
+  "regeneratedDotnetFiles": 892,
+  "status": "PASS"
+}

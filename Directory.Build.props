@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <ArtifactsPath>$(MSBuildThisFileDirectory).artifacts/dotnet</ArtifactsPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/.artifacts/**;**/.artifactslk*/**;**/.tmp-*/**;**/.phase*test/**;**/bin-*/**;backend/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

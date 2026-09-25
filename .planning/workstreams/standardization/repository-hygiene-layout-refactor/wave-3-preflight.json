@@ -1,0 +1,1907 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-24T17:04:15.972903+00:00",
+  "branch": "refactor/large-refactor-20260924",
+  "head": "44124e091783765e3c52411d28cc5ee78c192986",
+  "ledger": ".planning\\workstreams\\standardization\\repository-hygiene-layout-refactor\\wave-3-reviewed-delete-generated.txt",
+  "ledgerSha256": "B2FDABF715A92CF6F129677AFB10FFCDFE5BB766EE0D092BC2A60C44328006C3",
+  "candidateCount": 270,
+  "existingCount": 270,
+  "trackedOverlapCount": 0,
+  "evidenceOverlapCount": 0,
+  "outsideRepositoryCount": 0,
+  "errors": [],
+  "status": "PASS",
+  "paths": [
+    {
+      "path": "backend/.artifacts",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\.artifacts",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifacts",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.artifacts",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.artifactslk",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.artifactslk2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.artifactslk3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk4",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.artifactslk4",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk5",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.artifactslk5",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.artifactslk6",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.artifactslk6",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.phase05test",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.phase05test",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-original-structure-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-bom-original-structure-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-template-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-bom-template-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-template-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-bom-template-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-unit-label-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-bom-unit-label-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-unit-label-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-bom-unit-label-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-bom-vietnamese-units-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-bom-vietnamese-units-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-disposition-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-disposition-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-issue-history-lines-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-issue-history-lines-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-live-zero-fix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-live-zero-fix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-manual-issue-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-manual-issue-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-manual-issue-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-manual-issue-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-migration-compile",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-migration-compile",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-goal-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-mrx-goal-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-goal-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-mrx-goal-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-enum-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-mrx-provision-enum-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-mrx-provision-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-mrx-provision-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-mrx-provision-tests3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-mrx-provision-tests3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-overissue-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-overissue-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-stale-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-stale-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-supplemental-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-supplemental-final2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-final3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-supplemental-final3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-supplemental-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-supplemental-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/.tmp-test-output",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\.tmp-test-output",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/backend",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\backend",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-gatefix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin-gatefix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-plan04201",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin-plan04201",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-runnerfix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin-runnerfix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-t7",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin-t7",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-task8final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin-task8final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-task8map",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin-task8map",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin-task8map2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin-task8map2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/bin",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\bin",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/IPCManagement.Api/obj",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\IPCManagement.Api\\obj",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/src/obj",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\src\\obj",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifacts",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.artifacts",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.artifactslk",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.artifactslk2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.artifactslk3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk4",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.artifactslk4",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk5",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.artifactslk5",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.artifactslk6",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.artifactslk6",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.phase05test",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.phase05test",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-original-structure-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-bom-original-structure-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-template-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-bom-template-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-template-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-bom-template-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-unit-label-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-bom-unit-label-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-unit-label-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-bom-unit-label-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-bom-vietnamese-units-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-bom-vietnamese-units-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-disposition-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-disposition-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-issue-history-lines-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-issue-history-lines-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-live-zero-fix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-live-zero-fix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-manual-issue-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-manual-issue-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-manual-issue-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-manual-issue-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-migration-compile",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-migration-compile",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-goal-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-mrx-goal-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-goal-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-mrx-goal-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-enum-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-mrx-provision-enum-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-mrx-provision-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-mrx-provision-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-mrx-provision-tests3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-mrx-provision-tests3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-overissue-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-overissue-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-stale-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-stale-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-supplemental-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-supplemental-final2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-final3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-supplemental-final3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-supplemental-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-supplemental-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/.tmp-test-output",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\.tmp-test-output",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/TestResults",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\TestResults",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/backend",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\backend",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-gatefix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-gatefix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04201",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04201",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-build",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-arch-build",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-focused",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-arch-focused",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-arch-full",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-arch-full",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-complete-full",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-complete-full",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-complete-sln",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-complete-sln",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-compile",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-compile",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-focused",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-focused",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-focused2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-focused2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-full",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-full",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-sln",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-sln",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test1",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-test1",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-test2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-test3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test4",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-test4",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-durable-test5",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-durable-test5",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-exact-outcome",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-exact-outcome",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-build",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-final-build",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-focused",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-final-focused",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final-full",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-final-full",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-final2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-final2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-sourceaware-full",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-sourceaware-full",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04202-sourceaware",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04202-sourceaware",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04204-final-contract2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04204-final-contract2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-plan04204-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-plan04204-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-runnerfix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-runnerfix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-t7",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-t7",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-task8final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-task8final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-task8map",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-task8map",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin-task8map2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin-task8map2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/bin",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\bin",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Api.Tests/obj",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Api.Tests\\obj",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/.artifacts",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\.artifacts",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/backend",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\backend",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04201",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\bin-plan04201",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-acceptance",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\bin-plan04202-app-acceptance",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\bin-plan04202-app-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-app-full",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\bin-plan04202-app-full",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-arch-green",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\bin-plan04202-arch-green",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin-plan04202-arch-red",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\bin-plan04202-arch-red",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/bin",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\bin",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tests/IPCManagement.Application.Tests/obj",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tests\\IPCManagement.Application.Tests\\obj",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifacts",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.artifacts",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.artifactslk",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.artifactslk2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.artifactslk3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk4",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.artifactslk4",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk5",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.artifactslk5",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.artifactslk6",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.artifactslk6",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.phase05test",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.phase05test",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-original-structure-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-bom-original-structure-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-template-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-bom-template-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-template-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-bom-template-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-unit-label-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-bom-unit-label-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-unit-label-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-bom-unit-label-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-bom-vietnamese-units-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-bom-vietnamese-units-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-disposition-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-disposition-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-issue-history-lines-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-issue-history-lines-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-live-zero-fix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-live-zero-fix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-manual-issue-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-manual-issue-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-manual-issue-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-manual-issue-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-migration-compile",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-migration-compile",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-goal-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-mrx-goal-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-goal-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-mrx-goal-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-enum-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-mrx-provision-enum-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-mrx-provision-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-mrx-provision-tests2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-mrx-provision-tests3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-mrx-provision-tests3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-overissue-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-overissue-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-stale-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-stale-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-supplemental-final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-supplemental-final2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-final3",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-supplemental-final3",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-supplemental-tests",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-supplemental-tests",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/.tmp-test-output",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\.tmp-test-output",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/backend",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\backend",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-gatefix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin-gatefix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-plan04201",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin-plan04201",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-runnerfix",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin-runnerfix",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-t7",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin-t7",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8final",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin-task8final",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8map",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin-task8map",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin-task8map2",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin-task8map2",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/bin",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\bin",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.DatabaseTool/obj",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.DatabaseTool\\obj",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.Phase42ArchiveTool/backend",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.Phase42ArchiveTool\\backend",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.Phase42ArchiveTool/bin",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.Phase42ArchiveTool\\bin",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "backend/tools/IPCManagement.Phase42ArchiveTool/obj",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\backend\\tools\\IPCManagement.Phase42ArchiveTool\\obj",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "frontend/dist",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\frontend\\dist",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "frontend/test-results",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\frontend\\test-results",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "logs",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\logs",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "src",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\src",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/annotated_types/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\annotated_types\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/attr/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\attr\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_harness/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_harness\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use/skills/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use\\skills\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use_sdk\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/_core/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use_sdk\\_core\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/generated/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use_sdk\\generated\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/generated/v2/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use_sdk\\generated\\v2\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/v2/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use_sdk\\v2\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/browser_use_sdk/v2/resources/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\browser_use_sdk\\v2\\resources\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/accessibility/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\accessibility\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/animation/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\animation\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/audits/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\audits\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/autofill/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\autofill\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/backgroundservice/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\backgroundservice\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/bluetoothemulation/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\bluetoothemulation\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/browser/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\browser\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/browseruse/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\browseruse\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/cachestorage/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\cachestorage\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/cast/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\cast\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/console/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\console\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/css/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\css\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/debugger/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\debugger\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/deviceaccess/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\deviceaccess\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/deviceorientation/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\deviceorientation\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/dom/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\dom\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domdebugger/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\domdebugger\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domsnapshot/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\domsnapshot\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/domstorage/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\domstorage\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/emulation/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\emulation\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/eventbreakpoints/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\eventbreakpoints\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/extensions/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\extensions\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/fedcm/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\fedcm\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/fetch/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\fetch\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/filesystem/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\filesystem\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/headlessexperimental/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\headlessexperimental\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/heapprofiler/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\heapprofiler\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/indexeddb/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\indexeddb\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/input/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\input\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/inspector/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\inspector\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/io/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\io\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/layertree/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\layertree\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/log/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\log\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/media/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\media\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/memory/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\memory\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/network/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\network\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/overlay/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\overlay\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/page/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\page\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/performance/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\performance\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/performancetimeline/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\performancetimeline\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/preload/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\preload\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/profiler/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\profiler\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/pwa/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\pwa\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/runtime/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\runtime\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/schema/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\schema\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/security/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\security\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/serviceworker/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\serviceworker\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/storage/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\storage\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/systeminfo/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\systeminfo\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/target/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\target\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/tethering/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\tethering\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/tracing/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\tracing\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/webaudio/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\webaudio\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/cdp_use/cdp/webauthn/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\cdp_use\\cdp\\webauthn\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/click/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\click\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/dotenv/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\dotenv\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/httpx/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\httpx\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/httpx/_transports/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\httpx\\_transports\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/idna/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\idna\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/psutil/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\psutil\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pydantic\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/_internal/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pydantic\\_internal\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic/plugin/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pydantic\\plugin\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_core/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pydantic_core\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pydantic_settings\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/sources/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pydantic_settings\\sources\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pydantic_settings/sources/providers/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pydantic_settings\\sources\\providers\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pygments\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/filters/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pygments\\filters\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/lexers/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pygments\\lexers\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/pygments/styles/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\pygments\\styles\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/rich/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\rich\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/rich/_unicode_data/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\rich\\_unicode_data\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/typing_inspection/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\typing_inspection\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/websockets/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\websockets\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/websockets/asyncio/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\websockets\\asyncio\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/websockets/extensions/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\websockets\\extensions\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/browser-use/.venv/Lib/site-packages/win32/lib/__pycache__",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\browser-use\\.venv\\Lib\\site-packages\\win32\\lib\\__pycache__",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/bin",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\e2e\\Phase05WeeklyMenuFixtureTool\\bin",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": "tools/e2e/Phase05WeeklyMenuFixtureTool/obj",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\tools\\e2e\\Phase05WeeklyMenuFixtureTool\\obj",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    },
+    {
+      "path": ".artifacts/dotnet",
+      "resolved": "D:\\ki7\\PRN222 Doanh Nghi\u1ec7p\\IPCManagement\\.artifacts\\dotnet",
+      "exists": true,
+      "trackedOverlap": 0,
+      "evidenceOverlap": 0
+    }
+  ]
+}

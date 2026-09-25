@@ -19,7 +19,7 @@ export const WAVE_BASE = '47d13805196fd9ab51d0f08c5de44db7fa26a71b';
 export const PARTIAL_COMMIT = '235fbd499e0fb5e2f247ea0efa0bb92ea58eff32';
 export const PARTIAL_PATHS = [
   `${PHASE_DIR}/evidence/readiness-dispositions.json`,
-  'frontend/tests/visual-routes.spec.ts',
+  'frontend/tests/browser/visual-routes.spec.ts',
   'frontend/tests/visualReconciliationEvidence.test.ts',
 ].sort();
 export const RECOVERY_PAYLOAD_PATHS = [
@@ -129,7 +129,7 @@ export function validateRecoveryInspect(cwd: string, matrix: any) {
     const matrixIdentity = matrix.identitySets[setName].find((x: any) => x.snapshotName.startsWith(row.identity));
     if (!matrixIdentity) throw new Error(`identity substitution: ${row.identity}`);
     const entry = matrix.entries.find((x: any) => x.snapshotName === matrixIdentity.snapshotName);
-    if (row.disposition !== 'fixture-drift' || row.owner !== 'frontend/tests/visual-routes.spec.ts' || !entry.permittedPaths['fixture-drift'].includes(row.owner)) throw new Error('owner borrowing or class/path laundering');
+    if (row.disposition !== 'fixture-drift' || row.owner !== 'frontend/tests/browser/visual-routes.spec.ts' || !entry.permittedPaths['fixture-drift'].includes(row.owner)) throw new Error('owner borrowing or class/path laundering');
     if (!Array.isArray(row.beforeSha256) || !Array.isArray(row.afterSha256) || row.beforeSha256.length !== 2 || row.afterSha256.length !== 2 || row.beforeSha256[0] !== row.beforeSha256[1] || row.afterSha256[0] !== row.afterSha256[1] || row.beforeSha256[0] === row.afterSha256[0]) throw new Error('packet hashes invalid');
   }
   return { schemaVersion: 1, phase: '27.1', planId: '27.1-02R', status: 'AUTHORIZED_PARTIAL', waveBaseCommit: WAVE_BASE, partialCommit: PARTIAL_COMMIT, partialParent: WAVE_BASE, identitySets: selected, members: PARTIAL_PATHS.map((path) => { const bytes = objectAt(cwd, PARTIAL_COMMIT, path, true) as Buffer; return { path, sha256: sha256(bytes), gitBlobId: runGit(cwd, 'rev-parse', `${PARTIAL_COMMIT}:${path}`) }; }) };

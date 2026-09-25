@@ -36,8 +36,16 @@
 **/packages/
 project.lock.json
 project.fragment.lock.json
-artifacts/
+# Generated output is never part of the backend Docker build context.
+/artifacts/
 **/.artifacts/
+**/.artifactslk*/
+**/.tmp-*/
+**/.phase*test/
+**/bin-*/
+/backend/src/IPCManagement.Api/backend/
+/backend/tests/*/backend/
+/backend/tools/*/backend/
 .dotnet-tools/
 
 # =============================================

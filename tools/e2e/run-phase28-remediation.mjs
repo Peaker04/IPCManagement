@@ -36,15 +36,15 @@ vite.stdout.on('data', (chunk) => { viteLog += chunk; });
 vite.stderr.on('data', (chunk) => { viteLog += chunk; });
 for (let count = 0; count < 120; count++) { try { if ((await fetch('http://127.0.0.1:5173/login')).ok) break; } catch {} if (count === 119) throw new Error('controlled frontend did not become ready'); await delay(500); }
 const specs = [
-  ['bridge', 'tests/ui-audit.spec.ts', '--grep', 'Phase 28 (login production-route baseline bridge|protected production-route ready cohort)'],
-  ['dashboard', 'tests/dashboard-production-query.spec.ts'], ['weekly-menu', 'tests/weekly-menu-production-query.spec.ts'], ['reports', 'tests/reports-production-query.spec.ts'], ['meal-orders', 'tests/meal-orders-production-query.spec.ts'], ['chef-dashboard', 'tests/chef-dashboard-production-query.spec.ts'], ['approvals', 'tests/approvals-production-query.spec.ts'], ['purchasing', 'tests/purchasing-production-query.spec.ts'], ['warehouse', 'tests/warehouse-production-query.spec.ts'], ['admin-data', 'tests/admin-data-production-query.spec.ts'], ['approval-rules', 'tests/approval-rules-production-query.spec.ts'], ['static-form', 'tests/static-form-production-route.spec.ts'],
+  ['bridge', 'tests/browser/ui-audit.spec.ts', '--grep', 'Phase 28 (login production-route baseline bridge|protected production-route ready cohort)'],
+  ['dashboard', 'tests/browser/dashboard-production-query.spec.ts'], ['weekly-menu', 'tests/browser/weekly-menu-production-query.spec.ts'], ['reports', 'tests/browser/reports-production-query.spec.ts'], ['meal-orders', 'tests/browser/meal-orders-production-query.spec.ts'], ['chef-dashboard', 'tests/browser/chef-dashboard-production-query.spec.ts'], ['approvals', 'tests/browser/approvals-production-query.spec.ts'], ['purchasing', 'tests/browser/purchasing-production-query.spec.ts'], ['warehouse', 'tests/browser/warehouse-production-query.spec.ts'], ['admin-data', 'tests/browser/admin-data-production-query.spec.ts'], ['approval-rules', 'tests/browser/approval-rules-production-query.spec.ts'], ['static-form', 'tests/browser/static-form-production-route.spec.ts'],
 ];
 try {
   for (const runNumber of [1, 2]) {
     const evidence = resolve(root, `run-${runNumber}`);
     const env = { ...baseEnv, UI_AUDIT_OUTPUT_ROOT: evidence, UI_AUDIT_RECOVERY_OUTPUT_ROOT: evidence };
-    for (const [name, ...args] of specs) await run(`run-${runNumber}-${name}`, [playwrightCli, 'test', ...args, '--config', 'playwright.recovery.config.ts', '--headed', '--workers=1', `--output=${resolve(root, `playwright-run-${runNumber}`, name)}`], env);
-    await run(`run-${runNumber}-matrix`, [playwrightCli, 'test', 'tests/ui-audit-remediation.spec.ts', '--grep', 'phase 28 remediation / full D5', '--config', 'playwright.recovery.config.ts', '--headed', '--workers=1', `--output=${resolve(root, `playwright-run-${runNumber}`, 'matrix')}`], env);
+    for (const [name, ...args] of specs) await run(`run-${runNumber}-${name}`, [playwrightCli, 'test', ...args, '--config', 'tests/config/recovery.config.ts', '--headed', '--workers=1', `--output=${resolve(root, `playwright-run-${runNumber}`, name)}`], env);
+    await run(`run-${runNumber}-matrix`, [playwrightCli, 'test', 'tests/browser/ui-audit-remediation.spec.ts', '--grep', 'phase 28 remediation / full D5', '--config', 'tests/config/recovery.config.ts', '--headed', '--workers=1', `--output=${resolve(root, `playwright-run-${runNumber}`, 'matrix')}`], env);
   }
   const selection = resolve(parent, 'selected-attempt.json');
   if (existsSync(selection)) throw new Error('selected-attempt.json already exists; append-only selection cannot be overwritten');

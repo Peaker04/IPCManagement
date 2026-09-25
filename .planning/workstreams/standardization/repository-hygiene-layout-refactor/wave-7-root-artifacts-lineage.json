@@ -1,0 +1,252 @@
+[
+  {
+    "path": "artifacts/perf-probe-wave7-all-load.json",
+    "line": 418,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "64EAA9691578E9F99E12CB7701E2C227F7811104D64659506C30DA6D79260739",
+    "actualSha256": "2B59F1828B37A41C1E41FC1242C445FD74C1D7D26D9512D1531EED7331F0F2B1",
+    "hashMatches": false,
+    "headSha256": "64EAA9691578E9F99E12CB7701E2C227F7811104D64659506C30DA6D79260739",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "64EAA9691578E9F99E12CB7701E2C227F7811104D64659506C30DA6D79260739",
+    "crlfSha256": "2B59F1828B37A41C1E41FC1242C445FD74C1D7D26D9512D1531EED7331F0F2B1",
+    "crlfCount": 3394,
+    "lfCount": 3394,
+    "history": [
+      {
+        "commit": "146537035554e3bbee341d412e5503f5611ab1a2",
+        "sha256": "64EAA9691578E9F99E12CB7701E2C227F7811104D64659506C30DA6D79260739",
+        "bytes": 91208,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-wave7-all-load.md",
+    "line": 419,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "5E566FDE8CD3F8876A91B24A614810FD29D103B29CD5C703589DD74449CA26F3",
+    "actualSha256": "C075968B6AB12FA96037A17D456C689B3BB47187D8675840E6B23D8C065F04A4",
+    "hashMatches": false,
+    "headSha256": "5E566FDE8CD3F8876A91B24A614810FD29D103B29CD5C703589DD74449CA26F3",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "5E566FDE8CD3F8876A91B24A614810FD29D103B29CD5C703589DD74449CA26F3",
+    "crlfSha256": "C075968B6AB12FA96037A17D456C689B3BB47187D8675840E6B23D8C065F04A4",
+    "crlfCount": 3399,
+    "lfCount": 3399,
+    "history": [
+      {
+        "commit": "146537035554e3bbee341d412e5503f5611ab1a2",
+        "sha256": "5E566FDE8CD3F8876A91B24A614810FD29D103B29CD5C703589DD74449CA26F3",
+        "bytes": 91274,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-geometry.json",
+    "line": 420,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "583BF2A0A62374FFEE2B29F039FDBD371718719379BC8991E7760422938D53C8",
+    "actualSha256": "1BC831DDAA1DB5A8542F0D9A6B79F94DA8FFC91A0A34A41CECB7763D45C2A921",
+    "hashMatches": false,
+    "headSha256": "583BF2A0A62374FFEE2B29F039FDBD371718719379BC8991E7760422938D53C8",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "583BF2A0A62374FFEE2B29F039FDBD371718719379BC8991E7760422938D53C8",
+    "crlfSha256": "1BC831DDAA1DB5A8542F0D9A6B79F94DA8FFC91A0A34A41CECB7763D45C2A921",
+    "crlfCount": 115,
+    "lfCount": 115,
+    "history": [
+      {
+        "commit": "7ebc130b3dbd46b7bcf411bdcc3570d3a4cf53bd",
+        "sha256": "583BF2A0A62374FFEE2B29F039FDBD371718719379BC8991E7760422938D53C8",
+        "bytes": 2869,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-geometry.md",
+    "line": 421,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "0280FC7DD6C3CBD85E5F388AA03FDA5B1A7EEF0EDDA72DB701F3247E898222E3",
+    "actualSha256": "7DA87E54DD071817C569ED7A1E4B75485DA7B28C5B71CE0632DBAFB4EC33B271",
+    "hashMatches": false,
+    "headSha256": "0280FC7DD6C3CBD85E5F388AA03FDA5B1A7EEF0EDDA72DB701F3247E898222E3",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "0280FC7DD6C3CBD85E5F388AA03FDA5B1A7EEF0EDDA72DB701F3247E898222E3",
+    "crlfSha256": "7DA87E54DD071817C569ED7A1E4B75485DA7B28C5B71CE0632DBAFB4EC33B271",
+    "crlfCount": 120,
+    "lfCount": 120,
+    "history": [
+      {
+        "commit": "7ebc130b3dbd46b7bcf411bdcc3570d3a4cf53bd",
+        "sha256": "0280FC7DD6C3CBD85E5F388AA03FDA5B1A7EEF0EDDA72DB701F3247E898222E3",
+        "bytes": 2935,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-inp-smoke-v2.json",
+    "line": 422,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "5636B3301BF656BCD35709DA1BBAE0710AA4C5A4310565A9C8188CD10E7CCBE7",
+    "actualSha256": "D1D1C67C537A742C2E6F17F465FD04317199AC6901B11318A16E05BCA3D3872C",
+    "hashMatches": false,
+    "headSha256": "5636B3301BF656BCD35709DA1BBAE0710AA4C5A4310565A9C8188CD10E7CCBE7",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "5636B3301BF656BCD35709DA1BBAE0710AA4C5A4310565A9C8188CD10E7CCBE7",
+    "crlfSha256": "D1D1C67C537A742C2E6F17F465FD04317199AC6901B11318A16E05BCA3D3872C",
+    "crlfCount": 120,
+    "lfCount": 120,
+    "history": [
+      {
+        "commit": "3f275a56d99a46e57bc34ee78fa66e577fe6a73e",
+        "sha256": "5636B3301BF656BCD35709DA1BBAE0710AA4C5A4310565A9C8188CD10E7CCBE7",
+        "bytes": 3311,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-inp-search.json",
+    "line": 423,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "FD95283109B3EC0213F89CC1C5DBDCEA5CE8276F47BDAD92DF2FB15EC3046824",
+    "actualSha256": "51B87E55106855CE790015C3DEAA043E11C7162C2CFA21A9224F10CB6B284905",
+    "hashMatches": false,
+    "headSha256": "FD95283109B3EC0213F89CC1C5DBDCEA5CE8276F47BDAD92DF2FB15EC3046824",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "FD95283109B3EC0213F89CC1C5DBDCEA5CE8276F47BDAD92DF2FB15EC3046824",
+    "crlfSha256": "51B87E55106855CE790015C3DEAA043E11C7162C2CFA21A9224F10CB6B284905",
+    "crlfCount": 53,
+    "lfCount": 53,
+    "history": [
+      {
+        "commit": "ba4390884a43f8223a3130695acc1ce223e6dcd4",
+        "sha256": "FD95283109B3EC0213F89CC1C5DBDCEA5CE8276F47BDAD92DF2FB15EC3046824",
+        "bytes": 1301,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-warehouse-inp-tab.json",
+    "line": 424,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "924C1A0C63142AE2646A965A08D721E945782D8F79CC2456C89A26CE5BA6F9FC",
+    "actualSha256": "636EA2F8F8C53A7B643FE5B2AA9607E793CD416233DF7C8839E05881DE41B58C",
+    "hashMatches": false,
+    "headSha256": "924C1A0C63142AE2646A965A08D721E945782D8F79CC2456C89A26CE5BA6F9FC",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "924C1A0C63142AE2646A965A08D721E945782D8F79CC2456C89A26CE5BA6F9FC",
+    "crlfSha256": "636EA2F8F8C53A7B643FE5B2AA9607E793CD416233DF7C8839E05881DE41B58C",
+    "crlfCount": 53,
+    "lfCount": 53,
+    "history": [
+      {
+        "commit": "ba4390884a43f8223a3130695acc1ce223e6dcd4",
+        "sha256": "924C1A0C63142AE2646A965A08D721E945782D8F79CC2456C89A26CE5BA6F9FC",
+        "bytes": 1282,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-admin-audit-pagination.json",
+    "line": 425,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "28897D19F6EEA22E48C10E74236F93F8D805FA422D706BD8EA3DE5B603BB9263",
+    "actualSha256": "52B9ECF92445AE1698D8EE31EB8CE06D0A561BDC2389614C90B8EFF83345732D",
+    "hashMatches": false,
+    "headSha256": "28897D19F6EEA22E48C10E74236F93F8D805FA422D706BD8EA3DE5B603BB9263",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "28897D19F6EEA22E48C10E74236F93F8D805FA422D706BD8EA3DE5B603BB9263",
+    "crlfSha256": "52B9ECF92445AE1698D8EE31EB8CE06D0A561BDC2389614C90B8EFF83345732D",
+    "crlfCount": 42,
+    "lfCount": 42,
+    "history": [
+      {
+        "commit": "74507c96a05aeaef2ab45f49de7e9e36399294f7",
+        "sha256": "28897D19F6EEA22E48C10E74236F93F8D805FA422D706BD8EA3DE5B603BB9263",
+        "bytes": 1037,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-coordination-export.json",
+    "line": 426,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "99068232CD40525ABC2453F93B0F712A1B7A0DEC6372FF06E9FADD7A96869F62",
+    "actualSha256": "338DB670885A93B93E9439BE8A580F4DF94A39CC8CE48CA23EAC05371A456BFD",
+    "hashMatches": false,
+    "headSha256": "99068232CD40525ABC2453F93B0F712A1B7A0DEC6372FF06E9FADD7A96869F62",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "99068232CD40525ABC2453F93B0F712A1B7A0DEC6372FF06E9FADD7A96869F62",
+    "crlfSha256": "338DB670885A93B93E9439BE8A580F4DF94A39CC8CE48CA23EAC05371A456BFD",
+    "crlfCount": 42,
+    "lfCount": 42,
+    "history": [
+      {
+        "commit": "57281087c1d6b43fc806325e09576227cf5d2e07",
+        "sha256": "99068232CD40525ABC2453F93B0F712A1B7A0DEC6372FF06E9FADD7A96869F62",
+        "bytes": 1015,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "artifacts/perf-probe-purchasing-submit.json",
+    "line": 427,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "86CC7D7DFA962CCB55A0D4FA520CCD267F3B749BD5651CBFD14E2E7E34EBB0EB",
+    "actualSha256": "F2D51B2A7EC1F81EBC1C6459EE3EF8BA84457DF8721C8AA8933DC5F84A7588C8",
+    "hashMatches": false,
+    "headSha256": "86CC7D7DFA962CCB55A0D4FA520CCD267F3B749BD5651CBFD14E2E7E34EBB0EB",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "86CC7D7DFA962CCB55A0D4FA520CCD267F3B749BD5651CBFD14E2E7E34EBB0EB",
+    "crlfSha256": "F2D51B2A7EC1F81EBC1C6459EE3EF8BA84457DF8721C8AA8933DC5F84A7588C8",
+    "crlfCount": 42,
+    "lfCount": 42,
+    "history": [
+      {
+        "commit": "e97a91742d3d24a39bf887be82264b917faef98c",
+        "sha256": "86CC7D7DFA962CCB55A0D4FA520CCD267F3B749BD5651CBFD14E2E7E34EBB0EB",
+        "bytes": 1094,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  }
+]

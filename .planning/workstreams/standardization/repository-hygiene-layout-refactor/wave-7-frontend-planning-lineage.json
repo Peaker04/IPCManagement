@@ -1,0 +1,77 @@
+[
+  {
+    "path": ".planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/evidence/28-15-frontend-closeout.txt",
+    "line": 46,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "97609D0134F0BCF942AB80C3E2718715BB743431E77BDB4C9EB471CB9D58C455",
+    "actualSha256": "6599A5C99CF38FF1987AA03A517D7D9AC67A4419C324A962E1174032C8390EE2",
+    "hashMatches": false,
+    "headSha256": "97609D0134F0BCF942AB80C3E2718715BB743431E77BDB4C9EB471CB9D58C455",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "97609D0134F0BCF942AB80C3E2718715BB743431E77BDB4C9EB471CB9D58C455",
+    "crlfSha256": "6599A5C99CF38FF1987AA03A517D7D9AC67A4419C324A962E1174032C8390EE2",
+    "crlfCount": 29,
+    "lfCount": 29,
+    "history": [
+      {
+        "commit": "61c91f236ee787a09b2e3674731855879b588fb6",
+        "sha256": "97609D0134F0BCF942AB80C3E2718715BB743431E77BDB4C9EB471CB9D58C455",
+        "bytes": 1029,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "frontend/docs/perf/probe-h1-preview-report.json",
+    "line": 433,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "C94401F857106E2A032215FDCF886099DE68ECA24C6E6B09F3EC162A1568509D",
+    "actualSha256": "6BEFD3D3991CE93A7ECF06F2565102DE81C9C0CDDBE4B40F1B0E20223605AE7A",
+    "hashMatches": false,
+    "headSha256": "C94401F857106E2A032215FDCF886099DE68ECA24C6E6B09F3EC162A1568509D",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "C94401F857106E2A032215FDCF886099DE68ECA24C6E6B09F3EC162A1568509D",
+    "crlfSha256": "6BEFD3D3991CE93A7ECF06F2565102DE81C9C0CDDBE4B40F1B0E20223605AE7A",
+    "crlfCount": 413,
+    "lfCount": 413,
+    "history": [
+      {
+        "commit": "ee18f37058b862533b46ad3ba77a6b6e82d223fb",
+        "sha256": "C94401F857106E2A032215FDCF886099DE68ECA24C6E6B09F3EC162A1568509D",
+        "bytes": 10957,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  },
+  {
+    "path": "frontend/docs/perf/probe-h1-preview-report.md",
+    "line": 434,
+    "external": false,
+    "exists": true,
+    "tracked": true,
+    "expectedSha256": "6D65492AE5B818350F08AD3FED0529DEDB7E97B2B1C45830BEF1A2DB3A943A12",
+    "actualSha256": "7D8480AD6F73A24CDC59A4BEF2BCB3D415BE63253F525004186B29ED2A17EF41",
+    "hashMatches": false,
+    "headSha256": "6D65492AE5B818350F08AD3FED0529DEDB7E97B2B1C45830BEF1A2DB3A943A12",
+    "workingTreeEqualsHead": false,
+    "lfSha256": "6D65492AE5B818350F08AD3FED0529DEDB7E97B2B1C45830BEF1A2DB3A943A12",
+    "crlfSha256": "7D8480AD6F73A24CDC59A4BEF2BCB3D415BE63253F525004186B29ED2A17EF41",
+    "crlfCount": 418,
+    "lfCount": 418,
+    "history": [
+      {
+        "commit": "ee18f37058b862533b46ad3ba77a6b6e82d223fb",
+        "sha256": "6D65492AE5B818350F08AD3FED0529DEDB7E97B2B1C45830BEF1A2DB3A943A12",
+        "bytes": 11023,
+        "matchesExpected": true,
+        "matchesCurrent": false
+      }
+    ]
+  }
+]

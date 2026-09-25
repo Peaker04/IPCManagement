@@ -26,13 +26,42 @@ x86/
 **/packages/
 project.lock.json
 project.fragment.lock.json
-artifacts/
+# Legacy root output; migrate retained conclusions to canonical evidence owners.
+/artifacts/
 **/.artifacts/
+
+# Historical custom MSBuild output names. These are always reproducible output,
+# never source or evidence owners.
+**/.artifactslk*/
+**/.tmp-*/
+**/.phase*test/
+**/bin-*/
+/backend/src/IPCManagement.Api/backend/
+/backend/tests/*/backend/
+/backend/tools/*/backend/
 
 # Promoted AI-review evidence only. Keep build output, browser profiles, screenshots,
 # caches and unselected attempts ignored; readable evidence is hash-pinned in docs/EVIDENCE-INDEX.md.
 !/.artifacts/
 /.artifacts/*
+!/.artifacts/performance/
+/.artifacts/performance/*
+!/.artifacts/performance/legacy-root-probes/
+/.artifacts/performance/legacy-root-probes/*
+!/.artifacts/performance/legacy-root-probes/perf-probe-admin-audit-pagination.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-coordination-export.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-purchasing-submit.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-warehouse-geometry.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-warehouse-geometry.md
+!/.artifacts/performance/legacy-root-probes/perf-probe-warehouse-inp-search.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-warehouse-inp-smoke-v2.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-warehouse-inp-tab.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-wave7-all-load.json
+!/.artifacts/performance/legacy-root-probes/perf-probe-wave7-all-load.md
+!/.artifacts/performance/probe-h1-preview/
+/.artifacts/performance/probe-h1-preview/*
+!/.artifacts/performance/probe-h1-preview/probe-h1-preview-report.json
+!/.artifacts/performance/probe-h1-preview/probe-h1-preview-report.md
 !/.artifacts/goal-ui-ux/
 /.artifacts/goal-ui-ux/*
 !/.artifacts/goal-ui-ux/reaudit-async-performance-20260915-sol/
@@ -108,7 +137,9 @@ frontend/coverage/
 *.swp
 *.swo
 *~
-.vscode/settings.json
+# Personal IDE state is ignored by default; keep only the shared Explorer hygiene file.
+.vscode/*
+!.vscode/settings.json
 
 # =============================================
 # OS
@@ -122,14 +153,22 @@ Desktop.ini
 # Internal / AI tooling (not for repo)
 # =============================================
 .claude/
-**/.planning/
-!/.planning/
-/.planning/*
+# GSD state is local by default. The repository-governed standardization
+# workstream keeps reviewable Markdown/JSON/CSV and sketch source trackable;
+# raw browser/build evidence remains ignored.
+/.planning/**
+!/.planning/archive/
+!/.planning/archive/v1.4/
+!/.planning/archive/v1.4/**/
+!/.planning/archive/v1.4/**/*.md
 !/.planning/workstreams/
-/.planning/workstreams/*
 !/.planning/workstreams/standardization/
-!/.planning/workstreams/standardization/**
-AGENTS.md
+!/.planning/workstreams/standardization/**/
+!/.planning/workstreams/standardization/**/*.md
+!/.planning/workstreams/standardization/**/*.json
+!/.planning/workstreams/standardization/**/*.csv
+!/.planning/workstreams/standardization/**/*.html
+!/.planning/workstreams/standardization/**/*.css
 CLAUDE.md
 .vercel
 # Bộ skill mattpocock/skills: skill nằm trong .claude/ (đã ignore ở trên), nên lockfile,

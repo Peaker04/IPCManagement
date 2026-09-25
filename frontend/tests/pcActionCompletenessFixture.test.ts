@@ -8,7 +8,7 @@ import coordinationRegistrySource from '../src/features/coordination/coordinatio
 import weeklyRegistrySource from '../src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts?raw'
 import demandModelSource from '../src/features/projects/weekly-menu/demand/demandModel.ts?raw'
 import purchasingModelSource from '../src/features/purchasing/purchasingModel.ts?raw'
-import controlSurfaceSource from './control-surface.spec.ts?raw'
+import controlSurfaceSource from './browser/control-surface.spec.ts?raw'
 import coordinationOrderTableSource from '../src/features/coordination/components/order-table.tsx?raw'
 import { coordinationOrderScopeLifecycleRegistry } from '../src/features/coordination/coordinationOrderScopeLifecycleRegistry.test'
 import { weeklyMenuLifecycleStateActionRegistry } from '../src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test'
@@ -95,7 +95,7 @@ const rawSources: Record<string, string> = {
   'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecyclePa2Registry.test.ts': weeklyRegistrySource,
   'frontend/src/features/projects/weekly-menu/demand/demandModel.ts': demandModelSource,
   'frontend/src/features/purchasing/purchasingModel.ts': purchasingModelSource,
-  'frontend/tests/control-surface.spec.ts': controlSurfaceSource,
+  'frontend/tests/browser/control-surface.spec.ts': controlSurfaceSource,
   'frontend/src/features/coordination/components/order-table.tsx': coordinationOrderTableSource,
 }
 

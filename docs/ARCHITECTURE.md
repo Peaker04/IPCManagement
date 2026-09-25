@@ -123,7 +123,7 @@ IPCManagement/
 │   ├── src/routes/             route, guard, preload
 │   ├── src/lib/                formatter, pagination, status và utility
 │   ├── src/styles/             base CSS + component/redesign slices theo thứ tự import
-│   └── tests/                 Playwright smoke/UI/performance/visual tests
+│   └── tests/                  taxonomy: evidence, support, fixtures; root browser/contracts là debt có ceiling
 ├── docs/                      tài liệu kỹ thuật và MVP flow
 ├── .docs/                     tài liệu tham chiếu nghiệp vụ/demo
 └── scripts/                   script vận hành/quality gate hiện có
@@ -162,6 +162,8 @@ chuyển riêng reconciliation issue creation của `InventoryIssueService` sang
 và chuyển stored-audit/quantity-import/menu-import reads của `AuditReportService` sang `AuditChangeQueryReader`.
 Các owner mới không đăng ký DI; public service constructor/interface/controller/routes và page/export orchestration giữ nguyên.
 Mọi service gốc và owner mới đều dưới ngưỡng 600 dòng, nên strict gate chỉ còn hai service plan-required đã baseline.
+
+Root `Directory.Build.props` bật .NET SDK artifacts layout và gom output mặc định vào `.artifacts/dotnet`; gate cần cô lập dùng `--artifacts-path .artifacts/dotnet/<run-id>`. `DefaultItemExcludes` chặn output cũ (`.artifacts`, `.artifactslk*`, `.tmp-*`, `.phase*test`, `bin-*` và recursive `backend/`) bị coi là content rồi tự sao chép vào output mới. Phase 42 contract tests khóa không tái sử dụng `BaseOutputPath` tương đối trong project tree.
 
 Lượt E2E cuối phát hiện hai lỗi thực mà test tĩnh trước đó chưa chạm tới. `InventoryIssuesController.CreateAsync`
 trả lại `Location` hợp lệ cho response create. `MaterialDemandService.GenerateAsync` dùng
