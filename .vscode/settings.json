@@ -1,0 +1,22 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    ".claude": true,
+    ".docs": true,
+    ".dotnet-tools": true,
+    ".gitnexus": true,
+    "CLAUDE.md": true,
+    "Project_Tracking*.xlsx": true,
+    "skills-lock.json": true
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json,commitlint.config.js,.dependency-cruiser.cjs,.dependency-cruiser-known-violations.json",
+    "Directory.Build.props": "global.json,dotnet-tools.json",
+    "README.md": "CONTRIBUTING.md,HISTORY.md,LESSONS.md,MEMORY.md",
+    "playwright.config.ts": "playwright.*.config.ts",
+    "tsconfig.json": "tsconfig.*.json"
+  }
+}
