@@ -187,9 +187,9 @@ public class Phase42AggregateVerificationTests
                 failureStatuses = new[] { "FAILED" },
                 gates = new object[]
                 {
-                    FixtureGate(1, "first", "DCR-01", "powershell -NoProfile -Command exit 0"),
-                    FixtureGate(2, "failure", "DCR-02", "powershell -NoProfile -Command exit 7"),
-                    FixtureGate(3, "must-not-run", "VER-03", "powershell -NoProfile -Command exit 0"),
+                    FixtureGate(1, "first", "DCR-01", $"{PowerShellExecutable} -NoProfile -Command exit 0"),
+                    FixtureGate(2, "failure", "DCR-02", $"{PowerShellExecutable} -NoProfile -Command exit 7"),
+                    FixtureGate(3, "must-not-run", "VER-03", $"{PowerShellExecutable} -NoProfile -Command exit 0"),
                 },
             }));
 
@@ -233,8 +233,8 @@ public class Phase42AggregateVerificationTests
                 failureStatuses = new[] { "FAILED" },
                 gates = new object[]
                 {
-                    FixtureGate(1, "first", "DCR-01", "powershell -NoProfile -Command exit 0"),
-                    FixtureGate(2, "must-not-run", "DCR-02", "powershell -NoProfile -Command exit 9"),
+                    FixtureGate(1, "first", "DCR-01", $"{PowerShellExecutable} -NoProfile -Command exit 0"),
+                    FixtureGate(2, "must-not-run", "DCR-02", $"{PowerShellExecutable} -NoProfile -Command exit 9"),
                 },
             }));
 
@@ -273,8 +273,8 @@ public class Phase42AggregateVerificationTests
                 failureStatuses = new[] { "FAILED" },
                 gates = new object[]
                 {
-                    FixtureGate(1, "not-selected", "DCR-01", "powershell -NoProfile -Command exit 9"),
-                    FixtureGate(2, "selected", "DCR-01", "powershell -NoProfile -Command exit 0"),
+                    FixtureGate(1, "not-selected", "DCR-01", $"{PowerShellExecutable} -NoProfile -Command exit 9"),
+                    FixtureGate(2, "selected", "DCR-01", $"{PowerShellExecutable} -NoProfile -Command exit 0"),
                 },
             }));
 
@@ -1283,16 +1283,18 @@ public class Phase42AggregateVerificationTests
         requirementId,
         kind = "command",
         command,
-        versionCommand = "powershell -NoProfile -Command $PSVersionTable.PSVersion.ToString()",
+        versionCommand = $"{PowerShellExecutable} -NoProfile -Command $PSVersionTable.PSVersion.ToString()",
         targetMode = "none",
         requiredArtifacts = Array.Empty<string>(),
     };
+
+    private static string PowerShellExecutable => OperatingSystem.IsWindows() ? "powershell.exe" : "pwsh";
 
     private static (int ExitCode, string StdErr) RunVerifier(string arguments)
     {
         using var process = Process.Start(new ProcessStartInfo
         {
-            FileName = "powershell.exe",
+            FileName = PowerShellExecutable,
             Arguments = $"-NoProfile -NonInteractive -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 {arguments}",
             WorkingDirectory = FindRepositoryRoot(),
             RedirectStandardError = true,

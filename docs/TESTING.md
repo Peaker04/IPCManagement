@@ -36,7 +36,9 @@ Phase 42 có hai lane rõ ràng trong cùng test class:
 - `Category=EvidenceOwned`: 15 cases dùng archive/approval receipts dưới `.artifacts/shipyard-live/phase-04.2-execution`; chỉ chạy ở evidence-bearing Windows lane/aggregate runner.
 
 Không exclude toàn bộ `Phase42AggregateVerificationTests` khỏi CI. Case dùng local evidence phải gắn trait
-`EvidenceOwned`; case source/config thuần phải giữ hermetic để clean checkout thực thi được.
+`EvidenceOwned`; case source/config thuần phải giữ hermetic để clean checkout thực thi được. Contract runner tests
+chọn `powershell.exe` trên Windows và `pwsh` trên Linux; fixture command cũng phải dùng cùng executable để Ubuntu
+CI không phụ thuộc alias Windows-only.
 
 Toàn bộ .NET build/test output mặc định được gom bởi root `Directory.Build.props` vào `.artifacts/dotnet`. Gate cô lập phải dùng `--artifacts-path .artifacts/dotnet/<run-id>` hoặc `ArtifactsPath` tuyệt đối từ repo root; không dùng `BaseOutputPath` tương đối dưới `backend/`. Với `dotnet ef`, luôn truyền `--msbuildprojectextensionspath` trỏ tới `obj/<project-name>` bên dưới artifacts path tương ứng; nếu không EF có thể báo thiếu target `GetEFProjectMetadata`. Source-scanning tests không được suy ra repository chỉ từ ancestry của `AppContext.BaseDirectory`, vì centralized output không còn nằm dưới `backend/`; dùng working directory và hỗ trợ cả repository-root/backend-root layout. Phase 42 focused contract và solution build còn kiểm tra output mới không chứa recursive `backend/tests`, `.tmp-*`, `.artifactslk*` hoặc `bin-phase*`.
 
