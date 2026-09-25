@@ -78,25 +78,25 @@ async function waitForFrontend() {
 }
 
 const runs = [
-  ['bridge', ['tests/ui-audit.spec.ts', '--grep', 'Phase 28 (login production-route baseline bridge|protected production-route ready cohort)']],
-  ['dashboard', ['tests/dashboard-production-query.spec.ts']],
-  ['weekly-menu', ['tests/weekly-menu-production-query.spec.ts']],
-  ['reports', ['tests/reports-production-query.spec.ts']],
-  ['meal-orders', ['tests/meal-orders-production-query.spec.ts']],
-  ['chef-dashboard', ['tests/chef-dashboard-production-query.spec.ts']],
-  ['approvals', ['tests/approvals-production-query.spec.ts']],
-  ['purchasing', ['tests/purchasing-production-query.spec.ts']],
-  ['warehouse', ['tests/warehouse-production-query.spec.ts']],
-  ['admin-data', ['tests/admin-data-production-query.spec.ts']],
-  ['approval-rules', ['tests/approval-rules-production-query.spec.ts']],
-  ['static-form', ['tests/static-form-production-route.spec.ts']],
+  ['bridge', ['tests/browser/ui-audit.spec.ts', '--grep', 'Phase 28 (login production-route baseline bridge|protected production-route ready cohort)']],
+  ['dashboard', ['tests/browser/dashboard-production-query.spec.ts']],
+  ['weekly-menu', ['tests/browser/weekly-menu-production-query.spec.ts']],
+  ['reports', ['tests/browser/reports-production-query.spec.ts']],
+  ['meal-orders', ['tests/browser/meal-orders-production-query.spec.ts']],
+  ['chef-dashboard', ['tests/browser/chef-dashboard-production-query.spec.ts']],
+  ['approvals', ['tests/browser/approvals-production-query.spec.ts']],
+  ['purchasing', ['tests/browser/purchasing-production-query.spec.ts']],
+  ['warehouse', ['tests/browser/warehouse-production-query.spec.ts']],
+  ['admin-data', ['tests/browser/admin-data-production-query.spec.ts']],
+  ['approval-rules', ['tests/browser/approval-rules-production-query.spec.ts']],
+  ['static-form', ['tests/browser/static-form-production-route.spec.ts']],
 ];
 
 try {
   await waitForFrontend();
   for (const [name, specArgs] of runs) {
     const output = resolve(playwrightRoot, name);
-    await runNode(name, [playwrightCli, 'test', ...specArgs, '--config', 'playwright.recovery.config.ts', '--headed', '--workers=1', `--output=${output}`]);
+    await runNode(name, [playwrightCli, 'test', ...specArgs, '--config', 'tests/config/recovery.config.ts', '--headed', '--workers=1', `--output=${output}`]);
   }
   await runNode('reconcile', [vitestCli, 'run', '--run', 'tests/uiAuditBaselineReconciliation.emit.test.ts', '--maxWorkers=1']);
   const methods = [];

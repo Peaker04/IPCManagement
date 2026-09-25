@@ -35,7 +35,7 @@ describe('Phase 27.1 exact structured classifier',()=>{
     reject(rows=>rows.find(x=>x.status==='failed')!.attachments=rows.find(x=>x.status==='failed')!.attachments.filter(x=>x.name!=='trace'))
   })
   it('waits for named Chef and Purchasing semantic owners instead of a timing heuristic',()=>{
-    const source=readFileSync(resolve('tests/visual-routes.spec.ts'),'utf8')
+    const source=readFileSync(resolve('tests/browser/visual-routes.spec.ts'),'utf8')
     expect(source).toContain("routeName === 'chef-dashboard'")
     expect(source).toContain("getByRole('heading', { name: 'Kế hoạch điều phối trong ngày' })")
     expect(source).toContain("routeName === 'purchasing'")

@@ -34,7 +34,7 @@ describe('Phase 27.1 core route reconciliation', () => {
     ])
     for (const row of evidence.rows) {
       expect(row.disposition).toBe('stale-baseline')
-      expect(row.owner).toMatch(new RegExp(`frontend/tests/visual-routes\\.spec\\.ts-snapshots/${row.identity}-chromium-win32\\.png$`))
+      expect(row.owner).toMatch(new RegExp(`frontend/tests/browser/visual-routes\\.spec\\.ts-snapshots/${row.identity}-chromium-win32\\.png$`))
       expect(row.beforeSha256[0]).toBe(row.beforeSha256[1])
       expect(row.afterSha256[0]).toBe(row.afterSha256[1])
       expect(row.oldSnapshotSha256).not.toBe(row.newSnapshotSha256)

@@ -6,7 +6,7 @@ import { createRequire } from 'node:module'
 
 export type LauncherInput={specs:string[];project:string;workers:number;grep?:string;reporter:string;outputRoot?:string;config:string;env?:Record<string,string>}
 const allowed=new Set(['specs','project','workers','grep','reporter','outputRoot','config','env'])
-const canonicalSpecs=['tests/visual-routes.spec.ts','tests/pagination-visual.spec.ts']
+const canonicalSpecs=['tests/browser/visual-routes.spec.ts','tests/browser/pagination-visual.spec.ts']
 export const validateLauncherInput=(raw:unknown):LauncherInput=>{
   if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error('launcher input must be an object')
   for(const k of Object.keys(raw))if(!allowed.has(k))throw new Error(`forbidden launcher key: ${k}`)

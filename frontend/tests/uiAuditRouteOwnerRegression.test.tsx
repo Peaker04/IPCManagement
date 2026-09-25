@@ -14,12 +14,12 @@ import actionToolbarSource from '../src/features/coordination/components/action-
 import approvalPageSource from '../src/features/approvals/pages/ApprovalPage.tsx?raw';
 import approvalQueryPanelsSource from '../src/features/approvals/pages/ApprovalQueryPanels.tsx?raw';
 import menuAmendmentSource from '../src/features/approvals/components/MenuAmendmentReconciliation.tsx?raw';
-import weeklyHarnessSource from './weekly-menu-production-query.spec.ts?raw';
-import chefHarnessSource from './chef-dashboard-production-query.spec.ts?raw';
-import reportsHarnessSource from './reports-production-query.spec.ts?raw';
-import warehouseHarnessSource from './warehouse-production-query.spec.ts?raw';
-import mealOrdersHarnessSource from './meal-orders-production-query.spec.ts?raw';
-import approvalsHarnessSource from './approvals-production-query.spec.ts?raw';
+import weeklyHarnessSource from './browser/weekly-menu-production-query.spec.ts?raw';
+import chefHarnessSource from './browser/chef-dashboard-production-query.spec.ts?raw';
+import reportsHarnessSource from './browser/reports-production-query.spec.ts?raw';
+import warehouseHarnessSource from './browser/warehouse-production-query.spec.ts?raw';
+import mealOrdersHarnessSource from './browser/meal-orders-production-query.spec.ts?raw';
+import approvalsHarnessSource from './browser/approvals-production-query.spec.ts?raw';
 import axeEvidenceSource from './uiAuditAxe.ts?raw';
 
 const uiRedesignSource = readFileSync('src/styles/ui-redesign.css', 'utf8');

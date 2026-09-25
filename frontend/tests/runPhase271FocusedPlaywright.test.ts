@@ -11,7 +11,7 @@ import {
 } from './runPhase271FocusedPlaywright'
 
 const valid = {
-  spec: 'tests/visual-routes.spec.ts',
+  spec: 'tests/browser/visual-routes.spec.ts',
   grep: 'chef-dashboard visual baseline',
   project: 'chromium',
   workers: 1,
@@ -72,8 +72,8 @@ describe('focused Phase 27.1 browser adapter', () => {
     const { deps } = dependencies()
     const invalid = [
       { ...valid, spec: '' },
-      { ...valid, spec: ['tests/visual-routes.spec.ts', 'tests/visual-routes.spec.ts'] },
-      { ...valid, spec: ['tests/visual-routes.spec.ts', 'tests/ui-audit.spec.ts'] },
+      { ...valid, spec: ['tests/browser/visual-routes.spec.ts', 'tests/browser/visual-routes.spec.ts'] },
+      { ...valid, spec: ['tests/browser/visual-routes.spec.ts', 'tests/browser/ui-audit.spec.ts'] },
       { ...valid, spec: 'tests/not-allowed.spec.ts' },
     ]
     for (const input of invalid) await expect(runFocusedPlaywright(input, deps)).rejects.toThrow()

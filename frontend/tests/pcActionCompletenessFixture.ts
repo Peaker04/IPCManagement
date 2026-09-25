@@ -499,7 +499,7 @@ export const PC_SOURCE_GUARD_DECLARATIONS = [
     fragments: purchasingOperations.map(([, , label]) => `label: '${label}'`),
   },
   {
-    sourcePath: 'frontend/tests/control-surface.spec.ts',
+    sourcePath: 'frontend/tests/browser/control-surface.spec.ts',
     fragments: [
       "for (const name of ['Tuần trước', 'Tuần hiện tại', 'Tuần sau', 'Mở màn hình nhập kho'])",
       "await expect(actionGroup.getByRole('button', { name })).toBeVisible()",

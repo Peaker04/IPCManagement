@@ -8,7 +8,7 @@
   "results": [
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "normalizedSpecPath": "tests/browser/pagination-visual.spec.ts",
       "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract l-1280",
       "snapshotName": "",
       "viewport": {
@@ -20,7 +20,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "normalizedSpecPath": "tests/browser/pagination-visual.spec.ts",
       "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract m-768",
       "snapshotName": "",
       "viewport": {
@@ -32,7 +32,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "normalizedSpecPath": "tests/browser/pagination-visual.spec.ts",
       "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract s-390",
       "snapshotName": "",
       "viewport": {
@@ -44,7 +44,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "normalizedSpecPath": "tests/browser/pagination-visual.spec.ts",
       "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract xl-1440",
       "snapshotName": "",
       "viewport": {
@@ -56,7 +56,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › admin-data tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -68,7 +68,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › approvals tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -80,7 +80,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › chef-dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -92,7 +92,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -104,7 +104,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › login tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -116,7 +116,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › meal-orders tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -128,7 +128,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › purchasing tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -140,7 +140,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › reports tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -152,7 +152,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › warehouse tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -164,7 +164,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › weekly-menu tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -176,7 +176,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › admin-data tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -188,7 +188,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › approvals tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -200,7 +200,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › chef-dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -212,7 +212,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -224,7 +224,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › login tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -236,7 +236,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › meal-orders tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -248,7 +248,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › purchasing tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -260,7 +260,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › reports tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -272,7 +272,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › warehouse tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -284,7 +284,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › weekly-menu tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -296,7 +296,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › admin-data tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -308,7 +308,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › approvals tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -320,7 +320,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › chef-dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -332,7 +332,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -344,7 +344,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › login tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -356,7 +356,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › meal-orders tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -368,7 +368,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › purchasing tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -380,7 +380,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › reports tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -392,7 +392,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › warehouse tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -404,7 +404,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › weekly-menu tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -416,7 +416,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › admin-data tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -428,7 +428,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › approvals tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -440,7 +440,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › chef-dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -452,7 +452,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › dashboard tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -464,7 +464,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › login tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -476,7 +476,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › meal-orders tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -488,7 +488,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › purchasing tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -500,7 +500,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › reports tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -512,7 +512,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › warehouse tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -524,7 +524,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › weekly-menu tab audit capture",
       "snapshotName": "",
       "viewport": {
@@ -536,7 +536,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 1280x900 shell breakpoint",
       "snapshotName": "",
       "viewport": {
@@ -548,7 +548,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 1365x900 shell breakpoint",
       "snapshotName": "",
       "viewport": {
@@ -560,7 +560,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 390x844 shell breakpoint",
       "snapshotName": "",
       "viewport": {
@@ -572,7 +572,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 768x1024 shell breakpoint",
       "snapshotName": "",
       "viewport": {
@@ -584,7 +584,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1280x900 › purchasing-phase09 visual baseline",
       "snapshotName": "purchasing-phase09-1280x900-expected.png",
       "viewport": {
@@ -633,7 +633,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1280x900 › warehouse-phase09 visual baseline",
       "snapshotName": "",
       "viewport": {
@@ -645,7 +645,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1365x900 › purchasing-phase09 visual baseline",
       "snapshotName": "purchasing-phase09-1365x900-expected.png",
       "viewport": {
@@ -694,7 +694,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1365x900 › warehouse-phase09 visual baseline",
       "snapshotName": "",
       "viewport": {
@@ -706,7 +706,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 390x844 › purchasing-phase09 visual baseline",
       "snapshotName": "purchasing-phase09-390x844-expected.png",
       "viewport": {
@@ -755,7 +755,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 390x844 › warehouse-phase09 visual baseline",
       "snapshotName": "",
       "viewport": {
@@ -767,7 +767,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 768x1024 › purchasing-phase09 visual baseline",
       "snapshotName": "purchasing-phase09-768x1024-expected.png",
       "viewport": {
@@ -816,7 +816,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 768x1024 › warehouse-phase09 visual baseline",
       "snapshotName": "",
       "viewport": {
@@ -828,7 +828,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › admin-data visual baseline",
       "snapshotName": "admin-data-desktop-expected.png",
       "viewport": {
@@ -877,7 +877,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › approvals visual baseline",
       "snapshotName": "approvals-desktop-expected.png",
       "viewport": {
@@ -926,7 +926,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › chef-dashboard visual baseline",
       "snapshotName": "chef-dashboard-desktop-expected.png",
       "viewport": {
@@ -975,7 +975,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › dashboard visual baseline",
       "snapshotName": "dashboard-desktop-expected.png",
       "viewport": {
@@ -1024,7 +1024,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › login visual baseline",
       "snapshotName": "",
       "viewport": {
@@ -1036,7 +1036,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › meal-orders visual baseline",
       "snapshotName": "meal-orders-desktop-expected.png",
       "viewport": {
@@ -1085,7 +1085,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › purchasing visual baseline",
       "snapshotName": "purchasing-desktop-expected.png",
       "viewport": {
@@ -1134,7 +1134,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › reports visual baseline",
       "snapshotName": "reports-desktop-expected.png",
       "viewport": {
@@ -1183,7 +1183,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › warehouse visual baseline",
       "snapshotName": "",
       "viewport": {
@@ -1195,7 +1195,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › weekly-menu visual baseline",
       "snapshotName": "weekly-menu-desktop-expected.png",
       "viewport": {
@@ -1244,7 +1244,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › admin-data visual baseline",
       "snapshotName": "admin-data-mobile-expected.png",
       "viewport": {
@@ -1293,7 +1293,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › approvals visual baseline",
       "snapshotName": "approvals-mobile-expected.png",
       "viewport": {
@@ -1342,7 +1342,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › chef-dashboard visual baseline",
       "snapshotName": "chef-dashboard-mobile-expected.png",
       "viewport": {
@@ -1391,7 +1391,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › dashboard visual baseline",
       "snapshotName": "dashboard-mobile-expected.png",
       "viewport": {
@@ -1440,7 +1440,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › login visual baseline",
       "snapshotName": "login-mobile-expected.png",
       "viewport": {
@@ -1489,7 +1489,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › meal-orders visual baseline",
       "snapshotName": "meal-orders-mobile-expected.png",
       "viewport": {
@@ -1538,7 +1538,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › purchasing visual baseline",
       "snapshotName": "purchasing-mobile-expected.png",
       "viewport": {
@@ -1587,7 +1587,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › reports visual baseline",
       "snapshotName": "reports-mobile-expected.png",
       "viewport": {
@@ -1636,7 +1636,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › warehouse visual baseline",
       "snapshotName": "",
       "viewport": {
@@ -1648,7 +1648,7 @@
     },
     {
       "project": "chromium",
-      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "normalizedSpecPath": "tests/browser/visual-routes.spec.ts",
       "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › weekly-menu visual baseline",
       "snapshotName": "weekly-menu-mobile-expected.png",
       "viewport": {

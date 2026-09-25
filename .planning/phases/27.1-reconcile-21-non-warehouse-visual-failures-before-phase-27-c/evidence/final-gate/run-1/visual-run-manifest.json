@@ -19,8 +19,8 @@
     "playwrightArgv": [
       "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\@playwright\\test\\cli.js",
       "test",
-      "tests/visual-routes.spec.ts",
-      "tests/pagination-visual.spec.ts",
+      "tests/browser/visual-routes.spec.ts",
+      "tests/browser/pagination-visual.spec.ts",
       "--config=playwright.phase271-recovery.config.ts",
       "--project=chromium",
       "--workers=1",

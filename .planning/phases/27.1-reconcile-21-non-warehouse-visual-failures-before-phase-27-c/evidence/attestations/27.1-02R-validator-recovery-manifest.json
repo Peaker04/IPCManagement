@@ -9,7 +9,7 @@
   "identitySets": ["readiness-chef", "readiness-purchasing"],
   "members": [
     {"path":".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/readiness-dispositions.json","sha256":"ceb55b11c04bfc1345f38abd64187bb4c1dac0155cec96707c9f559ff61af73c","gitBlobId":"f7d5382161b9f2d53ac5a58ae066fccb62f0fea5"},
-    {"path":"frontend/tests/visual-routes.spec.ts","sha256":"68f8decb6368a21bc31ef422a74693fef24f6c26eb8f890f9c3f64418cd63e49","gitBlobId":"3f5c46a55e70845d1650eb76da3672a532acf36b"},
+    {"path":"frontend/tests/browser/visual-routes.spec.ts","sha256":"68f8decb6368a21bc31ef422a74693fef24f6c26eb8f890f9c3f64418cd63e49","gitBlobId":"3f5c46a55e70845d1650eb76da3672a532acf36b"},
     {"path":"frontend/tests/visualReconciliationEvidence.test.ts","sha256":"5a16f968e5163cab7be18c66442963fc2efe9f6412518c9cac2944d5cb201662","gitBlobId":"a956ef644bbff244beed6c913e731f61d960ae3c"}
   ],
   "validatorPins": [

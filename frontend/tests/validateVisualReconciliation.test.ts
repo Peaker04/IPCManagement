@@ -98,7 +98,7 @@ describe('Phase 27.1 generic downstream authorization', () => {
     expect(()=>exactAuthorizedPaths(matrix,'core-login-dashboard',[{identity,disposition:'production-regression',path:prod},{identity,disposition:'production-regression',path:prod}])).toThrow(/duplicate/);
   });
   it('rejects broad prefixes/globs and production/snapshot class laundering in matrix schema',()=>{
-    for(const [kind,path] of [['production-regression','frontend/src/'],['production-regression','frontend/src/**/*.tsx'],['production-regression','frontend/tests/visual-routes.spec.ts'],['stale-baseline','frontend/src/x.tsx']] as const){const m=clone(matrix);m.entries[0].permittedPaths[kind]=[path];expect(()=>assertAuthorizationMatrix(m,inventory.failures)).toThrow();}
+    for(const [kind,path] of [['production-regression','frontend/src/'],['production-regression','frontend/src/**/*.tsx'],['production-regression','frontend/tests/browser/visual-routes.spec.ts'],['stale-baseline','frontend/src/x.tsx']] as const){const m=clone(matrix);m.entries[0].permittedPaths[kind]=[path];expect(()=>assertAuthorizationMatrix(m,inventory.failures)).toThrow();}
   });
   it('resolves only the closed recovery marker and rejects wrong paths/content',()=>{
     const cwd=resolve(import.meta.dirname,'../..'); expect(resolveRecoveryAuthority(cwd)).toMatchObject({path:expect.stringContaining('27.1-02R-validator-recovery.json'),partialCommit:'235fbd499e0fb5e2f247ea0efa0bb92ea58eff32'});
@@ -177,14 +177,14 @@ describe('Phase 27.1 downstream readiness closure', () => {
     const paths=cumulativeRows.map(row=>row.owner);
     expect(validateClassAwareAccounting(cwd,matrix,cumulativeRows,[...paths,...paths])).toEqual(paths);
     expect(validate().authorizedClassAwarePaths).toEqual([
-      'frontend/tests/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png',
-      'frontend/tests/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png',
-      'frontend/tests/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png',
+      'frontend/tests/browser/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png',
+      'frontend/tests/browser/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png',
+      'frontend/tests/browser/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png',
       'frontend/src/components/common/StockMovementTable.tsx',
     ]);
   });
   it.each([
-    ['path',(rows:any[])=>{rows[0].owner='frontend/tests/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png';}],
+    ['path',(rows:any[])=>{rows[0].owner='frontend/tests/browser/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png';}],
     ['identity',(rows:any[])=>{rows[0].identity='weekly-menu-desktop';}],
     ['class',(rows:any[])=>{rows[0].disposition='production-regression';}],
     ['old hash',(rows:any[])=>{rows[0].oldSnapshotSha256='0'.repeat(64);}],
@@ -198,7 +198,7 @@ describe('Phase 27.1 downstream readiness closure', () => {
     for(const mutate of [(m:any)=>{m.orderedCommits.reverse();},(m:any)=>{m.commits[0].disposition='REVERTED';},(m:any)=>{m.commits[1].members.pop();},(m:any)=>{m.commits[2].members[0].sha256='0'.repeat(64);},(m:any)=>{m.snapshotBindings[0].identity='weekly-menu-desktop';}]){const candidate=clone(manifest);mutate(candidate);expect(()=>validateSnapshotRecoveryManifest(cwd,candidate,matrix,core.rows)).toThrow();}
   }, 30_000);
   it('rejects extra snapshots, broad paths, and production class laundering',()=>{
-    expect(()=>validateClassAwareAccounting(cwd,matrix,core.rows,['frontend/tests/visual-routes.spec.ts-snapshots/not-authorized-chromium-win32.png'])).toThrow(/unauthorized/);
+    expect(()=>validateClassAwareAccounting(cwd,matrix,core.rows,['frontend/tests/browser/visual-routes.spec.ts-snapshots/not-authorized-chromium-win32.png'])).toThrow(/unauthorized/);
     const dashboard=matrix.entries.find(x=>x.snapshotName==='dashboard-desktop-expected.png')!;
     const production={...clone(core.rows[0]),disposition:'production-regression',owner:dashboard.permittedPaths['production-regression'][0]};
     expect(()=>validateClassAwareAccounting(cwd,matrix,[production],[production.owner])).not.toThrow();

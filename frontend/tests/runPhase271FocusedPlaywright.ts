@@ -6,8 +6,8 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 
 const ALLOWED_SPECS = new Set([
-  'tests/visual-routes.spec.ts',
-  'tests/ui-audit.spec.ts',
+  'tests/browser/visual-routes.spec.ts',
+  'tests/browser/ui-audit.spec.ts',
   'tests/ui-measurements.spec.ts',
 ])
 const ALLOWED_ENV = new Set(['NODE_OPTIONS'])
