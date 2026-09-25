@@ -109,14 +109,14 @@ function Get-CommandCounts([AllowEmptyString()][string]$Text) {
 function Invoke-CapturedCommand([string]$Command, [string]$ArtifactPrefix) {
     $directory = Split-Path -Parent $ArtifactPrefix
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
-    $isWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
-    $commandFile = "$ArtifactPrefix" + $(if ($isWindows) { '.cmd' } else { '.sh' })
+    $runningOnWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    $commandFile = "$ArtifactPrefix" + $(if ($runningOnWindows) { '.cmd' } else { '.sh' })
     $stdoutPath = "$ArtifactPrefix.stdout.txt"
     $stderrPath = "$ArtifactPrefix.stderr.txt"
-    $commandContent = if ($isWindows) { "@echo off`r`n$Command`r`n" } else { "#!/bin/sh`n$Command`n" }
+    $commandContent = if ($runningOnWindows) { "@echo off`r`n$Command`r`n" } else { "#!/bin/sh`n$Command`n" }
     [System.IO.File]::WriteAllText($commandFile, $commandContent, [System.Text.Encoding]::ASCII)
     $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-    if ($isWindows) {
+    if ($runningOnWindows) {
         $startInfo.FileName = 'cmd.exe'
         $startInfo.Arguments = '/d /s /c ""' + $commandFile + '""'
     }
