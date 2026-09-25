@@ -150,7 +150,7 @@ Các tài liệu nghiệp vụ hiện có:
 
 - [Domain overview](docs/DOMAIN.md): IPC làm gì, bốn vai trò vận hành và luồng thiếu → bổ sung → mua → kho → bếp.
 - [MVP Web Flow](docs/MVP_WEB_FLOW.md): hướng dẫn thao tác trên web từ đăng nhập đến demand, duyệt, thu mua, kho và bếp.
-- [MVP Demo Runbook](.docs/MVP_DEMO_RUNBOOK.md): runbook demo và kiểm tra luồng thực tế.
+- [Legacy MVP Demo Runbook](docs/archive/runbooks/MVP_DEMO_RUNBOOK-legacy.md): historical fixture/demo context only; current runtime and credentials come from `MEMORY.md` and `docs/TESTING.md`.
 - Các ghi chú nghiên cứu/đối chiếu trong `.docs/` là nguồn tham chiếu nghiệp vụ, không phải dữ liệu runtime của ứng dụng.
 
 ## 📖 Tài liệu kỹ thuật

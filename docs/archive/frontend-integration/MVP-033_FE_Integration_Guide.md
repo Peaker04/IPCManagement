@@ -1,3 +1,5 @@
+> **Historical integration note.** Retained for lineage; current API, workflow and UI authority lives in canonical source and root `docs/`.
+
 # Hướng dẫn tích hợp Frontend và Test: Xác nhận phiếu trả nguyên liệu (MVP-033)
 
 Tài liệu này cung cấp hướng dẫn cho đội Frontend (FE) để tích hợp tính năng Xác nhận phiếu trả nguyên liệu (hoặc báo cáo hao hụt) từ Bếp về Kho (MVP-033). Tính năng này dành cho người dùng có vai trò **Thủ kho (Storekeeper)**.

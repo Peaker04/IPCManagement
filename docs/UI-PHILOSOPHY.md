@@ -19,7 +19,7 @@ Tài liệu định tuyến tới contract hiện hành, không phải visual au
 |---|---|---|
 | Nguyên tắc UI/UX đầy đủ và mã rule | [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) | Áp dụng `MUST`, `SHOULD`, `MAY`; ghi rule ID khi thay đổi |
 | Design brief/Definition of Ready, actor–action matrix, floorplan và geometry | [`DESIGN.md`](DESIGN.md), §7 rồi §2–5 | Khóa mục đích, quyền/scope, flow/handoff, recovery và composition trước JSX |
-| Component, token và pattern đang có | [`frontend/docs/ipc-design-tokens.md`](../frontend/docs/ipc-design-tokens.md) | Dùng primitive/token hiện có trước khi tạo class hoặc variant mới |
+| Component, token và pattern đang có | [`docs/ui-ux/ipc-design-tokens.md`](ui-ux/ipc-design-tokens.md) | Dùng primitive/token hiện có trước khi tạo class hoặc variant mới |
 | Quyết định render đã được duyệt | [`UI-CONFORMANCE-MATRIX.md`](UI-CONFORMANCE-MATRIX.md) | Không tự thêm spacing, pixel, golden hoặc quota chưa có nguồn |
 | State, action, permission và grain nghiệp vụ | [`DOMAIN.md`](DOMAIN.md), [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md) | Không làm sai trạng thái, quyền hoặc mức chi tiết của dữ liệu |
 | UI có dữ liệu đi qua FE–API–DB | [`UI-UX-FE-BE-DATABASE-STANDARDIZATION.md`](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | Giữ chuỗi control → API → DB → reload |
@@ -148,7 +148,7 @@ hiện hành; nếu chưa có bằng chứng thì ghi `NEEDS_EVIDENCE` hoặc `U
 | Route shell/work object | `frontend/src/components/common/OperationalFrame.tsx`, `ViewSwitcher.tsx`, `CommandBar.tsx` | Giữ một shell canon; tab chỉ xuất hiện khi có work-object alternatives |
 | Table geometry/overflow | `frontend/src/components/common/TableViewport.tsx`, `PaginatedTableFrame.tsx`, `PaginationBar.tsx` | Scroll cục bộ, pagination/cursor đúng owner, không tải toàn bộ collection |
 | Status and feedback | `StatusBadge.tsx`, `InlineAlert.tsx`, `QueryErrorAlert.tsx`, `EmptyState.tsx` | Chọn primitive theo semantics; không tạo badge/alert page-local tương đương |
-| Token và responsive | `frontend/src/styles/index.css`, [`ipc-design-tokens.md`](../frontend/docs/ipc-design-tokens.md) | Mở rộng token/primitive trước khi vá CSS tại một page |
+| Token và responsive | `frontend/src/styles/index.css`, [`ipc-design-tokens.md`](ui-ux/ipc-design-tokens.md) | Mở rộng token/primitive trước khi vá CSS tại một page |
 | Verification | `frontend/tests`, `test-results/ui-audit-*.json`, `.artifacts/` | Test/DOM/API/focus/performance là bằng chứng; screenshot chỉ hỗ trợ review |
 
 ## 4. Áp dụng khi tạo, sửa hoặc loại bỏ UI

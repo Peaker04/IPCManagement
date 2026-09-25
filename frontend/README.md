@@ -10,7 +10,7 @@ React 19 frontend for the Industrial & Production Catering Management System. Pr
 UI work starts at the project's [UI/UX philosophy and application rules](../docs/UI-PHILOSOPHY.md) and follows the
 [UI/UX and FE–BE–Database standardization contract](../docs/UI-UX-FE-BE-DATABASE-STANDARDIZATION.md). The detailed
 rule IDs are in [DASHBOARD-UI-RULES.md](../docs/DASHBOARD-UI-RULES.md); implementation tokens and shared primitives
-are indexed in [ipc-design-tokens.md](docs/ipc-design-tokens.md). Data-bearing changes must preserve the shared
+are indexed in [ipc-design-tokens.md](../docs/ui-ux/ipc-design-tokens.md). Data-bearing changes must preserve the shared
 query-state, formatter, pagination, permission, grain, and mutation evidence rules.
 For the audit/fix/browser-evidence loop and safe session handoff, follow the canonical
 [UI/UX execution harness](../docs/UI-UX-EXECUTION-HARNESS.md).

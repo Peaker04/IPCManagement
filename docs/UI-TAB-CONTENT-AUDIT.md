@@ -47,5 +47,5 @@ Nguồn chuẩn: `docs/DASHBOARD-UI-RULES.md`, `docs/GLOSSARY.md` và code front
 
 - Production build: `npm run build` — PASS.
 - Unit/contract tests: Approval state, Reports permissions, Navigation preferences, UI floorplan scope — 43/43 PASS.
-- Probe production throttling: `frontend/docs/perf/probe-h1-preview-report.json`; integrity violations rỗng.
+- Probe production throttling: `.artifacts/performance/probe-h1-preview/probe-h1-preview-report.json`; integrity violations rỗng.
 

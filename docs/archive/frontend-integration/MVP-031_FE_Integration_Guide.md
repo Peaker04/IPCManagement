@@ -1,3 +1,5 @@
+> **Historical integration note.** Retained for lineage; current API, workflow and UI authority lives in canonical source and root `docs/`.
+
 # Hướng dẫn Tích hợp FE - MVP-031: Cảnh báo thiếu tồn (Stock Exception)
 
 Tài liệu này mô tả cách Frontend (FE) tích hợp và xử lý tính năng **Chặn xuất kho vượt tồn và gợi ý mua hàng bổ sung** khi gọi API tạo phiếu xuất kho.

@@ -1,4 +1,12 @@
-﻿# MVP Demo Runbook & Data Reference
+---
+title: Legacy MVP demo runbook
+status: historical
+owner: archive
+---
+
+# MVP Demo Runbook & Data Reference — historical
+
+> Archived from `.docs/MVP_DEMO_RUNBOOK.md` during repository-layout normalization. Commands, credentials, fixture dates and evidence paths below are historical and must not be used as current runtime authority. Use `MEMORY.md`, `docs/GETTING-STARTED.md` and `docs/TESTING.md` for current execution.
 
 > Merged from MVP_DEMO_DATA.md + MVP_MANUAL_RUNBOOK.md on 2026-07-08.
 
@@ -57,7 +65,7 @@ The legacy all-in-one sample import is retired. Use the canonical BOM import and
 
 # MVP Manual Runbook
 
-> For click-by-click browser instructions, see [`docs/MVP_WEB_FLOW.md`](../docs/MVP_WEB_FLOW.md).
+> Historical click-by-click context is in [`docs/MVP_WEB_FLOW.md`](../../MVP_WEB_FLOW.md); current runtime and credential authority remains `MEMORY.md`.
 
 Use this checklist for a 10-15 minute Iter1 demo.
 
