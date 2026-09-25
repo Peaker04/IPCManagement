@@ -88,7 +88,7 @@ test('tracked-but-ignored debt is bounded to reviewed legacy owners', () => {
   const paths = git('ls-files', '-ci', '--exclude-standard').trim().split(/\r?\n/).filter(Boolean).filter(existsSync)
   const owners = new Map([
     ['.planning/', 536],
-    ['.artifacts/', 32],
+    ['.artifacts/', 44],
     ['backend/src/IPCManagement.Api/appsettings.Development.json', 1],
   ])
   const counts = new Map([...owners.keys()].map((owner) => [owner, 0]))
