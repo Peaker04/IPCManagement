@@ -1,0 +1,58 @@
+[
+  {
+    "path": "tools/db/phase05/phase05-shared-shortage-fixture-ipc-lane7-reviewed.sql",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE",
+    "expectedSha256": "AEB79EE053ECB28FA3C4D423C7FC1DC8F227CD123BEDA30B691C71C9E682AD13",
+    "headSha256": "AEB79EE053ECB28FA3C4D423C7FC1DC8F227CD123BEDA30B691C71C9E682AD13",
+    "workingTreeSha256": "1B1D36C729EA2A69C3AD9FD39F506F6FE056AFB125478D25E7C16867FD70624A",
+    "reason": "Working tree is CRLF; LF-normalized bytes and committed Git blob match the indexed hash exactly. Git reports no content diff."
+  },
+  {
+    "path": "tools/db/phase05/phase05-ambiguous-lineage-fixture-ipc-lane7-reviewed.sql",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE",
+    "expectedSha256": "591FE22066D8FF2E97E1ED0FE9E4723207DCCB124533E0B1F70B6204F86BCBE0",
+    "headSha256": "591FE22066D8FF2E97E1ED0FE9E4723207DCCB124533E0B1F70B6204F86BCBE0",
+    "workingTreeSha256": "484F8D238CFE19F53F20F2EC3C7DCAA1C03C63F9796785BB7096FD5B60A2D8F6",
+    "reason": "Working tree is CRLF; LF-normalized bytes and committed Git blob match the indexed hash exactly. Git reports no content diff."
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-fixture-ipc-lane7-reviewed.sql",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE",
+    "expectedSha256": "513CEFC37BC16F299292C8E6705EFA97C1889CD02911071A7D0AD1EE1141432E",
+    "headSha256": "513CEFC37BC16F299292C8E6705EFA97C1889CD02911071A7D0AD1EE1141432E",
+    "workingTreeSha256": "3AB68EEC52DC49A959B956F562C7202C010A36E0B7672FD4B423EF4AE85FBDCB",
+    "reason": "Working tree is CRLF; LF-normalized bytes and committed Git blob match the indexed hash exactly. Git reports no content diff."
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-continuation-ipc-lane7-reviewed.sql",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE",
+    "expectedSha256": "9F158B803168D90E0A8BC52B3322746112ABAB27397DBD4B0BB01E985490448",
+    "headSha256": "9F158B803168D90E0A8BC52B3322746112ABAB27397DBD4B0BB01E985490448",
+    "workingTreeSha256": "68BAAE15D5C358DD03507E0319669F7D455129CE56FFEB2A92583112C5426DF9",
+    "reason": "Working tree is CRLF; LF-normalized bytes and committed Git blob match the indexed hash exactly. Git reports no content diff."
+  },
+  {
+    "path": "tools/db/phase05/phase05-retry-matrix-final-continuation-ipc-lane7-reviewed.sql",
+    "disposition": "INDEX_VALID_WORKTREE_EOL_FALSE_POSITIVE",
+    "expectedSha256": "1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01",
+    "headSha256": "1189E54BA2B15EAAD019C9B531A2B736A1B2C4EFDBE7B1706EFD2E52FC7B1F01",
+    "workingTreeSha256": "8001D580CFA40EA9A58C164101D528190B333AF23D9BAA7E57FE76A3560815F4",
+    "reason": "Working tree is CRLF; LF-normalized bytes and committed Git blob match the indexed hash exactly. Git reports no content diff."
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-ANV.xlsx",
+    "disposition": "BLOCKED_RESEAL_NEEDS_DETERMINISTIC_BUILDER",
+    "expectedSha256": "BDB76CC7063339E83D427AC021C80F852A34685AEEAA93DBF4CBC13384A698C1",
+    "headSha256": "2CC485BD146F1F4892DA9830F3F428AD0435387563282177FA94B3B03EA2965E",
+    "workingTreeSha256": "2CC485BD146F1F4892DA9830F3F428AD0435387563282177FA94B3B03EA2965E",
+    "reason": "Expected bytes are absent from all Git XLSX blobs. The index and workbook were introduced in the same commit with different hashes. Current builder output has identical uncompressed ZIP entry content but changes ZIP timestamps and produces a different SHA-256 on repeated runs."
+  },
+  {
+    "path": "tools/e2e/fixtures/phase05/weekly-menu-golden-DAV.xlsx",
+    "disposition": "BLOCKED_RESEAL_NEEDS_DETERMINISTIC_BUILDER",
+    "expectedSha256": "F7E14FE5C88A959529E7B80E950A9F7435F019FD18EC551702F9080CC3BE9061",
+    "headSha256": "2BD34F7D471DF23E63EFD9DA22D2904BC61E68C5E78EB4A18EFDEE940FCB7AAC",
+    "workingTreeSha256": "2BD34F7D471DF23E63EFD9DA22D2904BC61E68C5E78EB4A18EFDEE940FCB7AAC",
+    "reason": "Expected bytes are absent from all Git XLSX blobs. The index and workbook were introduced in the same commit with different hashes. Current builder output has identical uncompressed ZIP entry content but changes ZIP timestamps and produces a different SHA-256 on repeated runs."
+  }
+]
