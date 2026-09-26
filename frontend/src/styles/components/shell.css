@@ -195,6 +195,9 @@
   color: var(--ipc-slate-500);
   font-size: 0.72rem;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ipc-logout-button {
@@ -330,7 +333,14 @@
   padding: 5px 8px;
 }
 
-.ipc-header-chip span,
+.ipc-header-chip span {
+  min-width: 0;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ipc-status-pill span:last-child {
   min-width: 0;
   overflow-wrap: anywhere;

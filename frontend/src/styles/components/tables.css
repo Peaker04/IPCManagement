@@ -800,3 +800,38 @@
   color: var(--ipc-slate-500);
   font-size: 0.75rem;
 }
+
+/* ─── Text Truncation & Ellipsis Utility Classes ─── */
+.ipc-truncate,
+.ipc-text-ellipsis,
+.ipc-cell-truncate {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipc-line-clamp-2 {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-overflow: ellipsis;
+}
+
+.ipc-order-table td:nth-child(1) div:first-child,
+.ipc-order-table td:nth-child(2) div:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipc-warehouse-table-shell td:nth-child(1),
+.ipc-warehouse-table-shell td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
