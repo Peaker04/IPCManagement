@@ -71,9 +71,9 @@ export default function ApprovalHistoryTab({
               {historyItems.length === 0 ? (
                 <EmptyState title="Không tìm thấy bước duyệt nào." className="!min-h-0 !p-4" />
               ) : (
-                <div className="space-y-6 relative pl-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                <div role="list" aria-label="Tiến trình phê duyệt theo thời gian" className="space-y-6 relative pl-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                   {historyItems.map((item) => (
-                    <div key={item.historyId} className="flex gap-4 relative pl-6">
+                    <div role="listitem" key={item.historyId} className="flex gap-4 relative pl-6">
                       <div className="absolute left-[-2px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-blue-500 bg-white flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-blue-500" /></div>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center justify-between text-xs text-slate-500"><span>{formatDateTime(item.actionAt)}</span><span className="font-semibold text-slate-700">{item.actionByName}</span></div>

@@ -12,6 +12,17 @@ describe('WarehouseMovementPanel contract', () => {
     expect(warehouseMovementPanelSource).not.toContain("currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho'");
   });
 
+  it('uses business table semantics for the BOTH-mode warehouse movement family', () => {
+    expect(warehouseMovementPanelSource).toContain('scope="col"')
+    expect(warehouseMovementPanelSource).toContain('data-cell-role="numeric"')
+    expect(warehouseMovementPanelSource).toContain('ariaLabel="Tồn kho hiện tại theo kho và nguyên liệu"')
+    expect(warehouseMovementPanelSource).toContain('caption="Snapshot tồn kho hiện tại theo kho và nguyên liệu"')
+    expect(warehouseMovementPanelSource).toContain('ariaLabel="Sổ luân chuyển kho"')
+    expect(warehouseMovementPanelSource).toContain('caption="Các bút toán nhập, xuất, trả và điều chỉnh kho"')
+    expect(warehouseMovementPanelSource).toContain('emptyTitle="Chưa phát sinh bút toán luân chuyển kho."')
+    expect(warehouseMovementPanelSource).toContain('Chưa có snapshot tồn kho hiện tại.')
+  })
+
   it('retains independent current-stock and movement-history controls and states', () => {
     expect(warehouseMovementPanelSource.match(/title="Tồn kho hiện tại"/g)).toHaveLength(1);
     expect(warehouseMovementPanelSource.match(/title="Luân chuyển kho"/g)).toHaveLength(1);

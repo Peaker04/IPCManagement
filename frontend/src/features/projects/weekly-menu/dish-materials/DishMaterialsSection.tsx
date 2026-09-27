@@ -92,23 +92,23 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
         { label: 'Tỷ lệ giá vốn (Food Cost %)', value: formatPercent(foodCostPercent, 1), tone: foodCostPercent > 85 ? 'danger' : foodCostPercent > 70 ? 'warning' : 'neutral' },
         { label: 'Lợi nhuận gộp dự kiến', value: formatCurrency(Math.round(grossProfit)), tone: grossProfit >= 0 ? 'neutral' : 'danger' },
       ]} />
-      <TableViewport caption="Giá vốn nguyên liệu cho một khay" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng giá vốn nguyên liệu một khay">
+      <TableViewport caption="Định lượng và giá vốn nguyên liệu theo suất của món đang phân tích" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng giá vốn nguyên liệu một khay">
         <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
           <thead><tr>
-            <th style={{ width: '28%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
-            <th style={{ width: '16%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Đơn vị</th>
-            <th style={{ width: '18%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Định lượng / suất</th>
-            <th style={{ width: '18%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Đơn giá</th>
-            <th style={{ width: '20%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Thành tiền / khay</th>
+            <th scope="col" style={{ width: '28%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
+            <th scope="col" style={{ width: '16%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Đơn vị</th>
+            <th scope="col" style={{ width: '18%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Định lượng / suất</th>
+            <th scope="col" style={{ width: '18%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Đơn giá</th>
+            <th scope="col" style={{ width: '20%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Thành tiền / khay</th>
           </tr></thead>
           <tbody>
             {ingredients.map((ingredient) => (
               <tr key={ingredient.key}>
                 <td className="text-left font-medium text-slate-900">{ingredient.name}</td>
                 <td className="text-center text-slate-600">{ingredient.unit}</td>
-                <td className="text-right tabular-nums">{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 3 })}</td>
-                <td className="text-right tabular-nums">{formatCurrency(ingredient.supplierPrice)}</td>
-                <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(Math.round(ingredient.cost))}</td>
+                <td data-cell-role="numeric" className="text-right tabular-nums">{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 3 })}</td>
+                <td data-cell-role="numeric" className="text-right tabular-nums">{formatCurrency(ingredient.supplierPrice)}</td>
+                <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(Math.round(ingredient.cost))}</td>
               </tr>
             ))}
             {ingredients.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có BOM phù hợp khách hàng, định mức và ngày áp dụng cho món đang chọn.</td></tr>}

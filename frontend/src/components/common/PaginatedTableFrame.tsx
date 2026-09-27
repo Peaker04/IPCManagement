@@ -5,6 +5,7 @@ import { TableViewport } from './TableViewport';
 interface PaginatedTableFrameProps {
   children: ReactNode;
   ariaLabel: string;
+  caption?: string;
   className?: string;
 }
 
@@ -12,10 +13,11 @@ interface PaginatedTableFrameProps {
  * Stable table boundary for route migrations. It deliberately does not own
  * data, filtering or totals; those remain with the route/API adapter.
  */
-export function PaginatedTableFrame({ children, ariaLabel, className }: PaginatedTableFrameProps) {
+export function PaginatedTableFrame({ children, ariaLabel, caption, className }: PaginatedTableFrameProps) {
   return (
     <TableViewport
       ariaLabel={ariaLabel}
+      caption={caption}
       className={cn('ipc-paginated-table-frame', className)}
     >
       {children}

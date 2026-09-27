@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { UNKNOWN } from '../../tests/stateActionRegistryContract'
+import { ROUTES } from '@/lib/routeConfig'
+import { routeRegistry } from './routeRegistry'
 import appRouterSource from './AppRouter.tsx?raw'
 import routeLoadersSource from './routeLoaders.ts?raw'
 
@@ -96,8 +98,11 @@ export function discoverProtectedRouteOwners(routerText: string, loadersText: st
     if (!routeKey || pages.length !== 1) throw new Error(`Unresolved protected route owner: ${line.trim()}`)
     const ownerSource = owners.get(pages[0])
     if (!ownerSource) throw new Error(`Unresolved protected route owner: ${routeKey} → ${pages[0]}`)
-    const permissionBody = line.match(/requiredPermissions=\{\[([^\]]*)\]\}/)?.[1] ?? ''
-    const permissions = [...permissionBody.matchAll(/'([^']+)'/g)].map((match) => match[1])
+    const inlinePermissionBody = line.match(/requiredPermissions=\{\[([^\]]*)\]\}/)?.[1]
+    const path = ROUTES[routeKey as keyof typeof ROUTES]
+    const permissions = inlinePermissionBody === undefined
+      ? [...(routeRegistry[path].requiredPermissions ?? [])]
+      : [...inlinePermissionBody.matchAll(/'([^']+)'/g)].map((match) => match[1])
     return { routeKey, page: pages[0], ownerSource, permissions }
   })
 

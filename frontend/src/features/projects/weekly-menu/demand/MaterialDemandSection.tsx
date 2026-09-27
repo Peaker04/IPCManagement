@@ -218,14 +218,14 @@ export function MaterialDemandSection({
             </span>
             <span className="ipc-demand-disclosure-state">{isKhsxComplete ? 'Đã hoàn tất' : 'Cần xử lý'}<ChevronDown size={16} aria-hidden="true" /></span>
           </summary>
-          <TableViewport caption={`Kế hoạch sản xuất ngày ${activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}`} size="weekly" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
+          <TableViewport caption={`Kế hoạch sản xuất ngày ${activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}`} size="weekly" ariaLabel="Kế hoạch sản xuất theo ngày từ thực đơn tuần">
           <table className="ipc-data-table ipc-erp-grid-table ipc-material-demand-table table-fixed w-full">
             <thead><tr>
-              <th style={{ width: '16%' }} className="sticky top-0 z-10 whitespace-nowrap text-center">Nhóm</th>
-              <th style={{ width: '16%' }} className="sticky top-0 z-10 whitespace-nowrap text-left">Dòng</th>
-              <th style={{ width: '36%' }} className="sticky top-0 z-10 whitespace-nowrap text-left">Món theo kế hoạch tuần</th>
-              <th style={{ width: '18%' }} className="sticky top-0 z-10 whitespace-nowrap text-center">Suất</th>
-              <th style={{ width: '14%' }} className="sticky top-0 z-10 whitespace-nowrap text-center">BOM</th>
+              <th scope="col" style={{ width: '16%' }} className="sticky top-0 z-10 whitespace-nowrap text-center">Nhóm</th>
+              <th scope="col" style={{ width: '16%' }} className="sticky top-0 z-10 whitespace-nowrap text-left">Dòng</th>
+              <th scope="col" style={{ width: '36%' }} className="sticky top-0 z-10 whitespace-nowrap text-left">Món theo kế hoạch tuần</th>
+              <th scope="col" style={{ width: '18%' }} className="sticky top-0 z-10 whitespace-nowrap text-center">Suất</th>
+              <th scope="col" style={{ width: '14%' }} className="sticky top-0 z-10 whitespace-nowrap text-center">BOM</th>
             </tr></thead>
             <tbody>
               {activeShiftGroups.map((group) => (
@@ -240,7 +240,7 @@ export function MaterialDemandSection({
                     <td className="text-center">{row.menuTypeLabel}</td>
                     <td className="text-left text-slate-600">{row.slotLabel}</td>
                     <td className="text-left font-medium text-slate-900">{row.dishName}</td>
-                    <td className="text-center" title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
+                    <td data-cell-role="numeric" className="text-center" title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
                       {quickServingRow?.isCompleted ? <span className="font-semibold tabular-nums text-slate-800">{formatNumber(row.portions)}</span> : quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
                         <span className="inline-flex flex-col items-center gap-0.5"><span className="font-semibold text-amber-700">Chưa chốt</span></span>
                       ) : (
@@ -253,7 +253,7 @@ export function MaterialDemandSection({
                   })}
                 </Fragment>
               ))}
-              {activeRows.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có kế hoạch ngày để sinh KHSX.</td></tr>}
+              {activeRows.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có kế hoạch sản xuất trong ngày đang xem.</td></tr>}
             </tbody>
           </table>
           </TableViewport>

@@ -80,7 +80,7 @@ describe('Warehouse Data Workspace contract', () => {
     expect(source).toContain("phase: 'uninitialized' | 'loading' | 'ready' | 'error' | 'forbidden'");
     expect(source).toContain("currentStockView.phase === 'ready' && currentStockView.isRefreshing");
     expect(source).toContain("stockMovementView.phase === 'ready' && stockMovementView.isRefreshing");
-    expect(source).toContain('Chưa có dữ liệu tồn kho');
+    expect(source).toContain('Chưa có snapshot tồn kho hiện tại.');
     expect(source).toContain('Không tải được tồn kho hiện tại');
     expect(source).toContain('Không có quyền xem tồn kho hiện tại');
     expect(source).not.toContain("phase: 'refreshing'");

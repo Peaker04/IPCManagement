@@ -170,16 +170,16 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
         </InlineAlert>
       )}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <TableViewport ariaLabel="Danh sách nhu cầu mua bổ sung từ bếp" caption="Danh sách nhu cầu mua bổ sung từ bếp">
+        <TableViewport ariaLabel="Danh sách nhu cầu mua bổ sung từ bếp" caption="Yêu cầu thiếu hàng từ bếp theo nguyên liệu, số lượng còn thiếu và đề xuất mua liên kết">
           <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]">
             <thead>
               <tr>
-                <th className="text-left">Yêu cầu bếp</th>
-                <th className="text-left">Nguyên liệu</th>
-                <th className="text-right">Còn thiếu</th>
-                <th className="text-left">Đề xuất mua</th>
-                <th className="text-center">Trạng thái</th>
-                <th className="text-right">Thao tác</th>
+                <th scope="col" className="text-left">Yêu cầu bếp</th>
+                <th scope="col" className="text-left">Nguyên liệu</th>
+                <th scope="col" className="text-right">Còn thiếu</th>
+                <th scope="col" className="text-left">Đề xuất mua</th>
+                <th scope="col" className="text-center">Trạng thái</th>
+                <th scope="col" className="text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>{supplementalItems.map((item) => {
@@ -189,7 +189,7 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
                 <tr key={item.requestId} className={selected ? 'bg-blue-50/60' : undefined}>
                   <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
                   <td>{item.ingredientName}</td>
-                  <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(item.remainingQty, item.unitName)}</td>
+                  <td className="text-right tabular-nums font-semibold text-slate-900" data-cell-role="numeric">{formatQuantityWithUnit(item.remainingQty, item.unitName)}</td>
                   <td>{item.purchaseRequestCode || 'Đang tạo liên kết'}</td>
                   <td><StatusBadge variant={purchase?.status === 'DRAFT' ? 'warning' : 'neutral'}>{formatWorkflowStatus(purchase?.status || item.status)}</StatusBadge></td>
                   <td className="text-right"><Button type="button" size="sm" variant={selected ? 'default' : 'outline'} aria-pressed={selected} onClick={() => setSelectedRequestId(item.requestId)}>{selected ? 'Đang xử lý' : 'Mở xử lý'}</Button></td>

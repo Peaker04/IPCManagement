@@ -33,6 +33,22 @@ describe('DishMaterialsSection select labels', () => {
     expect(trigger).not.toHaveTextContent('dish-1')
   })
 
+  it('describes selected-dish ingredient cost and numeric quantity/price cells', () => {
+    render(<DishMaterialsSection workflow={{
+      actions: { selectDish: vi.fn() },
+      presentation: { analyzedDish: { id: 'dish-1', name: 'Cá kho tộ' }, foodCostPercent: 40,
+        ingredients: [{ key: 'rice__kg', name: 'Gạo', unit: 'kg', actualQty: 0.2, supplierPrice: 20000, cost: 4000 }],
+        totalTrayCost: 4000, grossProfit: 26000, serviceDate: '2026-07-27', isCatalogEmpty: false,
+        dishesByShift: { morning: [], afternoon: [] }, weeklyPlanCatalogDishIds: new Set(['dish-1']),
+        sourceLabel: 'Catalog', menuPrice: 30000 },
+    } as never} />)
+    const region = screen.getByRole('region', { name: 'Bảng giá vốn nguyên liệu một khay' })
+    expect(region).toHaveAccessibleDescription('Định lượng và giá vốn nguyên liệu theo suất của món đang phân tích')
+    expect(screen.getAllByRole('columnheader').map((header) => header.getAttribute('scope'))).toEqual(['col', 'col', 'col', 'col', 'col'])
+    expect(region.querySelectorAll('td[data-cell-role="numeric"]')).toHaveLength(3)
+    expect(screen.getByText('Gạo')).toBeInTheDocument()
+  })
+
   it('filters dish choices by the entered name', async () => {
     render(
       <DishMaterialsSection

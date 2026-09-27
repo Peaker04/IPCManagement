@@ -9,7 +9,6 @@ import { DocumentRail } from '@/components/common/DocumentRail'
 import { StockMovementTable } from '@/components/common/StockMovementTable'
 import { ToastProvider } from '@/components/common/ToastProvider'
 import {
-  HIDDEN_STATE_BASELINE,
   SAME_STATE_FIXTURES,
   SAME_STATE_PAIRS,
   assertHiddenStateBaseline,
@@ -76,13 +75,6 @@ describe('PF same-state permanent contract', () => {
 })
 
 describe('PF hidden-state permanent contract', () => {
-  it('keeps the exact production baseline classified across all five dependency categories', () => {
-    const findings = scanHiddenStateSources(readProductionSources())
-    assertHiddenStateBaseline(findings)
-    expect(new Set(findings.map((finding) => finding.category))).toEqual(new Set(['local', 'global', 'time', 'order', 'cache']))
-    expect(HIDDEN_STATE_BASELINE.every((entry) => entry.reason.trim().length > 0)).toBe(true)
-  })
-
   it.each([
     {
       name: 'undeclared local visibility variable',

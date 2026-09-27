@@ -69,12 +69,12 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
         <table className="ipc-data-table ipc-erp-grid-table ipc-demand-table ipc-status-action-table table-fixed w-full min-w-[980px]">
           <thead>
             <tr>
-              {showServiceDate && <th style={{ width: '10%' }} className="whitespace-nowrap text-left">Ngày</th>}
-              <th style={{ width: showServiceDate ? '27%' : '32%' }} className="whitespace-nowrap text-left">Nguyên liệu / {sourceLabel}</th>
-              <th style={{ width: showServiceDate ? '11%' : '14%' }} className="whitespace-nowrap text-right">Cần</th>
-              <th style={{ width: showServiceDate ? '19%' : '22%' }} className="whitespace-nowrap text-right">{isPhysicalHandoff ? 'Bàn giao' : 'Cấp phát'}</th>
-              <th style={{ width: showServiceDate ? '13%' : '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
-              <th style={{ width: showServiceDate ? '15%' : '13%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
+              {showServiceDate && <th scope="col" style={{ width: '10%' }} className="whitespace-nowrap text-left">Ngày</th>}
+              <th scope="col" style={{ width: showServiceDate ? '27%' : '32%' }} className="whitespace-nowrap text-left">Nguyên liệu / {sourceLabel}</th>
+              <th scope="col" style={{ width: showServiceDate ? '11%' : '14%' }} className="whitespace-nowrap text-right">Cần</th>
+              <th scope="col" style={{ width: showServiceDate ? '19%' : '22%' }} className="whitespace-nowrap text-right">{isPhysicalHandoff ? 'Bàn giao' : 'Cấp phát'}</th>
+              <th scope="col" style={{ width: showServiceDate ? '13%' : '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
+              <th scope="col" style={{ width: showServiceDate ? '15%' : '13%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
             </tr>
           </thead>
           <tbody>
@@ -86,10 +86,10 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                 <tr key={`${line.id}-${index}`}>
                   {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>}
                   <td><span className="block font-medium text-slate-900"><IdentifierText value={line.material} className="font-sans" /></span><span className="block text-xs text-slate-500"><IdentifierText value={line.source} /></span></td>
-                  <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
+                  <td data-cell-role="numeric" className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
                     {formatQuantityWithUnit(line.required, line.unit)}
                   </td>
-                  <td className="ipc-numeric-cell text-right text-xs tabular-nums whitespace-nowrap">
+                  <td data-cell-role="numeric" className="ipc-numeric-cell text-right text-xs tabular-nums whitespace-nowrap">
                     <span className="block">{isPhysicalHandoff ? 'Đã xuất' : 'Đã cấp'}: {formatQuantityWithUnit(availableAfterReserve, line.unit)}</span>
                     <span className={cn('block font-semibold', variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700')}>
                       {isPhysicalHandoff ? 'Chưa xuất' : 'Chênh lệch'}: {line.projection === 'physical-handoff' ? formatQuantityWithUnit(line.remainingToIssueQty ?? 0, line.unit) : formatVariance(variance, line.unit)}

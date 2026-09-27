@@ -4,7 +4,7 @@ import { useAppSelector } from '../app/hooks'
 import { ROUTES } from '@/lib/routeConfig'
 
 interface RoleGuardProps {
-  requiredPermissions: string[]
+  requiredPermissions: readonly string[]
   children: ReactNode
 }
 

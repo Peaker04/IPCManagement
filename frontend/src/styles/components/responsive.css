@@ -117,16 +117,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Table polish */
-
-.ipc-data-table th {
-  font-weight: 600;
-}
-
-.ipc-data-table tbody tr {
-  transition: background-color var(--ipc-transition-fast);
-}
-
 /* Lane summary card hover */
 
 /* Empty state polish */

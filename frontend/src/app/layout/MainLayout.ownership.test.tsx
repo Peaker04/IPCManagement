@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { ROUTES } from '@/lib/routeConfig';
+import { routeRegistry } from '@/routes/routeRegistry';
 
 import currentLayoutSource from '@/app/layout/MainLayout.tsx?raw';
 import appRouterSource from '@/routes/AppRouter.tsx?raw';
@@ -11,7 +13,7 @@ describe('MainLayout ownership and behavior contract', () => {
   it('keeps page-owned shift scope out of the shared header', () => {
     expect(currentLayoutSource).not.toContain('HeaderShiftContext');
     expect(currentLayoutSource).not.toContain("'Ca trưa'");
-    expect(currentLayoutSource).toContain("title: 'Thực đơn tuần'");
+    expect(routeRegistry[ROUTES.WEEKLY_MENU].shellTitle).toBe('Thực đơn tuần');
   });
 
   it('locks navigation, permissions, preload and DOM-visible behavior', () => {
@@ -34,10 +36,11 @@ describe('MainLayout ownership and behavior contract', () => {
   });
 
   it('gives the forbidden route its own page identity and denied state', () => {
-    expect(currentLayoutSource).toContain("case ROUTES.FORBIDDEN:");
-    expect(currentLayoutSource).toContain("title: 'Không đủ quyền truy cập'");
-    expect(currentLayoutSource).toContain("workflow: 'Phân quyền'");
-    expect(currentLayoutSource).toContain("state: 'Bị từ chối'");
+    expect(routeRegistry[ROUTES.FORBIDDEN]).toMatchObject({
+      shellTitle: 'Không đủ quyền truy cập',
+      workflow: 'Phân quyền',
+      headerState: 'Bị từ chối',
+    });
   });
 
   it('does not rerender the app shell for every feature query transition', () => {

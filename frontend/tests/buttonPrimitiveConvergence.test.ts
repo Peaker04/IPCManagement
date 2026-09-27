@@ -22,9 +22,9 @@ const commandBarExceptionLocations = [
 ]
 
 const adapterExceptionLocations = [
-  'src/app/layout/MainLayout.tsx:180',
-  'src/app/layout/MainLayout.tsx:245',
-  'src/app/layout/MainLayout.tsx:282',
+  'src/app/layout/MainLayout.tsx:134',
+  'src/app/layout/MainLayout.tsx:200',
+  'src/app/layout/MainLayout.tsx:237',
   'src/app/pages/admin-data/AdminBomPanel.tsx:137',
   'src/components/common/ApprovalQueue.tsx:113',
   'src/components/common/ApprovalQueue.tsx:333',
@@ -46,7 +46,7 @@ const adapterExceptionLocations = [
   'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:949',
   'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:950',
   'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:951',
-  'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:1281',
+  'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:1282',
 ]
 
 const fixture = (text: string): CanonSource[] => [{

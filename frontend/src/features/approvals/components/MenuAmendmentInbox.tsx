@@ -68,7 +68,7 @@ export function MenuAmendmentInbox() {
       {query.isError ? <QueryErrorAlert title="Không tải được yêu cầu điều chỉnh" onRetry={query.refetch}>Hãy tải lại trước khi xử lý.</QueryErrorAlert>
         : query.isLoading ? <TableSkeleton columns={5} rows={3} ariaLabel="Đang tải yêu cầu điều chỉnh thực đơn..." />
           : rows.length === 0 ? <EmptyState title="Không có yêu cầu điều chỉnh thực đơn đang chờ" className="!min-h-0 !p-4" />
-            : <TableViewport ariaLabel="Yêu cầu điều chỉnh thực đơn" caption="Yêu cầu thay đổi thực đơn theo tuần và actor chịu trách nhiệm.">
+            : <TableViewport ariaLabel="Yêu cầu điều chỉnh thực đơn" caption="Yêu cầu điều chỉnh theo khách hàng, tuần và trạng thái xử lý">
               <table className="ipc-data-table table-fixed min-w-[760px]">
                 <thead><tr><th scope="col">Khách hàng / tuần</th><th scope="col">Lý do</th><th scope="col">Tác động</th><th scope="col">Trạng thái</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
                 <tbody>{rows.map((item) => {
@@ -77,7 +77,7 @@ export function MenuAmendmentInbox() {
                   return <tr key={item.menuAmendmentId}>
                     <td><strong>{item.customerName}</strong><br /><span className="text-xs text-slate-500">Tuần {formatDateOnly(item.weekStartDate)} · tạo {formatDateTime(item.createdAt)}</span></td>
                     <td>{item.reason}</td>
-                    <td>{item.requiresReconciliation ? 'Đã có chứng từ · cần đối soát' : `${item.affectedDemandCount} nhu cầu · ${item.affectedPurchaseRequestCount} đề xuất mua`}</td>
+                    <td data-cell-role="numeric">{item.requiresReconciliation ? 'Đã có chứng từ · cần đối soát' : `${item.affectedDemandCount} nhu cầu · ${item.affectedPurchaseRequestCount} đề xuất mua`}</td>
                     <td><StatusBadge variant={status.tone} size="sm">{status.label}</StatusBadge></td>
                     <td className="text-right">{actionable ? <Button size="sm" onClick={() => { setSelected(item); setReason(''); setReasonError('') }}>Xử lý</Button> : <span className="text-xs text-slate-500">Theo dõi</span>}</td>
                   </tr>

@@ -30,8 +30,8 @@ describe('AdminDataPage query ownership contract', () => {
 
   it('keeps stock detail only in Inventory and price detail only in Reports', () => {
     expect(inventoryModelSource).toContain("{ skip: activeView !== 'inventory' }");
-    expect(inventorySource).toContain('ariaLabel="Bảng snapshot tồn kho trong trang admin"');
-    expect(statisticsPanelSource).not.toContain('ariaLabel="Bảng snapshot tồn kho trong trang admin"');
+    expect(inventorySource).toContain('ariaLabel="Tồn kho hiện tại theo kho và nguyên liệu"');
+    expect(statisticsPanelSource).not.toContain('ariaLabel="Tồn kho hiện tại theo kho và nguyên liệu"');
     expect(statisticsPanelSource).not.toContain('ariaLabel="Bảng cảnh báo biến động giá trong trang admin"');
     expect(statisticsPanelSource).toContain('?view=price&subview=lines');
   });
@@ -83,6 +83,6 @@ describe('AdminDataPage query ownership contract', () => {
     expect(pageSource).toContain('className="min-w-0 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!"');
     expect(bomSource).toContain('grid-cols-1 gap-2 sm:grid-cols-3');
     expect(bomSource).toContain('grid-cols-1 gap-2 sm:grid-cols-2');
-    expect(bomSource).toContain('ariaLabel="BOM hiện tại theo đơn giá"');
+    expect(bomSource).toContain('ariaLabel="BOM đang áp dụng theo món, nguyên liệu và đơn giá"');
   });
 });

@@ -65,7 +65,11 @@ Frontend unit test từ `frontend/`:
 npm run test:unit
 npm run test:unit:watch
 npm run test:coverage
+npm run test:historical-evidence
+npm run test:campaign-evidence
 ```
+
+`test:unit` excludes the two Phase 27.1 immutable-topology validators (`validatePhase271Reseal` and `validateVisualReconciliation`) and the reviewed campaign inventories under `tests/evidence/` in every environment so branch ancestry/artifact or ledger drift cannot obscure the current product-unit signal. `test:historical-evidence` runs exactly the Phase 27.1 validators. `test:campaign-evidence` runs the evidence directory, including the hidden-state baseline and Phase 35 geometry denominator, in the workspace that owns those ledgers. Failures in either explicit gate remain evidence-governance results and must not be repaired by rewriting historical hashes, markers, geometry rows or fingerprints without the corresponding review.
 
 CI loại các validator gắn với campaign/evidence lịch sử khỏi unit gate mặc định: `phase35GeometryDenominator`, `pcActionCompletenessDisposition`, `uiOwnershipInstrumentationContract` và hidden-state baseline trong `uiStatePurityContract`. Chúng đọc artifact/ledger hoặc opaque tuple của Phase 20/26/35, nên source hợp lệ ở campaign sau không được làm CI sản phẩm đỏ. Khi audit lại đúng campaign, chạy focused test trong workspace sở hữu artifact và regenerate/review ledger; không sửa hash, số dòng hay tuple thủ công chỉ để lấy PASS. Các behavior, accessibility, permission, query-boundary và source-inventory contract hiện hành vẫn chạy trong CI. Root `npm run verify` dùng backend filter `Category!=EvidenceOwned`, build frontend trước unit tests để emitted-asset contracts có `dist`, và launcher mặc định `CI=true`; `test:ui-completeness` là campaign gate riêng, không phải clean product gate.
 

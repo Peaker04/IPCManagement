@@ -144,26 +144,26 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                 Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
               </InlineAlert>
             )}
-            <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu" caption="Danh sách báo giá theo nguyên liệu">
+            <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu" caption="Báo giá theo nhà cung cấp, đơn giá, thời hạn hiệu lực và trạng thái cho nguyên liệu đang chọn">
               <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]">
                 <thead>
                   <tr>
-                    <th className="text-left">Nhà cung cấp</th>
-                    <th className="text-right">Đơn giá (VNĐ)</th>
-                    <th className="text-center">Hiệu lực từ</th>
-                    <th className="text-center">Hiệu lực đến</th>
-                    <th className="text-left">Ghi chú</th>
-                    <th className="text-center">Trạng thái</th>
-                    <th className="text-right">Thao tác</th>
+                    <th scope="col" className="text-left">Nhà cung cấp</th>
+                    <th scope="col" className="text-right">Đơn giá (VNĐ)</th>
+                    <th scope="col" className="text-center">Hiệu lực từ</th>
+                    <th scope="col" className="text-center">Hiệu lực đến</th>
+                    <th scope="col" className="text-left">Ghi chú</th>
+                    <th scope="col" className="text-center">Trạng thái</th>
+                    <th scope="col" className="text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {workflow.rows.map((quotation) => (
                     <tr key={quotation.quotationId} className={quotation.isBestPrice ? 'bg-emerald-50/60' : ''}>
                       <td className="font-medium text-slate-900">{quotation.supplierName}{quotation.isBestPrice && <StatusBadge tone="success" className="ml-2">Tốt nhất</StatusBadge>}</td>
-                      <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(quotation.unitPrice)}</td>
-                      <td className="text-center tabular-nums text-slate-700">{formatDateOnly(quotation.effectiveFrom)}</td>
-                      <td className="text-center tabular-nums text-slate-700">{quotation.effectiveTo ? formatDateOnly(quotation.effectiveTo) : '—'}</td>
+                      <td className="text-right tabular-nums font-semibold text-slate-900" data-cell-role="numeric">{formatCurrency(quotation.unitPrice)}</td>
+                      <td className="text-center tabular-nums text-slate-700" data-cell-role="numeric">{formatDateOnly(quotation.effectiveFrom)}</td>
+                      <td className="text-center tabular-nums text-slate-700" data-cell-role="numeric">{quotation.effectiveTo ? formatDateOnly(quotation.effectiveTo) : '—'}</td>
                       <td className="text-slate-600">{quotation.note || '—'}</td>
                       <td className="text-center">
                         <StatusBadge tone={quotation.isActive ? 'success' : 'neutral'}>

@@ -275,26 +275,26 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
         />
         {search.trim() && <span className="pb-2 text-xs text-slate-500">{totalItems} kết quả</span>}
       </div>
-      <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Danh sách đơn theo khách hàng">
+      <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Đơn phục vụ theo khách hàng, thực đơn, món ăn và số suất trong ca">
         <table className="ipc-data-table ipc-order-table">
           <thead>
             <tr>
-              <th className="w-[140px] whitespace-nowrap border-r border-slate-200 text-left">
+              <th scope="col" className="w-[140px] whitespace-nowrap border-r border-slate-200 text-left">
                 Khách hàng
               </th>
-              <th className="w-[200px] whitespace-nowrap border-r border-slate-200 text-left">
+              <th scope="col" className="w-[200px] whitespace-nowrap border-r border-slate-200 text-left">
                 Thực đơn
               </th>
-              <th className="w-[260px] whitespace-nowrap border-r border-slate-200 text-left">
+              <th scope="col" className="w-[260px] whitespace-nowrap border-r border-slate-200 text-left">
                 Món ăn
               </th>
-              <th className="w-[110px] whitespace-nowrap border-r border-slate-200 text-right">
+              <th scope="col" className="w-[110px] whitespace-nowrap border-r border-slate-200 text-right">
                 {useFinalServings ? 'Suất đã chốt' : 'Dự kiến'}
               </th>
-              <th className="w-[120px] whitespace-nowrap border-r border-slate-200 text-right">
+              <th scope="col" className="w-[120px] whitespace-nowrap border-r border-slate-200 text-right">
                 {useFinalServings ? 'Suất sau chỉnh' : 'Thực tế'}
               </th>
-              <th className="w-[170px] whitespace-nowrap text-right">
+              <th scope="col" className="w-[170px] whitespace-nowrap text-right">
                 {useFinalServings ? 'Tăng/giảm' : 'Chênh lệch'}
               </th>
             </tr>
@@ -350,7 +350,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                 </div>
               </td>
 
-              <td className="border-r border-slate-200 text-right">
+              <td className="border-r border-slate-200 text-right" data-cell-role="numeric">
                 <div className="flex justify-end">
                   <Input
                     aria-label={`Suất dự kiến của ${order.customerName}`}
@@ -380,7 +380,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                 </div>
               </td>
 
-              <td className="border-r border-slate-200 text-right">
+              <td className="border-r border-slate-200 text-right" data-cell-role="numeric">
                 <div className="flex justify-end">
                   <Input
                     aria-label={`Suất thực tế của ${order.customerName}`}
@@ -417,7 +417,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                 </div>
               </td>
 
-              <td className="text-right">
+              <td className="text-right" data-cell-role="numeric">
                 <div className="flex justify-end">
                   <div className="flex flex-col items-end gap-1">
                     <span

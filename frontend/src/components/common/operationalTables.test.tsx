@@ -125,6 +125,10 @@ describe("DemandSummary", () => {
     render(<DemandSummary lines={[physicalLine]} showServiceDate />);
 
     expect(screen.getAllByRole('columnheader')).toHaveLength(6);
+    expect(screen.getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true);
+    const table = screen.getByRole('table');
+    expect(table.querySelectorAll('td[data-cell-role="numeric"]')).toHaveLength(2);
+    expect(screen.getByRole('region', { name: 'Bảng tổng hợp nhu cầu nguyên liệu' })).toHaveAccessibleDescription('Tổng hợp theo từng ngày trong khoảng đang xem');
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu / Nguồn' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Bàn giao' })).toBeInTheDocument();
     expect(screen.getByText((_, element) => element?.textContent === 'Đã xuất: 4 kg')).toBeInTheDocument();
@@ -200,6 +204,9 @@ describe("RoleInbox", () => {
     );
 
     expect(screen.getByText("Việc 1")).toBeInTheDocument();
+    const region = screen.getByRole('region', { name: 'Bảng hàng đợi theo vai trò' });
+    expect(region).toHaveAccessibleDescription('Công việc và chứng từ theo hạn xử lý, người phụ trách và hành động của vai trò');
+    expect(screen.getAllByRole('columnheader').map((header) => header.getAttribute('scope'))).toEqual(['col', 'col', 'col', 'col']);
     expect(screen.getAllByText("PENDING")).toHaveLength(4);
     expect(screen.queryByText("Việc 5")).not.toBeInTheDocument();
     expect(

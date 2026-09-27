@@ -154,16 +154,16 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
               }
             >
               <div className="flex flex-col gap-3">
-                <PaginatedTableFrame ariaLabel="Bảng nhân viên" className="ipc-admin-employee-shell">
+                <PaginatedTableFrame ariaLabel="Bảng nhân viên" caption="Nhân viên theo tài khoản, vai trò, trạng thái và ngày tạo" className="ipc-admin-employee-shell">
                   <table className="ipc-data-table ipc-erp-grid-table ipc-admin-employee-table w-full text-sm">
                     <thead>
                       <tr>
-                        <th className="min-w-[150px] text-left">Họ tên</th>
-                        <th className="w-[120px] text-left">Tài khoản</th>
-                        <th className="w-[110px] text-left">Vai trò</th>
-                        <th className="w-[150px] text-center whitespace-nowrap">Trạng thái</th>
-                        <th className="w-[110px] text-center">Ngày tạo</th>
-                        <th className="w-[130px] text-right">Thao tác</th>
+                        <th scope="col" className="min-w-[150px] text-left">Họ tên</th>
+                        <th scope="col" className="w-[120px] text-left">Tài khoản</th>
+                        <th scope="col" className="w-[110px] text-left">Vai trò</th>
+                        <th scope="col" className="w-[150px] text-center whitespace-nowrap">Trạng thái</th>
+                        <th scope="col" className="w-[110px] text-center">Ngày tạo</th>
+                        <th scope="col" className="w-[130px] text-right">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -174,7 +174,7 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                           </td>
                         </tr>
                       ) : employeeRows.length === 0 ? (
-                        <EmptyRow colSpan={6} />
+                        <EmptyRow colSpan={6} label="Chưa có nhân viên nào phù hợp với phạm vi hoặc từ khóa đang xem." />
                       ) : (
                         employeeRows.map((employee) => (
                           <tr key={employee.userId} className="align-top">
@@ -190,7 +190,7 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                                 {employee.isActive ? 'Đang hoạt động' : 'Đã khóa'}
                               </StatusBadge>
                             </td>
-                            <td className="text-center tabular-nums text-slate-500">
+                            <td data-cell-role="numeric" className="text-center tabular-nums text-slate-500">
                               {employee.createdAt ? formatDateOnly(employee.createdAt) : '—'}
                             </td>
                             <td className="text-right">

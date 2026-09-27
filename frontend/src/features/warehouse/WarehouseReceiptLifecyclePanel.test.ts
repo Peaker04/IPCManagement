@@ -69,6 +69,12 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).not.toContain('source line hoặc version');
   });
 
+  it('names the selected-order receipt table by its business grain', () => {
+    expect(source).toContain('caption="Mỗi dòng là một phiếu nhập thuộc đơn mua đang chọn"');
+    expect(source).toContain('<th scope="col">Phiếu</th>');
+    expect(source).toContain('Chưa có phiếu nhập cần xử lý trong trang này.');
+  });
+
   it('keeps a stable lifecycle footprint across loading and ready states', () => {
     expect(source).toContain('data-testid="receipt-lifecycle-panel"');
     expect(source).toContain("'mt-4 grid min-h-[20rem] content-start gap-3'");

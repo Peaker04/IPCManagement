@@ -220,17 +220,17 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
               </div>
 
               <div className="grid gap-4">
-                <TableViewport caption="Danh sách hợp đồng khách hàng" ariaLabel="Bảng hợp đồng khách hàng">
+                <TableViewport caption="Hợp đồng theo khách hàng, ngày ca hiệu lực và đơn giá áp dụng" ariaLabel="Bảng hợp đồng khách hàng">
                   <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full text-sm">
                     <thead>
                       <tr>
-                        <th className="text-left">Khách hàng</th>
-                        <th className="text-left">Ngày làm việc</th>
-                        <th className="text-left">Ca</th>
-                        <th className="text-left">Hiệu lực</th>
-                        <th className="text-right">Đơn giá</th>
-                        <th className="text-right">BOM áp dụng</th>
-                        <th className="text-center">Trạng thái</th>
+                        <th scope="col" className="text-left">Khách hàng</th>
+                        <th scope="col" className="text-left">Ngày làm việc</th>
+                        <th scope="col" className="text-left">Ca</th>
+                        <th scope="col" className="text-left">Hiệu lực</th>
+                        <th scope="col" className="text-right">Đơn giá</th>
+                        <th scope="col" className="text-right">BOM áp dụng</th>
+                        <th scope="col" className="text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -246,8 +246,8 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                             <div>{contract.effectiveFrom ? formatDateOnly(contract.effectiveFrom) : '—'}</div>
                             <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${formatDateOnly(contract.effectiveTo)}` : 'Không giới hạn'}</div>
                           </td>
-                          <td className="text-right tabular-nums font-semibold">{contract.defaultMenuPrice == null ? '—' : formatCurrency(contract.defaultMenuPrice)}</td>
-                          <td className="text-right tabular-nums">100%</td>
+                          <td className="text-right tabular-nums font-semibold" data-cell-role="numeric">{contract.defaultMenuPrice == null ? '—' : formatCurrency(contract.defaultMenuPrice)}</td>
+                          <td className="text-right tabular-nums" data-cell-role="numeric">100%</td>
                           <td>
                             <StatusBadge variant={contract.isActive ? 'success' : 'warning'}>
                               {contract.isActive ? 'Đang dùng' : 'Đã khóa'}

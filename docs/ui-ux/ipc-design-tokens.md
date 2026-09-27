@@ -1,10 +1,11 @@
 # IPC Design Tokens
 
 This token reference originated in Phase 01.4 UI deep hardening. It is not a second component or execution
-contract. Current authority is [UI-PHILOSOPHY](../../docs/UI-PHILOSOPHY.md),
-[UI conformance](../../docs/UI-CONFORMANCE-MATRIX.md) and [DESIGN](../../docs/DESIGN.md).
-Resolve current tokens from `frontend/src/styles/index.css` and inspect the actual primitive API before use;
-phase-local examples and restrictions below do not override current Button/Form/Dialog or business contracts.
+contract. The single design entry authority is [DESIGN](../../docs/DESIGN.md); rule IDs remain in
+[DASHBOARD-UI-RULES](../../docs/DASHBOARD-UI-RULES.md), while [UI-PHILOSOPHY](../../docs/UI-PHILOSOPHY.md)
+is the application index and [UI conformance](../../docs/UI-CONFORMANCE-MATRIX.md) records approved scoped
+decisions. Resolve current tokens from `frontend/src/styles/index.css` and inspect the actual primitive API before
+use; phase-local examples and restrictions below do not override current Button/Form/Dialog or business contracts.
 
 The goal is consistency in dense operational screens, not a second design system.
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { expect, it, vi } from 'vitest'
 import { WeeklyScheduleEditorDialog } from './WeeklyScheduleEditorDialog'
 import type { WeeklyScheduleEditorWorkflow } from './types'
@@ -93,6 +93,10 @@ it('renders the unified matrix view with dishes and servings and supports cancel
   // Unified matrix view displays CA SÁNG, dishes and servings in one screen without tabs
   expect(screen.getByText('CA SÁNG')).toBeInTheDocument()
   expect(screen.getByRole('combobox', { name: /Tìm món cho Thứ Hai.*MẶN/i })).toBeInTheDocument()
+  const matrix = screen.getByRole('region', { name: 'Bảng ma trận thực đơn tuần' })
+  expect(matrix).toHaveAccessibleDescription('Mỗi hàng là một hạng mục thực đơn hoặc số suất; mỗi cột là một ngày phục vụ')
+  within(matrix).getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
+  expect(screen.getByRole('spinbutton', { name: 'Số suất Thứ Hai Ca Sáng' }).closest('td')).toHaveAttribute('data-cell-role', 'numeric')
 
   // When no pending changes, clicking cancel closes editor directly
   fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))

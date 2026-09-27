@@ -91,17 +91,15 @@ export const SAME_STATE_PAIRS: readonly SameStatePair[] = [
       actions: [{ selector: '.ipc-demand-next-action' }],
       statusLabels: [{ selector: '.ipc-demand-status-badge' }],
       mandatoryFacts: [
-        { selector: 'tbody td:nth-child(1)' },
+        { selector: 'tbody td:nth-child(1) > span' },
         { selector: 'tbody td:nth-child(2)' },
-        { selector: 'tbody td:nth-child(3)' },
-        { selector: 'tbody td:nth-child(4)' },
-        { selector: 'tbody td:nth-child(5)' },
+        { selector: 'tbody td:nth-child(3) > span' },
       ],
     },
     expected: {
       actions: ['Đề xuất mua'],
       statusLabels: ['Thiếu hàng'],
-      mandatoryFacts: ['Gạo tẻ', 'Cơm gà', '12,5 kg', '5 kg', '-7,5 kg'],
+      mandatoryFacts: ['Gạo tẻ', 'Cơm gà', '12,5 kg', 'Đã cấp: 5 kg', 'Chênh lệch: -7,5 kg'],
     },
   },
   {

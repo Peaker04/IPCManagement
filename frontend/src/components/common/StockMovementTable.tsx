@@ -18,6 +18,9 @@ interface StockMovementTableProps {
   movements: StockMovement[];
   pageSize?: number;
   className?: string;
+  ariaLabel?: string;
+  caption?: string;
+  emptyTitle?: string;
   cursorPagination?: {
     page: number;
     hasNext: boolean;
@@ -85,7 +88,7 @@ function shortenDocumentNo(docNo: string): string {
   return docNo;
 }
 
-export function StockMovementTable({ movements, pageSize = 8, className, cursorPagination }: StockMovementTableProps) {
+export function StockMovementTable({ movements, pageSize = 8, className, ariaLabel = 'Bảng biến động kho', caption = 'Danh sách biến động kho', emptyTitle = 'Chưa phát sinh bút toán kho.', cursorPagination }: StockMovementTableProps) {
   const { toast } = useToast();
   const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
   const pagination = useLocalPagination(movements, selectedPageSize);
@@ -103,7 +106,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
   if (!movements.length) {
     return (
       <EmptyState
-        title="Chưa phát sinh bút toán kho."
+        title={emptyTitle}
         className={cn('ipc-stock-movement-table is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
       />
     );
@@ -111,7 +114,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
 
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
-      <TableViewport ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell" caption="Danh sách biến động kho">
+      <TableViewport ariaLabel={ariaLabel} className="ipc-stock-movement-shell" caption={caption}>
         <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[960px]">
           <colgroup>
             <col className="w-[13%]" />
@@ -124,13 +127,13 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
           </colgroup>
           <thead>
             <tr>
-              <th className="text-left">Chứng từ</th>
-              <th className="text-center">Loại</th>
-              <th className="text-left">Nguyên liệu</th>
-              <th className="text-right">Số lượng</th>
-              <th className="text-left">Phụ trách</th>
-              <th className="text-center">Trạng thái</th>
-              <th className="text-left">Tiếp theo</th>
+              <th scope="col" className="text-left">Chứng từ</th>
+              <th scope="col" className="text-center">Loại</th>
+              <th scope="col" className="text-left">Nguyên liệu</th>
+              <th scope="col" className="text-right">Số lượng</th>
+              <th scope="col" className="text-left">Phụ trách</th>
+              <th scope="col" className="text-center">Trạng thái</th>
+              <th scope="col" className="text-left">Tiếp theo</th>
             </tr>
           </thead>
           <tbody>
@@ -161,7 +164,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                   </span>
                 </td>
                 <td className="font-medium text-slate-800">{movement.material}</td>
-                <td className={cn(typography.code, 'text-right font-bold text-slate-900')}>
+                <td data-cell-role="numeric" className={cn(typography.code, 'text-right font-bold text-slate-900')}>
                   <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-600 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
                   {movement.beforeQty !== undefined && movement.afterQty !== undefined && (
                     <div className="text-xs font-normal text-slate-500">

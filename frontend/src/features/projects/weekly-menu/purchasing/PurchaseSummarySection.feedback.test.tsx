@@ -73,6 +73,24 @@ describe('PurchaseSummarySection query feedback', () => {
     expect(screen.getByText('Theo dõi lượng đã xuất, chờ Bếp nhận và đã nhận theo ngày.')).toBeInTheDocument()
     expect(screen.queryByText('Tổng hợp nhu cầu nguyên liệu')).toBeNull()
     expect(screen.getByRole('region', { name: 'Bảng BOM dự kiến tổng cả tuần' })).not.toHaveClass('h-[560px]')
+    expect(screen.getAllByRole('columnheader')).toHaveLength(7)
+    expect(screen.getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true)
+  })
+
+  it('retains BOM aggregate grain with numeric theoretical and actual quantities', () => {
+    const workflow = {
+      actions: { setPage: vi.fn(), setSearch: vi.fn() }, state: { search: '', pageIndex: 0 }, queryView: null,
+      presentation: { customerLabel: 'Khách hàng ANV', weekLabel: '27/07/2026 - 02/08/2026', usesDemand: false,
+        totalItems: 1, materialCount: 1, shortageCount: 0, totalCost: 100, pageIndex: 0, demandRows: [],
+        materialRows: [['rice__kg', { ingredientName: 'Gạo', unit: 'kg', theory: 10, actual: 8, dishNames: ['Cơm'], referencePrice: 100 }]],
+      },
+    } as unknown as PurchaseSummaryWorkflow
+    render(<PurchaseSummarySection workflow={workflow} />)
+    const region = screen.getByRole('region', { name: 'Bảng BOM dự kiến tổng cả tuần' })
+    expect(region).toHaveAccessibleDescription('Mỗi dòng là tổng BOM dự kiến của cả tuần theo nguyên liệu và đơn vị; chưa phải kết quả kiểm tồn theo ngày')
+    expect(screen.getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true)
+    expect(screen.getByText('10', { exact: true }).closest('td')).toHaveAttribute('data-cell-role', 'numeric')
+    expect(screen.getByText('8', { exact: true }).closest('td')).toHaveAttribute('data-cell-role', 'numeric')
   })
 
   it('keeps current rows visible with passive feedback while refreshing', () => {

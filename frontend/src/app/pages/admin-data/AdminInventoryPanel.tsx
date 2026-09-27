@@ -12,25 +12,37 @@ export function AdminInventoryPanel({ model }: AdminInventoryPanelProps) {
   const { adjustmentMovements, currentStockPage, currentStockPageSize, currentStockPageResponse, currentStockRows, effectiveActiveView, inventoryMovementSearch, queryViews, setCurrentStockPage, setCurrentStockPageSize, setInventoryMovementSearch, setStockMovementCursors, stockMovementCursors, stockMovementResult } = model;
   return (
     <KeepAliveTabPanel id="admin-inventory" active={effectiveActiveView === 'inventory'} className="flex flex-col gap-4">
-      <SectionPanel title="Tồn kho hiện tại">
+      <SectionPanel
+        title="Tồn kho hiện tại"
+        description="Snapshot hiện tại theo kho và nguyên liệu; lịch sử bút toán được theo dõi riêng bên dưới."
+        descriptionPlacement="inline"
+      >
         <AdminQueryBoundary queries={[{ label: 'tồn kho hiện tại', view: queryViews.currentStock }]}>
-          <PaginatedTableFrame ariaLabel="Bảng snapshot tồn kho trong trang admin">
+          <PaginatedTableFrame
+            ariaLabel="Tồn kho hiện tại theo kho và nguyên liệu"
+            caption="Snapshot tồn kho hiện tại theo kho và nguyên liệu"
+          >
             <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
               <thead>
                 <tr>
-                  <th className="text-left">Kho</th>
-                  <th className="text-left">Nguyên liệu</th>
-                  <th className="text-right">Số lượng</th>
-                  <th className="text-center">Cập nhật</th>
+                  <th scope="col" className="text-left">Kho</th>
+                  <th scope="col" className="text-left">Nguyên liệu</th>
+                  <th scope="col" className="text-right">Số lượng</th>
+                  <th scope="col" className="text-left">Cập nhật</th>
                 </tr>
               </thead>
               <tbody>
-                {currentStockRows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.map((row) => (
+                {currentStockRows.length === 0 ? (
+                  <EmptyRow
+                    colSpan={4}
+                    label="Chưa có snapshot tồn kho hiện tại. Dữ liệu sẽ xuất hiện sau khi Kho phát sinh nhập, xuất hoặc điều chỉnh."
+                  />
+                ) : currentStockRows.map((row) => (
                   <tr key={`${row.warehouseId}-${row.ingredientId}`}>
-                    <td className="text-left text-slate-700">{row.warehouse}</td>
-                    <td className="text-left font-medium text-slate-900">{row.ingredient}</td>
-                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
-                    <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
+                    <td className="text-left ipc-muted-cell">{row.warehouse}</td>
+                    <td className="text-left font-medium">{row.ingredient}</td>
+                    <td data-cell-role="numeric" className="font-semibold">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
+                    <td className="text-left tabular-nums ipc-muted-cell">{formatDateTime(row.lastUpdated)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -59,13 +71,14 @@ export function AdminInventoryPanel({ model }: AdminInventoryPanelProps) {
             value={inventoryMovementSearch}
             onChange={(event) => setInventoryMovementSearch(event.target.value)}
             placeholder="Tìm kho, nguyên liệu, lý do..."
-            inputClassName="bg-slate-50 text-xs focus:bg-white"
           />
         }
       >
         <AdminQueryBoundary queries={[{ label: 'lịch sử điều chỉnh tồn', view: queryViews.stockMovements }]}>
           <StockMovementTable
             movements={adjustmentMovements}
+            ariaLabel="Lịch sử điều chỉnh tồn kho"
+            caption="Các bút toán điều chỉnh tồn kho theo thời gian"
             cursorPagination={{
               page: stockMovementCursors.length + 1,
               hasNext: stockMovementResult.data?.hasNext ?? false,

@@ -83,16 +83,16 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
       }
       className={cn(typography.body, 'ipc-chef-checklist-panel')}
     >
-        <TableViewport ariaLabel="Checklist ký nhận nguyên liệu bếp" caption="Danh sách nguyên liệu cần ký nhận" className="ipc-chef-checklist-shell">
+        <TableViewport ariaLabel="Checklist ký nhận nguyên liệu bếp" caption="Nguyên liệu theo đơn vị trong ca, tổng hợp phiếu xuất và trạng thái ký nhận từng dòng nguồn" className="ipc-chef-checklist-shell">
           <Table aria-label="Bảng ký nhận nguyên liệu bếp" className="ipc-chef-checklist-table text-xs">
             <TableHeader>
               <TableRow className="border-slate-200 hover:bg-transparent">
-                <TableHead className="w-20 text-slate-600 font-semibold">Thao tác</TableHead>
-                <TableHead className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
-                <TableHead className="text-slate-600 font-semibold">Phiếu xuất</TableHead>
-                <TableHead className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
-                <TableHead className="text-slate-600 font-semibold text-right">Số lượng</TableHead>
-                <TableHead className="text-slate-600 font-semibold">Trạng thái</TableHead>
+                <TableHead scope="col" className="w-20 text-slate-600 font-semibold">Thao tác</TableHead>
+                <TableHead scope="col" className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
+                <TableHead scope="col" className="text-slate-600 font-semibold">Phiếu xuất</TableHead>
+                <TableHead scope="col" className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
+                <TableHead scope="col" className="text-slate-600 font-semibold text-right">Số lượng</TableHead>
+                <TableHead scope="col" className="text-slate-600 font-semibold">Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,7 +114,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                         <TableCell className="font-medium text-slate-800">{material.name}</TableCell>
                         <TableCell className="text-slate-500">{material.issueCode ?? 'Theo kế hoạch'}</TableCell>
                         <TableCell className="text-slate-500 text-right">{formatUnit(material.unit)}</TableCell>
-                        <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
+                        <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
                         <TableCell><StatusBadge tone={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
                       </TableRow>
                     )]
@@ -127,7 +127,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                       <TableCell><span className="block font-semibold text-slate-900">{group.name}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></TableCell>
                       <TableCell className="text-slate-500">{issueCount} phiếu xuất</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(group.unit)}</TableCell>
-                      <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-900')}>{formatQuantity(group.quantity)}</TableCell>
+                      <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-900')}>{formatQuantity(group.quantity)}</TableCell>
                       <TableCell><StatusBadge tone={signedLines === group.lines.length ? 'success' : 'warning'}>{signedLines === group.lines.length ? 'Đã nhận đủ' : `Đã nhận ${signedLines}/${group.lines.length}`}</StatusBadge></TableCell>
                     </TableRow>
                   )
@@ -139,7 +139,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                       <TableCell className="pl-6 text-xs font-medium text-slate-700"><span className="inline-flex items-center gap-1"><span aria-hidden="true">↳</span><span>Dòng xuất nguồn</span></span></TableCell>
                       <TableCell className={cn(typography.code, 'text-xs text-slate-600')}>{material.issueCode ?? material.issueId ?? material.id}</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(material.unit)}</TableCell>
-                      <TableCell className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
+                      <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
                       <TableCell><StatusBadge tone={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
                     </TableRow>
                   ))]

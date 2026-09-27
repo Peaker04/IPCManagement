@@ -8,10 +8,11 @@ last_reviewed: 2026-08-12
 
 # Triết lý UI/UX của IPCManagement
 
-Đây là đầu mối rule dành cho người thiết kế, xây dựng hoặc review giao diện IPCManagement. Mục tiêu là
-**thiết kế theo tác vụ và vai trò**: mục đích nghiệp vụ → actor/data scope → thao tác/chuyển trạng thái →
-người nhận việc tiếp → composition → bằng chứng. Áp dụng cho tạo, sửa và loại bỏ UI, không chỉ styling.
-Tài liệu định tuyến tới contract hiện hành, không phải visual audit hoặc chứng nhận component đã tuân thủ.
+Đây là **index áp dụng** dành cho người thiết kế, xây dựng hoặc review giao diện IPCManagement. Authority thiết
+kế bắt đầu tại [`DESIGN.md`](DESIGN.md); file này định tuyến từ tác vụ/ngữ cảnh sang đúng domain, rule, component
+và evidence owner, không tự đặt visual value hoặc tạo một design philosophy song song. Mục tiêu là thiết kế theo
+tác vụ và vai trò: mục đích nghiệp vụ → actor/data scope → thao tác/chuyển trạng thái → người nhận việc tiếp →
+composition → bằng chứng.
 
 ## 1. Nguồn sự thật và cách dùng
 

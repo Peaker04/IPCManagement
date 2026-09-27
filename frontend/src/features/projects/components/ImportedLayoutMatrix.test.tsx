@@ -23,7 +23,7 @@ describe('ImportedLayoutMatrix', () => {
   it('keeps canonical horizontal overflow ownership on TableViewport', () => {
     render(<ImportedLayoutMatrix rows={[]} displayDays={days} />)
 
-    const viewport = screen.getByRole('region', { name: 'Bảng bố cục thực đơn theo file khách hàng' })
+    const viewport = screen.getByRole('region', { name: 'Bố cục thực đơn theo file khách hàng' })
     expect(viewport).toHaveClass('ipc-table-viewport', 'ipc-weekly-menu-shell', 'overflow-x-auto')
 
     const tableCss = readFileSync(resolve(process.cwd(), 'src/styles/components/tables.css'), 'utf8')

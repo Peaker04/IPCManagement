@@ -40,44 +40,10 @@
   min-height: 0;
 }
 
-/* Weekly menu matrices need a readable column width; the viewport owns mobile scrolling. */
-
-.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table {
-  min-width: 980px;
-}
-
-/*
- * SAP Fiori-style table layering: column headings stay above every body row
- * while the first column remains frozen during horizontal scrolling.
- */
+/* Weekly menu matrices isolate their sticky/frozen layers inside the viewport. */
 
 .ipc-redesign-shell .ipc-weekly-menu-shell {
   isolation: isolate;
-}
-
-.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table thead {
-  z-index: 20;
-}
-
-.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table thead th {
-  z-index: 20;
-  box-shadow: inset 0 -1px 0 var(--ipc-slate-300);
-}
-
-.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table thead th:first-child {
-  z-index: 22;
-}
-
-.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table tbody td:first-child {
-  z-index: 2;
-}
-
-.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table tbody td[colspan] {
-  position: static;
-  z-index: auto;
-  width: auto;
-  min-width: 0;
-  max-width: none;
 }
 
 /* Phase 28 route-owner contrast overrides. IDs keep these rules local to the audited controls. */
@@ -156,151 +122,6 @@
   color: var(--ipc-slate-800);
   font-size: 0.8125rem;
   font-weight: 650;
-}
-
-.ipc-weekly-readiness {
-  display: grid;
-  min-width: 0;
-  gap: var(--ipc-space-2);
-  border: 1px solid var(--ipc-slate-200);
-  border-radius: var(--ipc-radius-md);
-  background: var(--card);
-  padding: var(--ipc-space-2);
-}
-
-.ipc-weekly-readiness-summary {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: var(--ipc-space-2);
-  align-items: center;
-  border-left: 3px solid var(--ipc-slate-300);
-  border-radius: var(--ipc-radius-sm);
-  background: var(--ipc-slate-50);
-  padding: 8px 10px;
-}
-
-.ipc-weekly-readiness-summary > div {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  gap: 2px;
-}
-
-.ipc-weekly-readiness-summary span {
-  color: var(--ipc-slate-500);
-  font-size: 0.7rem;
-  font-weight: 750;
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
-}
-
-.ipc-weekly-readiness-summary strong {
-  overflow: hidden;
-  color: var(--ipc-slate-900);
-  font-size: 0.875rem;
-  font-weight: 750;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ipc-weekly-readiness-summary small {
-  grid-column: 1 / -1;
-  color: var(--ipc-slate-600);
-  font-size: 0.75rem;
-  line-height: 1.35;
-  white-space: normal;
-  overflow-wrap: break-word;
-}
-
-.ipc-weekly-readiness.is-info .ipc-weekly-readiness-summary {
-  border-left-color: var(--ipc-primary);
-  background: var(--ipc-primary-soft);
-  color: var(--ipc-primary);
-}
-
-.ipc-weekly-readiness.is-success .ipc-weekly-readiness-summary {
-  border-left-color: var(--ipc-success);
-  background: color-mix(in srgb, var(--ipc-success) 7%, var(--card));
-  color: var(--ipc-success);
-}
-
-.ipc-weekly-readiness.is-warning .ipc-weekly-readiness-summary {
-  border-left-color: var(--ipc-warning);
-  background: color-mix(in srgb, var(--ipc-warning) 8%, var(--card));
-  color: var(--ipc-warning);
-}
-
-.ipc-weekly-readiness.is-danger .ipc-weekly-readiness-summary {
-  border-left-color: var(--ipc-danger);
-  background: color-mix(in srgb, var(--ipc-danger) 7%, var(--card));
-  color: var(--ipc-danger);
-}
-
-.ipc-weekly-readiness-checkpoints {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1px;
-  overflow: hidden;
-  margin: 0;
-  border: 1px solid var(--ipc-slate-200);
-  border-radius: var(--ipc-radius-sm);
-  background: var(--ipc-slate-200);
-}
-
-.ipc-weekly-readiness-checkpoint {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: 18px minmax(0, 1fr);
-  gap: var(--ipc-space-2);
-  align-items: center;
-  background: var(--card);
-  padding: 8px 10px;
-}
-
-.ipc-weekly-readiness-checkpoint > div {
-  min-width: 0;
-}
-
-.ipc-weekly-readiness-checkpoint dt {
-  color: var(--ipc-slate-500);
-  font-size: 0.7rem;
-  font-weight: 650;
-}
-
-.ipc-weekly-readiness-checkpoint dd {
-  overflow: hidden;
-  margin: 1px 0 0;
-  color: var(--ipc-slate-800);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ipc-weekly-readiness-checkpoint.is-complete > svg {
-  color: var(--ipc-success);
-}
-
-.ipc-weekly-readiness-checkpoint.is-pending > svg {
-  color: var(--ipc-slate-400);
-}
-
-.ipc-weekly-readiness-checkpoint.is-warning {
-  background: color-mix(in srgb, var(--ipc-warning) 6%, var(--card));
-}
-
-.ipc-weekly-readiness-checkpoint.is-warning > svg {
-  color: var(--ipc-warning);
-}
-
-.ipc-weekly-readiness-checkpoint.is-danger {
-  background: color-mix(in srgb, var(--ipc-danger) 5%, var(--card));
-}
-
-.ipc-weekly-readiness-checkpoint.is-danger > svg {
-  color: var(--ipc-danger);
 }
 
 .ipc-weekly-schedule-panel .ipc-section-header {
@@ -411,14 +232,6 @@
     justify-content: flex-end;
   }
 
-  .ipc-weekly-readiness {
-    grid-template-columns: minmax(310px, 1.2fr) minmax(0, 3fr);
-    align-items: stretch;
-  }
-
-  .ipc-weekly-readiness-checkpoints {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 .ipc-redesign-shell .ipc-material-demand-table {

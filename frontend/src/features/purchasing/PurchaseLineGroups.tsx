@@ -75,17 +75,17 @@ export function PurchaseLineGroups({
           inputClassName="bg-white"
         />
       </div>
-      <TableViewport ariaLabel={ariaLabel}>
+      <TableViewport ariaLabel={ariaLabel} caption="Nhu cầu mua theo nguyên liệu và đơn vị, giữ liên kết đến từng dòng nguồn">
       <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
         <thead>
           <tr>
-            <th className="text-left">Nguyên liệu</th>
-            <th className="text-right">Số lượng mua</th>
-            <th className="text-left">Nhà cung cấp</th>
-            <th className="text-left">Bằng chứng hiện tại</th>
-            <th className="text-right">Giá đề xuất</th>
-            <th className="text-center">Ngày giao</th>
-            <th className="text-right">Thao tác</th>
+            <th scope="col" className="text-left">Nguyên liệu</th>
+            <th scope="col" className="text-right">Số lượng mua</th>
+            <th scope="col" className="text-left">Nhà cung cấp</th>
+            <th scope="col" className="text-left">Bằng chứng hiện tại</th>
+            <th scope="col" className="text-right">Giá đề xuất</th>
+            <th scope="col" className="text-center">Ngày giao</th>
+            <th scope="col" className="text-right">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -103,10 +103,10 @@ export function PurchaseLineGroups({
             const summary = (
               <tr key={group.key} className={group.lines.some((line) => line.purchaseRequestLineId === selectedLineId) ? 'bg-blue-50/60' : undefined}>
                 <td><span className="block font-semibold text-slate-900">{group.ingredientName}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></td>
-                <td className="text-right tabular-nums">{formatQuantityWithUnit(group.purchaseQty, group.unitName, { maximumFractionDigits: 3 })}</td>
+                <td className="text-right tabular-nums" data-cell-role="numeric">{formatQuantityWithUnit(group.purchaseQty, group.unitName, { maximumFractionDigits: 3 })}</td>
                 <td>{uniqueText(group.lines.map((line) => line.supplierName), 'Chưa chọn nhà cung cấp')}</td>
-                <td>{readyCount}/{group.lines.length} dòng đã xác nhận</td>
-                <td className="text-right tabular-nums">{priceLabel}</td>
+                <td data-cell-role="numeric">{readyCount}/{group.lines.length} dòng đã xác nhận</td>
+                <td className="text-right tabular-nums" data-cell-role="numeric">{priceLabel}</td>
                 <td>{uniqueText(group.lines.map((line) => line.currentSupplierDecision?.proposedDeliveryDate ? formatDateOnly(line.currentSupplierDecision.proposedDeliveryDate) : null), 'Chưa có')}</td>
                 <td className="text-right">
                   <Button type="button" variant="outline" size="sm" className="min-h-9 whitespace-nowrap max-md:min-h-11" aria-expanded={group.lines.length > 1 ? expanded : undefined} onClick={() => group.lines.length === 1 ? onLineChange(group.lines[0].purchaseRequestLineId) : setExpandedGroupKey(expanded ? undefined : group.key)}>

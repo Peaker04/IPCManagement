@@ -80,9 +80,9 @@ export function WeeklyScheduleEditorDialog({
       </td>
       {scope.displayDays.map((day) => {
         const servingRow = servingRows.find((r) => r.dayKey === day.key && r.shiftName === shiftName)
-        if (!servingRow) return <td key={day.key} className="p-2 text-center text-slate-400 border-r border-slate-200">—</td>
+        if (!servingRow) return <td key={day.key} data-cell-role="numeric" className="p-2 text-center text-slate-400 border-r border-slate-200">—</td>
         return (
-          <td key={day.key} className="p-2 border-r border-slate-200 last:border-r-0 align-top">
+          <td key={day.key} data-cell-role="numeric" className="p-2 border-r border-slate-200 last:border-r-0 align-top">
             <div className="flex flex-col gap-1">
               <Input
                 aria-label={`Số suất ${day.label} ${shiftLabel}`}
@@ -224,7 +224,7 @@ export function WeeklyScheduleEditorDialog({
           {(hasDynamicRows || presentation.sections.length > 0) ? (
             <section aria-label="Ma trận thực đơn tuần" className="flex flex-col gap-3">
               <TableViewport
-                caption="Ma trận thực đơn tuần"
+                caption="Mỗi hàng là một hạng mục thực đơn hoặc số suất; mỗi cột là một ngày phục vụ"
                 className="rounded-md border border-slate-200 bg-white shadow-xs"
                 ariaLabel="Bảng ma trận thực đơn tuần"
                 frozenFirstIdentifier={false}
@@ -232,11 +232,11 @@ export function WeeklyScheduleEditorDialog({
                 <table className="ipc-data-table w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-700">
-                      <th className="p-2.5 font-bold uppercase tracking-wider text-caption w-36 border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
+                      <th scope="col" className="p-2.5 font-bold uppercase tracking-wider text-caption w-36 border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
                         Ca & Hạng mục
                       </th>
                       {scope.displayDays.map((day) => (
-                        <th key={day.key} className="p-2.5 text-center min-w-[160px] border-r border-slate-200 last:border-r-0">
+                        <th scope="col" key={day.key} className="p-2.5 text-center min-w-[160px] border-r border-slate-200 last:border-r-0">
                           <div className="font-bold text-slate-800">{day.label}</div>
                           <div className="text-caption font-normal text-slate-500">{day.date}</div>
                         </th>

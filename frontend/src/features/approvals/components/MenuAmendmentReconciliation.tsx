@@ -99,24 +99,24 @@ export function MenuAmendmentReconciliation() {
       ) : items.length === 0 ? (
         <EmptyState title={`${scopeLabel ?? 'Phạm vi này'} chưa có yêu cầu cần đối soát`} className="!min-h-0 !p-4 mt-3" />
       ) : (
-        <TableViewport ariaLabel="Danh sách yêu cầu đối soát điều chỉnh thực đơn" caption="Danh sách phân trang theo khách hàng; mở từng dòng để xem chứng từ và ghi nhận điều chỉnh." className="mt-3">
+        <TableViewport ariaLabel="Danh sách yêu cầu đối soát điều chỉnh thực đơn" caption="Yêu cầu đối soát theo khách hàng, ngày, ca và dòng chứng từ" className="mt-3">
           <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
             <thead>
               <tr>
-                <th className="text-left">Khách hàng / thời điểm</th>
-                <th className="text-left">Chứng từ liên quan</th>
-                <th className="text-left">Lý do</th>
-                <th className="text-left">Phụ trách</th>
-                <th className="text-center">Hạn xử lý</th>
-                <th className="text-center">Trạng thái</th>
-                <th className="text-right">Thao tác</th>
+                <th scope="col" className="text-left">Khách hàng / thời điểm</th>
+                <th scope="col" className="text-left">Chứng từ liên quan</th>
+                <th scope="col" className="text-left">Lý do</th>
+                <th scope="col" className="text-left">Phụ trách</th>
+                <th scope="col" className="text-center">Hạn xử lý</th>
+                <th scope="col" className="text-center">Trạng thái</th>
+                <th scope="col" className="text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>{items.map((item) => {
               const presentation = amendmentDecisionStatus(item.status)
               return <tr key={item.decisionItemId}>
                 <td className="text-left"><strong>{item.customerName}</strong><br /><span className="text-xs text-slate-500">{formatDateOnly(item.serviceDate)} · {formatShiftName(item.shiftName)} · {item.priceTierAmount == null ? 'Chưa xác định mức giá' : formatCurrency(item.priceTierAmount)}</span></td>
-                <td className="text-left">{item.documentIds.length ? `${item.documentIds.length} chứng từ` : 'Chưa có chứng từ'}<br /><span className="text-xs text-slate-500">{item.sourceLineIds.length} dòng chứng từ</span></td>
+                <td className="text-left" data-cell-role="numeric">{item.documentIds.length ? `${item.documentIds.length} chứng từ` : 'Chưa có chứng từ'}<br /><span className="text-xs text-slate-500">{item.sourceLineIds.length} dòng chứng từ</span></td>
                 <td className="text-left text-slate-700">{item.reason}</td>
                 <td className="text-left text-slate-700">{item.accountableRole}</td>
                 <td className="text-center whitespace-nowrap text-slate-600">{formatDateTime(item.dueAt)}</td>

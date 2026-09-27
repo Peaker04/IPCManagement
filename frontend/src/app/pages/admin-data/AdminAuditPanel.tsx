@@ -165,7 +165,12 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
           {exportError && <div role="alert"><InlineAlert title="Chưa thể tải file CSV" variant="danger">{exportError}</InlineAlert></div>}
 
           <AdminQueryBoundary minHeight="min-h-0" queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
-            <TableViewport ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell" preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}>
+            <TableViewport
+              ariaLabel="Nhật ký thay đổi hệ thống"
+              caption="Các thay đổi hệ thống theo thời gian, người thực hiện và đối tượng nghiệp vụ"
+              className="ipc-admin-audit-shell"
+              preferences={{ accountId: currentUser?.id, config: adminAuditPreferenceConfig }}
+            >
               {({ columns }) => <table className="ipc-data-table ipc-erp-grid-table ipc-admin-audit-table w-full text-xs">
                 <thead>
                   <tr>
@@ -192,6 +197,9 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                     };
                     return <tr key={log.id}>{columns.map((column) => <td key={column.id}>{cells[column.id]}</td>)}</tr>;
                   })}
+                  {displayLogs.length === 0 && (
+                    <tr><td colSpan={columns.length} className="py-8 text-center text-slate-500">Chưa có thay đổi hệ thống phù hợp với bộ lọc.</td></tr>
+                  )}
                 </tbody>
               </table>
               }

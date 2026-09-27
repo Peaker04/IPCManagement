@@ -1,11 +1,17 @@
 .ipc-data-table {
   width: 100%;
+  border: 1px solid var(--ipc-slate-300);
   border-collapse: collapse;
+  background-color: var(--ipc-color-surface);
   table-layout: fixed;
   font-family: var(--font-sans);
   font-size: var(--text-table);
   font-weight: var(--text-table--font-weight);
   line-height: var(--text-table--line-height);
+}
+
+.ipc-data-table thead {
+  background-color: var(--ipc-slate-100);
 }
 
 .ipc-table-shell .ipc-data-table {
@@ -322,17 +328,22 @@
 }
 
 .ipc-data-table th {
+  border-right: 1px solid var(--ipc-slate-300);
   border-bottom: 1px solid var(--ipc-color-border-strong);
+  background-color: var(--ipc-slate-100);
   color: var(--ipc-color-text-muted);
   font-size: var(--text-table-header);
   line-height: var(--text-table-header--line-height);
   font-weight: var(--text-table-header--font-weight);
+  letter-spacing: 0.025em;
   padding: 8px 12px;
   text-align: left;
+  text-transform: uppercase;
   white-space: normal;
 }
 
 .ipc-data-table td {
+  border-right: 1px solid var(--ipc-slate-200);
   border-bottom: 1px solid var(--ipc-color-border-muted);
   color: var(--ipc-color-text-strong);
   font-size: var(--text-table);
@@ -403,12 +414,20 @@
   white-space: nowrap;
 }
 
+.ipc-data-table tbody tr {
+  transition: background-color var(--ipc-transition-fast);
+}
+
 .ipc-data-table tbody tr:nth-child(even) {
   background: var(--ipc-color-surface);
 }
 
 .ipc-data-table tbody tr:hover {
   background: var(--ipc-color-surface-selected);
+}
+
+.ipc-data-table:not(.ipc-matrix-grid-table):not(.ipc-weekly-menu-shell) tbody tr:hover td {
+  background-color: var(--ipc-color-surface-selected);
 }
 
 .ipc-data-table th:first-child,

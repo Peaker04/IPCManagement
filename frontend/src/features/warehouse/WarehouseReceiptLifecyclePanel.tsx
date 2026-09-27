@@ -247,7 +247,7 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
           Không coi danh sách trống là không có phiếu. Hãy tải lại trước khi đưa ra kết luận hoặc thao tác.
         </QueryErrorAlert>
       ) : (
-        <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Chỉ hiển thị phiếu đã xác định được đơn mua gốc." className="max-h-[260px]">
+        <TableViewport ariaLabel="Tiến độ xử lý phiếu nhập" caption="Mỗi dòng là một phiếu nhập thuộc đơn mua đang chọn" className="max-h-[260px]">
           <table className="ipc-data-table min-w-[760px]">
             <thead><tr><th scope="col">Phiếu</th><th scope="col">Nhà cung cấp</th><th scope="col">Trạng thái</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
             <tbody>

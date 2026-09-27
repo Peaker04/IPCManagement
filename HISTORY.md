@@ -1800,3 +1800,9 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Original/extracted line counts close at 475/164, 513/267 and 544/250. Strict architecture-growth passes without changing `scripts/architecture-growth-baseline.json`; only the two grandfathered plan-required services remain.
 - Aggregate focused backend 51/51, architecture unit 6/6 and isolated API build 0 warnings/errors pass. The normal Debug output was locked by existing API PID 2156; the process was not stopped and the gate was rerun to isolated output.
 - Final independent reviewer `f49c5b8e-e861-4f6f-a157-b7939776757e` found no issue. Residuals are one non-failing xUnit analyzer warning and no browser/MySQL execution, neither required for this source-architecture goal.
+
+## 2026-09-27 · FE design-system reconstruction owner-accepted closeout
+
+- Kỳ accepted Final Gate E at `PASS_SOURCE_WITH_OPEN_RUNTIME_EVIDENCE`; authoritative ledger is `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §§68–69.
+- Campaign closed source ownership, semantic-table migration and redesign-selector inventory without changing business workflows. Five imported redesign styles remain because every remaining IPC/state class token has a live production consumer.
+- Residual MRX/BOTH browser cells and naturally unmounted complementary states remain `NEEDS_EVIDENCE`; mutation/destructive lifecycles remain `NOT_CLAIMED`. Acceptance did not switch mode, seed or mutate data, reseal evidence, commit or push.

@@ -263,7 +263,7 @@ export function ApprovalQueue({
       {title && <h4 className={typography.sectionTitle}>{title}</h4>}
       <TableViewport
         ariaLabel="Danh sách chứng từ cần duyệt"
-        caption="Danh sách nghiệp vụ, thời điểm, nội dung, người phụ trách, hạn xử lý, trạng thái và thao tác duyệt."
+        caption="Chứng từ chờ duyệt theo nghiệp vụ, ngày phục vụ, phụ trách, hạn duyệt và trạng thái"
         className="ipc-table-viewport--page-flow rounded-none border-0 shadow-none"
       >
         <table aria-label="Bảng chứng từ cần duyệt" className="ipc-data-table ipc-approval-table min-w-[1080px] !table-fixed">
@@ -313,7 +313,7 @@ export function ApprovalQueue({
                     <div className="font-semibold text-slate-950">{record.title}</div>
                     <span className="sr-only">{getCompactReference(record)}</span>
                   </td>
-                  <td>
+                  <td data-cell-role="numeric">
                     <div className="whitespace-nowrap font-medium tabular-nums text-slate-900">
                       {record.serviceDate ?? record.deadline}
                     </div>
@@ -345,7 +345,7 @@ export function ApprovalQueue({
                     <div className="font-medium text-slate-900">{record.submittedBy}</div>
                     {record.owner !== record.submittedBy && <span className="sr-only">{record.owner}</span>}
                   </td>
-                  <td className="text-center">
+                  <td className="text-center" data-cell-role="numeric">
                     <div className="whitespace-nowrap tabular-nums text-slate-800">{record.deadline}</div>
                     <span className="sr-only"><SlaIndicator deadline={record.slaDeadline ?? undefined} referenceNow={referenceNow} /></span>
                   </td>

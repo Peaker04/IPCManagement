@@ -27,20 +27,20 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
             </InlineAlert>
           )}
 
-          <PaginatedTableFrame ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
+          <PaginatedTableFrame ariaLabel="Bảng vấn đề dữ liệu cần xử lý" caption="Vấn đề chất lượng dữ liệu theo đối tượng, mức ưu tiên và trạng thái khắc phục" className="mt-4">
             <table className="ipc-data-table ipc-erp-grid-table ipc-admin-quality-table w-full text-sm">
               <thead>
                 <tr>
-                  <th className="text-left">Vấn đề</th>
-                  <th className="text-center">Ưu tiên</th>
-                  <th className="text-center">Trạng thái xử lý</th>
-                  <th className="text-left">Phụ trách</th>
-                  <th className="text-left">Đối tượng</th>
-                  <th className="text-right">Thao tác</th>
+                  <th scope="col" className="text-left">Vấn đề</th>
+                  <th scope="col" className="text-center">Ưu tiên</th>
+                  <th scope="col" className="text-center">Trạng thái xử lý</th>
+                  <th scope="col" className="text-left">Phụ trách</th>
+                  <th scope="col" className="text-left">Đối tượng</th>
+                  <th scope="col" className="text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
-                {dataQualityIssues.length === 0 ? <EmptyRow colSpan={6} /> : dataQualityIssues.map((issue, index) => (
+                {dataQualityIssues.length === 0 ? <EmptyRow colSpan={6} label="Chưa phát hiện vấn đề dữ liệu cần xử lý." /> : dataQualityIssues.map((issue, index) => (
                   <tr key={`${issue.id}-${index}`}>
                     <td className="text-left"><div className="font-semibold text-slate-900">{issue.category}</div><div className="text-xs text-slate-600" title={issue.message}>{issue.message}</div></td>
                     <td className="whitespace-nowrap">

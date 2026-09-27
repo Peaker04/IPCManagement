@@ -8,22 +8,27 @@ last_reviewed: 2026-08-29
 
 # UI architecture and visual composition contract
 
-Đây là contract kiến trúc nền tảng cho cách một màn hình IPCManagement được **cấu tạo, phân vùng và thay đổi
-hình học theo state**. File này trả lời “surface nào sở hữu nội dung nào và chúng phải đứng cạnh nhau ra sao”.
-Rule chi tiết và mức MUST/SHOULD nằm ở [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md); quy trình sửa và
-bằng chứng nằm ở [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md).
+Đây là **điểm vào authority duy nhất cho quyết định thiết kế frontend** của IPCManagement. File này định nghĩa
+product character, hierarchy, composition, token/component semantics và governance; nó liên kết tới owner chuyên
+biệt thay vì chép lại toàn bộ rule. `DASHBOARD-UI-RULES.md` giữ mã rule và mức MUST/SHOULD/MAY;
+`UI-PHILOSOPHY.md` là index áp dụng; execution/evidence vẫn thuộc harness và measurement protocol.
+
+Mục tiêu là để developer hoặc AI bắt đầu từ business authority → file này → semantic token/component hiện có,
+không cần dùng Fiori, shadcn, Flighty, Refero, screenshot hoặc generic design skill làm nguồn quyết định sản phẩm.
 
 ## 1. Thứ tự authority
 
 Khi xây hoặc sửa UI, quyết định theo thứ tự:
 
 1. **Business authority:** work object, grain, state, permission, mutation owner.
-2. **Page composition:** primary task, scope control, work surface, prerequisite/empty/error state.
-3. **Shared primitive:** `OperationalFrame`, `CommandBar`, `SectionPanel`, `QueryViewBoundary`, `EmptyState`,
-   table/dialog primitives.
-4. **Design token:** spacing, type, color, radius, control height và density.
-5. **Page-local class:** chỉ dùng khi bốn tầng trên không sở hữu vấn đề.
+2. **Design authority:** product character, hierarchy, composition và semantic contract trong file này.
+3. **Normative rule:** ID và mức bắt buộc trong `DASHBOARD-UI-RULES.md`.
+4. **Shared implementation:** route metadata, primitive, formatter/query/action seam và semantic token hiện có.
+5. **Feature composition:** domain component và page orchestration.
+6. **Page-local class:** chỉ dùng khi năm tầng trên không sở hữu vấn đề.
 
+`UI-PHILOSOPHY.md`, skill, external checklist, thư viện UI, CSS legacy, screenshot và historical artifact không
+được tạo quyết định cạnh tranh. Chúng lần lượt là index, implementation support, quality adapter hoặc evidence.
 Không được dùng CSS page-local để bù cho primitive có geometry sai, hoặc dùng primitive generic khi semantic
 role của vùng không phù hợp.
 
@@ -251,3 +256,159 @@ Trước khi chấp nhận một UI merge phải tối thiểu có: source-owner
 behavior tests ở public seam, lint, production build và `git diff --check`. Test được mang từ branch khác nhưng dùng
 API/import/owner đã bị phase sau thay thế phải bị loại bỏ hoặc viết lại theo contract hiện hành; không sửa production
 để làm xanh một test stale.
+
+### 8.5 Operation-mode coverage trước shared rollout
+
+Mọi migration shared component, table hoặc search family phải khai báo coverage trước khi sửa production:
+
+```text
+shared seam / family
+→ DEFAULT consumers
+→ MATERIAL_RECONCILIATION consumers
+→ BOTH / DEFAULT_ONLY / MRX_ONLY
+→ browser evidence cho từng mode áp dụng
+```
+
+`BOTH` nghĩa là có consumer hoặc composition thật trong cả hai mode, không có nghĩa một browser run ở DEFAULT đại
+diện cho MRX. `DEFAULT_ONLY`/`MRX_ONLY` phải dựa trên `systemOperationEligibility` và capability/tab contract hiện
+hành; mode còn lại ghi `NOT_APPLICABLE`, không ghi PASS. Shared seam được dùng bởi cả hai mode phải giữ behavior
+test chung và có browser evidence riêng cho mỗi composition áp dụng trước khi rollout family được đóng. Natural
+state không có thì ghi `NEEDS_EVIDENCE`; không seed, switch mode hoặc mutate dữ liệu chỉ để lấp ô. Ma trận rollout
+hiện hành và denominator Wave 4 nằm trong
+`.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §17.
+
+## 9. Product UI character
+
+IPCManagement là giao diện vận hành bếp ăn công nghiệp cho Điều phối, Thu mua, Kho, Bếp, Manager và Admin.
+Thiết kế mặc định phải **đậm thông tin, yên tĩnh ở trạng thái bình thường và nổi bật khi cần quyết định**:
+
+- work object, customer/week/date/mode, grain, owner và next action đứng trước decoration;
+- bảng ưu tiên trường ra quyết định; provenance kỹ thuật đi vào detail nhưng vẫn inspect/copy được;
+- normal state dùng neutral; màu semantic dành cho info, warning, danger hoặc completion có ý nghĩa;
+- whitespace tạo hierarchy, không tạo cảm giác landing page hoặc canvas trống;
+- thao tác lặp lại phải keyboard/focus-friendly và giữ continuity khi Back, deep-link, refresh hoặc refetch;
+- surface, status, action và feedback phải phản ánh cùng vocabulary/domain state ở upstream và downstream.
+
+Các từ `clean`, `modern`, `premium`, `beautiful` hoặc `minimal` không phải requirement nếu không nêu hậu quả
+triển khai và tác vụ người dùng được cải thiện.
+
+## 10. Information hierarchy và spatial composition
+
+Thứ tự nhấn mạnh mặc định:
+
+```text
+primary task / exception
+→ current scope and workflow state
+→ valid next action
+→ decision data
+→ supporting context
+→ provenance / technical detail
+```
+
+Grouping ưu tiên proximity, alignment, typography và whitespace; border hoặc tonal surface chỉ thêm khi cần
+ranh giới tương tác/scroll/state. `Card` không phải primitive nhóm mặc định. Một panel chỉ hợp lệ khi nó sở hữu
+một work object, state, scroll region hoặc action boundary độc lập.
+
+## 11. Semantic foundation contract
+
+### 11.1 Typography
+
+Các role canonical là `page-title`, `section-title`, `body`, `label`, `caption/metadata`, `table`,
+`table-header`, `numeric` và `code` khi thực sự cần. Mỗi role giữ purpose trước size; feature không tự tạo type
+scale mới. Numeric dùng tabular figures. Technical code không được trở thành primary label.
+
+### 11.2 Token architecture
+
+```text
+primitive value
+  → semantic role
+  → component token only when semantic role is insufficient
+  → feature composition
+```
+
+Primitive gồm neutral/chromatic scales, spacing, type, radius, size và motion. Semantic gồm surface, text,
+border, action, feedback/status, focus và overlay. Feature code không được đặt tên token theo raw color hoặc
+business enum. Compatibility alias chỉ tồn tại trong migration có consumer và điều kiện xóa rõ.
+
+### 11.3 Spacing và geometry
+
+Spacing phải phân biệt: inside component → related elements → group → section → region/page. Control height,
+row density, radius và elevation dùng vocabulary hữu hạn. Giá trị số mới phải map vào purpose; không tạo token
+chỉ để hợp thức hóa một pixel page-local.
+
+### 11.4 Surface và elevation
+
+Surface model mặc định: `canvas`, `base`, `subtle`, `overlay`. Border tạo ranh giới; tonal difference tạo phân
+nhóm nhẹ; shadow chủ yếu dành cho overlay hoặc affordance cần depth. Nested rounded cards và arbitrary shadow là
+anti-pattern. Overlay phải có z-index/focus/scroll owner rõ.
+
+## 12. Status, feedback và content
+
+Projection bắt buộc:
+
+```text
+business state → user meaning → severity → semantic token → presentation
+```
+
+Không map enum trực tiếp sang màu. Status cần chữ hoặc semantic shape/icon, không truyền tin chỉ bằng màu.
+Normal status xuất hiện gần như mọi hàng nên được bỏ, chuyển thành fact/filter hoặc dùng neutral thay vì badge
+màu. Error/empty/forbidden/loading/refreshing/prerequisite là state khác nhau và có recovery khác nhau.
+
+Nhãn route, action, status, empty state và error dùng vocabulary trong `GLOSSARY.md`/domain owner. Copy phải nói
+điều gì xảy ra và người dùng làm gì tiếp; mã kỹ thuật chỉ ở detail có khả năng sao chép khi cần truy vết.
+
+## 13. Canonical component contract
+
+Design document sở hữu `purpose, anatomy, semantic variants, states, content, responsive and accessibility`;
+source component sở hữu API và mechanics. Canonical concepts hiện gồm:
+
+- mechanics: Button, Input, Select, Checkbox, Radio/Toggle, Tabs, Dialog, Drawer, Table;
+- operational primitives: `OperationalFrame`, `CommandBar`, `SectionPanel`, `QueryViewBoundary`, `EmptyState`,
+  `InlineAlert`, `StatusBadge`, `TableViewport`, pagination, SearchField/FieldRow;
+- domain composition thuộc feature; không đưa business concept vào `shared/ui` để tái sử dụng giả tạo.
+
+Không tạo `V2`, `New`, `Custom` hoặc parallel primitive. Nếu component chung thiếu semantic contract, mở rộng owner
+hiện có bằng regression; nếu chỉ một feature cần composition, giữ local.
+
+## 14. Navigation and route metadata
+
+Path, document title, shell title, navigation label/icon, permission/mode constraints, preference key và UI
+ownership metadata có một owner typed tại `frontend/src/routes/routeRegistry.ts`. Router vẫn được phép explicit
+để guard tree dễ đọc; registry không được biến thành generic route engine. Permission backend vẫn là authority
+cuối cùng và không được suy từ navigation metadata.
+
+URL sở hữu tab/filter/page/modal quan trọng khi contract yêu cầu deep-link. Back/Forward phải phục hồi cùng work
+object và scope; browser preference chỉ điều chỉnh presentation không mang quyết định.
+
+## 15. Responsive, motion và accessibility
+
+Responsive là hành vi, không chỉ breakpoint: xác định phần nào wrap, stack, scroll, collapse hoặc chuyển overflow
+mà vẫn giữ hierarchy và next action. Bảng rộng có scroll owner cục bộ; cấm che document overflow bằng
+`overflow-x: hidden`. Desktop matrix, 200% reflow và mobile/tablet claim tuân theo execution harness; chưa đo thì
+`NEEDS_EVIDENCE`.
+
+Motion chỉ phục vụ orientation, disclosure, continuity hoặc state feedback; dùng transform/opacity và tôn trọng
+`prefers-reduced-motion`. Không motion decoration cho normal workflow.
+
+Accessibility là design input: contrast, visible focus, keyboard equivalence, target size, semantic heading/table,
+form error association, status not color-only, dialog focus/return, reduced motion và zoom/reflow. External
+checklist mở rộng coverage nhưng không sở hữu contract.
+
+## 16. AI implementation and governance
+
+Mọi implementation đi theo:
+
+```text
+requirement → domain/actor/grain → DESIGN + rule IDs → existing owner?
+→ red-capable acceptance → smallest implementation → focused verification
+```
+
+Generic design skills và external references chỉ được đưa option cho quyết định còn mở; không tự chọn visual
+identity. Không tạo redesign stylesheet, token hoặc component trước khi xác định owner/consumer. Thay đổi contract
+phải cập nhật file này hoặc linked canonical owner trong cùng task. Runtime CSS không được dùng làm lý do hợp pháp
+hóa behavior trái contract.
+
+Migration design system theo shared root cause và consumer dependency, không theo screenshot/page ngẫu nhiên.
+`frontend/src/styles/components/tables.css` là owner duy nhất cho base geometry/presentation của `.ipc-data-table`;
+`styles/index.css` chỉ giữ token/global foundation và các owner không phải shared data table. Legacy CSS chỉ xóa sau khi
+selector/import inventory chứng minh không còn consumer; không mass rename token hoặc blind find-and-replace.

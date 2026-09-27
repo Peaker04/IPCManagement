@@ -5,6 +5,7 @@ import operationalFrameSource from '@/components/common/OperationalFrame.tsx?raw
 import viewSwitcherSource from '@/components/common/ViewSwitcher.tsx?raw'
 import loginPageSource from '@/features/auth/pages/LoginPage.tsx?raw'
 import forbiddenPageSource from '@/features/auth/pages/ForbiddenPage.tsx?raw'
+import { routeRegistry } from '@/routes/routeRegistry'
 import {
   OperationalFrame,
   UiOwnershipContext,
@@ -18,35 +19,22 @@ import { uiSourceOwnershipManifest, uiSourceOwnershipTargets } from './uiSourceO
 
 type OwnershipTuple = { ownerId: string; floorplanId: string; regionId: string }
 
-const tupleByScope = new Map(uiFloorplanScopeRegistry.map((entry, index) => [
-  buildUiFloorplanScopeKey(entry),
-  {
-    ownerId: uiSourceOwnershipTargets[index].ownerId,
-    floorplanId: `uif-${index.toString(36)}`,
-    regionId: uiSourceOwnershipTargets[index].regionId,
-  },
-]))
-
-const tupleFor = (surfaceId: string) => {
-  const entry = uiFloorplanScopeRegistry.find((candidate) => candidate.surfaceId === surfaceId)
-  if (!entry) throw new Error(`Missing canonical surface ${surfaceId}`)
-  const tuple = tupleByScope.get(buildUiFloorplanScopeKey(entry))
-  if (!tuple) throw new Error(`Missing canonical tuple ${surfaceId}`)
-  return tuple
-}
-
-const tupleLiteral = (tuple: OwnershipTuple) =>
-  `ownerId: '${tuple.ownerId}', floorplanId: '${tuple.floorplanId}', regionId: '${tuple.regionId}'`
-
 const bindingPattern = /'([^']+)\\0([^']+)': \{ ownerId: '([^']+)', floorplanId: '([^']+)', regionId: '([^']+)' \}/g
 const productionBindings = [...viewSwitcherSource.matchAll(bindingPattern)].map((match) => ({
   key: `${match[1]}\0${match[2]}`,
   surfaceId: match[2],
   tuple: { ownerId: match[3], floorplanId: match[4], regionId: match[5] },
 }))
+const productionTupleBySurface = new Map(productionBindings.map((binding) => [binding.surfaceId, binding.tuple]))
+
+const tupleFor = (surfaceId: string) => {
+  const tuple = productionTupleBySurface.get(surfaceId)
+  if (!tuple) throw new Error(`Missing production tuple ${surfaceId}`)
+  return tuple
+}
 
 const compareBindings = (bindings: typeof productionBindings) => {
-  const expected = uiFloorplanScopeRegistry.filter((entry) => entry.surfaceKind !== 'route')
+  const expected = [...new Map(uiFloorplanScopeRegistry.filter((entry) => entry.surfaceKind !== 'route').map((entry) => [entry.surfaceId, entry])).values()]
   const expectedIds = new Set(expected.map((entry) => entry.surfaceId))
   const duplicateKeys = bindings.filter((entry, index) => bindings.findIndex((candidate) => candidate.key === entry.key) !== index).map((entry) => entry.key)
   return {
@@ -83,17 +71,19 @@ describe('Phase 26 opaque instrumentation contract', () => {
     expect(uiSourceOwnershipTargets.map((entry) => entry.scopeKey)).toEqual(uiFloorplanScopeRegistry.map(buildUiFloorplanScopeKey))
 
     for (const entry of uiFloorplanScopeRegistry.filter((candidate) => candidate.surfaceKind === 'route')) {
-      const tuple = tupleFor(entry.surfaceId)
-      expectOpaqueTuple(tuple)
       if (entry.routeKey === 'LOGIN') {
+        const tuple = { ownerId: 'uio-l', floorplanId: 'uif-l', regionId: 'uir-l' }
+        expectOpaqueTuple(tuple)
         expect(loginPageSource).toContain('data-ui-owner="uio-l"')
         expect(loginPageSource).toContain('data-ui-floorplan="uif-l"')
         expect(loginPageSource).toContain('data-ui-region="uir-l"')
-      } else if (entry.routeKey === 'FORBIDDEN') {
-        expect(forbiddenPageSource).toContain('data-ui-owner="uio-h" data-ui-floorplan="uif-h" data-ui-region="uir-h"')
-        expect(mainLayoutSource).toContain(`[ROUTES.FORBIDDEN]: { ${tupleLiteral(tuple)} }`)
       } else {
-        expect(mainLayoutSource).toContain(`[ROUTES.${entry.routeKey}]: { ${tupleLiteral(tuple)} }`)
+        const tuple = routeRegistry[entry.routePath as keyof typeof routeRegistry].ownership
+        expect(tuple).toBeDefined()
+        expectOpaqueTuple(tuple!)
+        if (entry.routeKey === 'FORBIDDEN') {
+          expect(forbiddenPageSource).toContain('data-ui-owner="uio-h" data-ui-floorplan="uif-h" data-ui-region="uir-h"')
+        }
       }
     }
   })

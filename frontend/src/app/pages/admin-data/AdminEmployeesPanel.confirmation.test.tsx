@@ -7,6 +7,10 @@ import type { AdminDataPageModel } from './useAdminDataPageModel'
 const ready = <T,>(data: T): QueryView<T> => ({ phase: 'ready', data, isRefreshing: false, truncation: null })
 
 describe('AdminEmployeesPanel confirmation contract', () => {
+  it('uses a specific empty employee message rather than the generic admin record copy', async () => {
+    const source = (await import('./AdminEmployeesPanel.tsx?raw')).default
+    expect(source).toContain('Chưa có nhân viên nào phù hợp với phạm vi hoặc từ khóa đang xem.')
+  })
   it('does not toggle an employee before stating login impact', () => {
     const employee = {
       userId: 'employee-1', fullName: 'Nguyễn An', username: 'nguyenan', roleId: 'role-chef', roleName: 'Chef',
@@ -35,6 +39,10 @@ describe('AdminEmployeesPanel confirmation contract', () => {
     } as unknown as AdminDataPageModel
 
     render(<AdminEmployeesPanel model={model} />)
+    const employeeRegion = screen.getByRole('region', { name: 'Bảng nhân viên' })
+    expect(employeeRegion).toHaveAccessibleDescription('Nhân viên theo tài khoản, vai trò, trạng thái và ngày tạo')
+    expect(screen.getAllByRole('columnheader').map((header) => header.getAttribute('scope'))).toEqual(['col', 'col', 'col', 'col', 'col', 'col'])
+    expect(screen.getByText('01/07/2026').closest('td')).toHaveAttribute('data-cell-role', 'numeric')
     expect(screen.getByRole('combobox', { name: 'Vai trò' })).toHaveTextContent('Bếp trưởng - CHEF')
     expect(screen.getByRole('combobox', { name: 'Vai trò' })).not.toHaveTextContent('role-chef')
     fireEvent.click(screen.getByRole('button', { name: 'Khóa' }))

@@ -12,7 +12,7 @@ import chefChecklistSource from '../features/chef/components/material-checklist.
 describe('whole-project ingredient data-grain UI contracts', () => {
   it('makes every multi-day demand view expose its service date', () => {
     expect(reportsSource).toContain('Nhu cầu theo ngày trong khoảng chọn')
-    expect(reportsSource).toContain('<th>Ngày</th>')
+    expect(reportsSource).toContain('<th scope="col">Ngày</th>')
     expect(weeklyPurchaseSource).toContain('Mỗi dòng thuộc một ngày, khách hàng, đơn giá, nguyên liệu và đơn vị')
     expect(weeklyPurchaseSource).toContain('>Ngày</th>')
   })
@@ -49,7 +49,8 @@ describe('whole-project ingredient data-grain UI contracts', () => {
 
   it('labels dish BOM analysis as one-tray data at an effective date', () => {
     expect(dishMaterialsSource).toContain('Áp dụng BOM ngày')
-    expect(dishMaterialsSource).toContain('Giá vốn nguyên liệu cho một khay')
+    expect(dishMaterialsSource).toContain('Định lượng và giá vốn nguyên liệu theo suất của món đang phân tích')
+    expect(dishMaterialsSource).toContain('Bảng giá vốn nguyên liệu một khay')
   })
 
   it('shows daily demand on the operational demand surface instead of a separate lifecycle panel', () => {

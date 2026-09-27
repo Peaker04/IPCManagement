@@ -103,14 +103,14 @@ export function WarehouseMovementPanel({
           {currentStockView.phase === 'uninitialized' && <InlineAlert title="Chưa tải tồn kho hiện tại" variant="info">{currentStockView.instruction}</InlineAlert>}
           {currentStockView.phase === 'ready' && currentStockView.isRefreshing && <RefreshStatus>Đang cập nhật...</RefreshStatus>}
           {(currentStockView.phase === 'loading' || currentStockView.phase === 'ready') && <>
-            <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
+            <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Tồn kho hiện tại theo kho và nguyên liệu" caption="Snapshot tồn kho hiện tại theo kho và nguyên liệu">
               <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
                 <thead>
                   <tr>
-                    <th className="text-left">Kho</th>
-                    <th className="text-left">Nguyên liệu</th>
-                    <th className="text-right">Số lượng</th>
-                    <th className="text-center">Cập nhật</th>
+                    <th scope="col" className="text-left">Kho</th>
+                    <th scope="col" className="text-left">Nguyên liệu</th>
+                    <th scope="col" className="text-right">Số lượng</th>
+                    <th scope="col" className="text-center">Cập nhật</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -121,12 +121,12 @@ export function WarehouseMovementPanel({
                       </tr>
                     ))
                   ) : currentStockRows.length === 0 ? (
-                    <tr><td colSpan={4} className="py-6 text-center text-slate-500">Chưa có dữ liệu tồn kho</td></tr>
+                    <tr><td colSpan={4} className="py-6 text-center text-slate-500">Chưa có snapshot tồn kho hiện tại.</td></tr>
                   ) : currentStockRows.map((row) => (
                     <tr key={row.id}>
                       <td className="text-slate-700">{row.warehouse}</td>
                       <td className="font-medium text-slate-900">{row.ingredient}</td>
-                      <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
+                      <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
                       <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
                     </tr>
                   ))}
@@ -153,7 +153,13 @@ export function WarehouseMovementPanel({
           {stockMovementView.phase === 'loading' ? (
             <TableSkeleton columns={6} rows={8} ariaLabel="Đang tải sổ luân chuyển kho..." />
           ) : stockMovementView.phase === 'uninitialized' ? <InlineAlert title="Chưa tải sổ luân chuyển" variant="info">{stockMovementView.instruction}</InlineAlert> : stockMovementView.phase === 'ready' ? (
-            <StockMovementTable movements={stockMovements} cursorPagination={{ page: stockMovementPage, hasNext: stockMovementHasNext, onPrevious: onStockMovementPrevious, onNext: onStockMovementNext }} />
+            <StockMovementTable
+              movements={stockMovements}
+              ariaLabel="Sổ luân chuyển kho"
+              caption="Các bút toán nhập, xuất, trả và điều chỉnh kho"
+              emptyTitle="Chưa phát sinh bút toán luân chuyển kho."
+              cursorPagination={{ page: stockMovementPage, hasNext: stockMovementHasNext, onPrevious: onStockMovementPrevious, onNext: onStockMovementNext }}
+            />
           ) : null}
           </div>
         </SectionPanel>

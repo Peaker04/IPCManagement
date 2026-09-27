@@ -76,7 +76,7 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
     <TableViewport
       caption="Bố cục thực đơn theo file khách hàng"
       className={cn('ipc-weekly-menu-shell', maxBodyHeight)}
-      ariaLabel="Bảng bố cục thực đơn theo file khách hàng"
+      ariaLabel="Bố cục thực đơn theo file khách hàng"
       frozenFirstIdentifier={false}
     >
       <table className="ipc-data-table ipc-matrix-grid-table table-fixed w-full border-collapse">

@@ -41,16 +41,16 @@ export function ChefProductionSection({ lines, isLoading, isError, totalPlans, s
         )
       }
     >
-      <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch điều phối trong ngày" caption="Kế hoạch điều phối trong ngày">
+      <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch điều phối trong ngày" caption="Dòng kế hoạch sản xuất theo khách hàng, món, ca, số suất và lượng mua dự kiến">
         <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
           <thead>
             <tr>
-              <th className="text-left">Kế hoạch / khách hàng</th>
-              <th className="text-left">Món / ca</th>
-              <th className="text-right">Số suất</th>
-              <th className="text-left">Định lượng</th>
-              <th className="text-right">Mua dự kiến</th>
-              <th className="text-center">Trạng thái</th>
+              <th scope="col" className="text-left">Kế hoạch / khách hàng</th>
+              <th scope="col" className="text-left">Món / ca</th>
+              <th scope="col" className="text-right">Số suất</th>
+              <th scope="col" className="text-left">Định lượng</th>
+              <th scope="col" className="text-right">Mua dự kiến</th>
+              <th scope="col" className="text-center">Trạng thái</th>
             </tr>
           </thead>
           <tbody>
@@ -67,9 +67,9 @@ export function ChefProductionSection({ lines, isLoading, isError, totalPlans, s
                   <tr key={`${line.planCode}-${line.planLineId}`}>
                     <td className="text-left"><span className="block font-semibold text-slate-900">{line.planCode}</span><span className="block text-xs text-slate-500">{line.customerName ?? 'Chưa có tên khách hàng'}</span></td>
                     <td className="text-left"><span className="block font-medium text-slate-900">{line.dishName ?? 'Chưa có tên món'}</span><span className="block text-xs text-slate-500">{formatShiftName(line.shiftName ?? undefined)}</span></td>
-                    <td className="text-right tabular-nums font-semibold text-slate-900">{line.totalServings}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900" data-cell-role="numeric">{line.totalServings}</td>
                     <td className="text-left text-slate-700">{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
-                    <td className="text-right tabular-nums text-slate-700">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
+                    <td className="text-right tabular-nums text-slate-700" data-cell-role="numeric">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
                     <td className="text-center">
                       <StatusBadge variant={readiness.variant}>{readiness.label}</StatusBadge>
                     </td>

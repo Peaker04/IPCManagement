@@ -118,6 +118,12 @@ describe('AdminContractsPanel presentation & information architecture', () => {
     expect(screen.getByRole('columnheader', { name: 'Đơn giá' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
     expect(screen.getByRole('cell', { name: /Nhà máy An Bình/i })).toBeInTheDocument();
+    const contractsRegion = screen.getByRole('region', { name: 'Bảng hợp đồng khách hàng' });
+    expect(contractsRegion).toHaveAccessibleDescription('Hợp đồng theo khách hàng, ngày ca hiệu lực và đơn giá áp dụng');
+    expect(within(contractsRegion).getAllByRole('columnheader')).toHaveLength(7);
+    expect(within(contractsRegion).getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true);
+    expect(within(contractsRegion).getByText('25.000 ₫').closest('td')).toHaveAttribute('data-cell-role', 'numeric');
+    expect(within(contractsRegion).getByText('100%').closest('td')).toHaveAttribute('data-cell-role', 'numeric');
   });
 
   it('associates and focuses the first field-local contract error', async () => {

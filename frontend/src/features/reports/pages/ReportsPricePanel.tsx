@@ -137,21 +137,21 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                 placeholder="Ví dụ: Bún, SUP-001, PN-20260729..."
               />
             </div>
-            <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
+            <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" caption="Các dòng nhập kho và mức biến động so với giá tham chiếu" className="ipc-report-table-shell">
               <table className="ipc-data-table ipc-price-variance-table min-w-[900px]">
                 <thead>
                   <tr>
-                    <th>Tên nguyên liệu</th>
-                    <th>Nguồn nhập</th>
-                    <th>Số lượng</th>
-                    <th>Giá tham chiếu</th>
-                    <th>Giá nhập</th>
-                    <th>Biến động</th>
+                    <th scope="col">Tên nguyên liệu</th>
+                    <th scope="col">Nguồn nhập</th>
+                    <th scope="col">Số lượng</th>
+                    <th scope="col">Giá tham chiếu</th>
+                    <th scope="col">Giá nhập</th>
+                    <th scope="col">Biến động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {priceVarianceRows.length === 0 ? (
-                    <EmptyRow colSpan={6} isError={priceVarianceResult.isError} />
+                    <EmptyRow colSpan={6} isError={priceVarianceResult.isError} label="Chưa có dòng nhập kho phù hợp với bộ lọc giá." />
                   ) : (
                     priceVarianceRows.map((item) => (
                       <tr key={item.id} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
@@ -165,10 +165,10 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
                           </span>
                         </td>
                         <td><IdentifierText value={item.receiptCode} className="font-medium text-slate-800" /><div className="text-xs text-slate-500">{formatDateOnly(item.receiptDate)}</div></td>
-                        <td className="ipc-numeric-cell">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(item.pricePrev)}</td>
-                        <td className="ipc-numeric-cell font-bold">{formatCurrency(item.priceCurrent)}</td>
-                        <td className="text-right">
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{formatQuantityWithUnit(item.quantity, item.unit)}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{formatCurrency(item.pricePrev)}</td>
+                        <td className="ipc-numeric-cell font-bold" data-cell-role="numeric">{formatCurrency(item.priceCurrent)}</td>
+                        <td className="text-right" data-cell-role="numeric">
                           <div className="ipc-price-variance-summary">
                             <span className={item.warning ? 'font-bold text-[var(--ipc-danger)]' : item.change > 0 ? 'font-bold text-[var(--ipc-warning)]' : 'text-slate-600'}>
                               {item.change > 0 ? `▲ +${formatPercent(item.change)}` : '0%'}
@@ -235,30 +235,30 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
       <KeepAliveTabPanel id="price-sub-supplier" active={priceSubView === 'supplier'}>
         <ReportQueryBoundary view={activePriceView}>
           <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-            <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp">
+            <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp" caption="Giá nhập tổng hợp theo nguyên liệu, nhà cung cấp và đơn vị tính">
               <table className="ipc-data-table min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Nguyên liệu / Nhà cung cấp</th>
-                    <th>Số lần nhập</th>
-                    <th>Giá TB</th>
-                    <th>Khoảng giá</th>
-                    <th>Giá tham chiếu</th>
-                    <th>Biến động</th>
+                    <th scope="col">Nguyên liệu / Nhà cung cấp</th>
+                    <th scope="col">Số lần nhập</th>
+                    <th scope="col">Giá TB</th>
+                    <th scope="col">Khoảng giá</th>
+                    <th scope="col">Giá tham chiếu</th>
+                    <th scope="col">Biến động</th>
                   </tr>
                 </thead>
                 <tbody>
                   {priceVarianceBySupplierRows.length === 0 ? (
-                    <EmptyRow colSpan={6} isError={priceVarianceBySupplierResult.isError} />
+                    <EmptyRow colSpan={6} isError={priceVarianceBySupplierResult.isError} label="Chưa có dữ liệu giá theo nhà cung cấp trong kỳ lọc." />
                   ) : (
                     priceVarianceBySupplierRows.map((row) => (
                       <tr key={`${row.ingredientId}-${row.supplierId}-${row.unitId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td><div className="font-medium text-slate-800">{row.ingredientName}</div><div className="text-xs text-slate-500">{row.supplierName} · ĐVT: {formatUnit(row.unitName ?? '') || 'Chưa xác định'}</div></td>
-                        <td className="ipc-numeric-cell">{row.receiptCount}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
-                        <td className="ipc-numeric-cell"><div>{formatCurrency(row.minUnitPrice)}</div><div className="text-xs text-slate-500">đến {formatCurrency(row.maxUnitPrice)}</div></td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.referencePrice)}</td>
-                        <td className="text-right"><div className="tabular-nums">{formatPercent(row.variancePercent)}</div><div className="mt-1 flex justify-end">
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{row.receiptCount}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{formatCurrency(row.avgUnitPrice)}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric"><div>{formatCurrency(row.minUnitPrice)}</div><div className="text-xs text-slate-500">đến {formatCurrency(row.maxUnitPrice)}</div></td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{formatCurrency(row.referencePrice)}</td>
+                        <td className="text-right" data-cell-role="numeric"><div className="tabular-nums">{formatPercent(row.variancePercent)}</div><div className="mt-1 flex justify-end">
                           <PriceVarianceStatusBadge isWarning={Boolean(row.isWarning)} change={row.variancePercent} className="ipc-table-badge ipc-table-badge--status" />
                         </div></td>
                       </tr>
@@ -284,29 +284,29 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
       <KeepAliveTabPanel id="price-sub-period" active={priceSubView === 'period'}>
         <ReportQueryBoundary view={activePriceView}>
           <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-            <TableViewport ariaLabel="Bảng biến động giá theo thời gian">
+            <TableViewport ariaLabel="Bảng biến động giá theo thời gian" caption="Giá nhập tổng hợp theo nguyên liệu, đơn vị tính và tháng">
               <table className="ipc-data-table min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Nguyên liệu</th>
-                    <th>Tháng</th>
-                    <th>Giá TB</th>
-                    <th>% so với tham chiếu</th>
-                    <th>% so với tháng trước</th>
-                    <th>Đánh giá</th>
+                    <th scope="col">Nguyên liệu</th>
+                    <th scope="col">Tháng</th>
+                    <th scope="col">Giá TB</th>
+                    <th scope="col">% so với tham chiếu</th>
+                    <th scope="col">% so với tháng trước</th>
+                    <th scope="col">Đánh giá</th>
                   </tr>
                 </thead>
                 <tbody>
                   {priceVarianceByPeriodRows.length === 0 ? (
-                    <EmptyRow colSpan={6} isError={priceVarianceByPeriodResult.isError} />
+                    <EmptyRow colSpan={6} isError={priceVarianceByPeriodResult.isError} label="Chưa có dữ liệu giá theo tháng trong kỳ lọc." />
                   ) : (
                     priceVarianceByPeriodRows.map((row) => (
                       <tr key={`${row.ingredientId}-${row.unitId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td><div>{row.ingredientName}</div><div className="text-xs text-slate-500">ĐVT: {formatUnit(row.unitName ?? '') || 'Chưa xác định'}</div></td>
                         <td>{row.periodLabel}</td>
-                        <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
-                        <td className="ipc-numeric-cell">{formatPercent(row.variancePercentVsReference)}</td>
-                        <td className="ipc-numeric-cell">
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{formatCurrency(row.avgUnitPrice)}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{formatPercent(row.variancePercentVsReference)}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">
                           {row.variancePercentVsPreviousPeriod == null ? '—' : formatPercent(row.variancePercentVsPreviousPeriod)}
                         </td>
                         <td className="ipc-badge-cell">
@@ -335,27 +335,27 @@ export function ReportsPricePanel({ model }: ReportsPricePanelProps) {
       <KeepAliveTabPanel id="price-sub-dishGroup" active={priceSubView === 'dishGroup'}>
         <ReportQueryBoundary view={activePriceView}>
           <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
-            <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
+            <TableViewport ariaLabel="Bảng biến động giá theo nhóm món" caption="Mức biến động giá có trọng số theo nhóm món">
               <table className="ipc-data-table min-w-[720px]">
                 <thead>
                   <tr>
-                    <th>Nhóm món</th>
-                    <th>Số nguyên liệu</th>
-                    <th>Số NL vượt ngưỡng</th>
-                    <th>% biến động (có trọng số)</th>
-                    <th>Nguyên liệu ảnh hưởng nhiều nhất</th>
+                    <th scope="col">Nhóm món</th>
+                    <th scope="col">Số nguyên liệu</th>
+                    <th scope="col">Số NL vượt ngưỡng</th>
+                    <th scope="col">% biến động (có trọng số)</th>
+                    <th scope="col">Nguyên liệu ảnh hưởng nhiều nhất</th>
                   </tr>
                 </thead>
                 <tbody>
                   {priceVarianceByDishGroupRows.length === 0 ? (
-                    <EmptyRow colSpan={5} isError={priceVarianceByDishGroupResult.isError} />
+                    <EmptyRow colSpan={5} isError={priceVarianceByDishGroupResult.isError} label="Chưa có dữ liệu giá theo nhóm món trong kỳ lọc." />
                   ) : (
                     priceVarianceByDishGroupRows.map((row) => (
                       <tr key={row.dishGroup} className={row.warningIngredientCount > 0 ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td>{row.dishGroup}</td>
-                        <td className="ipc-numeric-cell">{row.ingredientCount}</td>
-                        <td className="ipc-numeric-cell">{row.warningIngredientCount}</td>
-                        <td className="ipc-numeric-cell">{formatPercent(row.weightedAvgVariancePercent)}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{row.ingredientCount}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{row.warningIngredientCount}</td>
+                        <td className="ipc-numeric-cell" data-cell-role="numeric">{formatPercent(row.weightedAvgVariancePercent)}</td>
                         <td className="text-left">
                           {row.topIngredients.map((ingredient) => `${ingredient.ingredientName} (${formatPercent(ingredient.variancePercent)})`).join(', ')}
                         </td>

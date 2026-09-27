@@ -58,15 +58,15 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
           inputClassName="bg-white"
         />
       </div>
-      <TableViewport ariaLabel="Nhóm dòng đơn mua chờ nhập kho" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để kiểm tra và ghi nhận nhập kho.">
+      <TableViewport ariaLabel="Nhóm dòng đơn mua chờ nhập kho" caption="Nhóm nguyên liệu theo đơn vị trong đơn mua, số lượng đã nhận/còn lại và đơn giá đặt; mở từng dòng nguồn để ghi nhận nhập kho">
       <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
         <thead>
           <tr>
-            <th className="text-left">Nguyên liệu</th>
-            <th className="text-right">Đã nhận / đặt</th>
-            <th className="text-right">Đơn giá đặt</th>
-            <th className="text-left">Bằng chứng bắt buộc</th>
-            <th className="text-right">Thao tác</th>
+            <th scope="col" className="text-left">Nguyên liệu</th>
+            <th scope="col" className="text-right">Đã nhận / đặt</th>
+            <th scope="col" className="text-right">Đơn giá đặt</th>
+            <th scope="col" className="text-left">Bằng chứng bắt buộc</th>
+            <th scope="col" className="text-right">Thao tác</th>
           </tr>
         </thead>
         <tbody>
@@ -80,8 +80,8 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
             const summary = (
               <tr key={group.key}>
                 <td><span className="block font-semibold text-slate-900">{group.ingredientName}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></td>
-                <td className="text-right tabular-nums">{group.receivedQty}/{group.orderedQty} {group.unitName}<span className="block text-xs text-slate-500">Còn {remaining} {group.unitName}</span></td>
-                <td className="text-right tabular-nums">{Math.min(...prices) === Math.max(...prices) ? formatCurrency(prices[0]) : `${formatCurrency(Math.min(...prices))}–${formatCurrency(Math.max(...prices))}`}</td>
+                <td data-cell-role="numeric" className="text-right tabular-nums">{group.receivedQty}/{group.orderedQty} {group.unitName}<span className="block text-xs text-slate-500">Còn {remaining} {group.unitName}</span></td>
+                <td data-cell-role="numeric" className="text-right tabular-nums">{Math.min(...prices) === Math.max(...prices) ? formatCurrency(prices[0]) : `${formatCurrency(Math.min(...prices))}–${formatCurrency(Math.max(...prices))}`}</td>
                 <td>{requirements.join(', ') || 'Không có yêu cầu bổ sung'}{blockerCount > 0 && <span className="block text-xs text-red-700">{blockerCount} dòng đang bị chặn</span>}{activeReceiptCount > 0 && <span className="block text-xs text-amber-800">{activeReceiptCount} dòng đã có phiếu chờ xử lý</span>}</td>
                 <td className="text-right">{group.lines.length === 1 ? (canReceive && <Button type="button" size="sm" disabled={remaining <= 0 || Boolean(group.lines[0].blockerReason) || Boolean(group.lines[0].activeReceiptId)} onClick={() => onReceive(group.lines[0])}>{remaining <= 0 ? 'Đã nhận đủ' : activeReceiptLabel(group.lines[0]) ?? 'Ghi nhận nhập kho'}</Button>) : <Button type="button" variant="outline" size="sm" aria-expanded={expanded} onClick={() => setExpandedGroupKey(expanded ? undefined : group.key)}>{expanded ? 'Đóng nguồn' : `Xem ${group.lines.length} nguồn`}</Button>}</td>
               </tr>

@@ -1041,30 +1041,31 @@ export default function ReconciliationWarehousePage() {
                 </div>
                 <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200">
                   <table className="ipc-data-table w-full text-left text-xs">
+                    <caption className="sr-only">Nguyên liệu và lượng xuất thêm theo món đã chọn</caption>
                     <thead className="bg-slate-50 sticky top-0 border-b border-slate-200 text-slate-600 font-medium">
                       <tr>
-                        <th className="p-2">Nguyên liệu</th>
-                        <th className="p-2 text-right">ĐL/suất</th>
-                        <th className="p-2 text-right">Đã xuất</th>
-                        <th className="p-2 text-right">Cần xuất thêm</th>
-                        <th className="p-2 text-right w-28">Thực xuất</th>
-                        <th className="p-2 text-right">Tổng sau xuất</th>
+                        <th scope="col" className="p-2">Nguyên liệu</th>
+                        <th scope="col" className="p-2 text-right">ĐL/suất</th>
+                        <th scope="col" className="p-2 text-right">Đã xuất</th>
+                        <th scope="col" className="p-2 text-right">Cần xuất thêm</th>
+                        <th scope="col" className="p-2 text-right w-28">Thực xuất</th>
+                        <th scope="col" className="p-2 text-right">Tổng sau xuất</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {displayedSupplementalMaterials.map((mat) => (
                         <tr key={mat.batchLineId} className="hover:bg-slate-50/50">
                           <td className="p-2 font-medium text-slate-900">{mat.ingredientName}</td>
-                          <td className="p-2 text-right tabular-nums text-slate-600">
+                          <td data-cell-role="numeric" className="p-2 text-right tabular-nums text-slate-600">
                             {mat.grossQtyPerServing} {formatUnit(mat.canonicalUnitName ?? '')}
                           </td>
-                          <td className="p-2 text-right tabular-nums text-slate-600">
+                          <td data-cell-role="numeric" className="p-2 text-right tabular-nums text-slate-600">
                             {formatQuantityWithUnit(mat.currentIssued, mat.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}
                           </td>
-                          <td className="p-2 text-right font-semibold tabular-nums text-blue-700">
+                          <td data-cell-role="numeric" className="p-2 text-right font-semibold tabular-nums text-blue-700">
                             {formatQuantityWithUnit(mat.baseCalc, mat.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}
                           </td>
-                          <td className="p-2 text-right">
+                          <td data-cell-role="numeric" className="p-2 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Input
                                 type="number"
@@ -1077,7 +1078,7 @@ export default function ReconciliationWarehousePage() {
                               <span className="text-slate-500 text-caption w-6 shrink-0">{formatUnit(mat.canonicalUnitName ?? '')}</span>
                             </div>
                           </td>
-                          <td className="p-2 text-right tabular-nums font-semibold text-slate-900">
+                          <td data-cell-role="numeric" className="p-2 text-right tabular-nums font-semibold text-slate-900">
                             {formatQuantityWithUnit(mat.totalAfter, mat.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}
                           </td>
                         </tr>

@@ -297,9 +297,9 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
           {supplementalSearch.trim() && supplementalData && <span className="pb-2 text-xs text-slate-500">{supplementalData.totalCount} kết quả</span>}
         </div>
         <QueryViewBoundary queries={[{ label: 'yêu cầu cấp bổ sung', view: supplementalView }]} refreshLabel="Đang cập nhật yêu cầu cấp bổ sung">
-        <TableViewport ariaLabel="Danh sách yêu cầu cấp nguyên liệu bổ sung" caption="Trạng thái và eligibility thao tác do máy chủ cung cấp.">
+        <TableViewport ariaLabel="Danh sách yêu cầu cấp nguyên liệu bổ sung" caption="Yêu cầu bổ sung và trạng thái xử lý theo nguyên liệu">
           <table className="ipc-data-table min-w-[980px]">
-            <thead><tr><th>Yêu cầu</th><th>Nguyên liệu</th><th className="text-right">Đã cấp / yêu cầu</th><th className="text-right">Tồn khả dụng</th><th>Trạng thái</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
+            <thead><tr><th scope="col">Yêu cầu</th><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Đã cấp / yêu cầu</th><th scope="col" className="text-right">Tồn khả dụng</th><th scope="col">Trạng thái</th><th scope="col">Hướng xử lý</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {supplementalItems.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600">Không có yêu cầu bổ sung trong phạm vi kho.</td></tr>
@@ -307,8 +307,8 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
                 <tr key={item.requestId}>
                   <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
                   <td><span className="block font-medium text-slate-900">{item.ingredientName}</span><span className="text-xs text-slate-600">{item.reason || 'Không có ghi chú'}</span></td>
-                  <td className="text-right tabular-nums"><CompactQuantity value={item.fulfilledQty} unit={item.unitName} /> / <CompactQuantity value={item.requestedQty} unit={item.unitName} /></td>
-                  <td className="text-right tabular-nums"><CompactQuantity value={item.availableQty} unit={item.unitName} /></td>
+                  <td data-cell-role="numeric" className="text-right tabular-nums"><CompactQuantity value={item.fulfilledQty} unit={item.unitName} /> / <CompactQuantity value={item.requestedQty} unit={item.unitName} /></td>
+                  <td data-cell-role="numeric" className="text-right tabular-nums"><CompactQuantity value={item.availableQty} unit={item.unitName} /></td>
                   <td title={item.purchaseRequestCode ? `${item.purchaseRequestCode}: ${formatWorkflowStatus(item.purchaseRequestStatus || '')}` : undefined}>{formatWorkflowStatus(item.status)}{item.purchaseRequestCode && <span className="block text-xs text-slate-500">Đã liên kết thu mua</span>}</td>
                   <td className="max-w-[240px] text-xs text-slate-700">
                     {item.remainingQty > 0 && <span className="block font-medium text-slate-900">Còn thiếu <CompactQuantity value={item.remainingQty} unit={item.unitName} /></span>}
@@ -334,14 +334,14 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
 
       <SectionPanel title="Đối soát nguyên liệu đã xuất" icon={<Undo2 size={18} aria-hidden="true" />} description="Theo dõi nguyên liệu đã trả, hao hụt và còn dư theo đúng khách hàng, ngày, ca và mức suất.">
         <QueryViewBoundary queries={[{ label: 'đối soát nguyên liệu theo dòng chứng từ', view: allocationView }]} refreshLabel="Đang cập nhật số liệu đối soát">
-          <TableViewport ariaLabel="Đối chiếu trả kho, hao hụt và dư thừa theo dòng chứng từ" caption="Quyết định điều chuyển giữa khách hàng chỉ xuất hiện khi hệ thống xác nhận đủ điều kiện.">
+          <TableViewport ariaLabel="Đối chiếu trả kho, hao hụt và dư thừa theo dòng chứng từ" caption="Số lượng xuất, trả, hao hụt và còn dư theo dòng chứng từ">
             <table className="ipc-data-table min-w-[1120px]">
-              <thead><tr><th>Khách hàng và ca phục vụ</th><th>Nguyên liệu</th><th className="text-right">Xuất / trả</th><th className="text-right">Hao hụt / còn dư</th><th>Hướng xử lý</th><th className="text-right">Thao tác</th></tr></thead>
+              <thead><tr><th scope="col">Khách hàng và ca phục vụ</th><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Xuất / trả</th><th scope="col" className="text-right">Hao hụt / còn dư</th><th scope="col">Hướng xử lý</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
               {allocationView.phase === 'loading' ? (
                 <SkeletonTableRow columns={6} rowCount={20} density="comfortable" />
               ) : (
                 <tbody>{allocationRows.length === 0 ? <tr><td colSpan={6} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationPageRows.map((row) => (
-                  <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span><span className="text-xs text-slate-500">{row.unitName || 'Chưa có tên đơn vị'}</span></td><td className="text-right text-xs tabular-nums"><span className="block">Xuất: <CompactQuantity value={row.issuedQuantity} unit={row.unitName ?? ''} /></span><span className="block">Trả: <CompactQuantity value={row.returnedQuantity} unit={row.unitName ?? ''} /></span></td><td className="text-right text-xs tabular-nums"><span className="block">Hao hụt: <CompactQuantity value={row.wastedQuantity} unit={row.unitName ?? ''} /></span><span className="block font-semibold">Còn dư: <CompactQuantity value={row.excessQuantity} unit={row.unitName ?? ''} /></span></td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
+                  <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span><span className="text-xs text-slate-500">{row.unitName || 'Chưa có tên đơn vị'}</span></td><td data-cell-role="numeric" className="text-right text-xs tabular-nums"><span className="block">Xuất: <CompactQuantity value={row.issuedQuantity} unit={row.unitName ?? ''} /></span><span className="block">Trả: <CompactQuantity value={row.returnedQuantity} unit={row.unitName ?? ''} /></span></td><td data-cell-role="numeric" className="text-right text-xs tabular-nums"><span className="block">Hao hụt: <CompactQuantity value={row.wastedQuantity} unit={row.unitName ?? ''} /></span><span className="block font-semibold">Còn dư: <CompactQuantity value={row.excessQuantity} unit={row.unitName ?? ''} /></span></td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
                 ))}</tbody>
               )}
             </table>
@@ -360,9 +360,9 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
           {returnSearch.trim() && returnsData && <span className="pb-2 text-xs text-slate-500">{returnsData.totalCount} kết quả</span>}
         </div>
         <QueryViewBoundary queries={[{ label: 'phiếu trả', view: returnsView }]} refreshLabel="Đang cập nhật phiếu trả">
-        <TableViewport ariaLabel="Danh sách phiếu trả nguyên liệu chờ tiếp nhận" caption="Kho mở từng phiếu để kiểm đếm số thực nhận.">
+        <TableViewport ariaLabel="Danh sách phiếu trả nguyên liệu chờ tiếp nhận" caption="Phiếu trả và hao hụt chờ kho kiểm đếm, tiếp nhận">
           <table className="ipc-data-table min-w-[820px]">
-            <thead><tr><th>Phiếu trả</th><th>Loại</th><th>Phiếu xuất gốc</th><th>Ngày/ca</th><th>Lý do</th><th>Trạng thái</th><th className="text-right">Thao tác</th></tr></thead>
+            <thead><tr><th scope="col">Phiếu trả</th><th scope="col">Loại</th><th scope="col">Phiếu xuất gốc</th><th scope="col">Ngày/ca</th><th scope="col">Lý do</th><th scope="col">Trạng thái</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {returnItems.length === 0 ? (
                 <tr><td colSpan={7} className="text-center text-slate-600">Không có phiếu trả hoặc hao hụt đang chờ kho.</td></tr>

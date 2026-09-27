@@ -71,6 +71,16 @@ describe('WeeklyMenuImportJobs confirmation contract', () => {
     expect(screen.getByRole('button', { name: 'Lưu toàn bộ file' })).toBeDisabled()
   })
 
+  it('exposes the import-job grain with scoped headers and numeric read results', () => {
+    render(<WeeklyMenuImportJobs workflow={buildWorkflow(vi.fn(), vi.fn())} />)
+
+    const table = screen.getByRole('table')
+    expect(screen.getByRole('region', { name: 'Danh sách file thực đơn chờ kiểm tra' })).toHaveAccessibleDescription('Mỗi dòng là một file thực đơn đang chờ kiểm tra và lưu')
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(6)
+    within(table).getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
+    expect(within(table).getByText('Dòng món: 12').closest('td')).toHaveAttribute('data-cell-role', 'numeric')
+  })
+
   it('keeps check, save and remove actions inside a dedicated non-overlapping column', () => {
     render(<WeeklyMenuImportJobs workflow={buildWorkflow(vi.fn(), vi.fn())} />)
 

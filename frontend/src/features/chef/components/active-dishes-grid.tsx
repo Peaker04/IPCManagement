@@ -90,16 +90,16 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                     <Separator className="bg-slate-200" />
                     <TableViewport
                       ariaLabel={`Định lượng nguyên liệu cho ${dish.name}`}
-                      caption={`Danh sách nguyên liệu cho ${dish.name}`}
+                      caption={`Định lượng gộp theo nguyên liệu và đơn vị của ${dish.name}`}
                       className="ipc-chef-bom-shell"
                     >
                       <div id={`dish-bom-${dish.id}`} role="region" aria-label={`Định lượng ${dish.name}`}>
                       <Table className="ipc-chef-bom-table text-xs">
                         <TableHeader>
                           <TableRow className="border-slate-200 hover:bg-transparent">
-                            <TableHead className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
-                            <TableHead className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
-                            <TableHead className="text-slate-600 font-semibold text-right">Số lượng cần</TableHead>
+                            <TableHead scope="col" className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
+                            <TableHead scope="col" className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
+                            <TableHead scope="col" className="text-slate-600 font-semibold text-right">Số lượng cần</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -110,7 +110,7 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                             >
                               <TableCell className="text-slate-800 font-medium">{ing.ingredientName}</TableCell>
                               <TableCell className="text-slate-500 text-right">{formatUnit(ing.unit)}</TableCell>
-                              <TableCell className="text-slate-800 font-semibold text-right">
+                              <TableCell data-cell-role="numeric" className="text-slate-800 font-semibold text-right">
                                 {formatQuantity(ing.grossQty)}
                               </TableCell>
                             </TableRow>

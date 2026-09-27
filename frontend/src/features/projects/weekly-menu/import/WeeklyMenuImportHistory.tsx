@@ -14,12 +14,12 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
       description="Danh sách các phiên import thực đơn đã thực hiện, trạng thái và khả năng hủy phiên."
     >
       <QueryViewBoundary preserveFallback={history.length > 0} queries={[{ label: 'lịch sử import thực đơn tuần', view: workflow.historyDataState }]} refreshLabel="Đang cập nhật lịch sử import">
-        <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần" frozenFirstIdentifier={false}>
+        <TableViewport caption="Mỗi dòng là một phiên bản thực đơn tuần đã import" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần" frozenFirstIdentifier={false}>
           <table className="ipc-data-table table-fixed">
             <thead>
               <tr>
-                <th className="text-left">Khách hàng</th><th className="text-left">Tuần</th><th className="text-center">Phiên bản</th>
-                <th className="text-center">Trạng thái</th><th className="text-center">Dòng</th><th className="text-left">Người tạo</th><th className="text-right">Thao tác</th>
+                <th scope="col" className="text-left">Khách hàng</th><th scope="col" className="text-left">Tuần</th><th scope="col" className="text-center">Phiên bản</th>
+                <th scope="col" className="text-center">Trạng thái</th><th scope="col" className="text-center">Dòng</th><th scope="col" className="text-left">Người tạo</th><th scope="col" className="text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -29,10 +29,10 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
                 return (
                   <tr key={item.menuVersionId}>
                     <td>{item.customerCode} - {item.customerName}</td>
-                    <td>{formatImportDate(item.weekStartDate)}</td>
-                    <td className="text-center">v{item.versionNo}</td>
+                    <td data-cell-role="numeric">{formatImportDate(item.weekStartDate)}</td>
+                    <td data-cell-role="numeric" className="text-center">v{item.versionNo}</td>
                     <td className="text-center"><StatusBadge variant={statusPresentation.tone}>{statusPresentation.label}</StatusBadge></td>
-                    <td className="text-center text-xs tabular-nums">
+                    <td data-cell-role="numeric" className="text-center text-xs tabular-nums">
                       {item.successRowCount} thành công{item.errorRowCount > 0 ? ` / ${item.errorRowCount} lỗi` : ''}{item.warningRowCount > 0 ? ` / ${item.warningRowCount} cảnh báo` : ''}
                     </td>
                     <td>{item.createdByName ?? '-'}</td>

@@ -49,14 +49,14 @@ export function RoleInbox({
   return (
     <div className={cn('ipc-role-inbox', className)}>
       {title && <h4>{title}</h4>}
-      <TableViewport className="ipc-logistics-table-shell" ariaLabel="Bảng hàng đợi theo vai trò" caption="Danh sách việc đang chờ theo vai trò">
+      <TableViewport className="ipc-logistics-table-shell" ariaLabel="Bảng hàng đợi theo vai trò" caption="Công việc và chứng từ theo hạn xử lý, người phụ trách và hành động của vai trò">
         <table className="ipc-data-table ipc-logistics-table ipc-role-inbox-table">
           <thead>
             <tr>
-              <th className="!text-left">Việc / chứng từ</th>
-              <th className="!text-left">{uiCopy.workflow.deadline}</th>
-              <th className="!text-left">{uiCopy.workflow.owner}</th>
-              {hasActions ? <th className="!text-right">{uiCopy.workflow.action}</th> : null}
+              <th scope="col" className="!text-left">Việc / chứng từ</th>
+              <th scope="col" className="!text-left">{uiCopy.workflow.deadline}</th>
+              <th scope="col" className="!text-left">{uiCopy.workflow.owner}</th>
+              {hasActions ? <th scope="col" className="!text-right">{uiCopy.workflow.action}</th> : null}
             </tr>
           </thead>
           <tbody>

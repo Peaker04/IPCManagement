@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '@/features/auth';
@@ -11,27 +11,19 @@ import { getWorkflowContextForPath, toneFromStatus } from '@/lib/workflowConfig'
 import { apiSlice } from '@/api/apiSlice';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
 import { uiCopy } from '@/lib/uiCopy';
-import { readNavigationPreferences, readReconciliationSelection, type NavigationPreferenceKey } from '@/lib/navigationPreferences';
+import { readNavigationPreferences, readReconciliationSelection } from '@/lib/navigationPreferences';
 import { useSystemOperation } from '@/lib/systemOperationContext';
 import { SystemOperationProvider } from '@/app/providers/SystemOperationProvider';
 import { isRouteVisibleToPermissions } from '@/lib/systemOperationEligibility';
-import { canAccessRole, type AppRole } from '@/lib/auth/roleUtils';
+import { canAccessRole } from '@/lib/auth/roleUtils';
 import { getDateTimeFormat } from '@/lib/formatters';
+import { navigationRoutes, routeMetadataForPath, routeRegistry } from '@/routes/routeRegistry';
 import {
-  ChefHat,
-  LayoutDashboard,
   CalendarDays,
-  TrendingUp,
+  ChefHat,
   LogOut,
-  Utensils,
-  ClipboardCheck,
-  ShoppingCart,
-  Warehouse,
-  Database,
   Menu,
-  Settings,
   SlidersHorizontal,
-  Scale,
   X,
 } from 'lucide-react';
 
@@ -42,19 +34,7 @@ const preloadNavigationTarget = (path: string, mode: 'DEFAULT' | 'MATERIAL_RECON
   void preloadRouteData(path, mode);
 };
 
-const menuItems: Array<{ path: string; label: string; icon: ReactNode; preferenceKey: NavigationPreferenceKey; requiredPermissions?: string[]; reconciliationOnly?: boolean; reconciliationRoles?: AppRole[] }> = [
-  { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} />, preferenceKey: 'dashboard' },
-  { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, preferenceKey: 'weekly-menu', requiredPermissions: ['coordination.read'], reconciliationRoles: ['admin', 'dieuphoi'] },
-  { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, preferenceKey: 'meal-orders', requiredPermissions: ['coordination.read'] },
-  { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, preferenceKey: 'approvals', requiredPermissions: ['purchase.request.approve'] },
-  { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, preferenceKey: 'purchasing', requiredPermissions: ['purchase.read'] },
-  { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, preferenceKey: 'warehouse', requiredPermissions: ['warehouse.read'], reconciliationRoles: ['admin', 'thukho'] },
-  { path: ROUTES.RECONCILIATION, label: 'Đối chiếu', icon: <Scale size={18} />, preferenceKey: 'reconciliation', requiredPermissions: ['report.read'], reconciliationOnly: true, reconciliationRoles: ['admin', 'quanly', 'beptruong'] },
-  { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, preferenceKey: 'chef-dashboard', requiredPermissions: ['production.read'] },
-  { path: ROUTES.REPORTS, label: 'Báo cáo vận hành', icon: <TrendingUp size={18} />, preferenceKey: 'reports', requiredPermissions: ['report.read'] },
-  { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, preferenceKey: 'admin-data', requiredPermissions: ['*'] },
-  { path: ROUTES.APPROVAL_RULES, label: 'Thiết lập quy trình duyệt', icon: <Settings size={18} />, preferenceKey: 'approval-rules', requiredPermissions: ['*'] },
-];
+const menuItems = navigationRoutes;
 
 const MainLayoutContent = () => {
   const dispatch = useAppDispatch();
@@ -74,8 +54,8 @@ const MainLayoutContent = () => {
   const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
   const visibleMenuItems = useMemo(() => menuItems.filter((item) => {
     if (item.reconciliationOnly && systemOperation?.mode !== 'MATERIAL_RECONCILIATION') return false;
-    if (systemOperation?.mode === 'MATERIAL_RECONCILIATION' && item.reconciliationRoles && !canAccessRole(currentUser, item.reconciliationRoles)) return false;
-    if (!navigationPreferences[item.preferenceKey]) return false;
+    if (systemOperation?.mode === 'MATERIAL_RECONCILIATION' && item.reconciliationRoles && !canAccessRole(currentUser, [...item.reconciliationRoles])) return false;
+    if (!item.preferenceKey || !navigationPreferences[item.preferenceKey]) return false;
     return isRouteVisibleToPermissions(
       systemOperation?.mode ?? 'DEFAULT',
       item.path,
@@ -102,38 +82,12 @@ const MainLayoutContent = () => {
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 
-  const pageContext = (() => {
-    switch (location.pathname) {
-      case ROUTES.DASHBOARD:
-        return { title: 'Bàn điều hành hôm nay', workflow: 'Tổng quan vận hành', state: 'Theo dõi điểm tắc' };
-      case ROUTES.WEEKLY_MENU:
-        return { title: 'Thực đơn tuần', workflow: workflowContext.lane.label, state: 'Theo dõi kế hoạch tuần' };
-      case ROUTES.MEAL_ORDERS:
-        return { title: 'Điều phối suất ăn', workflow: workflowContext.lane.label, state: 'Theo dõi chốt suất' };
-      case ROUTES.CHEF_DASHBOARD:
-        return { title: 'Bếp sản xuất', workflow: workflowContext.lane.label, state: 'Theo dõi chế biến' };
-      case ROUTES.REPORTS:
-        return { title: 'Báo cáo vận hành', workflow: 'Báo cáo vận hành', state: 'Theo dõi vận hành' };
-      case ROUTES.APPROVALS:
-        return { title: 'Duyệt vận hành', workflow: workflowContext.lane.label, state: 'Theo dõi phê duyệt' };
-      case ROUTES.PURCHASING:
-        return { title: 'Thu mua', workflow: workflowContext.lane.label, state: 'Theo dõi tiến độ mua' };
-      case ROUTES.WAREHOUSE:
-        return { title: 'Kho nguyên liệu', workflow: workflowContext.lane.label, state: 'Theo dõi xuất nhập kho' };
-      case ROUTES.RECONCILIATION:
-        return { title: 'Đối chiếu nguyên liệu', workflow: 'Đối chiếu', state: 'Theo dõi sai lệch' };
-      case ROUTES.ADMIN_DATA:
-        return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: 'Theo dõi dữ liệu nguồn' };
-      case ROUTES.APPROVAL_RULES:
-        return { title: 'Thiết lập quy trình duyệt', workflow: 'Phê duyệt', state: 'Cấu hình hệ thống' };
-      case ROUTES.ADVANCED_SETTINGS:
-        return { title: 'Thiết lập nâng cao', workflow: 'Quản trị hệ thống', state: 'Cấu hình hiển thị' };
-      case ROUTES.FORBIDDEN:
-        return { title: 'Không đủ quyền truy cập', workflow: 'Phân quyền', state: 'Bị từ chối' };
-      default:
-        return { title: 'Hệ thống Quản lý Bếp ăn', workflow: 'Vận hành', state: 'Đang hoạt động' };
-    }
-  })();
+  const routeMetadata = routeMetadataForPath(location.pathname) ?? routeRegistry[ROUTES.DASHBOARD];
+  const pageContext = {
+    title: routeMetadata.shellTitle,
+    workflow: routeMetadata.workflow ?? workflowContext.lane.label,
+    state: routeMetadata.headerState,
+  };
 
   const scopedServiceDate = location.pathname === ROUTES.WEEKLY_MENU
     ? new URLSearchParams(location.search).get('weekStartDate')
@@ -196,6 +150,7 @@ const MainLayoutContent = () => {
         >
           {visibleMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const Icon = item.icon!;
             return (
               <Link
                 key={item.path}
@@ -210,8 +165,8 @@ const MainLayoutContent = () => {
                   isActive ? 'is-active' : '',
                 ].join(' ')}
               >
-                <span className="ipc-nav-icon">{item.icon}</span>
-                <span className="ipc-nav-label">{item.label}</span>
+                <span className="ipc-nav-icon"><Icon size={18} /></span>
+                <span className="ipc-nav-label">{item.navLabel}</span>
               </Link>
             );
           })}
@@ -298,11 +253,11 @@ const MainLayoutContent = () => {
           id="ipc-main-content"
           className="ipc-main"
           tabIndex={-1}
-          data-ui-owner={ownershipForRoute(location.pathname).ownerId}
-          data-ui-floorplan={ownershipForRoute(location.pathname).floorplanId}
-          data-ui-region={ownershipForRoute(location.pathname).regionId}
+          data-ui-owner={routeMetadata.ownership?.ownerId ?? routeRegistry[ROUTES.DASHBOARD].ownership!.ownerId}
+          data-ui-floorplan={routeMetadata.ownership?.floorplanId ?? routeRegistry[ROUTES.DASHBOARD].ownership!.floorplanId}
+          data-ui-region={routeMetadata.ownership?.regionId ?? routeRegistry[ROUTES.DASHBOARD].ownership!.regionId}
         >
-          <UiOwnershipContext.Provider value={ownershipForRoute(location.pathname)}>
+          <UiOwnershipContext.Provider value={routeMetadata.ownership ?? routeRegistry[ROUTES.DASHBOARD].ownership!}>
             <Outlet />
           </UiOwnershipContext.Provider>
         </main>
@@ -312,23 +267,5 @@ const MainLayoutContent = () => {
 };
 
 export const MainLayout = () => <SystemOperationProvider><MainLayoutContent /></SystemOperationProvider>;
-
-const routeOwnership = {
-   [ROUTES.ADMIN_DATA]: { ownerId: 'uio-0', floorplanId: 'uif-0', regionId: 'uir-0' },
-   [ROUTES.ADVANCED_SETTINGS]: { ownerId: 'uio-8', floorplanId: 'uif-8', regionId: 'uir-8' },
-   [ROUTES.APPROVAL_RULES]: { ownerId: 'uio-9', floorplanId: 'uif-9', regionId: 'uir-9' },
-   [ROUTES.APPROVALS]: { ownerId: 'uio-a', floorplanId: 'uif-a', regionId: 'uir-a' },
-   [ROUTES.CHEF_DASHBOARD]: { ownerId: 'uio-d', floorplanId: 'uif-d', regionId: 'uir-d' },
-   [ROUTES.DASHBOARD]: { ownerId: 'uio-g', floorplanId: 'uif-g', regionId: 'uir-g' },
-   [ROUTES.FORBIDDEN]: { ownerId: 'uio-h', floorplanId: 'uif-h', regionId: 'uir-h' },
-   [ROUTES.MEAL_ORDERS]: { ownerId: 'uio-j', floorplanId: 'uif-j', regionId: 'uir-j' },
-   [ROUTES.PURCHASING]: { ownerId: 'uio-k', floorplanId: 'uif-k', regionId: 'uir-k' },
-   [ROUTES.REPORTS]: { ownerId: 'uio-t', floorplanId: 'uif-t', regionId: 'uir-t' },
-   [ROUTES.RECONCILIATION]: { ownerId: 'uio-o', floorplanId: 'uif-o', regionId: 'uir-o' },
-   [ROUTES.WAREHOUSE]: { ownerId: 'uio-13', floorplanId: 'uif-13', regionId: 'uir-13' },
-   [ROUTES.WEEKLY_MENU]: { ownerId: 'uio-17', floorplanId: 'uif-17', regionId: 'uir-17' },
-} as const;
-
-const ownershipForRoute = (pathname: string) => routeOwnership[pathname as keyof typeof routeOwnership] ?? routeOwnership[ROUTES.DASHBOARD];
 
 import { UiOwnershipContext } from '@/components/common/OperationalFrame';

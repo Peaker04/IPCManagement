@@ -492,3 +492,156 @@ Owner: `.planning/notes/project-information-simplification-PLAN.md` §15. Eviden
 | `full/browser/lifecycle.json` | `22095E009EDA70237203828317BB7ED12AEE82F1A83DC4A798FDF33568B5FBD6` | 25 headed lifecycle steps PASS; zero console/page/request failures. |
 | `full/db/final.json` | `0D55A84962AE4CEFAB016072905DAA146333C2695314DAA8F3FDA666FB68B427` | Final collector confirms DEFAULT mode/lifecycle status and no protected database reference. |
 | `full/manifest.json` | `87D15FF26D26FD892EAA9370425DB3327BF66B7974C35A627EA57158526EA674` | Immutable run manifest for source/runtime/evidence paths. |
+
+## FE design-system Wave 4 Chef family 9 — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §§36–40. Authenticated DEFAULT version 69 at three desktop viewports; production table mounted naturally empty, while material/expanded BOM and documents tables remained unmounted in their natural no-meals/no-documents states. Zero overflow, browser/API errors or unexpected mutations. These hashes do **not** certify populated cells or MRX.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family9a-chef-production-default-20260926/focused/result.json` | `0f967d0c4ed1859a5696b27ea2a82ea488199d25151dd23277bdc11928792d34` | 9A production-plan mounted table and truthful empty row. |
+| `.artifacts/shipyard-live/fe-design-system/wave4-family9bcd-chef-default-20260926/focused/result.json` | `11cff9c1dd75ffe2107ab6f788e3cef3b61b491fec209a99f970154d5fee7831` | 9B/9C no-meals and 9D no-documents states; populated surfaces NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Weekly Menu cost — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §41. Authenticated DEFAULT version 69, three desktop viewports. No customer selected: only prerequisite visible. Hidden/inert retained table DOM does not certify the two cost tables. Zero overflow, browser/API errors or unexpected mutations. MRX cost tab `NOT_APPLICABLE`.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family10a-weekly-menu-cost-default-20260926/focused/result.json` | `b1155ccb7153597af82d29758f8c13212a3d814b8f74d4e39c4fb476c04b8543` | DEFAULT prerequisite PASS; both visible cost tables NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Weekly Menu production plan — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §42. Authenticated DEFAULT version 69, three desktop viewports, natural no-selected-customer prerequisite. Plan-line table not visible and remains NEEDS_EVIDENCE. Zero overflow, browser/API errors or unexpected mutations; MRX production-plan tab NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family10b-weekly-menu-production-default-20260926/focused/result.json` | `b6fb83c11dca8f0fba4c061e16f7a1472ccf8e68a64006b753ac27cea851dc81` | DEFAULT prerequisite PASS, visible plan-line table NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Weekly Menu purchase summary — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §43. Authenticated DEFAULT version 69, three desktop viewports, natural no-selected-customer prerequisite. Both daily handoff and weekly BOM table variants hidden and remain NEEDS_EVIDENCE. Zero overflow, browser/API errors or unexpected mutations; MRX purchase-summary tab NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family10c-weekly-menu-purchase-default-20260926/focused/result.json` | `f17869c6140fd45083a22de6eddf79f0edee25234d924590506be4949cda9a76` | DEFAULT prerequisite PASS, visible purchase table variants NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Weekly Menu dish materials — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §§44–45. Authenticated DEFAULT version 69, three desktop viewports, natural no-selected-customer prerequisite. Selected-dish materials table hidden/inert and remains NEEDS_EVIDENCE. Zero overflow, browser/API errors or unexpected mutations; MRX dish-materials tab NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family10d-weekly-menu-dish-materials-default-20260926/focused/result.json` | `71abadc611ad5716238ecd87542a25dab4eb4a702aaa9b91fa8d4de77f105f40` | DEFAULT prerequisite PASS, visible selected-dish table NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Admin customer contracts — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §46. Authenticated DEFAULT version 69, naturally populated contract table at three desktop viewports, seven scoped headers/four numeric cells, zero overflow, browser/API errors or unexpected mutations. Ready-empty unobserved; MRX contracts NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family11a-admin-contracts-default-20260926/focused/result.json` | `03b248ed80acd21b5d788b44deec96cb678f95e8f43642b4e2ebe54c4928e534` | DEFAULT populated contract-table browser PASS, ready-empty NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Admin data-quality cleanup — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §47. Authenticated DEFAULT version 69, naturally populated issue table at three desktop viewports, six scoped headers, zero document overflow, 2px internal table-region overflow at 1366px, zero browser/API errors or unexpected mutations. Ready-empty unobserved; MRX cleanup NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family11b-admin-cleanup-default-20260926/focused/result.json` | `546a2a7af9b463546c86915fdb4b443d99a5a4ac8ca0ec3b9a6a040b1fc028c9` | DEFAULT populated issue-table browser PASS; ready-empty NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Admin employees — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §§48–49. Authenticated DEFAULT version 69, naturally populated staff table at three desktop viewports, six scoped headers/seven created-date cells, zero overflow, browser/API errors or unexpected mutations. Ready-empty unobserved; MRX employees NOT_APPLICABLE. Evidence report records only presentation metadata, not staff identities.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family11c-admin-employees-default-20260926/focused/result.json` | `de3840d8c11bc681bc8ebc7e5d89a8002f6546acb2d12b7bab0884497f3f5622` | DEFAULT populated employee-table browser PASS; ready-empty NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Admin statistics — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §50. Authenticated DEFAULT version 69, naturally visible nine-row KPI table at three desktop viewports; five scoped headers/nine numeric cells, zero overflow, browser/API errors or unexpected mutations. MRX statistics NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family12a-admin-statistics-default-20260926/focused/result.json` | `9f1dc515955553b8bf7a4bb809a300d6767fef7319ff9b61b3b84d57125298df` | DEFAULT KPI table browser PASS. |
+
+## FE design-system Wave 4 Warehouse purchase-order groups — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §§51–52. Authenticated DEFAULT version 69. Naturally populated parent receiving table at three desktop viewports; selected-order source groups not mounted and remain NEEDS_EVIDENCE. Parent owns internal 122px/48px/0px horizontal overflow, no document overflow, browser/API errors or unexpected mutations. MRX receiving composition NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family12b-warehouse-order-lines-default-20260926/focused/result.json` | `e86d14b42348296a752aacc3460678c79ff6e0928576cf8a8c6a3e7e5232619f` | DEFAULT parent table PASS, selected-order groups NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 shared DemandSummary — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §53. Authenticated DEFAULT version 69, naturally populated Warehouse demand at three desktop viewports, six scoped headers/16 numeric cells, zero document/region overflow, browser/API errors or unexpected mutations. Does not certify Weekly Menu demand or MRX; both remain NEEDS_EVIDENCE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family13-demand-summary-default-20260926/focused/result.json` | `da59a9250b036057c8e418d64950c1a30f34797e8ec4a83718b66a2e9d0d95a5` | DEFAULT Warehouse demand PASS only; shared Weekly/MRX cells NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Warehouse RoleInbox — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §54. DEFAULT Warehouse parent demand naturally populated at three desktop viewports, but no role inbox items, so `RoleInbox` not mounted and remains NEEDS_EVIDENCE. Zero overflow, browser/API errors or unexpected mutations. MRX has no direct RoleInbox consumer.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family14-role-inbox-default-20260926/focused/result.json` | `e527c5053d50eaa0910425154edd28a51160afe6b13e4166d4e8fa0f178b755f` | DEFAULT parent demand PASS; role inbox table NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Weekly Menu import jobs — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §55. Authenticated DEFAULT version 69, natural ready-empty import-jobs table at three desktop viewports, expected job-grain caption and six scoped headers, zero region/document overflow, browser/API errors or unexpected mutations. No file/customer/job action occurred. Populated rows and numeric preview cells remain NEEDS_EVIDENCE; MRX import workflow is NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family15-weekly-import-jobs-default-20260927/focused/result.json` | `bb32f45a4bc951d6635d9e38e69ae178c2aa005e064702f88f0644209a1a7a09` | DEFAULT ready-empty import-jobs browser PASS; populated numeric cells NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Weekly Menu import history — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §§56–57. Authenticated DEFAULT version 69, naturally populated seven-row history table at three desktop viewports, expected menu-version caption, seven scoped headers and 21 numeric/date cells. Seven rollback controls were observed but not activated. Zero region/document overflow, browser/API errors or unexpected mutations. Ready-empty history remains NEEDS_EVIDENCE; MRX import workflow is NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family16-weekly-import-history-default-20260927/focused/result.json` | `7b5f223e06ed610653e69731bbe12a30be1fb39d29ac6e38758b997e4c6f5f41` | DEFAULT populated import-history browser PASS; ready-empty and destructive rollback interaction not claimed. |
+
+## FE design-system Wave 4 Weekly Menu schedule editor — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §58. Authenticated DEFAULT version 69, visible weekly editor matrix at three desktop viewports, expected row/day-grain caption, seven scoped headers and 12 numeric serving cells. Zero region/document overflow, browser/API errors or unexpected mutations. No editor action or scope change occurred. This artifact certifies DEFAULT only; MRX remains NEEDS_EVIDENCE for the `BOTH` family.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family17-weekly-schedule-editor-default-20260927/focused/result.json` | `c30ad72d0775afa83e6b85fa6f135898681524f63ebc8bd3df39d9209ed4d061` | DEFAULT schedule-editor matrix browser PASS; MRX browser NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 Warehouse receipt lifecycle — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §59. Authenticated DEFAULT version 69. The naturally populated parent receiving table passes three desktop viewports with internal 122px/48px/0px horizontal overflow and no document overflow, browser/API errors or unexpected mutations. No purchase order was selected, so the receipt lifecycle table did not mount and remains NEEDS_EVIDENCE. MRX receiving is NOT_APPLICABLE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-family18-warehouse-receipt-lifecycle-default-20260927/focused/result.json` | `907d4db450d6d22a25b41ef6694553f0bf692bfa762a74afb7b9fd6d07ef2de3` | DEFAULT parent receiving PASS; selected-order receipt lifecycle table NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 shared table CSS ownership — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §61. Authenticated DEFAULT version 69, 9/9 cells across Admin inventory, Reports stock and Warehouse receiving at three desktop viewports. Mounted tables retain collapse, fixed/auto layout where declared by the component, surface/header/grid geometry, scoped headers, standard density and zero document overflow; Warehouse retains intentional internal horizontal scroll. Zero browser/API errors or unexpected mutations. MRX compositions remain NEEDS_EVIDENCE. The earlier `focused/result.json` attempt used an unavailable Weekly Menu natural state and an over-strict fixed-layout oracle, so it is not authoritative.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-css-table-ownership-default-20260927/retry1/result.json` | `16ab856f2daa1ccb15d16ceabdca6c27b9df18bfcfd289239dee499117532205` | DEFAULT shared table CSS ownership browser PASS; MRX browser NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 responsive table-polish ownership — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §62. Authenticated DEFAULT version 69, 9/9 Admin inventory, Reports stock and Warehouse receiving cells at three desktop viewports. Canonical table header weight is now consistently 700 after removing the later responsive override; collapse/layout/surface/grid/padding/row geometry and intentional Warehouse internal overflow remain valid. Zero document overflow, browser/API errors or unexpected mutations. MRX remains NEEDS_EVIDENCE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-responsive-table-polish-default-20260927/focused/result.json` | `d578c3f9e236d6db8269c38df10b22b8593840444f3df87ef0fd8aba1eb0e53b` | DEFAULT responsive table-polish ownership PASS; MRX browser NEEDS_EVIDENCE. |
+
+## FE design-system Wave 4 table viewport/sticky ownership — DEFAULT read-only browser evidence
+
+Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §63. Authenticated DEFAULT version 69, 9/9 Admin inventory, Reports stock and Warehouse receiving cells at three desktop viewports. After removing unconditional redesign viewport/sticky overrides, computed table headers retain sticky positioning at top 0 with canonical z-index 6, weight 700 and expected surface/grid/row geometry. Warehouse retains intentional internal scroll; document overflow, browser/API errors and unexpected mutations are zero. MRX remains NEEDS_EVIDENCE.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/shipyard-live/fe-design-system/wave4-viewport-sticky-ownership-default-20260927/focused/result.json` | `f3bda9ab39bd65fb9b9521a2c40bf19438b2a9ecf62d692d729a8e54683ec067` | DEFAULT viewport/sticky ownership browser PASS; MRX browser NEEDS_EVIDENCE. |

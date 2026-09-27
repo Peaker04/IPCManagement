@@ -221,7 +221,7 @@ describe('Admin BOM form feedback', () => {
 
     render(<AdminBomPanel model={model} />);
 
-    const viewport = screen.getByRole('region', { name: 'BOM hiện tại theo đơn giá' });
+    const viewport = screen.getByRole('region', { name: 'BOM đang áp dụng theo món, nguyên liệu và đơn giá' });
     expect(viewport).toHaveClass('ipc-table-viewport');
     const table = screen.getByRole('table');
     expect(viewport).toContainElement(table);

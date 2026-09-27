@@ -52,12 +52,12 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
         </div>
       }
     >
-      <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className={cn(typography.body, 'max-h-[260px]')} ariaLabel="Danh sách file thực đơn chờ kiểm tra" frozenFirstIdentifier={false}>
+      <TableViewport caption="Mỗi dòng là một file thực đơn đang chờ kiểm tra và lưu" className={cn(typography.body, 'max-h-[260px]')} ariaLabel="Danh sách file thực đơn chờ kiểm tra" frozenFirstIdentifier={false}>
         <table className="ipc-data-table min-w-[1040px] table-fixed">
           <thead><tr>
-            <th className="text-left whitespace-nowrap">Khách hàng</th><th className="text-left whitespace-nowrap">Tuần / định mức</th>
-            <th className="text-left whitespace-nowrap">File</th><th className="text-left whitespace-nowrap">Kết quả đọc</th>
-            <th className="text-center whitespace-nowrap">Trạng thái</th><th className="w-[220px] text-right whitespace-nowrap">Thao tác</th>
+            <th scope="col" className="text-left whitespace-nowrap">Khách hàng</th><th scope="col" className="text-left whitespace-nowrap">Tuần / định mức</th>
+            <th scope="col" className="text-left whitespace-nowrap">File</th><th scope="col" className="text-left whitespace-nowrap">Kết quả đọc</th>
+            <th scope="col" className="text-center whitespace-nowrap">Trạng thái</th><th scope="col" className="w-[220px] text-right whitespace-nowrap">Thao tác</th>
           </tr></thead>
           <tbody>
             {filteredJobs.map((job) => {
@@ -67,7 +67,7 @@ export function WeeklyMenuImportJobs({ workflow }: { workflow: WeeklyMenuImportW
                   <td className="text-left"><Button type="button" variant="outline" size="xs" textWrap="wrap" onClick={() => actions.selectJob(job.jobId)} className="w-full justify-start text-left font-bold text-slate-900 hover:text-blue-700">{job.customerCode} - {job.customerName}</Button></td>
                   <td className="text-left"><span className="block font-medium whitespace-nowrap">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</span><span className="mt-1 inline-block rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700">{formatBomTierLabel(job.priceTierAmount)}</span></td>
                   <td className="text-left"><div className="flex min-w-0 flex-col"><span className="break-words font-semibold text-slate-800">{job.fileName}</span><span className="text-xs text-slate-500">{formatFileSize(job.fileSize)}</span></div></td>
-                  <td className="text-left text-xs"><span className="block">Bố cục: {preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : 'Chưa đọc'}</span><span className="block font-semibold tabular-nums">Dòng món: {preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</span></td>
+                  <td data-cell-role="numeric" className="text-left text-xs"><span className="block">Bố cục: {preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : 'Chưa đọc'}</span><span className="block font-semibold tabular-nums">Dòng món: {preview ? formatNumber(preview.detectedLayout.rowsImported) : '-'}</span></td>
                   <td className="text-center whitespace-nowrap"><StatusBadge variant={getImportJobStatusTone(job.status)} className="min-w-[116px] justify-center whitespace-nowrap">{getImportJobStatusLabel(job.status)}</StatusBadge></td>
                   <td className="text-right"><div data-testid="import-job-actions" className="flex flex-nowrap justify-end gap-1.5 whitespace-nowrap">
                     <Button type="button" variant="outline" size="xs" className="min-w-0 shrink-0 px-2" onClick={() => void actions.previewJob(job.jobId)} disabled={status.isImporting || job.status === 'committed'}>Kiểm tra</Button>

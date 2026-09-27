@@ -32,7 +32,7 @@ export function ChefDocumentsSection({ movements, documents, isError = false, is
           />
         ) : (
           <>
-            {movements.length > 0 ? <StockMovementTable movements={movements} /> : <EmptyState title="Chưa có bút toán kho trong ca này." />}
+            {movements.length > 0 ? <StockMovementTable movements={movements} ariaLabel="Luân chuyển kho của bếp trong ca" caption="Bút toán nhập, xuất và trả kho theo chứng từ và nguyên liệu của ca bếp" /> : <EmptyState title="Chưa có bút toán kho trong ca này." />}
             {documents.length > 0 ? <DocumentRail documents={documents} title="Phiếu trả kho" /> : <EmptyState title="Chưa có phiếu trả kho trong ca này." />}
           </>
         )}

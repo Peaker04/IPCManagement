@@ -237,7 +237,10 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
 
                 <KeepAliveTabPanel id="bom-current" active={bomPanelMode === 'current'} className="min-w-0">
                   <div className="min-w-0 max-w-full">
-                    <TableViewport ariaLabel="BOM hiện tại theo đơn giá">
+                    <TableViewport
+                      ariaLabel="BOM đang áp dụng theo món, nguyên liệu và đơn giá"
+                      caption="Các dòng BOM hiện hành theo món, nguyên liệu, định lượng và hiệu lực"
+                    >
                       <table className="ipc-data-table ipc-erp-grid-table ipc-bom-current-table w-full table-fixed">
                     <colgroup>
                       <col className="w-[18%]" />
@@ -249,12 +252,12 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                     </colgroup>
                     <thead>
                       <tr>
-                        <th className="text-left">Món</th>
-                        <th className="text-left">Nguyên liệu / ĐVT</th>
-                        <th className="text-right">Định lượng / hao hụt</th>
-                        <th className="text-left">Hiệu lực</th>
-                        <th className="text-center">Trạng thái</th>
-                        <th className="whitespace-nowrap text-center">Thao tác</th>
+                        <th scope="col" className="text-left">Món</th>
+                        <th scope="col" className="text-left">Nguyên liệu / ĐVT</th>
+                        <th scope="col" className="text-right">Định lượng / hao hụt</th>
+                        <th scope="col" className="text-left">Hiệu lực</th>
+                        <th scope="col" className="text-center">Trạng thái</th>
+                        <th scope="col" className="whitespace-nowrap text-center">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -262,7 +265,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                         <tr key={line.bomId}>
                           <td className="align-top text-left"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
                           <td className="align-top text-left"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode} · {formatUnit(line.unit)}</div></td>
-                          <td className="align-top text-right text-xs tabular-nums"><div className="font-semibold text-slate-900">Định lượng: {formatQuantity(line.grossQtyPerServing)}</div><div className="text-slate-600">Hao hụt: {formatPercent(line.wasteRatePercent)}</div></td>
+                          <td data-cell-role="numeric" className="align-top text-right text-xs tabular-nums"><div className="font-semibold text-slate-900">Định lượng: {formatQuantity(line.grossQtyPerServing)}</div><div className="text-slate-600">Hao hụt: {formatPercent(line.wasteRatePercent)}</div></td>
                           <td className="align-top text-left text-slate-700"><div>{formatDateOnly(line.effectiveFrom)}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${formatDateOnly(line.effectiveTo)}` : 'Không giới hạn'}</div></td>
                           <td className="align-top text-center"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">{getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
                           <td className="align-top text-center">
@@ -277,7 +280,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                           </td>
                         </tr>
                       ))}
-                      {!isDishCatalogLoading && (!currentBomRows || currentBomRows.length === 0) && <EmptyRow colSpan={6} />}
+                      {!isDishCatalogLoading && (!currentBomRows || currentBomRows.length === 0) && <EmptyRow colSpan={6} label="Chưa có dòng BOM đang áp dụng." />}
                       {isDishCatalogLoading && (
                         <tr><td colSpan={6} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
                       )}
@@ -294,25 +297,28 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </KeepAliveTabPanel>
 
                 <KeepAliveTabPanel id="bom-preview" active={bomPanelMode === 'preview'} className="min-w-0">
-                  <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
+                  <PaginatedTableFrame
+                    ariaLabel="Bản xem trước thay đổi BOM theo đơn giá"
+                    caption="Các dòng BOM từ file import trước khi áp dụng"
+                  >
                   <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
                     <thead>
                       <tr>
-                        <th className="w-16 text-center">Dòng</th>
-                        <th className="text-left">Món ăn</th>
-                        <th className="text-left">Nguyên liệu / ĐVT</th>
-                        <th className="text-right">Định lượng / hao hụt</th>
-                        <th className="text-left">Thao tác</th>
-                        <th className="text-center">Trạng thái</th>
+                        <th scope="col" className="w-16 text-center">Dòng</th>
+                        <th scope="col" className="text-left">Món ăn</th>
+                        <th scope="col" className="text-left">Nguyên liệu / ĐVT</th>
+                        <th scope="col" className="text-right">Định lượng / hao hụt</th>
+                        <th scope="col" className="text-left">Thao tác</th>
+                        <th scope="col" className="text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
                        {(bomPreviewPagination?.rows ?? []).map((row) => (
                         <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
-                          <td>{row.rowNumber}</td>
+                          <td data-cell-role="numeric">{row.rowNumber}</td>
                           <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
                           <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode} · {row.unitCode}</div></td>
-                          <td className="text-right text-xs tabular-nums"><div className="font-semibold text-slate-900">Định lượng: {formatQuantity(row.grossQtyPerServing)}</div><div className="font-medium text-slate-700">Hao hụt: {formatPercent(row.wasteRatePercent)}</div></td>
+                          <td data-cell-role="numeric" className="text-right text-xs tabular-nums"><div className="font-semibold text-slate-900">Định lượng: {formatQuantity(row.grossQtyPerServing)}</div><div className="font-medium text-slate-700">Hao hụt: {formatPercent(row.wasteRatePercent)}</div></td>
                           <td>{row.action === 'INSERT' ? 'Thêm mới' : row.action === 'UPDATE' ? 'Cập nhật' : row.action === 'DELETE' ? 'Xóa' : row.action === 'NONE' ? 'Giữ nguyên' : row.action}</td>
                           <td>{row.status === 'error'
                             ? <StatusBadge variant="danger">{row.errors?.[0] ?? 'Lỗi'}</StatusBadge>
@@ -321,7 +327,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                               : null}</td>
                         </tr>
                       ))}
-                      {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={6} />}
+                      {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={6} label="Chưa có dòng BOM trong bản xem trước." />}
                     </tbody>
                   </table>
                   </PaginatedTableFrame>

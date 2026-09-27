@@ -98,7 +98,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                     <div><dt>Tổng số suất</dt><dd>{formatNumber(plan.lines.reduce((total, line) => total + line.totalServings, 0))} suất</dd></div>
                   </dl>
                   <TableViewport
-                    caption="Chi tiết kế hoạch sản xuất theo ca và món ăn"
+                    caption="Dòng món của từng KHSX theo ngày phục vụ, ca và số suất"
                     ariaLabel="Bảng chi tiết kế hoạch sản xuất"
                     className="ipc-production-plan-table"
                     size="weekly"
@@ -106,9 +106,9 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                     <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
                       <thead>
                         <tr>
-                          <th className="w-[20%] text-left">Ca</th>
-                          <th className="w-[50%] text-left">Món ăn</th>
-                          <th className="w-[30%] text-right">Số lượng</th>
+                          <th scope="col" className="w-[20%] text-left">Ca</th>
+                          <th scope="col" className="w-[50%] text-left">Món ăn</th>
+                          <th scope="col" className="w-[30%] text-right">Số lượng</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -116,7 +116,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                           <tr key={line.planLineId}>
                             <td className="text-slate-600">{getShiftLabel(line.shiftName ?? undefined)}</td>
                             <td className="font-medium text-slate-900">{line.dishName ?? '-'}</td>
-                            <td className="text-right tabular-nums font-semibold text-slate-800">{formatNumber(line.totalServings)} suất</td>
+                            <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-800">{formatNumber(line.totalServings)} suất</td>
                           </tr>
                         ))}
                       </tbody>

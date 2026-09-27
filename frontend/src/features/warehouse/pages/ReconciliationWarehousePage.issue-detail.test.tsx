@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -432,6 +432,20 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' })).toHaveAttribute('data-variant', 'outline')
     fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
     expect(screen.getByRole('dialog', { name: 'Xuất thêm nguyên liệu' })).toHaveTextContent('Số xuất thêm sẽ được cộng vào tổng đã xuất và có thể tạo chênh lệch cần xử lý.')
+  })
+
+  it('gives the supplemental dish calculation table an explicit grain and numeric semantics', () => {
+    dishesState.phase = 'ready'
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu xuất bổ sung' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Theo món' }))
+    fireEvent.click(screen.getByRole('combobox', { name: 'Chọn món ăn phát sinh' }))
+    fireEvent.click(screen.getByRole('option', { name: /Cơm/ }))
+    fireEvent.change(screen.getByRole('spinbutton', { name: /Số suất tăng thêm/ }), { target: { value: '10' } })
+
+    const table = screen.getByRole('table', { name: 'Nguyên liệu và lượng xuất thêm theo món đã chọn' })
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(6)
+    within(table).getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
   })
 
   it('creates one supplemental issue with frozen-line lineage and keeps the batch context', async () => {

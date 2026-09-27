@@ -79,17 +79,17 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
           ]}
         />
       </div>
-      <TableViewport ariaLabel="Bảng vấn đề dữ liệu trước khi vận hành">
+      <TableViewport ariaLabel="Bảng vấn đề dữ liệu trước khi vận hành" caption="Vấn đề dữ liệu, mức độ, SLA, chủ trì và hướng xử lý trước vận hành">
         <table className="ipc-data-table ipc-erp-grid-table ipc-reports-quality-table min-w-[800px]">
           <thead>
             <tr>
-              <th className="text-center">Mức độ</th>
-              <th>SLA và trạng thái</th>
-              <th>{uiCopy.reports.owner}</th>
-              <th>Nhóm lỗi và đối tượng</th>
-              <th>Vấn đề</th>
-              <th>Cách xử lý</th>
-              <th className="text-right">Thao tác</th>
+              <th scope="col" className="text-center">Mức độ</th>
+              <th scope="col">SLA và trạng thái</th>
+              <th scope="col">{uiCopy.reports.owner}</th>
+              <th scope="col">Nhóm lỗi và đối tượng</th>
+              <th scope="col">Vấn đề</th>
+              <th scope="col">Cách xử lý</th>
+              <th scope="col" className="text-right">Thao tác</th>
             </tr>
           </thead>
           {dataQualityResult.isLoading && dataQualityRows.length === 0 ? (
@@ -98,7 +98,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
             {dataQualityRows.length === 0
               ? dataQualitySearch.trim()
                 ? <tr><td colSpan={7} className="py-8 text-center text-slate-500">Không tìm thấy vấn đề dữ liệu phù hợp.</td></tr>
-                : <EmptyRow colSpan={7} />
+                : <EmptyRow colSpan={7} label="Chưa ghi nhận vấn đề dữ liệu trước vận hành." />
               : dataQualityRows.map((row) => (
               <tr key={row.id}>
                 <td>

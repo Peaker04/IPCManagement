@@ -350,7 +350,7 @@ describe('ReportsPage query state boundary', () => {
 
     renderReportsPage('thumua', '/reports?view=purchase');
 
-    expect(screen.getByText('Chưa có bản ghi báo cáo.')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có dòng kế hoạch thu mua phù hợp với kỳ và bộ lọc.')).toBeInTheDocument();
   });
 
   it('renders source-line reconciliation without grouping legacy lineage into a demand row', async () => {

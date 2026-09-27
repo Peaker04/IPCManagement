@@ -1,6 +1,5 @@
 /* Operational tables keep their own horizontal scroll boundary on mobile. */
 
-.ipc-redesign-shell .ipc-table-container > .ipc-table,
 .ipc-redesign-shell .ipc-warehouse-table-shell > .ipc-data-table {
   min-width: 720px;
 }
@@ -117,21 +116,6 @@
 
 }
 
-.ipc-table-viewport {
-  scrollbar-gutter: auto;
-  min-height: 96px;
-  max-height: none;
-  border: 1px solid var(--ipc-border, #e2e8f0);
-  border-radius: 0.375rem;
-  background: #fff;
-}
-
-/* Reconciliation schedule is the primary work surface: use the remaining viewport instead of
-   forcing an internal 520px scroll area followed by unused page space. */
-.ipc-table-viewport.ipc-weekly-menu-shell--viewport-fill {
-  max-height: calc(100dvh - 17rem);
-}
-
 /* Page-flow tables grow with their content so the page owns vertical scrolling.
    The viewport remains the horizontal overflow boundary for wide ERP columns. */
 .ipc-table-viewport.ipc-table-viewport--page-flow {
@@ -140,8 +124,7 @@
 }
 
 .ipc-warehouse-actions,
-.ipc-purchasing-actions,
-.ipc-approval-actions {
+.ipc-purchasing-actions {
   width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -149,8 +132,7 @@
 }
 
 .ipc-warehouse-actions > div,
-.ipc-purchasing-actions > div,
-.ipc-approval-actions > div {
+.ipc-purchasing-actions > div {
   width: 100%;
   display: grid;
   min-width: 0;
@@ -158,17 +140,14 @@
 }
 
 .ipc-warehouse-actions > div:last-child,
-.ipc-purchasing-actions > div:last-child,
-.ipc-approval-actions > div {
+.ipc-purchasing-actions > div:last-child {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .ipc-warehouse-actions .ipc-button,
 .ipc-warehouse-actions a,
 .ipc-purchasing-actions .ipc-button,
-.ipc-purchasing-actions a,
-.ipc-approval-actions .ipc-button,
-.ipc-approval-actions a {
+.ipc-purchasing-actions a {
   width: 100%;
   min-width: 0;
   max-width: none;
@@ -176,8 +155,7 @@
 
 @media (min-width: 768px) {
   .ipc-warehouse-actions,
-  .ipc-purchasing-actions,
-  .ipc-approval-actions {
+  .ipc-purchasing-actions {
     width: auto;
     display: flex;
     align-items: center;
@@ -185,8 +163,7 @@
   }
 
   .ipc-warehouse-actions > div,
-  .ipc-purchasing-actions > div,
-  .ipc-approval-actions > div {
+  .ipc-purchasing-actions > div {
     width: auto;
     display: flex;
     align-items: center;
@@ -195,20 +172,10 @@
   .ipc-warehouse-actions .ipc-button,
   .ipc-warehouse-actions a,
   .ipc-purchasing-actions .ipc-button,
-  .ipc-purchasing-actions a,
-  .ipc-approval-actions .ipc-button,
-  .ipc-approval-actions a {
+  .ipc-purchasing-actions a {
     width: auto;
   }
 }
-
-.ipc-table-viewport thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  background: var(--ipc-slate-50);
-}
-
 
 @media (max-width: 767px) {
   .ipc-table-viewport[data-vertical-scroll="bounded"] {

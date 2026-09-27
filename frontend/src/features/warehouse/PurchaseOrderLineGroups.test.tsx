@@ -25,6 +25,11 @@ describe('PurchaseOrderLineGroups', () => {
 
     expect(screen.getAllByText('Bún tươi')).toHaveLength(1);
     expect(screen.getByText('2/15 kg')).toBeInTheDocument();
+    const region = screen.getByRole('region', { name: 'Nhóm dòng đơn mua chờ nhập kho' });
+    expect(region).toHaveAccessibleDescription('Nhóm nguyên liệu theo đơn vị trong đơn mua, số lượng đã nhận/còn lại và đơn giá đặt; mở từng dòng nguồn để ghi nhận nhập kho');
+    expect(screen.getAllByRole('columnheader').map((header) => header.getAttribute('scope'))).toEqual(['col', 'col', 'col', 'col', 'col']);
+    expect(screen.getByText('2/15 kg').closest('td')).toHaveAttribute('data-cell-role', 'numeric');
+    expect(region.querySelectorAll('td[data-cell-role="numeric"]')).toHaveLength(2);
     fireEvent.click(screen.getByRole('button', { name: 'Xem 2 nguồn' }));
     expect(screen.queryByText('line-1')).not.toBeInTheDocument();
     expect(screen.queryByText('line-2')).not.toBeInTheDocument();

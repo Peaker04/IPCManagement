@@ -27,6 +27,15 @@ const model = {
 } as unknown as AdminDataPageModel
 
 describe('AdminStatisticsPanel presentation', () => {
+  it('names the KPI-to-action grain and scopes its five columns with numeric values', () => {
+    render(<MemoryRouter><AdminStatisticsPanel model={model} /></MemoryRouter>)
+    const region = screen.getByRole('region', { name: 'Bảng chỉ số thống kê vận hành' })
+    expect(region).toHaveAccessibleDescription('Chỉ số vận hành theo nhóm cảnh báo, ý nghĩa và điểm chuyển xử lý')
+    expect(screen.getAllByRole('columnheader').map((header) => header.getAttribute('scope'))).toEqual(['col', 'col', 'col', 'col', 'col'])
+    expect(region.querySelectorAll('td[data-cell-role="numeric"]')).toHaveLength(9)
+    expect(screen.getByRole('link', { name: 'Mở vấn đề dữ liệu' })).toHaveAttribute('href', '/admin-data?view=cleanup')
+  })
+
   it('shows exception statuses without repeating normal-state labels', () => {
     render(<MemoryRouter><AdminStatisticsPanel model={model} /></MemoryRouter>)
 

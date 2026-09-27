@@ -77,6 +77,9 @@ describe('Chef operational copy', () => {
     expect(screen.getByText('Nguyên liệu')).toBeInTheDocument();
     expect(screen.getByText('Đơn vị')).toBeInTheDocument();
     expect(screen.getByText('Số lượng cần')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Định lượng nguyên liệu cho Món mẫu' })).toHaveAccessibleDescription('Định lượng gộp theo nguyên liệu và đơn vị của Món mẫu');
+    expect(screen.getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true);
+    expect(screen.getByText('2', { exact: true }).closest('td')).toHaveAttribute('data-cell-role', 'numeric');
     expect(screen.queryByText('Nguyên Liệu')).not.toBeInTheDocument();
   });
 
@@ -116,6 +119,15 @@ describe('Chef operational copy', () => {
       expect(screen.queryByText(label, { exact: true })).not.toBeInTheDocument();
     }
   });
+
+  it('names the receipt grain and scopes the checklist columns and quantity', () => {
+    render(<MaterialChecklist materials={[{ id: 'issue-1', name: 'Bầu', unit: 'kg', quantity: 2, status: 'Chờ giao', signed: false }]} />)
+    const region = screen.getByRole('region', { name: 'Checklist ký nhận nguyên liệu bếp' })
+    expect(region).toHaveAccessibleDescription('Nguyên liệu theo đơn vị trong ca, tổng hợp phiếu xuất và trạng thái ký nhận từng dòng nguồn')
+    expect(screen.getAllByRole('columnheader')).toHaveLength(6)
+    expect(screen.getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true)
+    expect(screen.getByText('2', { exact: true }).closest('td')).toHaveAttribute('data-cell-role', 'numeric')
+  })
 
   it('requires per-line counting before signing the whole received issue', async () => {
     const onMaterialSignoff = vi.fn().mockResolvedValue(true);

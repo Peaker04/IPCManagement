@@ -51,19 +51,19 @@ export function WarehousePurchaseOrdersPanel({
     </InlineAlert>
   )}
   <TableViewport
-    ariaLabel="Danh sách đơn mua và tiến độ nhập kho"
-    caption="Danh sách đơn mua và tiến độ nhập kho"
+    ariaLabel="Đơn mua và tiến độ nhập kho"
+    caption="Các đơn mua chờ kho ghi nhận số lượng thực nhận"
     className="ipc-table-viewport--page-flow"
   >
     <table className="ipc-data-table min-w-[1060px] !table-auto">
       <thead>
         <tr>
-          <th className="min-w-[280px]">Đơn mua</th>
-          <th className="min-w-[160px]">Nhà cung cấp</th>
-          <th className="min-w-[220px]">Đề xuất mua</th>
-          <th className="min-w-[140px]">Trạng thái</th>
-          <th className="min-w-[130px]">Tiến độ dòng</th>
-          <th className="min-w-[130px] text-right">Thao tác</th>
+          <th scope="col" className="min-w-[280px]">Đơn mua</th>
+          <th scope="col" className="min-w-[160px]">Nhà cung cấp</th>
+          <th scope="col" className="min-w-[220px]">Đề xuất mua</th>
+          <th scope="col" className="min-w-[140px]">Trạng thái</th>
+          <th scope="col" className="min-w-[130px]">Tiến độ dòng</th>
+          <th scope="col" className="min-w-[130px] text-right">Thao tác</th>
         </tr>
       </thead>
       <tbody>
@@ -101,7 +101,7 @@ export function WarehousePurchaseOrdersPanel({
                     className="ipc-table-badge ipc-table-badge--status"
                   />
                 </td>
-                <td className="whitespace-nowrap">
+                <td data-cell-role="numeric" className="whitespace-nowrap">
                   {completedLines}/{order.lines.length} dòng đã đủ
                 </td>
                 <td className="text-right">

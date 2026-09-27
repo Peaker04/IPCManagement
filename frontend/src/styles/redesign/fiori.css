@@ -80,13 +80,6 @@
   width: min(390px, 34vw);
 }
 
-.ipc-fiori-field .ipc-input,
-.ipc-fiori-field .ipc-select {
-  min-height: 36px;
-  width: 100%;
-  font-size: 0.8125rem;
-}
-
 .ipc-fiori-segmented {
   display: flex;
   flex-wrap: nowrap;
@@ -173,26 +166,6 @@
   white-space: nowrap;
 }
 
-.ipc-inline-status {
-  display: inline-flex;
-  min-height: 26px;
-  align-items: center;
-  gap: 5px;
-  color: var(--ipc-slate-600);
-  font-size: 0.75rem;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.ipc-inline-status svg {
-  color: var(--ipc-success);
-}
-
-.ipc-inline-status.is-warning,
-.ipc-inline-status.is-warning svg {
-  color: var(--ipc-warning);
-}
-
 .ipc-fiori-disclosure {
   overflow: hidden;
   border: 1px solid var(--ipc-slate-200);
@@ -254,14 +227,7 @@
   border-bottom: 1px solid var(--ipc-slate-200);
 }
 
-.ipc-fiori-object-card .ipc-table-shell,
-.ipc-fiori-disclosure .ipc-table-shell {
-  border: 0;
-  border-radius: 0;
-}
-
 .ipc-fiori-object-card .ipc-data-table,
-.ipc-fiori-disclosure .ipc-data-table,
-.ipc-cost-table {
+.ipc-fiori-disclosure .ipc-data-table {
   font-variant-numeric: tabular-nums;
 }
