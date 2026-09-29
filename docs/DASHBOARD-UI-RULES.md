@@ -203,7 +203,7 @@ context phải cùng tone trên mọi màn. Không tự thêm mapping local ho�
 - **T5 (MUST)** Chọn **một** kiểu phân tách hàng. Đường kẻ ngang 1px màu nhạt là mặc định an toàn. Tránh zebra stripe khi bảng có nhiều state (hover, selected, disabled).
 - **T6 (SHOULD)** Chêch lệch chiều cao hàng dưới 3 dòng thì căn giữa theo chiều dọc; trên 3 dòng thì căn trên.
 - **T7 (MUST)** Bảng cuộn ngang MUST có header dính và cột định danh đóng băng bên trái.
-- **T8 (MUST)** Cho người dùng kiểm soát: ẩn/hiện cột, đổi thứ tự cột, 3 mức mật độ hàng (gọn 40px / thường 48px / thoáng 56px). Kèm **lưu trạng thái** theo tài khoản và **nút khôi phục mặc định**.
+- **T8 (MUST)** Cho người dùng kiểm soát: ẩn/hiện cột, đổi thứ tự cột, 3 mức mật độ hàng (gọn 32–36px / thường 40–44px / thoáng 48–56px theo DESIGN.md §5.6). Kèm **lưu trạng thái** theo tài khoản và **nút khôi phục mặc định**.
 - **T9 (MUST)** Sắp xếp mặc định phải có chủ đích: bản ghi mới nhất hoặc bản ghi **cần hành động nhất**. MUST NOT mặc định theo khoá chính.
 - **T10 (MUST)** Chỉ báo sắp xếp MUST NOT làm xê dịch canh lề header.
 - **T11 (SHOULD)** Hành động dòng bộc lộ khi hover, và MUST có đường vào tương đương bằng bàn phím.

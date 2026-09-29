@@ -22,7 +22,7 @@ composition → bằng chứng.
 | Design brief/Definition of Ready, actor–action matrix, floorplan và geometry | [`DESIGN.md`](DESIGN.md), §7 rồi §2–5 | Khóa mục đích, quyền/scope, flow/handoff, recovery và composition trước JSX |
 | Component, token và pattern đang có | [`docs/ui-ux/ipc-design-tokens.md`](ui-ux/ipc-design-tokens.md) | Dùng primitive/token hiện có trước khi tạo class hoặc variant mới |
 | Quyết định render đã được duyệt | [`UI-CONFORMANCE-MATRIX.md`](UI-CONFORMANCE-MATRIX.md) | Không tự thêm spacing, pixel, golden hoặc quota chưa có nguồn |
-| State, action, permission và grain nghiệp vụ | [`DOMAIN.md`](DOMAIN.md), [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md) | Không làm sai trạng thái, quyền hoặc mức chi tiết của dữ liệu |
+| State, action, permission và grain nghiệp vụ | [`DOMAIN.md`](DOMAIN.md), [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md); Feature Contracts: [Weekly Menu](domain/weekly-menu-contract.md), [Warehouse & Logistics](domain/warehouse-contract.md), [MRX](domain/material-reconciliation.md) | Không làm sai trạng thái, quyền hoặc mức chi tiết của dữ liệu |
 | UI có dữ liệu đi qua FE–API–DB | [`UI-UX-FE-BE-DATABASE-STANDARDIZATION.md`](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | Giữ chuỗi control → API → DB → reload |
 | Cách chứng minh UI đúng | [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md) | Dùng test/DOM/API/focus/performance evidence, không kết luận từ screenshot đơn lẻ |
 | Quy trình audit, sửa và handoff UI/UX | [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md) | Phân loại task, sửa đúng owner, giữ evidence và resume session an toàn |

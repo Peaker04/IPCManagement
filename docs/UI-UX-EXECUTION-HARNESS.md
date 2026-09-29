@@ -74,6 +74,27 @@ không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
    phải được kích hoạt; route navigation không chứng minh tab/query đó hoạt động. Mỗi cell bắt buộc phải xuất hiện
    đúng một lần trong `PASS | FAIL/OPEN | NEEDS_EVIDENCE | NOT_APPLICABLE | BLOCKED`; thiếu cell là lỗi report/gate,
    không được ngầm coi là PASS. Route/view ngoài envelope là `NOT_CLAIMED`, không phải PASS.
+   **Trước closeout phải mở lại ảnh cuối của từng cell đã claim**: ghi candidate hoặc lý do `NO_CANDIDATE`
+   theo từng ảnh vào ledger, rồi chuyển mọi candidate thành selector + DOM/source/interaction oracle.
+   Runner chỉ kiểm `aria-controls`, overflow, page error hoặc zero write không chứng minh hierarchy,
+   data-label consistency, control reachability, focus hay tác vụ hoàn thành. Nếu chưa triage ảnh,
+   composition verdict là `NEEDS_EVIDENCE` dù JSON runner báo `PASS`.
+   **Gate inventory trước edit cho page redesign/broad audit:** thống kê `expectedImages` từ envelope
+   (bao gồm before/post-click/modal/ba desktop widths khi áp dụng), `reviewedImages`, `NO_CANDIDATE`,
+   candidate IDs và ảnh/cell chưa thể capture. Mỗi ảnh trong envelope có đúng một hàng intake:
+   `imageId | route/view/state/actor/viewport/action | source path | candidate IDs hoặc NO_CANDIDATE |
+   rule IDs | selector/oracle cần đo | verdict`. `NO_CANDIDATE` chỉ có sau khi thực sự mở ảnh và
+   đối chiếu hierarchy, adjacency, state surface, bảng, chữ, action, focus; không suy từ JSON xanh.
+   Gate fail nếu `expectedImages != reviewedImages + explicitlyMissingImages`, ảnh bị đếm trùng,
+   candidate không có disposition, hoặc rule/selector chưa rõ lại được ghi PASS. Ảnh thiếu/cell không
+   dựng được là `NEEDS_EVIDENCE`/`BLOCKED`, không biến thành lỗi UI hay âm thầm bỏ qua.
+   Với focused fix, chỉ inventory envelope và affected consumers; không áp denominator toàn sản phẩm.
+   **Ảnh không định nghĩa toàn bộ lỗi:** sau intake, đi chủ động từng route → retained tab → ready/empty/
+   filtered/loading/error/prerequisite → control/overlay/action trong page lock; capture thêm state chưa có ảnh,
+   đối chiếu API/DOM/source và mở rộng ledger ở cùng GSD checklist. `154/154` ảnh cũ chỉ hoàn tất intake,
+   không giới hạn discovery hoặc tạo verdict cho tab/state chưa chạy. Khi một ảnh cho thấy bố cục đáng ngờ,
+   đối chiếu default primitive, override tại callsite, floorplan và các consumer trước khi chọn left/center
+   hoặc thêm copy; không có một quy tắc căn lề universal cho mọi empty surface.
 5. Tạo feedback loop red-capable trước khi sửa. Với layout/read-only ưu tiên
    `npm run test:ui-measurements -w frontend` hoặc Playwright assertion DOM/network scoped. Khi claim interaction
    fluidity, trước production edit phải chạy cùng một declared cell ở DEV và production preview, tách cold compile,
@@ -90,8 +111,22 @@ không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
    Sau đó chọn owner thấp nhất:
    token → shared primitive → formatter/query/action seam → feature layout. Dùng `frontend-checklist-global`
    để bổ sung coverage, không dump recommendation hoặc tạo scope mới thiếu evidence.
+   **Rule crosswalk trước batch:** với mỗi nhóm candidate, ghi project rule ID + `DESIGN` invariant,
+   applicable Front-End Checklist rule/nhóm (hoặc `NOT_APPLICABLE` có lý do), nguồn đã đọc/truy xuất,
+   severity và root owner. Nếu MCP checklist không sẵn trong Pi, dùng rule tích hợp tại
+   `FRONT-END-CHECKLIST-INTEGRATION.md`/skill đã đọc, ghi giới hạn; không tuyên bố đã truy xuất 385 rule.
+   Phân loại `EXISTING_RULE | RULE_AMBIGUITY | RULE_GAP | ENFORCEMENT_GAP` theo §4.1; nghiên cứu
+   thêm chỉ khi contract thiếu quyết định, không lấy sở thích thẩm mỹ làm MUST. Gom các finding đã
+   xác minh theo root owner, giữ candidate chưa đủ oracle ở ledger, rồi chọn **batch hữu hạn** của
+   page lock; không sửa lẻ một lỗi rồi gọi cả màn PASS, cũng không blanket-restyle toàn hệ thống.
 7. Sửa một lần tại owner, thêm regression tại seam. Khi finding thiếu rule, rule mơ hồ hoặc lỗi tái diễn,
    kích hoạt vòng phản hồi ở §4.1 trong cùng task; không chờ người dùng yêu cầu cập nhật rule lần nữa.
+   **Batch before→after:** trước khi edit lưu red oracle cho từng confirmed root-cause group và liên kết
+   mọi affected image/cell; sau sửa reload/click lại đúng control, capture ảnh mới trong run immutable,
+   **mở và review từng ảnh sau sửa**, đo lại cùng oracle, kiểm focus/request/scroll và triage defect mới.
+   Trong ledger, mỗi candidate cũ phải có `FIXED | OPEN | NEEDS_EVIDENCE | N/A` và evidence sau sửa;
+   candidate mới phải được disposition trước khi đóng batch. Nếu thiếu ảnh/oracle hoặc một sibling
+   cell FAIL, batch chưa được promote; có thể checkpoint phần xanh nhưng page lock còn OPEN.
    Với async layout phải gán geometry role rõ; cấm truyền
    `min-h-0` page-local hàng loạt để né default sai của shared primitive. **Không được ổn định bảng phân trang
    bằng row giả, `rowCapacity`, `min-height` theo page size hoặc khoảng trắng dự trữ**: các cách đó chỉ đổi page
@@ -149,7 +184,16 @@ không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
   riêng không phải tab Chrome người dùng đang có. Sau navigation/DOM change phải lấy locator mới.
 - Mỗi browser run lưu screenshot trạng thái cuối cho reviewer, request API sau action, console/page error,
   failed request, và (khi có performance) CLS/long-task. Verdict đọc JSON/DOM/request/focus/trace, không
-  đọc pixel ảnh để suy luận.
+  đọc pixel ảnh để suy luận. **Ảnh cuối phải được review như bước intake của chính run đó**: candidate UI
+  được gắn route/view/state/viewport và bắt buộc có DOM/interaction oracle hoặc `NEEDS_EVIDENCE`;
+  không được bỏ qua vì runner generic xanh.
+- Với action được claim, browser phải kích hoạt control thật (tab/filter/search/row action/modal),
+  kiểm focus, scroll, trạng thái trước/sau và request/response. Direct `goto(?view=...)` chỉ chứng minh
+  deep-link, không chứng minh tab click, Back/Forward, overlay hay mutation. Action không thực hiện phải
+  ghi `NEEDS_EVIDENCE` hoặc `NOT_APPLICABLE` có lý do. Mutation chỉ PASS khi nối FE control → BE
+  request/response → DB transition → reload render; chỉ mutation trên lane disposable được xác minh
+  ownership/lineage, có snapshot và cleanup qua public authority được phép. Không xóa dữ liệu lịch sử
+  hoặc reset shared lane để hoàn thành gate.
 - Chrome DevTools MCP chỉ bật để chẩn đoán CLS, INP, long task, network/console live hoặc modal timing khi
   gate/source chưa chỉ được nguyên nhân. Nó không thay thế Playwright JSON gate và không tự bật cho mọi UI
   task.
