@@ -40,6 +40,27 @@ describe('ReconciliationDashboardPage workflow presentation', () => {
     })
   })
 
+  it('keeps workspace geometry because ready content includes scope, KPIs, workflow and batch surfaces', () => {
+    const { container } = render(<MemoryRouter><ReconciliationDashboardPage /></MemoryRouter>)
+
+    const boundary = container.querySelector('[data-query-geometry]')
+    expect(boundary).toHaveAttribute('data-query-geometry', 'workspace')
+    expect(boundary).toHaveClass('min-h-[28rem]')
+    expect(screen.getByLabelText('Chỉ số vận hành đối chiếu')).toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Các bước đối chiếu nguyên liệu' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Lô đối chiếu đang theo dõi/ })).toBeInTheDocument()
+  })
+
+  it('keeps the workspace reserve during initial loading to match the forthcoming dashboard', () => {
+    mocks.listBatches.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, isError: false })
+    const { container } = render(<MemoryRouter><ReconciliationDashboardPage /></MemoryRouter>)
+
+    const boundary = container.querySelector('[data-query-geometry]')
+    expect(boundary).toHaveAttribute('data-query-geometry', 'workspace')
+    expect(boundary).toHaveClass('min-h-[28rem]')
+    expect(screen.getByText(/Đang tải tổng quan đối chiếu/i)).toBeInTheDocument()
+  })
+
   it('retires the repeated mode pill while preserving the four-step workflow and batch lifecycle links', () => {
     render(<MemoryRouter><ReconciliationDashboardPage /></MemoryRouter>)
 

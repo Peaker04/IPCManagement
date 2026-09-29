@@ -26,13 +26,13 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
         {status.isRefreshing && (
           <RefreshStatus>Đang cập nhật kế hoạch sản xuất</RefreshStatus>
         )}
-        <section className="ipc-fiori-command" aria-label="Phạm vi kế hoạch sản xuất đang xem">
+        {!status.isForbidden && <section className="ipc-fiori-command" aria-label="Phạm vi kế hoạch sản xuất đang xem">
           <div className="ipc-fiori-object">
             <CalendarDays size={18} aria-hidden="true" />
             <div>
               <span>Ngày phục vụ</span>
               <strong>{activePage ? `${activePage.label} ${activePage.dateLabel}` : 'Chưa có kế hoạch'}</strong>
-              <small>{activePage ? `${activePage.plans.length} KHSX · ${activePage.totalLines} dòng · ${formatNumber(activePage.totalServings)} suất` : 'Chọn khách hàng và tuần để xem dữ liệu'}</small>
+              <small>{activePage ? `${activePage.plans.length} KHSX · ${activePage.totalLines} dòng · ${formatNumber(activePage.totalServings)} suất` : scope.customerId && scope.weekStartDate ? 'Chưa có KHSX trong phạm vi tuần đã chọn' : 'Chọn khách hàng và tuần để xem dữ liệu'}</small>
             </div>
           </div>
           <div className="ipc-fiori-command-actions">
@@ -48,7 +48,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
             </label>
             {presentation.pages.length > 0 && <PageStepper page={state.pageIndex + 1} totalPages={presentation.pages.length} label="Nhóm KHSX" ariaLabel="Điều hướng kế hoạch sản xuất" onPageChange={actions.setPage} />}
           </div>
-        </section>
+        </section>}
 
         {status.isForbidden ? (
           <InlineAlert title="Không có quyền xem kế hoạch sản xuất" variant="danger">

@@ -37,8 +37,8 @@ describe('DishMaterialsSection select labels', () => {
     render(<DishMaterialsSection workflow={{
       actions: { selectDish: vi.fn() },
       presentation: { analyzedDish: { id: 'dish-1', name: 'Cá kho tộ' }, foodCostPercent: 40,
-        ingredients: [{ key: 'rice__kg', name: 'Gạo', unit: 'kg', actualQty: 0.2, supplierPrice: 20000, cost: 4000 }],
-        totalTrayCost: 4000, grossProfit: 26000, serviceDate: '2026-07-27', isCatalogEmpty: false,
+        ingredients: [{ key: 'rice__kg', name: 'Gạo', unit: 'kg', actualQty: 0.064777, supplierPrice: 12000, cost: 777.324 }],
+        totalTrayCost: 777.324, grossProfit: 29222.676, serviceDate: '2026-07-27', isCatalogEmpty: false,
         dishesByShift: { morning: [], afternoon: [] }, weeklyPlanCatalogDishIds: new Set(['dish-1']),
         sourceLabel: 'Catalog', menuPrice: 30000 },
     } as never} />)
@@ -46,6 +46,7 @@ describe('DishMaterialsSection select labels', () => {
     expect(region).toHaveAccessibleDescription('Định lượng và giá vốn nguyên liệu theo suất của món đang phân tích')
     expect(screen.getAllByRole('columnheader').map((header) => header.getAttribute('scope'))).toEqual(['col', 'col', 'col', 'col', 'col'])
     expect(region.querySelectorAll('td[data-cell-role="numeric"]')).toHaveLength(3)
+    expect(screen.getByText('0,064777')).toBeInTheDocument()
     expect(screen.getByText('Gạo')).toBeInTheDocument()
   })
 

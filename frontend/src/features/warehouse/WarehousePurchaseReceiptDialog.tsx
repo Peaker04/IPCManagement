@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatQuantityWithUnit, roundQuantity } from '@/lib/formatters';
 import type {
   PurchaseOrderDto,
   PurchaseOrderLineDto,
@@ -71,7 +71,7 @@ export function WarehousePurchaseReceiptDialog({
   onOpenChange,
   onSuccess,
 }: WarehousePurchaseReceiptDialogProps) {
-  const remainingQuantity = Math.max(line.orderedQty - line.receivedQty, 0);
+  const remainingQuantity = Math.max(roundQuantity(line.orderedQty - line.receivedQty), 0);
   const idempotencyKey = useRef(createIdempotencyKey());
   const backButtonRef = useRef<HTMLButtonElement>(null);
   const operationalWarehouse = warehouses.length === 1 ? warehouses[0] : undefined;
@@ -104,7 +104,7 @@ export function WarehousePurchaseReceiptDialog({
     if (!warehouseId) nextErrors.warehouseId = 'Chọn kho nhận hàng.';
     if (!receiptDate) nextErrors.receiptDate = 'Nhập ngày nhận hàng.';
     if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remainingQuantity) {
-      nextErrors.actualQuantity = `Số lượng phải lớn hơn 0 và không vượt quá ${remainingQuantity} ${line.unitName}.`;
+      nextErrors.actualQuantity = `Số lượng phải lớn hơn 0 và không vượt quá ${formatQuantityWithUnit(remainingQuantity, line.unitName, { maximumFractionDigits: 6 })}.`;
     }
     if (!Number.isFinite(unitPrice) || unitPrice <= 0) nextErrors.actualUnitPrice = 'Đơn giá thực nhận phải lớn hơn 0.';
     if (line.lotNumberRequired && !lotNumber.trim()) nextErrors.lotNumber = 'Số lô là bằng chứng bắt buộc.';
@@ -232,8 +232,8 @@ export function WarehousePurchaseReceiptDialog({
             </div>
             <div className="grid gap-1.5">
               <label className="text-sm font-medium" htmlFor="purchase-receipt-quantity">Số lượng thực nhận <span className="text-red-600 font-semibold" aria-hidden="true">*</span></label>
-              <Input id="purchase-receipt-quantity" type="number" min="0.001" step="0.001" max={remainingQuantity} value={actualQuantity} onChange={(event) => setActualQuantity(event.target.value)} aria-invalid={Boolean(errors.actualQuantity)} aria-describedby={errors.actualQuantity ? 'purchase-receipt-quantity-help purchase-receipt-quantity-error' : 'purchase-receipt-quantity-help'} className="tabular-nums" />
-              <p id="purchase-receipt-quantity-help" className="text-xs text-slate-500">Còn có thể nhận {remainingQuantity} {line.unitName}. Cho phép nhận một phần.</p>
+              <Input id="purchase-receipt-quantity" type="number" min="0.000001" step="any" max={remainingQuantity} value={actualQuantity} onChange={(event) => setActualQuantity(event.target.value)} aria-invalid={Boolean(errors.actualQuantity)} aria-describedby={errors.actualQuantity ? 'purchase-receipt-quantity-help purchase-receipt-quantity-error' : 'purchase-receipt-quantity-help'} className="tabular-nums" />
+              <p id="purchase-receipt-quantity-help" className="text-xs text-slate-500">Còn có thể nhận {formatQuantityWithUnit(remainingQuantity, line.unitName, { maximumFractionDigits: 6 })}. Cho phép nhận một phần.</p>
               {errors.actualQuantity && <p id="purchase-receipt-quantity-error" role="alert" className="text-xs font-medium text-red-700">{errors.actualQuantity}</p>}
             </div>
             <div className="grid gap-1.5">

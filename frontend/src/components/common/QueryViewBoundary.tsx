@@ -70,7 +70,7 @@ export function QueryViewBoundary({
           Đang hiển thị {view.truncation.shown}{view.truncation.total === undefined ? '' : `/${view.truncation.total}`} dòng; kết quả này chưa đầy đủ.
         </InlineAlert>
       ) : null)}
-      <div className="relative grid">
+      <div className="relative grid grid-cols-[minmax(0,1fr)]">
         {blocking && <div className="relative z-10 col-start-1 row-start-1"><BlockingQueryNotice entry={blocking} /></div>}
         <div
           className={`col-start-1 row-start-1 ${blocking ? 'invisible' : ''}`}

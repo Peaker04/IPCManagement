@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -45,6 +45,9 @@ describe('MenuAmendmentReconciliation', () => {
 
     fireEvent.change(screen.getByLabelText('Khách hàng'), { target: { value: 'anv' } })
     expect(mocks.decisionHook).toHaveBeenLastCalledWith(expect.objectContaining({ customerId: 'anv', allCustomers: false }), { skip: false })
+    const table = screen.getByRole('region', { name: 'Danh sách yêu cầu đối soát điều chỉnh thực đơn' })
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(7)
+    expect(screen.getByText('1 dòng chứng từ').closest('td')).toHaveAttribute('data-cell-role', 'numeric')
     expect(screen.getByText(/35.000/)).toBeInTheDocument()
     expect(screen.getByText('1 dòng chứng từ')).toBeInTheDocument()
     expect(document.body).not.toHaveTextContent(/tier|source-line|append-only/i)

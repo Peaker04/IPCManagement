@@ -38,7 +38,16 @@ describe('ProductionPlanSection — rỗng thật vs lỗi tải', () => {
     render(<ProductionPlanSection workflow={buildWorkflow(false)} />)
 
     expect(screen.getByText('Chưa có kế hoạch sản xuất nào.')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có KHSX trong phạm vi tuần đã chọn')).toBeInTheDocument()
+    expect(screen.queryByText('Chọn khách hàng và tuần để xem dữ liệu')).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('does not claim an empty week when the actor cannot read production plans', () => {
+    render(<ProductionPlanSection workflow={{ ...buildWorkflow(false), status: { isForbidden: true, forbiddenMessage: 'Không có quyền.' } } as unknown as WeeklyProductionPlanWorkflow} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Không có quyền.')
+    expect(screen.queryByText('Chưa có kế hoạch')).toBeNull()
+    expect(screen.queryByText('Chưa có KHSX trong phạm vi tuần đã chọn')).toBeNull()
   })
 
   it('names and scopes the plan-line table without losing its plan and line identities', () => {

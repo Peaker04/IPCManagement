@@ -3,7 +3,6 @@ import type { MaterialDemandStaleness } from '@/api/workflowApiTypes'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
 import { formatMaterialDishSource } from '../model/formatters'
-import { formatNumber } from '@/lib/formatters'
 
 export type DemandApprovalPresentation = {
   status: 'not-created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'terminal'
@@ -340,8 +339,6 @@ export const buildKhsxDraftDocument = ({
   hasDemand: boolean
 }): WorkflowDocument | null => {
   if (!activeDay || allRows.length === 0) return null
-  const serviceDates = Array.from(new Set(allRows.map((row) => row.serviceDate).filter(Boolean)))
-  const totalPortions = activeDay.rows.reduce((sum, row) => sum + row.portions, 0)
   const missingBom = activeDay.rows.filter((row) => !row.hasCatalogBom).length
   return {
     id: `KHSX-DRAFT-${customerCode}-${activeDay.key}`,
@@ -349,18 +346,14 @@ export const buildKhsxDraftDocument = ({
     title: 'KHSX theo menu đang xem',
     status: hasDemand ? 'Đã tạo nhu cầu' : 'Bản nháp',
     owner: 'Bếp trưởng',
-    summary: hasDemand
-      ? 'Nhu cầu nguyên liệu đã được tạo từ KHSX của khách hàng đang chọn.'
-      : 'Bản KHSX tạm từ thực đơn tuần; bấm Tạo nhu cầu từ KHSX để hệ thống tính nguyên liệu.',
+    summary: hasDemand ? 'Đã tạo nhu cầu từ KHSX.' : 'KHSX tạm từ thực đơn tuần.',
     route: '/weekly-menu',
     tone: hasDemand ? 'success' : missingBom > 0 ? 'warning' : 'neutral',
     lines: [
       { label: 'Khách hàng', value: customerLabel },
       { label: 'Ngày', value: `${activeDay.label} ${activeDay.date}` },
-      { label: 'Ngày tuần', value: serviceDates.length.toString() },
       { label: 'Dòng KHSX', value: activeDay.rows.length.toString() },
-      { label: 'Tổng suất ngày', value: formatNumber(totalPortions) },
-      { label: 'Thiếu BOM ngày', value: missingBom.toString(), tone: missingBom > 0 ? 'warning' : 'success' },
+      { label: 'Thiếu BOM', value: missingBom.toString(), tone: missingBom > 0 ? 'warning' : 'success' },
     ],
   }
 }

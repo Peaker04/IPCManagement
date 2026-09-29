@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { OrderRow } from '../types'
@@ -62,11 +62,22 @@ describe('OrderTable request ownership', () => {
       />,
     )
 
+    const table = screen.getByRole('region', { name: 'Bảng điều phối đơn theo khách hàng' })
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(6)
+    expect(table.querySelectorAll('[data-cell-role="numeric"]')).toHaveLength(3)
     expect(screen.getByRole('columnheader', { name: 'Suất đã chốt' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Suất sau chỉnh' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Tăng/giảm' })).toBeInTheDocument()
     expect(screen.getByText('+15')).toBeInTheDocument()
     expect(screen.getByText('Cần tính lại nguyên liệu')).toBeInTheDocument()
+  })
+
+  it('renders the filter-aware empty state without fabricating a row', () => {
+    render(<OrderTable orders={[order]} canEditForecast={false} canRequestAdjustment={false} useFinalServings />)
+
+    fireEvent.change(screen.getByLabelText('Tìm khách hàng, thực đơn hoặc món ăn'), { target: { value: 'không-khớp' } })
+    expect(screen.getByText('Không tìm thấy đơn phù hợp.')).toBeInTheDocument()
+    expect(screen.getAllByRole('row')).toHaveLength(2)
   })
 
   it('keeps actual servings local while typing and sends one request when editing finishes', async () => {

@@ -1,15 +1,20 @@
+import { useState } from 'react';
 import { ClipboardList, Warehouse } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '@/lib/routeConfig';
 import {
   RefreshStatus,
   DocumentRail,
   EmptyState,
   InlineAlert,
+  KeepAliveTabPanel,
   PaginationBar,
+  QueryErrorAlert,
   SearchField,
   SectionPanel,
   TableSkeleton,
   TableViewport,
+  ViewSwitcher,
 } from '@/components/common';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { StockMovementTable } from '@/components/common/StockMovementTable';
@@ -28,6 +33,10 @@ interface QueryPresentation {
 
 interface WarehouseMovementPanelProps {
   documents: WorkflowDocument[];
+  canViewChef?: boolean;
+  documentState?: 'loading' | 'error' | 'ready';
+  onRetryDocuments?: () => void;
+  isRetryingDocuments?: boolean;
   currentStockSearch: string;
   onCurrentStockSearchChange: (value: string) => void;
   currentStockView: QueryPresentation;
@@ -45,10 +54,16 @@ interface WarehouseMovementPanelProps {
   stockMovementHasNext: boolean;
   onStockMovementPrevious: () => void;
   onStockMovementNext: () => void;
+  activeTask?: 'stock' | 'ledger';
+  onTaskChange?: (task: 'stock' | 'ledger') => void;
 }
 
 export function WarehouseMovementPanel({
   documents,
+  canViewChef = false,
+  documentState = 'ready',
+  onRetryDocuments,
+  isRetryingDocuments,
   currentStockSearch,
   onCurrentStockSearchChange,
   currentStockView,
@@ -66,22 +81,46 @@ export function WarehouseMovementPanel({
   stockMovementHasNext,
   onStockMovementPrevious,
   onStockMovementNext,
+  activeTask: activeTaskProp,
+  onTaskChange,
 }: WarehouseMovementPanelProps) {
+  const [localTask, setLocalTask] = useState<'stock' | 'ledger'>('stock');
+  const activeTask = activeTaskProp ?? localTask;
+  const selectTask = (task: 'stock' | 'ledger') => {
+    if (onTaskChange) onTaskChange(task);
+    else setLocalTask(task);
+  };
   return (
     <SplitWorkbench
-      wideDetailRail
-      detailLabel="Phiếu kho"
-      detail={(
+      wideDetailRail={activeTask === 'stock'}
+      detailLabel="Phiếu kho gần đây"
+      detail={documentState === 'loading' ? <InlineAlert title="Đang tải phiếu kho" variant="info">Đang đồng bộ danh sách chứng từ kho.</InlineAlert> : documentState === 'error' ? <QueryErrorAlert title="Không tải được phiếu kho" isRetrying={isRetryingDocuments} onRetry={() => onRetryDocuments?.()}>Danh sách phiếu chưa được xác nhận. Hãy thử tải lại.</QueryErrorAlert> : (
+        <>
+        <p className="text-xs text-slate-600">Trích từ tối đa 20 chứng từ vận hành gần nhất, gồm cả loại ngoài Kho; không phải toàn bộ lịch sử phiếu kho.</p>
         <DocumentRail
           documents={documents}
           title={null}
-          actionForDocument={(document) => (
-            <Link className="ipc-button ipc-button-ghost" to={document.route}>Mở phiếu</Link>
-          )}
+          actionForDocument={(document) => document.type === 'Phiếu nhập' && document.documentId
+            ? <Link className="ipc-button ipc-button-ghost" to={`/warehouse?view=receiving&receiptId=${encodeURIComponent(document.documentId)}`}>Xem phiếu nhập</Link>
+            : document.route === ROUTES.CHEF_DASHBOARD && !canViewChef
+            ? <span className="text-xs text-slate-600">Bếp phụ trách chứng từ này</span>
+            : <Link className="ipc-button ipc-button-ghost" to={document.route}>Đến phân hệ</Link>}
         />
+        </>
       )}
     >
-      <div className="flex flex-col gap-4">
+      <div className="flex min-w-0 flex-col gap-3">
+        <ViewSwitcher
+          compact
+          ariaLabel="Chọn dữ liệu tra cứu kho"
+          tabs={[
+            { id: 'warehouse-lookup-stock', label: 'Tồn kho hiện tại' },
+            { id: 'warehouse-lookup-ledger', label: 'Sổ luân chuyển' },
+          ]}
+          activeTab={`warehouse-lookup-${activeTask}`}
+          onTabChange={(id) => selectTask(id.replace('warehouse-lookup-', '') as 'stock' | 'ledger')}
+        />
+        <KeepAliveTabPanel id="warehouse-lookup-stock" active={activeTask === 'stock'} className="min-w-0">
         <SectionPanel
           title="Tồn kho hiện tại"
           icon={<Warehouse size={18} />}
@@ -121,7 +160,7 @@ export function WarehouseMovementPanel({
                       </tr>
                     ))
                   ) : currentStockRows.length === 0 ? (
-                    <tr><td colSpan={4} className="py-6 text-center text-slate-500">Chưa có snapshot tồn kho hiện tại.</td></tr>
+                    <tr><td colSpan={4} className="py-6 text-center text-slate-500">{currentStockSearch.trim() ? <>Không tìm thấy snapshot tồn kho khớp “{currentStockSearch.trim()}”. <button type="button" className="font-medium text-blue-700 underline" onClick={() => onCurrentStockSearchChange('')}>Xóa tìm kiếm</button></> : 'Chưa có snapshot tồn kho hiện tại.'}</td></tr>
                   ) : currentStockRows.map((row) => (
                     <tr key={row.id}>
                       <td className="text-slate-700">{row.warehouse}</td>
@@ -136,9 +175,11 @@ export function WarehouseMovementPanel({
             {currentStockView.phase === 'ready' && <PaginationBar page={currentStockPage} pageSize={currentStockPageSize} totalItems={currentStockTotalItems} pageSizeOptions={[8, 20, 50]} onPageSizeChange={onCurrentStockPageSizeChange} onPageChange={onCurrentStockPageChange} />}
           </>}
         </SectionPanel>
+        </KeepAliveTabPanel>
 
-        <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
-          <div className="space-y-3">
+        <KeepAliveTabPanel id="warehouse-lookup-ledger" active={activeTask === 'ledger'} className="min-w-0">
+        <SectionPanel title="Sổ luân chuyển kho" icon={<ClipboardList size={18} />} description="Mặc định hiển thị bút toán từ 31 ngày trước đến hôm nay; tìm kiếm chỉ trong phạm vi này.">
+          <div className="space-y-3 px-4 pb-4 pt-2">
           <SearchField
             id="warehouse-stock-movement-search"
             label="Tìm bút toán theo chứng từ nguồn"
@@ -157,12 +198,13 @@ export function WarehouseMovementPanel({
               movements={stockMovements}
               ariaLabel="Sổ luân chuyển kho"
               caption="Các bút toán nhập, xuất, trả và điều chỉnh kho"
-              emptyTitle="Chưa phát sinh bút toán luân chuyển kho."
+              emptyTitle={stockMovementSearch.trim() ? 'Không có bút toán khớp bộ lọc.' : 'Không có bút toán trong phạm vi mặc định.'}
               cursorPagination={{ page: stockMovementPage, hasNext: stockMovementHasNext, onPrevious: onStockMovementPrevious, onNext: onStockMovementNext }}
             />
           ) : null}
           </div>
         </SectionPanel>
+        </KeepAliveTabPanel>
       </div>
     </SplitWorkbench>
   );

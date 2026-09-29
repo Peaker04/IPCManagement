@@ -1,6 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import type { PurchaseOrderLineDto } from '@/api/workflowApi';
+import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApi';
+import { WarehousePurchaseOrdersPanel } from './pages/WarehousePurchaseOrdersPanel';
 import { PurchaseOrderLineGroups } from './PurchaseOrderLineGroups';
 
 const line = (id: string, orderedQty: number, receivedQty: number): PurchaseOrderLineDto => ({
@@ -16,6 +18,45 @@ const line = (id: string, orderedQty: number, receivedQty: number): PurchaseOrde
   lotNumberRequired: false,
   manufactureDateRequired: false,
   expiryDateRequired: false,
+});
+
+describe('WarehousePurchaseOrdersPanel', () => {
+  const props = {
+    canReceivePurchases: true,
+    isFetchingPurchaseOrders: false,
+    isPurchaseOrderDetailsOpen: false,
+    selectedPurchaseOrderId: null,
+    purchaseOrderDetailsHref: () => '/warehouse',
+    onSelectReceiptLine: vi.fn(),
+    pageNumber: 1,
+    pageSize: 8,
+    totalItems: 0,
+    onPageChange: vi.fn(),
+    onPageSizeChange: vi.fn(),
+    onOpenBatchReceipt: vi.fn(),
+  };
+
+  it('renders the receiving table semantics and truthful empty state', () => {
+    const view = render(<MemoryRouter><WarehousePurchaseOrdersPanel {...props} purchaseOrders={[]} /></MemoryRouter>);
+    const region = screen.getByRole('region', { name: 'Đơn mua và tiến độ nhập kho' });
+    expect(within(region).getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Đơn mua / Nhà cung cấp',
+      'Đề xuất nguồn',
+      'Tiến độ nhập',
+      'Trạng thái',
+      'Thao tác',
+    ]);
+    expect(screen.getByText('Chưa có đơn mua trong phạm vi hiện tại.')).toBeInTheDocument();
+
+    const order = { purchaseOrderId: 'po-1', purchaseOrderCode: 'PO-001', purchaseRequestCode: 'PR-001', supplierName: 'Nhà cung cấp A', status: 'APPROVED', orderDate: '2026-07-20', lines: [line('line-1', 10, 2)] } as PurchaseOrderDto;
+    view.rerender(<MemoryRouter><WarehousePurchaseOrdersPanel {...props} purchaseOrders={[order]} totalItems={1} /></MemoryRouter>);
+    expect(screen.getByText('Nhà cung cấp A')).toBeInTheDocument();
+    expect(screen.getByText('1/1 dòng còn phải nhận')).toHaveAttribute('data-cell-role', 'numeric');
+    expect(screen.getByRole('link', { name: 'Xem chi tiết PO-001' })).toBeInTheDocument();
+
+    view.rerender(<MemoryRouter><WarehousePurchaseOrdersPanel {...props} isPurchaseOrderDetailsOpen selectedPurchaseOrderId="po-1" selectedPurchaseOrder={order} purchaseOrders={[order]} totalItems={1} /></MemoryRouter>);
+    expect(screen.getByRole('region', { name: 'Chi tiết PO-001' })).toHaveFocus();
+  });
 });
 
 describe('PurchaseOrderLineGroups', () => {
@@ -36,6 +77,13 @@ describe('PurchaseOrderLineGroups', () => {
     expect(screen.getAllByRole('button', { name: 'Ghi nhận dòng này' })).toHaveLength(2);
     fireEvent.click(screen.getAllByRole('button', { name: 'Ghi nhận dòng này' })[1]);
     expect(onReceive).toHaveBeenCalledWith(expect.objectContaining({ purchaseOrderLineId: 'line-2' }));
+  });
+
+  it('shows the actual small remaining quantity instead of a floating-point artifact', () => {
+    render(<PurchaseOrderLineGroups lines={[line('line-small', 0.001, 0.0008)]} canReceive onReceive={vi.fn()} />);
+
+    expect(screen.getByText('Còn 0,0002 kg')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ghi nhận nhập kho' })).toBeEnabled();
   });
 
   it('marks a source line with an active receipt as unavailable for another draft', () => {

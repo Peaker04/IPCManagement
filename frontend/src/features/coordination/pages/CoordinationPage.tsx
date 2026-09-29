@@ -10,6 +10,7 @@ import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
 import { SectionPanel } from '@/components/common/SectionPanel'
 import { deriveCoordinationStatus } from '../coordinationStatus'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
+import { TabContentSkeleton } from '@/components/common/TabContentSkeleton'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
 const HeaderInfo = lazy(() => import('../components/header-info').then(({ HeaderInfo: component }) => ({ default: component })))
@@ -110,7 +111,7 @@ export default function CoordinationPage() {
           </Suspense>
 
           <div className="min-h-0">
-            <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+            <Suspense fallback={<TabContentSkeleton geometry="compact" rows={1} columns={6} message="Đang tải danh sách suất ăn..." />}>
               <OrderTable
                 orders={filteredOrders}
                 canEditForecast={canEditForecast}

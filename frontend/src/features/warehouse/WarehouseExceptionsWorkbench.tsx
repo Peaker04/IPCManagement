@@ -3,11 +3,13 @@ import { ArrowRight, PackageCheck, RefreshCw, Undo2 } from 'lucide-react';
 import {
   IdentifierText,
   InlineAlert,
+  KeepAliveTabPanel,
   PaginationBar,
   SearchField,
   SectionPanel,
   SkeletonTableRow,
   TableViewport,
+  ViewSwitcher,
 } from '@/components/common';
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary';
 import { Button } from '@/components/ui/button';
@@ -61,13 +63,32 @@ function CompactQuantity({ value, unit }: { value: number; unit: string }) {
   return <span>{formatQuantityWithUnit(value, unit, { maximumFractionDigits: 6 })}</span>
 }
 
-export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false }: { canManage: boolean; canDisposition?: boolean }) {
+type ExceptionTask = 'supplemental' | 'allocation' | 'returns';
+
+export function WarehouseExceptionsWorkbench({
+  canManage,
+  canDisposition = false,
+  activeTask: activeTaskProp,
+  onTaskChange,
+}: {
+  canManage: boolean;
+  canDisposition?: boolean;
+  activeTask?: ExceptionTask;
+  onTaskChange?: (task: ExceptionTask) => void;
+}) {
+  const [localTask, setLocalTask] = useState<ExceptionTask>('supplemental');
+  const activeTask = activeTaskProp ?? localTask;
+  const selectTask = (task: ExceptionTask) => {
+    if (onTaskChange) onTaskChange(task);
+    else setLocalTask(task);
+  };
   const [supplementalPage, setSupplementalPage] = useState(1);
   const [supplementalPageSize, setSupplementalPageSize] = useState(8);
   const [returnPage, setReturnPage] = useState(1);
   const [returnPageSize, setReturnPageSize] = useState(8);
   const [allocationPage, setAllocationPage] = useState(1);
   const [allocationPageSize, setAllocationPageSize] = useState(20);
+  const [allocationScope, setAllocationScope] = useState<'actionable' | 'all'>('actionable');
   const [supplementalSearch, setSupplementalSearch] = useState('');
   const [returnSearch, setReturnSearch] = useState('');
   const deferredSupplementalSearch = useDeferredValue(supplementalSearch.trim());
@@ -116,8 +137,10 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
   const selectedReturn = returnDetailView.phase === 'ready' ? returnDetailView.data : undefined;
   const allocationView = toLabeledQueryView(allocationQuery, 'đối soát nguyên liệu theo dòng chứng từ');
   const allocationRows: ReturnAllocationBalance[] = allocationView.phase === 'ready' ? allocationView.data : [];
-  const visibleAllocationPage = Math.min(allocationPage, Math.max(1, Math.ceil(allocationRows.length / allocationPageSize)));
-  const allocationPageRows = allocationRows.slice((visibleAllocationPage - 1) * allocationPageSize, visibleAllocationPage * allocationPageSize);
+  const actionableAllocationRows = allocationRows.filter((row) => row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION'));
+  const shownAllocationRows = canDisposition && allocationScope === 'actionable' ? actionableAllocationRows : allocationRows;
+  const visibleAllocationPage = Math.min(allocationPage, Math.max(1, Math.ceil(shownAllocationRows.length / allocationPageSize)));
+  const allocationPageRows = shownAllocationRows.slice((visibleAllocationPage - 1) * allocationPageSize, visibleAllocationPage * allocationPageSize);
 
   const returnQuantity = useMemo(
     () => selectedReturn?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0,
@@ -287,11 +310,25 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
       )}
       {feedback && <InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}</InlineAlert>}
 
+      <ViewSwitcher
+        compact
+        ariaLabel="Chọn nhóm ngoại lệ kho"
+        tabs={[
+          { id: 'warehouse-exception-supplemental', label: 'Cấp bổ sung' },
+          { id: 'warehouse-exception-allocation', label: 'Đối soát phần dư' },
+          { id: 'warehouse-exception-returns', label: 'Phiếu trả / hao hụt' },
+        ]}
+        activeTab={`warehouse-exception-${activeTask}`}
+        onTabChange={(id) => selectTask(id.replace('warehouse-exception-', '') as ExceptionTask)}
+      />
+
+      <KeepAliveTabPanel id="warehouse-exception-supplemental" active={activeTask === 'supplemental'} className="min-w-0">
       <SectionPanel
         title="Yêu cầu cấp nguyên liệu bổ sung"
         icon={<RefreshCw size={18} aria-hidden="true" />}
         description="Kho xử lý theo tồn thực tế; phần thiếu được chuyển thành đề xuất mua có thể truy vết."
       >
+        <div className="px-4 pb-4 pt-2">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <SearchField id="warehouse-supplemental-search" label="Tìm yêu cầu, nguyên liệu hoặc trạng thái" width="wide" value={supplementalSearch} onChange={(event) => { setSupplementalSearch(event.target.value); setSupplementalPage(1); }} placeholder="Nhập mã hoặc tên nguyên liệu" />
           {supplementalSearch.trim() && supplementalData && <span className="pb-2 text-xs text-slate-500">{supplementalData.totalCount} kết quả</span>}
@@ -302,7 +339,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
             <thead><tr><th scope="col">Yêu cầu</th><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Đã cấp / yêu cầu</th><th scope="col" className="text-right">Tồn khả dụng</th><th scope="col">Trạng thái</th><th scope="col">Hướng xử lý</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {supplementalItems.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-slate-600">Không có yêu cầu bổ sung trong phạm vi kho.</td></tr>
+                <tr><td colSpan={7} className="text-center text-slate-600">{supplementalSearch.trim() ? <>Không tìm thấy yêu cầu khớp “{supplementalSearch.trim()}”. <button type="button" className="font-medium text-blue-700 underline" onClick={() => setSupplementalSearch('')}>Xóa tìm kiếm</button></> : 'Không có yêu cầu bổ sung trong phạm vi kho.'}</td></tr>
               ) : supplementalItems.map((item) => (
                 <tr key={item.requestId}>
                   <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
@@ -330,31 +367,40 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         </TableViewport>
         <PaginationBar page={supplementalData?.pageNumber ?? supplementalPage} pageSize={supplementalData?.pageSize ?? supplementalPageSize} totalItems={supplementalData?.totalCount ?? 0} pageSizeOptions={[8, 20, 50]} onPageSizeChange={(nextSize) => { setSupplementalPageSize(nextSize); setSupplementalPage(1); }} isPending={supplementalView.phase === 'ready' && supplementalView.isRefreshing} onPageChange={setSupplementalPage} />
         </QueryViewBoundary>
+        </div>
       </SectionPanel>
+      </KeepAliveTabPanel>
 
-      <SectionPanel title="Đối soát nguyên liệu đã xuất" icon={<Undo2 size={18} aria-hidden="true" />} description="Theo dõi nguyên liệu đã trả, hao hụt và còn dư theo đúng khách hàng, ngày, ca và mức suất.">
+      <KeepAliveTabPanel id="warehouse-exception-allocation" active={activeTask === 'allocation'} className="min-w-0">
+      <SectionPanel title="Đối soát nguyên liệu đã xuất" icon={<Undo2 size={18} aria-hidden="true" />} description={canDisposition ? 'Theo dõi nguyên liệu đã trả, hao hụt và còn dư theo đúng khách hàng, ngày, ca và mức suất.' : 'Số dư theo dòng chứng từ; điều phối phần dư do Quản trị viên xử lý.'} actions={canDisposition ? <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Phạm vi số dư">
+        <Button type="button" size="sm" variant={allocationScope === 'actionable' ? 'default' : 'outline'} aria-pressed={allocationScope === 'actionable'} onClick={() => { setAllocationScope('actionable'); setAllocationPage(1); }}>Có thể điều phối ({actionableAllocationRows.length})</Button>
+        <Button type="button" size="sm" variant={allocationScope === 'all' ? 'default' : 'outline'} aria-pressed={allocationScope === 'all'} onClick={() => { setAllocationScope('all'); setAllocationPage(1); }}>Tất cả số dư ({allocationRows.length})</Button>
+      </div> : undefined}>
         <QueryViewBoundary queries={[{ label: 'đối soát nguyên liệu theo dòng chứng từ', view: allocationView }]} refreshLabel="Đang cập nhật số liệu đối soát">
           <TableViewport ariaLabel="Đối chiếu trả kho, hao hụt và dư thừa theo dòng chứng từ" caption="Số lượng xuất, trả, hao hụt và còn dư theo dòng chứng từ">
-            <table className="ipc-data-table min-w-[1120px]">
+            <table className="ipc-data-table table-fixed w-full min-w-[1020px]">
               <thead><tr><th scope="col">Khách hàng và ca phục vụ</th><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Xuất / trả</th><th scope="col" className="text-right">Hao hụt / còn dư</th><th scope="col">Hướng xử lý</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
               {allocationView.phase === 'loading' ? (
                 <SkeletonTableRow columns={6} rowCount={20} density="comfortable" />
               ) : (
-                <tbody>{allocationRows.length === 0 ? <tr><td colSpan={6} className="text-center text-slate-600">Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.</td></tr> : allocationPageRows.map((row) => (
+                <tbody>{shownAllocationRows.length === 0 ? <tr><td colSpan={6} className="text-center text-slate-600">{allocationScope === 'actionable' && canDisposition && allocationRows.length ? 'Không có dòng nào được phép điều phối. Xem tất cả số dư để tra cứu lịch sử.' : 'Chưa có nguyên liệu cần đối soát trong phạm vi hiện tại.'}</td></tr> : allocationPageRows.map((row) => (
                   <tr key={row.sourceIssueLineId}><td><span className="block font-medium text-slate-900">{allocationCustomerLabel(row)}</span><span className="text-xs text-slate-600">{formatDateOnly(row.serviceDate)} · {formatShiftName(row.shiftName)} · {formatCurrency(row.priceTierAmount)}</span></td><td><span className="block font-medium text-slate-900">{row.ingredientName || 'Chưa xác định nguyên liệu'}</span><span className="text-xs text-slate-500">{row.unitName || 'Chưa có tên đơn vị'}</span></td><td data-cell-role="numeric" className="text-right text-xs tabular-nums"><span className="block">Xuất: <CompactQuantity value={row.issuedQuantity} unit={row.unitName ?? ''} /></span><span className="block">Trả: <CompactQuantity value={row.returnedQuantity} unit={row.unitName ?? ''} /></span></td><td data-cell-role="numeric" className="text-right text-xs tabular-nums"><span className="block">Hao hụt: <CompactQuantity value={row.wastedQuantity} unit={row.unitName ?? ''} /></span><span className="block font-semibold">Còn dư: <CompactQuantity value={row.excessQuantity} unit={row.unitName ?? ''} /></span></td><td>{row.decisionReason || (row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? 'Có thể điều phối sang khách hàng khác' : 'Đang theo dõi trong phạm vi này')}</td><td className="text-right">{canDisposition && row.allowedActions.includes('CROSS_CUSTOMER_DISPOSITION') ? <Button type="button" size="sm" onClick={() => openDisposition(row)}>Điều phối phần dư</Button> : <span className="text-xs text-slate-500">Chưa cần thao tác</span>}</td></tr>
                 ))}</tbody>
               )}
             </table>
           </TableViewport>
-          <PaginationBar page={visibleAllocationPage} pageSize={allocationPageSize} totalItems={allocationRows.length} pageSizeOptions={[10, 20, 50]} onPageSizeChange={(nextSize) => { setAllocationPageSize(nextSize); setAllocationPage(1); }} isPending={allocationView.phase === 'ready' && allocationView.isRefreshing} onPageChange={setAllocationPage} />
+          <PaginationBar page={visibleAllocationPage} pageSize={allocationPageSize} totalItems={shownAllocationRows.length} pageSizeOptions={[10, 20, 50]} onPageSizeChange={(nextSize) => { setAllocationPageSize(nextSize); setAllocationPage(1); }} isPending={allocationView.phase === 'ready' && allocationView.isRefreshing} onPageChange={setAllocationPage} />
         </QueryViewBoundary>
       </SectionPanel>
+      </KeepAliveTabPanel>
 
+      <KeepAliveTabPanel id="warehouse-exception-returns" active={activeTask === 'returns'} className="min-w-0">
       <SectionPanel
         title="Phiếu trả dư và hao hụt chờ kho tiếp nhận"
         icon={<Undo2 size={18} aria-hidden="true" />}
         description="Nguyên liệu trả lại được cộng tồn theo số thực nhận; hao hụt chỉ được ghi vào lịch sử, không cộng tồn."
       >
+        <div className="px-4 pb-4 pt-2">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <SearchField id="warehouse-return-search" label="Tìm phiếu trả, ngày hoặc lý do" width="wide" value={returnSearch} onChange={(event) => { setReturnSearch(event.target.value); setReturnPage(1); }} placeholder="Nhập mã phiếu hoặc nội dung" />
           {returnSearch.trim() && returnsData && <span className="pb-2 text-xs text-slate-500">{returnsData.totalCount} kết quả</span>}
@@ -365,7 +411,7 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
             <thead><tr><th scope="col">Phiếu trả</th><th scope="col">Loại</th><th scope="col">Phiếu xuất gốc</th><th scope="col">Ngày/ca</th><th scope="col">Lý do</th><th scope="col">Trạng thái</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {returnItems.length === 0 ? (
-                <tr><td colSpan={7} className="text-center text-slate-600">Không có phiếu trả hoặc hao hụt đang chờ kho.</td></tr>
+                <tr><td colSpan={7} className="text-center text-slate-600">{returnSearch.trim() ? <>Không tìm thấy phiếu trả khớp “{returnSearch.trim()}”. <button type="button" className="font-medium text-blue-700 underline" onClick={() => setReturnSearch('')}>Xóa tìm kiếm</button></> : 'Không có phiếu trả hoặc hao hụt đang chờ kho.'}</td></tr>
               ) : returnItems.map((item) => (
                 <tr key={item.returnId}>
                   <td className="font-semibold text-slate-950">{item.returnCode}</td>
@@ -382,7 +428,9 @@ export function WarehouseExceptionsWorkbench({ canManage, canDisposition = false
         </TableViewport>
         <PaginationBar page={returnsData?.pageNumber ?? returnPage} pageSize={returnsData?.pageSize ?? returnPageSize} totalItems={returnsData?.totalCount ?? 0} pageSizeOptions={[8, 20, 50]} onPageSizeChange={(nextSize) => { setReturnPageSize(nextSize); setReturnPage(1); }} isPending={returnsView.phase === 'ready' && returnsView.isRefreshing} onPageChange={setReturnPage} />
         </QueryViewBoundary>
+        </div>
       </SectionPanel>
+      </KeepAliveTabPanel>
 
       {Boolean(selectedSupplemental) && (
         <Dialog open={Boolean(selectedSupplemental)} onOpenChange={(open) => { if (!open) { setSelectedSupplemental(undefined); setFulfillValidation(undefined); setFulfillError(undefined); } }}>

@@ -636,6 +636,14 @@
   color: var(--ipc-danger);
 }
 
+.warehouse-demand-summary .ipc-demand-next-action {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
 .ipc-status-action-table {
   width: 100%;
   min-width: 0 !important;

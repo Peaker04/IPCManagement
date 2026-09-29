@@ -516,6 +516,7 @@ const DefaultWeeklyMenuPage = () => {
     hasSelectedCustomer: Boolean(effectiveMenuCustomerId),
     isSyncing: isCatalogLoading || isCommittedMenuFetching || demandReadinessResult.isLoading,
     hasCatalogIssue: isCatalogError || isCatalogEmpty,
+    hasServingIssue: mealQuantityPlansView.phase === 'error' || mealQuantityPlansView.phase === 'forbidden',
     hasDemandIssue: !isMaterialReconciliationMode && demandReadinessResult.isError,
     menuCount: weeklyPlanRows.length,
     missingServingCount: weeklyRowsMissingOperationalServings.length,
@@ -568,6 +569,7 @@ const DefaultWeeklyMenuPage = () => {
         customers={customers}
         selectedCustomerId={effectiveMenuCustomerId}
         weekStartDate={displayedWeekStartDate}
+        pricing={isMaterialReconciliationMode ? undefined : <WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
         isCustomerLoading={isCustomerLoading}
         isImporting={importWorkflow.status.isImporting}
         canPublish={canPublishWeeklyMenu && Boolean(publishableSchedule)}
@@ -590,11 +592,8 @@ const DefaultWeeklyMenuPage = () => {
           writeWeeklyMenuSelection(LAST_WEEKLY_MENU_WEEK_KEY, normalizedWeekStartDate);
         }}
       />}
-      context={isMaterialReconciliationMode ? undefined : <WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
-      <QueryViewBoundary preserveFallback noticePlacement="overlay" queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
-        <WeeklyMenuReadiness readiness={readiness} />
-        <WeeklyMenuNavigation
+      <WeeklyMenuNavigation
           mode={systemOperation?.mode ?? 'DEFAULT'}
           views={weeklyMenuTabIds}
           activeView={resolvedSelectedView}
@@ -608,6 +607,9 @@ const DefaultWeeklyMenuPage = () => {
             }
           }}
         />
+      <div role={!effectiveMenuCustomerId ? 'tabpanel' : undefined} id={!effectiveMenuCustomerId ? `${resolvedSelectedView}-panel` : undefined} aria-labelledby={!effectiveMenuCustomerId ? `${resolvedSelectedView}-tab` : undefined}>
+      <QueryViewBoundary preserveFallback queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
+        <WeeklyMenuReadiness readiness={readiness} />
         <WeeklyMenuAlerts
           invalidBomTierCount={invalidBomTierCount}
           menuFeedback={menuFeedback}
@@ -680,6 +682,7 @@ const DefaultWeeklyMenuPage = () => {
           />}
         </div>
       </QueryViewBoundary>
+      </div>
     </OperationalFrame>
   );
 };

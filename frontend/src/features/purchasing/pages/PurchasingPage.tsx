@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Info, RotateCcw, ShoppingCart, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { CommandBar, ContextStrip, EmptyState, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, EmptyState, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, TabContentSkeleton, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerBody, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { visibleTabIds } from '@/lib/navigationPreferences';
@@ -23,7 +23,7 @@ import {
 
 const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench').then(({ SupplementalPurchasingWorkbench: component }) => ({ default: component })))
 const SupplierQuotationSection = lazy(() => import('../quotation/SupplierQuotationSection').then(({ SupplierQuotationSection: component }) => ({ default: component })))
-const purchasingCapabilityFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
+const purchasingCapabilityFallback = <TabContentSkeleton geometry="compact" rows={1} columns={6} message="Đang tải vùng thu mua..." />
 
 type PurchasingView = 'workflow' | 'supplemental' | 'quotations';
 

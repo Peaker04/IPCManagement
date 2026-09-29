@@ -64,6 +64,7 @@ describe('PurchaseServiceDateWorkbench terminal state', () => {
     const viewport = screen.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
     const emptyMessage = screen.getByText('Chưa có nhu cầu đã duyệt trong tuần này.');
 
+    expect(within(viewport).getAllByRole('columnheader')).toHaveLength(7);
     expect(viewport).not.toHaveClass('h-[400px]', 'xl:h-[480px]');
     expect(emptyMessage).not.toHaveClass('h-[320px]');
   });
@@ -146,6 +147,9 @@ describe('PurchaseServiceDateWorkbench terminal state', () => {
 
     expect(screen.getAllByText('Gạo')).toHaveLength(1);
     expect(screen.getByText('15 kg')).toBeInTheDocument();
+    const table = screen.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(7);
+    expect(table.querySelectorAll('[data-cell-role="numeric"]')).toHaveLength(3);
     fireEvent.click(screen.getByRole('button', { name: 'Xem 2 nguồn' }));
     const sources = screen.getByRole('list', { name: 'Các dòng nguồn của Gạo' })
     expect(within(sources).getAllByRole('listitem')).toHaveLength(2)

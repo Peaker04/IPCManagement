@@ -250,6 +250,10 @@
   .ipc-split-workbench--wide-detail-rail .ipc-split-detail-strip-body {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  .ipc-split-workbench--wide-detail-rail .ipc-document-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Chi tiết ô thực đơn (WeeklyMenu) vẫn dùng dạng cột bên phải */

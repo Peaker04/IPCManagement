@@ -77,6 +77,7 @@ export function AdminInventoryPanel({ model }: AdminInventoryPanelProps) {
         <AdminQueryBoundary queries={[{ label: 'lịch sử điều chỉnh tồn', view: queryViews.stockMovements }]}>
           <StockMovementTable
             movements={adjustmentMovements}
+            emptyTitle={inventoryMovementSearch.trim() ? 'Không có bút toán điều chỉnh tồn khớp bộ lọc.' : 'Chưa phát sinh bút toán điều chỉnh tồn kho.'}
             ariaLabel="Lịch sử điều chỉnh tồn kho"
             caption="Các bút toán điều chỉnh tồn kho theo thời gian"
             cursorPagination={{

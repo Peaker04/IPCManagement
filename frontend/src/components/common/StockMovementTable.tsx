@@ -107,7 +107,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, ariaLab
     return (
       <EmptyState
         title={emptyTitle}
-        className={cn('ipc-stock-movement-table is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+        className={cn('ipc-stock-movement-table is-empty !min-h-0 !p-4', className)}
       />
     );
   }

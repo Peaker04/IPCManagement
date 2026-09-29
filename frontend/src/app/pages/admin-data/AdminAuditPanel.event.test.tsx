@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -60,6 +60,8 @@ describe('MXE-08 reconciliation admin audit event surface', () => {
 
   it('shows the exact event count and truthful unknown-role label', () => {
     render(<MemoryRouter><AdminAuditPanel model={model} /></MemoryRouter>)
+    const table = screen.getByRole('region', { name: 'Nhật ký thay đổi hệ thống' })
+    within(table).getAllByRole('columnheader').forEach((header) => expect(header).toHaveAttribute('scope', 'col'))
     expect(screen.getByText('ISS-MXE08 · 84 dòng')).toBeInTheDocument()
     expect(screen.getByText('Đã tạo phiếu · Vai trò chưa được lưu')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xem chi tiết sự kiện ISS-MXE08' })).toBeInTheDocument()

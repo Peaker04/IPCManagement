@@ -191,7 +191,7 @@ export function useMaterialDemand({
   const backendDocuments = workflowDocuments.filter((document) => ['KHSX', 'Đơn mua', 'Phiếu xuất'].includes(document.type))
   const activeDateDocuments = backendDocuments.filter((document) => isDemandDocumentForDate(document, activeDate))
   const documents = draftDocument ? [draftDocument, ...activeDateDocuments] : activeDateDocuments
-  const weeklyDocuments = draftDocument ? [draftDocument, ...backendDocuments] : backendDocuments
+  const weeklyDocuments = backendDocuments
   // Nếu một trong ba nguồn nhu cầu lỗi/forbidden thì danh sách rỗng KHÔNG có
   // nghĩa là tuần này không cần mua gì; view state quyết định presentation.
   const isDemandError = demandView.phase === 'error' || demandView.phase === 'forbidden'

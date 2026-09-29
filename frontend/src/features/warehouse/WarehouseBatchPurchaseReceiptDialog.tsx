@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { InlineAlert } from '@/components/common';
 import type { PurchaseOrderDto, WarehouseDto, WarehousePurchaseReceiptResult } from '@/api/workflowApiTypes';
 import { useRecordWarehousePurchaseReceiptMutation } from '@/api/warehouseApi';
+import { roundQuantity } from '@/lib/formatters';
 
 interface Props { open: boolean; order: PurchaseOrderDto; warehouses: WarehouseDto[]; week?: string; onOpenChange: (open: boolean) => void; onSuccess: (result: WarehousePurchaseReceiptResult) => void; }
 type Field = 'warehouse' | 'receiptDate' | 'lotPrefix' | 'manufactureDate' | 'expiryDate';
@@ -49,7 +50,7 @@ export function WarehouseBatchPurchaseReceiptDialog({ open, order, warehouses, w
         purchaseOrderId: order.purchaseOrderId, idempotencyKey, warehouseId, receiptDate,
         lines: lines.map((line, index) => ({
           purchaseOrderLineId: line.purchaseOrderLineId,
-          actualQuantity: line.orderedQty - line.receivedQty,
+          actualQuantity: roundQuantity(line.orderedQty - line.receivedQty),
           actualUnitId: line.unitId,
           actualUnitPrice: line.unitPrice,
           lotNumber: `${lotPrefix.trim()}-${String(index + 1).padStart(3, '0')}`,

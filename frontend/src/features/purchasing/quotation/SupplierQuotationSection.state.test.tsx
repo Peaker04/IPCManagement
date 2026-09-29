@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { QueryView } from '@/lib/queryView';
 import type { useSupplierQuotations } from './useSupplierQuotations';
@@ -122,6 +122,9 @@ describe('SupplierQuotationSection query state boundary', () => {
   it('keeps stale quotation rows visible while refreshing', () => {
     render(<SupplierQuotationSection workflow={buildWorkflow(readyView(quotationPage, true))} />);
 
+    const table = screen.getByRole('region', { name: 'Bảng báo giá theo nguyên liệu' });
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(7);
+    expect(table.querySelectorAll('[data-cell-role="numeric"]')).toHaveLength(3);
     expect(screen.getAllByText('Nhà cung cấp Minh An').length).toBeGreaterThan(0);
     expect(screen.getByText('Đang cập nhật báo giá')).toBeInTheDocument();
     expect(screen.queryByText('Chưa có báo giá nào cho nguyên liệu này')).toBeNull();

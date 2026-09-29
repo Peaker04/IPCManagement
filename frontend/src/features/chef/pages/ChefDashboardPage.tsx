@@ -3,7 +3,7 @@
 import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
 import { ShieldAlert, ShieldCheck } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CommandBar, InlineAlert, KeepAliveTabPanel, OperationalFrame, TabContentSkeleton, ViewSwitcher, RefreshStatus } from '@/components/common';
+import { CommandBar, InlineAlert, KeepAliveTabPanel, OperationalFrame, ViewSwitcher, RefreshStatus } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import type { ShiftType } from '@/types/coordination'
@@ -24,7 +24,7 @@ const ChefProductionSection = lazy(() => import('../production/ChefProductionSec
 const ServiceRunSection = lazy(() => import('../production/ServiceRunSection').then(({ ServiceRunSection: component }) => ({ default: component })))
 const KitchenReceiptSection = lazy(() => import('../receipts/KitchenReceiptSection').then(({ KitchenReceiptSection: component }) => ({ default: component })))
 const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection').then(({ ChefDocumentsSection: component }) => ({ default: component })))
-const chefCapabilityFallback = <TabContentSkeleton geometry="section" columns={6} rows={6} message="Đang tải dữ liệu bếp trưởng..." />
+const chefCapabilityFallback = <div role="status" aria-busy="true" className="flex min-h-24 items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-600">Đang tải dữ liệu bếp trưởng...</div>
 
 export default function ChefDashboardPage() {
   const [searchParams, setSearchParams] = useSearchParams()

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/components/common'
@@ -118,7 +118,7 @@ describe('MaterialDemandSection — lỗi API không được hoá trang thành 
     workflow.presentation.aggregateLines = [line]
     workflow.presentation.inventoryGroups = { exceptionLines: [line], sufficientLines: [] }
     render(<MemoryRouter><ToastProvider><MaterialDemandSection workflow={workflow} scheduleWorkflow={scheduleWorkflow} servingFeedback={null} /></ToastProvider></MemoryRouter>)
-    expect(screen.getByText('Kho xử lý xuất')).toBeInTheDocument()
+    expect(screen.queryByText('Kho xử lý xuất')).not.toBeInTheDocument()
     expect(screen.getByText('Khách A · 25k · 2 dòng nhu cầu')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Đề xuất mua' })).not.toBeInTheDocument()
   })
@@ -148,6 +148,9 @@ describe('MaterialDemandSection — lỗi API không được hoá trang thành 
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull()
     expect(screen.getByText('Chưa có ngày')).toBeInTheDocument()
     expect(screen.getByText('Chưa có KHSX theo ngày')).toBeInTheDocument()
+    const table = screen.getByRole('region', { name: 'Kế hoạch sản xuất theo ngày từ thực đơn tuần' })
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(5)
+    expect(within(table).getByText('Chưa có kế hoạch sản xuất trong ngày đang xem.')).toBeInTheDocument()
     expect(screen.queryByText('Không có thiếu hụt')).toBeNull()
   })
 

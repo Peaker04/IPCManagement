@@ -47,7 +47,7 @@ export function WeeklyMenuReadiness({ readiness }: { readiness: Readiness }) {
         </div>
       </div>
 
-      <div className="flex shrink-0 items-center gap-1.5">
+      <div className="flex shrink-0 flex-wrap items-center gap-1.5">
         {readiness.checkpoints.map((checkpoint) => {
           const Icon = checkpointIcons[checkpoint.state];
           return (

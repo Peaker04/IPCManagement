@@ -67,6 +67,7 @@ export interface WorkflowDocumentLine {
 
 export interface WorkflowDocument {
   id: string;
+  documentId?: string;
   type: WorkflowDocumentType;
   title: string;
   status: string;

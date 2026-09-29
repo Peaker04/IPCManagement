@@ -56,7 +56,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
           { label: presentation.usesDemand ? 'Dòng ngày - nguyên liệu' : 'Nguyên liệu tổng tuần', value: (presentation.usesDemand ? presentation.totalItems : presentation.materialCount).toString(), tone: 'neutral' },
           { label: 'Dòng chưa xuất', value: presentation.usesDemand ? `${presentation.shortageCount} dòng` : 'BOM dự kiến', tone: presentation.shortageCount > 0 ? 'danger' : 'neutral' },
           { label: 'Dòng chờ Bếp nhận', value: presentation.usesDemand ? `${presentation.pendingKitchenCount} dòng` : '—', tone: presentation.pendingKitchenCount > 0 ? 'warning' : 'neutral' },
-          { label: 'Giá trị định lượng', value: formatCurrency(presentation.totalCost), tone: 'info' },
+          { label: 'Giá trị BOM dự kiến', value: formatCurrency(presentation.totalCost), tone: 'info' },
         ]} />
       </div>
       <TableViewport
@@ -123,7 +123,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               <td data-cell-role="numeric" className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
               <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
             </tr>)}
-            {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 6 : 7}>Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.</td></tr>}
+            {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 6 : 7}>{presentation.usesDemand ? 'Chưa có dòng nhu cầu đã phát sinh trong tuần này. Giá trị BOM dự kiến không phải lượng đã bàn giao.' : 'Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.'}</td></tr>}
           </tbody>
         </table>
       </TableViewport>

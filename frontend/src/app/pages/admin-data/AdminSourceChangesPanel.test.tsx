@@ -60,12 +60,15 @@ describe('Admin source-change route-primary heading states', () => {
     expect(screen.queryByRole('heading', { level: 3, name: 'Lịch sử thay đổi nguồn' })).not.toBeInTheDocument()
   })
 
-  it('renders the no-batches ready state as the route-primary h2', () => {
+  it('renders the no-batches ready state as the route-primary h2 without reserving workspace height', () => {
     queryState.batches = []
-    renderPanel()
+    const { container } = renderPanel()
 
     expect(screen.getByRole('heading', { level: 2, name: 'Chưa có lô đối chiếu' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 3, name: 'Chưa có lô đối chiếu' })).not.toBeInTheDocument()
+    const boundary = container.querySelector('[data-query-geometry]')
+    expect(boundary).toHaveAttribute('data-query-geometry', 'section')
+    expect(boundary).not.toHaveClass('min-h-[24rem]')
   })
 
   it('renders the filtered no-match state as the route-primary h2', async () => {

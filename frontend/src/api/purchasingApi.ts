@@ -161,6 +161,11 @@ export const purchasingApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
       providesTags: ['PurchaseOrders'],
     }),
+    getPurchaseOrderById: builder.query<PurchaseOrderDto, string>({
+      query: (id) => `/purchase-orders/${encodeURIComponent(id)}`,
+      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => getData(response),
+      providesTags: ['PurchaseOrders'],
+    }),
     getPurchaseOrdersPage: builder.query<PurchaseOrderPageResponse, PurchaseOrderPageQuery | void>({
       query: (query) => ({
         url: '/purchase-orders/page',
@@ -276,6 +281,7 @@ export const {
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
   useGetPurchaseOrdersQuery,
+  useGetPurchaseOrderByIdQuery,
   useGetPurchaseOrdersPageQuery,
   useCreatePurchaseOrdersFromRequestMutation,
   useCancelPurchaseOrderMutation,

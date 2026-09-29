@@ -1,8 +1,9 @@
 import { lazy, Suspense, useDeferredValue, useState } from 'react';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { useSearchParams } from 'react-router-dom';
+import { useAppSelector } from '@/app/hooks';
 import { useHasRole } from '@/lib/useHasRole';
-import { InlineAlert, KeepAliveTabPanel, OperationalFrame, QueryErrorAlert, ViewSwitcher } from '@/components/common';
+import { InlineAlert, KeepAliveTabPanel, OperationalFrame, QueryErrorAlert, TabContentSkeleton, ViewSwitcher } from '@/components/common';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { ROUTES } from '@/lib/routeConfig';
 import { useSystemOperation } from '@/lib/systemOperationContext';
@@ -16,8 +17,8 @@ import {
   useGetKitchenIssuesQuery,
   useGetStockMovementPageQuery,
 } from '@/api/reportsApi';
-import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@/api/warehouseApi';
-import { useGetPurchaseOrdersPageQuery } from '@/api/purchasingApi';
+import { useCreateInventoryIssueMutation, useGetInventoryReceiptByIdQuery, useGetWarehouseSelectorQuery } from '@/api/warehouseApi';
+import { useGetPurchaseOrderByIdQuery, useGetPurchaseOrdersPageQuery } from '@/api/purchasingApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';
 import { toQueryView } from '@/lib/queryView';
@@ -54,28 +55,55 @@ export function WarehouseIssueCreationBlocker({ reason }: { reason: string }) {
 
 function DefaultWarehousePage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const canViewChef = useAppSelector((state) => {
+    const user = state.auth.user;
+    return Boolean(user && (user.isAdminFullAccess || user.permissions?.includes('*') || user.permissions?.includes('production.read')));
+  });
   const canReceivePurchases = useHasRole(['thukho']);
   const canCreateInventoryIssues = useHasRole(['thukho']);
   const canDispositionReturns = useHasRole(['admin']);
   type WarehouseView = 'receiving' | 'movement' | 'demand' | 'exceptions';
+  type WarehouseExceptionTask = 'supplemental' | 'allocation' | 'returns';
+  type WarehouseMovementTask = 'stock' | 'ledger';
   const warehouseTabIds = visibleTabIds('warehouse') as WarehouseView[];
   const requestedWarehouseView = searchParams.get('view');
-  const handoffToReceiving = searchParams.has('purchaseOrderId') || searchParams.has('purchaseRequestId');
+  const handoffToReceiving = searchParams.has('purchaseOrderId') || searchParams.has('purchaseRequestId') || searchParams.has('receiptId');
   const selectedView = resolveVisibleTabId(
     handoffToReceiving ? 'receiving' : requestedWarehouseView,
     warehouseTabIds,
     'receiving',
   );
   const activeView = selectedView;
+  const requestedExceptionTask = searchParams.get('exceptionTask');
+  const activeExceptionTask: WarehouseExceptionTask = requestedExceptionTask === 'allocation' || requestedExceptionTask === 'returns'
+    ? requestedExceptionTask
+    : 'supplemental';
+  const selectExceptionTask = (task: WarehouseExceptionTask) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('view', 'exceptions');
+    next.set('exceptionTask', task);
+    setSearchParams(next, { replace: true });
+  };
   const selectWarehouseView = (view: WarehouseView) => {
     const next = new URLSearchParams(searchParams);
     next.set('view', view);
+    setSearchParams(next, { replace: true });
+  };
+  const requestedMovementTask = searchParams.get('movementTask');
+  const activeMovementTask: WarehouseMovementTask = requestedMovementTask === 'ledger' ? 'ledger' : 'stock';
+  const selectMovementTask = (task: WarehouseMovementTask) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('view', 'movement');
+    next.set('movementTask', task);
     setSearchParams(next, { replace: true });
   };
   const [purchaseOrderPageNumber, setPurchaseOrderPageNumber] = useState(1);
   const [purchaseOrderPageSize, setPurchaseOrderPageSize] = useState(8);
   const selectedPurchaseOrderId = searchParams.get('purchaseOrderId');
   const selectedReceiptId = searchParams.get('receiptId') ?? undefined;
+  const { data: deepLinkedReceipt, isError: isDeepLinkedReceiptError, isFetching: isFetchingDeepLinkedReceipt } = useGetInventoryReceiptByIdQuery(selectedReceiptId!, { skip: !selectedReceiptId });
+  const receiptPurchaseOrderId = deepLinkedReceipt?.purchaseOrderId;
+  const { data: deepLinkedPurchaseOrder, isError: isDeepLinkedPurchaseOrderError, isFetching: isFetchingDeepLinkedPurchaseOrder } = useGetPurchaseOrderByIdQuery(receiptPurchaseOrderId!, { skip: !receiptPurchaseOrderId });
   const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
   const isPurchaseOrderDetailsOpen = selectedPurchaseOrderId !== null || requestedPurchaseRequestId !== null;
   const [selectedReceiptLine, setSelectedReceiptLine] = useState<PurchaseOrderLineDto>();
@@ -102,7 +130,7 @@ function DefaultWarehousePage() {
   } | null>(null);
   const isReceivingView = activeView === 'receiving';
   const isIssueView = activeView === 'demand';
-  const { data: workflowDocuments = [], isError: isWorkflowDocumentError, isFetching: isFetchingWorkflowDocuments, refetch: refetchWorkflowDocuments } = useGetWorkflowDocumentsQuery(
+  const { data: workflowDocuments = [], isError: isWorkflowDocumentError, isLoading: isLoadingWorkflowDocuments, isFetching: isFetchingWorkflowDocuments, refetch: refetchWorkflowDocuments } = useGetWorkflowDocumentsQuery(
     { limit: activeView === 'demand' ? 100 : 20 },
     { skip: activeView === 'exceptions' },
   );
@@ -146,14 +174,11 @@ function DefaultWarehousePage() {
     isFetching: isFetchingIssueCandidates,
     isError: isIssueCandidateError,
     refetch: refetchIssueCandidates,
-  } = useGetMaterialRequestCandidatePageQuery(
-    {
-      purpose: 'issue',
-      pageNumber: issueCandidatePageNumber,
-      pageSize: 8,
-    },
-    { skip: !isIssueView },
-  );
+  } = useGetMaterialRequestCandidatePageQuery({
+    purpose: 'issue',
+    pageNumber: issueCandidatePageNumber,
+    pageSize: 8,
+  });
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementQuery = useGetStockMovementPageQuery(
     {
@@ -194,8 +219,7 @@ function DefaultWarehousePage() {
   const warehouseDocuments = [...workflowDocuments.filter((document) => document.type === 'Phiếu nhập'), ...workflowDocuments.filter((document) => document.type === 'Phiếu xuất')];
   const warehouseInbox = roleInboxItems.filter((item) => item.laneId === 'warehouse');
   const issueDocument = warehouseDocuments.find((document) => document.type === 'Phiếu xuất');
-  const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
-  const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
+  const warehouseName = operationalWarehouseContext.warehouse?.warehouseName ?? 'Chưa xác định kho vận hành';
   const issueCandidates = issueCandidatePage?.items ?? [];
   const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
   const { data: kitchenIssueRows = [], isError: isKitchenIssueError, isFetching: isFetchingKitchenIssues, refetch: refetchKitchenIssues } = useGetKitchenIssuesQuery(
@@ -234,11 +258,12 @@ function DefaultWarehousePage() {
     ? buildWarehouseIssueAllocation(selectedIssueCandidate.materialRequestId, selectedWarehouseId, selectedDemandLines, selectedWarehouseStockRows, kitchenIssueRows)
     : { lines: [], remainingLineCount: 0, fullyCoveredLineCount: 0 };
   const purchaseOrders = purchaseOrderPageResponse?.page.items ?? [];
-  const selectedPurchaseOrder = resolveSelectedPurchaseOrder(
-    purchaseOrders,
-    selectedPurchaseOrderId,
-    requestedPurchaseRequestId,
-  );
+  const selectedPurchaseOrder = selectedReceiptId
+    ? selectedPurchaseOrderId && (!deepLinkedReceipt || deepLinkedReceipt.purchaseOrderId === selectedPurchaseOrderId)
+      ? resolveSelectedPurchaseOrder(purchaseOrders, selectedPurchaseOrderId, null) ?? (deepLinkedPurchaseOrder?.purchaseOrderId === selectedPurchaseOrderId ? deepLinkedPurchaseOrder : undefined)
+      : deepLinkedReceipt && deepLinkedPurchaseOrder && deepLinkedReceipt.purchaseOrderId === deepLinkedPurchaseOrder.purchaseOrderId && !selectedPurchaseOrderId
+        ? deepLinkedPurchaseOrder : undefined
+    : resolveSelectedPurchaseOrder(purchaseOrders, selectedPurchaseOrderId, requestedPurchaseRequestId);
   const purchaseOrderDetailsHref = (purchaseOrderId: string | null) => {
     const next = new URLSearchParams(searchParams);
     if (purchaseOrderId) next.set('purchaseOrderId', purchaseOrderId);
@@ -328,6 +353,8 @@ function DefaultWarehousePage() {
     <OperationalFrame
       {...buildWarehousePageHeader({
         warehouseName,
+        showStockShortcut: activeView !== 'movement' || activeMovementTask !== 'stock',
+        canViewChef,
         issueDocumentTitle: issueDocument?.title,
         canCreateIssue: issueCreationAvailability.canCreate,
         issueDisabledReason: issueCreationAvailability.disabledReason ?? undefined,
@@ -348,22 +375,6 @@ function DefaultWarehousePage() {
         onTabChange={(id) => selectWarehouseView(id.replace('warehouse-', '') as WarehouseView)}
       />
 
-      {isReceivingView && isPurchaseOrderError && (
-        <QueryErrorAlert title="Không tải được đơn mua chờ nhập kho" isRetrying={isFetchingPurchaseOrders} onRetry={refetchPurchaseOrders}>
-          Không thể coi danh sách đơn mua đang trống. Hãy kiểm tra kết nối rồi tải lại trước khi ghi nhận nhận hàng.
-        </QueryErrorAlert>
-      )}
-      {isReceivingView && isWorkflowDocumentError && (
-        <QueryErrorAlert
-          title="Thiếu dữ liệu tham chiếu của kho"
-          isRetrying={isFetchingWorkflowDocuments}
-          onRetry={() => {
-            if (isWorkflowDocumentError) refetchWorkflowDocuments();
-          }}
-        >
-          Chưa tải được danh sách chứng từ kho. Danh sách phiếu hiển thị chưa đầy đủ; hãy tải lại trước khi đối chiếu chứng từ.
-        </QueryErrorAlert>
-      )}
       {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
         <WarehouseIssueCreationBlocker reason={issueCreationAvailability.disabledReason} />
       )}
@@ -430,45 +441,73 @@ function DefaultWarehousePage() {
         </InlineAlert>
       )}
 
-      {isReceivingView && !isPurchaseOrderError && <WarehousePurchaseOrdersPanel
-        canReceivePurchases={canReceivePurchases}
-        purchaseOrders={purchaseOrders}
-        isFetchingPurchaseOrders={isFetchingPurchaseOrders}
-        isPurchaseOrderDetailsOpen={isPurchaseOrderDetailsOpen}
-        selectedPurchaseOrderId={selectedPurchaseOrderId}
-        selectedPurchaseOrder={selectedPurchaseOrder}
-        purchaseOrderDetailsHref={purchaseOrderDetailsHref}
-        onSelectReceiptLine={setSelectedReceiptLine}
-        pageNumber={purchaseOrderPageResponse?.page.pageNumber ?? purchaseOrderPageNumber}
-        pageSize={purchaseOrderPageResponse?.page.pageSize ?? purchaseOrderPageSize}
-        totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
-        onPageSizeChange={(nextSize) => {
-          setPurchaseOrderPageSize(nextSize);
-          setPurchaseOrderPageNumber(1);
-          setSelectedReceiptLine(undefined);
-        }}
-        onPageChange={(page) => {
-          setPurchaseOrderPageNumber(page);
-          setSelectedReceiptLine(undefined);
-        }}
-        onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
-      />}
+      <KeepAliveTabPanel id="warehouse-receiving" active={activeView === 'receiving'}>
+        {isPurchaseOrderError && (
+          <QueryErrorAlert title="Không tải được đơn mua chờ nhập kho" isRetrying={isFetchingPurchaseOrders} onRetry={refetchPurchaseOrders}>
+            Không thể coi danh sách đơn mua đang trống. Hãy kiểm tra kết nối rồi tải lại trước khi ghi nhận nhận hàng.
+          </QueryErrorAlert>
+        )}
+        {isWorkflowDocumentError && (
+          <QueryErrorAlert
+            title="Thiếu dữ liệu tham chiếu của kho"
+            isRetrying={isFetchingWorkflowDocuments}
+            onRetry={() => {
+              if (isWorkflowDocumentError) refetchWorkflowDocuments();
+            }}
+          >
+            Chưa tải được danh sách chứng từ kho. Danh sách phiếu hiển thị chưa đầy đủ; hãy tải lại trước khi đối chiếu chứng từ.
+          </QueryErrorAlert>
+        )}
+        {!isPurchaseOrderError && <WarehousePurchaseOrdersPanel
+          canReceivePurchases={canReceivePurchases}
+          purchaseOrders={purchaseOrders}
+          isFetchingPurchaseOrders={isFetchingPurchaseOrders}
+          isPurchaseOrderDetailsOpen={isPurchaseOrderDetailsOpen}
+          selectedPurchaseOrderId={selectedPurchaseOrderId}
+          selectedPurchaseOrder={selectedPurchaseOrder}
+          purchaseOrderDetailsHref={purchaseOrderDetailsHref}
+          onSelectReceiptLine={setSelectedReceiptLine}
+          pageNumber={purchaseOrderPageResponse?.page.pageNumber ?? purchaseOrderPageNumber}
+          pageSize={purchaseOrderPageResponse?.page.pageSize ?? purchaseOrderPageSize}
+          totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
+          onPageSizeChange={(nextSize) => {
+            setPurchaseOrderPageSize(nextSize);
+            setPurchaseOrderPageNumber(1);
+            setSelectedReceiptLine(undefined);
+          }}
+          onPageChange={(page) => {
+            setPurchaseOrderPageNumber(page);
+            setSelectedReceiptLine(undefined);
+          }}
+          onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
+        />}
 
-      {isReceivingView && selectedPurchaseOrder && <WarehouseReceiptLifecyclePanel
-        purchaseOrderId={selectedPurchaseOrder.purchaseOrderId}
-        selectedReceiptId={selectedReceiptId}
-        onSelectReceipt={(receiptId) => {
-          const next = new URLSearchParams(searchParams);
-          if (receiptId) next.set('receiptId', receiptId);
-          else next.delete('receiptId');
-          setSearchParams(next);
-        }}
-      />}
+        {isReceivingView && selectedReceiptId && !selectedPurchaseOrder && (
+          <InlineAlert title={isFetchingDeepLinkedReceipt || isFetchingDeepLinkedPurchaseOrder ? 'Đang tải phiếu nhập' : 'Không mở được phiếu nhập'} variant={isFetchingDeepLinkedReceipt || isFetchingDeepLinkedPurchaseOrder ? 'info' : 'warning'}>
+            {isFetchingDeepLinkedReceipt || isFetchingDeepLinkedPurchaseOrder ? 'Đang đối chiếu phiếu nhập với đơn mua.' : isDeepLinkedReceiptError || isDeepLinkedPurchaseOrderError || !receiptPurchaseOrderId ? 'Không tìm thấy phiếu nhập hoặc đơn mua tương ứng.' : 'Phiếu nhập không thuộc đơn mua được chọn.'}
+          </InlineAlert>
+        )}
+        {selectedPurchaseOrder && <WarehouseReceiptLifecyclePanel
+          purchaseOrderId={selectedPurchaseOrder.purchaseOrderId}
+          selectedReceiptId={selectedReceiptId}
+          verifiedReceiptId={deepLinkedReceipt?.purchaseOrderId === selectedPurchaseOrder.purchaseOrderId ? deepLinkedReceipt.receiptId : undefined}
+          onSelectReceipt={(receiptId) => {
+            const next = new URLSearchParams(searchParams);
+            if (receiptId) next.set('receiptId', receiptId);
+            else next.delete('receiptId');
+            setSearchParams(next);
+          }}
+        />}
+      </KeepAliveTabPanel>
 
       <div className={typography.body}>
         <KeepAliveTabPanel id="warehouse-movement" active={activeView === 'movement'} className="duration-150 motion-reduce:transition-none">
             <WarehouseMovementPanel
               documents={warehouseDocuments}
+              canViewChef={canViewChef}
+              documentState={isWorkflowDocumentError ? 'error' : isLoadingWorkflowDocuments ? 'loading' : 'ready'}
+              isRetryingDocuments={isFetchingWorkflowDocuments}
+              onRetryDocuments={() => { void refetchWorkflowDocuments(); }}
               currentStockSearch={currentStockSearch}
               onCurrentStockSearchChange={(value) => { setCurrentStockSearch(value); setCurrentStockPage(1); }}
               currentStockView={currentStockView}
@@ -489,12 +528,14 @@ function DefaultWarehousePage() {
                 const nextCursor = toNextReportCursor(stockMovementPage);
                 if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
               }}
+              activeTask={activeMovementTask}
+              onTaskChange={selectMovementTask}
             />
         </KeepAliveTabPanel>
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
           <ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" />
-          <Suspense fallback={<div aria-busy="true" className="min-h-[260px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+          <Suspense fallback={<TabContentSkeleton geometry="table" rows={6} columns={6} message="Đang tải nhu cầu xuất kho..." />}>
             <WarehouseDemandPanel
               demandSearch={demandSearch}
             onDemandSearchChange={(value) => {
@@ -537,9 +578,12 @@ function DefaultWarehousePage() {
         )}
 
         <KeepAliveTabPanel id="warehouse-exceptions" active={activeView === 'exceptions'}>
-          <Suspense fallback={<div aria-busy="true" className="min-h-[260px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
-            <WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />
-          </Suspense>
+          <WarehouseExceptionsWorkbench
+            canManage={canCreateInventoryIssues}
+            canDisposition={canDispositionReturns}
+            activeTask={activeExceptionTask}
+            onTaskChange={selectExceptionTask}
+          />
         </KeepAliveTabPanel>
       </div>
     </OperationalFrame>

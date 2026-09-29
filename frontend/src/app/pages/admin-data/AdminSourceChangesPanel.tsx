@@ -117,7 +117,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
 
   return (
     <KeepAliveTabPanel id="admin-source-changes" active={isActive} className="space-y-4">
-      <QueryViewBoundary queries={[{ label: 'danh sách lô đối chiếu', view: batchesView }]} geometry="workspace" minHeight="min-h-[24rem]">
+      <QueryViewBoundary queries={[{ label: 'danh sách lô đối chiếu', view: batchesView }]} geometry="section">
       <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-xs" data-ui-work-surface="admin-source-changes-scope">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-1.5 shrink-0">

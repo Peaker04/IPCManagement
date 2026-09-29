@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { ReceiptText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -38,11 +39,19 @@ export function WarehousePurchaseOrdersPanel({
   onPageSizeChange,
   onOpenBatchReceipt,
 }: WarehousePurchaseOrdersPanelProps) {
+  const detailRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!selectedPurchaseOrder) return;
+    detailRef.current?.focus({ preventScroll: true });
+    detailRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [selectedPurchaseOrder]);
+
   return (
 <SectionPanel
-  title="Đơn mua chờ nhập kho"
+  title="Đơn mua và tiến độ nhập kho"
   icon={<ReceiptText size={18} aria-hidden="true" />}
-  description="Chọn đúng đơn và dòng thực nhận để đối chiếu số lượng thực tế từ nhà cung cấp."
+  description="Theo dõi tiến độ nhận và mở đúng đơn để ghi nhận từng dòng hoặc tạo phiếu nhập hàng loạt."
   className="min-w-0 overflow-hidden"
 >
   {!canReceivePurchases && (
@@ -55,44 +64,47 @@ export function WarehousePurchaseOrdersPanel({
     caption="Các đơn mua chờ kho ghi nhận số lượng thực nhận"
     className="ipc-table-viewport--page-flow"
   >
-    <table className="ipc-data-table min-w-[1060px] !table-auto">
+    <table className="ipc-data-table min-w-[900px] table-fixed w-full">
       <thead>
         <tr>
-          <th scope="col" className="min-w-[280px]">Đơn mua</th>
-          <th scope="col" className="min-w-[160px]">Nhà cung cấp</th>
-          <th scope="col" className="min-w-[220px]">Đề xuất mua</th>
-          <th scope="col" className="min-w-[140px]">Trạng thái</th>
-          <th scope="col" className="min-w-[130px]">Tiến độ dòng</th>
-          <th scope="col" className="min-w-[130px] text-right">Thao tác</th>
+          <th scope="col" className="w-[30%]">Đơn mua / Nhà cung cấp</th>
+          <th scope="col" className="w-[22%]">Đề xuất nguồn</th>
+          <th scope="col" className="w-[18%]">Tiến độ nhập</th>
+          <th scope="col" className="w-[16%]">Trạng thái</th>
+          <th scope="col" className="w-[14%] text-right">Thao tác</th>
         </tr>
       </thead>
       <tbody>
         {isFetchingPurchaseOrders && purchaseOrders.length === 0 ? (
           Array.from({ length: 8 }, (_, index) => (
             <tr key={`purchase-order-skeleton-${index}`} aria-hidden="true">
-              <td colSpan={6}>
+              <td colSpan={5}>
                 <div className="h-5 animate-pulse rounded-sm bg-slate-200 motion-reduce:animate-none" />
               </td>
             </tr>
           ))
         ) : purchaseOrders.length === 0 ? (
           <tr>
-            <td colSpan={6} className="px-4 py-8 text-center text-slate-600">
-              Chưa có đơn mua để theo dõi nhập kho.
+            <td colSpan={5} className="px-4 py-8 text-center text-slate-600">
+              Chưa có đơn mua trong phạm vi hiện tại.
             </td>
           </tr>
         ) : (
           purchaseOrders.map((order) => {
             const completedLines = order.lines.filter((line) => line.receivedQty >= line.orderedQty).length;
+            const remainingLines = order.lines.length - completedLines;
             const isSelected = isPurchaseOrderDetailsOpen && selectedPurchaseOrderId === order.purchaseOrderId;
             return (
               <tr key={order.purchaseOrderId} className={isSelected ? 'bg-blue-50/60' : undefined}>
-                <td className="min-w-0 font-semibold text-slate-900">
-                  <IdentifierText value={order.purchaseOrderCode} />
+                <td className="min-w-0">
+                  <IdentifierText value={order.purchaseOrderCode} className="font-semibold text-slate-900" />
+                  <span className="mt-0.5 block truncate text-xs text-slate-600" title={order.supplierName}>{order.supplierName}</span>
                 </td>
-                <td>{order.supplierName}</td>
                 <td className="min-w-0 text-slate-600">
                   <IdentifierText value={order.purchaseRequestCode} />
+                </td>
+                <td data-cell-role="numeric" className="whitespace-nowrap tabular-nums">
+                  {remainingLines}/{order.lines.length} dòng còn phải nhận
                 </td>
                 <td className="ipc-badge-cell whitespace-nowrap">
                   <StatusBadge
@@ -101,12 +113,9 @@ export function WarehousePurchaseOrdersPanel({
                     className="ipc-table-badge ipc-table-badge--status"
                   />
                 </td>
-                <td data-cell-role="numeric" className="whitespace-nowrap">
-                  {completedLines}/{order.lines.length} dòng đã đủ
-                </td>
                 <td className="text-right">
-                  <Link className="ipc-button ipc-button-ghost" aria-expanded={isSelected} to={purchaseOrderDetailsHref(isSelected ? null : order.purchaseOrderId)}>
-                    {isSelected ? 'Đóng chi tiết' : 'Xem dòng nhận'}
+                  <Link className="ipc-button ipc-button-ghost whitespace-nowrap" aria-label={`${isSelected ? 'Đóng chi tiết' : 'Xem chi tiết'} ${order.purchaseOrderCode}`} aria-expanded={isSelected} to={purchaseOrderDetailsHref(isSelected ? null : order.purchaseOrderId)}>
+                    {isSelected ? 'Đóng chi tiết' : 'Xem chi tiết'}
                   </Link>
                 </td>
               </tr>
@@ -119,10 +128,16 @@ export function WarehousePurchaseOrdersPanel({
   <PaginationBar page={pageNumber} pageSize={pageSize} totalItems={totalItems} pageSizeOptions={[8, 20, 50]} onPageSizeChange={onPageSizeChange} onPageChange={onPageChange} />
 
   {selectedPurchaseOrder && (
-    <div className="mt-4 rounded-sm border border-slate-300 bg-slate-50 p-3">
+    <div
+      ref={detailRef}
+      role="region"
+      aria-label={`Chi tiết ${selectedPurchaseOrder.purchaseOrderCode}`}
+      tabIndex={-1}
+      className="mt-4 rounded-sm border border-slate-300 bg-slate-50 p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+    >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-950">
+          <h3 id="warehouse-purchase-order-detail-title" className="flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-950">
             <span className="shrink-0">Chi tiết</span>
             <IdentifierText value={selectedPurchaseOrder.purchaseOrderCode} />
           </h3>

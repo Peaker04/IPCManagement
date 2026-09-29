@@ -14,6 +14,7 @@ interface DemandSummaryProps {
   className?: string;
   sourceLabel?: string;
   showServiceDate?: boolean;
+  showAction?: boolean;
   renderAction?: (line: DemandLine) => ReactNode;
 }
 
@@ -51,7 +52,7 @@ const shortenNextAction = (action: string) => {
   return action.length > 24 ? `${action.slice(0, 21).trim()}...` : action;
 };
 
-export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showServiceDate = false, renderAction }: DemandSummaryProps) {
+export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showServiceDate = false, showAction = true, renderAction }: DemandSummaryProps) {
   if (!lines.length) {
     return (
       <EmptyState
@@ -74,7 +75,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
               <th scope="col" style={{ width: showServiceDate ? '11%' : '14%' }} className="whitespace-nowrap text-right">Cần</th>
               <th scope="col" style={{ width: showServiceDate ? '19%' : '22%' }} className="whitespace-nowrap text-right">{isPhysicalHandoff ? 'Bàn giao' : 'Cấp phát'}</th>
               <th scope="col" style={{ width: showServiceDate ? '13%' : '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
-              <th scope="col" style={{ width: showServiceDate ? '15%' : '13%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
+              {showAction && <th scope="col" style={{ width: showServiceDate ? '15%' : '13%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>}
             </tr>
           </thead>
           <tbody>
@@ -105,7 +106,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                       {line.projection === 'physical-handoff' ? line.status : shortenStatus(line.status)}
                     </StatusBadge>
                   </td>
-                  <td className="text-center whitespace-nowrap">
+                  {showAction && <td className="text-center whitespace-nowrap">
                     {renderAction?.(line) ?? (line.actionHref ? (
                       <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={line.actionHref}>
                         {shortenNextAction(line.nextAction)}
@@ -115,7 +116,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                         {shortenNextAction(line.nextAction)}
                       </span>
                     ))}
-                  </td>
+                  </td>}
                 </tr>
               );
             })}

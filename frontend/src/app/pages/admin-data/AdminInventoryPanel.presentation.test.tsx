@@ -22,14 +22,14 @@ const adjustment: StockMovement = {
   tone: 'success',
 }
 
-const model = ({ currentStockRows = [] }: { currentStockRows?: Array<Record<string, unknown>> } = {}) => ({
-  adjustmentMovements: [adjustment],
+const model = ({ currentStockRows = [], adjustmentMovements = [adjustment], inventoryMovementSearch = '' }: { currentStockRows?: Array<Record<string, unknown>>; adjustmentMovements?: StockMovement[]; inventoryMovementSearch?: string } = {}) => ({
+  adjustmentMovements,
   currentStockPage: 1,
   currentStockPageSize: 8,
   currentStockPageResponse: { pageNumber: 1, pageSize: 8, totalCount: currentStockRows.length, items: currentStockRows },
   currentStockRows,
   effectiveActiveView: 'inventory',
-  inventoryMovementSearch: '',
+  inventoryMovementSearch,
   queryViews: {
     currentStock: ready({}),
     stockMovements: ready({}),
@@ -63,9 +63,12 @@ describe('AdminInventoryPanel IPC design grammar', () => {
   })
 
   it('uses truthful inventory-specific empty copy and the canonical search appearance', () => {
-    renderPanel()
+    const view = renderPanel(model({ adjustmentMovements: [] }))
 
     expect(screen.getByText('Chưa có snapshot tồn kho hiện tại. Dữ liệu sẽ xuất hiện sau khi Kho phát sinh nhập, xuất hoặc điều chỉnh.')).toBeVisible()
+    expect(screen.getByText('Chưa phát sinh bút toán điều chỉnh tồn kho.')).toBeVisible()
     expect(screen.getByRole('searchbox', { name: 'Tìm bút toán điều chỉnh tồn' })).not.toHaveClass('bg-slate-50', 'focus:bg-white')
+    view.rerender(<ToastProvider><AdminInventoryPanel model={model({ adjustmentMovements: [], inventoryMovementSearch: 'không-khớp' })} /></ToastProvider>)
+    expect(screen.getByText('Không có bút toán điều chỉnh tồn khớp bộ lọc.')).toBeVisible()
   })
 })

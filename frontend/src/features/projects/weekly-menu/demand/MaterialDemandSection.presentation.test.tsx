@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { ToastProvider } from '@/components/common'
@@ -189,6 +189,7 @@ describe('MaterialDemandSection IA-12 canonical handoff presentation', () => {
       dataState: readyState(null),
       aggregateDtos: dtos,
     })
+    workflow.presentation.activeStaleness = { isStale: false, canRegenerate: false, hasExistingPlan: true, reasons: [], regenerationBlockReason: 'Đã có chứng từ phía sau.' } as MaterialDemandWorkflow['presentation']['activeStaleness']
 
     const { container } = render(
       <MemoryRouter>
@@ -222,6 +223,12 @@ describe('MaterialDemandSection IA-12 canonical handoff presentation', () => {
     const headerRow = inventorySection.firstElementChild as HTMLElement
     expect(within(headerRow).queryByText('Chưa xuất')).toBeNull()
     expect(within(headerRow).getByText('4 nguyên liệu')).toBeDefined()
+    expect(container.querySelector('.ipc-demand-inventory-section')!.compareDocumentPosition(container.querySelector('.ipc-demand-khsx-disclosure')!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(screen.getByText('Nhu cầu đã khóa, chỉ có thể xem')).toBeInTheDocument()
+    expect(screen.getByText('Đã có chứng từ phía sau.')).toBeInTheDocument()
+    expect(screen.getByText('KHSX nguồn trong ngày').closest('details')).not.toHaveAttribute('open')
+    expect(container.querySelector('[aria-label="Kế hoạch sản xuất theo ngày từ thực đơn tuần"]')).toHaveAttribute('data-vertical-scroll', 'page')
+    expect(container.querySelector('[aria-label="Bảng tổng hợp nhu cầu nguyên liệu"]')).toHaveAttribute('data-vertical-scroll', 'page')
 
     // Row status and nextAction preserved unchanged
     expect(aggregateLines[0].status).toBe('Chưa xuất')
@@ -278,6 +285,57 @@ describe('MaterialDemandSection IA-12 canonical handoff presentation', () => {
     expect(checkpointDds[2].textContent).toBe(expectedHandoffText)
   })
 
+  it('resets the source disclosure to the selected day’s default when changing days', () => {
+    const monday = makeWorkflow({ dataState: readyState(null), activeDate: '2026-07-20', activeRows: [weeklyRow({ portions: 0 })] }).workflow
+    const tuesday = makeWorkflow({ dataState: readyState(null), activeDate: '2026-07-21', activeRows: [weeklyRow({ portions: 0, serviceDate: '2026-07-21' })] }).workflow
+    const view = (workflow: MaterialDemandWorkflow) => <MemoryRouter><ToastProvider><MaterialDemandSection workflow={workflow} scheduleWorkflow={scheduleWorkflow} servingFeedback={null} /></ToastProvider></MemoryRouter>
+    const { rerender } = render(view(monday))
+    const source = () => screen.getByText('KHSX nguồn trong ngày').closest('details')!
+    expect(source()).toHaveAttribute('open')
+    fireEvent.click(within(source() as HTMLElement).getByText('KHSX nguồn trong ngày'))
+    expect(source()).not.toHaveAttribute('open')
+    rerender(view(tuesday))
+    expect(source()).toHaveAttribute('open')
+  })
+
+  it('switches document scope without rendering duplicate day and week rails', () => {
+    const { workflow } = makeWorkflow({ dataState: readyState(null) })
+    const document = { id: 'MR-1', type: 'Yêu cầu nguyên liệu', title: 'Yêu cầu ngày', status: 'Đã duyệt', summary: 'Đã duyệt', tone: 'success', owner: 'Điều phối', lines: [] }
+    const other = { ...document, id: 'MR-2', title: 'Yêu cầu ngày khác' }
+    const scoped = { ...workflow, presentation: { ...workflow.presentation, documents: [document], weeklyDocuments: [document, other] } } as unknown as MaterialDemandWorkflow
+    render(<MemoryRouter><ToastProvider><MaterialDemandSection workflow={scoped} scheduleWorkflow={scheduleWorkflow} servingFeedback={null} /></ToastProvider></MemoryRouter>)
+    fireEvent.click(screen.getByText('Chứng từ ngày đang xem'))
+    expect(screen.getByText('Yêu cầu ngày')).toBeInTheDocument()
+    expect(screen.queryByText('Yêu cầu ngày khác')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Xem chứng từ cả tuần' }))
+    expect(screen.getByText('Yêu cầu ngày khác')).toBeInTheDocument()
+    expect(screen.getAllByText('Yêu cầu ngày')).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Chỉ xem ngày đang chọn' }))
+    expect(screen.queryByText('Yêu cầu ngày khác')).not.toBeInTheDocument()
+  })
+
+  it('edits one serving plan per shift while preserving each variant’s displayed portions', () => {
+    const rows = [weeklyRow({ key: 'savory', menuTypeLabel: 'Mặn', portions: 840 }), weeklyRow({ key: 'vegetarian', menuTypeLabel: 'Chay', portions: 150 })]
+    const { workflow } = makeWorkflow({ dataState: readyState(null), activeRows: rows })
+    const quickRow = { key: 't2-morning', inputValue: '840', dayLabel: 'Thứ 2', shiftLabel: 'Ca trưa', isCompleted: false, isConfirmed: false, hasDraftChange: false, hasPlanLines: false, importedServings: 840 }
+    const scopedWorkflow = { ...workflow, presentation: { ...workflow.presentation, activeQuickServingRows: [quickRow] } } as unknown as MaterialDemandWorkflow
+    const editor = { ...scheduleWorkflow, presentation: { getQuickServingRow: () => quickRow }, actions: { ...scheduleWorkflow.actions, changeQuickServing: vi.fn(), saveQuickServing: vi.fn(), discardQuickServing: vi.fn() } } as unknown as WeeklyScheduleEditorWorkflow
+    const { container } = render(<MemoryRouter><ToastProvider><MaterialDemandSection workflow={scopedWorkflow} scheduleWorkflow={editor} servingFeedback={null} /></ToastProvider></MemoryRouter>)
+    expect(container.querySelector('.ipc-demand-khsx-disclosure')!.compareDocumentPosition(container.querySelector('.ipc-demand-inventory-section')!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(screen.getAllByRole('spinbutton', { name: 'Số suất Thứ 2 Ca trưa' })).toHaveLength(1)
+    expect(screen.getByText('150')).toBeInTheDocument()
+  })
+
+  it('shows shift status and the authorized local action without a duplicated next-step panel', () => {
+    const { workflow } = makeWorkflow({ dataState: readyState(null), aggregateDtos: [], demandApprovalStatus: { status: 'not-created', tone: 'neutral', label: 'Chưa tạo', actionLabel: 'Tạo nhu cầu từ KHSX' } })
+    render(<MemoryRouter><ToastProvider><MaterialDemandSection workflow={workflow} scheduleWorkflow={scheduleWorkflow} servingFeedback={null} /></ToastProvider></MemoryRouter>)
+    expect(screen.getByText('Số suất theo ca')).toBeInTheDocument()
+    expect(screen.queryByText('BƯỚC TIẾP THEO')).not.toBeInTheDocument()
+    expect(screen.queryByText('Chi tiết tiến độ ngày')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mở thu mua')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mở hàng đợi duyệt')).not.toBeInTheDocument()
+  })
+
   it('does not present an empty material scope as completed handoff', () => {
     const { workflow } = makeWorkflow({
       dataState: readyState(null),
@@ -304,7 +362,7 @@ describe('MaterialDemandSection IA-12 canonical handoff presentation', () => {
     expect(handoffCard?.classList.contains('is-complete')).toBe(false)
 
     const inventorySection = screen.getByLabelText('Phạm vi ngày đang xem: tổng hợp nguyên liệu')
-    expect(within(inventorySection).getByText('Chưa có nguyên liệu')).toBeDefined()
+    expect(within(inventorySection).getByText('Không có dòng nguyên liệu trong phạm vi ngày đang xem.')).toBeDefined()
 
     expect(container.querySelectorAll('.ipc-demand-exception-block')).toHaveLength(0)
   })

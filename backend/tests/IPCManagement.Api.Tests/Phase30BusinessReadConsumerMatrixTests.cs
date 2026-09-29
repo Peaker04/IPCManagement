@@ -265,6 +265,7 @@ public sealed class Phase30BusinessReadConsumerMatrixTests
         var issueDocuments = documents.Where(item => item.DocumentType == "Phiếu xuất kho").ToList();
 
         issueDocuments.Should().ContainSingle().Which.DocumentId.Should().Be(GuidHelper.ToGuidString(seed.DefaultIssueId));
+        issueDocuments.Single().Route.Should().Be("/chef-dashboard", "workflow document links must resolve to the canonical kitchen route");
         issueDocuments.Should().NotContain(item => item.DocumentId == GuidHelper.ToGuidString(seed.ReconciliationIssueId));
         issueDocuments.Should().NotContain(item => item.DocumentId == GuidHelper.ToGuidString(seed.LegacyIssueId));
     }

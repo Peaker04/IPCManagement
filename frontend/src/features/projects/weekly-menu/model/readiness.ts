@@ -5,6 +5,7 @@ export type WeeklyMenuReadinessInput = {
   hasSelectedCustomer: boolean
   isSyncing: boolean
   hasCatalogIssue: boolean
+  hasServingIssue: boolean
   hasDemandIssue: boolean
   menuCount: number
   missingServingCount: number
@@ -38,6 +39,7 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     hasSelectedCustomer,
     isSyncing,
     hasCatalogIssue,
+    hasServingIssue,
     hasDemandIssue,
     menuCount,
     missingServingCount,
@@ -62,8 +64,8 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     {
       key: 'servings',
       label: 'Số lượng khách',
-      value: missingServingCount > 0 ? `${missingServingCount} dòng chưa chốt suất` : menuCount > 0 ? 'Đã chốt đủ' : 'Chưa kiểm tra',
-      state: checkpointState(menuCount > 0, missingServingCount > 0, 'warning'),
+      value: hasServingIssue ? 'Không tải được' : missingServingCount > 0 ? `${missingServingCount} dòng chưa chốt suất` : menuCount > 0 ? 'Đã chốt đủ' : 'Chưa kiểm tra',
+      state: checkpointState(menuCount > 0, hasServingIssue || missingServingCount > 0, hasServingIssue ? 'danger' : 'warning'),
     },
     {
       key: 'bom',
@@ -93,6 +95,9 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
   }
   if (hasCatalogIssue) {
     return { label: 'Thiếu dữ liệu danh mục món', detail: 'Kiểm tra danh mục trước khi phân tích BOM và giá vốn.', tone: 'warning', checkpoints }
+  }
+  if (hasServingIssue) {
+    return { label: 'Không tải được kế hoạch số suất', detail: 'Chưa xác minh được số suất của tuần đã chọn.', tone: 'danger', checkpoints }
   }
   if (hasDemandIssue) {
     return { label: 'Không tải được nhu cầu theo ngày', detail: 'Chưa xác minh được dữ liệu nhu cầu tuần. Hãy tải lại trước khi tiếp tục.', tone: 'danger', checkpoints }

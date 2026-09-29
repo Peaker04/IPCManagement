@@ -38,7 +38,7 @@ const batchRefetch = vi.fn()
 const historyRefetch = vi.fn()
 const batchQueryState = { phase: 'ready' as 'ready' | 'loading' | 'error' }
 const dailyQueryState = { phase: 'ready' as 'ready' | 'refreshing' | 'loading' | 'error' }
-const historyQueryState = { phase: 'ready' as 'ready' | 'loading' | 'error' }
+const historyQueryState = { phase: 'ready' as 'ready' | 'refreshing' | 'empty' | 'loading' | 'error' }
 const dishesRefetch = vi.fn()
 const dishesState = { phase: 'empty' as 'empty' | 'loading' | 'error' | 'stale-error' | 'ready' | 'previous-batch' }
 const dish = { dishId: 'dish-1', dishCode: 'D1', dishName: 'Cơm', materials: [{ batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', canonicalUnitId: 'unit-1', grossQtyPerServing: 0.1 }] }
@@ -70,7 +70,9 @@ vi.mock('@/api/reconciliationApi', () => ({
     ? { data: undefined, currentData: undefined, isLoading: true, isFetching: true, isError: false, refetch: historyRefetch }
     : historyQueryState.phase === 'error'
       ? { data: undefined, currentData: undefined, isLoading: false, isFetching: false, isError: true, refetch: historyRefetch }
-      : ready({ items: [issue], totalCount: 1 }, historyRefetch),
+      : historyQueryState.phase === 'refreshing'
+        ? { data: { items: [issue], totalCount: 1 }, currentData: { items: [issue], totalCount: 1 }, isLoading: false, isFetching: true, isError: false, refetch: historyRefetch }
+        : ready({ items: historyQueryState.phase === 'empty' ? [] : [issue], totalCount: historyQueryState.phase === 'empty' ? 0 : 1 }, historyRefetch),
   useGetReconciliationWarehouseDailyQuery: (_id: string, options: { skip?: boolean }) => {
     if (options.skip) return uninitialized()
     daily.batchStatus = batch.status
@@ -198,11 +200,27 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.queryByText('Chưa có phiếu xuất kho liên kết.')).not.toBeInTheDocument()
   })
 
+  it('keeps issue rows visible while history refreshes', () => {
+    historyQueryState.phase = 'refreshing'
+    renderPage()
+
+    expect(screen.getByRole('status', { name: 'Đang cập nhật lịch sử xuất kho' })).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Xem giao dịch ISS-001' })).toBeVisible()
+  })
+
+  it('renders an owned empty history surface instead of a bare paragraph', () => {
+    historyQueryState.phase = 'empty'
+    renderPage()
+
+    expect(screen.getByText('Chưa có phiếu xuất kho liên kết').closest('[data-empty-variant]')).toBeVisible()
+    expect(screen.getByText('Phiếu xuất theo ngày của lô này sẽ xuất hiện tại đây sau khi được tạo.')).toBeVisible()
+  })
+
   it('opens one page-level issue dialog from the single row action without leaving the warehouse context', () => {
     renderPage()
 
     expect(screen.queryByRole('button', { name: /\+64 mặt hàng khác/ })).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'Xem giao dịch' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Xem giao dịch/ }))
 
     expect(screen.getAllByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).toHaveLength(1)
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=movement&batchId=batch-1&issueId=issue-1')
@@ -221,7 +239,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
 
   it('lets browser Back close the drawer without losing list context', () => {
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: 'Xem giao dịch' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Xem giao dịch/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }))
 
     expect(screen.queryByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })).not.toBeInTheDocument()
@@ -230,7 +248,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
 
   it('removes issueId on the drawer close control', () => {
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: 'Xem giao dịch' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Xem giao dịch/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
 
     expect(screen.getByTestId('location')).toHaveTextContent('/warehouse?view=movement&batchId=batch-1')
@@ -247,7 +265,17 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toHaveClass('w-80')
     expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toHaveClass('w-44', 'whitespace-nowrap')
     expect(screen.getAllByText('Đã xuất đủ')[0].closest('td')).toHaveClass('w-44', 'whitespace-nowrap')
-    expect(screen.getByRole('status', { name: 'Đang cập nhật định lượng xuất kho' })).toBeInTheDocument()
+    const refreshStatus = screen.getByRole('status', { name: 'Đang cập nhật định lượng xuất kho' })
+    expect(refreshStatus).toBeVisible()
+    expect(refreshStatus).toHaveTextContent('Đang cập nhật định lượng xuất kho…')
+  })
+
+  it('keeps the demand tab panel mounted for a daily projection error', () => {
+    dailyQueryState.phase = 'error'
+    renderPage('/warehouse?view=demand&batchId=batch-1')
+
+    expect(screen.getByRole('tabpanel', { name: 'Danh sách cần xuất' })).toContainElement(screen.getByRole('alert'))
+    expect(screen.getByRole('button', { name: 'Thử lại' })).toBeVisible()
   })
 
   it('renders legacy daily incompatibility as one neutral unavailable state with a history action', () => {
@@ -259,6 +287,10 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     expect(demandTab.compareDocumentPosition(unavailableState!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
     expect(unavailableState?.closest('[role="tabpanel"]')).toHaveAttribute('aria-labelledby', 'warehouse-demand-tab')
     expect(screen.getByRole('button', { name: 'Xem lịch sử xuất kho' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Xem lịch sử xuất kho' }))
+    expect(screen.getByRole('tab', { name: 'Lịch sử xuất kho' })).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }))
+    expect(screen.getByRole('tab', { name: 'Danh sách cần xuất' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
@@ -496,7 +528,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
       renderPage('/warehouse?view=demand&batchId=batch-1&day=ALL')
 
       expect(screen.getByText('Trạng thái tuần: Đang xuất theo ngày')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Cả tuần' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cả tuần' })).toHaveAttribute('aria-pressed', 'true')
       expect(screen.getByText('Tổng hợp nguyên liệu cả tuần')).toBeInTheDocument()
       const weeklyHeader = screen.getByRole('heading', { name: 'Tổng hợp nguyên liệu cả tuần' }).closest('.ipc-section-header')
       expect(weeklyHeader?.querySelector('[aria-hidden="true"].h-9')).toBeInTheDocument()
@@ -529,7 +561,7 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
 
   it('navigates only from the drawer explicit open-batch action with exact batch context', () => {
     renderPage()
-    fireEvent.click(screen.getByRole('button', { name: 'Xem giao dịch' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Xem giao dịch/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Mở lô đối chiếu' }))
 
     expect(screen.getByTestId('location')).toHaveTextContent('/reconciliation?batchId=batch-1')

@@ -9,8 +9,19 @@
 - [ ] **Phase 30: Closed-loop menu issue reconciliation** — issue-state seam is proven, but the complete menu-source → calculation → freeze → issue → reconciliation → change-log E2E remains open.
 - [x] **Phase 32: Pi CLI Agent Harness architecture** — Pi-only v1 complete; Codex app/CLI removed from workflow by Kỳ.
 - [ ] **Phase 33: Skill routing and project roadmap reset** — audit the installed catalog, adapt the small useful subset to Pi/GSD, add routing evidence, then reassess product priorities after Phase 30 review/cleanup.
+- [ ] **Phase 36: Page-locked whole-product UI/UX reconstruction** — redesign both operation modes one page at a time: stable page shell, serialized retained tabs, then task-evaluated modal/drawer flows; Warehouse is the first locked page.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
+
+## Phase 36: Page-locked whole-product UI/UX reconstruction
+
+**Status:** ACTIVE_RESEARCH — Warehouse page shell locked first
+
+**Goal:** Reconstruct the mounted frontend in both operation modes as one coherent operational workbench. Work proceeds one page at a time: stabilize route shell and tab continuity, redesign each retained tab serially, then evaluate and redesign every owned modal/drawer against explicit FR/NFR questions.
+
+**Authority:** `.planning/phases/36-page-locked-whole-product-ui-ux-reconstruction/{36-CONTEXT.md,36-01-PLAN.md,36-CHECKLIST.md}` plus `docs/DESIGN.md`.
+
+**Boundaries:** No business, permission, API, schema or data-grain change under a redesign label; no synthetic records for screenshots; no parallel page waves; no commit/push without separate authorization.
 
 ## Phase 33: Skill routing and project roadmap reset
 

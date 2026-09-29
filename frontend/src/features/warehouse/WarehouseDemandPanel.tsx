@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { EmptyState, PaginationBar, SearchField, SectionPanel } from '@/components/common';
+import { EmptyState, PaginationBar, RefreshStatus, SearchField, SectionPanel, TableSkeleton } from '@/components/common';
 import { DemandSummary } from '@/components/common/DemandSummary';
 import { RoleInbox } from '@/components/common/RoleInbox';
 import { formatDateOnly } from '@/lib/formatters';
@@ -48,8 +48,8 @@ export function WarehouseDemandPanel({
 
   return (
     <SectionPanel
-      title="Nhu cầu xuất theo từng ngày"
-      description="Danh sách nguyên liệu cần chuẩn bị xuất kho theo ngày hoặc tuần phục vụ."
+      title="Nhu cầu cần xuất kho"
+      description="Theo dõi lượng cần xuất, lượng đã bàn giao và bước xử lý tiếp theo theo ngày phục vụ."
       actions={
         <div className="flex max-w-full flex-wrap items-center gap-3 sm:flex-nowrap">
           <span className="hidden whitespace-nowrap text-xs text-slate-500 md:inline">Phạm vi: {scopeLabel}</span>
@@ -74,15 +74,31 @@ export function WarehouseDemandPanel({
             onRetry={onRetry}
             isRetrying={isFetching}
           />
-        ) : <DemandSummary lines={lines} showServiceDate />}
-        <PaginationBar
-          page={page}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          pageSizeOptions={[8, 20, 50]}
-          onPageSizeChange={onPageSizeChange}
-          onPageChange={onPageChange}
-        />
+        ) : isFetching && lines.length === 0 ? (
+          <TableSkeleton rows={8} columns={6} ariaLabel="Đang tải nhu cầu xuất kho..." />
+        ) : lines.length === 0 ? (
+          <EmptyState
+            variant={demandSearch.trim() ? 'filtered' : 'empty'}
+            title={demandSearch.trim() ? 'Không có nhu cầu khớp bộ lọc.' : 'Chưa có nhu cầu cần xuất trong phạm vi này.'}
+            description={demandSearch.trim() ? 'Thử từ khóa khác hoặc xóa tìm kiếm để xem nhu cầu trong phạm vi này.' : 'Thay đổi ngày hoặc tuần khi cần kiểm tra một phạm vi phục vụ khác.'}
+            className="!min-h-0 !p-4"
+          />
+        ) : (
+          <>
+            {isFetching && <RefreshStatus>Đang cập nhật nhu cầu xuất kho…</RefreshStatus>}
+            <DemandSummary lines={lines} showServiceDate className="warehouse-demand-summary" />
+          </>
+        )}
+        {!isError && lines.length > 0 && totalItems > 0 && (
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            pageSizeOptions={[8, 20, 50]}
+            onPageSizeChange={(nextSize) => { if (!isFetching) onPageSizeChange(nextSize); }}
+            onPageChange={(nextPage) => { if (!isFetching) onPageChange(nextPage); }}
+          />
+        )}
         {inboxItems.length > 0 && (
           <div className="mt-4">
             <RoleInbox

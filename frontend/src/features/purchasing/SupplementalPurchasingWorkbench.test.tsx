@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -126,6 +126,9 @@ describe('SupplementalPurchasingWorkbench', () => {
     expect(mocks.getSupplementalRequests).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 100 });
     expect(screen.getByText('SUP-001')).toBeInTheDocument();
     expect(screen.getByText('PR-SUP-001')).toBeInTheDocument();
+    const table = screen.getByRole('region', { name: 'Danh sách nhu cầu mua bổ sung từ bếp' });
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(6);
+    expect(table.querySelectorAll('[data-cell-role="numeric"]')).toHaveLength(1);
     expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
     expect(mocks.decisionPanel).toHaveBeenCalledWith(expect.objectContaining({
       panelId: 'supplemental-purchase-decision-panel',

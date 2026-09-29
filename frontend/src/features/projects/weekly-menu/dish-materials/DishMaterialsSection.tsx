@@ -106,7 +106,7 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
               <tr key={ingredient.key}>
                 <td className="text-left font-medium text-slate-900">{ingredient.name}</td>
                 <td className="text-center text-slate-600">{ingredient.unit}</td>
-                <td data-cell-role="numeric" className="text-right tabular-nums">{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 3 })}</td>
+                <td data-cell-role="numeric" className="text-right tabular-nums">{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 6 })}</td>
                 <td data-cell-role="numeric" className="text-right tabular-nums">{formatCurrency(ingredient.supplierPrice)}</td>
                 <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(Math.round(ingredient.cost))}</td>
               </tr>

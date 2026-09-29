@@ -1,5 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { createElement } from 'react';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import source from './WarehouseReceiptLifecyclePanel.tsx?raw';
+
+const lifecycleMocks = vi.hoisted(() => ({
+  list: vi.fn(),
+  detail: vi.fn(),
+}));
+
+vi.mock('@/lib/useHasRole', () => ({ useHasRole: () => false }));
+vi.mock('@/api/warehouseApi', () => ({
+  useGetInventoryReceiptsQuery: lifecycleMocks.list,
+  useGetInventoryReceiptByIdQuery: lifecycleMocks.detail,
+  useAcceptReceiptQualityMutation: () => [vi.fn(), { isLoading: false }],
+  usePostWarehousePurchaseReceiptMutation: () => [vi.fn(), { isLoading: false }],
+  useCreateReceiptCorrectionMutation: () => [vi.fn(), { isLoading: false }],
+  useReworkWarehousePurchaseReceiptMutation: () => [vi.fn(), { isLoading: false }],
+  useVoidWarehousePurchaseReceiptMutation: () => [vi.fn(), { isLoading: false }],
+}));
+
+import { WarehouseReceiptLifecyclePanel } from './WarehouseReceiptLifecyclePanel';
 
 describe('WarehouseReceiptLifecyclePanel contract', () => {
   it('reloads the canonical receipt read-model before lifecycle actions', () => {
@@ -75,10 +95,25 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain('Chưa có phiếu nhập cần xử lý trong trang này.');
   });
 
-  it('keeps a stable lifecycle footprint across loading and ready states', () => {
-    expect(source).toContain('data-testid="receipt-lifecycle-panel"');
-    expect(source).toContain("'mt-4 grid min-h-[20rem] content-start gap-3'");
-    expect(source).not.toContain("isLifecycleBusy && 'min-h-[48rem]'");
-    expect(source).toContain('aria-busy={isLifecycleBusy}');
+  it('mounts the same bounded workflow shell for loading and ready-empty states', () => {
+    const refetch = vi.fn();
+    lifecycleMocks.detail.mockReturnValue({ data: undefined, isFetching: false, isError: false, refetch: vi.fn() });
+    lifecycleMocks.list.mockReturnValue({ data: undefined, isError: false, isFetching: true, refetch });
+
+    const view = render(createElement(WarehouseReceiptLifecyclePanel, { purchaseOrderId: 'po-1', onSelectReceipt: vi.fn() }));
+    const loadingPanel = screen.getByTestId('receipt-lifecycle-panel');
+    expect(loadingPanel).toHaveClass('content-start');
+    expect(loadingPanel).not.toHaveClass('min-h-[20rem]');
+    expect(loadingPanel).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByText('Đang tải phiếu nhập…')).toBeInTheDocument();
+
+    lifecycleMocks.list.mockReturnValue({ data: { items: [], pageNumber: 1, pageSize: 20, totalCount: 0 }, isError: false, isFetching: false, refetch });
+    view.rerender(createElement(WarehouseReceiptLifecyclePanel, { purchaseOrderId: 'po-1', onSelectReceipt: vi.fn() }));
+    const readyPanel = screen.getByTestId('receipt-lifecycle-panel');
+    expect(readyPanel).toHaveClass('content-start');
+    expect(readyPanel).not.toHaveClass('min-h-[20rem]');
+    expect(readyPanel).toHaveAttribute('aria-busy', 'false');
+    expect(screen.getByText('Chưa có phiếu nhập cần xử lý trong trang này.')).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader')).toHaveLength(4);
   });
 });

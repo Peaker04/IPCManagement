@@ -83,6 +83,7 @@ vi.mock('@/api/warehouseApi', () => ({
 
 import { WarehouseExceptionsWorkbench } from './WarehouseExceptionsWorkbench';
 import { WarehousePurchaseReceiptDialog } from './WarehousePurchaseReceiptDialog';
+import { WarehouseBatchPurchaseReceiptDialog } from './WarehouseBatchPurchaseReceiptDialog';
 import warehouseSource from './WarehouseExceptionsWorkbench.tsx?raw';
 import warehouseApiSource from '@/api/warehouseApi.ts?raw';
 import type { PurchaseOrderDto, PurchaseOrderLineDto } from '@/api/workflowApi';
@@ -150,6 +151,17 @@ describe('WarehouseExceptionsWorkbench', () => {
     mocks.recordReceipt.mockReturnValue({ unwrap: () => Promise.resolve({ success: true }) });
   });
 
+  it('presents one exception work object at a time and preserves tab semantics', async () => {
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByRole('tabpanel', { name: 'Cấp bổ sung' })).toBeVisible();
+    expect(screen.queryByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Đối soát phần dư' }));
+    expect(await screen.findByRole('tabpanel', { name: 'Đối soát phần dư' })).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' })).toBeVisible();
+  });
+
   it('renders the operational warehouse as passive receipt context', () => {
     render(<WarehousePurchaseReceiptDialog
       open
@@ -173,6 +185,42 @@ describe('WarehouseExceptionsWorkbench', () => {
 
     expect(screen.queryByRole('combobox', { name: /Kho nhận/ })).not.toBeInTheDocument();
     expect(screen.getByText('Kho chính')).toBeInTheDocument();
+  });
+
+  it('keeps a small remaining receipt quantity usable and readable', () => {
+    render(<WarehousePurchaseReceiptDialog
+      open
+      order={{ purchaseOrderId: 'po-small', purchaseOrderCode: 'PO-SMALL', supplierName: 'Nhà cung cấp Minh An' } as PurchaseOrderDto}
+      line={{ purchaseOrderLineId: 'line-small', ingredientName: 'Gạo', orderedQty: 0.001, receivedQty: 0.0008, unitPrice: 20_000, unitName: 'kg', unitId: 'unit-1', lotNumberRequired: false, manufactureDateRequired: false, expiryDateRequired: false } as PurchaseOrderLineDto}
+      warehouses={[{ warehouseId: 'warehouse-1', warehouseCode: 'KHO-01', warehouseName: 'Kho chính' }]}
+      onOpenChange={vi.fn()}
+      onSuccess={vi.fn()}
+    />);
+
+    expect(screen.getByLabelText(/Số lượng thực nhận/)).toHaveValue(0.0002);
+    expect(screen.getByLabelText(/Số lượng thực nhận/)).toHaveAttribute('min', '0.000001');
+    expect(screen.getByText('Còn có thể nhận 0,0002 kg. Cho phép nhận một phần.')).toBeInTheDocument();
+  });
+
+  it('submits the remaining batch receipt quantity at the unit precision', async () => {
+    render(<WarehouseBatchPurchaseReceiptDialog
+      open
+      order={{ purchaseOrderId: 'po-small', purchaseOrderCode: 'PO-SMALL', lines: [{ purchaseOrderLineId: 'line-small', orderedQty: 0.001, receivedQty: 0.0008, unitId: 'unit-1', unitPrice: 20000, manufactureDateRequired: false, expiryDateRequired: false }] } as PurchaseOrderDto}
+      warehouses={[{ warehouseId: 'warehouse-1', warehouseCode: 'KHO-01', warehouseName: 'Kho chính' }]}
+      onOpenChange={vi.fn()}
+      onSuccess={vi.fn()}
+    />);
+
+    const date = screen.getByLabelText('Ngày nhận toàn bộ đơn mua');
+    fireEvent.focus(date);
+    fireEvent.change(date, { target: { value: '28/09/2026' } });
+    fireEvent.blur(date);
+    fireEvent.change(screen.getByLabelText('Tiền tố số lô'), { target: { value: 'LOT-SMALL' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Tạo phiếu nháp' }));
+
+    await waitFor(() => expect(mocks.recordReceipt).toHaveBeenCalledOnce());
+    expect(mocks.recordReceipt.mock.calls[0][0].data.lines[0].actualQuantity).toBe(0.0002);
   });
 
   it('references the quantity error only while that error is rendered', () => {
@@ -249,7 +297,7 @@ describe('WarehouseExceptionsWorkbench', () => {
   })
 
   it('lets warehouse confirm actual return quantity and discrepancy semantics', async () => {
-    render(<WarehouseExceptionsWorkbench canManage />);
+    render(<WarehouseExceptionsWorkbench canManage activeTask="returns" />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp nhận' }));
     expect(await screen.findByLabelText('Số thực nhận (kg)')).toHaveValue(2);
@@ -269,7 +317,7 @@ describe('WarehouseExceptionsWorkbench', () => {
   });
 
   it('composes allocation quantities into six decision columns without losing facts', () => {
-    render(<WarehouseExceptionsWorkbench canManage canDisposition />);
+    render(<WarehouseExceptionsWorkbench canManage canDisposition activeTask="allocation" />);
 
     const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
     expect(within(allocationSection!).getAllByRole('columnheader')).toHaveLength(6);
@@ -284,7 +332,7 @@ describe('WarehouseExceptionsWorkbench', () => {
   it('reserves the bounded allocation page footprint during initial loading', () => {
     mocks.allocationQuery.mockReturnValue(loadingQuery());
 
-    const { container } = render(<WarehouseExceptionsWorkbench canManage />);
+    const { container } = render(<WarehouseExceptionsWorkbench canManage activeTask="allocation" />);
 
     const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
     expect(within(allocationSection!).getByText('Đang tải đối soát nguyên liệu theo dòng chứng từ')).toBeInTheDocument();
@@ -299,7 +347,7 @@ describe('WarehouseExceptionsWorkbench', () => {
       customerCode: `KH${index + 1}`,
     }))));
 
-    render(<WarehouseExceptionsWorkbench canManage />);
+    render(<WarehouseExceptionsWorkbench canManage activeTask="allocation" />);
 
     expect(screen.getByText('Khách hàng 1 (KH1)')).toBeInTheDocument();
     expect(screen.queryByText('Khách hàng 21 (KH21)')).toBeNull();
@@ -309,8 +357,23 @@ describe('WarehouseExceptionsWorkbench', () => {
     expect(screen.queryByText('Khách hàng 1 (KH1)')).toBeNull();
   });
 
+  it('keeps historical balances reachable while admin defaults to authorized decisions', () => {
+    mocks.allocationQuery.mockReturnValue(readyQuery([allocationRow, {
+      ...allocationRow, sourceIssueLineId: 'history-line', customerName: 'Lịch sử', customerCode: 'HIS',
+      allowedActions: [], excessQuantity: 0,
+    }]));
+    const { rerender } = render(<WarehouseExceptionsWorkbench canManage canDisposition activeTask="allocation" />);
+    expect(screen.getByText('An Vui (ANV)')).toBeInTheDocument();
+    expect(screen.queryByText('Lịch sử (HIS)')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Tất cả số dư (2)' }));
+    expect(screen.getByText('Lịch sử (HIS)')).toBeInTheDocument();
+    rerender(<WarehouseExceptionsWorkbench canManage activeTask="allocation" />);
+    expect(screen.getByText('Lịch sử (HIS)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Có thể điều phối/ })).not.toBeInTheDocument();
+  });
+
   it('renders exact allocation scope and submits only a backend-authorized disposition', async () => {
-    render(<WarehouseExceptionsWorkbench canManage canDisposition />);
+    render(<WarehouseExceptionsWorkbench canManage canDisposition activeTask="allocation" />);
 
     expect(screen.getByText('An Vui (ANV)')).toBeInTheDocument();
     expect(screen.queryByText('customer-a')).toBeNull();
@@ -364,7 +427,7 @@ describe('WarehouseExceptionsWorkbench', () => {
   it('blocks false return-list empty content when its owner fails', () => {
     mocks.returnsQuery.mockReturnValue(failedQuery(500, mocks.refetchReturns));
 
-    render(<WarehouseExceptionsWorkbench canManage />);
+    render(<WarehouseExceptionsWorkbench canManage activeTask="returns" />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Không tải được phiếu trả');
     expect(screen.getByText('Không có phiếu trả hoặc hao hụt đang chờ kho.').closest('[aria-hidden="true"]')).not.toBeNull();
@@ -373,7 +436,7 @@ describe('WarehouseExceptionsWorkbench', () => {
   it('keeps return-detail forbidden distinct from an empty receipt form', () => {
     mocks.returnDetailQuery.mockImplementation((id: string) => id ? failedQuery(403) : uninitializedQuery());
 
-    render(<WarehouseExceptionsWorkbench canManage />);
+    render(<WarehouseExceptionsWorkbench canManage activeTask="returns" />);
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp nhận' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Tiếp nhận nguyên liệu trả' });
@@ -394,7 +457,9 @@ describe('WarehouseExceptionsWorkbench', () => {
     fireEvent.change(screen.getByLabelText('Tìm yêu cầu, nguyên liệu hoặc trạng thái'), { target: { value: '  Gạo  ' } });
     await waitFor(() => expect(mocks.supplementalQuery).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 1, searchKeyword: 'Gạo' })));
 
-    fireEvent.click(within(paginations[1]).getByRole('button', { name: /trang 2 trong 2/i }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Phiếu trả / hao hụt' }));
+    const returnPagination = screen.getByRole('navigation', { name: 'Phân trang danh sách' });
+    fireEvent.click(within(returnPagination).getByRole('button', { name: /trang 2 trong 2/i }));
     await waitFor(() => expect(mocks.returnsQuery).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2 })));
     fireEvent.change(screen.getByLabelText('Tìm phiếu trả, ngày hoặc lý do'), { target: { value: '  Dư ca  ' } });
     await waitFor(() => expect(mocks.returnsQuery).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 1, searchKeyword: 'Dư ca' })));
@@ -419,7 +484,7 @@ describe('WarehouseExceptionsWorkbench', () => {
   });
 
   it('associates return discrepancy and line-quantity validation with their fields', () => {
-    render(<WarehouseExceptionsWorkbench canManage />);
+    render(<WarehouseExceptionsWorkbench canManage activeTask="returns" />);
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp nhận' }));
     fireEvent.click(screen.getByRole('checkbox', { name: 'Có chênh lệch so với bếp khai báo' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tiếp nhận' }));
@@ -456,7 +521,7 @@ describe('WarehouseExceptionsWorkbench', () => {
 
     secondView.unmount();
     mocks.confirmReturn.mockReturnValue({ unwrap: () => Promise.reject({ data: { message: 'Phiếu trả vừa được tiếp nhận.' } }) });
-    render(<WarehouseExceptionsWorkbench canManage />);
+    render(<WarehouseExceptionsWorkbench canManage activeTask="returns" />);
     fireEvent.click(screen.getByRole('button', { name: 'Tiếp nhận' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận tiếp nhận' }));
     dialog = screen.getByRole('dialog', { name: 'Tiếp nhận nguyên liệu trả' });

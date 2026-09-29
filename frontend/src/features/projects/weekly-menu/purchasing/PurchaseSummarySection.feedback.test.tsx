@@ -89,8 +89,23 @@ describe('PurchaseSummarySection query feedback', () => {
     const region = screen.getByRole('region', { name: 'Bảng BOM dự kiến tổng cả tuần' })
     expect(region).toHaveAccessibleDescription('Mỗi dòng là tổng BOM dự kiến của cả tuần theo nguyên liệu và đơn vị; chưa phải kết quả kiểm tồn theo ngày')
     expect(screen.getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true)
+    expect(screen.getByText('Giá trị BOM dự kiến')).toBeInTheDocument()
     expect(screen.getByText('10', { exact: true }).closest('td')).toHaveAttribute('data-cell-role', 'numeric')
     expect(screen.getByText('8', { exact: true }).closest('td')).toHaveAttribute('data-cell-role', 'numeric')
+  })
+
+  it('keeps current rows visible with passive feedback while refreshing', () => {
+    const workflow = {
+      actions: { setPage: vi.fn(), setSearch: vi.fn() }, state: { search: '', pageIndex: 0 },
+      queryView: { phase: 'ready', data: {}, isRefreshing: false, truncation: null },
+      presentation: { customerLabel: 'Khách hàng ANV', weekLabel: '21/09/2026 - 27/09/2026', usesDemand: true,
+        totalItems: 0, materialCount: 5, shortageCount: 0, pendingKitchenCount: 0, totalCost: 500, pageIndex: 0,
+        demandRows: [], materialRows: [],
+      },
+    } as unknown as PurchaseSummaryWorkflow
+    render(<PurchaseSummarySection workflow={workflow} />)
+    expect(screen.getByText('Giá trị BOM dự kiến')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có dòng nhu cầu đã phát sinh trong tuần này. Giá trị BOM dự kiến không phải lượng đã bàn giao.')).toBeInTheDocument()
   })
 
   it('keeps current rows visible with passive feedback while refreshing', () => {

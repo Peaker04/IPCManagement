@@ -196,6 +196,21 @@ describe('ApprovalPage query state boundary', () => {
     expect(screen.queryByRole('heading', { level: 3, name: 'Danh sách cần duyệt' })).not.toBeInTheDocument();
   });
 
+  it('keeps the initial queue loading surface content-sized instead of reserving workspace height', async () => {
+    mocks.getApprovals.mockReturnValue({
+      ...uninitializedQuery(),
+      isUninitialized: false,
+      isLoading: true,
+    });
+
+    renderPage();
+
+    const viewport = await screen.findByTestId('approval-queue-viewport');
+    expect(viewport).toHaveClass('min-w-0');
+    expect(viewport).not.toHaveClass('min-h-[32rem]');
+    expect(screen.getByRole('region', { name: 'Hàng đợi duyệt vận hành' })).toHaveAttribute('aria-busy', 'true');
+  });
+
   it('renders approval-inbox forbidden without a retry or false empty state', async () => {
     mocks.getApprovals.mockReturnValue(failedQuery(403));
 
@@ -389,6 +404,8 @@ describe('ApprovalPage query state boundary', () => {
     fireEvent.click(await screen.findByRole('button', { name: /PR-001/ }));
 
     expect(await screen.findByText('Quản lý vận hành')).toBeInTheDocument();
+    const timeline = screen.getByRole('list', { name: 'Tiến trình phê duyệt theo thời gian' });
+    expect(within(timeline).getAllByRole('listitem')).toHaveLength(1);
     expect(screen.getByText('Đang cập nhật...')).toBeInTheDocument();
   });
 

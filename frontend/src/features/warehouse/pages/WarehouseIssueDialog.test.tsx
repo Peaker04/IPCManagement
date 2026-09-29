@@ -17,6 +17,19 @@ const candidate = {
 }
 
 describe('WarehouseIssueDialog', () => {
+  it('does not claim stock insufficiency before a demand is selected', () => {
+    render(<WarehouseIssueDialog
+      open onOpenChange={vi.fn()} selectedMaterialRequestId="" onMaterialRequestChange={vi.fn()}
+      issueCandidates={[candidate]} issueCandidatePageNumber={1} issueCandidatePageSize={8} issueCandidateTotalItems={1} onIssueCandidatePageChange={vi.fn()}
+      isFetchingIssueCandidates={false} isIssueCandidateError={false} warehouseName="Kho chính" selectedWarehouseId="warehouse-1"
+      allocation={{ lines: [], remainingLineCount: 0, fullyCoveredLineCount: 0 }} isAllocationSourceError={false} isIssueAllocationRefreshing={false} isCreatingIssue={false} onConfirm={vi.fn()}
+    />)
+
+    expect(screen.getByText('Chọn nhu cầu nguyên liệu để đối chiếu với tồn kho.')).toBeVisible()
+    expect(screen.queryByText(/Kho này không có tồn phù hợp/)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xác nhận xuất 0 dòng' })).toBeDisabled()
+  })
+
   it('preserves the validated issue command boundary after the closed dialog is lazy-loaded', () => {
     const onConfirm = vi.fn()
 

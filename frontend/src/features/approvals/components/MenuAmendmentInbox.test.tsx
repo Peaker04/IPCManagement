@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -30,6 +30,9 @@ describe('MenuAmendmentInbox actor ownership', () => {
 
   it('lets Manager review but does not expose Admin execution', () => {
     render(<MenuAmendmentInbox />)
+    const table = screen.getByRole('region', { name: 'Yêu cầu điều chỉnh thực đơn' })
+    expect(within(table).getAllByRole('columnheader')).toHaveLength(5)
+    expect(screen.getByText('2 nhu cầu · 1 đề xuất mua')).toHaveAttribute('data-cell-role', 'numeric')
     fireEvent.click(screen.getByRole('button', { name: 'Xử lý' }))
     expect(screen.getByRole('button', { name: 'Duyệt' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Thực thi' })).toBeNull()

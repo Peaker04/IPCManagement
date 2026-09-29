@@ -34,6 +34,7 @@ const mapDocument = (item: WorkflowDocumentDto): WorkflowDocument => {
 
   return {
     id: item.documentCode || item.documentId,
+    documentId: item.documentId,
     type,
     title: item.documentType,
     status: item.status,

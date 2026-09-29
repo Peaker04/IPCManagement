@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import warehousePageSource from './WarehousePage.tsx?raw';
-import warehousePurchaseOrdersPanelSource from './WarehousePurchaseOrdersPanel.tsx?raw';
 import { formatIssueCandidateLabel } from '../warehouseIssueAllocation';
 
 describe('WarehousePage presentation', () => {
@@ -35,11 +34,8 @@ describe('WarehousePage presentation', () => {
   });
 
   it('does not mount a false-empty purchase-order table behind its load error', () => {
-    expect(warehousePageSource).toContain('{isReceivingView && !isPurchaseOrderError && <WarehousePurchaseOrdersPanel');
+    expect(warehousePageSource).toContain('<KeepAliveTabPanel id="warehouse-receiving"');
+    expect(warehousePageSource).toContain('{!isPurchaseOrderError && <WarehousePurchaseOrdersPanel');
   });
 
-  it('lets long purchase-order identifiers size their column instead of overflowing fixed cells', () => {
-    expect(warehousePurchaseOrdersPanelSource).toContain('ipc-data-table min-w-[1060px] !table-auto');
-    expect(warehousePurchaseOrdersPanelSource).not.toContain('ipc-data-table min-w-[1060px] table-fixed');
-  });
 });

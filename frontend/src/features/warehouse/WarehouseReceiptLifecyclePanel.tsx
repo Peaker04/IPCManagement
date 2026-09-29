@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, ShieldAlert } from 'lucide-react';
 import { useHasRole } from '@/lib/useHasRole';
 import { Button } from '@/components/ui/button';
@@ -38,10 +38,11 @@ const statusLabel = (status: string, qualityStatus: string) => formatReceiptLife
 type WarehouseReceiptLifecyclePanelProps = {
   purchaseOrderId: string;
   selectedReceiptId?: string;
+  verifiedReceiptId?: string;
   onSelectReceipt: (receiptId?: string) => void;
 };
 
-export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceiptId, onSelectReceipt }: WarehouseReceiptLifecyclePanelProps) {
+export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceiptId, verifiedReceiptId, onSelectReceipt }: WarehouseReceiptLifecyclePanelProps) {
   const canInspectQuality = useHasRole(['thukho']);
   const canPost = useHasRole(['admin']);
   const canRework = useHasRole(['dieuphoi']);
@@ -76,9 +77,19 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
 
   const canonicalReceipts = receiptPage?.items ?? [];
   const activeReceiptId = canonicalReceipts.some((item) => item.receiptId === selectedReceiptId)
+    || verifiedReceiptId === selectedReceiptId
     ? selectedReceiptId
     : undefined;
-  const { data: receipt, isFetching: isFetchingReceipt, isError: isReceiptError, refetch: refetchReceipt } = useGetInventoryReceiptByIdQuery(activeReceiptId!, { skip: !activeReceiptId });
+  const { data: loadedReceipt, isFetching: isFetchingReceipt, isError: isReceiptError, refetch: refetchReceipt } = useGetInventoryReceiptByIdQuery(activeReceiptId!, { skip: !activeReceiptId });
+  const receipt = loadedReceipt?.purchaseOrderId === purchaseOrderId ? loadedReceipt : undefined;
+  const detailRef = useRef<HTMLDivElement>(null);
+  const focusedReceiptId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (verifiedReceiptId && receipt?.receiptId === verifiedReceiptId && focusedReceiptId.current !== verifiedReceiptId) {
+      detailRef.current?.focus();
+      focusedReceiptId.current = verifiedReceiptId;
+    }
+  }, [receipt?.receiptId, verifiedReceiptId]);
   const isLifecycleBusy = isFetching || isFetchingReceipt;
 
   const refresh = async () => {
@@ -233,7 +244,7 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
 
   return (
     <section
-      className={cn(typography.body, 'mt-4 grid min-h-[20rem] content-start gap-3')}
+      className={cn(typography.body, 'mt-4 grid content-start gap-3')}
       aria-labelledby="receipt-lifecycle-title"
       aria-busy={isLifecycleBusy}
       data-testid="receipt-lifecycle-panel"
@@ -242,6 +253,9 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
         <h3 id="receipt-lifecycle-title" className={cn(typography.sectionTitle, 'text-slate-950')}>Xử lý phiếu nhập</h3>
         <p className={cn(typography.caption, 'mt-1 text-slate-600')}>Tạo phiếu → kiểm tra chất lượng từng dòng nguyên liệu → Quản lý duyệt → Quản trị viên ghi sổ kho. Điều chỉnh sau nhập không sửa phiếu nhập hoặc bút toán gốc; thao tác “Ghi sổ chứng từ điều chỉnh” chỉ xuất hiện sau khi người dùng mở biểu mẫu.</p>
       </div>
+      {verifiedReceiptId && !isFetching && canonicalReceipts.length > 0 && !canonicalReceipts.some((item) => item.receiptId === verifiedReceiptId) && (
+        <p className="text-xs text-slate-600">Phiếu đang xem nằm ngoài trang danh sách này; chi tiết ở bên dưới.</p>
+      )}
       {isError ? (
         <QueryErrorAlert title="Không tải được phiếu nhập cần xử lý" onRetry={() => void refetch()}>
           Không coi danh sách trống là không có phiếu. Hãy tải lại trước khi đưa ra kết luận hoặc thao tác.
@@ -252,7 +266,7 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
             <thead><tr><th scope="col">Phiếu</th><th scope="col">Nhà cung cấp</th><th scope="col">Trạng thái</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
             <tbody>
               {isFetching && canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Đang tải phiếu nhập…</td></tr>
-                  : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">Chưa có phiếu nhập cần xử lý trong trang này.</td></tr>
+                  : canonicalReceipts.length === 0 ? <tr><td colSpan={4} className="h-20 text-center text-slate-600">{verifiedReceiptId ? 'Phiếu đang xem không nằm trong trang danh sách này.' : 'Chưa có phiếu nhập cần xử lý trong trang này.'}</td></tr>
                   : canonicalReceipts.map((item) => <tr key={item.receiptId} className={item.receiptId === activeReceiptId ? 'bg-blue-50/60' : undefined}>
                     <td><IdentifierText value={item.receiptCode} className={cn(typography.code, 'font-semibold text-slate-900')} /></td>
                     <td>{item.supplierName ?? '—'}</td>
@@ -284,10 +298,10 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
       )}
 
       {selectedReceiptId && !isFetching && !activeReceiptId && <InlineAlert title="Phiếu nhập không thuộc đơn mua đang chọn" variant="warning">Chọn lại phiếu nhập thuộc đơn mua này. Hệ thống không tự chuyển sang một phiếu khác.</InlineAlert>}
-      {isReceiptError && <InlineAlert title="Không tải được chi tiết phiếu" variant="danger">Không thể xác định đủ các dòng nguyên liệu hoặc dữ liệu mới nhất; mọi thao tác đã bị chặn.</InlineAlert>}
+      {isReceiptError && <QueryErrorAlert title="Không tải được chi tiết phiếu" isRetrying={isFetchingReceipt} onRetry={() => void refetchReceipt()}>Không thể xác định đủ các dòng nguyên liệu hoặc dữ liệu mới nhất; mọi thao tác đã bị chặn.</QueryErrorAlert>}
       {isFetchingReceipt && activeReceiptId && <InlineAlert title="Đang tải các dòng nguyên liệu" variant="info">Đang lấy dữ liệu mới nhất trước khi cho phép thao tác.</InlineAlert>}
       {receipt && !isReceiptError && (
-        <div className="grid gap-3 rounded-sm border border-slate-300 bg-slate-50 p-3" data-testid="receipt-lifecycle-detail">
+        <div ref={detailRef} tabIndex={-1} className="grid gap-3 rounded-sm border border-slate-300 bg-slate-50 p-3" data-testid="receipt-lifecycle-detail">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div><IdentifierText value={receipt.receiptCode} className="font-semibold text-slate-950" /><p className="text-xs text-slate-600">{statusLabel(receipt.status, receipt.qualityStatus)}</p></div>
             <div className="flex flex-wrap gap-2">

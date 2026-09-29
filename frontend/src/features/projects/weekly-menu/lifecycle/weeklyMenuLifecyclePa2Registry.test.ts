@@ -344,7 +344,7 @@ describe('PA-2 WeeklyMenuLifecycle registry', () => {
     expect(weeklyMenuPageSource).toContain('canPublish={canPublishWeeklyMenu && Boolean(publishableSchedule)}')
     expect(materialDemandSource).toContain("requiredPermissions={['demand.generate']}")
     expect(materialDemandSource).toContain("requiredPermissions={['coordination.order.lock']}")
-    expect(materialDemandSource).toContain("requiredPermissions={['purchase.read']}")
+    expect(materialDemandSource).not.toContain("requiredPermissions={['purchase.read']}")
   })
 
   it('proves production source does not import the audit registry', () => {

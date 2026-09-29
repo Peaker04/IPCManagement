@@ -73,11 +73,10 @@
 .ipc-weekly-pricing-context {
   display: grid;
   gap: var(--ipc-space-2);
-  margin-top: var(--ipc-space-3);
-  border: 1px solid var(--ipc-slate-200);
+  margin-top: var(--ipc-space-2);
   border-radius: var(--ipc-radius-md);
   background: var(--card);
-  padding: var(--ipc-space-3);
+  padding: 6px 10px;
 }
 
 .ipc-weekly-pricing-primary,
@@ -223,9 +222,7 @@
   }
 
   .ipc-weekly-pricing-context {
-    grid-template-columns: minmax(320px, auto) minmax(0, 1fr);
-    align-items: center;
-    padding: 9px 12px;
+    padding: 6px 10px;
   }
 
   .ipc-weekly-pricing-meta {

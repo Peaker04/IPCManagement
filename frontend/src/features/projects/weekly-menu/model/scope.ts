@@ -51,8 +51,9 @@ export const resolveImportedSlotLabel = (
 
 export const getNormalizedSlotType = (row: WeeklyMenuImportResult['rows'][number]) => {
   const shift = row.dbShiftName === 'MORNING' ? 'morning' : 'afternoon'
-  const variant = row.variant?.toLowerCase() === 'vegetarian' ? 'Vegetarian' : 'Savory'
-  return `${shift}${variant}` as keyof WeeklyMenuState[string]
+  const variant = row.variant?.toLowerCase()
+  const isVegetarian = variant === 'vegetarian' || variant === 'chay' || row.sourceSection?.toUpperCase().includes('CHAY')
+  return `${shift}${isVegetarian ? 'Vegetarian' : 'Savory'}` as keyof WeeklyMenuState[string]
 }
 
 export const buildImportedLayoutRows = (

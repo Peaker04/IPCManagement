@@ -10,12 +10,10 @@ export const WeeklyMenuPricingContext = ({
 }) => (
   <section className="ipc-weekly-pricing-context" aria-label="Cấu hình định lượng đang áp dụng">
     <div className="ipc-weekly-pricing-primary">
-      <span>Định mức đang áp dụng</span>
+      <span>Định mức</span>
       <strong>{formatBomTierLabel(menuPrice)}</strong>
       {menuPrice <= 0 && <StatusBadge variant="warning">Chưa cấu hình</StatusBadge>}
+      <span className="text-xs text-slate-500">· <span>{menuPriceSource}</span></span>
     </div>
-    <dl className="ipc-weekly-pricing-meta">
-      <div><dt>Nguồn</dt><dd>{menuPriceSource}</dd></div>
-    </dl>
   </section>
 )

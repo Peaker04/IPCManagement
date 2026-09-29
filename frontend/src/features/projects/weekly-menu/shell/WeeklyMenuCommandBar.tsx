@@ -17,6 +17,7 @@ type CommandProps = {
   onPublish?: () => void
   onCustomerChange: (customerId: string) => void
   onWeekChange: (weekStartDate: string) => void
+  pricing?: React.ReactNode
 }
 
 export const WeeklyMenuCommandBar = ({
@@ -33,11 +34,13 @@ export const WeeklyMenuCommandBar = ({
   onPublish,
   onCustomerChange,
   onWeekChange,
+  pricing,
 }: CommandProps) => {
   return (
   <CommandBar
     actions={
       <>
+
         <button
           type="button"
           onClick={onImport}
@@ -105,6 +108,7 @@ export const WeeklyMenuCommandBar = ({
         className="h-9 min-h-9 w-40 bg-white text-sm"
       />
     </FieldRow>
+    {pricing}
   </CommandBar>
   )
 }

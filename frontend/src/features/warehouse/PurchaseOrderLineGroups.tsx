@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
 import { SearchField, TableViewport } from '@/components/common';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatQuantity, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
 type PurchaseOrderLineGroup = {
@@ -80,7 +80,7 @@ export function PurchaseOrderLineGroups({ lines, canReceive, onReceive }: { line
             const summary = (
               <tr key={group.key}>
                 <td><span className="block font-semibold text-slate-900">{group.ingredientName}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></td>
-                <td data-cell-role="numeric" className="text-right tabular-nums">{group.receivedQty}/{group.orderedQty} {group.unitName}<span className="block text-xs text-slate-500">Còn {remaining} {group.unitName}</span></td>
+                <td data-cell-role="numeric" className="text-right tabular-nums">{formatQuantity(group.receivedQty, { maximumFractionDigits: 6 })}/{formatQuantity(group.orderedQty, { maximumFractionDigits: 6 })} {formatUnit(group.unitName)}<span className="block text-xs text-slate-500">Còn {formatQuantityWithUnit(remaining, group.unitName, { maximumFractionDigits: 6 })}</span></td>
                 <td data-cell-role="numeric" className="text-right tabular-nums">{Math.min(...prices) === Math.max(...prices) ? formatCurrency(prices[0]) : `${formatCurrency(Math.min(...prices))}–${formatCurrency(Math.max(...prices))}`}</td>
                 <td>{requirements.join(', ') || 'Không có yêu cầu bổ sung'}{blockerCount > 0 && <span className="block text-xs text-red-700">{blockerCount} dòng đang bị chặn</span>}{activeReceiptCount > 0 && <span className="block text-xs text-amber-800">{activeReceiptCount} dòng đã có phiếu chờ xử lý</span>}</td>
                 <td className="text-right">{group.lines.length === 1 ? (canReceive && <Button type="button" size="sm" disabled={remaining <= 0 || Boolean(group.lines[0].blockerReason) || Boolean(group.lines[0].activeReceiptId)} onClick={() => onReceive(group.lines[0])}>{remaining <= 0 ? 'Đã nhận đủ' : activeReceiptLabel(group.lines[0]) ?? 'Ghi nhận nhập kho'}</Button>) : <Button type="button" variant="outline" size="sm" aria-expanded={expanded} onClick={() => setExpandedGroupKey(expanded ? undefined : group.key)}>{expanded ? 'Đóng nguồn' : `Xem ${group.lines.length} nguồn`}</Button>}</td>

@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Info, Plus, Trash2 } from 'lucide-react'
-import { EmptyState, InfoNote, InlineAlert, OperationalFrame, PaginationBar, SearchField, SectionPanel, StatusBadge, TableSkeleton, TabContentSkeleton, TableViewport, ViewSwitcher } from '@/components/common'
+import { EmptyState, InfoNote, InlineAlert, OperationalFrame, PaginationBar, RefreshStatus, SearchField, SectionPanel, StatusBadge, TableSkeleton, TabContentSkeleton, TableViewport, ViewSwitcher } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
 import { Input } from '@/components/ui/input'
@@ -493,7 +493,7 @@ export default function ReconciliationWarehousePage() {
       if (updates.day) next.set('day', updates.day)
       else next.delete('day')
     }
-    setSearchParams(next, { replace: true })
+    setSearchParams(next, { replace: updates.view === undefined || updates.view === activeView })
   }
 
   const openIssue = (issue: ReconciliationIssueHistoryItem) => {
@@ -747,7 +747,6 @@ export default function ReconciliationWarehousePage() {
           </div>
         </div>
       )}
-      {batchId && dailyQuery.isError && <InlineAlert variant="danger" action={<Button type="button" variant="link" className="h-auto p-0" onClick={() => void dailyQuery.refetch()}>Thử lại</Button>}>Không tải được định lượng xuất kho theo ngày. Lịch sử và thông tin lô vẫn có thể xem.</InlineAlert>}
       {batchId && batch && <ReconciliationLifecycleStrip status={batch.status} batchId={batch.batchId} showAction={false} />}
       {feedback && <p role="status" className="rounded-md border border-slate-200 bg-white p-3 text-sm">{feedback}</p>}
       {warehouseError && <InlineAlert variant="danger">Không tải được kho vận hành. Chưa thể tạo phiếu xuất.</InlineAlert>}
@@ -786,6 +785,7 @@ export default function ReconciliationWarehousePage() {
       {batchId && !batchQuery.isLoading && !batchQuery.isError && !batch && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Không tìm thấy lô đối chiếu đã chọn</h2><p className="mt-2 text-sm text-slate-600">Liên kết có thể đã cũ hoặc lô không còn thuộc phạm vi hiện tại.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
       {batchId && batch && activeView && !batchQuery.isLoading && !batchQuery.isError && <>
         <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => updateRoute({ view: id.replace('warehouse-', '') as ReconciliationWarehouseView })} />
+        {activeView === 'demand' && !dailyProjection && dailyQuery.isError && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><InlineAlert role="alert" variant="danger" action={<Button type="button" variant="link" className="h-auto p-0" onClick={() => void dailyQuery.refetch()}>Thử lại</Button>}>Không tải được định lượng xuất kho theo ngày. Lịch sử và thông tin lô vẫn có thể xem.</InlineAlert></div>}
         {activeView === 'demand' && dailyProjection && !dailyProjection.compatibility.canIssueByDate && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><EmptyState
           variant="empty"
           title="Lô này không có dữ liệu xuất theo ngày"
@@ -793,14 +793,14 @@ export default function ReconciliationWarehousePage() {
           action={<Button type="button" variant="outline" onClick={() => updateRoute({ view: 'movement' })}>Xem lịch sử xuất kho</Button>}
           className="rounded-lg border border-slate-200 bg-white"
         /></div>}
-        {activeView === 'demand' && dailyQuery.isFetching && dailyProjection && <span className="sr-only" role="status" aria-label="Đang cập nhật định lượng xuất kho">Đang cập nhật định lượng xuất kho</span>}
-        {activeView === 'demand' && !dailyProjection && dailyQuery.isFetching && <TabContentSkeleton geometry="table" rows={6} columns={5} message="Đang tải định lượng xuất kho..." />}
+        {activeView === 'demand' && dailyQuery.isFetching && dailyProjection && <RefreshStatus ariaLabel="Đang cập nhật định lượng xuất kho">Đang cập nhật định lượng xuất kho…</RefreshStatus>}
+        {activeView === 'demand' && !dailyProjection && dailyQuery.isFetching && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><TabContentSkeleton geometry="table" rows={6} columns={5} message="Đang tải định lượng xuất kho..." /></div>}
         {activeView === 'demand' && dailyProjection?.compatibility.canIssueByDate && <div className="rounded-lg border border-slate-200 bg-white p-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div><p className="text-sm font-semibold text-slate-900">Trạng thái tuần: {weeklyStatusLabel[dailyProjection.weeklyStatus] ?? 'Chưa xác định'}</p></div>
             <div className="flex flex-wrap gap-1" role="group" aria-label="Lọc ngày xuất kho">
-              <Button type="button" size="sm" variant={dayFilter === 'ALL' ? 'default' : 'outline'} onClick={() => updateRoute({ day: 'ALL' })}>Cả tuần</Button>
-              {applicableDates.map((date) => { const key = dayKey(date.serviceDate); return <Button key={date.serviceDate} type="button" size="sm" variant={dayFilter === key ? 'default' : 'outline'} onClick={() => updateRoute({ day: key })}>{getDateTimeFormat('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }).format(new Date(`${date.serviceDate}T00:00:00`))}</Button> })}
+              <Button type="button" size="sm" variant={dayFilter === 'ALL' ? 'default' : 'outline'} aria-pressed={dayFilter === 'ALL'} onClick={() => updateRoute({ day: 'ALL' })}>Cả tuần</Button>
+              {applicableDates.map((date) => { const key = dayKey(date.serviceDate); return <Button key={date.serviceDate} type="button" size="sm" variant={dayFilter === key ? 'default' : 'outline'} aria-pressed={dayFilter === key} onClick={() => updateRoute({ day: key })}>{getDateTimeFormat('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }).format(new Date(`${date.serviceDate}T00:00:00`))}</Button> })}
             </div>
           </div>
         </div>}
@@ -877,6 +877,7 @@ export default function ReconciliationWarehousePage() {
         </SectionPanel></div>}
         {activeView === 'movement' && <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"><SectionPanel title="Lịch sử xuất kho" description="Chỉ các phiếu xuất có liên kết chính xác với lô đang chọn.">
           <div className="min-h-[112px]">
+          {historyQuery.isFetching && (historyQuery.currentData?.items.length ?? historyQuery.data?.items.length ?? 0) > 0 && <RefreshStatus ariaLabel="Đang cập nhật lịch sử xuất kho">Đang cập nhật lịch sử xuất kho…</RefreshStatus>}
           {historyQuery.isLoading ? (
             <TableSkeleton
               rows={1}
@@ -895,7 +896,12 @@ export default function ReconciliationWarehousePage() {
               Không tải được lịch sử xuất kho.
             </InlineAlert>
           ) : (historyQuery.data?.items.length ?? 0) === 0 ? (
-            <p>Chưa có phiếu xuất kho liên kết.</p>
+            <EmptyState
+              variant="empty"
+              title="Chưa có phiếu xuất kho liên kết"
+              description="Phiếu xuất theo ngày của lô này sẽ xuất hiện tại đây sau khi được tạo."
+              className="!min-h-0 !items-start !p-4 !text-left"
+            />
           ) : (
             <ReconciliationIssueHistoryTable issues={historyQuery.data?.items ?? []} batchLines={batch?.lines} onOpenIssue={openIssue} />
           )}

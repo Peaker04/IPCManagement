@@ -13,7 +13,9 @@ describe('WarehousePage permission contract', () => {
   it('uses the normalized thukho role for inventory issue creation', () => {
     expect(warehousePageSource).toContain("const canCreateInventoryIssues = useHasRole(['thukho'])");
     expect(warehousePageSource).toContain('canManageWarehouse: canCreateInventoryIssues');
-    expect(warehousePageSource).toContain('<WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />');
+    expect(warehousePageSource).toContain('canManage={canCreateInventoryIssues}');
+    expect(warehousePageSource).toContain('canDisposition={canDispositionReturns}');
+    expect(warehousePageSource).toContain('activeTask={activeExceptionTask}');
     expect(warehousePageSource).not.toContain('<WarehouseExceptionsWorkbench canManage={canReceivePurchases}');
   });
 

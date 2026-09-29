@@ -5,19 +5,14 @@ import { WeeklyMenuNavigation } from './WeeklyMenuNavigation';
 const views = ['schedule', 'demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials'] as const;
 
 describe('Weekly Menu business navigation', () => {
-  it('uses a compact two-level DEFAULT switcher and shows the main planning tab first', () => {
+  it('switches directly between DEFAULT views without an intermediate group', () => {
     const onViewChange = vi.fn();
     render(<WeeklyMenuNavigation mode="DEFAULT" views={[...views]} activeView="schedule" onViewChange={onViewChange} />);
 
-    const parentTabs = screen.getByRole('tablist', { name: 'Chọn nhóm tác vụ kế hoạch tuần' });
-    expect(parentTabs.querySelectorAll('[role="tab"]')[0]).toHaveTextContent('Soạn kế hoạch');
-    expect(screen.getByRole('tab', { name: 'Soạn kế hoạch' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByRole('tablist', { name: 'Chọn tác vụ trong nhóm Soạn kế hoạch' })).toBeInTheDocument();
+    const tabs = screen.getByRole('tablist', { name: 'Chọn góc nhìn kế hoạch tuần' });
+    expect(tabs.querySelectorAll('[role="tab"]')).toHaveLength(6);
     expect(screen.getByRole('tab', { name: 'Kế hoạch tuần' })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.queryByRole('tab', { name: 'Kế hoạch sản xuất' })).not.toBeInTheDocument();
-    expect(screen.queryByText(/↳/)).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Thực thi tuần' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Nhu cầu' }));
     expect(onViewChange).toHaveBeenCalledWith('demand');
   });
 

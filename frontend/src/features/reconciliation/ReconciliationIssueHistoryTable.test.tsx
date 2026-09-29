@@ -40,7 +40,7 @@ it('keeps exact issues as separate rows and presents mixed units per line withou
   expect(screen.queryByText('Vai trò chưa được lưu')).not.toBeInTheDocument()
   expect(screen.getAllByText('Thủ kho')).toHaveLength(2)
 
-  fireEvent.click(within(rows[1]).getByRole('button', { name: 'Xem giao dịch' }))
+  fireEvent.click(within(rows[1]).getByRole('button', { name: /^Xem giao dịch/ }))
   expect(onOpenIssue).toHaveBeenCalledWith(expect.objectContaining({ issueId: 'issue-2' }))
 })
 
@@ -102,7 +102,7 @@ it('keeps one detail trigger and a compact two-line preview per issue', () => {
   expect(row).toHaveTextContent('+3 mặt hàng khác')
   expect(within(row).queryByRole('button', { name: /mặt hàng khác/ })).not.toBeInTheDocument()
 
-  const action = within(row).getByRole('button', { name: 'Xem giao dịch' })
+  const action = within(row).getByRole('button', { name: /^Xem giao dịch/ })
   expect(within(row).getAllByRole('button')).toEqual([action])
   fireEvent.click(action)
   expect(onOpenIssue).toHaveBeenCalledWith(expect.objectContaining({ issueId: 'issue-1' }))

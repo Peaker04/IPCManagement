@@ -1,8 +1,6 @@
 import type { ReactNode, RefObject } from "react";
-import { Link } from "react-router-dom";
 import {
   CursorPaginationBar,
-  DocumentRail,
   EmptyState,
   InlineAlert,
   PaginationBar,
@@ -17,7 +15,7 @@ import type {
   PurchaseRequestResult,
 } from "@/api/workflowApiTypes";
 import type { QueryView } from "@/lib/queryView";
-import type { ApprovalRecord, WorkflowDocument } from "@/types/workflow";
+import type { ApprovalRecord } from "@/types/workflow";
 import { Button } from "@/components/ui/button";
 
 interface ApprovalQueueStateProps {
@@ -37,14 +35,12 @@ interface ApprovalQueueStateProps {
 
 function ApprovalQueueViewport({
   children,
-  loading = false,
 }: {
   children: ReactNode;
-  loading?: boolean;
 }) {
   return (
     <div
-      className={loading ? "min-h-[32rem]" : "min-w-0"}
+      className="min-w-0"
       data-testid="approval-queue-viewport"
     >
       {children}
@@ -145,7 +141,7 @@ export function ApprovalQueueState({
   }
   if (view.phase === "loading") {
     return (
-      <ApprovalQueueViewport loading>
+      <ApprovalQueueViewport>
         <ApprovalQueueLoadingEnvelope />
       </ApprovalQueueViewport>
     );
@@ -207,67 +203,6 @@ export function ApprovalQueueState({
         ariaLabel={paginationLabel}
       />
     </ApprovalQueueViewport>
-  );
-}
-
-interface WorkflowDocumentsStateProps {
-  view: QueryView<WorkflowDocument[]>;
-  documents: WorkflowDocument[];
-}
-
-export function WorkflowDocumentsState({
-  view,
-  documents,
-}: WorkflowDocumentsStateProps) {
-  if (view.phase === "forbidden") {
-    return (
-      <InlineAlert
-        title="Không có quyền xem chứng từ workflow"
-        variant="danger"
-        className="min-h-[11.5rem]"
-      >
-        <span role="alert">{view.message}</span>
-      </InlineAlert>
-    );
-  }
-  if (view.phase === "error") {
-    return (
-      <QueryErrorAlert
-        title="Không tải được chứng từ workflow"
-        className="min-h-[11.5rem]"
-        isRetrying={view.isRetrying}
-        onRetry={view.retry}
-      >
-        Kiểm tra kết nối rồi thử lại trước khi mở chứng từ.
-      </QueryErrorAlert>
-    );
-  }
-  if (view.phase === "loading") {
-    return (
-      <InlineAlert title="Đang tải chứng từ workflow" variant="info" className="min-h-[11.5rem]">
-        Danh sách chứng từ đang được đồng bộ.
-      </InlineAlert>
-    );
-  }
-  if (view.phase === "uninitialized") {
-    return (
-      <InlineAlert title="Chưa khởi tạo chứng từ workflow" variant="info" className="min-h-[11.5rem]">
-        {view.instruction}
-      </InlineAlert>
-    );
-  }
-
-  return (
-    <DocumentRail
-      documents={documents}
-      title={null}
-      className="min-h-[11.5rem]"
-      actionForDocument={(document) => (
-        <Link className="ipc-button ipc-button-ghost" to={document.route}>
-          Mở chứng từ
-        </Link>
-      )}
-    />
   );
 }
 

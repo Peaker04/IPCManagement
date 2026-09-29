@@ -25,6 +25,7 @@ describe('ImportedLayoutMatrix', () => {
 
     const viewport = screen.getByRole('region', { name: 'Bố cục thực đơn theo file khách hàng' })
     expect(viewport).toHaveClass('ipc-table-viewport', 'ipc-weekly-menu-shell', 'overflow-x-auto')
+    expect(within(viewport).getByText('Chưa có dữ liệu thực đơn từ file cho khách hàng và tuần đang chọn.')).toBeInTheDocument()
 
     const tableCss = readFileSync(resolve(process.cwd(), 'src/styles/components/tables.css'), 'utf8')
     const weeklyShellRule = tableCss.match(/\.ipc-weekly-menu-shell\s*\{([^}]*)\}/)?.[1]

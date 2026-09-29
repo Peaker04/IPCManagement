@@ -84,7 +84,7 @@ export function ReconciliationIssueHistoryTable({
                   </StatusBadge>
                 </td>
                 <td className="whitespace-nowrap align-top">
-                  <Button type="button" variant="outline" size="sm" onClick={() => onOpenIssue(issue)}>
+                  <Button type="button" variant="outline" size="sm" aria-label={`Xem giao dịch ${issue.issueCode}`} onClick={() => onOpenIssue(issue)}>
                     Xem giao dịch
                   </Button>
                 </td>
