@@ -1,18 +1,12 @@
 import React, { useState } from 'react';
 import {
   Search,
-  Filter,
   Calendar,
   Building2,
   FileSpreadsheet,
-  RefreshCw,
   Sparkles,
-  ArrowRight,
-  Package,
-  Layers,
   Clock,
   Send,
-  AlertTriangle,
   ReceiptText,
 } from 'lucide-react';
 
@@ -203,13 +197,6 @@ export function MaterialDemandWorkspaceSpecimen() {
               {totalShortages} mặt hàng
             </span>
           </div>
-          <button
-            type="button"
-            className="h-8.5 px-3.5 bg-[#164e87] text-white text-xs font-semibold rounded-[3px] hover:bg-[#113c69] active:translate-y-px transition-[transform,background-color] duration-100 flex items-center gap-1.5 shadow-2xs cursor-pointer"
-          >
-            <Sparkles size={13} />
-            <span>Nổ định mức ca</span>
-          </button>
         </div>
       </div>
 
@@ -273,6 +260,14 @@ export function MaterialDemandWorkspaceSpecimen() {
             <option value="CRITICAL_SHORTAGE">Thiếu cấp bách</option>
           </select>
 
+          {/* Primary action belongs to the scoped command bar */}
+          <button
+            type="button"
+            className="h-8 px-3.5 bg-[#164e87] text-white text-xs font-semibold rounded-[3px] hover:bg-[#113c69] active:translate-y-px transition-[transform,background-color] duration-100 flex items-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles size={13} />
+            <span>Nổ định mức ca</span>
+          </button>
           {/* Export Action */}
           <button
             type="button"
@@ -470,7 +465,7 @@ export function MaterialDemandWorkspaceSpecimen() {
                 {selectedRow.shortage > 0 ? (
                   <button
                     type="button"
-                    className="w-full h-8.5 bg-rose-700 text-white rounded-[2px] text-xs font-semibold hover:bg-rose-800 active:translate-y-px transition-[transform,background-color] duration-100 flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full h-8 bg-rose-700 text-white rounded-[2px] text-xs font-semibold hover:bg-rose-800 active:translate-y-px transition-[transform,background-color] duration-100 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <ReceiptText size={13} />
                     <span>Lập đề xuất mua hàng (PO) khẩn</span>
@@ -478,7 +473,7 @@ export function MaterialDemandWorkspaceSpecimen() {
                 ) : (
                   <button
                     type="button"
-                    className="w-full h-8.5 bg-[#164e87] text-white rounded-[2px] text-xs font-semibold hover:bg-[#113c69] active:translate-y-px transition-[transform,background-color] duration-100 flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full h-8 bg-[#164e87] text-white rounded-[2px] text-xs font-semibold hover:bg-[#113c69] active:translate-y-px transition-[transform,background-color] duration-100 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Send size={13} />
                     <span>Xuất phiếu cấp phát kho</span>

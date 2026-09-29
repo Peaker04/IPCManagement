@@ -8,12 +8,50 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const frontendRoot = path.resolve(__dirname, '..');
 const repoRoot = path.resolve(frontendRoot, '..');
-const outputDir = path.resolve(repoRoot, '.artifacts/design-system-specimen');
+const artifactRoot = path.resolve(repoRoot, '.artifacts/design-system-specimen');
+const runId = `run-${Date.now()}`;
+const outputDir = path.join(artifactRoot, runId);
 const screenshotsDir = path.join(outputDir, 'screenshots');
 
 const chromeExecutable = 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
 async function captureScreenshot(page, filePath, options = {}) {
+  const name = path.basename(filePath);
+  const expected = name.startsWith('viewport-') || name.startsWith('01-') ? 'composed'
+    : name.startsWith('02-') ? 'typography'
+    : /^0[345]-/.test(name) ? 'colors'
+    : /^(06|07|07b|08)-/.test(name) ? 'navigation'
+    : /^(09|10)-/.test(name) ? 'tables'
+    : /^(11|12|13)-/.test(name) ? 'accessibility'
+    : name.startsWith('15-') ? 'icons'
+    : name.startsWith('16-') ? 'motion'
+    : name.startsWith('17-') ? 'lab' : null;
+  if (!expected) throw new Error(`Unmapped screenshot section: ${name}`);
+  await page.waitForTimeout(200); // Let the active navigation color transition settle before capture.
+  const identity = await page.evaluate((section) => {
+    const active = document.querySelector('[data-testid="gallery-active-specimen"]');
+    const current = [...document.querySelectorAll('[data-testid^="gallery-nav-"][aria-current="page"]')];
+    const nav = document.querySelector(`[data-testid="gallery-nav-${section}"]`);
+    const specimen = active?.firstElementChild;
+    const roots = {
+      composed: 'material-demand-workspace', typography: 'typography-specimen-root',
+      colors: 'color-surface-specimen-root', icons: 'iconography-specimen-root',
+      tables: 'operational-table-specimen-root', navigation: 'sidebar-navigation-specimen-root',
+      accessibility: 'accessibility-stress-specimen-root', motion: 'motion-specimen-root',
+    };
+    return section === 'lab'
+      ? { lab: !!document.querySelector('[data-testid="evidence-laboratory-root"]'), gallery: !!active }
+      : { observed: active?.getAttribute('data-active-section'), currentCount: current.length,
+          currentSection: current[0]?.getAttribute('data-section'), navColor: nav && getComputedStyle(nav).backgroundColor,
+          navActiveClass: nav?.classList.contains('bg-[#164e87]'),
+          specimenRoot: specimen?.getAttribute('data-testid'),
+          specimenHeight: specimen?.getBoundingClientRect().height, expectedRoot: roots[section] };
+  }, expected);
+  const matches = expected === 'lab' ? identity.lab && !identity.gallery
+    : identity.observed === expected && identity.currentCount === 1 && identity.currentSection === expected
+      && identity.navActiveClass && identity.navColor === 'rgb(22, 78, 135)'
+      && identity.specimenRoot === identity.expectedRoot && identity.specimenHeight > 0;
+  if (!matches) throw new Error(`Screenshot section identity failed for ${name}: ${JSON.stringify(identity)}`);
   for (let attempt = 1; attempt <= 4; attempt++) {
     try {
       await page.screenshot({ path: filePath, ...options });
@@ -48,12 +86,11 @@ async function selectGallerySection(page, sectionKey) {
 async function main() {
   console.log('=== IPCMANAGEMENT DESIGN SYSTEM SPECIMEN VALIDATION RUNNER (FINAL EVIDENCE FIX) ===');
   
-  // 1. CLEAN EVIDENCE RUN: delete and recreate artifact directory
-  console.log('1. Preparing artifact directories (Clean run: deleting stale artifacts)...');
-  await fs.rm(outputDir, { recursive: true, force: true });
-  await fs.mkdir(screenshotsDir, { recursive: true });
-  const runId = `run-${Date.now()}`;
-  console.log(`Generated clean Run ID: ${runId}`);
+  // Preserve previous accepted runs; each run owns a new immutable directory.
+  console.log('1. Preparing isolated artifact directory...');
+  await fs.mkdir(outputDir, { recursive: false });
+  await fs.mkdir(screenshotsDir);
+  console.log(`Generated Run ID: ${runId}`);
 
   console.log('2. Starting Vite development server...');
   const viteServer = await createServer({
@@ -590,13 +627,15 @@ async function main() {
     const allMotionMechanicsPass = isButtonValid && isCheckboxValid && isAccordionValid;
 
     results.gates.motion_system = {
-      status: allMotionMechanicsPass ? 'PASS' : 'FAIL',
-      verified: allMotionMechanicsPass,
+      status: allMotionMechanicsPass ? 'PARTIAL_MECHANICALLY_VALIDATED' : 'FAIL',
+      verified: false,
+      measuredPatterns: ['buttonPress', 'checkboxPress', 'accordionDisclosure'],
+      unmeasuredPatterns: ['focusRing', 'sidebarFlyout', 'tooltip', 'tabs', 'dialog', 'drawer', 'toast', 'skeleton', 'rowSelection'],
       durationTokens: ['instant: 0ms', 'micro: 100ms', 'component: 150ms', 'overlay: 200ms'],
       computedTransitions: computedMotion,
       mechanicsValidation: {
         buttonPress: isButtonValid ? 'PASS' : 'FAIL',
-        checkboxPop: isCheckboxValid ? 'PASS' : 'FAIL',
+        checkboxPress: isCheckboxValid ? 'PASS' : 'FAIL',
         accordionDisclosure: isAccordionValid ? 'PASS' : 'FAIL',
       },
     };
@@ -710,10 +749,17 @@ async function main() {
   }
 
   // Write full report JSON
+  const actualScreenshots = (await fs.readdir(screenshotsDir)).filter((name) => name.endsWith('.png'));
+  if (actualScreenshots.length !== results.screenshots.length ||
+      results.screenshots.some(({ name }) => !actualScreenshots.includes(name))) {
+    results.failures.push('Screenshot report does not match actual PNG directory');
+  }
+  results.screenshotCount = actualScreenshots.length;
   const reportPath = path.join(outputDir, 'specimen-validation-report.json');
   await fs.writeFile(reportPath, JSON.stringify(results, null, 2), 'utf8');
   console.log(`Specimen validation report saved to ${reportPath}`);
-  console.log(`Total screenshots captured: ${results.screenshots.length}`);
+  console.log(`Total screenshots captured: ${actualScreenshots.length}`);
+  if (results.failures.length) process.exitCode = 1;
 }
 
 main().catch((err) => {

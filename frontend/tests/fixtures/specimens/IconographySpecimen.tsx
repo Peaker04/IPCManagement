@@ -5,8 +5,6 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  ChevronLeft,
-  ChevronUp,
   Filter,
   Plus,
   Trash2,
@@ -16,9 +14,7 @@ import {
   Copy,
   RefreshCw,
   RotateCcw,
-  Loader2,
   Check,
-  CheckCircle2,
   TriangleAlert,
   CircleAlert,
   Info,
@@ -27,7 +23,6 @@ import {
   ChefHat,
   CookingPot,
   Warehouse,
-  Package,
   PackageCheck,
   PackageMinus,
   Scale,
@@ -100,7 +95,7 @@ export function IconographySpecimen() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div data-testid="iconography-specimen-root" className="space-y-6">
       {/* Sub-navigation */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
         <div>

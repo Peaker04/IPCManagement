@@ -1,22 +1,11 @@
 import React, { useState } from 'react';
-import {
-  Loader2,
-  Check,
-  ChevronDown,
-  X,
-  Play,
-  RotateCcw,
-  Sparkles,
-  Info,
-} from 'lucide-react';
+import { Check, ChevronDown } from 'lucide-react';
 
 export function MotionSpecimen() {
   const [activeTab, setActiveTab] = useState<'overview' | 'metrics' | 'audit'>('overview');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isAccordionOpen, setIsAccordionOpen] = useState(true);
   const [isToastVisible, setIsToastVisible] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<number | null>(1);
   const [isChecked, setIsChecked] = useState(false);
   const [reducedMotionSim, setReducedMotionSim] = useState(false);
 
@@ -32,12 +21,12 @@ export function MotionSpecimen() {
             Hệ thống Chuyển động Vận hành (IPC Motion System)
           </h3>
           <p className="text-xs text-[#475569]">
-            Thời lượng tối đa 150ms–200ms; chuyển động định hướng không gây reflow layout; triệt tiêu 100% khi bật reduced-motion.
+            Thời lượng ứng viên 100–200ms; một số transition đã đo trong specimen, hiệu năng production và reduced-motion toàn hệ thống chưa được chứng minh.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800 bg-white border border-[#cbd5e1] px-3 py-1.5 rounded-[3px] shadow-2xs">
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-800 bg-white border border-[#cbd5e1] px-3 py-1.5 rounded-[3px]">
             <input
               type="checkbox"
               checked={reducedMotionSim}
@@ -75,7 +64,7 @@ export function MotionSpecimen() {
         {/* 2. Checkbox Tactile Check */}
         <div className="p-4 bg-white border border-[#cbd5e1] rounded-[3px] space-y-2.5">
           <span className="text-xs font-semibold text-slate-900 block">2. Checkbox: Subtle Tactile Check (100ms)</span>
-          <p className="text-[11px] text-slate-500">Native checkbox với scale 0.85 ──► 1.0 dứt khoát, không nảy lò xo.</p>
+          <p className="text-[11px] text-slate-500">Native checkbox: nhấn scale 0.9 ──► 1.0 khi thả (100ms); checked state không scale toàn control.</p>
           <label className="flex items-center gap-2 cursor-pointer pt-1 text-xs text-slate-800">
             <input
               type="checkbox"

@@ -309,7 +309,7 @@ Level 0: Canvas Backdrop (Z: 0)     --> Cool Slate Page Background (#f1f5f9)
 
 ### 5.11. Iconography & Bounding Boxes
 - **Kích thước chuẩn:** **`16x16px` (`size-4`)** cho mọi nút bấm, hàng bảng, trạng thái và input icon. Dùng `18x18px` hoặc `20x20px` (`size-5`) cho menu điều hướng sidebar.
-- **Độ dày nét (Stroke):** `1.5px` đến `1.75px` (Lucide Icons chuẩn). Không dùng nét 2.0px đậm gây nặng nề trong bảng hẹp.
+- **Độ dày nét (Stroke):** Lucide 2.0px trên viewBox 24 × 24 cho Tier 1 (16px/20px) và phép ẩn dụ Tier 2; kiểm tra độ rõ và mật độ theo kích thước render, không suy tương phản từ độ dày nét.
 - **Căn chỉnh quang học với Tiếng Việt:** Icon đi kèm nhãn tiếng Việt phải dùng `inline-flex items-center justify-center shrink-0` thay vì căn theo đường chân chữ (baseline), giúp bảo vệ khoảng cách với dấu mũ và dấu móc.
 
 ---
@@ -1004,7 +1004,7 @@ Hệ thống chuyển động của IPCManagement được thiết kế như m�
 ### 14.3. Hợp đồng 12 Mẫu Chuyển động Vận hành Cốt lõi
 1. **Nút Bấm (Button Press):** 100ms, `translateY(1px)` khi active, standard curve.
 2. **Vòng Focus (Focus Ring):** 100ms, nở đều từ 0px lên 2px quanh phần tử, enter curve.
-3. **Checkbox Pop:** 100ms, scale từ 0.5 lên 1.0 kèm opacity fade cho dấu SVG tick.
+3. **Checkbox Press:** 100ms, nhấn scale 0.9 → 1.0 khi thả; không animate trạng thái checked bằng scale của toàn control.
 4. **Sidebar Accordion:** 150ms, grid-template-rows 0fr $\rightarrow$ 1fr, chevron xoay 180°.
 5. **Rail Flyout:** 200ms, trượt ngang 8px kèm fade-in từ mép icon rail.
 6. **Tooltip:** 150ms, scale 0.96 $\rightarrow$ 1.0 kèm fade-in, không làm xê dịch layout xung quanh.
@@ -1177,7 +1177,7 @@ Nhằm khắc phục triệt để hiện tượng mẫu phẩm thị giác bị
 NON-PRODUCTION SPECIMEN HARNESS (/tests/fixtures/specimen.html)
 ├── SURFACE 1: DESIGN SYSTEM GALLERY (Thư viện Thành phần & Quy chuẩn Vận hành)
 │   ├── Đối tượng phục vụ: Đánh giá trực quan của con người, PM, Designer, Frontend Engineers
-│   ├── Trực quan thuần khiết: 100% sạch bóng các badge QA ("PASS", "NON-PRODUCTION", "SC 1.4.11")
+│   ├── Trực quan thuần khiết: Không hiển thị badge QA ("PASS", "NON-PRODUCTION", "SC 1.4.11") trong Gallery
 │   ├── Bố cục thực tế: Thể hiện đúng giao diện sản phẩm thật với Zone 1 OperationalFrame, Zone 2 CommandBar
 │   ├── Không gian vận hành mẫu: Workbench Nhu cầu NVL (Material Demand) với số liệu thực tế, định mức BOM 6 số
 │   └── Chuẩn mực thẩm mỹ: Nền Cool Slate (#f1f5f9), thẻ trắng (#ffffff), hairline 1px (#cbd5e1), ISA-101 tĩnh lặng
@@ -1205,7 +1205,7 @@ Thay vì sử dụng nhãn gộp chung, mọi quyết định thiết kế và t
 
 | Nhóm Quy chuẩn | Hạng mục / Token Cụ thể | Trạng thái Bằng chứng Hiện hành | Căn cứ Kiểm chứng Thực nghiệm |
 |---|---|:---:|---|
-| **Kiến trúc Chuyển động** | Motion Tokens (0ms/100ms/150ms/200ms) | **`DEFINED`** | Đã định nghĩa 4 thời lượng và 3 easing chuẩn trong `DESIGN.md`. |
+| **Kiến trúc Chuyển động** | Motion Tokens (0ms/100ms/150ms/200ms) | **`DEFINED`** | Đã định nghĩa 4 thời lượng và 3 easing chuẩn trong `DESIGN.md`; chỉ Button, Checkbox và Accordion đã đo computed transition. Các pattern khác chưa được xác thực cơ học. |
 | **Hướng Chuyển động Thị giác** | Tactile Press (1px), Tab Slide, Overlay | **`SPECIMEN_ACCEPTED`** | Đã nghiệm thu hình thái trên `MotionSpecimen.tsx`. |
 | **Cơ học Trình duyệt Motion** | Computed transitionDuration (0.1s, 0.15s) | **`MECHANICALLY_VALIDATED`** | Playwright đo lường trực tiếp giá trị CSS computed trong Chrome 153. |
 | **Hiệu năng Chuyển động** | Bounded Layout Transition qua CSS Grid | **`PROVISIONAL_FOR_PRODUCTION_SLICE`** | Không phát sinh tụt khung hình cảm nhận được trong kịch bản mẫu phẩm. |
