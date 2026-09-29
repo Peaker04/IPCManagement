@@ -3,6 +3,8 @@
     "~/.agents/skills",
     "!gsd-*",
     "!gitnexus-*",
+    "!ui-ux-pro-max",
+    "!design-taste-frontend",
     "../.agents/skills/harness-maintenance",
     "../.codex/skills/karpathy-guidelines",
     "../.codex/skills/diagnosing-bugs",

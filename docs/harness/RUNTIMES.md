@@ -40,11 +40,13 @@ The imported ~/.pi/agent/agents/gsd copies are project-disabled until individual
 - GitNexus skills are also hidden from routine discovery and remain available by exact path under `~/.agents/skills/gitnexus-<name>/SKILL.md` only after explicit opt-in. See [policy](../GITNEXUS-POLICY.md).
 - On-demand project engineering: codebase-design, domain-modeling, improve-codebase-architecture, request-refactor-plan, code-review, research, resolving-merge-conflicts, prototype, grill-me, grill-with-docs, handoff. Load from `.codex/skills/<name>/SKILL.md` only after scope/role review; none owns task state. The audited disposition and adapter requirements are in [SKILL-AUDIT.md](SKILL-AUDIT.md).
 - Do not expose overlapping aliases as routine choices: `grilling`/`batch-grill-me`/`loop-me` route to `grill-me`; `ubiquitous-language` routes to `domain-modeling`; architecture work follows `codebase-design` vocabulary → optional bounded audit → GSD-owned plan only when each stage is requested.
-- On-demand design: ui-ux-pro-max, design-system, ui-styling references, brand, banner-design, slides, design. Never impose generic landing-page aesthetics on MRX.
+- On-demand design assets: design-system, ui-styling references, brand, banner-design, slides, design. Product UI does not route through `ui-ux-pro-max`; its retained source stays hidden pending a separate deletion review.
+- IPC product UI has one authority and three bounded lenses: `docs/DESIGN.md` decides product hierarchy and semantics; Fiori informs dense enterprise-workbench interaction; existing shadcn/Base UI/Tailwind supplies accessible mechanics; the IPC Taste adapter reviews only compatible anti-slop heuristics. Do not expose or invoke full `design-taste-frontend` for dashboards, tables or multi-step workflows.
 - Teaching/writing/personal-productivity skills: retain installed but outside default project workflow. No need to delete learning/prose tools to reduce coding context.
 - Do not route through claude-handoff, git-guardrails-claude-code, installer/setup skills, broad loop/router skills, disabled-skills/mattpocock-process, or upstream `implement`/`to-spec`/`to-tickets`/`triage`/`wayfinder` process owners. Setup/pre-commit changes require their own explicit task, not automatic remediation.
 - Skill selection uses the smallest matching set: GSD process plus one primary discipline and at most two supporting disciplines by default. Rare use is not a defect; unrelated skills must not be invoked to improve utilization metrics.
-- Ponytail is a simplification discipline, not scope/acceptance authority. Its audit/review is optional and produces findings, not a second checklist. No hard coding of a smaller test requirement when the project contract requires more.
+- Ponytail is a simplification discipline, not scope/acceptance authority. Default to `full` for backend/data/infra/scripts and frontend non-visual logic; use `lite` for frontend component/layout/visual work. Frontend `ultra` is disabled unless Kỳ explicitly requests it for a tightly scoped non-visual cleanup. Its audit/review is optional and produces findings, not a second checklist; it cannot remove required hierarchy, states, accessibility, business context or product character.
+- `test-audit` is mandatory whenever tests are written, changed, reviewed or swept. Prefer one owner test at the strongest observable boundary; do not add duplicate/source-mirroring tests or production seams used only by tests.
 
 ## 4. Subagent contract
 
@@ -109,7 +111,8 @@ This is the durable source/role map, not a live-version database. Exact versions
 | openai/skills | ~/.codex/vendor_imports/skills | Codex secondary assets, not automatically imported into Pi |
 | OpenAI/Vercel plugins | Codex config + plugin-cache manifests | Codex only unless separately integrated/tested in Pi; cache presence is not active capability |
 | ClaudeKit design family | metadata author/version in project skill copies | On-demand; upstream/ref not fully verified, no automatic overwrite/update |
-| UI UX Pro Max / taste-skill | project .codex/skills and user ~/.codex/skills | On-demand; upstream/ref unresolved. Taste explicitly excludes dashboard/data-table/product flows |
+| UI UX Pro Max | retained project source under `.codex/skills`, hidden from Pi routing/discovery | Removal candidate; no IPC product-UI role. Delete only after a separate consumer/backlink review and authorization. |
+| taste-skill / design-taste-frontend | retained source outside default routing | Full skill excludes dashboard/data-table/product flows; only the bounded anti-slop heuristics adapted into `docs/DESIGN.md` apply. |
 | browser-use | tools/browser-use/pyproject.toml + uv.lock | Retain; Python environment/live usage must be verified before execution |
 | Playwright / axe-core | project npm installed manifests + lockfile | Browser/accessibility oracle tooling; no dependency upgrade in harness cleanup |
 | docs/ui-audit-kit | local reference/script kit | Reference, not a second normative UI rule set; provenance unresolved |

@@ -91,35 +91,29 @@ EF model mới query bảng/cột chưa tồn tại và tạo chuỗi HTTP 500.
 
 ## Skill routing cho contributor và phiên chat
 
-Chọn skill theo loại yêu cầu, không theo tên file ngẫu nhiên:
+Pi CLI là runtime duy nhất. Đọc `AGENTS.md` và `docs/harness/RUNTIMES.md`; không dùng cú pháp `Skill(...)`, Claude Code hoặc Codex CLI như execution path. Chọn skill theo loại yêu cầu, không theo tên file ngẫu nhiên:
 
-GitNexus là công cụ **opt-in**. Chỉ dùng các skill GitNexus, MCP hoặc CLI GitNexus
-khi người yêu cầu nói rõ cần GitNexus/impact/context/detect_changes/blast-radius.
-Các task còn lại không cần kiểm tra index hay chạy GitNexus; dùng source, test và
-skill GSD phù hợp.
+GitNexus là công cụ **opt-in**. Chỉ dùng GitNexus khi người yêu cầu nói rõ cần
+GitNexus/impact/context/detect_changes/blast-radius; các task khác dùng source và test.
 
-| Yêu cầu | Skill (Claude Code) | File gốc (Codex) |
-|---|---|---|
-| Hiểu architecture, call flow, module hoặc dependency | `Skill("gitnexus-exploring")` | `~/.claude/skills/gitnexus-exploring/` |
-| Trace bug hoặc giải thích lỗi | `Skill("gitnexus-debugging")` | `~/.claude/skills/gitnexus-debugging/` |
-| Đánh giá blast radius trước khi sửa symbol | `Skill("gitnexus-impact-analysis")` | `~/.claude/skills/gitnexus-impact-analysis/` |
-| Rename, extract, split, move hoặc restructure | `Skill("gitnexus-refactoring")` | `~/.claude/skills/gitnexus-refactoring/` |
-| Review PR, đánh giá rủi ro merge | `Skill("gitnexus-pr-review")` | `~/.claude/skills/gitnexus-pr-review/` |
-| Security review, taint source→sink | `Skill("gitnexus-taint-analysis")` | `~/.claude/skills/gitnexus-taint-analysis/` |
-| GitNexus CLI/index/status/wiki | `Skill("gitnexus-cli")` | `~/.claude/skills/gitnexus-cli/` |
-| Viết/review/refactor code nói chung | `Skill("karpathy-guidelines")` | `.codex/skills/karpathy-guidelines/SKILL.md` |
-| React/shadcn/Tailwind component hoặc responsive UI | `Skill("ui-styling")` | `.codex/skills/ui-styling/SKILL.md` |
-| SAP Fiori template/range/validation/diagnostics | `Skill("sketch-findings-ipcmanagement")` | `.codex/skills/sketch-findings-ipcmanagement/SKILL.md` |
-| Tra cứu pattern/heuristic UX | `Skill("ui-ux-pro-max")` | `.codex/skills/ui-ux-pro-max/SKILL.md` |
-| Design tokens và component states | `Skill("design-system")` | `.codex/skills/design-system/SKILL.md` |
-| Brand voice/identity/messaging | `Skill("brand")` | `.codex/skills/brand/SKILL.md` |
-| Logo, corporate identity hoặc nhiều loại design asset | `Skill("design")` | `.codex/skills/design/SKILL.md` |
-| Banner/cover/hero/social creative | `Skill("banner-design")` | `.codex/skills/banner-design/SKILL.md` |
-| Slide deck hoặc presentation chiến lược | `Skill("slides")` | `.codex/skills/slides/SKILL.md` |
+| Yêu cầu | Discipline / authority |
+|---|---|
+| Viết/review/refactor code | `karpathy-guidelines` |
+| Bug runtime/lặp lại | thêm `diagnosing-bugs` sau khi khóa red-capable seam |
+| Behavior regression/test-first | `tdd` |
+| Viết, sửa, review hoặc sweep test | `test-audit` |
+| Mọi frontend audit/change | `docs/DESIGN.md` + UI contracts, rồi `frontend-checklist-global` |
+| React/shadcn/Base UI/Tailwind implementation | `ui-styling`, chỉ cho mechanics/accessibility sau khi hierarchy đã khóa |
+| SAP Fiori Template Studio/range/validation/diagnostics | `sketch-findings-ipcmanagement` trong đúng phạm vi hẹp |
 
-Skill dự án dùng chung một bản file: `.claude/skills/<name>` là directory junction trỏ về `.codex/skills/<name>`, nên sửa trong `.codex/skills/` có hiệu lực cho cả Claude Code và Codex. Nhóm skill GitNexus do `gitnexus setup -c claude` cài vào `~/.claude/skills/` (ngoài repo, không sửa tay).
+Product UI dùng một authority và ba lens: `DESIGN.md` quyết định; Fiori hướng dẫn workbench đậm thông tin;
+shadcn/Base UI/Tailwind hiện có cung cấp mechanics; IPC Taste adapter chỉ review anti-slop. Không route qua
+`ui-ux-pro-max` hoặc full `design-taste-frontend`; source của chúng được giữ hidden đến khi có review xóa riêng.
+Ponytail mặc định `full` cho backend và frontend non-visual logic, `lite` cho component/layout/visual; frontend
+`ultra` chỉ khi Kỳ yêu cầu rõ cho cleanup non-visual hẹp.
 
-Khi task UI liên quan SAP Fiori/template/range/diagnostics, dùng `sketch-findings-ipcmanagement` trước rồi `ui-styling` để implement. Khi task vừa trace vừa sửa code, chỉ dùng GitNexus exploration/debugging và impact nếu người yêu cầu đã chỉ định GitNexus; nếu không, dùng source/test và sau đó áp dụng Karpathy guidelines để implement. Các phiên chat đọc `AGENTS.md` để áp dụng routing đầy đủ và cập nhật tài liệu sau thay đổi đáng kể.
+Design-system/brand/banner/slides chỉ dùng theo đúng asset scope khi được yêu cầu, không phải router cho product UI.
+Các phiên chat đọc `AGENTS.md` để áp dụng routing đầy đủ và cập nhật tài liệu liên quan trong cùng task.
 
 ## Browser-use trên lane local
 

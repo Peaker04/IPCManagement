@@ -32,17 +32,21 @@ Read the selected SKILL.md before applying it. In Pi use `read` or `/skill:<name
 | Any frontend/UI review or change | project UI rules → `frontend-checklist-global` |
 | React/shadcn/Tailwind interface implementation | add `ui-styling` |
 | SAP Fiori Template Studio, range mapping, validation/diagnostics | `sketch-findings-ipcmanagement` |
+| Any test write/change/review/sweep | `test-audit`; smallest credible owner test, no duplicate/source-mirroring coverage |
 | Docs/rules | `gsd-docs-update` discipline, inline for bounded changes |
 | Planning/task execution | matching GSD skill + Lean lane; not mandatory fan-out |
 
 - L0/L1 uses at most three discipline skills by default, aside from the GSD process selection and already-active Ponytail. Do not add skill layers simply because descriptions overlap. If mandatory domain coverage exceeds the default, name the reason and keep scope fixed.
-- Design-system/brand/banner/slides and UX pattern lookup are on-demand, not mandatory for UI bugs. `ui-ux-pro-max` may fill an undecided interaction, never override Fiori/project contracts. `design-taste-frontend` is not for dashboards/data tables/multi-step product UI.
+- Ponytail defaults to `full` for backend, data, infra, scripts and frontend non-visual logic. Frontend component/layout/visual work uses `lite`; `ultra` is disabled for IPC frontend unless Kỳ explicitly requests it for a tightly scoped non-visual cleanup. Ponytail cannot remove required hierarchy, states, accessibility, business context or product character.
+- IPC product UI uses one authority and three bounded lenses: `docs/DESIGN.md` decides; Fiori informs dense workbench interaction; existing shadcn/Base UI/Tailwind owns accessible mechanics; the IPC Taste adapter only reviews anti-slop. Full `design-taste-frontend` and `ui-ux-pro-max` are not project routers. Retain their source hidden until a separately authorized deletion review.
+- Design-system/brand/banner/slides are on-demand for their actual asset scope, not mandatory for product UI bugs.
 - `qa` collects issues, not fixes. External `handoff` may create an OS-temp draft only; the GSD parent fact-checks and promotes it. `implement`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `ask-matt`, Claude-only routers and Shipyard feature orchestration are not execution paths here.
 
 ## UI and browser evidence
 
 - Before UI audit/change read `docs/UI-UX-EXECUTION-HARNESS.md`; before JSX lock floorplan/surface/geometry using `docs/DESIGN.md`. Normative rules: `docs/DASHBOARD-UI-RULES.md`; checklist adaptation: `docs/FRONT-END-CHECKLIST-INTEGRATION.md`.
 - A screenshot showing orphan controls/headings, blank surfaces or duplicate state is a candidate finding: convert it into a DOM/source oracle. Do not ignore it, and do not use screenshot alone as PASS/FAIL.
+- For a page redesign or broad UI audit, inventory **every captured screen/state in the declared page lock** before production fixes; map all visible candidates to project rule IDs and focused Front-End Checklist coverage. Group confirmed findings by root owner and fix a bounded batch, then reload/click, inspect **every after-screenshot** and rerun the same DOM/action oracles. One green defect, generic overflow check or mounted suite does not close the page; unresolved candidates stay `NEEDS_EVIDENCE`. The full gate lives in `docs/UI-UX-EXECUTION-HARNESS.md`; focused fixes need only their declared envelope and affected consumers.
 - Browser-use must open real headed Chrome directly on the app URL, not a blank tab followed by API-only tests. Resolve current ports, lane, credential source and viewport matrix from MEMORY; do not try stale/default passwords. Add tablet/mobile only when Kỳ asks.
 - Before actions/capture, verify aligned FE/BE listener/build identity and authenticated operation-mode/version/capabilities. Stale/dev-only runtime cannot certify production performance. Do not switch the user's mode to obtain evidence.
 - If agent-browser is unavailable, use `.artifacts/shipyard-live/live-visual-audit.mjs` from project root, not frontend/. It uses a separate persistent profile `.artifacts/browser-use-visual-audit`, not the user's existing Chrome tabs. Reusing an existing browser requires a real attach/CDP session.

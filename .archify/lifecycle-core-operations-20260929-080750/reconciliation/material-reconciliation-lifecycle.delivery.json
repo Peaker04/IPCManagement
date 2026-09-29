@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "0ea1f5cd-71fa-4fab-bb3e-2e41e677a01f",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "D:\\ki7\\PRN222 Doanh Nghiệp\\IPCManagement\\.archify\\lifecycle-core-operations-20260929-080750\\reconciliation\\candidate.json",
+  "output": "D:\\ki7\\PRN222 Doanh Nghiệp\\IPCManagement\\.archify\\lifecycle-core-operations-20260929-080750\\reconciliation\\material-reconciliation-lifecycle.html",
+  "specification": {
+    "sha256": "f02de50e6bce54494060dfd90e931049ad512cde32de4cedfdd25e5fc8c16637",
+    "bytes": 5648
+  },
+  "artifact": {
+    "sha256": "682ef78a30441777925e5feb6b7d2e06088f9eb6d146d90f488815932dbbdf1d",
+    "bytes": 762848
+  }
+}

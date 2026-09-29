@@ -24,7 +24,7 @@ The main problem is not missing skills. It is a **discovery and routing mismatch
 | `.agents/skills` | 1 | Project-owned shared skill: `harness-maintenance`. |
 | User Pi packages | dynamic | Includes Ponytail and pi-subagents; governed separately from project copies. |
 
-Current project-visible disciplines are intentionally narrow: harness maintenance, Karpathy guidelines, diagnosing bugs, TDD, UI styling, IPCManagement sketch findings, and the Front-End Checklist adapter.
+Current project-visible disciplines are intentionally narrow: harness maintenance, Karpathy guidelines, diagnosing bugs, TDD, UI styling, IPCManagement sketch findings, the Front-End Checklist adapter, and the user-level `test-audit` discipline. Product UI does not expose `ui-ux-pro-max` or the full Taste skill.
 
 ## Disposition matrix
 
@@ -37,7 +37,8 @@ Current project-visible disciplines are intentionally narrow: harness maintenanc
 | `diagnosing-bugs` | Broken, failing, slow, runtime/repeated bug | Add after locking a red-capable seam. |
 | `tdd` | Behavior change/regression or explicit test-first request | Behavior tests, not source-string tests where feasible. |
 | `frontend-checklist-global` | Any frontend audit/change | Project adapter is the only active Front-End Checklist entry. |
-| `ui-styling` | React/shadcn/Tailwind implementation | Not a general product-design router. |
+| `test-audit` | Any test write/change/review/sweep | One credible owner test at the strongest observable boundary; reject duplicate/source-mirroring tests and test-only production seams. |
+| `ui-styling` | React/shadcn/Tailwind implementation | Accessible mechanics only after `DESIGN.md` locks product hierarchy; not a general product-design router. |
 | `sketch-findings-ipcmanagement` | SAP Fiori template/range/diagnostic work | Narrow project-specific knowledge. |
 
 ### B. Keep on demand, but adapt to Pi/GSD before discovery
@@ -83,8 +84,9 @@ Current project-visible disciplines are intentionally narrow: harness maintenanc
 | `qa` | Issue collection only; cannot replace GSD execution or verification. |
 | `obsidian-vault` | Personal knowledge workflow, not repository delivery. |
 | `teach` | User education utility, not coding workflow. |
-| `ui-ux-pro-max` | Optional pattern lookup only; must not override Fiori/project contracts. |
-| `design-an-interface` | Assumes broad parallel design generation; use only by explicit request. |
+| `ui-ux-pro-max` | No active IPC role. Retain source hidden as a removal candidate until a separate consumer/backlink review authorizes deletion. |
+| `design-taste-frontend` / taste-skill | Full skill excludes dashboards, data tables and multi-step product UI. Do not expose it as a router; only the bounded anti-slop subset adapted into `docs/DESIGN.md` applies. |
+| `design-an-interface` | Assumes broad parallel design generation; use only by explicit request outside established product UI authority. |
 
 ## Matt Pocock upstream fit
 

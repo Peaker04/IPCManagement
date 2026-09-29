@@ -61,13 +61,16 @@ không thể tạo feedback loop tại seam hiện tại. Không nâng lane ch�
 | Regression tại public seam | `tdd` | Không viết source-string test nếu có thể test behavior |
 | UI audit/fix | project UI contracts → `frontend-checklist-global` | Không dump 385 rule; chỉ finding có bằng chứng |
 | React/shadcn/Tailwind implementation | `ui-styling` | Không dùng để redesign khi task chỉ sửa logic/query |
-| Pattern UX chưa có quyết định project | `ui-ux-pro-max` | Không dùng để ghi đè SAP Fiori/project rules |
+| Product UI composition | `DESIGN.md` authority → Fiori workbench lens → existing shadcn/Base UI mechanics → bounded IPC Taste anti-slop review | Không dùng full Taste hoặc `ui-ux-pro-max` làm router/authority |
 | Template Studio/range/diagnostics | `sketch-findings-ipcmanagement` | Không áp cho Warehouse/Reconciliation chung |
+| Test write/change/review/sweep | `test-audit` | Không thêm test source-mirroring, duplicate owner hoặc test-only seam |
 | Docs canonical | `gsd-docs-update` discipline | Không cần chạy full multi-agent docs generation cho một edit nhỏ |
 | GSD full phase | `gsd-plan/execution/verification` | Không dùng cho L0/L1 đã có seam và acceptance rõ |
 
 `qa` chỉ dùng khi mục tiêu là thu thập/file issue; không dùng để implement fix. GitNexus vẫn opt-in theo
-`AGENTS.md` và không được gọi để thay feedback loop source/test.
+`AGENTS.md` và không được gọi để thay feedback loop source/test. Ponytail dùng `full` cho backend và frontend
+non-visual logic, `lite` cho component/layout/visual work; frontend `ultra` chỉ khi owner yêu cầu rõ cho cleanup
+non-visual hẹp. Simplification không được xóa hierarchy, state, accessibility hoặc business context bắt buộc.
 
 ## 4. Contract trước khi sửa
 
@@ -101,6 +104,16 @@ Quy trình:
 3. Sửa một lần ở owner thấp nhất.
 4. Thêm regression tại owner; page-level test chỉ khi lỗi thực sự page-local.
 5. Recheck mọi cell bị ảnh hưởng; không mở audit breadth mới sau khi code đã sửa, trừ khi gate phát hiện lỗi mới.
+
+Với **page redesign/broad UI audit**, bước 1–2 là gate *trước* production edit: inventory toàn bộ ảnh/state
+trong page lock đã khai (kể cả post-click/modal và ảnh cũ dùng để claim), map từng ảnh thành candidate
+hoặc `NO_CANDIDATE` có lý do, đối chiếu `DESIGN.md`/rule ID và corpus Front-End Checklist theo nhóm
+applicable. Ghi cả occurrence ngoài scope với disposition. Gom các candidate đã xác minh theo root owner
+thành batch hữu hạn; chỉ sửa một batch khi các candidate khác đã được disposition hoặc giữ `OPEN`/
+`NEEDS_EVIDENCE` trong **cùng** ledger. Sau mỗi batch, bắt buộc xem lại tất cả ảnh sau sửa của các cell
+bị ảnh hưởng, so trước/sau bằng cùng DOM/action oracle và mở candidate mới nếu phát hiện thêm. Không dùng
+một finding xanh để đóng cả screen hoặc chuyển page lock. Focused hotfix chỉ inventory envelope đã khai
+và consumer bị ảnh hưởng, không tự biến thành audit toàn sản phẩm.
 
 Không dùng số lượng finding làm thước đo chất lượng. Một blocker có evidence quan trọng hơn 20 recommendation.
 

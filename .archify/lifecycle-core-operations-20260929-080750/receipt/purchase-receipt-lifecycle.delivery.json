@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "296fb012-dd70-494d-9301-7bb85ae907bd",
+  "status": "current",
+  "command": "deliver",
+  "type": "lifecycle",
+  "input": "D:\\ki7\\PRN222 Doanh Nghiệp\\IPCManagement\\.archify\\lifecycle-core-operations-20260929-080750\\receipt\\candidate.json",
+  "output": "D:\\ki7\\PRN222 Doanh Nghiệp\\IPCManagement\\.archify\\lifecycle-core-operations-20260929-080750\\receipt\\purchase-receipt-lifecycle.html",
+  "specification": {
+    "sha256": "15b47944d199752ea3eab74c5f971e7ed84dda6f6c6851865e674db58ad31ef3",
+    "bytes": 5600
+  },
+  "artifact": {
+    "sha256": "210fb85c50234247f45c0021053eb3e8d830bf8e67e688aa6adeac0e420abe33",
+    "bytes": 767600
+  }
+}
