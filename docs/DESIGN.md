@@ -10,7 +10,7 @@ last_reviewed: 2026-09-30
 
 > **Quiet Operational: An industrial precision instrument engineered for high-density food-service logistics and kitchen operations on cool slate.**
 
-Đây là **điểm vào authority duy nhất cho thiết kế frontend** của IPCManagement. Tài liệu này chuẩn hóa toàn bộ product character, visual foundations, token architecture, navigation architecture, page templates, component contracts, trạng thái tương tác và quy tắc tái cấu trúc (reconstruction). Nó được thiết kế để **cả kỹ sư frontend và AI coding agent** có thể xây dựng giao diện vận hành nhất quán từ con số 0 mà không tự suy đoán, không phân mảnh ngôn ngữ thị giác, và không bị trói buộc bởi các wireframe cứng nhắc.
+Đây là **authority thiết kế frontend toàn cục duy nhất** cho product character, hình thái và target UI. Business truth thuộc `docs/domain/*.md` và BE; rule ID normative thuộc `docs/DASHBOARD-UI-RULES.md`; quy trình thuộc `docs/UI-UX-EXECUTION-HARNESS.md`. Giá trị target ở đây không đồng nghĩa token đã được mount trong production. `frontend/src/styles/index.css` hiện giữ legacy `--ipc-*`/shadcn tokens; specimen dùng ứng viên `--color-*`/hex để kiểm định, **không** phải executable token owner của app. Khi một lát cắt được tái cấu trúc, ánh xạ target → một token owner có thể chạy trong `index.css`/shared primitives ở chính lát cắt đó, đo cùng consumer rồi mới mở rộng; không global-rewrite legacy CSS. Domain, mode, permission và query contract vẫn là authority riêng. Không dùng ảnh specimen để thay thế production acceptance.
 
 ---
 
@@ -381,7 +381,8 @@ Level 1: Application (Vỏ ứng dụng toàn hệ thống — Chế độ DEFAU
 
 ---
 
-### 7.2. Weekly Menu Workspace Reclassification (Tái phân loại Thực đơn tuần)
+### 7.2. Weekly Menu Workspace Reclassification (TARGET IA — chưa mount)
+**Target tương lai, không phải route đang chạy.** CURRENT tại HEAD `1efd0b95`: DEFAULT `/weekly-menu?view=demand` vẫn nằm trong sáu in-page views; MATERIAL_RECONCILIATION có views riêng theo capability. Bảng dưới mô tả intent route/sidebar ứng viên, không cấp quyền thay đổi URL, permission, scope hoặc behavior ở lát cắt đầu tiên. Chỉ khi một migration riêng được phê duyệt và verified mới bỏ tab tương ứng; không dựng sidebar + sáu tabs trùng nhau.
 *Quyết định Thẩm quyền của Product Owner:* Toàn bộ 6 góc nhìn trước đây của Thực đơn tuần được **tái phân loại từ LOCAL_TAB thành WORKSPACE / ROUTE ứng viên** trực thuộc nhóm `Kế hoạch & Điều phối` trên Sidebar:
 
 | Phân hệ / Tên góc nhìn | Phân loại Cũ | Phân loại Mới | Trạng thái Route | Rationale Nghiệp vụ | Persona Hợp lệ (VERIFIED) |
@@ -397,7 +398,7 @@ Level 1: Application (Vỏ ứng dụng toàn hệ thống — Chế độ DEFAU
 
 ---
 
-### 7.3. Cấu trúc Cây Sidebar Đề xuất (Target Sidebar Information Architecture)
+### 7.3. Cấu trúc Cây Sidebar Đề xuất (TARGET — không phải mounted navigation)
 Cấu trúc cây Sidebar 2 cấp tinh gọn, nông (Shallow $\le 2$ levels), phản ánh chính xác các workspace độc lập:
 
 ```text
@@ -832,8 +833,7 @@ Giao diện vận hành của IPCManagement tuân thủ ngữ pháp 5 phân vùn
 2. **Zone 2: Thanh Lệnh & Phạm vi (`CommandBar`)**:
    - Chứa bộ lọc phạm vi bắt buộc (Khách hàng, Tuần thực đơn, Ca làm việc), ô tìm kiếm nội dòng (`w-64`), nút lọc mở rộng và nút xuất file Excel/CSV.
    - Chiều cao điều khiển đồng bộ 32px (Compact) hoặc 36px (Standard), liên kết chặt chẽ với mật độ bảng bên dưới.
-3. **Zone 3: Phân khúc Điều hướng Cục bộ (`WorkspaceTabs`)**:
-   - Sử dụng thẻ tab phẳng không viền hộp, chỉ báo active bằng đường viền đáy 2px màu Primary Action Navy (`#164e87`) với transition 150ms.
+3. **Zone 3: Context & Prerequisite Surface (có điều kiện):** Nếu thiếu điều kiện, thay Zone 4; khi hợp lệ thì unmount. Local view tabs chỉ là điều khiển chuyển góc nhìn cùng work object ở Zone 2 hoặc sát Zone 4 khi cần, **không** phải Zone 3 cố định; không nhân bản sidebar workspaces thành tabs.
 4. **Zone 4: Vùng Bảng Biểu Vận hành (`TableViewport`)**:
    - Bề mặt làm việc chính màu trắng (`#ffffff`), bao bọc bởi duy nhất một đường viền ngoài 1px (`border border-[#cbd5e1] rounded-[3px]`).
    - Tuyệt đối cấm lồng thêm viền thẻ con bên trong (`box-in-a-box syndrome`). Tiêu đề cột `th` dùng Sentence Case trên nền `bg-[#f8fafc]`.
@@ -1114,8 +1114,13 @@ Chính sách thích ứng theo ngữ cảnh khung nhìn:
 
 Khi tiến hành tái cấu trúc presentation layer từ đầu (Greenfield presentation + Brownfield verified behavior):
 1. **Được phép thay thế hoàn toàn:** Mã CSS cũ, file CSS redesign tạm bợ, cây JSX cũ, các hàng tab ngang mức route cũ (bao gồm cả 6 tab Thực đơn tuần khi chuyển lên Sidebar), cấu trúc thẻ card thừa thãi, khoảng cách pixel cũ, và các snapshot hình ảnh cũ không phản ánh đúng chuẩn này.
-2. **Bắt buộc bảo toàn nguyên vẹn (MUST preserve):** Luồng nghiệp vụ đã kiểm chứng, từ vựng domain (`GLOSSARY.md`), quyền hạn actor, các guard chặn chuyển trạng thái, công thức tính toán tài chính và tính chính trực của chuỗi dữ liệu FE $\rightarrow$ API $\rightarrow$ DB.
-3. **Phân loại kiểm thử khi refactor:**
+2. **Bất biến Thay thế Presentation (MUST — Anti-Wrapper Replacement):**
+   - Một page/workspace chỉ được gọi là **đã thay FE** khi cây presentation mới sở hữu trực tiếp route identity, scope/commands, conditional state và primary work surface. Việc tạo component owner mới rồi tiếp tục delegate primary surface, heading, command bar hoặc navigation composition cho page/section legacy chỉ là extraction/refactor, **không phải replacement** và không được promote thành migration PASS.
+   - Trong giai đoạn chuyển đổi, không chèn thêm lớp Kit vào giữa shell/tab/page legacy nếu kết quả giữ nhiều owner cạnh tranh cho cùng fact. Customer, week, lifecycle, readiness và primary action phải có đúng một presentation owner trong page mới.
+   - Khi shell/navigation cũ làm sai hierarchy của page mới, dựng presentation greenfield trên route preview/harness non-production trong **cùng frontend application**, dùng chung auth/API/domain hooks/primitives. Không tạo application thứ hai. Chỉ cutover production sau khi page family đạt acceptance; route preview không được xuất hiện trong production navigation.
+   - Shared domain primitive đã kiểm chứng (ví dụ matrix merge, table semantics, dialog mechanics) MAY được tái sử dụng. Legacy page composition, cross-view switch, duplicate heading/breadcrumb/tab và page-local CSS shell MUST NOT được mang sang chỉ để giảm diff.
+3. **Bắt buộc bảo toàn nguyên vẹn (MUST preserve):** Luồng nghiệp vụ đã kiểm chứng, từ vựng domain (`GLOSSARY.md`), quyền hạn actor, các guard chặn chuyển trạng thái, công thức tính toán tài chính và tính chính trực của chuỗi dữ liệu FE $\rightarrow$ API $\rightarrow$ DB.
+4. **Phân loại kiểm thử khi refactor:**
    - *Behavior & Contract tests:* Bắt buộc giữ nguyên hoặc mở rộng để chứng minh logic nghiệp vụ không đổi.
    - *Accessibility tests:* Bắt buộc PASS theo WCAG 2.2 AA.
    - *Legacy Presentation string-matching tests:* Phải được audit và tái cấu trúc bằng `test-audit`, loại bỏ các test chỉ mirror tên class CSS cũ.

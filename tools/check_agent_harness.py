@@ -159,6 +159,14 @@ def self_test():
             destination = root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(ROOT / relative, destination)
+        memory_text = (ROOT / "MEMORY.md").read_text(encoding="utf-8")
+        for raw in LINK_RE.findall(memory_text):
+            target = unquote(raw.strip().strip("<>")).partition("#")[0]
+            source = ROOT / target
+            if target and source.is_file():
+                destination = root / target
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, destination)
         for item in base_manifest["candidateSkills"]:
             relative = Path(item["path"])
             destination = root / relative

@@ -100,6 +100,17 @@ describe('SearchableDishPicker', () => {
     expect(onChange).toHaveBeenCalledWith('2')
   })
 
+  it('closes on outside pointer without mutation', () => {
+    const onChange = vi.fn()
+    render(<><SearchableDishPicker value="1" options={dishes} label="Tìm món" onChange={onChange} /><button type="button">Bên ngoài</button></>)
+    const input = screen.getByRole('combobox', { name: 'Tìm món' })
+    fireEvent.focus(input)
+    expect(input).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Bên ngoài' }))
+    expect(input).toHaveAttribute('aria-expanded', 'false')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('closes on Escape without mutation', () => {
     const onChange = vi.fn()
     render(<SearchableDishPicker value="1" options={dishes} label="Tìm món" onChange={onChange} />)

@@ -4,6 +4,7 @@ import { ROUTES } from '@/lib/routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { MainLayout } from '@/app/layout/MainLayout';
+import { SystemOperationProvider } from '@/app/providers/SystemOperationProvider';
 import { ModeGuard } from '@/features/system-operation/ModeGuard';
 import { RouteDocumentTitle } from './RouteDocumentTitle';
 import { routeRegistry } from './routeRegistry';
@@ -27,6 +28,10 @@ import {
 const SessionTimeoutModal = lazy(() => import('../features/auth/components/SessionTimeoutModal').then(({ SessionTimeoutModal }) => ({ default: SessionTimeoutModal })));
 const LoginPage = lazy(() => import('../features/auth/pages/LoginPage'));
 const ForbiddenPage = lazy(() => import('../features/auth/pages/ForbiddenPage'));
+const planningPreviewEnabled = import.meta.env.DEV || import.meta.env.VITE_ENABLE_KIT_PREVIEW === 'true';
+const SchedulePreviewPage = planningPreviewEnabled
+  ? lazy(() => import('../features/planning/schedule/SchedulePreviewPage'))
+  : null;
 
 const routeFallback = (
   <section
@@ -66,6 +71,12 @@ export const AppRouter = () => {
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute />}>
+          {planningPreviewEnabled && SchedulePreviewPage && (
+            <>
+              <Route path="/__kit/planning/schedule" element={<RoleGuard requiredPermissions={routeRegistry[ROUTES.WEEKLY_MENU].requiredPermissions!}><SystemOperationProvider><Suspense fallback={routeFallback}><SchedulePreviewPage /></Suspense></SystemOperationProvider></RoleGuard>} />
+              <Route path="/__kit/planning/demand" element={<RoleGuard requiredPermissions={routeRegistry[ROUTES.WEEKLY_MENU].requiredPermissions!}><SystemOperationProvider><Suspense fallback={routeFallback}><SchedulePreviewPage /></Suspense></SystemOperationProvider></RoleGuard>} />
+            </>
+          )}
           <Route element={<MainLayout />}>
             <Route path={ROUTES.FORBIDDEN} element={<Suspense fallback={routeFallback}><ForbiddenPage /></Suspense>} />
             <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={routeFallback}><DashboardPage /></Suspense>} />

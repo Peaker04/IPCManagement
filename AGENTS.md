@@ -2,7 +2,7 @@
 
 ## Authority and startup
 
-- Pi CLI is the sole active runtime. A Codex API/model connection inside Pi remains Pi, not a Codex app/CLI session. Codex app, Codex CLI and Claude Code are outside the target workflow unless Kỳ separately requests them.
+- Pi CLI is the sole active runtime. A Codex API/model connection inside Pi remains Pi, not a Codex app/CLI session. Pi-native MCP/codemode capabilities are usable only when explicitly configured, trusted and allowed for the task; a Codex app/CLI MCP registry never transfers into Pi. Codex app, Codex CLI and Claude Code are outside the target workflow unless Kỳ separately requests them.
 - GSD is the only process/state owner. Follow `docs/harness/DELIVERY.md` for L0/L1/L2 and `docs/harness/RUNTIMES.md` for runtime/skill/subagent mapping. No parallel task system from Shipyard, Ponytail or another skill.
 - Start with this file, then `MEMORY.md`; compare branch and `git status --short --branch`. Follow the active checkpoint pointer before resuming. Source/runtime wins over stale narrative; do not ask Kỳ to repeat the whole chat.
 - Use `docs/README.md` as the authority map. Do not auto-load HISTORY, LESSONS, all docs, planning trees or evidence. Read `LESSONS.md` before migration, restore or browser measurement; read relevant evidence/lineage before touching a database lane.
@@ -45,6 +45,7 @@ Read the selected SKILL.md before applying it. In Pi use `read` or `/skill:<name
 ## UI and browser evidence
 
 - Before UI audit/change read `docs/UI-UX-EXECUTION-HARNESS.md`; before JSX lock floorplan/surface/geometry using `docs/DESIGN.md`. Normative rules: `docs/DASHBOARD-UI-RULES.md`; checklist adaptation: `docs/FRONT-END-CHECKLIST-INTEGRATION.md`.
+- For product UI composition, do not stop after loading visual rules. Before the first JSX/layout edit, retrieve the existing product workflow from `docs/DOMAIN.md`, `docs/DATA-GRAIN-MATRIX.md`, the matching `docs/domain/*` contract, and live route/capability/query/mutation owners. Persist a compact workflow/authority/decision packet in the active GSD checklist and reconcile it with `MEMORY.md`. Existing project knowledge must be retrieved before new research; a specimen supplies visual grammar only and must not create navigation, roles, facts or workflow steps absent from product authority.
 - A screenshot showing orphan controls/headings, blank surfaces or duplicate state is a candidate finding: convert it into a DOM/source oracle. Do not ignore it, and do not use screenshot alone as PASS/FAIL.
 - For a page redesign or broad UI audit, inventory **every captured screen/state in the declared page lock** before production fixes; map all visible candidates to project rule IDs and focused Front-End Checklist coverage. Group confirmed findings by root owner and fix a bounded batch, then reload/click, inspect **every after-screenshot** and rerun the same DOM/action oracles. One green defect, generic overflow check or mounted suite does not close the page; unresolved candidates stay `NEEDS_EVIDENCE`. The full gate lives in `docs/UI-UX-EXECUTION-HARNESS.md`; focused fixes need only their declared envelope and affected consumers.
 - Browser-use must open real headed Chrome directly on the app URL, not a blank tab followed by API-only tests. Resolve current ports, lane, credential source and viewport matrix from MEMORY; do not try stale/default passwords. Add tablet/mobile only when Kỳ asks.
@@ -52,7 +53,7 @@ Read the selected SKILL.md before applying it. In Pi use `read` or `/skill:<name
 - If agent-browser is unavailable, use `.artifacts/shipyard-live/live-visual-audit.mjs` from project root, not frontend/. It uses a separate persistent profile `.artifacts/browser-use-visual-audit`, not the user's existing Chrome tabs. Reusing an existing browser requires a real attach/CDP session.
 - Evidence: immutable run directory, final screenshot, post-action API request/response, console/page errors, DOM/focus measurements; add long tasks/CLS when claiming performance. Mutation E2E requires FE control → BE request → DB transition → reload render, not API-only PASS.
 - Refresh locators/snapshots after navigation/DOM changes. On helper failure verify timestamp/content of live-visual-audit-error.txt. Stop only helper/Chrome processes created by the current run, never all Chrome.
-- Chrome DevTools is on-demand diagnostics only, not a replacement for Playwright JSON gates. Configured in Codex does not mean available in Pi.
+- Chrome DevTools is on-demand diagnostics only, not a replacement for Playwright JSON gates. A Codex-configured server is not a Pi capability; Pi-native MCP still requires its own trusted configuration and live verification.
 
 ## Completion and context limits
 

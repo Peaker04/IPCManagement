@@ -44,6 +44,7 @@ export function SearchableDishPicker({
   onChange: (dishId: string) => void
 }) {
   const listId = useId()
+  const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const positionFrameRef = useRef<number | null>(null)
   const selected = options.find((dish) => dish.id === value)
@@ -102,8 +103,21 @@ export function SearchableDishPicker({
     }
   }, [open])
 
+  useLayoutEffect(() => {
+    if (!open) return undefined
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) {
+        setOpen(false)
+        setQuery('')
+        setActiveIndex(0)
+      }
+    }
+    document.addEventListener('pointerdown', closeOnOutsidePointer, true)
+    return () => document.removeEventListener('pointerdown', closeOnOutsidePointer, true)
+  }, [open])
+
   return (
-    <div className="relative min-w-0">
+    <div ref={rootRef} className="relative min-w-0">
       <label className="sr-only" htmlFor={`${listId}-search`}>{label}</label>
       <span className="relative block">
         <Search className="pointer-events-none absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />

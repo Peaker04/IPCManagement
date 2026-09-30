@@ -17,6 +17,8 @@ interface ImportedLayoutMatrixProps {
   displayDays: Array<{ key: string; label: string; date: string }>
   activeDayKey?: string
   maxBodyHeight?: string
+  fixedHeader?: boolean
+  stickyHeader?: boolean
   dishNamesById?: ReadonlyMap<string, string>
 }
 
@@ -69,31 +71,34 @@ const buildCellSpans = (rows: ImportedLayoutRow[], displayDays: Array<{ key: str
   return spans
 }
 
-export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyHeight = 'max-h-[440px]', dishNamesById }: ImportedLayoutMatrixProps) {
+export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyHeight = 'max-h-[440px]', fixedHeader = false, stickyHeader = true, dishNamesById }: ImportedLayoutMatrixProps) {
   const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)))
 
-  return (
+  const columns = <colgroup><col style={{ width: 190 }} />{displayDays.map((day) => <col key={day.key} />)}</colgroup>
+  const headers = <tr>
+    <th scope="col" className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
+    {displayDays.map((day) => (
+      <th key={day.key} scope="col" className={cn('text-center transition-colors', day.key === activeDayKey && 'bg-blue-100/70 text-blue-900')}>
+        <div className="flex flex-col items-center justify-center gap-0.5 py-1">
+          <span className="text-xs font-bold text-slate-800">{day.label}</span>
+          <span className="text-xs font-medium text-slate-500">{day.date}</span>
+          {day.key === activeDayKey && <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-xs font-bold uppercase text-white">Hôm nay</span>}
+        </div>
+      </th>
+    ))}
+  </tr>
+
+  const table = (
     <TableViewport
       caption="Bố cục thực đơn theo file khách hàng"
-      className={cn('ipc-weekly-menu-shell', maxBodyHeight)}
+      className={cn('ipc-weekly-menu-shell', maxBodyHeight, fixedHeader && 'ipc-weekly-menu-body')}
       ariaLabel="Bố cục thực đơn theo file khách hàng"
       frozenFirstIdentifier={false}
+      stickyHeader={stickyHeader}
     >
       <table className="ipc-data-table ipc-matrix-grid-table table-fixed w-full border-collapse">
-        <thead>
-          <tr>
-            <th scope="col" className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
-            {displayDays.map((day) => (
-              <th key={day.key} scope="col" className={cn('text-center transition-colors', day.key === activeDayKey && 'bg-blue-100/70 text-blue-900')}>
-                <div className="flex flex-col items-center justify-center gap-0.5 py-1">
-                  <span className="text-xs font-bold text-slate-800">{day.label}</span>
-                  <span className="text-xs font-medium text-slate-500">{day.date}</span>
-                  {day.key === activeDayKey && <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-xs font-bold uppercase text-white">Hôm nay</span>}
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
+        {fixedHeader && columns}
+        <thead className={fixedHeader ? 'sr-only' : undefined}>{headers}</thead>
         <tbody>
           {sectionNames.map((sectionName) => {
             const sectionRows = rows.filter((row) => row.sourceSection === sectionName)
@@ -152,5 +157,18 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
         </tbody>
       </table>
     </TableViewport>
+  )
+
+  if (!fixedHeader) return table
+  return (
+    <div className="ipc-weekly-menu-matrix-frame">
+      <div className="ipc-matrix-header-viewport" aria-hidden="true">
+        <table className="ipc-data-table ipc-matrix-grid-table ipc-matrix-fixed-header table-fixed w-full border-collapse">
+          {columns}
+          <thead>{headers}</thead>
+        </table>
+      </div>
+      {table}
+    </div>
   )
 }

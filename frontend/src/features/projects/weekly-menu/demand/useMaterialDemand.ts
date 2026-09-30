@@ -31,6 +31,7 @@ type Options = {
   quickServingRows: QuickServingRow[]
   dishesById?: Map<string, CatalogDish>
   dishesByName?: Map<string, CatalogDish>
+  aggregatePageSize?: number
 }
 
 const EMPTY_QUERY_ROWS: never[] = []
@@ -50,6 +51,7 @@ export function useMaterialDemand({
   quickServingRows,
   dishesById,
   dishesByName,
+  aggregatePageSize = 100,
 }: Options) {
   const reduxDispatch = useAppDispatch()
   const scopeKey = `${scope.customerId}:${scope.weekStartDate}`
@@ -110,7 +112,7 @@ export function useMaterialDemand({
     dateFrom: activeDate || undefined,
     dateTo: activeDate || undefined,
     pageNumber: aggregatePageNumber,
-    pageSize: 100,
+    pageSize: aggregatePageSize,
   }, { skip: !enabled || !scope.customerId || !activeDate })
   const retryDemand = () => Promise.all([
     ...(!demandQuery.isUninitialized ? [demandQuery.refetch()] : []),
@@ -132,7 +134,10 @@ export function useMaterialDemand({
     isUninitialized: demandQuery.isUninitialized || documentsQuery.isUninitialized || aggregateQuery.isUninitialized,
     isLoading: demandQuery.isLoading || documentsQuery.isLoading || aggregateQuery.isLoading,
     isFetching: demandQuery.isFetching || documentsQuery.isFetching || aggregateQuery.isFetching,
-    isSuccess: demandQuery.isSuccess && documentsQuery.isSuccess && aggregateQuery.isSuccess,
+    isSuccess: currentDemandData !== undefined
+      && demandQuery.isSuccess
+      && documentsQuery.isSuccess
+      && aggregateQuery.isSuccess,
     isError: demandQuery.isError || documentsQuery.isError || aggregateQuery.isError,
   }, {
     instruction: !scope.customerId

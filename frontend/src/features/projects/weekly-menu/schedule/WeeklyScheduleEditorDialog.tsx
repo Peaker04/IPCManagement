@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { TableViewport, TabContentSkeleton } from '@/components/common'
+import { ConfirmDialog, TableViewport, TabContentSkeleton } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -400,11 +400,13 @@ export function WeeklyScheduleEditorDialog({
         {/* Footer: Clean, flat, concise */}
         <DialogFooter className="!flex-row !items-center !justify-between border-t border-slate-200 bg-slate-50 px-6 py-3 shrink-0">
           <div className="text-xs font-medium text-slate-600">
-            {totalPendingCount > 0 ? (
-              <span>Đang chờ lưu: {totalPendingCount} thay đổi</span>
-            ) : (
-              'Chưa có thay đổi'
+            {presentation.pendingChangeCount + draftServingsCount > 0 && (
+              <span>Đang chờ lưu: {presentation.pendingChangeCount + draftServingsCount} thay đổi</span>
             )}
+            {incompleteServingsCount > draftServingsCount && (
+              <span className="ml-2">{incompleteServingsCount - draftServingsCount} ngày/ca chưa hoàn tất</span>
+            )}
+            {totalPendingCount === 0 && 'Chưa có thay đổi'}
           </div>
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" size="sm" onClick={requestClose}>Hủy</Button>
@@ -417,20 +419,26 @@ export function WeeklyScheduleEditorDialog({
               {status.isSavingMenu || status.isSavingQuickServings ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
             </Button>
           </div>
-          {confirmClose && (
-            <div role="alert" className="mx-6 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
-              <span><strong>Bỏ các thay đổi chưa lưu?</strong> Các món hoặc số suất đang chỉnh sẽ không được lưu.</span>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => setConfirmClose(false)}>Tiếp tục chỉnh sửa</Button>
-                <Button type="button" variant="destructive" size="sm" onClick={() => { setConfirmClose(false); actions.closeEditor() }}>Bỏ thay đổi</Button>
-              </div>
-            </div>
-          )}
+
         </DialogFooter>
       </DialogContent>
   )
 
-  return surface === 'page'
-    ? content
-    : <Dialog open={state.isEditorOpen} onOpenChange={(open) => !open && requestClose()}>{content}</Dialog>
+  if (surface === 'page') return content
+
+  return <>
+    <Dialog open={state.isEditorOpen} onOpenChange={(open) => !open && requestClose()}>{content}</Dialog>
+    <ConfirmDialog
+      open={confirmClose}
+      title="Bỏ các thay đổi chưa lưu?"
+      description="Các món hoặc số suất đang chỉnh sẽ không được lưu."
+      confirmLabel="Bỏ thay đổi"
+      variant="destructive"
+      onOpenChange={setConfirmClose}
+      onConfirm={() => {
+        setConfirmClose(false)
+        ;(actions.discardEditor ?? actions.closeEditor)()
+      }}
+    />
+  </>
 }

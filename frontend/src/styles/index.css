@@ -416,6 +416,11 @@ textarea {
   outline-offset: 2px;
 }
 
+/* Base UI controls draw their own focus ring; keep the global outline for native/legacy controls. */
+:is(button[data-slot="button"], input[data-slot="input"], textarea[data-slot="textarea"], button[data-slot="select-trigger"], [data-slot="checkbox"]):focus-visible {
+  outline: none;
+}
+
 h1,
 h2,
 h3,
@@ -998,12 +1003,14 @@ button[data-slot="button"][data-text-wrap="wrap"] {
   background: #991b1b;
 }
 
+.ipc-button-secondary,
 .ipc-button-ghost {
   border-color: var(--border);
   background: #ffffff;
   color: var(--ipc-slate-700);
 }
 
+.ipc-button-secondary:hover,
 .ipc-button-ghost:hover {
   border-color: var(--ipc-slate-400);
   background: var(--ipc-slate-100);

@@ -248,6 +248,10 @@ context phải cùng tone trên mọi màn. Không tự thêm mapping local ho�
 - **M2.12 (MUST)** `DialogContent` dùng bố cục một chiều có `gap` token làm owner khoảng cách mặc định giữa header, body/error và footer. Consumer MUST NOT cộng thêm `mt-*`/`mb-*` tại cùng ranh giới. Chỉ modal/editor tự quản **khoảng cách giữa các region** bằng margin/padding riêng mới opt out rõ bằng `gap-0`; việc có body scroll riêng không tự tạo ngoại lệ. Modal có body scroll riêng phải giữ một body `min-h-0` với scroll owner duy nhất. Padding bên trong field group không thay thế hoặc cộng vào khoảng cách giữa các region.
 - **M2.13 (MUST)** Positioning/portal layer của modal chỉ căn vị trí và bắt backdrop; MUST NOT là vertical scroll owner. Luồng đọc dài có đúng một primary body scroller với `overscroll-behavior: contain` và stable scrollbar gutter. Bảng/list lồng chỉ được vertical-scroll khi là collection độc lập có accessible region; không chia cùng một luồng đọc qua nhiều scrollbar.
 
+- **M2.14 (MUST)** Mọi overlay interactive phải được kiểm đủ vòng đời theo trigger: mở/focus, thao tác, chọn item, click ngoài, `Escape`, close control, Cancel và confirm khi các đường đó áp dụng; sau mỗi đường đóng phải chứng minh focus, inert, body-scroll lock, portal/listbox và dialog stack được cleanup. Một đường đóng PASS không đại diện các đường còn lại.
+- **M2.15 (MUST)** Confirmation làm mất draft/dữ liệu là blocking dialog dùng shared confirmation primitive. MUST NOT chèn confirmation alert/action row vào footer editor hoặc work surface làm đổi geometry và tạo action locus thứ hai.
+- **M2.16 (MUST)** Combobox/popover/listbox không modal phải đóng khi chọn, `Escape` và pointer/focus chuyển ra ngoài theo interaction contract; outside dismissal MUST NOT phát mutation. Listener chỉ tồn tại khi layer mở và phải cleanup khi đóng/unmount.
+
 ### M3. Hiệu năng khi hiển thị modal
 
 - **M3.1 (MUST)** Mount theo nhu cầu. MUST NOT render sẵn modal rồi ẩn bằng CSS (`display:none`, `visibility:hidden`, `opacity:0`).
@@ -550,6 +554,10 @@ Không hạ rule, sửa expectation theo bug, hoặc tự thay CI/hooks để l�
 - [ ] Không có orphan control/heading, panel trắng vô nghĩa hoặc state bị lặp trên hai surface (`V2`–`V6`)
 - [ ] Mỗi async boundary khai geometry role phù hợp; compact control không mang min-height workspace (`V4`, `V5`)
 - [ ] Bảng: căn lề đúng loại dữ liệu, header dính, cột định danh đóng băng, sort mặc định có chủ đích (`T1`, `T7`, `T9`)
+- [ ] Control/action dùng variant/class có owner thực sự tồn tại; computed border/background/hit target đúng semantics. Không chấp nhận class giả như `*-secondary` làm button rơi về transparent base.
+- [ ] Mỗi state có đúng một primary action hữu ích; action disabled không giữ visual primary, và primary chuyển theo prerequisite/draft/publish outcome thay vì cố định theo component.
+- [ ] Zone 1 chỉ chứa product identity/lifecycle/task context; không hiển thị `preview`, `new FE`, fixture/debug/build/version nội bộ nếu không phải fact nghiệp vụ/audit được duyệt.
+- [ ] Mọi dialog/popover/combobox chạy đủ interaction envelope; destructive confirmation dùng blocking dialog, outside-click không mutation, focus/inert/stack cleanup (`M2.14`–`M2.16`).
 - [ ] Modal mount theo nhu cầu, đặt ở cấp trang, code-split nếu nặng, huỷ tài nguyên khi đóng (`M3.1`–`M3.6`)
 - [ ] Khoá cuộn nền không gây dịch layout (`M2.6`, `C5`)
 - [ ] Vùng bấm ≥ 24×24px; tương phản chữ ≥ 4,5:1; tương phản phi văn bản ≥ 3:1 (`A`)

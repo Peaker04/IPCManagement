@@ -53,6 +53,15 @@ it('allows a completed day/shift serving count to be corrected before source fre
   expect(screen.getByRole('button', { name: 'Hoàn tất' })).toBeEnabled()
 })
 
+it('distinguishes untouched incomplete servings from unsaved edits', () => {
+  render(<WeeklyScheduleEditorDialog workflow={workflow} servingRows={[{
+    key: 'mon-morning', dayKey: 'mon', dayLabel: 'Thứ Hai', date: '31/08/2026', serviceDate: '2026-08-31', shiftName: 'MORNING', shiftLabel: 'Ca Sáng', quantityPlanIds: ['plan'], lines: [], currentServings: 800, importedServings: 800, inputValue: '800', hasPlanLines: true, hasDraftChange: false, isConfirmed: false, isCompleted: false, statusLabel: 'Nháp',
+  }]} />)
+  expect(screen.queryByText(/Đang chờ lưu:/)).not.toBeInTheDocument()
+  expect(screen.getByText('1 ngày/ca chưa hoàn tất')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Lưu tất cả thay đổi' })).toBeEnabled()
+})
+
 it('uses Save all to complete draft servings and keeps the editor open', () => {
   completeAllQuickServings.mockClear()
   const closeEditor = vi.fn()
@@ -69,6 +78,7 @@ it('uses Save all to complete draft servings and keeps the editor open', () => {
 
 it('renders the unified matrix view with dishes and servings and supports cancel confirmation', () => {
   const closeEditor = vi.fn()
+  const discardEditor = vi.fn()
   const workflowWithSections = {
     ...workflow,
     scope: { ...workflow.scope, displayDays: [{ key: 'mon', label: 'Thứ Hai', date: '31/08/2026' }] },
@@ -83,6 +93,7 @@ it('renders the unified matrix view with dishes and servings and supports cancel
     actions: {
       ...workflow.actions,
       closeEditor,
+      discardEditor,
     },
   } as unknown as WeeklyScheduleEditorWorkflow
 
@@ -110,5 +121,6 @@ it('renders the unified matrix view with dishes and servings and supports cancel
   fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
   expect(screen.getByText('Bỏ các thay đổi chưa lưu?')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Bỏ thay đổi' }))
-  expect(closeEditor).toHaveBeenCalledTimes(2)
+  expect(closeEditor).toHaveBeenCalledTimes(1)
+  expect(discardEditor).toHaveBeenCalledTimes(1)
 })

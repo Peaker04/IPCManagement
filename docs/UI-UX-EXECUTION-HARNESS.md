@@ -35,6 +35,44 @@ không đoán `PASS`. Tuy nhiên screenshot có orphan control/heading, panel tr
 broken adjacency là **candidate finding bắt buộc triage**, không được bỏ qua. Agent phải chuyển tín hiệu ảnh
 thành selector/DOM geometry/source assertion trước production edit.
 
+### FR/NFR acceptance gate cho FE mới và page reconstruction
+
+Một page không được gọi “ready” chỉ vì đẹp, render đúng happy path hoặc không có console error. Trước JSX, active
+GSD checklist phải có bảng claim tối thiểu sau; mỗi hàng có owner và oracle riêng:
+
+| Nhóm | Câu hỏi acceptance | FE chịu trách nhiệm | Khi nào mới mở BE/DB |
+|---|---|---|---|
+| FR task outcome | Actor hoàn thành quyết định/tác vụ nào và handoff cho ai? | Luồng control, scope, state, feedback, next action đúng authority | Endpoint/rule/output thiếu hoặc server trả outcome sai |
+| FR state/action | Prerequisite/loading/ready/empty/error/403/conflict/pending/success/reload có trung thực? | Query boundary, action eligibility presentation, draft/focus/cache render | Permission/domain transition/concurrency contract sai hoặc thiếu |
+| Data integrity | Người dùng thấy đúng grain, tier, unit, source và precision? | Không suy đoán/gộp sai; formatter và source identity đúng | DTO thiếu authority; aggregate/service/constraint sai |
+| Usability/accessibility | Có hiểu bước tiếp, dùng keyboard, phục hồi lỗi và không mất draft? | Hierarchy, copy, focus, hit target, dialog, reflow | Chỉ mở BE nếu recovery cần server capability/idempotency mới |
+| Interaction lifecycle | Mọi control mở layer phải hoàn tất vòng `trigger → visible/focused → interact → dismiss/cancel/confirm → focus/stack/geometry cleanup`. | Dialog/popover/listbox outside-click, Escape, selection, cancel và confirm; không để inline confirmation phá footer hoặc layer mồ côi | Chỉ mở BE nếu dismiss phụ thuộc durable command/cancellation semantics |
+| Performance | Cold/warm load và action có ổn định, ít request, không jank? | Lazy boundary, query gating, DOM/layout, render/request ownership | Trace chứng minh server latency/payload/query là owner |
+| Reliability | Retry, stale data, duplicate action, partial failure xử lý thế nào? | Giữ last-good data/draft, single-submit, retry UI, cache invalidation | Idempotency, transaction, concurrency, atomicity hoặc retry semantics thiếu |
+| Security/privacy | UI có lộ route/action/data ngoài scope? | Fail-closed presentation, không mount query cấm, không lưu/lộ secret | BE bắt buộc enforce auth/data scope/rate limit/audit; FE không thay thế |
+| Compatibility | Browser/viewport/motion/zoom nào được claim? | Responsive/reflow/input/focus theo declared envelope | Server chỉ liên quan khi protocol/content negotiation thật sự khác |
+| Operability | Khi lỗi, có evidence để phân biệt FE/network/server? | Semantic error, request/correlation capture không lộ secret | Health/correlation/log/metric owner thiếu ở server/runtime |
+
+**Overlay/popover denominator:** inventory mọi trigger trong page lock, không chỉ control người dùng vừa báo. Với mỗi
+dialog/drawer/popover/combobox/listbox phải chạy các đường đóng áp dụng: chọn item, click ra ngoài, Escape, close
+control, Cancel, destructive confirm và route/scope change. Assert layer count, top-layer ownership, focus return,
+background inert/scroll lock cleanup, draft preservation/discard semantics và geometry ở thời điểm confirmation.
+Confirmation quyết định mất dữ liệu phải dùng blocking dialog pattern; không chèn một alert/action row vào footer
+của editor làm thay đổi chiều cao, che content hoặc tạo hai action loci. Một đường đóng xanh không suy ra các đường
+khác PASS.
+
+**Performance floor áp dụng cho FE reconstruction:** luôn disposition loading stability, request economy và một
+interaction chính; không đợi người dùng nói “chậm”. Dùng threshold đã có trong project: field target LCP ≤2.5s,
+INP ≤200ms, CLS ≤0.1 khi có field/p75 authority; local run chỉ báo lab/bounded. Với workbench thay đổi bố cục,
+đo CLS/CGR/scroll growth; với click/search/tab/dialog đo event phases hoặc ít nhất long-task/frame evidence theo
+Measurement Protocol. Không tối ưu khi chưa attribution, nhưng thiếu phép đo bắt buộc là `NEEDS_EVIDENCE`, không
+phải PASS. Request gate phải ghi endpoint active, hidden/prohibited request, duplicate key và write escape.
+
+**Verdict namespace:** `FR`, `NFR-UX`, `NFR-A11Y`, `NFR-PERF`, `NFR-RELIABILITY`, `NFR-SECURITY`,
+`NFR-COMPAT`, `NFR-OPS`. Tổng `PAGE_READY` chỉ PASS khi mọi namespace bắt buộc trong declared envelope đã được
+disposition; visual/composition PASS không nâng namespace khác. BE/DB giữ `UNCHANGED` khi không có finding thuộc
+owner đó; đây là quyết định có evidence, không phải bỏ sót.
+
 ### Screenshot intake chuẩn hóa
 
 Ảnh người dùng cung cấp là candidate evidence, không phải verdict. Trước khi phân tích hoặc tạo before/after,
@@ -101,7 +139,13 @@ không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
    warm navigation và application interaction; ghi event input/processing/presentation phases, frame distribution
    và LoAF khi browser hỗ trợ. DEV-only overhead không authorize production architecture edit. Composition loop
    phải đo bounding boxes, computed min-height/flex growth, số explanatory surfaces và adjacency của
-   heading/control/content. Control có accessory tuyệt đối phải đo containment/centering và hit-test bằng
+   heading/control/content. **Với replacement/migration, red loop còn phải chứng minh boundary presentation:**
+   route preview/page mới không import hoặc mount legacy page/section owner cho identity, command bar, navigation
+   hoặc primary work surface; shared domain primitive được phép nhưng legacy composition wrapper không được tính
+   là thay FE. Trước khi gọi replacement PASS, capture occurrence/owner map cho customer, time scope, lifecycle,
+   readiness và primary action; mỗi fact có đúng một presentation owner. Fail khi cùng fact xuất hiện ở heading +
+   command + work-surface metadata mà không có mục đích quyết định riêng, khi có quá nhiều horizontal bands cạnh
+   tranh, hoặc khi Kit chỉ bọc quanh JSX/CSS legacy. Control có accessory tuyệt đối phải đo containment/centering và hit-test bằng
    `elementFromPoint()`; sau đó click thật ở normal, error/focus và pressed/active transition để bắt stacking
    context hoặc transform làm target không bấm được. Với focus, query ownership hoặc mutation, loop phải bắt đúng
    symptom tương ứng; screenshot khởi tạo finding nhưng không thay red loop.
@@ -127,6 +171,12 @@ không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
    Trong ledger, mỗi candidate cũ phải có `FIXED | OPEN | NEEDS_EVIDENCE | N/A` và evidence sau sửa;
    candidate mới phải được disposition trước khi đóng batch. Nếu thiếu ảnh/oracle hoặc một sibling
    cell FAIL, batch chưa được promote; có thể checkpoint phần xanh nhưng page lock còn OPEN.
+   **Greenfield-presentation gate cho migration:** nếu shell/tab legacy làm sai hierarchy mục tiêu, dựng route
+   preview hoặc specimen non-production trong cùng app, dùng chung auth/API/domain behavior nhưng cây presentation
+   độc lập. Preview route phải bị loại khỏi production navigation. Gate preview gồm inventory ảnh/state đầy đủ,
+   duplicate-fact oracle, legacy-selector/import absence, focus/query/state acceptance và review từng ảnh. Không
+   mount page mới vào production shell rồi tiếp tục vá cho đến khi preview đạt gate; production cutover diễn ra
+   theo batch route/navigation đã khóa, sau đó retire legacy composition bằng consumer scan.
    Với async layout phải gán geometry role rõ; cấm truyền
    `min-h-0` page-local hàng loạt để né default sai của shared primitive. **Không được ổn định bảng phân trang
    bằng row giả, `rowCapacity`, `min-height` theo page size hoặc khoảng trắng dự trữ**: các cách đó chỉ đổi page

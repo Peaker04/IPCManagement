@@ -9,7 +9,7 @@ This file owns runtime integration, not a second delivery process. Lanes, feedba
 
 ## 1. Runtime contract
 
-- Pi CLI is the sole active runtime. Its configured API/provider/model supplies inference, not a second CLI/app or its MCP registry.
+- Pi CLI is the sole active runtime. Its configured API/provider/model supplies inference, not a second CLI/app or that application's MCP registry. Pi-native MCP and codemode remain Pi capabilities and require explicit project/user configuration, trust and task authorization.
 - Codex app, Codex CLI and Claude Code are outside the target workflow unless Kỳ explicitly opens a separate task for them. Do not use them as fallback, copy credentials/session data, or create a second GSD state owner.
 - Claude Code is excluded from active execution. Existing .claude junctions, worktrees, settings and shared core are retained, not loaded into Pi or deleted as cleanup. Their presence is not permission to run hooks/installers.
 - Pi skill invocation: `/skill:name` or read the actual SKILL.md. Resolve referenced paths relative to that skill. A skill hidden from discovery can still be read by exact verified path when requested; hidden does not mean uninstalled.
@@ -97,6 +97,8 @@ After parser failure preserve the original report, inspect diff, independently r
 
 This is the durable source/role map, not a live-version database. Exact versions and observed commits belong in the task's verification receipt; re-read manifests before updates.
 
+Current update receipt (2026-09-29): Pi `0.99.1`; active shell reports `cockpit/gpt-5.6-sol`, reasoning `low`; `pi list` resolves `pi-subagents@0.70.1`, Ponytail and `pi-mcp-adapter`; `pi mcp list` reports no configured servers. Pi `0.99.x` adds native MCP/codemode and built-in extension controls, but this project does not infer permission or capability from installation alone. The OpenAI Codex provider default changed upstream to `gpt-6.1-sol`; it does not change the explicitly selected Cockpit model in this session.
+
 | Source/component | Location/provenance | Disposition |
 |---|---|---|
 | earendil-works/pi | user npm package @earendil-works/pi-coding-agent | Primary runtime; no automatic major/toolchain update |
@@ -125,6 +127,6 @@ Codex-configured MCP names (not Pi capability claims): notebooklm, stitch, html-
 - A pinned Git ref may cause Pi reconciliation to reset/clean the package clone. First check its working tree and current ref; never use pinning to discard local edits.
 - Pi packages/extensions execute with host privileges; skill instructions can request tools. Documentation is not a sandbox. No new extension/MCP network access without explicit review.
 - Current Pi package removal syntax is `pi remove <source>` (verify local help before use), e.g. `pi remove git:github.com/DietrichGebert/ponytail`. This removes the registration/package, not permission to run Ponytail's broad external-state cleanup script. Do not repeat the earlier unverified `pi uninstall ponytail` guidance.
-- Keep `pi-subagents` compatible with the installed Pi release; do not copy its dependencies into the global Pi runtime tree. The 2026-09-22 repair moved the pinned user package from `0.65.1` (async children required server/client paths absent from Pi `0.87.0`) to `0.70.1`. After a package change, start a fresh Pi process or run `/reload`, then verify `pi list`, no-session startup, and one real async child launch.
+- Keep `pi-subagents` compatible with the installed Pi release; do not copy its dependencies into the global Pi runtime tree. The pinned user package remains `0.70.1`; `pi list` loaded it under Pi `0.99.1` on 2026-09-29. This proves loader compatibility only, not async execution. After either package changes, start a fresh Pi process or run `/reload`, then verify `pi list`, no-session startup, and one real async child launch when delegation is authorized.
 - Project config rollback: restore only the scoped pre-task bytes after comparing intervening edits, then reload/restart Pi. User-scope packages and shared .claude/.codex assets stay intact.
 - New project settings require trust and reload. Do not claim the already-running parent changed its discovered catalog until it has actually reloaded.

@@ -359,6 +359,7 @@ export function useWeeklyScheduleEditor({
     actions: {
       openEditor,
       closeEditor: () => dispatch({ type: 'close-editor' }),
+      discardEditor: () => dispatch({ type: 'close-editor' }),
       changeDish: (dayKey, slotType, dishId, slotKey) => dispatch({ type: 'change-dish', dayKey, slotType, dishId, slotKey }),
       saveEditor,
       changeQuickServing: (key, value) => dispatch({ type: 'change-serving', key, value }),

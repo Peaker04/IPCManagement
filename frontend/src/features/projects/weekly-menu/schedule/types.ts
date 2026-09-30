@@ -62,6 +62,7 @@ export type WeeklyScheduleEditorWorkflow = {
   actions: {
     openEditor: () => void
     closeEditor: () => void
+    discardEditor?: () => void
     changeDish: (dayKey: string, slotType: string, dishId: string, slotKey?: string) => void
     saveEditor: (amendmentReason?: string) => Promise<void>
     changeQuickServing: (key: string, value: string) => void

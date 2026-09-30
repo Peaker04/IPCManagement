@@ -36,6 +36,8 @@ Các lỗi lặp lại không đến từ thiếu agent mà từ feedback loop v
 12. Tạo nhiều plan/wave/checklist cho cùng một mục tiêu tuần tự, làm phân tán finding và khiến closeout mâu thuẫn.
 13. Audit/checklist theo thời điểm nằm cạnh contract canonical nhưng không được đánh dấu historical, khiến session
     mới resume từ trạng thái đã bị supersede.
+14. UI work đọc specimen và component trước nhưng không truy xuất workflow/domain/capability knowledge đã có;
+    kết quả sao chép information architecture giả và chọn fact vì API dễ lấy thay vì vì quyết định người dùng.
 
 Từ đây, **không thêm agent để bù cho harness yếu**. Trước tiên phải làm harness red-capable và đủ state matrix.
 Không tăng số plan để bù cho scope chưa khóa; một mục tiêu tuần tự dùng một plan, một checklist và một ledger,
@@ -72,7 +74,7 @@ không thể tạo feedback loop tại seam hiện tại. Không nâng lane ch�
 non-visual logic, `lite` cho component/layout/visual work; frontend `ultra` chỉ khi owner yêu cầu rõ cho cleanup
 non-visual hẹp. Simplification không được xóa hierarchy, state, accessibility hoặc business context bắt buộc.
 
-## 4. Contract trước khi sửa
+## 4. Contract và retrieval packet trước khi sửa
 
 Trước production edit, ghi ngắn gọn trong commentary hoặc finding ledger:
 
@@ -84,6 +86,41 @@ Owner        : token | primitive | formatter/hook/API seam | feature page
 Success      : assertion/metric cụ thể sau sửa
 Out of scope : phần không được thay đổi
 ```
+
+Với product UI composition/redesign, contract trên chưa đủ nếu chỉ mô tả màn hình. Trước JSX phải **truy xuất**, không tái khám phá tùy hứng, knowledge đã có và persist một packet ngắn trong active GSD checklist:
+
+```text
+Workflow      : bước trước → work object hiện tại → output/consumer kế tiếp
+Authority     : domain contract + grain + source-of-truth precedence
+Actors/modes  : role/permission + DEFAULT/MRX capability differences
+Decisions     : người dùng cần quyết định gì; fact/blocker/action nào phục vụ quyết định đó
+Navigation    : route registry + backend capability + permission/preference; target IA tách khỏi current availability
+Reuse         : behavior/query/mutation owners giữ lại; specimen chỉ cung cấp visual grammar
+Unknowns      : NEEDS_EVIDENCE/BLOCKED, không điền bằng mock hoặc fallback âm thầm
+```
+
+Sau retrieval, mọi feature/page mới hoặc reconstruction phải khóa **FR/NFR acceptance packet** trước implementation. Không đồng nhất “functional” với việc route render được, và không đồng nhất “non-functional” với đẹp/responsive:
+
+```text
+FR scenarios  : actor + mode + prerequisite → action → observable outcome/next owner
+FR states     : loading/refreshing/empty/error/forbidden/conflict/pending/success/reload
+Interactions  : every trigger/layer open → interact → all applicable dismiss/confirm paths → cleanup
+Data contract : grain, source IDs, validation, permission, mutation and cache/reload truth
+NFR-UX/A11y   : keyboard/focus, labels, error recovery, information hierarchy, reflow
+NFR-Perf      : cold/warm/interaction cells, request economy, loading stability, DOM/bundle risks
+NFR-Reliab.   : retry, stale/conflict, duplicate-submit, partial failure, draft/data-loss behavior
+NFR-Security  : route/action visibility plus BE enforcement boundary; no data leakage
+NFR-Compat.   : declared browser/viewport/motion/zoom envelope, not historical blanket coverage
+NFR-Ops       : error/correlation/health evidence and diagnostic ownership where applicable
+Owner split   : FE | API/BE | DB | shared, with escalation trigger for each unmet claim
+```
+
+Chỉ đưa một claim sang BE/DB khi evidence chỉ ra server contract, authority, latency, integrity, transaction,
+audit hoặc observability owner. FE greenfield không được yêu cầu BE thay đổi chỉ để thuận tiện composition; ngược
+lại FE không được giả permission/state/aggregate để che contract thiếu. Threshold dùng nguồn canonical hiện có;
+không phát minh budget. Lab metric là bounded evidence, không được gọi field p75/SLO.
+
+Packet phải link tới owner hiện hữu (`DOMAIN`, `DATA-GRAIN-MATRIX`, matching `docs/domain/*`, route/capability/query/mutation source), không copy cả tài liệu. Nếu knowledge đã tồn tại nhưng checkpoint/MEMORY không trỏ tới nó, sửa retrieval pointer trước implementation. Không được biến thiếu retrieval thành một campaign research mới hoặc hỏi owner lặp lại kiến thức đã nằm trong repo.
 
 Nếu chưa có `Red loop`, không được nhảy sang giả thuyết/fix, trừ lỗi compile hoặc literal hiển nhiên. Với UI,
 screenshot là đầu vào triage hợp lệ: candidate defect rõ không được bỏ qua. Tuy nhiên red loop vẫn phải là
