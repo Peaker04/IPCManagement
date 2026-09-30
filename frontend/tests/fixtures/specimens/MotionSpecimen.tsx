@@ -43,7 +43,7 @@ export function MotionSpecimen() {
         {/* 1. Button Tactile Press */}
         <div className="p-4 bg-white border border-[#cbd5e1] rounded-[3px] space-y-2.5">
           <span className="text-xs font-bold text-slate-900 block">1. Nút Bấm: Micro-Tactile Press (100ms)</span>
-          <p className="text-[11px] text-slate-500">100ms standard curve, dịch chuyển 1px khi bấm xuống.</p>
+          <p className="text-xs text-slate-500">100ms standard curve, dịch chuyển 1px khi bấm xuống.</p>
           <div className="flex gap-2 pt-1">
             <button
               type="button"
@@ -64,7 +64,7 @@ export function MotionSpecimen() {
         {/* 2. Checkbox Tactile Check */}
         <div className="p-4 bg-white border border-[#cbd5e1] rounded-[3px] space-y-2.5">
           <span className="text-xs font-semibold text-slate-900 block">2. Checkbox: Subtle Tactile Check (100ms)</span>
-          <p className="text-[11px] text-slate-500">Native checkbox: nhấn scale 0.9 ──► 1.0 khi thả (100ms); checked state không scale toàn control.</p>
+          <p className="text-xs text-slate-500">Native checkbox: nhấn scale 0.9 ──► 1.0 khi thả (100ms); checked state không scale toàn control.</p>
           <label className="flex items-center gap-2 cursor-pointer pt-1 text-xs text-slate-800">
             <input
               type="checkbox"
@@ -81,7 +81,7 @@ export function MotionSpecimen() {
         {/* 3. Sidebar Disclosure Accordion */}
         <div className="p-4 bg-white border border-[#cbd5e1] rounded-[3px] space-y-2.5">
           <span className="text-xs font-semibold text-slate-900 block">3. Sidebar Accordion: Bounded Layout Transition (150ms)</span>
-          <p className="text-[11px] text-slate-500">Chuyển đổi CSS Grid row 0fr ──► 1fr giới hạn trong vùng container cục bộ.</p>
+          <p className="text-xs text-slate-500">Chuyển đổi CSS Grid row 0fr ──► 1fr giới hạn trong vùng container cục bộ.</p>
           <div className="border border-slate-200 rounded-[2px] overflow-hidden text-xs">
             <button
               type="button"
@@ -103,7 +103,7 @@ export function MotionSpecimen() {
               }`}
             >
               <div className="overflow-hidden">
-                <div className="p-2 space-y-1 bg-white border-t border-slate-100 text-[11px] text-slate-600">
+                <div className="p-2 space-y-1 bg-white border-t border-slate-100 text-xs text-slate-600">
                   <div className="px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">Nhập kho NCC</div>
                   <div className="px-1.5 py-0.5 rounded hover:bg-slate-50 cursor-pointer">Xuất kho sản xuất</div>
                 </div>
@@ -115,7 +115,7 @@ export function MotionSpecimen() {
         {/* 4. Tabs Indicator Transition */}
         <div className="p-4 bg-white border border-[#cbd5e1] rounded-[3px] space-y-2.5">
           <span className="text-xs font-bold text-slate-900 block">4. Tabs Indicator: Linear Slide (150ms)</span>
-          <p className="text-[11px] text-slate-500">Chuyển viền dưới mượt mà 150ms không làm giật nội dung.</p>
+          <p className="text-xs text-slate-500">Chuyển viền dưới trong 150ms; độ ổn định bố cục production chưa được đo.</p>
           <div className="flex border-b border-slate-200 text-xs font-medium">
             {(['overview', 'metrics', 'audit'] as const).map((t) => (
               <button
@@ -137,7 +137,7 @@ export function MotionSpecimen() {
         {/* 5. Modal Dialog Scale & Fade */}
         <div className="p-4 bg-white border border-[#cbd5e1] rounded-[3px] space-y-2.5">
           <span className="text-xs font-bold text-slate-900 block">5. Modal Dialog: Scale &amp; Fade (200ms)</span>
-          <p className="text-[11px] text-slate-500">200ms overlay enter (scale 0.98 ──► 1.0, opacity 0 ──► 1).</p>
+          <p className="text-xs text-slate-500">200ms overlay enter (scale 0.98 ──► 1.0, opacity 0 ──► 1).</p>
           <button
             type="button"
             onClick={() => setIsDialogOpen(true)}
@@ -150,7 +150,7 @@ export function MotionSpecimen() {
         {/* 6. Toast Notification Entrance */}
         <div className="p-4 bg-white border border-[#cbd5e1] rounded-[3px] space-y-2.5">
           <span className="text-xs font-bold text-slate-900 block">6. Toast: Translate-Y &amp; Fade (150ms)</span>
-          <p className="text-[11px] text-slate-500">150ms slide up (translateY 8px ──► 0px).</p>
+          <p className="text-xs text-slate-500">150ms slide up (translateY 8px ──► 0px).</p>
           <button
             type="button"
             onClick={() => {

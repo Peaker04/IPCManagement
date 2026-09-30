@@ -4,12 +4,21 @@ import type { ComponentProps } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ApprovalDecisionDialog } from './ApprovalDecisionDialog'
 import type { InventoryReceipt } from '@/api/workflowApiTypes'
+import type { ApprovalRecord } from '@/types/workflow'
+
+const record: ApprovalRecord = {
+  id: 'approval-1', targetType: 'purchase-request', targetId: 'purchase-1', targetCode: 'PR-001',
+  type: 'purchase', title: 'Duyệt đề xuất mua', source: 'PR-001', owner: 'Quản lý',
+  submittedBy: 'Nhân viên thu mua', deadline: '27/07/2026', status: 'PENDING',
+  reason: 'Chờ quản lý duyệt', nextAction: 'Duyệt đề xuất mua', tone: 'warning', materials: [],
+}
 
 const copy = { title: 'Duyệt đề xuất mua?', description: 'Kiểm tra trước khi duyệt.', safeLabel: 'Giữ đề xuất mua', submitLabel: 'Duyệt chứng từ' }
 
 const renderDialog = (overrides: Partial<ComponentProps<typeof ApprovalDecisionDialog>> = {}) => {
   const props: ComponentProps<typeof ApprovalDecisionDialog> = {
     open: true,
+    record,
     status: 'Approve',
     reason: '',
     error: null,
@@ -106,6 +115,7 @@ describe('ApprovalDecisionDialog controlled lazy contract', () => {
       } as InventoryReceipt,
     })
 
+    expect(screen.getByRole('region', { name: 'Hồ sơ cần quyết định' })).toHaveTextContent('PR-001')
     expect(screen.getByRole('region', { name: 'Bằng chứng kiểm tra phiếu nhập' })).toHaveTextContent('Đạt 8 kg · Không đạt 2 kg')
     expect(screen.getByText('Lý do: Bao rách')).toBeVisible()
   })

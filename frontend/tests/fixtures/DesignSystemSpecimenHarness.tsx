@@ -95,11 +95,11 @@ export function DesignSystemSpecimenHarness() {
         <header className="bg-white border border-[#cbd5e1] rounded-[3px] p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[11px] font-semibold text-[#475569] uppercase tracking-wider">
+              <span className="text-xs font-semibold text-[#475569] uppercase tracking-wider">
                 IPC Design System
               </span>
               <span className="text-slate-300">/</span>
-              <span className="text-[11px] text-[#164e87] font-medium">
+              <span className="text-xs text-[#164e87] font-medium">
                 Visual Standards
               </span>
             </div>
@@ -119,9 +119,9 @@ export function DesignSystemSpecimenHarness() {
                 type="button"
                 data-testid="toggle-surface-gallery"
                 onClick={() => setSurface('gallery')}
-                className={`px-3 py-1.5 rounded-[2px] transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                   surface === 'gallery'
-                    ? 'bg-white text-[#164e87] font-semibold shadow-2xs'
+                    ? 'bg-white text-[#164e87] font-semibold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -132,9 +132,9 @@ export function DesignSystemSpecimenHarness() {
                 type="button"
                 data-testid="toggle-surface-lab"
                 onClick={() => setSurface('lab')}
-                className={`px-3 py-1.5 rounded-[2px] transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                   surface === 'lab'
-                    ? 'bg-slate-900 text-white font-semibold shadow-2xs'
+                    ? 'bg-slate-900 text-white font-semibold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
@@ -166,7 +166,7 @@ export function DesignSystemSpecimenHarness() {
                     onClick={() => setActiveSection(tab.key)}
                     className={`px-3 py-1.5 text-xs font-medium rounded-[2px] transition-colors flex items-center gap-1.5 cursor-pointer ${
                       isActive
-                        ? 'bg-[#164e87] text-white font-semibold shadow-2xs'
+                        ? 'bg-[#164e87] text-white font-semibold'
                         : 'text-[#334155] hover:bg-slate-100'
                     }`}
                   >

@@ -1,72 +1,29 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { WeeklyMenuCommandBar } from './WeeklyMenuCommandBar'
 
-describe('WeeklyMenuCommandBar select labels', () => {
-  it('shows the selected customer label instead of its id in the closed trigger', () => {
-    render(
-      <WeeklyMenuCommandBar
-        customers={[{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'Nhà máy An Việt' }]}
-        selectedCustomerId="customer-1"
-        weekStartDate="2026-07-27"
-        isCustomerLoading={false}
-        isImporting={false}
-        onEdit={vi.fn()}
-        onImport={vi.fn()}
-        onExport={vi.fn()}
-        onCustomerChange={vi.fn()}
-        onWeekChange={vi.fn()}
-      />,
-    )
+const baseProps = {
+  customers: [{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'Nhà máy An Việt' }],
+  selectedCustomerId: 'customer-1',
+  weekStartDate: '2026-07-27',
+  isCustomerLoading: false,
+  onCustomerChange: vi.fn(),
+  onWeekChange: vi.fn(),
+}
 
-    const trigger = screen.getByRole('combobox')
-    expect(trigger).toHaveTextContent('ANV - Nhà máy An Việt')
-    expect(trigger).not.toHaveTextContent('customer-1')
-  })
-
-  it('opens the customer options returned by the query', async () => {
-    const user = userEvent.setup()
-    render(
-      <WeeklyMenuCommandBar
-        customers={[{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'AMANN' }]}
-        selectedCustomerId=""
-        weekStartDate=""
-        isCustomerLoading={false}
-        isImporting={false}
-        onEdit={vi.fn()}
-        onImport={vi.fn()}
-        onExport={vi.fn()}
-        onCustomerChange={vi.fn()}
-        onWeekChange={vi.fn()}
-      />,
-    )
-
-    const trigger = screen.getByRole('combobox')
-    expect(screen.getByRole('option', { name: 'ANV - AMANN' })).toBeInTheDocument()
-    await user.selectOptions(trigger, 'customer-1')
-    expect(screen.getByRole('option', { name: 'ANV - AMANN' })).toBeInTheDocument()
-  })
+it('shows the selected customer label instead of its id in the closed trigger', () => {
+  render(<WeeklyMenuCommandBar {...baseProps} />)
+  const trigger = screen.getByRole('combobox')
+  expect(trigger).toHaveTextContent('ANV - Nhà máy An Việt')
+  expect(trigger).not.toHaveTextContent('customer-1')
 })
 
 it('keeps the active week independent from customer selection', async () => {
   const user = userEvent.setup()
   const onCustomerChange = vi.fn()
   const onWeekChange = vi.fn()
-  render(
-    <WeeklyMenuCommandBar
-      customers={[{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'AMANN' }]}
-      selectedCustomerId=""
-      weekStartDate="2026-08-10"
-      isCustomerLoading={false}
-      isImporting={false}
-      onEdit={vi.fn()}
-      onImport={vi.fn()}
-      onExport={vi.fn()}
-      onCustomerChange={onCustomerChange}
-      onWeekChange={onWeekChange}
-    />,
-  )
+  render(<WeeklyMenuCommandBar {...baseProps} selectedCustomerId="" weekStartDate="2026-08-10" onCustomerChange={onCustomerChange} onWeekChange={onWeekChange} />)
 
   await user.selectOptions(screen.getByRole('combobox'), 'customer-1')
 
@@ -75,27 +32,12 @@ it('keeps the active week independent from customer selection', async () => {
   expect(screen.getByLabelText('Tuần bắt đầu')).toHaveValue('10/08/2026')
 })
 
-it('offers a guarded publish action for a draft weekly menu', async () => {
-  const user = userEvent.setup()
-  const onPublish = vi.fn()
+it('keeps warehouse export in the legacy handover command bar', () => {
+  const { rerender } = render(<WeeklyMenuCommandBar {...baseProps} onExport={undefined} />)
+  expect(screen.queryByRole('button', { name: 'Xuất báo cáo gửi kho' })).not.toBeInTheDocument()
 
-  render(
-    <WeeklyMenuCommandBar
-      customers={[{ customerId: 'customer-1', customerCode: 'ANV', customerName: 'Nhà máy An Việt' }]}
-      selectedCustomerId="customer-1"
-      weekStartDate="2026-08-03"
-      isCustomerLoading={false}
-      isImporting={false}
-      canPublish
-      onPublish={onPublish}
-      onEdit={vi.fn()}
-      onImport={vi.fn()}
-      onExport={vi.fn()}
-      onCustomerChange={vi.fn()}
-      onWeekChange={vi.fn()}
-    />,
-  )
-
-  await user.click(screen.getByRole('button', { name: 'Xuất bản tuần' }))
-  expect(onPublish).toHaveBeenCalledTimes(1)
+  rerender(<WeeklyMenuCommandBar {...baseProps} onExport={vi.fn()} />)
+  expect(screen.getByRole('button', { name: 'Xuất báo cáo gửi kho' })).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Nhập Excel' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument()
 })

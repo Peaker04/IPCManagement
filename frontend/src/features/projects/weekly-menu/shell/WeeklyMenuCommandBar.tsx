@@ -1,4 +1,3 @@
-import { Edit, Send, Upload } from 'lucide-react'
 import { CommandBar, FieldRow } from '@/components/common'
 import { Input } from '@/components/ui/input'
 import type { CoordinationCustomerOption } from '@/api/coordinationApi'
@@ -8,13 +7,7 @@ type CommandProps = {
   selectedCustomerId: string
   weekStartDate: string
   isCustomerLoading: boolean
-  isImporting: boolean
-  canPublish?: boolean
-  isPublishing?: boolean
-  onEdit: () => void
-  onImport: () => void
   onExport?: () => void
-  onPublish?: () => void
   onCustomerChange: (customerId: string) => void
   onWeekChange: (weekStartDate: string) => void
   pricing?: React.ReactNode
@@ -25,90 +18,25 @@ export const WeeklyMenuCommandBar = ({
   selectedCustomerId,
   weekStartDate,
   isCustomerLoading,
-  isImporting,
-  canPublish,
-  isPublishing,
-  onEdit,
-  onImport,
   onExport,
-  onPublish,
   onCustomerChange,
   onWeekChange,
   pricing,
-}: CommandProps) => {
-  return (
-  <CommandBar
-    actions={
-      <>
-
-        <button
-          type="button"
-          onClick={onImport}
-          disabled={isImporting}
-          className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
-        >
-          <Upload size={16} aria-hidden="true" />
-          <span>{isImporting ? 'Đang nhập...' : 'Nhập Excel'}</span>
-        </button>
-        <button
-          type="button"
-          onClick={onEdit}
-          disabled={!weekStartDate}
-          className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
-        >
-          <Edit size={16} aria-hidden="true" />
-          <span>Chỉnh sửa lịch tuần</span>
-        </button>
-        {canPublish && onPublish && (
-          <button
-            type="button"
-            onClick={onPublish}
-            disabled={isPublishing}
-            className="ipc-button ipc-button-primary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
-          >
-            <Send size={16} aria-hidden="true" />
-            <span>{isPublishing ? 'Đang xuất bản...' : 'Xuất bản tuần'}</span>
-          </button>
-        )}
-        {onExport && (
-          <button
-            type="button"
-            onClick={onExport}
-            className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5"
-          >
-            <span>Xuất báo cáo gửi kho</span>
-          </button>
-        )}
-      </>
-    }
-  >
+}: CommandProps) => (
+  <CommandBar actions={onExport && (
+    <button type="button" onClick={onExport} className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5">
+      <span>Xuất báo cáo gửi kho</span>
+    </button>
+  )}>
     <FieldRow label="Khách hàng">
-      <select
-        aria-label="Khách hàng"
-        value={selectedCustomerId}
-        onChange={(event) => onCustomerChange(event.target.value)}
-        disabled={isCustomerLoading}
-        className="ipc-native-control min-h-9 min-w-[200px] rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-      >
+      <select aria-label="Khách hàng" value={selectedCustomerId} onChange={(event) => onCustomerChange(event.target.value)} disabled={isCustomerLoading} className="ipc-native-control min-h-9 min-w-[200px] rounded-sm border border-slate-300 bg-white px-3 text-sm text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
         <option value="">Chọn khách hàng</option>
-        {customers.map((customer) => (
-          <option key={customer.customerId} value={customer.customerId}>
-            {customer.customerCode} - {customer.customerName}
-          </option>
-        ))}
+        {customers.map((customer) => <option key={customer.customerId} value={customer.customerId}>{customer.customerCode} - {customer.customerName}</option>)}
       </select>
     </FieldRow>
     <FieldRow label="Tuần bắt đầu">
-      <Input
-        aria-label="Tuần bắt đầu"
-        type="date"
-        weekStartOnly
-        value={weekStartDate}
-        onChange={(event) => onWeekChange(event.target.value)}
-        className="h-9 min-h-9 w-40 bg-white text-sm"
-      />
+      <Input aria-label="Tuần bắt đầu" type="date" weekStartOnly value={weekStartDate} onChange={(event) => onWeekChange(event.target.value)} className="h-9 min-h-9 w-40 bg-white text-sm" />
     </FieldRow>
     {pricing}
   </CommandBar>
-  )
-}
+)

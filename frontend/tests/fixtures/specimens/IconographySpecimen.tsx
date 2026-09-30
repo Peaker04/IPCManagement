@@ -114,14 +114,14 @@ export function IconographySpecimen() {
             <button
               type="button"
               onClick={() => setIconSize('16')}
-              className={`px-2 py-0.5 rounded font-medium ${iconSize === '16' ? 'bg-white text-blue-900 shadow-2xs font-semibold' : 'text-slate-600'}`}
+              className={`px-2 py-0.5 rounded font-medium ${iconSize === '16' ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               16px (size-4)
             </button>
             <button
               type="button"
               onClick={() => setIconSize('20')}
-              className={`px-2 py-0.5 rounded font-medium ${iconSize === '20' ? 'bg-white text-blue-900 shadow-2xs font-semibold' : 'text-slate-600'}`}
+              className={`px-2 py-0.5 rounded font-medium ${iconSize === '20' ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               20px (size-5)
             </button>
@@ -132,28 +132,28 @@ export function IconographySpecimen() {
             <button
               type="button"
               onClick={() => setActiveTab('all')}
-              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'all' ? 'bg-white text-blue-900 shadow-2xs font-semibold' : 'text-slate-600'}`}
+              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'all' ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               Tất cả
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('tier1')}
-              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'tier1' ? 'bg-white text-blue-900 shadow-2xs font-semibold' : 'text-slate-600'}`}
+              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'tier1' ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               Tier 1: Cơ học
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('tier2')}
-              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'tier2' ? 'bg-white text-blue-900 shadow-2xs font-semibold' : 'text-slate-600'}`}
+              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'tier2' ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               Tier 2: Nghiệp vụ
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('conflicts')}
-              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'conflicts' ? 'bg-white text-blue-900 shadow-2xs font-semibold' : 'text-slate-600'}`}
+              className={`px-2.5 py-1 rounded font-medium ${activeTab === 'conflicts' ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               Giải quyết Va chạm
             </button>
@@ -174,18 +174,18 @@ export function IconographySpecimen() {
               <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-center space-y-1">
                 <ChefHat className="size-6 mx-auto text-[#164e87]" />
                 <span className="font-semibold text-slate-800 block">ChefHat</span>
-                <span className="text-[10px] text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 inline-block">
+                <span className="text-xs text-blue-800 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 inline-block">
                   Current Product Mark
                 </span>
-                <p className="text-[10px] text-slate-500">Logo nhận diện sản phẩm hiện hành trên đỉnh Sidebar &amp; Login</p>
+                <p className="text-xs text-slate-500">Logo nhận diện sản phẩm hiện hành trên đỉnh Sidebar &amp; Login</p>
               </div>
               <div className="p-2.5 bg-slate-50 border border-slate-200 rounded text-center space-y-1">
                 <CookingPot className="size-6 mx-auto text-emerald-700" />
                 <span className="font-semibold text-slate-800 block">CookingPot</span>
-                <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 inline-block">
+                <span className="text-xs text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 inline-block">
                   Tuyến đường Bếp trưởng
                 </span>
-                <p className="text-[10px] text-slate-500">Phân hệ Bếp chế biến trên Sidebar &amp; phân quyền actor</p>
+                <p className="text-xs text-slate-500">Phân hệ Bếp chế biến trên Sidebar &amp; phân quyền actor</p>
               </div>
             </div>
           </div>
@@ -199,18 +199,18 @@ export function IconographySpecimen() {
             <div className="grid grid-cols-3 gap-2 pt-1 text-xs text-center">
               <div className="p-2 bg-slate-50 border border-slate-200 rounded space-y-1">
                 <Scale className="size-5 mx-auto text-blue-900" />
-                <span className="font-semibold text-[11px] text-slate-800 block">Scale</span>
-                <span className="text-[9px] text-slate-600 block">Đối chiếu NVL (1-1)</span>
+                <span className="font-semibold text-xs text-slate-800 block">Scale</span>
+                <span className="text-xs text-slate-600 block">Đối chiếu NVL (1-1)</span>
               </div>
               <div className="p-2 bg-slate-50 border border-slate-200 rounded space-y-1">
                 <BookOpen className="size-5 mx-auto text-slate-700" />
-                <span className="font-semibold text-[11px] text-slate-800 block">BookOpen</span>
-                <span className="text-[9px] text-slate-600 block">Định mức BOM</span>
+                <span className="font-semibold text-xs text-slate-800 block">BookOpen</span>
+                <span className="text-xs text-slate-600 block">Định mức BOM</span>
               </div>
               <div className="p-2 bg-slate-50 border border-slate-200 rounded space-y-1">
                 <Coins className="size-5 mx-auto text-amber-700" />
-                <span className="font-semibold text-[11px] text-slate-800 block">Coins</span>
-                <span className="text-[9px] text-slate-600 block">Giá vốn &amp; Lãi</span>
+                <span className="font-semibold text-xs text-slate-800 block">Coins</span>
+                <span className="text-xs text-slate-600 block">Giá vốn &amp; Lãi</span>
               </div>
             </div>
           </div>
@@ -237,7 +237,7 @@ export function IconographySpecimen() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="font-semibold text-xs text-slate-900 block truncate">{item.name}</span>
-                    <span className="text-[10px] text-slate-500 block truncate">{item.role}</span>
+                    <span className="text-xs text-slate-500 block truncate">{item.role}</span>
                   </div>
                 </div>
               );
@@ -265,7 +265,7 @@ export function IconographySpecimen() {
                     <div className="p-1.5 bg-blue-50 border border-blue-100 rounded text-[#164e87]">
                       <Icon size={iconSize === '16' ? 16 : 20} strokeWidth={2} />
                     </div>
-                    <span className={`text-[9px] font-semibold px-1.5 py-0.2 rounded border ${
+                    <span className={`text-xs font-semibold px-1.5 py-0.2 rounded border ${
                       item.status === 'KEEP'
                         ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                         : item.status === 'OPTIONAL'
@@ -278,7 +278,7 @@ export function IconographySpecimen() {
                     </span>
                   </div>
                   <span className="font-semibold text-xs text-slate-900 block">{item.domain}</span>
-                  <p className="text-[11px] text-slate-500 leading-tight">{item.note}</p>
+                  <p className="text-xs text-slate-500 leading-tight">{item.note}</p>
                 </div>
               );
             })}

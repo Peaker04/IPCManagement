@@ -37,7 +37,7 @@ describe('ProductionPlanSection — rỗng thật vs lỗi tải', () => {
   it('vẫn báo rỗng nghiệp vụ khi query thành công mà không có kế hoạch', () => {
     render(<ProductionPlanSection workflow={buildWorkflow(false)} />)
 
-    expect(screen.getByText('Chưa có kế hoạch sản xuất nào.')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có kế hoạch sản xuất trong tuần đã chọn')).toBeInTheDocument()
     expect(screen.getByText('Chưa có KHSX trong phạm vi tuần đã chọn')).toBeInTheDocument()
     expect(screen.queryByText('Chọn khách hàng và tuần để xem dữ liệu')).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).toBeNull()

@@ -78,7 +78,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
           />
         ) : presentation.pages.length === 0 ? (
           <EmptyState
-            title="Chưa có kế hoạch sản xuất nào."
+            title={scope.customerId && scope.weekStartDate ? 'Chưa có kế hoạch sản xuất trong tuần đã chọn' : 'Chọn khách hàng và tuần để xem kế hoạch sản xuất'}
             className="!min-h-0 !py-8"
           />
         ) : (

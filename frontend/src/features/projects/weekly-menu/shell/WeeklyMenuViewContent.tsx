@@ -1,8 +1,6 @@
 import { lazy } from 'react';
-import { WeeklyScheduleSection } from '../schedule/WeeklyScheduleSection';
-import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix';
 import type { WeeklyMenuView } from '../model/types';
-import type { WeeklyMenuScope, WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from '../schedule/types';
+import type { WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from '../schedule/types';
 import type { WeeklyProductionPlanWorkflow } from '../production-plan/useWeeklyProductionPlan';
 import type { MaterialDemandWorkflow } from '../demand/useMaterialDemand';
 import type { MenuCostWorkflow } from '../cost/useMenuCost';
@@ -23,11 +21,7 @@ const ProductionPlanSection = lazy(loadProductionPlanSection);
 const MaterialDemandSection = lazy(loadMaterialDemandSection);
 
 interface WeeklyMenuViewContentProps {
-  activeView: WeeklyMenuView;
-  scope: WeeklyMenuScope;
-  hasCommittedWeek: boolean;
-  committedRows: ImportedLayoutRow[];
-  dishNamesById?: ReadonlyMap<string, string>;
+  activeView: Exclude<WeeklyMenuView, 'schedule'>;
   scheduleWorkflow: WeeklyScheduleEditorWorkflow;
   productionPlanWorkflow: WeeklyProductionPlanWorkflow;
   demandWorkflow: MaterialDemandWorkflow;
@@ -45,10 +39,6 @@ const panelProps = (id: WeeklyMenuView) => ({
 
 export function WeeklyMenuViewContent({
   activeView,
-  scope,
-  hasCommittedWeek,
-  committedRows,
-  dishNamesById,
   scheduleWorkflow,
   productionPlanWorkflow,
   demandWorkflow,
@@ -57,9 +47,7 @@ export function WeeklyMenuViewContent({
   purchaseSummaryWorkflow,
   dishMaterialsWorkflow,
 }: WeeklyMenuViewContentProps) {
-  if (activeView === 'schedule') {
-    return <div {...panelProps('schedule')}><WeeklyScheduleSection scope={scope} customerValue={scope.customerLabel} weekValue={scope.weekLabel} hasCommittedWeek={hasCommittedWeek} rows={committedRows} dishNamesById={dishNamesById} /></div>;
-  }
+  if ((activeView as WeeklyMenuView) === 'schedule') return null;
   if (activeView === 'production-plan') {
     return <div {...panelProps('production-plan')}><ProductionPlanSection workflow={productionPlanWorkflow} /></div>;
   }

@@ -8,6 +8,7 @@ import { StatusBadge } from "./StatusBadge";
 import { IdentifierText } from "./IdentifierText";
 import {
   formatCurrency,
+  formatDateOnly,
   formatPercent,
   formatQuantityWithUnit,
 } from "@/lib/formatters";
@@ -22,6 +23,7 @@ interface ApprovalQueueProps {
   pageSize?: number;
   className?: string;
   selectedRecordId?: string;
+  filtered?: boolean;
 }
 
 const getRecordSummary = (record: ApprovalRecord) => {
@@ -141,7 +143,7 @@ function ApprovalDetail({ record }: { record: ApprovalRecord }) {
           <>
             <div>
               <dt className="text-slate-500">Ngày phục vụ</dt>
-              <dd className="font-semibold text-slate-900">{record.serviceDate ?? "Chưa có"}</dd>
+              <dd className="font-semibold text-slate-900">{record.serviceDate ? formatDateOnly(record.serviceDate) : "Chưa có"}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Phạm vi</dt>
@@ -197,7 +199,7 @@ function ApprovalDetail({ record }: { record: ApprovalRecord }) {
               <dt className="text-slate-500">Bằng chứng</dt>
               <dd className="font-semibold text-slate-900">
                 {getEvidenceLabel(record.evidenceType)}
-                {record.evidenceDate ? `, ngày ${record.evidenceDate}` : ""}
+                {record.evidenceDate ? `, ngày ${formatDateOnly(record.evidenceDate)}` : ""}
               </dd>
             </div>
             <div className="min-w-0">
@@ -227,6 +229,7 @@ export function ApprovalQueue({
   pageSize = 4,
   className,
   selectedRecordId,
+  filtered = false,
 }: ApprovalQueueProps) {
   const { page, rows: pageRecords, totalItems, setPage } = useLocalPagination(records, pageSize);
   const [referenceNow] = useState(() => Date.now());
@@ -244,8 +247,8 @@ export function ApprovalQueue({
   if (!records.length) {
     return (
       <EmptyState
-        title="Chưa có chứng từ chờ duyệt."
-        description="Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử."
+        title={filtered ? "Không có chứng từ phù hợp." : "Chưa có chứng từ chờ duyệt."}
+        description={filtered ? "Thử điều chỉnh phạm vi hoặc từ khóa tìm kiếm." : "Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử."}
         className={cn(
           "ipc-approval-queue is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left",
           className,
@@ -268,13 +271,12 @@ export function ApprovalQueue({
       >
         <table aria-label="Bảng chứng từ cần duyệt" className="ipc-data-table ipc-approval-table min-w-[1080px] !table-fixed">
           <colgroup>
-            <col className="w-[17%]" />
-            <col className="w-[10%]" />
-            <col className="w-[20%]" />
+            <col className="w-[22%]" />
             <col className="w-[12%]" />
-            <col className="w-[10%]" />
-            <col className="w-[11%]" />
-            <col className="w-[20%]" />
+            <col className="w-[23%]" />
+            <col className="w-[13%]" />
+            <col className="w-[12%]" />
+            <col className="w-[18%]" />
           </colgroup>
           <thead>
             <tr>
@@ -283,7 +285,6 @@ export function ApprovalQueue({
               <th scope="col">Nội dung</th>
               <th scope="col">Phụ trách</th>
               <th scope="col" className="text-center">Hạn duyệt</th>
-              <th scope="col" className="text-center">Trạng thái</th>
               <th scope="col" className="text-right">Xử lý</th>
             </tr>
           </thead>
@@ -311,11 +312,14 @@ export function ApprovalQueue({
                 >
                   <td>
                     <div className="font-semibold text-slate-950">{record.title}</div>
-                    <span className="sr-only">{getCompactReference(record)}</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className="min-w-0 break-all text-xs text-slate-600">{record.targetCode || getCompactReference(record)}</span>
+                      <StatusBadge variant={record.tone}>{formatWorkflowStatus(record.status)}</StatusBadge>
+                    </div>
                   </td>
                   <td data-cell-role="numeric">
                     <div className="whitespace-nowrap font-medium tabular-nums text-slate-900">
-                      {record.serviceDate ?? record.deadline}
+                      {record.serviceDate ? formatDateOnly(record.serviceDate) : record.deadline}
                     </div>
                     {record.scope && <span className="sr-only">{record.scope === "FULLDAY" ? "Cả ngày" : record.scope}</span>}
                   </td>
@@ -349,11 +353,6 @@ export function ApprovalQueue({
                     <div className="whitespace-nowrap tabular-nums text-slate-800">{record.deadline}</div>
                     <span className="sr-only"><SlaIndicator deadline={record.slaDeadline ?? undefined} referenceNow={referenceNow} /></span>
                   </td>
-                  <td className="ipc-badge-cell text-center">
-                    <StatusBadge variant={record.tone}>
-                      {formatWorkflowStatus(record.status)}
-                    </StatusBadge>
-                  </td>
                   <td
                     className="text-right"
                     aria-label={`${actionForRecord ? "Thao tác" : "Hướng xử lý"} cho ${record.title}`}
@@ -370,7 +369,7 @@ export function ApprovalQueue({
                 </tr>
                 {hasDetail && isDetailExpanded && (
                   <tr id={`approval-detail-${record.id}`} className="ipc-approval-detail-row">
-                    <td colSpan={7} className="!p-0">
+                    <td colSpan={6} className="!p-0">
                       <ApprovalDetail record={record} />
                     </td>
                   </tr>

@@ -299,7 +299,7 @@ export function TypographySpecimen() {
       data-testid="typography-specimen-root"
     >
       {/* Control ribbon */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-200 bg-white p-3.5 shadow-2xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-slate-200 bg-white p-3.5">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="font-semibold text-slate-700">Phông chữ hiển thị:</span>
           <button
@@ -307,7 +307,7 @@ export function TypographySpecimen() {
             onClick={() => setFontMode('inter')}
             className={`rounded px-2.5 py-1 font-medium transition-colors ${
               fontMode === 'inter'
-                ? 'bg-[#164e87] text-white shadow-2xs'
+                ? 'bg-[#164e87] text-white'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
@@ -318,7 +318,7 @@ export function TypographySpecimen() {
             onClick={() => setFontMode('segoe')}
             className={`rounded px-2.5 py-1 font-medium transition-colors ${
               fontMode === 'segoe'
-                ? 'bg-[#164e87] text-white shadow-2xs'
+                ? 'bg-[#164e87] text-white'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
@@ -329,7 +329,7 @@ export function TypographySpecimen() {
             onClick={() => setFontMode('dual')}
             className={`rounded px-2.5 py-1 font-medium transition-colors ${
               fontMode === 'dual'
-                ? 'bg-[#164e87] text-white shadow-2xs'
+                ? 'bg-[#164e87] text-white'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
             }`}
           >
@@ -367,7 +367,7 @@ export function TypographySpecimen() {
       {/* Render Single View or Dual Comparison */}
       {fontMode === 'dual' ? (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded border border-slate-200 bg-white p-5 shadow-2xs" style={getFontFamilyStyle('inter')}>
+          <div className="rounded border border-slate-200 bg-white p-5" style={getFontFamilyStyle('inter')}>
             <div className="mb-3 border-b border-slate-200 pb-2">
               <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-900">
                 Phông chính: Inter Variable (Local WOFF2)
@@ -375,7 +375,7 @@ export function TypographySpecimen() {
             </div>
             <TypographySections fontFamilyName="Inter Variable" densityMode={densityMode} />
           </div>
-          <div className="rounded border border-slate-200 bg-white p-5 shadow-2xs" style={getFontFamilyStyle('segoe')}>
+          <div className="rounded border border-slate-200 bg-white p-5" style={getFontFamilyStyle('segoe')}>
             <div className="mb-3 border-b border-slate-200 pb-2">
               <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-800">
                 Phông dự phòng: Segoe UI (Windows System)
@@ -385,7 +385,7 @@ export function TypographySpecimen() {
           </div>
         </div>
       ) : (
-        <div className="rounded border border-slate-200 bg-white p-5 shadow-2xs">
+        <div className="rounded border border-slate-200 bg-white p-5">
           <TypographySections
             fontFamilyName={fontMode === 'inter' ? 'Inter Variable' : 'Segoe UI'}
             densityMode={densityMode}
@@ -418,7 +418,7 @@ function TypographySections({ fontFamilyName }: { fontFamilyName: string; densit
                 <tr key={idx} className="hover:bg-slate-50/60">
                   <td className="py-2 px-3 align-top font-medium text-slate-900">
                     <div>{def.role}</div>
-                    <code className="text-[10px] text-slate-500 font-mono">&lt;{def.tag}&gt;</code>
+                    <code className="text-xs text-slate-500 font-mono">&lt;{def.tag}&gt;</code>
                   </td>
                   <td className="py-2 px-3 align-top text-slate-600">
                     <div>Cỡ: <strong>{def.size}</strong></div>
@@ -442,7 +442,7 @@ function TypographySections({ fontFamilyName }: { fontFamilyName: string; densit
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {VIETNAMESE_STRESS_DATA.difficultSequences.map((seq, idx) => (
             <div key={idx} className="rounded border border-slate-200 bg-slate-50/50 p-2.5">
-              <div className="text-[10px] font-semibold text-slate-500 mb-0.5">{seq.label}</div>
+              <div className="text-xs font-semibold text-slate-500 mb-0.5">{seq.label}</div>
               <div data-diacritic-probe={`seq-${idx}`} className="text-xs font-medium text-slate-900 break-words">
                 {seq.text}
               </div>
@@ -463,13 +463,13 @@ function TypographySections({ fontFamilyName }: { fontFamilyName: string; densit
               <span className="text-xs font-bold text-slate-800">
                 Compact Tier: Hàng 32px (Chữ 13px, leading-[18px], py-1.5)
               </span>
-              <span className="text-[10px] font-mono text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+              <span className="text-xs font-mono text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                 ✓ 8.5px Headroom an toàn
               </span>
             </div>
             <div className="overflow-x-auto rounded border border-slate-200 bg-white">
               <table className="w-full text-left border-collapse">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 text-[11px]">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 text-xs">
                   <tr>
                     <th className="py-1 px-2 font-semibold w-10 text-center">STT</th>
                     <th className="py-1 px-2 font-semibold">Tên nguyên vật liệu</th>
@@ -481,11 +481,11 @@ function TypographySections({ fontFamilyName }: { fontFamilyName: string; densit
                 <tbody className="divide-y divide-slate-100">
                   {VIETNAMESE_STRESS_DATA.longEntityLabels.map((item, idx) => (
                     <tr key={idx} className="h-[32px] hover:bg-[#f0f4f8]">
-                      <td className="py-1.5 px-2 text-center text-slate-400 font-mono text-[11px]">0{idx + 1}</td>
+                      <td className="py-1.5 px-2 text-center text-slate-400 font-mono text-xs">0{idx + 1}</td>
                       <td data-diacritic-probe={`c-row-${idx}`} className="py-1.5 px-2 text-[13px] leading-[18px] text-slate-900 truncate max-w-[280px]" title={item.label}>
                         {item.label}
                       </td>
-                      <td className="py-1.5 px-2 text-[11px] font-mono text-slate-600">{item.code}</td>
+                      <td className="py-1.5 px-2 text-xs font-mono text-slate-600">{item.code}</td>
                       <td className="py-1.5 px-2 text-[13px] leading-[18px] font-semibold text-right tabular-nums text-slate-900">
                         {item.quantity.toLocaleString('vi-VN')} {item.unit}
                       </td>

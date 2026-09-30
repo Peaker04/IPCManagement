@@ -1,11 +1,6 @@
-# IPC Design Tokens
+# IPC Design Tokens — Phase 01.4 legacy reference
 
-This token reference originated in Phase 01.4 UI deep hardening. It is not a second component or execution
-contract. The single design entry authority is [DESIGN](../../docs/DESIGN.md); rule IDs remain in
-[DASHBOARD-UI-RULES](../../docs/DASHBOARD-UI-RULES.md), while [UI-PHILOSOPHY](../../docs/UI-PHILOSOPHY.md)
-is the application index and [UI conformance](../../docs/UI-CONFORMANCE-MATRIX.md) records approved scoped
-decisions. Resolve current tokens from `frontend/src/styles/index.css` and inspect the actual primitive API before
-use; phase-local examples and restrictions below do not override current Button/Form/Dialog or business contracts.
+**DEMOTED / HISTORICAL IMPLEMENTATION REFERENCE.** Bảng dưới ghi vocabulary và pattern ở Phase 01.4, không phải target design contract, không chứng minh CSS hiện hành tuân thủ. [DESIGN](../DESIGN.md) là global design authority; giá trị mounted đọc tại `frontend/src/styles/index.css` và shared primitives. Không lấy shadow/card, disabled hoặc màu legacy ở đây làm quyết định mới. Target tokens chỉ có executable owner khi được ánh xạ và kiểm chứng theo từng slice, không global rewrite.
 
 The goal is consistency in dense operational screens, not a second design system.
 

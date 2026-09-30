@@ -25,6 +25,7 @@ interface ApprovalQueueStateProps {
   requestedTargetType: string | null;
   requestedTargetId: string | null;
   requestedRecord?: ApprovalRecord;
+  hasActiveFilters: boolean;
   queueFocusRef: RefObject<HTMLDivElement | null>;
   actionForRecord: (record: ApprovalRecord) => ReactNode;
   page: number;
@@ -104,6 +105,7 @@ export function ApprovalQueueState({
   requestedTargetType,
   requestedTargetId,
   requestedRecord,
+  hasActiveFilters,
   queueFocusRef,
   actionForRecord,
   page,
@@ -192,6 +194,7 @@ export function ApprovalQueueState({
           pageSize={Math.max(records.length, 1)}
           title={null}
           selectedRecordId={requestedRecord?.id}
+          filtered={hasActiveFilters}
           actionForRecord={actionForRecord}
         />
       </div>

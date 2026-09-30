@@ -1,9 +1,35 @@
-.ipc-demand-workspace { min-width: 0; }
+.ipc-demand-workspace {
+  min-width: 0;
+  --ipc-primary: #164e87;
+  --ipc-primary-hover: #113c69;
+  --ipc-focus-ring: #2d7acf;
+  --ipc-color-border-strong: #64748b;
+  --ipc-color-surface-subtle: #f8fafc;
+  --ipc-warning: #92400e;
+  --ipc-danger: #b91c1c;
+}
+
+.ipc-demand-workspace :is(input:not([data-slot="input"]), select, summary):focus-visible {
+  outline: 2px solid var(--ipc-focus-ring);
+  outline-offset: 2px;
+}
+
+.ipc-demand-workspace :is([data-slot="button"], [data-slot="input"]):focus-visible,
+.ipc-demand-inventory-heading button:focus-visible {
+  outline: none;
+}
+
+.ipc-demand-workspace :is(input, select):not([aria-invalid="true"]) { border-color: var(--ipc-color-border-strong); }
+.ipc-demand-workspace [data-slot="input"]:focus-visible { border-color: var(--ipc-focus-ring); }
+.ipc-demand-workspace [data-slot="input"][aria-invalid="true"] { border-color: var(--destructive); }
+.ipc-demand-workspace :is(.ipc-material-demand-table th, .ipc-demand-shift-row td) { background: var(--ipc-color-surface-subtle); }
+.ipc-demand-workspace .ipc-demand-day-action [data-slot="button"] { min-height: 36px; }
+
 
 .ipc-demand-day-command {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "heading heading" "date navigation" "summary action";
+  grid-template-areas: "date navigation" "summary action";
   gap: 8px 16px;
   align-items: center;
   border: 1px solid var(--ipc-slate-200);
@@ -18,6 +44,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 10px;
+  border-bottom: 1px solid var(--ipc-slate-300);
+  padding: 2px 0 10px;
 }
 .ipc-demand-context-heading h2 {
   margin: 0 auto 0 0;
@@ -133,7 +161,7 @@
 .ipc-demand-day-checkpoints .is-warning svg { color: var(--ipc-warning); }
 
 @media (max-width: 900px) {
-  .ipc-demand-day-command { grid-template-areas: "heading heading" "date navigation" "summary summary" "action action"; }
+  .ipc-demand-day-command { grid-template-areas: "date navigation" "summary summary" "action action"; }
   .ipc-demand-day-action { justify-content: flex-start; }
 }
 
@@ -272,7 +300,7 @@ details[open] > summary .lucide-chevron-down {
   cursor: pointer;
 }
 .ipc-demand-document-scope:hover { text-decoration: underline; }
-.ipc-demand-document-scope:focus-visible { outline: 2px solid var(--ipc-primary); outline-offset: 2px; }
+.ipc-demand-document-scope:focus-visible { outline: 2px solid var(--ipc-focus-ring); outline-offset: 2px; }
 
 .ipc-demand-exception-block {
   border-top: 1px solid var(--ipc-slate-200);

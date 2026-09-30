@@ -1,12 +1,14 @@
 ---
 title: IPCManagement systemic FE UI/UX audit
-status: active-evidence-ledger
+status: historical-evidence-ledger
 owner: GSD
 scope: whole-frontend-default-and-material-reconciliation
 execution_plan: ../../.planning/notes/SYSTEMIC-FE-UI-UX-REMEDIATION-PLAN.md
 ---
 
 # Systemic FE UI/UX audit
+
+> Historical bounded Admin read-only evidence from the prior campaign. `PASS_BOUNDED_*` rows are not current HEAD/actor/route acceptance. Current objective and blockers live in `MEMORY.md` → GSD checkpoint; business/design truth stays with domain contracts and `docs/DESIGN.md`. Retained here because conformance/provenance and older evidence reference this ledger.
 
 ## Claim envelope
 

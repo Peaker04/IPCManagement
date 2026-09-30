@@ -234,6 +234,10 @@ describe('ApprovalPage query state boundary', () => {
     expect(screen.queryByText('Nhu cầu xuất')).toBeNull();
     expect(screen.queryByText('Người duyệt')).toBeNull();
     expect(screen.queryByText(/Nguồn:/)).toBeNull();
+
+    fireEvent.change((await screen.findAllByLabelText('Tìm chứng từ hoặc nguyên liệu'))[0], { target: { value: 'không có kết quả' } });
+    expect(await screen.findByText('Không có chứng từ phù hợp.')).toBeInTheDocument();
+    expect(screen.queryByText('Chưa có chứng từ chờ duyệt.')).not.toBeInTheDocument();
   });
 
   it('keeps populated approval status, deadline and actions with the canonical queue instead of a page summary', async () => {
@@ -242,7 +246,8 @@ describe('ApprovalPage query state boundary', () => {
     const { container } = renderPage();
 
     const row = await screen.findByRole('row', { name: /Duyệt đề xuất mua PR-001/i });
-    expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
+    expect(within(row.querySelector('td')!).getByText('Chờ duyệt')).toBeInTheDocument();
+    expect(within(row.querySelector('td')!).getByText('PR-001')).toBeInTheDocument();
     expect(within(row).getAllByText('27/07/2026')).toHaveLength(2);
     expect(within(row).getByRole('button', { name: /Duyệt chứng từ:/i })).toBeInTheDocument();
     expect(within(row).getByRole('button', { name: /Từ chối chứng từ:/i })).toBeInTheDocument();
@@ -300,6 +305,46 @@ describe('ApprovalPage query state boundary', () => {
       week: undefined,
     }));
     await waitFor(() => expect(screen.getAllByRole('status').filter((node) => node.textContent?.includes('Đã duyệt chứng từ'))).toHaveLength(1));
+  });
+
+  it('requires a reason before approving a price exception, as the target handler does', async () => {
+    mocks.executeDecision.mockReturnValue({ unwrap: vi.fn().mockResolvedValue(undefined) });
+    mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([{
+      ...approvalRecord,
+      targetType: 'purchase-price-exception',
+      targetId: 'price-1',
+      targetCode: 'PR-001-GAO-V2',
+      referencePrice: 10000,
+      proposedPrice: 12000,
+      variancePercent: 20,
+    }])));
+    renderPage();
+
+    const row = await screen.findByRole('row', { name: /Duyệt đề xuất mua PR-001/i });
+    fireEvent.click(within(row).getByRole('button', { name: /Duyệt ngoại lệ:/i }));
+    const dialog = await screen.findByRole('dialog', { name: 'Duyệt ngoại lệ giá?' });
+    expect(within(dialog).getByRole('region', { name: 'Hồ sơ cần quyết định' })).toHaveTextContent('12.000');
+    expect(within(dialog).getByRole('textbox', { name: 'Lý do quyết định ngoại lệ giá' })).toHaveAttribute('aria-required', 'true');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Duyệt ngoại lệ' }));
+    expect(mocks.executeDecision).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('Vui lòng nhập lý do');
+
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Lý do quyết định ngoại lệ giá' }), { target: { value: 'Đã đối chiếu báo giá' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Duyệt ngoại lệ' }));
+    await waitFor(() => expect(mocks.executeDecision).toHaveBeenCalledWith(expect.objectContaining({
+      targetType: 'purchase-price-exception', status: 'Approve', reason: 'Đã đối chiếu báo giá',
+    })));
+  });
+
+  it('does not call a recorded approval step a completed document approval', async () => {
+    mocks.executeDecision.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({ data: { status: 'PENDING_NEXT_APPROVAL' } }) });
+    mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([approvalRecord])));
+    renderPage();
+    const row = await screen.findByRole('row', { name: /Duyệt đề xuất mua PR-001/i });
+    fireEvent.click(within(row).getByRole('button', { name: /Duyệt chứng từ:/i }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Duyệt chứng từ' }));
+    await waitFor(() => expect(screen.getAllByRole('status').some(node => node.textContent?.includes('Đã ghi nhận bước duyệt'))).toBe(true));
+    expect(screen.queryByText('Đã duyệt chứng từ')).not.toBeInTheDocument();
   });
 
   it('sends deep-link week target and server search filters to the inbox query', async () => {

@@ -572,6 +572,34 @@
   background-color: var(--ipc-color-surface-subtle);
 }
 
+.ipc-weekly-menu-matrix-frame {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--ipc-color-border-subtle);
+  background: var(--ipc-color-surface);
+}
+
+.ipc-weekly-menu-matrix-frame .ipc-matrix-header-viewport {
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.ipc-weekly-menu-matrix-frame .ipc-matrix-fixed-header {
+  border: 0;
+}
+
+.ipc-weekly-menu-matrix-frame .ipc-weekly-menu-body {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  max-height: min(68vh, 720px);
+  overflow-y: auto;
+}
+
+.ipc-weekly-menu-matrix-frame .ipc-weekly-menu-body:focus-visible {
+  outline-offset: -3px;
+}
+
 .ipc-matrix-grid-table th {
   background-color: var(--ipc-color-surface-subtle);
   border-right: 1px solid var(--ipc-color-border-strong);

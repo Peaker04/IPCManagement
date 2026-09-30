@@ -168,7 +168,7 @@ export default function ApprovalPage() {
     const { record, status, reason } = decisionModal;
     if (!record || !status) return;
 
-    if (status === 'Reject' && !reason.trim()) {
+    if ((status === 'Reject' || status === 'Approve' && record.targetType === 'purchase-price-exception') && !reason.trim()) {
       setDecisionError('Vui lòng nhập lý do để lưu dấu vết phê duyệt.');
       return;
     }
@@ -179,7 +179,7 @@ export default function ApprovalPage() {
     }
 
     try {
-      await executeApprovalDecision({
+      const result = await executeApprovalDecision({
         targetType: record.targetType,
         targetId: record.targetId,
         status,
@@ -191,7 +191,9 @@ export default function ApprovalPage() {
       setDecisionError(null);
       window.setTimeout(() => queueFocusRef.current?.focus(), 0);
       toast({
-        title: status === 'Approve' ? 'Đã duyệt chứng từ' : 'Đã từ chối chứng từ',
+        title: result?.data && typeof result.data === 'object' && 'status' in result.data && result.data.status === 'PENDING_NEXT_APPROVAL'
+          ? 'Đã ghi nhận bước duyệt; chờ cấp tiếp theo'
+          : status === 'Approve' ? 'Đã duyệt chứng từ' : 'Đã từ chối chứng từ',
         description: 'Trạng thái và lịch sử phê duyệt đã được cập nhật.',
         variant: 'success',
       });
@@ -207,7 +209,8 @@ export default function ApprovalPage() {
   const renderRecordActions = (record: ApprovalRecord) => (
     <>
       <Button
-        variant="success"
+        variant="default"
+        size="sm"
         type="button"
         aria-label={`${getApprovalDecisionCopy(record.targetType, 'Approve').submitLabel}: ${record.title}`}
         onClick={() => openDecisionModal(record, 'Approve')}
@@ -217,6 +220,7 @@ export default function ApprovalPage() {
       </Button>
       <Button
         variant="outline"
+        size="sm"
         type="button"
         aria-label={`${getApprovalDecisionCopy(record.targetType, 'Reject').submitLabel}: ${record.title}`}
         onClick={() => openDecisionModal(record, 'Reject')}
@@ -275,6 +279,7 @@ export default function ApprovalPage() {
               actions={
                 <div className="flex max-w-full flex-wrap items-center gap-3 sm:flex-nowrap">
                   <span className="hidden whitespace-nowrap text-xs text-slate-500 md:inline">Phạm vi: {approvalScopeLabel}</span>
+                  {approvalView.phase === 'ready' && <span className="whitespace-nowrap text-xs text-slate-600" aria-label="Số chứng từ trên trang hiện tại">{approvalRecords.length} chứng từ · trang {approvalPageNumber}</span>}
                   <div className="w-64 max-w-full">
                     <Suspense fallback={<span aria-hidden="true" className="block h-9 rounded-md bg-slate-50" />}>
                       <ApprovalSearchField
@@ -297,6 +302,7 @@ export default function ApprovalPage() {
                 requestedTargetType={requestedTargetType}
                 requestedTargetId={requestedTargetId}
                 requestedRecord={requestedRecord}
+                hasActiveFilters={Boolean(requestedTargetType || requestedTargetId || requestedWeek || requestedDate || deferredApprovalSearch)}
                 queueFocusRef={queueFocusRef}
                 actionForRecord={renderRecordActions}
                 page={approvalPageNumber}
@@ -329,10 +335,11 @@ export default function ApprovalPage() {
         </KeepAliveTabPanel>
       </div>
 
-      {decisionModal.isOpen && decisionModal.status && (
+      {decisionModal.isOpen && decisionModal.record && decisionModal.status && (
         <Suspense fallback={<div aria-hidden="true" className="fixed inset-0 z-50 bg-black/20" />}>
           <ApprovalDecisionDialog
             open
+            record={decisionModal.record}
             status={decisionModal.status}
             reason={decisionModal.reason}
             error={decisionError}

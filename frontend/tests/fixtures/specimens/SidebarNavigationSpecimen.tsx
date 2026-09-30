@@ -624,13 +624,13 @@ export function SidebarNavigationSpecimen() {
                   {node.isAutoPromoted && (
                     <span
                       title="Tự động nâng cấp thành L1 do chỉ có 1 con"
-                      className="shrink-0 text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200"
+                      className="shrink-0 text-xs font-semibold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200"
                     >
                       L1
                     </span>
                   )}
                   {node.badge !== undefined && (
-                    <span className="shrink-0 ml-auto px-1.5 py-0.2 text-[10px] font-bold rounded bg-amber-100 text-amber-900 border border-amber-300">
+                    <span className="shrink-0 ml-auto px-1.5 py-0.2 text-xs font-bold rounded bg-amber-100 text-amber-900 border border-amber-300">
                       {node.badge}
                     </span>
                   )}
@@ -680,7 +680,7 @@ export function SidebarNavigationSpecimen() {
                 </span>
 
                 {isAncestorActive && (
-                  <span className="shrink-0 text-[10px] font-semibold px-1 py-0.2 bg-blue-100 text-blue-800 rounded">
+                  <span className="shrink-0 text-xs font-semibold px-1 py-0.2 bg-blue-100 text-blue-800 rounded">
                     Active
                   </span>
                 )}
@@ -736,7 +736,7 @@ export function SidebarNavigationSpecimen() {
                             {displayLabel}
                           </span>
                           {child.badge !== undefined && (
-                            <span className="shrink-0 ml-auto px-1.5 py-0.2 text-[10px] font-bold rounded bg-amber-100 text-amber-900 border border-amber-300">
+                            <span className="shrink-0 ml-auto px-1.5 py-0.2 text-xs font-bold rounded bg-amber-100 text-amber-900 border border-amber-300">
                               {child.badge}
                             </span>
                           )}
@@ -762,7 +762,7 @@ export function SidebarNavigationSpecimen() {
       <header className="bg-white border-b border-slate-200 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
           <span className="font-bold text-slate-900">Mẫu phẩm Sidebar Navigation</span>
-          <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 font-mono text-[11px]">
+          <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-800 font-mono text-xs">
             Shallow Hierarchy (&le; 2 Levels)
           </span>
         </div>
@@ -776,7 +776,7 @@ export function SidebarNavigationSpecimen() {
                 setMode('expanded');
                 setIsDrawerOpen(false);
               }}
-              className={`px-2 py-1 rounded font-medium ${mode === 'expanded' && !isDrawerOpen ? 'bg-white text-blue-900 font-semibold shadow-2xs' : 'text-slate-600'}`}
+              className={`px-2 py-1 rounded font-medium ${mode === 'expanded' && !isDrawerOpen ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               Expanded (~272px)
             </button>
@@ -786,7 +786,7 @@ export function SidebarNavigationSpecimen() {
                 setMode('rail');
                 setIsDrawerOpen(false);
               }}
-              className={`px-2 py-1 rounded font-medium ${mode === 'rail' && !isDrawerOpen ? 'bg-white text-blue-900 font-semibold shadow-2xs' : 'text-slate-600'}`}
+              className={`px-2 py-1 rounded font-medium ${mode === 'rail' && !isDrawerOpen ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               Icon Rail (~60px)
             </button>
@@ -795,7 +795,7 @@ export function SidebarNavigationSpecimen() {
                 type="button"
                 data-testid="toggle-rail-flyout"
                 onClick={() => setActiveFlyoutGroupId((prev) => (prev ? null : 'planning'))}
-                className="px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-800 text-[11px] font-semibold cursor-pointer"
+                className="px-2 py-1 rounded border border-blue-300 bg-blue-50 text-blue-800 text-xs font-semibold cursor-pointer"
               >
                 {activeFlyoutGroupId ? 'Đóng Flyout' : 'Mở Flyout Kế hoạch'}
               </button>
@@ -804,7 +804,7 @@ export function SidebarNavigationSpecimen() {
               type="button"
               ref={drawerTriggerRef}
               onClick={() => setIsDrawerOpen(true)}
-              className={`px-2 py-1 rounded font-medium ${isDrawerOpen ? 'bg-white text-blue-900 font-semibold shadow-2xs' : 'text-slate-600'}`}
+              className={`px-2 py-1 rounded font-medium ${isDrawerOpen ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600'}`}
             >
               Drawer (Mobile)
             </button>
@@ -938,8 +938,8 @@ export function SidebarNavigationSpecimen() {
               </button>
             </div>
             {renderNavList(false)}
-            <div className="p-2.5 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-600 flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-[#164e87] text-white font-bold flex items-center justify-center text-[10px]">
+            <div className="p-2.5 border-t border-slate-200 bg-slate-50 text-xs text-slate-600 flex items-center gap-2">
+              <div className="w-6 h-6 rounded-full bg-[#164e87] text-white font-bold flex items-center justify-center text-xs">
                 {role.charAt(0)}
               </div>
               <span className="truncate font-medium">{role} Role Session</span>
@@ -949,7 +949,7 @@ export function SidebarNavigationSpecimen() {
 
         {/* Content Viewer */}
         <main className="flex-1 p-5 overflow-y-auto bg-slate-50">
-          <div className="bg-white rounded border border-slate-200 p-4 shadow-2xs space-y-3">
+          <div className="bg-white rounded border border-slate-200 p-4 space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <span className="text-xs text-slate-500 font-medium">Tuyến đường đang chọn:</span>
               <span className="text-xs font-mono font-semibold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">

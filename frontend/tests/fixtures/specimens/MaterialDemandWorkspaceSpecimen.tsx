@@ -185,14 +185,14 @@ export function MaterialDemandWorkspaceSpecimen() {
         {/* Operational Telemetry Summary */}
         <div className="flex items-center gap-5 text-xs">
           <div className="text-right">
-            <span className="text-[11px] text-[#475569] block">Tổng chi phí dự kiến</span>
+            <span className="text-xs text-[#475569] block">Tổng chi phí dự kiến</span>
             <span className="font-semibold text-slate-900 font-mono text-sm tabular-nums">
               {totalDemandVnd.toLocaleString('vi-VN')} ₫
             </span>
           </div>
           <div className="h-8 w-px bg-slate-200" />
           <div className="text-right">
-            <span className="text-[11px] text-[#475569] block">Mặt hàng thiếu hụt</span>
+            <span className="text-xs text-[#475569] block">Mặt hàng thiếu hụt</span>
             <span className="font-semibold text-rose-700 font-mono text-sm tabular-nums">
               {totalShortages} mặt hàng
             </span>
@@ -332,12 +332,12 @@ export function MaterialDemandWorkspaceSpecimen() {
                           className="size-3.5 rounded-[2px] border-[#64748b] text-[#164e87] cursor-pointer"
                         />
                       </td>
-                      <td className="py-2 px-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                      <td className="py-2 px-3 font-mono text-xs text-slate-600 whitespace-nowrap">
                         {row.code}
                       </td>
                       <td className="py-2 px-3">
                         <span className="font-semibold text-slate-900 block">{row.name}</span>
-                        <span className="text-[10px] text-slate-500">{row.category}</span>
+                        <span className="text-xs text-slate-500">{row.category}</span>
                       </td>
                       <td className="py-2 px-2 text-center text-slate-600 font-mono">
                         {row.uom}
@@ -363,15 +363,15 @@ export function MaterialDemandWorkspaceSpecimen() {
                       <td className="py-2 px-3 text-center">
                         {/* ISA-101 Sparse escalation status */}
                         {row.status === 'FULFILLED' && (
-                          <span className="text-[11px] text-slate-500 font-normal">Đủ kho</span>
+                          <span className="text-xs text-slate-500 font-normal">Đủ kho</span>
                         )}
                         {row.status === 'PENDING_PO' && (
-                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#fffbeb] text-[#92400e] border border-[#fde68a]">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-[#fffbeb] text-[#92400e] border border-[#fde68a]">
                             Chờ mua PO
                           </span>
                         )}
                         {row.status === 'CRITICAL_SHORTAGE' && (
-                          <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca]">
+                          <span className="inline-block px-1.5 py-0.5 rounded text-xs font-semibold bg-[#fef2f2] text-[#b91c1c] border border-[#fecaca]">
                             Thiếu cấp bách
                           </span>
                         )}
@@ -398,16 +398,16 @@ export function MaterialDemandWorkspaceSpecimen() {
             <div className="space-y-4">
               <div className="border-b border-slate-100 pb-3 flex justify-between items-start">
                 <div>
-                  <span className="text-[10px] font-mono text-slate-400 block whitespace-nowrap">{selectedRow.code}</span>
+                  <span className="text-xs font-mono text-slate-400 block whitespace-nowrap">{selectedRow.code}</span>
                   <h4 className="text-sm font-bold text-slate-900">{selectedRow.name}</h4>
                   <span className="text-xs text-slate-500">{selectedRow.category}</span>
                 </div>
                 {selectedRow.shortage > 0 ? (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-[#fef2f2] border border-[#fecaca] text-[#b91c1c] font-bold">
+                  <span className="text-xs px-2 py-0.5 rounded bg-[#fef2f2] border border-[#fecaca] text-[#b91c1c] font-bold">
                     Thiếu hụt
                   </span>
                 ) : (
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600 font-medium">
+                  <span className="text-xs px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600 font-medium">
                     Khả dụng
                   </span>
                 )}
@@ -453,11 +453,11 @@ export function MaterialDemandWorkspaceSpecimen() {
 
               {/* Supplier card */}
               <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-[2px] space-y-1 text-xs">
-                <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
                   Nhà cung cấp được chỉ định
                 </span>
                 <span className="font-semibold text-slate-900 block">{selectedRow.supplier}</span>
-                <p className="text-[11px] text-slate-500">Thời gian giao hàng chuẩn: 04:30 sáng hàng ngày</p>
+                <p className="text-xs text-slate-500">Thời gian giao hàng chuẩn: 04:30 sáng hàng ngày</p>
               </div>
 
               {/* Action buttons */}

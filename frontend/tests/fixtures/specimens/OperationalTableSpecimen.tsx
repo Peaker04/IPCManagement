@@ -199,7 +199,7 @@ export function IsaStatusCell({ status }: { status: IsaStatusMeta }) {
       );
     case 4:
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[3px] bg-red-700 text-white text-xs font-bold whitespace-nowrap shadow-2xs" title={status.description}>
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[3px] bg-red-700 text-white text-xs font-bold whitespace-nowrap" title={status.description}>
           <span>{status.label}</span>
         </span>
       );
@@ -305,7 +305,7 @@ export function OperationalTableSpecimen() {
               type="button"
               onClick={() => setActiveDensity(tier)}
               className={`px-2.5 py-1 rounded font-medium transition-colors ${
-                activeDensity === tier ? 'bg-white text-blue-900 font-semibold shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                activeDensity === tier ? 'bg-white text-blue-900 font-semibold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {tier.charAt(0).toUpperCase() + tier.slice(1)}
@@ -315,7 +315,7 @@ export function OperationalTableSpecimen() {
       </div>
 
       {/* Table container with scroll cues */}
-      <div className="bg-white border border-slate-200 rounded-[3px] shadow-2xs overflow-hidden relative">
+      <div className="bg-white border border-slate-200 rounded-[3px] overflow-hidden relative">
         <div
           className={`pointer-events-none absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-slate-900/10 to-transparent z-30 transition-opacity ${
             canScrollLeft ? 'opacity-100' : 'opacity-0'
@@ -335,7 +335,7 @@ export function OperationalTableSpecimen() {
           className="overflow-x-auto max-h-[500px] overflow-y-auto overscroll-x-contain"
         >
           <table className="w-full border-collapse text-left border-b border-slate-200 min-w-[1180px]">
-            <thead className="sticky top-0 z-20 bg-slate-100 border-b border-slate-300 text-slate-700 shadow-2xs">
+            <thead className="sticky top-0 z-20 bg-slate-100 border-b border-slate-300 text-slate-700">
               <tr>
                 <th
                   scope="col"

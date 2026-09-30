@@ -1,5 +1,5 @@
 import { Fragment, useState } from 'react'
-import { CalendarDays, CheckCircle2, ClipboardList, PackageSearch, Scale, TriangleAlert, ChevronDown } from 'lucide-react'
+import { CalendarDays, CheckCircle2, ClipboardList, PackageSearch, Calculator, TriangleAlert, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/formatters'
 import { ConfirmDialog, DocumentRail, EmptyState, InlineAlert, PaginationBar, StatusBadge, TableViewport } from '@/components/common'
@@ -149,15 +149,15 @@ export function MaterialDemandSection({
       ) : (
         <>
           <div className="flex flex-col gap-3">
-        <section className="ipc-demand-day-command" aria-label="Điều hướng và trạng thái ngày đang xem">
-          <div className="ipc-demand-context-heading">
+          <header className="ipc-demand-context-heading">
             <h2>Nhu cầu và tiến độ nguyên liệu</h2>
             <span className="text-xs font-semibold text-slate-500">Phê duyệt nhu cầu</span>
             <StatusBadge variant={presentation.demandApprovalStatus.tone}>{presentation.demandApprovalStatus.label}</StatusBadge>
             {presentation.demandApprovalStatus.documentCode && (
               <span className={cn(typography.code, 'max-w-[220px] truncate text-xs font-semibold text-slate-600')} title={presentation.demandApprovalStatus.documentCode}>{presentation.demandApprovalStatus.documentCode}</span>
             )}
-          </div>
+          </header>
+        <section className="ipc-demand-day-command" aria-label="Điều hướng và trạng thái ngày đang xem">
           <div className="ipc-demand-day-object">
             <CalendarDays size={18} aria-hidden="true" />
             <div>
@@ -177,9 +177,9 @@ export function MaterialDemandSection({
           </dl>
           {actionPresentation.showGenerate && (
             <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
-              <div className="ipc-demand-day-action"><Button variant="outline" size="sm" type="button" onClick={handleGenerate}
+              <div className="ipc-demand-day-action"><Button variant="default" size="sm" type="button" onClick={handleGenerate}
                 disabled={status.isGenerating || servingBusy || isStalenessUnavailable || presentation.weeklyPlanRows.length === 0}>
-                <Scale size={16} />{generateLabel}
+                <Calculator size={16} aria-hidden="true" />{generateLabel}
               </Button></div>
             </ActionGuard>
           )}
