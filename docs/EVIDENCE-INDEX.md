@@ -4,6 +4,77 @@ File này là nơi duy nhất khai báo hash output artifact. Digest của workb
 
 ## Authoritative
 
+| Artifact | SHA256 | Mục đích |
+|---|---|---|
+| `.artifacts/four-planning-screens/independent-acceptance-1790859648025/review.md` | `d0144cfb9c30c0b91e76db30217141825bd57999c90f7d52980286251209475f` | Independent four DEFAULT read-candidate acceptance including invalid-tier P1 resolution; prior16+affected3 images, not PAGE_READY/cutover/durable/full CSV correctness. |
+
+| Artifact | SHA256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/horizontal-fit-acceptance-1790854790557/independent-review.md` | `b76da6e94c208b8b549ba5f45403473fc4a93c1fec739d918f76c8662a0e4884` | Independent8/8 final image review, desktop1366/1440/1920 horizontal-fit acceptance; raw focus oracle reconciled, extreme/narrow/zoom limits explicit, not PAGE_READY. |
+
+| Artifact | SHA256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/three-p1-acceptance-1790853151246/independent-review.md` | `8d079f772dbf4291c58aaf2b3adf2fec03665d9bf83e463eab2ea4f09bcbcef5` | Independent bounded acceptance3P1/7cells,9final images reviewed;37-test union clarified, probe path note retained; not PAGE_READY/total gate. |
+
+Demand column/handoff — independent bounded acceptance (not whole-page):
+
+| Artifact | SHA256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/column-handoff-independent-1790846275514/report.json` | `03f1f25cf2c88d7555eca85eb77618abab27d5333b2977a48faeac2e81b4b923` | Fresh scout headed3widths, header content-x/width0px, mixed plain-text handoff and readable numeric boundaries; local horizontal-scroll trade-off explicit. |
+| `.artifacts/planning-demand-preview/column-handoff-independent-1790846275514/image-review.md` | `1b3d22a0a670f49bd062f52e9b4714e5f5b275214badfa90e105ea7a0fd9ee57` | Independent30/30 captured images reviewed; no whole-page/Kit claim. |
+| `.artifacts/planning-demand-preview/column-handoff-independent-supplement-1790846468132/report.json` | `403d9626759bb9911c39cd9345237c01caed0b1a2ff8aaf23222943df9a60617` | DOM-only actual background/contrast, pending locks/focus/scroll and keyboard region supplement; no images or durable proof. |
+
+Demand column stability + text-first handoff — scoped implementation, independent acceptance pending:
+
+| Artifact | SHA256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/column-handoff-red-1790845034718/report.json` | `3332d2bc0afd4c8b0513c04340d2e94d8db13501a146417d810faf095a27f738` | Pre-fix1440 mounted RED12.59375px; original immutable probe not rerun. |
+| `.artifacts/planning-demand-preview/column-handoff-green-1790845220849/report.json` | `58d1f56300eb7323ed82ac9d30d626f95926c83c822289309f2321a2297d84db` | Consolidated3widths rawFAIL retained;1920 clean/1366+1440 absolute-x oracle ignores local scroll; sidecar reconciles measured scopes only. |
+| `.artifacts/planning-demand-preview/column-handoff-affected-1790845283402/report.json` | `24550671434c26cd1e25a0b67e82a235565a4b2a9eeeeed0f1cb37d39e354340` | Affected1366/1440 content-coordinate x/width, pending/filter/detail/controlled states PASS scoped;18 reviewed captures. |
+| `.artifacts/planning-demand-preview/column-handoff-empty-1790845440935/report.json` | `88a63ca0eee32a09c4c093fcecf1038306a1eec4085a0b8d5e0d6f767c4c5176` | p-only no-match containment at rightscroll;4reviewed captures. Raw label means scopedempty, not fulltransition certification. |
+| `.artifacts/planning-demand-preview/column-handoff-intake-1790844884683/source-adjudication.md` | `a0ba475bb6bc633c6362294e8387ff3c846379a8317b3761c628a4349e0629ea` | 56 individually reviewed images and RED/runner/empty repair reconciliation; not whole-page/Kit/performance/actor/durable PASS. |
+| `.artifacts/planning-demand-preview/column-handoff-intake-1790844884683/preimages.json` | `3a6e86f7cf4984d388cd8653f6d297212a9c92535f618ead39e2d911dcbb8da2` | Dirty owner preimages+SHA conflict receipt; stepdiff files in same intake. |
+| `.artifacts/planning-demand-preview/column-handoff-intake-1790844884683/final-source-identities.json` | `944971a480fde876c70b3a0f0abf0f2e156f59110900c5e69e2fc015f82ae423` | Final source/document identities before evidence-index entry; full-waveCSS superseded only p-containment. |
+| `.artifacts/planning-demand-preview/column-handoff-intake-1790844884683/validation.log` | `d6e8011e7e0186f7d29eac6ec01eb2723b550d2df476985711fc42569c867f2f` | 38 focused tests/TS/scopedESLint/consolidated build PASS; no test edits. |
+| `.artifacts/planning-demand-preview/column-handoff-intake-1790844884683/build-final.log` | `60d2ea7124b09ff5f461012592e83764d008397c151544f7079a822b5fd61b79` | Affected p-only CSS repair final Vite build PASS. |
+
+Demand consolidated semantic-status batch — scoped only:
+
+| Artifact | SHA256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/semantic-status-after-final-1790841026352/report.json` | `93e9fd2061f90f9becb72b2cd2a8e955db77f65b35197c17c9fe355c40470afe` |13 mounted cells/17 images; computed status hierarchy/contrast; raw image-review completed by sidecar |
+| `.artifacts/planning-demand-preview/semantic-status-after-final-1790841026352/source-adjudication.md` | `a45219c4de8e53201b67b2916411155698ccd195b37c235e96130df0b2caee05` |Before/after image ledger, SS01–SS06 root-owner dispositions and supplemental reconciliation; not whole-Kit/PAGE_READY |
+| `.artifacts/planning-demand-preview/semantic-status-after-disabled-1790841182614/report.json` | `708ba213b48354cd9b0b0bc5720fef808bc24d7c7891e9c20a8c592006933f9a` |4 affected disabled/pending cells only;4 reviewed images, other9 explicitly not selected; readable disabled text and preserved pending palette |
+
+Demand source day selector + compact presentation (scoped only):
+
+| Artifact | SHA256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/source-enhance-wave-1790839315720/report.json` | `e77eb321bcb2d2f9d80ec2005bd8f4bbfb9834554c09073bf27dee57fa81c4dc` | Seven clean headed cells; raw NEEDS_IMAGE_REVIEW completed by sidecar; not product acceptance |
+| `.artifacts/planning-demand-preview/source-enhance-wave-1790839315720/source-adjudication.md` | `b87e5d1130753c234996ec345b6ab12f1e270208d105ea889485b2acf251e3e1` | Scoped source day-change/committed truth/completed counts and captured hierarchy PASS;14/14 images reviewed; remaining gates explicit |
+
+Demand exclusive source rail navigation:
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/source-navigation-wave-1790838472573/report.json` | `54417eb7e0bd7bb5bb505b5db95b240001d424a9c9ccef4a421cfb80d8bc2d3e` | Immutable NEEDS_IMAGE_REVIEW;7headed cells, exclusive source↔ledger/no query delta/one selected item/pending current-day truth+writers suppressed, zero browser writes. Not new full-short/draft-live/nativezoom/actor/durable proof. |
+| `.artifacts/planning-demand-preview/source-navigation-wave-1790838472573/source-adjudication.md` | `c62ad996e777923d91fa0db169419085275754daea2f4c84dcef937b5f0a9a67` |21of21 individually reviewed;PASS_SCOPED_INTERACTION only.1366 initial source label below scrollfold candidate reachable, discoverability NEEDS_EVIDENCE, not full visual PASS. FE8648BE11452 retained/Chromeclosed;PAGE_READY BLOCKED. |
+
+Demand user-approved viewport workbench B — bounded layout/transition receipt:
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/viewport-workbench-wave-1790837257855/report.json` | `4973105757605d47dad378a0382f2717f618d81a17a86fa2d293153898d4c8b4` | Raw immutable NEEDS_IMAGE_REVIEW; six desktop/motion cells + low-height520px, clean query/grain/12→5→12;18transitions pagination/document delta0px, new-page local scroll0, pending/refetch/status/write guards. Zero browser business writes/Chromeclosed/userFE8648BE11452 retained. Not nativezoom/durable/real actor/performance/PAGE_READY. |
+| `.artifacts/planning-demand-preview/viewport-workbench-wave-1790837257855/source-adjudication.md` | `b5dd8a98e429a76373c69853fe41fa8d9d7d070bed84b2f290c9f355ba7f3fdd` | PASS_SCOPED_LAYOUT_AND_TRANSITION_ORACLES only; full-width conditions/no scope push, detail/lowheight; preserves1790837109073 rawFAIL and limited reviewed candidate. Nativezoom/exhaustive source keyboard remains NEEDS_EVIDENCE. |
+| `.artifacts/planning-demand-preview/viewport-workbench-wave-1790837257855/image-ledger.md` | `2a47e31fa4f976e1fa1baf59137437cd103e0a2663a9303b47c0f90d73dd850c` |27of27 individually opened; short-page workspace canvas explicitly approved, not synthetic rows. Source-open partial lowerbody kept NEEDS_EVIDENCE. No whole-Kit/product closeout. |
+
+D11/K06 observation (not acceptance):
+
+| Artifact | SHA-256 | Mục đích |
+|---|---|---|
+| `.artifacts/planning-demand-preview/d11-pagination-1790830161386/report.json` | `379e49ebd466a6cde408657cffadd84930de58567e8dc9a86af11d0d0531fd97` | Current dirty-source Demand preview natural full→short→full, three widths × normal/reduced motion: all six sequences FAIL uncached navigation focus; 1366 additionally resets scroll8→0. Independent BE row/grain/query checks clean,12→5→12 rows, zero browser business writes/errors/overflow. DEFAULT/version129; user-authorized FE/BE startup retained. No product fix, durable/actor/production performance or PAGE_READY claim. |
+| `.artifacts/planning-demand-preview/d11-pagination-1790830161386/image-ledger.md` | `b2fd1340fde7addd797f1f289839fd9258d57f63686ece7b45038505e1549c6f` | All24 images individually reviewed; scope/focus/source adjudication and natural short-row geometry; pending/refetch/late response/full CSS matched-owner evidence remains incomplete. Failed product observations retained, not superseded by shared jsdom8PASS. |
+
 | Artifact | SHA-256 | Mục đích |
 |---|---|---|
 | `.artifacts/goal-ui-ux/systemic-final-dual-mode-20260917/summary-final.json` | `6C3BEC3ECB45DB7DAC2BA0533148F84607DF48D89C16141E8D656FD0CFB29CAC` | Systemic FE UI/UX bounded closeout summary: Admin capability-derived 46/46 route/view cells reconciled across DEFAULT 37 and MRX 9. Raw production-preview matrix passed 114/116; the two sequence-sensitive cells were independently reconciled by repeated focused evidence after fixing route-critical first-paint ownership. Post-runtime root-owner review additionally closes Reports same-route history rehydration, Service Run multi-card ID/focus isolation, Dialog orphan-stack promotion, and remaining disabled-submit siblings. Focused 25 files/224 tests plus 22 CLS-owner tests, lint 0 errors/3 inherited warnings, build PASS. Not all-role, mutation-lifecycle, mobile/tablet, field-CWV or production-p75 acceptance. |
@@ -645,3 +716,171 @@ Owner: `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §63. Authenti
 | Artifact | SHA-256 | Meaning |
 |---|---|---|
 | `.artifacts/shipyard-live/fe-design-system/wave4-viewport-sticky-ownership-default-20260927/focused/result.json` | `f3bda9ab39bd65fb9b9521a2c40bf19438b2a9ecf62d692d729a8e54683ec067` | DEFAULT viewport/sticky ownership browser PASS; MRX browser NEEDS_EVIDENCE. |
+
+## Demand preview pending-focus and clamped scroll — scoped evidence
+
+Owner: `.planning/notes/FE-CONTRACT-KIT-NORMALIZATION.md`, Shared pending-focus + scroll adjudication receipt. Six desktop/motion cells,20/20 images reviewed; directional pending focus/activation lock, committed context and actual clamped scroll anchor PASS scoped. Short-page maxScroll0 explains scroll0; no fake height. Default shared consumers retain native-disabled behavior. DEV evidence is not production performance, actor/durable proof or PAGE_READY.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/planning-demand-preview/pagination-focus-wave-1790834142842/report.json` | `fdc1b4f9fcf2a02eb8d99420ecca11fe72ea4e67e033684f645645137f09c215` | Immutable raw NEEDS_IMAGE_REVIEW; all six DOM cells clean. |
+| `.artifacts/planning-demand-preview/pagination-focus-wave-1790834142842/source-adjudication.md` | `7c6dc110ff0b688fc069fed947c3afe7482d4ed454b2ac292b6b0e187fa6dcf9` | Completes20-image review, scoped PASS and bounded supersession/limits; previous failures retained. |
+
+## Remaining execution sandbox build — lab identity, independent review pending
+
+.artifacts/planning-demand-preview/remaining-execution-1790849127400: full 616 source/public/package/lock/TS/Vite/index inputs before+after aggregate SHA256 `55dc599fbccff38fc9c8fb27297c6cbe1f40bb48c25b6d9dbe8baf1b15a6ada0` (equal), 156 build manifest/index/assets aggregate SHA256 `7fa09e7b17b75f5be62c5d4e38c7232c2cd9e8c5f600d986b79b4e8c44fd26d3`. Complete path sets in report.json; per-file hashes combined in canonical sorted path+digest manifest, not secret config values. No production cutover.
+
+## Demand remaining bounded execution — immutable scoped evidence, PAGE_READY blocked
+
+Owner: `.planning/notes/FE-CONTRACT-KIT-NORMALIZATION.md`, Remaining execution final bounded checkpoint.65BASE:19executed (4prior scoped/12new pending/3confirmedOPEN),46unexecuted.20/20images individually reviewed; three confirmed focus/error/long-dialog defects remain unrepaired. Production-SANDBOX lab observations not overall P PASS; native zoom/hidden/initial geometry/realactors/durable gates open. Raw probe errors retained and distinguished from product; separate independent review required.
+
+| Artifact | SHA-256 | Meaning |
+|---|---|---|
+| `.artifacts/planning-demand-preview/remaining-execution-1790849127400/report.json` | `b8707764960fb9a4be15990df79f885ade2353df626756f27504b61945fdfe2b` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-execution-1790849127400/measure.mjs` | `6924d34be1b7bd02e64a675874e127e1371e1db003f685301393333890964db4` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-execution-1790849127400/measurement-adjudication.json` | `0e99281b0281c66f0c217496debf2e276ad5aa4ea8cb269740547ff39f9cda66` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-execution-1790849127400/reconciliation.json` | `93cb5f8ea189659994c6b9ef2a3860e0f5f2b2a4e9fb5fe742a787fbbf7a321c` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-execution-1790849127400/image-review.json` | `9bcaab84d8597dc161bdc74d33f368072963b347db05a2495b277d3a2e867b9d` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-states-mounted-1790849434170/report.json` | `23a889c5c49dca5e6582033adb7cf7a963c197f33f82c9ee2bf6011ac9440809` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-states-mounted-1790849434170/states.mjs` | `7b24d9856d5f399c8480441ebf004ef1c12d50f6a68735c62cf6ee0d5095e41d` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-affected-1790849757211/report.json` | `32d8bc8508d19b80767d2e7f6882ea2660d2f2675a94391b9c89d4d45b639a20` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-affected-1790849757211/verify.mjs` | `51f7164a863232f803d71c014ba3aa718a50ee7c8626b51bdc6eb21bf4006b4e` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-long-overflow-1790849983018/report.json` | `a13f4369a8e5ab9ed8eb5b37fc35d56cd5fdde799b7a4253b476a2f87e10a191` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-long-overflow-1790849983018/verify.mjs` | `108756bbb1c58765f87db98bd0bc312d0b353649e38069c4e39d4db4ec7331ca` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-long-scroll-1790850066982/report.json` | `ae1a75b22047666b9c0b74259db4096aa1f41c2502d5086a2ef416919aef1bb3` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-long-scroll-1790850066982/verify.mjs` | `ea90c3171961e794ed17f383f07fce45f2132fec4ae83f99ddccd6e7017053db` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+| `.artifacts/planning-demand-preview/remaining-closeout-1790850442125/provenance-check.json` | `7a5de7f58342355a26eb57820890c37804e4e0e6ba76f566fcc2338024f0387a` | Raw scoped report/probe or explicit adjudication; not PAGE_READY. |
+
+## Three P1 repair intake (actual dirty-byte preimages)
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/frontend/src/components/common/ConfirmDialog.tsx` — SHA-256 `4652df70dc8c1c7dcd0f285b3d821be9397fa00c0554b152d2a0372cb6abc1b9`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/frontend/src/components/common/ConfirmDialog.test.tsx` — SHA-256 `6eb56fda44f1022e42161e1099bc22cfa3b64b9adb0aad5f1de76cd58a7a7e44`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/frontend/src/components/ui/dialog.tsx` — SHA-256 `ee009980ef995e134f6b0db16bd2ecfd75437c255ed8244161aa8c898f6eab96`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/frontend/src/components/ui/dialog.contract.test.tsx` — SHA-256 `158e4a1354b35e9021dde39d29239f2c5eca83fc662bc6fbb4a6cb284f551505`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/frontend/src/features/planning/schedule/SchedulePreviewPage.tsx` — SHA-256 `5fc6edcef606bb502d131f51ffff9347300e776fa24d8f0ee82ae3e7b5dc4515`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/frontend/src/features/planning/demand/DemandPlanningScreen.tsx` — SHA-256 `928943a981f6a6e758c9288133d7323019e8411b8dc96a370fcf32c8ce5a407f`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/docs/domain/weekly-menu-contract.md` — SHA-256 `0a04ee37fb7c4f95a70601b99e63002ae7b85be2639cffc3783fc860f6530202`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/.planning/notes/FE-CONTRACT-KIT-NORMALIZATION.md` — SHA-256 `e59928ff2e0af9ec9d445f893ed6a3c986ef79052df41443d78a2e531df81104`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/MEMORY.md` — SHA-256 `46b736e92b2978701e4f6d489dfa552d864b5837b2c655f9a5aae59f863360ff`.
+- `.artifacts/planning-demand-preview/three-p1-intake-1790851542665/docs/EVIDENCE-INDEX.md` — SHA-256 `c32786de0424ca2a8dbb7968c5aa4c84c24142060b867ba1df19de4ea5e5382b`.
+
+## Three P1 repair — scoped7cells, independent acceptance pending
+- `.artifacts/planning-demand-preview/three-p1-browser-1790852110000/report.json` — SHA-256 `3b5dca00a3a559b65d3844cfb8a26729f53c775add905a5e2d1e28415f483e12`.
+- `.artifacts/planning-demand-preview/three-p1-browser-1790852110000/run.log` — SHA-256 `f595096a1ebe32029768e87b1df999e91470d2ed19dd8bfedaada3402b32b157`.
+- `.artifacts/planning-demand-preview/three-p1-browser-1790852110000/verify.mjs` — SHA-256 `aa76a52295fd6666f6b51473b92162b381617cad0299a04b371aae2edadbd003`.
+- `.artifacts/planning-demand-preview/three-p1-long-green-1790852320177/image-review.json` — SHA-256 `c4c3b691bcd04101acce9d158e1648666a5d9390331674de774b6e4612bf200b`.
+- `.artifacts/planning-demand-preview/three-p1-long-green-1790852320177/reconciliation.json` — SHA-256 `15b99a6b64e7fe85508be4eb914a7eb9f55c2a5adc6a667830039d51de932286`.
+- `.artifacts/planning-demand-preview/three-p1-long-green-1790852320177/report.json` — SHA-256 `b4b5ed49a40c9ec990abb600241701775887aef1d4d264ac862616bcddcc116b`.
+- `.artifacts/planning-demand-preview/three-p1-long-green-1790852320177/verify.mjs` — SHA-256 `c6b9c03364b97e5ccbfc178258ab7435917565b91cd4a80ad91a7ff6176c4af1`.
+- `.artifacts/planning-demand-preview/three-p1-closeout-1790852530000/provenance.json` — SHA-256 `08484db9e4bb331134de9d88e3ec2f144183d5182431884e594244cb9f1ae4fa`.
+- `.artifacts/planning-demand-preview/three-p1-closeout-1790852530000/step.diff` — SHA-256 `d1f1a19232f7429a85c3d6ccbee72c43729451dd99e34f265b63244f6aaedefb`.
+- `.artifacts/planning-demand-preview/three-p1-red.log` — SHA-256 `eb40fe42f8323258d4710916d85a5533d43a27a79a1188c1aaa754da884c6ca2`.
+- `.artifacts/planning-demand-preview/three-p1-red-intended.log` — SHA-256 `8418df601514a7ae5f6e4293c56f1b9d3316fbc67d1f94a7681af4235f533781`.
+- `.artifacts/planning-demand-preview/three-p1-green.log` — SHA-256 `c51a25f76d2c33c7004d8b70247c830f97e5a3762581562e1f5b8d168868d343`.
+- `.artifacts/planning-demand-preview/three-p1-owner-final.log` — SHA-256 `d5335b9326323a72b7f343c18254365b6a038adc6545700a2e6137f963c1c630`.
+- `.artifacts/planning-demand-preview/three-p1-dialog-final.log` — SHA-256 `ed4f67cefb59501355b338177bee05e5015f79db95ed7f32ea8f62fb3445f880`.
+- `.artifacts/planning-demand-preview/three-p1-ts-last.log` — SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `.artifacts/planning-demand-preview/three-p1-testlint-last.log` — SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `.artifacts/planning-demand-preview/three-p1-lint-final.log` — SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `.artifacts/planning-demand-preview/three-p1-build-final.log` — SHA-256 `7bc07d5bac7eba650356fc9a9635c758108c2187d1711c603c49b5cd262e27f9`.
+- `frontend/src/components/common/ConfirmDialog.tsx` — SHA-256 `41f04ebe01e0fd542573c9f35cec95c25e026f95ae7a2a0b88aebdeb20b550fb`.
+- `frontend/src/components/common/ConfirmDialog.test.tsx` — SHA-256 `5f71c17e6be27886d4257fce7ee3b343e09f837b4f67221d95e193ba3b71ceea`.
+- `frontend/src/components/ui/dialog.tsx` — SHA-256 `1daff4d590ef69b1051ccc7f510c2015de0cbe537ced194505acad67c78b9052`.
+- `frontend/src/components/ui/dialog.contract.test.tsx` — SHA-256 `42f6f8b143c867e721d843cf84d99ea9fef28d113492066a07cd8cc9b17079a9`.
+- `frontend/src/features/planning/schedule/SchedulePreviewPage.tsx` — SHA-256 `b66fa5b4aea2af50c475f762a1388cba33ff7b895ff814172ff2dea97e08e163`.
+- `frontend/src/features/planning/schedule/SchedulePreviewPage.test.tsx` — SHA-256 `fd8a813a3ce927e594f40544fe38127e261a88c63d72bedcfa728de242de59f0`.
+- `frontend/src/features/planning/demand/DemandPlanningScreen.tsx` — SHA-256 `99ee06ae9492769b9428ba7f37c92d6df814c8b710d292f6c84b2866628e22ef`.
+
+## Demand horizontal fit — bounded implementation evidence
+- Isolated normal Vite build output inventory: 154 files; combined path/content SHA-256 `6e09a2f5cfbdfec560f875ea0255097d0b97b60a4959cca35c0add2401a2f5f5` (owned output removed, user dist untouched).
+- Intake byte preimage `.artifacts/planning-demand-preview/horizontal-fit-intake-1790853504252/0-DemandPlanningScreen.css.before` SHA-256 `5b3d33240a13d2b55c2ed1abf4739a0f7a6b2f7b988741afca7952d07dc09c12`.
+- Intake byte preimage `.artifacts/planning-demand-preview/horizontal-fit-intake-1790853504252/1-FE-CONTRACT-KIT-NORMALIZATION.md.before` SHA-256 `0ceb9b991b3086a12a881295f69da9cba020023370ff6226d682235f39d2ac58`.
+- Intake byte preimage `.artifacts/planning-demand-preview/horizontal-fit-intake-1790853504252/2-MEMORY.md.before` SHA-256 `a33be7906da93ebfd57848050d66febf8544a47b642f7a7d254d41d808d51595`.
+- Intake byte preimage `.artifacts/planning-demand-preview/horizontal-fit-intake-1790853504252/3-weekly-menu-contract.md.before` SHA-256 `37d8e7f985fd4ac046b615a575ac930f2444b101cbd4da73114a46e023aca8e6`.
+- Intake byte preimage `.artifacts/planning-demand-preview/horizontal-fit-intake-1790853504252/4-EVIDENCE-INDEX.md.before` SHA-256 `9a06254b868cbf6e894f10bd8aa8941256fb9390968001130ff9c39031551915`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/build-inventory.json` SHA-256 `bd8dec23c004529dabd5ba9abbd9a81e7087601915f02ade98926e7877e76e69`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/image-review.json` SHA-256 `15b8984ea6ed1063f0bf6583692c81d4e933b912bb03d66ced16e8212cf7bb67`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/reconciliation.json` SHA-256 `359cefcbcc2265e89f0598fa0131a13d730c0b92bf77888874b3e192aa2ad5e6`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/report.json` SHA-256 `3cd19acb0f2cf87528cf92fc913521ca7f65cafb6ddb87eb4072fedfa4fc46cd`.
+- `.artifacts/planning-demand-preview/horizontal-fit-affected-1790854197258/image-review.json` SHA-256 `638e5922382a311b75bc72d4bafbbde8b86f0c19b6bcf31c21ddd25b337d813b`.
+- `.artifacts/planning-demand-preview/horizontal-fit-affected-1790854197258/report.json` SHA-256 `c0b2cc47118b10752dd50318cf3a273b5ccbcdadc434e7a3844e4146fd3a8c19`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/verify.mjs` SHA-256 `699fd1c4eead99d78dad48a8b4836981140145cc7e7680f99917958e16722ea7`.
+- `.artifacts/planning-demand-preview/horizontal-fit-affected-1790854197258/verify.mjs` SHA-256 `44c23d821fea2ec11a669a136e280276091716146a05c393e5a1402975f3dde6`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/tests.log` SHA-256 `023cc28dfbd2c161666999c4642c6321ce874126c91d72c26c7ce40f657037d1`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/checks.log` SHA-256 `b8c1315b887e0601931687a0b163f299eb20cd0de7448d74d271b683ee54004b`.
+- `.artifacts/planning-demand-preview/horizontal-fit-final-1790854081438/step.diff` SHA-256 `b279458070f0bb13c8ed8486b0604b2c91e519fa47514fd27c3fd9c4e4bd9c5d`.
+
+## Four DEFAULT read-only planning candidates final bounded evidence
+Independent acceptance PENDING. Final matrix11 + interactions5 PASS_SCOPED; failed timing attempt retained separately. Final affected3 files/8 tests,TS/scoped lint/preview build PASS.
+- `frontend/src/features/planning/cost/CostScreen.tsx` — SHA-256 `4af0bc4ccfff5c3ab8b88c4711f185cdf3928c69cf47f1ba38264cba5b95f848`.
+- `frontend/src/features/planning/cost/readPlanning.css` — SHA-256 `78517a926e88a601633fcfa51f2e1701a53811c126e2e176c6b80286f2aadb36`.
+- `frontend/src/features/planning/cost/ReadPlanningPreviewPage.test.tsx` — SHA-256 `b7f8bc8dd93635515de75377533d47e0ea593d2f69f9ea9e76559c6d7b831911`.
+- `frontend/src/features/planning/cost/ReadPlanningPreviewPage.tsx` — SHA-256 `3b75ee983fc1efa4f2b9899eb30f5ab66d47d8f618d0ee0cecdde53cccf12252`.
+- `frontend/src/features/planning/dish-materials/DishMaterialsScreen.tsx` — SHA-256 `178c4656852705e10f114a3e68367fcf2b5ecfb5bd749033236eb73f29296539`.
+- `frontend/src/features/planning/handoff/HandoffScreen.test.tsx` — SHA-256 `05a0688263a227411cc806a86f73da0cd52e935f777c37d12cf17414855cbac6`.
+- `frontend/src/features/planning/handoff/HandoffScreen.tsx` — SHA-256 `2ebeb336c8ee84ad806ab90166401b97be36dd865ffb3dfe2dd8b99a501dfc85`.
+- `frontend/src/features/planning/production-plan/ProductionPlanScreen.tsx` — SHA-256 `f6907004b16d9a0f7cb9447e9a2c5282452f0bdfdd11ce68dd6455f69c3c696f`.
+- `frontend/src/routes/AppRouter.tsx` — SHA-256 `6302560c70c45326b2c15d20c9f6201d65052a7282343cc88639e5951b4c300d`.
+- `frontend/src/features/planning/PlanningPreviewShell.tsx` — SHA-256 `31d106f10b245ba43e0eaef8221427f30213cdf91a67fe466daede13d89504ec`.
+- `frontend/src/features/projects/weekly-menu/purchasing/usePurchaseSummary.ts` — SHA-256 `4259a80416b5fc6215e80bd1104f2428f034f9daf2d9d12b13e7dd813b2c11e0`.
+- `frontend/src/features/projects/weekly-menu/purchasing/usePurchaseSummary.handoff.test.tsx` — SHA-256 `397e4205c24bcd89df182161b2891af37d5932a48d5e493be5f870297d901736`.
+- `docs/domain/weekly-menu-contract.md` — SHA-256 `1b636bbf4fc7766926b7d1dfaef6d00da5843affd0a4138d918042510ebc5ff3`.
+- `.artifacts/four-planning-screens/final-checks/build.log` — SHA-256 `24f4e4cb716a0785686f8f7a9dac8884335383d6752d3e7050a8908b2614445c`.
+- `.artifacts/four-planning-screens/final-checks/lint.log` — SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `.artifacts/four-planning-screens/final-checks/tests.log` — SHA-256 `824e9c4c21d966b0dc1aa44e10403050f64fe2d8b997d30882e445fe7fde0f4d`.
+- `.artifacts/four-planning-screens/final-checks/types.log` — SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+- `.artifacts/four-planning-screens/final-checks/image-review.json` — SHA-256 `0b26e9b0bcb9c0766cae1e44fdcecc1feb6435b1770cc2adc565fb9eb7040b08`.
+- `.artifacts/four-planning-screens/verify.mjs` — SHA-256 `050707d32d7b9cdb78cecc021bbcd093dfdc871bf8c66380cafa92b2b0ed9198`.
+- `.artifacts/four-planning-screens/interactions.mjs` — SHA-256 `62495892dae08f793dec109c625ac9df7d60463b815f4a50fe8de142bec4d079`.
+- `.artifacts/four-planning-screens/browser-1790858058193/report.json` — SHA-256 `a8090ceccaf6d2febc6d52b8c7f7bda62b8b80b02d3da2448a51aa34b93d3ce5`.
+- `.artifacts/four-planning-screens/browser-1790858058193/cost-controlled-missingBOM.png` — SHA-256 `7ad4f186a558067cef5210df9eac42b15b6252cd87dce4eea8a41e516f69017e`.
+- `.artifacts/four-planning-screens/browser-1790858058193/cost-natural-1366.png` — SHA-256 `d1f0c49edcc1748c9d51b596827c1830c65ec435b358ae4b45406eedccf29fa3`.
+- `.artifacts/four-planning-screens/browser-1790858058193/cost-natural-1440.png` — SHA-256 `e2608abbb3f49fa6603da2b9dab81105b733ba28c52f2779b62856c2cae12a0e`.
+- `.artifacts/four-planning-screens/browser-1790858058193/dish-materials-controlled403.png` — SHA-256 `0dd0700b6a7eda93acbeaa8daec5251246eff38c38b75e9f4591a6db8cf46332`.
+- `.artifacts/four-planning-screens/browser-1790858058193/dish-materials-natural-1440.png` — SHA-256 `73de1632e24994ff6f5c00232356dd930526213d8d56fc0b319d9137da0ce160`.
+- `.artifacts/four-planning-screens/browser-1790858058193/handoff-controlled-empty.png` — SHA-256 `d57295f13d8250be17c9e782b40cbdb0f25e33fa4ba583318ed770d41da35c58`.
+- `.artifacts/four-planning-screens/browser-1790858058193/handoff-controlled-long-1366.png` — SHA-256 `37a754c35485e8ede225b7799bf5ee01082b2518994d430ccf88be2f7ddd48ab`.
+- `.artifacts/four-planning-screens/browser-1790858058193/handoff-natural-1920.png` — SHA-256 `d56438b1b5e0c94ee0fb234aeb6bcd4b58a9ee937a975d58298f3bc578796626`.
+- `.artifacts/four-planning-screens/browser-1790858058193/production-controlled403.png` — SHA-256 `fec12e2580ef4a797e6e0c423e0c7c898cdc1bd918690c80e111a208cd70b951`.
+- `.artifacts/four-planning-screens/browser-1790858058193/production-plan-natural-1440.png` — SHA-256 `ab88985ce367b3245af58761383ef8341a3a863078e1e642248f1637d39f0284`.
+- `.artifacts/four-planning-screens/browser-1790858058193/purchase-summary-natural-1440.png` — SHA-256 `6f2c2281418fd6ae109064886bfc30d7caeee20276f340fb4e93552d3a11656b`.
+- `.artifacts/four-planning-screens/interactions-1790857974007/report.json` — SHA-256 `07aa6f9744eda93f340223867b61786a6aece4d1e067cf322607125c51dfb715`.
+- `.artifacts/four-planning-screens/interactions-1790857974007/dish-selected-1440.png` — SHA-256 `ed78f4a9fcb07a5a8424baf6cc1ba309f977ac4640f65067b9cbaf5b8839d5ab`.
+- `.artifacts/four-planning-screens/interactions-1790857974007/handoff-denied-1440.png` — SHA-256 `5dd87036b3518d3e5fa26ed44c13147bcf1642ce8bffd221dd1592d05fd8d398`.
+- `.artifacts/four-planning-screens/interactions-1790857974007/handoff-last-page-1440.png` — SHA-256 `bff73eacbcf47ee3f4cddc2ab1734990bad040b2d246896cefe2bed5adac99a5`.
+- `.artifacts/four-planning-screens/interactions-1790857974007/handoff-search-empty-1440.png` — SHA-256 `a0948028641fcfbefa94e95756dcd418dcaa4757da7897037039efce5f05ffd6`.
+- `.artifacts/four-planning-screens/interactions-1790857974007/production-selected-day-1440.png` — SHA-256 `1f472e6633ed0f925912584fdac0cafc9d3a5bdd92cd8b35d53de51738c0266a`.
+- `.artifacts/four-planning-screens/browser-1790857999704/report.json` — SHA-256 `81f172a1aeab38b474721eced9a7266616d3b56ddb18ebad3d290e9b25441611`.
+- `.artifacts/four-planning-screens/browser-1790857999704/cost-controlled-missingBOM.png` — SHA-256 `7ad4f186a558067cef5210df9eac42b15b6252cd87dce4eea8a41e516f69017e`.
+- `.artifacts/four-planning-screens/browser-1790857999704/cost-natural-1366.png` — SHA-256 `d1f0c49edcc1748c9d51b596827c1830c65ec435b358ae4b45406eedccf29fa3`.
+- `.artifacts/four-planning-screens/browser-1790857999704/cost-natural-1440.png` — SHA-256 `e2608abbb3f49fa6603da2b9dab81105b733ba28c52f2779b62856c2cae12a0e`.
+- `.artifacts/four-planning-screens/browser-1790857999704/dish-materials-controlled403.png` — SHA-256 `0dd0700b6a7eda93acbeaa8daec5251246eff38c38b75e9f4591a6db8cf46332`.
+- `.artifacts/four-planning-screens/browser-1790857999704/dish-materials-natural-1440.png` — SHA-256 `73de1632e24994ff6f5c00232356dd930526213d8d56fc0b319d9137da0ce160`.
+- `.artifacts/four-planning-screens/browser-1790857999704/handoff-controlled-empty.png` — SHA-256 `d57295f13d8250be17c9e782b40cbdb0f25e33fa4ba583318ed770d41da35c58`.
+- `.artifacts/four-planning-screens/browser-1790857999704/handoff-controlled-long-1366.png` — SHA-256 `37a754c35485e8ede225b7799bf5ee01082b2518994d430ccf88be2f7ddd48ab`.
+- `.artifacts/four-planning-screens/browser-1790857999704/handoff-natural-1920.png` — SHA-256 `d56438b1b5e0c94ee0fb234aeb6bcd4b58a9ee937a975d58298f3bc578796626`.
+- `.artifacts/four-planning-screens/browser-1790857999704/production-controlled403.png` — SHA-256 `fec12e2580ef4a797e6e0c423e0c7c898cdc1bd918690c80e111a208cd70b951`.
+- `.artifacts/four-planning-screens/browser-1790857999704/production-plan-natural-1440.png` — SHA-256 `ab88985ce367b3245af58761383ef8341a3a863078e1e642248f1637d39f0284`.
+- `.artifacts/four-planning-screens/browser-1790857999704/purchase-summary-natural-1440.png` — SHA-256 `6f2c2281418fd6ae109064886bfc30d7caeee20276f340fb4e93552d3a11656b`.
+
+## Four planning candidates reviewer P1 repair
+Pending independent re-review. Credible pre-fix RED6; GREEN15 tests/TS/lint/preview build exit0; affected browser3 PASS_SCOPED. Prior manifest entries remain historical.
+- `frontend/src/features/planning/cost/ReadPlanningPreviewPage.tsx` — SHA-256 `d190d122a9c60ff1a2b7d121424a92b6d128c49374f7bd7f6b74ce2b06cfab42`.
+- `frontend/src/features/planning/cost/ReadPlanningPreviewPage.test.tsx` — SHA-256 `43754b6b4c337aaf64a5b59a93b4560db3ae67608ce0ee1a1092009b2d82542b`.
+- `docs/domain/weekly-menu-contract.md` — SHA-256 `f286b0b9c15a35fb7977e432715e914525167800c9ec9b27e400bcf213eb9bd0`.
+- `C:/Users/Administrator/.pi/agent/sessions/--D--ki7-PRN222 Doanh Nghiệp-IPCManagement--/subagent-artifacts/outputs/d38596b8-20fe-4a0d-8745-234005bfafef/four-planning-screens-implementation.md` — SHA-256 `009b957a4e30eaaaac00953e6bccb286d641263ac3f6cc821c656e419635a06f`.
+- `.artifacts/four-planning-screens/p1-verify.mjs` — SHA-256 `8ca0971bbf9fb50a627ad879e5dd85d685cde2d55283b3c036df955852585bb9`.
+- `.artifacts/four-planning-screens/p1-checks/build.log` — SHA-256 `643f7509da84bb9dbd5d29504343f44c11922100ab6efae2256c657bf9cf536d`.
+- `.artifacts/four-planning-screens/p1-checks/green.log` — SHA-256 `f8160cd46a9cfa0a7dc385d27baeeef9a2be804c2faaeaabe00e96540a0ac00b`.
+- `.artifacts/four-planning-screens/p1-checks/lint.log` — SHA-256 `3d9552a7fdebb19080a8fc472b2da65771fb56a7477602c1fd20c70e53e0dd37`.
+- `.artifacts/four-planning-screens/p1-checks/red-valid.log` — SHA-256 `56e4402d4ec7b72c7c51b6c7bfab2cfb3722312dd1b644365ee95641553b7b51`.
+- `.artifacts/four-planning-screens/p1-checks/red.log` — SHA-256 `69c2f843821b48f88dee94e75b1556fdca3bd35bb619b21228e0793901373003`.
+- `.artifacts/four-planning-screens/p1-checks/types.log` — SHA-256 `c8f8172fcab0e0719d642f511e5244516a9f6bea1f3fd7908429cd956541b13b`.
+- `.artifacts/four-planning-screens/p1-checks/commands.json` — SHA-256 `e58c8a63d47cdf078a136693c1950ab2a9959c6e512f72048f61f3008b16ac48`.
+- `.artifacts/four-planning-screens/p1-checks/ownership.json` — SHA-256 `d41d14cd2fb0ce4705b757372416f1ec14ea24be0f09c34f0a2db112f4c25485`.
+- `.artifacts/four-planning-screens/p1-checks/batch-intake-relative.diff` — SHA-256 `68249489c3314e63424267292bf6045bba0a93665ca5bf225900400dac2152b5`.
+- `.artifacts/four-planning-screens/p1-checks/p1-step.diff` — SHA-256 `201fe2990ea2ba67a1509943061919c41acb743f624c272773543bdca7f3a025`.
+- `.artifacts/four-planning-screens/p1-browser-1790859307321/cost-invalid-tier.png` — SHA-256 `400b993028be26fe77c00208f7135057337d0868b8262d8e3ebdc13a6049fa21`.
+- `.artifacts/four-planning-screens/p1-browser-1790859307321/dish-materials-invalid-tier.png` — SHA-256 `e8592b3521c9761196fdeee52c9583571d29a628394dd694a631479f517bea5d`.
+- `.artifacts/four-planning-screens/p1-browser-1790859307321/purchase-summary-invalid-tier.png` — SHA-256 `ebcb39c2af694b40eaad7e991d138de80012cc7dcf803cd0cf681edb555510fb`.
+- `.artifacts/four-planning-screens/p1-browser-1790859307321/report.json` — SHA-256 `dd1f6552fc95ee7bf050a5c334daa749e316864c28515f19ae3a05cc4c67a596`.
+- `.artifacts/four-planning-screens/p1-browser-1790859307321/verify.mjs` — SHA-256 `8ca0971bbf9fb50a627ad879e5dd85d685cde2d55283b3c036df955852585bb9`.

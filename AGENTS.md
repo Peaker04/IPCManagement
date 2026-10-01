@@ -1,62 +1,38 @@
 # IPCManagement — agent entry contract
 
-## Authority and startup
+## Bắt đầu mọi task
 
-- Pi CLI is the sole active runtime. A Codex API/model connection inside Pi remains Pi, not a Codex app/CLI session. Pi-native MCP/codemode capabilities are usable only when explicitly configured, trusted and allowed for the task; a Codex app/CLI MCP registry never transfers into Pi. Codex app, Codex CLI and Claude Code are outside the target workflow unless Kỳ separately requests them.
-- GSD is the only process/state owner. Follow `docs/harness/DELIVERY.md` for L0/L1/L2 and `docs/harness/RUNTIMES.md` for runtime/skill/subagent mapping. No parallel task system from Shipyard, Ponytail or another skill.
-- Start with this file, then `MEMORY.md`; compare branch and `git status --short --branch`. Follow the active checkpoint pointer before resuming. Source/runtime wins over stale narrative; do not ask Kỳ to repeat the whole chat.
-- Use `docs/README.md` as the authority map. Do not auto-load HISTORY, LESSONS, all docs, planning trees or evidence. Read `LESSONS.md` before migration, restore or browser measurement; read relevant evidence/lineage before touching a database lane.
-- Task state/checklist stays in GSD `.planning/`; MEMORY holds current pointers/runtime, HISTORY holds completed work, evidence hashes belong only in `docs/EVIDENCE-INDEX.md`. Link rather than copy gates or counters.
+1. Đọc file này → `MEMORY.md`; chạy `git status --short --branch`, `git rev-parse HEAD`, `git diff --cached --name-only`.
+2. Phân biệt **task mới** với **resume**. Resume đúng checkpoint MEMORY trỏ tới; task mới không tự tiếp tục campaign cũ. Source/runtime thắng narrative cũ nhưng không hợp pháp hóa behavior trái contract.
+3. Đọc [workflow entry](docs/harness/README.md), chọn L0/L1/L2 theo [DELIVERY](docs/harness/DELIVERY.md); dùng [documentation map](docs/README.md) để mở đúng owner theo task. Không duyệt đệ quy mọi link.
+4. Trước edit, chốt goal, allowed files, ngoài scope, owner/contract, acceptance/check command và quyền còn thiếu. GSD `.planning/` là nơi duy nhất giữ checklist; MEMORY chỉ giữ pointer/runtime. Không bắt Kỳ kể lại chat đã có checkpoint.
 
-## Non-negotiable boundaries
+Không auto-load HISTORY, LESSONS, toàn docs/planning/evidence/skill catalog. Riêng migration, restore hoặc browser measurement phải đọc `LESSONS.md`; trước đụng DB lane phải đọc lineage/evidence liên quan.
 
-- Preserve inherited dirty files. No unsolicited commit/push, reset/restore, seed, operation-mode switch, schema/data mutation or destructive cleanup. A skill's auto-commit/ship instruction is not user authorization.
-- Never assume a database lane is empty. Do not create credentials, default accounts, BOMs, inventory, lineage or business records merely to make a test pass. Preserve DEFAULT/MATERIAL_RECONCILIATION separation and the current contract in `docs/domain/material-reconciliation.md`; `MEMORY.md` only points to it.
-- No secrets, tokens, real connection strings or personal data in docs/reports. Read only required configuration metadata; do not dump auth files or secret environments.
-- Never rename symbols with blind find-and-replace. Use language-aware tooling/callsite verification; opt-in graph-aware changes follow the policy below.
-- Code changes require relevant docs updated in the same task. Preserve invariants, input validation, data-loss handling, security and accessibility regardless of Ponytail simplification.
+## Ranh giới không được rút gọn
 
-## GitNexus: opt-in only
+- **Pi CLI duy nhất.** Codex API/model trong Pi không phải Codex app/CLI. MCP/codemode chỉ dùng khi live, được cấu hình, trusted và task cho phép; registry runtime khác không chuyển sang Pi. Codex/Claude CLI chỉ khi Kỳ yêu cầu riêng. Adapter: [RUNTIMES](docs/harness/RUNTIMES.md).
+- **GSD duy nhất sở hữu process/state.** Shipyard/skills/Ponytail không tạo task system khác. Một checklist/ledger mỗi objective, một writer mỗi cwd. Mặc định làm trực tiếp; chỉ delegate khi user/instructions áp dụng cho phép, không vì task lớn.
+- Giữ nguyên inherited dirt. Không tự commit/push, reset/restore, seed, đổi operation mode, schema/data mutation hoặc cleanup phá hủy. Auto-ship từ skill không phải authorization. Trước sửa dirty owner phải backup và kiểm conflict theo [MAINTENANCE](docs/harness/MAINTENANCE.md).
+- Không giả định DB lane rỗng; không tạo account/credentials/BOM/inventory/lineage/business record để lấy PASS. Giữ DEFAULT/MATERIAL_RECONCILIATION tách biệt theo [MRX contract](docs/domain/material-reconciliation.md).
+- Không đưa secrets/token/connection string thật/personal data vào docs/report; chỉ đọc config metadata cần thiết, không dump auth/environment.
+- Không rename bằng blind find-and-replace. Kiểm callsites/language semantics. Code thay đổi phải cập nhật relevant docs cùng task; không bỏ validation, data-loss handling, security, accessibility hoặc business invariants.
+- **GitNexus opt-in:** không MCP/CLI/index/graph evidence trừ khi Kỳ yêu cầu GitNexus/impact/blast radius/context/detect_changes cho task này. Khi đó đọc [policy](docs/GITNEXUS-POLICY.md) trước call, đánh giá final diff theo branch và cảnh báo HIGH/CRITICAL. Tool thiếu là limitation, không giả evidence.
 
-Do not call GitNexus MCP/CLI, inspect index or generate graph evidence unless Kỳ explicitly requests GitNexus/impact/blast radius/context/detect_changes for this task. Then read `docs/GITNEXUS-POLICY.md` before the first call: classify final diff, use branch-aware rigor and warn on HIGH/CRITICAL. Graph-free work requires no graph calls even when the tool is installed. Missing graph capability is a limitation, not fabricated evidence.
+## Đọc theo loại việc, không nạp tất cả
 
-## Skill routing
+- Bảng skill bắt buộc có một owner: [DELIVERY §3](docs/harness/DELIVERY.md#3-skill-routing-tối-thiểu); đường dẫn và runtime mapping: [RUNTIMES §3](docs/harness/RUNTIMES.md#3-skill-surface-and-selection). Đọc SKILL.md đã chọn trước áp dụng. Pi dùng `read` hoặc `/skill:name`, không gọi `Skill/Task/Agent/spawn_agent` giả.
+- Code/review: `karpathy-guidelines`; bug runtime/lặp: thêm `diagnosing-bugs`; regression: `tdd`; mọi test write/change/review/sweep: `test-audit`. Chọn tối đa ba discipline cho L0/L1 ngoài GSD/Ponytail; nếu mandatory domain coverage vượt thì nêu lý do, không nới scope.
+- UI: đọc [UI execution harness](docs/UI-UX-EXECUTION-HARNESS.md), [DESIGN](docs/DESIGN.md), [normative rules](docs/DASHBOARD-UI-RULES.md) và [checklist adapter](docs/FRONT-END-CHECKLIST-INTEGRATION.md); áp dụng `frontend-checklist-global`, thêm `ui-styling` khi implement React/shadcn/Tailwind, `sketch-findings-ipcmanagement` cho Template Studio/range/diagnostics.
+- Trước JSX/layout/CSS: SOURCE LOCK + DESIGN LOCK trong checklist theo DELIVERY §4. Truy xuất DOMAIN, DATA-GRAIN-MATRIX, matching domain contract và live route/capability/query/mutation owners. Specimen chỉ cho visual grammar, không tạo fact/navigation/role/workflow mới. Thiếu lock ⇒ `NO_EDIT`.
+- Ponytail `full` cho non-visual, `lite` cho UI component/layout; frontend `ultra` chỉ khi Kỳ yêu cầu non-visual cleanup hẹp. DESIGN quyết định; Fiori, existing shadcn/Base UI/Tailwind và IPC Taste chỉ là bounded lenses. Full Taste/Pro Max không phải router; giữ source hidden, không tự xóa. Các skill asset/prose chỉ đọc đúng scope.
+- Docs/rules: `gsd-docs-update` discipline inline cho bounded task; harness maintenance đọc project `harness-maintenance`. `qa` chỉ thu thập issue. External `handoff` chỉ tạo draft OS-temp, GSD parent fact-check rồi promote. `implement`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `ask-matt`, Claude-only routers và Shipyard orchestration không phải execution path; không tự bật installer/disabled agents.
 
-Read the selected SKILL.md before applying it. In Pi use `read` or `/skill:<name>`; `Skill(...)`, `Task(...)`, `Agent(...)` and Codex `spawn_agent` are not Pi tools. Use only live capabilities. Runtime mapping and on-demand source paths: `docs/harness/RUNTIMES.md`.
+## Browser và hoàn tất
 
-| Task | Minimum discipline |
-|---|---|
-| Code write/review/refactor | `karpathy-guidelines` |
-| Runtime/repeated bug | add `diagnosing-bugs`, lock a red-capable seam first |
-| Behavior regression | add `tdd`; behavior tests over source-string assertions when feasible |
-| Any frontend/UI review or change | project UI rules → `frontend-checklist-global` |
-| React/shadcn/Tailwind interface implementation | add `ui-styling` |
-| SAP Fiori Template Studio, range mapping, validation/diagnostics | `sketch-findings-ipcmanagement` |
-| Any test write/change/review/sweep | `test-audit`; smallest credible owner test, no duplicate/source-mirroring coverage |
-| Docs/rules | `gsd-docs-update` discipline, inline for bounded changes |
-| Planning/task execution | matching GSD skill + Lean lane; not mandatory fan-out |
-
-- L0/L1 uses at most three discipline skills by default, aside from the GSD process selection and already-active Ponytail. Do not add skill layers simply because descriptions overlap. If mandatory domain coverage exceeds the default, name the reason and keep scope fixed.
-- Ponytail defaults to `full` for backend, data, infra, scripts and frontend non-visual logic. Frontend component/layout/visual work uses `lite`; `ultra` is disabled for IPC frontend unless Kỳ explicitly requests it for a tightly scoped non-visual cleanup. Ponytail cannot remove required hierarchy, states, accessibility, business context or product character.
-- IPC product UI uses one authority and three bounded lenses: `docs/DESIGN.md` decides; Fiori informs dense workbench interaction; existing shadcn/Base UI/Tailwind owns accessible mechanics; the IPC Taste adapter only reviews anti-slop. Full `design-taste-frontend` and `ui-ux-pro-max` are not project routers. Retain their source hidden until a separately authorized deletion review.
-- Design-system/brand/banner/slides are on-demand for their actual asset scope, not mandatory for product UI bugs.
-- `qa` collects issues, not fixes. External `handoff` may create an OS-temp draft only; the GSD parent fact-checks and promotes it. `implement`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `ask-matt`, Claude-only routers and Shipyard feature orchestration are not execution paths here.
-
-## UI and browser evidence
-
-- Before UI audit/change read `docs/UI-UX-EXECUTION-HARNESS.md`; before JSX lock floorplan/surface/geometry using `docs/DESIGN.md`. Normative rules: `docs/DASHBOARD-UI-RULES.md`; checklist adaptation: `docs/FRONT-END-CHECKLIST-INTEGRATION.md`.
-- For product UI composition, do not stop after loading visual rules. Before the first JSX/layout edit, retrieve the existing product workflow from `docs/DOMAIN.md`, `docs/DATA-GRAIN-MATRIX.md`, the matching `docs/domain/*` contract, and live route/capability/query/mutation owners. Persist a compact workflow/authority/decision packet in the active GSD checklist and reconcile it with `MEMORY.md`. Existing project knowledge must be retrieved before new research; a specimen supplies visual grammar only and must not create navigation, roles, facts or workflow steps absent from product authority.
-- A screenshot showing orphan controls/headings, blank surfaces or duplicate state is a candidate finding: convert it into a DOM/source oracle. Do not ignore it, and do not use screenshot alone as PASS/FAIL.
-- For a page redesign or broad UI audit, inventory **every captured screen/state in the declared page lock** before production fixes; map all visible candidates to project rule IDs and focused Front-End Checklist coverage. Group confirmed findings by root owner and fix a bounded batch, then reload/click, inspect **every after-screenshot** and rerun the same DOM/action oracles. One green defect, generic overflow check or mounted suite does not close the page; unresolved candidates stay `NEEDS_EVIDENCE`. The full gate lives in `docs/UI-UX-EXECUTION-HARNESS.md`; focused fixes need only their declared envelope and affected consumers.
-- Browser-use must open real headed Chrome directly on the app URL, not a blank tab followed by API-only tests. Resolve current ports, lane, credential source and viewport matrix from MEMORY; do not try stale/default passwords. Add tablet/mobile only when Kỳ asks.
-- Before actions/capture, verify aligned FE/BE listener/build identity and authenticated operation-mode/version/capabilities. Stale/dev-only runtime cannot certify production performance. Do not switch the user's mode to obtain evidence.
-- If agent-browser is unavailable, use `.artifacts/shipyard-live/live-visual-audit.mjs` from project root, not frontend/. It uses a separate persistent profile `.artifacts/browser-use-visual-audit`, not the user's existing Chrome tabs. Reusing an existing browser requires a real attach/CDP session.
-- Evidence: immutable run directory, final screenshot, post-action API request/response, console/page errors, DOM/focus measurements; add long tasks/CLS when claiming performance. Mutation E2E requires FE control → BE request → DB transition → reload render, not API-only PASS.
-- Refresh locators/snapshots after navigation/DOM changes. On helper failure verify timestamp/content of live-visual-audit-error.txt. Stop only helper/Chrome processes created by the current run, never all Chrome.
-- Chrome DevTools is on-demand diagnostics only, not a replacement for Playwright JSON gates. A Codex-configured server is not a Pi capability; Pi-native MCP still requires its own trusted configuration and live verification.
-
-## Completion and context limits
-
-Use Lean standard's per-claim PASS/FAIL/NEEDS_EVIDENCE/BLOCKED gates. Distinguish tool/report-parser failure from test failure and task acceptance; never promote focused tests to whole-UI PASS. One plan/checklist per objective, one writer per cwd, checkpoint after each verified step and before long commands/context switches. On timeout preserve evidence, record the exact command and owned processes, then resume only the missing gate. Do not automatically continue a paused campaign.
-
-Monitor practical context pressure rather than inventing an unsupported exact token limit. Before a long gate or when a session is becoming hard to hand off safely, finish the current verified wave, update the active checklist/MEMORY pointer, and write a fresh-session handover containing the goal, completed commits, current HEAD/status/index, exact next step, tests/evidence, owned processes, blockers and authoritative pointers. When commit authority exists, make a bounded local checkpoint that stages only task-owned hunks, verify the cached diff, and do not push. Resume in a fresh session from those durable pointers, or stop with the exact resume command; a new session does not inherit unpersisted chat state.
+- Browser phải Chrome headed vào app URL thật; xác minh FE/BE listener/build, authenticated mode/version/capabilities và credential source trước action. Không dùng password cũ/default, không đổi mode; mobile/tablet chỉ khi được yêu cầu.
+- Khi agent-browser không có, dùng `.artifacts/shipyard-live/live-visual-audit.mjs` từ root, profile riêng `.artifacts/browser-use-visual-audit`; không đụng user tabs nếu chưa attach/CDP. Refresh locator sau DOM/navigation; helper fail phải kiểm timestamp/content `live-visual-audit-error.txt`. Chỉ dừng process do run tạo. DevTools là diagnostic, không thay Playwright gate.
+- Screenshot là candidate phải chuyển thành DOM/source oracle. Broad page audit phải inventory mọi captured state trước fix và mở từng ảnh sau fix; một defect xanh không đóng page. Tuân theo UI harness; mutation cần FE control → BE request → DB transition → reload. Evidence immutable; performance claim cần metric thật, không lấy DEV-only làm production proof.
+- Dùng `PASS / FAIL / NEEDS_EVIDENCE / BLOCKED` cho từng claim. Tách tool/parser completion, test result và task acceptance; không nâng focused check thành whole-product PASS.
+- Checkpoint sau bước verified và trước command dài/context switch theo [DELIVERY §10](docs/harness/DELIVERY.md#10-ngân-sách-context-và-subagent). Ghi current goal, HEAD/status/index, task-owned vs inherited paths, checks/evidence/limits, owned processes, blockers và đúng next action. Không đoán token limit; không tự resume campaign paused. Fresh session không kế thừa chat chưa persist.
+- HISTORY giữ completed work; evidence hash chỉ ở `docs/EVIDENCE-INDEX.md`. Cleanup phải đọc full source + consumer/backlink + disposition map; giữ compatibility/evidence/history nếu chưa có đủ gate. Không xóa chỉ vì file cũ hoặc không được load lúc startup.

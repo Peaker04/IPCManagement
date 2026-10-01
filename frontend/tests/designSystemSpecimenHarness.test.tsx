@@ -6,8 +6,31 @@ import ColorSurfaceSpecimen from './fixtures/specimens/ColorSurfaceSpecimen';
 import SidebarNavigationSpecimen from './fixtures/specimens/SidebarNavigationSpecimen';
 import OperationalTableSpecimen from './fixtures/specimens/OperationalTableSpecimen';
 import AccessibilityStressSpecimen from './fixtures/specimens/AccessibilityStressSpecimen';
+import EvidenceLaboratorySpecimen from './fixtures/specimens/EvidenceLaboratorySpecimen';
 
 describe('DesignSystemSpecimenHarness (Non-Production Validation Laboratory)', () => {
+  it('does not certify unmeasured geometry or browser zoom in the exported Lab evidence', () => {
+    const { container } = render(<EvidenceLaboratorySpecimen />);
+    const readTelemetry = () => JSON.parse(container.querySelector('#specimen-telemetry-output')!.textContent!);
+
+    expect(readTelemetry().gates).toMatchObject({
+      gate1_diacriticClipping: { status: 'NEEDS_EVIDENCE', clippedElementsCount: null, maxHeadroomPx: null },
+      gate2_mathematicalContrast: { status: 'PASS', pairsEvaluated: 12 },
+      gate3_tabularVariance: { status: 'NEEDS_EVIDENCE', measuredVariancePx: null },
+      gate4_reflowSimulation: { status: 'NEEDS_EVIDENCE', horizontalScrollDetected: null },
+    });
+    expect(readTelemetry().gates.gate2_mathematicalContrast.formBorderRatio).toBeCloseTo(4.76, 2);
+    expect(screen.queryByText(/0\.02px/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/0 Cắt dấu/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/0 Thanh trượt ngang/)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mô phỏng Co giãn 320px/ }));
+    expect(screen.getByText(/không phải phép đo zoom trình duyệt/i)).toBeVisible();
+    expect(readTelemetry().gates.gate4_reflowSimulation.status).toBe('NEEDS_EVIDENCE');
+    fireEvent.click(screen.getByRole('button', { name: /Máy đo Vi sai Số liệu/ }));
+    expect(readTelemetry().gates.gate3_tabularVariance.measuredVariancePx).toBeNull();
+  });
+
   it('mounts the master harness with all five section triggers and footer guard', () => {
     render(<DesignSystemSpecimenHarness />);
 

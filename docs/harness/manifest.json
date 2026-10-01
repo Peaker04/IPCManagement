@@ -38,10 +38,13 @@
     }
   ],
   "activePointers": [
-    ".planning/phases/35-chu-n-h-a-ui-ux-to-n-b-mounted-frontend-theo-claim-envelope/35-CHECKLIST.md",
-    ".planning/notes/nfr-research-and-remediation-PLAN.md"
+    ".planning/notes/FE-CONTRACT-KIT-NORMALIZATION.md"
   ],
   "requiredPointers": [
+    ".planning/notes/HARNESS-WORKFLOW-CLEANUP.md",
+    ".planning/notes/FE-UI-KIT-REDESIGN-PLAN.md",
+    ".planning/phases/35-chu-n-h-a-ui-ux-to-n-b-mounted-frontend-theo-claim-envelope/35-CHECKLIST.md",
+    ".planning/notes/nfr-research-and-remediation-PLAN.md",
     ".planning/phases/32-chu-n-h-a-ki-n-tr-c-ai-agent-harness-d-ng-chung-cho-pi-cli-v/32-CHECKLIST.md",
     ".planning/phases/32-chu-n-h-a-ki-n-tr-c-ai-agent-harness-d-ng-chung-cho-pi-cli-v/32-HANDOVER.md",
     ".planning/phases/31-full-system-ui-ux-audit-and-remediation-using-measurable-com/31-VERIFICATION.md"

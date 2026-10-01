@@ -100,16 +100,34 @@ describe('PaginationBar', () => {
     const user = userEvent.setup();
     const onPageChange = vi.fn();
     const { rerender } = render(
-      <PaginationBar page={2} pageSize={20} totalItems={45} onPageChange={onPageChange} />,
+      <PaginationBar page={2} pageSize={20} totalItems={45} preserveFocusWhilePending onPageChange={onPageChange} />,
     );
 
-    await user.click(screen.getByLabelText('Trang sau, trang 3 trong 3'));
-    rerender(<PaginationBar page={3} pageSize={20} totalItems={45} onPageChange={onPageChange} />);
+    const next = screen.getByLabelText('Trang sau, trang 3 trong 3');
+    await user.click(next);
+    rerender(<PaginationBar page={2} pageSize={20} totalItems={45} preserveFocusWhilePending isPending onPageChange={onPageChange} />);
+    expect(next).not.toBeDisabled();
+    expect(next).toHaveAttribute('aria-disabled', 'true');
+    expect(next).toHaveFocus();
+    await user.click(next);
+    await user.keyboard('{Enter}');
+    await user.keyboard(' ');
+    expect(onPageChange).toHaveBeenCalledTimes(1);
+    rerender(<PaginationBar page={3} pageSize={20} totalItems={45} preserveFocusWhilePending onPageChange={onPageChange} />);
 
     expect(screen.getByLabelText('Trang trước, trang 2 trong 3')).toHaveFocus();
 
-    await user.click(screen.getByLabelText('Trang trước, trang 2 trong 3'));
-    rerender(<PaginationBar page={1} pageSize={20} totalItems={45} onPageChange={onPageChange} />);
+    const previous = screen.getByLabelText('Trang trước, trang 2 trong 3');
+    await user.click(previous);
+    rerender(<PaginationBar page={3} pageSize={20} totalItems={45} preserveFocusWhilePending isPending onPageChange={onPageChange} />);
+    expect(previous).not.toBeDisabled();
+    expect(previous).toHaveAttribute('aria-disabled', 'true');
+    expect(previous).toHaveFocus();
+    await user.click(previous);
+    await user.keyboard('{Enter}');
+    expect(onPageChange).toHaveBeenCalledTimes(2);
+    expect(next).toBeDisabled();
+    rerender(<PaginationBar page={1} pageSize={20} totalItems={45} preserveFocusWhilePending onPageChange={onPageChange} />);
     expect(screen.getByLabelText('Trang sau, trang 2 trong 3')).toHaveFocus();
   });
 });

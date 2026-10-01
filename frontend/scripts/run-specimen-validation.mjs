@@ -672,16 +672,28 @@ async function main() {
     const telemetryRaw = await page.$eval('#specimen-telemetry-output', (el) => el.textContent || '');
     try {
       const telemetryObj = JSON.parse(telemetryRaw);
+      const gates = Object.values(telemetryObj.gates ?? {});
+      if (telemetryObj.schemaVersion !== 3 || gates.length === 0 ||
+          gates.some((gate) => !gate || !['PASS', 'FAIL', 'NEEDS_EVIDENCE'].includes(gate.status))) {
+        throw new Error('Invalid Lab evidence schema/status');
+      }
+      const status = gates.some((gate) => gate.status === 'FAIL') ? 'FAIL'
+        : gates.some((gate) => gate.status === 'NEEDS_EVIDENCE') ? 'NEEDS_EVIDENCE' : 'PASS';
       results.gates.evidence_laboratory = {
-        status: 'PASS',
+        status,
+        parserStatus: 'PASS',
+        scope: 'Lab-reported claims only; no independent geometry or production certification',
         telemetry: telemetryObj,
       };
-      console.log('Successfully extracted machine-readable telemetry JSON from Surface 2.');
-    } catch {
+      if (status === 'FAIL') results.failures.push('Evidence Lab reports a failing claim');
+      console.log(`Lab JSON parsed; evidence status: ${status} (not inferred from parser success).`);
+    } catch (error) {
       results.gates.evidence_laboratory = {
-        status: 'WARN_TELEMETRY_PARSE',
+        status: 'BLOCKED',
+        parserStatus: 'FAIL',
         telemetry: null,
       };
+      results.failures.push(`Lab telemetry parser/schema failure: ${String(error)}`);
     }
     console.log('Captured 17-evidence-laboratory-surface2.png');
 

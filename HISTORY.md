@@ -1806,3 +1806,10 @@ nằm trong `docs/EVIDENCE-INDEX.md`. Không lặp lại bộ số hiện hành 
 - Kỳ accepted Final Gate E at `PASS_SOURCE_WITH_OPEN_RUNTIME_EVIDENCE`; authoritative ledger is `.planning/notes/FE-DESIGN-SYSTEM-RECONSTRUCTION-WAVE1.md` §§68–69.
 - Campaign closed source ownership, semantic-table migration and redesign-selector inventory without changing business workflows. Five imported redesign styles remain because every remaining IPC/state class token has a live production consumer.
 - Residual MRX/BOTH browser cells and naturally unmounted complementary states remain `NEEDS_EVIDENCE`; mutation/destructive lifecycles remain `NOT_CLAIMED`. Acceptance did not switch mode, seed or mutate data, reseal evidence, commit or push.
+
+## Harness workflow cleanup · intake db8d9ed4
+
+- Consolidated startup into AGENTS and task routing into `docs/harness/README.md`; DELIVERY remains process/gate owner, GSD checklist owns task state, MEMORY only points. Removed duplicated startup/handover prose and corrected the docs map's conflicting MEMORY ownership rule.
+- Reconciled stale checker active pointers; no active execution after closeout, UI Kit remains paused. Deleted only the verified untracked `nul` command-output file after backup; retained domain contracts, history/evidence, shared skills and compatibility aliases.
+- Harness checker/self-test, scoped diff/link/secret checks and inherited-file fingerprint checks PASS. No application/test, DB, runtime, package, index, commit or push change. Fresh Pi cold-start compliance and whole-repository orphan deletion remain unclaimed.
+- Bounded source/read scope, safety crosswalk, rollback and next-session entry: `.planning/notes/HARNESS-WORKFLOW-CLEANUP.md` (workspace-local under existing ignored `.planning/` policy); backup/receipt: `.artifacts/harness-workflow-cleanup/`.

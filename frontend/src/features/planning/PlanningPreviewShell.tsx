@@ -17,7 +17,7 @@ const planningViews: Record<PlanningView, { label: string; icon: typeof Calendar
   'dish-materials': { label: 'Định mức theo món', icon: BookOpen },
 }
 
-export function PlanningPreviewShell({ children, activeView = 'schedule' }: { children: ReactNode; activeView?: 'schedule' | 'demand' }) {
+export function PlanningPreviewShell({ children, activeView = 'schedule' }: { children: ReactNode; activeView?: PlanningView }) {
   const operation = useSystemOperation()
   const location = useLocation()
   const currentUser = useAppSelector(selectCurrentUser)
@@ -25,6 +25,7 @@ export function PlanningPreviewShell({ children, activeView = 'schedule' }: { ch
   const capabilityIds = operation?.capabilities.navigation ?? []
   const planningIds = (operation?.capabilities.pageTabs['weekly-menu'] ?? ['schedule'])
     .filter((id): id is PlanningView => id in planningViews)
+  const canReadPlanning = Boolean(currentUser && (currentUser.isAdminFullAccess || currentUser.role === 'admin' || currentUser.permissions?.some(permission => permission === '*' || permission === 'coordination.read')))
 
   return (
     <div className="flex min-h-screen bg-slate-100" data-testid="planning-preview-shell">
@@ -46,8 +47,8 @@ export function PlanningPreviewShell({ children, activeView = 'schedule' }: { ch
                 const item = planningViews[id]
                 const Icon = item.icon
                 const active = id === activeView
-                const previewHref = id === 'schedule' || id === 'demand' ? `/__kit/planning/${id}${location.search}` : '#'
-                return <li key={id}>{previewHref === '#'
+                const previewHref = canReadPlanning && id !== 'material-demand' && (id === 'schedule' || id === 'demand' || operation?.mode === 'DEFAULT') ? `/__kit/planning/${id}${location.search}` : null
+                return <li key={id}>{previewHref === null
                   ? <span aria-disabled="true" className="relative flex items-center gap-2 rounded-[3px] px-2.5 py-1.5 text-xs text-slate-500"><Icon size={14} className="text-slate-400" />{item.label}</span>
                   : <Link to={previewHref} aria-current={active ? 'page' : undefined} className={`relative flex items-center gap-2 rounded-[3px] px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d7acf] focus-visible:ring-offset-1 ${active ? 'bg-[#f0f5fc] font-semibold text-[#164e87] before:absolute before:bottom-1 before:left-[-1px] before:top-1 before:w-[3px] before:rounded-r before:bg-[#164e87]' : 'text-slate-600 hover:bg-slate-100'}`}><Icon size={14} className={active ? 'text-[#164e87]' : 'text-slate-400'} />{item.label}</Link>}
                 </li>

@@ -56,7 +56,7 @@ export function usePurchaseSummary({
   }, { skip: !enabled || !customerId || !weekStartDate })
   const shouldLoadAggregate = enabled && Boolean(customerId) && Boolean(weekStartDate)
   const queryView = shouldLoadAggregate
-    ? toLabeledQueryView(aggregateResult, 'tổng hợp mua của tuần')
+    ? toLabeledQueryView({ ...aggregateResult, data: aggregateResult.currentData, isSuccess: aggregateResult.isSuccess && aggregateResult.currentData !== undefined }, 'tổng hợp mua của tuần')
     : null
   const aggregatePage = queryView?.phase === 'ready' ? queryView.data : undefined
   const presentation = aggregatePage ? {

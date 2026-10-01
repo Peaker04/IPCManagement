@@ -4,6 +4,21 @@ import { describe, expect, it, vi } from 'vitest';
 import { ConfirmDialog } from './ConfirmDialog';
 
 describe('ConfirmDialog', () => {
+  it('keeps contextual reasons in the body and busy Escape/backdrop cannot dismiss', async () => {
+    const onOpenChange = vi.fn()
+    const user = userEvent.setup()
+    render(<ConfirmDialog open busy title="Long confirmation" description="Week scope" confirmLabel="Confirm" onConfirm={vi.fn()} onOpenChange={onOpenChange}><ul><li>All reasons remain readable</li></ul></ConfirmDialog>)
+    const dialog = screen.getByRole('dialog', { name: 'Long confirmation' })
+    const body = dialog.querySelector<HTMLElement>('[data-slot="dialog-body"]')
+    expect(body).not.toBeNull()
+    expect(body).toContainElement(screen.getByText('All reasons remain readable'))
+    expect(body).not.toContainElement(screen.getByRole('heading', { name: 'Long confirmation' }))
+    expect(body).not.toContainElement(screen.getByRole('button', { name: 'Hủy' }))
+    await user.keyboard('{Escape}')
+    await user.click(document.querySelector<HTMLElement>('[data-ipc-dialog-outside="true"]')!)
+    expect(onOpenChange).not.toHaveBeenCalled()
+  })
+
   it('dispatches the explicit confirm and cancel actions', async () => {
     const onConfirm = vi.fn();
     const onOpenChange = vi.fn();

@@ -32,6 +32,7 @@ type Options = {
   dishesById?: Map<string, CatalogDish>
   dishesByName?: Map<string, CatalogDish>
   aggregatePageSize?: number
+  retainRecoverableData?: boolean
 }
 
 const EMPTY_QUERY_ROWS: never[] = []
@@ -52,6 +53,7 @@ export function useMaterialDemand({
   dishesById,
   dishesByName,
   aggregatePageSize = 100,
+  retainRecoverableData = false,
 }: Options) {
   const reduxDispatch = useAppDispatch()
   const scopeKey = `${scope.customerId}:${scope.weekStartDate}`
@@ -63,11 +65,12 @@ export function useMaterialDemand({
   const [feedbackState, setFeedbackState] = useState<{
     scopeKey: string
     value: WeeklyScheduleFeedback | null
+    results?: { serviceDate: string; status: 'success' | 'failed' | 'unchanged'; reason?: string }[]
   }>({ scopeKey, value: null })
   const selectedDayKey = navigation.scopeKey === scopeKey ? navigation.selectedDayKey : null
   const aggregatePageNumber = navigation.scopeKey === scopeKey ? navigation.aggregatePageNumber : 1
   const feedback = feedbackState.scopeKey === scopeKey ? feedbackState.value : null
-  const setFeedback = (value: WeeklyScheduleFeedback | null) => setFeedbackState({ scopeKey, value })
+  const setFeedback = (value: WeeklyScheduleFeedback | null, results?: typeof feedbackState.results) => setFeedbackState({ scopeKey, value, results })
   const serviceDates = useMemo(
     () => Array.from(new Set(weeklyPlanRows.map((row) => row.serviceDate).filter(Boolean))),
     [weeklyPlanRows],
@@ -149,7 +152,15 @@ export function useMaterialDemand({
     errorMessage: 'Không tải được nhu cầu nguyên liệu.',
     forbiddenMessage: 'Bạn không có quyền xem nhu cầu nguyên liệu của phạm vi này.',
   })
-  const demandData = demandView.phase === 'ready' ? demandView.data : undefined
+  const failedSources = [demandQuery, documentsQuery, aggregateQuery].filter(query => query.isError)
+  const hasRetainedDemand = retainRecoverableData && enabled && demandView.phase === 'error'
+    && currentDemandData !== undefined && failedSources.length > 0 && failedSources.every(query => {
+      const error = query.error
+      if (!error || typeof error !== 'object' || !('status' in error)) return false
+      return error.status === 'FETCH_ERROR' || error.status === 'TIMEOUT_ERROR'
+        || (typeof error.status === 'number' && error.status >= 500 && error.status <= 599)
+    })
+  const demandData = demandView.phase === 'ready' ? demandView.data : hasRetainedDemand ? currentDemandData : undefined
   const demandLines = demandData ? demandData.demandLines : EMPTY_QUERY_ROWS
   const workflowDocuments = demandData ? demandData.workflowDocuments : EMPTY_QUERY_ROWS
   const aggregatePage = demandData?.aggregatePage
@@ -277,9 +288,15 @@ export function useMaterialDemand({
       }
     })
     const succeeded = results.filter((result): result is { serviceDate: string; response: NonNullable<(typeof result)['response']> } => 'response' in result)
+    const outcome = serviceDates.map((serviceDate) => {
+      const result = results.find((item) => item.serviceDate === serviceDate)
+      if (!result) return { serviceDate, status: 'unchanged' as const, reason: stalenessResults[serviceDates.indexOf(serviceDate)]?.data?.data?.regenerationBlockReason ?? 'Ngày không thể cập nhật' }
+      return 'response' in result ? { serviceDate, status: 'success' as const }
+        : { serviceDate, status: 'failed' as const, reason: getApiErrorMessage(result.error, 'Không tính được nhu cầu cho ngày này.') }
+    })
     if (succeeded.length === 0) {
       const firstError = results.find((result) => 'error' in result)?.error
-      setFeedback({ title: 'Chưa tạo được nhu cầu', message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'), variant: 'danger' })
+      setFeedback({ title: 'Chưa tạo được nhu cầu', message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'), variant: 'danger' }, outcome)
       return
     }
     reduxDispatch(apiSlice.util.invalidateTags([
@@ -289,26 +306,36 @@ export function useMaterialDemand({
       workflowCacheTags.purchaseRequests,
       workflowCacheTags.documents,
     ]))
-    const skipped = results.length - succeeded.length
+    const skipped = serviceDates.length - succeeded.length
     const demandLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.length, 0)
     const shortageLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length, 0)
     const missingBomCount = succeeded.reduce((sum, result) => sum + result.response.data!.missingBomDishes.length, 0)
     const planLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.productionPlanLineCount, 0)
     setFeedback({
-      title: skipped > 0 ? 'Đã tạo nhu cầu cho ngày đã chốt' : 'Đã tạo nhu cầu cho tuần',
-      message: `Tạo thành công ${succeeded.length}/${results.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Kế hoạch thu mua dự kiến sẽ lấy trực tiếp từ nhu cầu, tồn kho và lượng hàng đang chờ nhận.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có định lượng nguyên liệu cần bổ sung.` : 'Định lượng nguyên liệu đã đủ cho các dòng nhu cầu.'}`,
+      title: skipped > 0 ? 'Đã tính nhu cầu một phần của tuần' : 'Đã tạo nhu cầu cho tuần',
+      message: `Tạo thành công ${succeeded.length}/${serviceDates.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Kế hoạch thu mua dự kiến sẽ lấy trực tiếp từ nhu cầu, tồn kho và lượng hàng đang chờ nhận.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có định lượng nguyên liệu cần bổ sung.` : 'Định lượng nguyên liệu đã đủ cho các dòng nhu cầu.'}`,
       variant: missingBomCount > 0 || skipped > 0 ? 'warning' : 'info',
-    })
+    }, outcome)
   }
 
   return {
     scope,
+    weeklyCommand: {
+      dates: serviceDates.map((serviceDate, index) => {
+        const result = stalenessResults[index]
+        return { serviceDate, preflight: result?.data?.data, unavailable: Boolean(result?.isError || result?.isLoading || result?.isFetching || !result?.data?.data) }
+      }),
+      pendingServings: getPendingQuickServingRows(quickServingRows, serviceDates),
+      invalidTier: invalidScheduleMenuPrices.length > 0,
+      missingPortions: weeklyPlanRows.some((row) => row.portions <= 0),
+    },
     dataState: demandView,
-    state: { selectedDayKey, aggregatePageNumber, feedback },
+    state: { selectedDayKey, aggregatePageNumber, feedback, generationResults: feedbackState.scopeKey === scopeKey ? feedbackState.results : undefined },
     status: {
       isGenerating,
       isSavingQuickServings,
       isFetchingAggregate,
+      hasRetainedDemand,
       isDemandError,
       isDemandRetrying,
       isApprovalHistoryError,

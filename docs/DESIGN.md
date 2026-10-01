@@ -1115,9 +1115,15 @@ Chính sách thích ứng theo ngữ cảnh khung nhìn:
 Khi tiến hành tái cấu trúc presentation layer từ đầu (Greenfield presentation + Brownfield verified behavior):
 1. **Được phép thay thế hoàn toàn:** Mã CSS cũ, file CSS redesign tạm bợ, cây JSX cũ, các hàng tab ngang mức route cũ (bao gồm cả 6 tab Thực đơn tuần khi chuyển lên Sidebar), cấu trúc thẻ card thừa thãi, khoảng cách pixel cũ, và các snapshot hình ảnh cũ không phản ánh đúng chuẩn này.
 2. **Bất biến Thay thế Presentation (MUST — Anti-Wrapper Replacement):**
+   - Trước mọi JSX/layout/CSS edit, active GSD checklist phải PASS `SOURCE LOCK` và `DESIGN LOCK` theo `docs/harness/DELIVERY.md`. DESIGN LOCK bắt buộc ghi đủ `DESIGN_TEMPLATE`, `CANONICAL_SPECIMEN`, `ZONES`, `SHARED_PRIMITIVES`, `TOKENS`, `SKILLS_READ`, `ALLOWED_DEVIATIONS`; thiếu bất kỳ field nào ⇒ `NO_EDIT`.
    - Một page/workspace chỉ được gọi là **đã thay FE** khi cây presentation mới sở hữu trực tiếp route identity, scope/commands, conditional state và primary work surface. Việc tạo component owner mới rồi tiếp tục delegate primary surface, heading, command bar hoặc navigation composition cho page/section legacy chỉ là extraction/refactor, **không phải replacement** và không được promote thành migration PASS.
    - Trong giai đoạn chuyển đổi, không chèn thêm lớp Kit vào giữa shell/tab/page legacy nếu kết quả giữ nhiều owner cạnh tranh cho cùng fact. Customer, week, lifecycle, readiness và primary action phải có đúng một presentation owner trong page mới.
    - Khi shell/navigation cũ làm sai hierarchy của page mới, dựng presentation greenfield trên route preview/harness non-production trong **cùng frontend application**, dùng chung auth/API/domain hooks/primitives. Không tạo application thứ hai. Chỉ cutover production sau khi page family đạt acceptance; route preview không được xuất hiện trong production navigation.
+   - Preview/harness phải có disposition trong active GSD checklist:
+     - `SANDBOX_ONLY`: presentation độc lập chỉ dùng cho exploration/conformance, không là production acceptance owner, không xuất hiện trong production navigation và không được trở thành implementation song song lâu dài. Không thực hiện business mutation trừ một gate được owner cấp quyền riêng.
+     - `PRODUCTION_OWNER_REUSE`: preview mount chính production presentation owner với adapter/data harness mỏng; không fork JSX/layout.
+     - Không có disposition hoặc preview độc lập nhưng được claim như production owner ⇒ `NO_EDIT`/`FAIL`.
+     - Khi cutover, promote chính presentation component đã được khóa thành production owner trong một batch nguyên tử rồi retire sandbox route; không duy trì hai implementation.
    - Shared domain primitive đã kiểm chứng (ví dụ matrix merge, table semantics, dialog mechanics) MAY được tái sử dụng. Legacy page composition, cross-view switch, duplicate heading/breadcrumb/tab và page-local CSS shell MUST NOT được mang sang chỉ để giảm diff.
 3. **Bắt buộc bảo toàn nguyên vẹn (MUST preserve):** Luồng nghiệp vụ đã kiểm chứng, từ vựng domain (`GLOSSARY.md`), quyền hạn actor, các guard chặn chuyển trạng thái, công thức tính toán tài chính và tính chính trực của chuỗi dữ liệu FE $\rightarrow$ API $\rightarrow$ DB.
 4. **Phân loại kiểm thử khi refactor:**
@@ -1188,13 +1194,15 @@ NON-PRODUCTION SPECIMEN HARNESS (/tests/fixtures/specimen.html)
 │   └── Chuẩn mực thẩm mỹ: Nền Cool Slate (#f1f5f9), thẻ trắng (#ffffff), hairline 1px (#cbd5e1), ISA-101 tĩnh lặng
 └── SURFACE 2: TECHNICAL EVIDENCE LABORATORY (Phòng Thí nghiệm Đo lường Kỹ thuật)
     ├── Đối tượng phục vụ: Playwright runner, Vitest suites, CI/CD automated gates, audit tiếp cận
-    ├── Dụng cụ đo lường tự động:
-    │   ├── Thiết bị đo 1: Bảng tính toán độ tương phản sRGB WCAG 2.2 tự động cho 12 cặp màu cốt lõi
-    │   ├── Thiết bị đo 2: Cảm biến quét tràn dấu Tiếng Việt (DOM ScrollHeight Probe so sánh clientHeight)
-    │   ├── Thiết bị đo 3: Máy đo vi sai bề rộng ký tự số Tabular Figures (độ lệch < 0.20px)
-    │   └── Thiết bị đo 4: Mô phỏng co giãn 320px CSS width (Reflow 200% Zoom) không sinh thanh cuộn ngang
-    └── Đầu ra máy đọc: Khối JSON `#specimen-telemetry-output` phục vụ trích xuất tự động trong CI pipeline
+    ├── Phép tính và mẫu probe (không tự chứng nhận measurement):
+    │   ├── Thiết bị đo 1: Tính tương phản sRGB cho 12 cặp hex khai báo; không phải computed contrast toàn trang
+    │   ├── Thiết bị đo 2: Mẫu dấu tiếng Việt; NEEDS_EVIDENCE đến khi có geometry dương và kiểm glyph độc lập
+    │   ├── Thiết bị đo 3: Mẫu Tabular Figures; NEEDS_EVIDENCE đến khi font đã tải và độ rộng chữ được đo độc lập
+    │   └── Thiết bị đo 4: Khung CSS tối đa 320px; không tương đương browser zoom 200%, không chứng minh reflow toàn trang
+    └── Đầu ra máy đọc: JSON schemaVersion 3 `#specimen-telemetry-output`; parser PASS không nâng claim NEEDS_EVIDENCE thành PASS
 ```
+
+Tiêu đề trên nền tối của Lab phải có foreground explicit tại owner: h2 trắng `#ffffff`, tiêu đề JSON sky `#7dd3fc`. Không dựa vào màu kế thừa từ container: rule h1–h4 toàn cục có thể ghi đè nó. Gate kiểm computed foreground/background sau transition; dùng chuyển đổi màu trình duyệt sang sRGB khi computed CSS là OKLCH, không parse OKLCH như RGB. Gate này chỉ bảo vệ hai tiêu đề, không chứng nhận accessibility toàn trang.
 
 ### 20.5. Sáu Chiến lược Phân định Thị giác theo Trật tự "Quiet Operational"
 Bố cục giao diện công nghiệp của IPCManagement tuân thủ nghiêm ngặt 6 chiến lược phân định thị giác, ưu tiên từ ít mực thị giác nhất (Quiet / Zero-ink) đến đậm nhất:
@@ -1216,8 +1224,8 @@ Thay vì sử dụng nhãn gộp chung, mọi quyết định thiết kế và t
 | **Hiệu năng Chuyển động** | Bounded Layout Transition qua CSS Grid | **`PROVISIONAL_FOR_PRODUCTION_SLICE`** | Không phát sinh tụt khung hình cảm nhận được trong kịch bản mẫu phẩm. |
 | **Màu Hành động Chính** | `--color-action-primary-bg` (`#164e87`) | **`ACCESSIBILITY_VALIDATED`** | Tương phản chữ trắng 8.51:1 (WCAG 2.2 AA PASS), phân định với Info Blue. |
 | **Độ rõ Nét Viền Form** | `--color-border-strong` (`#64748b`) | **`ACCESSIBILITY_VALIDATED`** | Tương phản 4.76:1 trên trắng và 4.34:1 trên canvas slate (WCAG SC 1.4.11 PASS). |
-| **Mật độ Ô bảng** | Compact 32px vs Standard 36px | **`MECHANICALLY_VALIDATED`** | Không phát sinh cắt dấu DOM (+8.5px headroom an toàn) trong 14 mẫu thử. |
-| **Số liệu Dạng bảng** | `tabular-nums` với VND `₫` | **`MECHANICALLY_VALIDATED`** | Độ lệch vi sai bề rộng ký tự số đo được 0.02px < ngưỡng cho phép 0.20px. |
+| **Mật độ Ô bảng** | Compact 32px vs Standard 36px | **`NEEDS_EVIDENCE`** | Không dùng headroom 8.5px hard-coded trong Lab làm số đo. Cần run geometry/glyph độc lập; lịch sử khác chỉ giữ hiệu lực trong scope artifact của nó. |
+| **Số liệu Dạng bảng** | `tabular-nums` với VND `₫` | **`NEEDS_EVIDENCE`** | Không dùng vi sai 0.02px hard-coded trong Lab làm số đo. Cần đo chữ sau khi font tải, geometry dương, theo ngưỡng 0.20px. |
 | **Kiến trúc Icon Tier 1** | Lucide Mechanics v1 (16px/20px) | **`DEFINED`** | Chuẩn hóa stroke 2.0px, viewBox 0 0 24 24. |
 | **Bản đồ Icon Nghiệp vụ** | Curated Domain Vocabulary (14 Core Icons) | **`SPECIMEN_ACCEPTED`** | Giải quyết triệt để va chạm ChefHat và nạp chồng Scale 6-hướng. |
 | **Bộ Icon Pictogram Tự vẽ** | Custom IPC SVG Pictogram Family | **`NOT_CREATED / PROVISIONAL`** | Chưa vẽ bộ SVG riêng; hiện sử dụng phép ẩn dụ chọn lọc từ Lucide. |

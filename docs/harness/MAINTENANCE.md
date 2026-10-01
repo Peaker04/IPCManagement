@@ -8,13 +8,10 @@ scope: harness-retrieval-update-retirement
 
 ## Bootstrap
 
-1. Đọc root `AGENTS.md`, rồi `MEMORY.md`.
-2. So sánh cwd, branch, HEAD, index và dirty scope.
-3. Nếu resume, theo đúng GSD checkpoint; nếu task mới, không tự chạy campaign đang pause.
-4. Dùng [`docs/README.md`](../README.md) authority map và [harness index](README.md) để chọn nguồn theo task.
-5. Chỉ đọc domain/skill/runbook liên quan. Không auto-load HISTORY, toàn planning tree hoặc evidence.
-6. Trước mutation, xác nhận scope/authority/prerequisite; sau mỗi wave verified, cập nhật checklist và handover.
-7. Với cleanup evidence, tuân theo [artifact retention policy](ARTIFACTS.md): dry-run trước, bảo vệ tracked/reference paths và chỉ apply khi owner đã cấp quyền xóa.
+Theo [AGENTS](../../AGENTS.md) và [workflow entry](README.md); không tạo startup/checklist thứ hai.
+Trước thay đổi harness, đọc governance và active GSD checkpoint. Các bước riêng cho maintenance nằm dưới.
+Cleanup evidence phải theo [artifact retention policy](ARTIFACTS.md): dry-run, bảo vệ tracked/reference paths,
+chỉ apply exact reviewed scope khi có quyền xóa; không coi file ít dùng là file thừa.
 
 ## Cập nhật tài liệu
 

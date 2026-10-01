@@ -24,16 +24,14 @@ The reusable skill is the supported project integration surface.
 ## Authority and precedence
 
 Front-End Checklist is a review and retrieval corpus, not a second IPCManagement design system.
-Apply authorities in this order:
-
-1. Data safety, permission, operation-mode and domain contracts.
-2. [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md), the normative IPCManagement UI contract.
-3. [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), project-specific product and interaction interpretation.
-4. [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md), evidence and execution process.
-5. Front-End Checklist rules as an external quality adapter for coverage, explanations and remediation ideas.
+Apply the project authority split in [`DESIGN.md` §2](DESIGN.md#2-authority--governance-stack)
+and the stage-specific skill envelope in [`harness/DELIVERY.md` §3.1](harness/DELIVERY.md#31-skill-envelope--không-trộn-các-processdesign-authority).
+Business/data safety decides facts and permissions; DESIGN decides visual grammar; [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) owns
+normative IDs; the UI harness owns evidence execution and Measurement Protocol owns metrics.
+Front-End Checklist only supplies focused external review coverage below these owners.
 
 An upstream recommendation MUST NOT silently override an IPCManagement rule. Record the conflict and apply
-the project precedence above. Examples of contextual rules rather than automatic requirements include PWA,
+these ownership boundaries; conflicting project clauses must be reconciled, not resolved by skill preference. Examples of contextual rules rather than automatic requirements include PWA,
 dark mode, print styles, public-site SEO, CDN, service workers and mobile-only behavior.
 
 ## Required workflow for UI/UX changes

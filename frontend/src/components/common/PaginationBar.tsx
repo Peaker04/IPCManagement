@@ -12,6 +12,7 @@ interface PaginationBarProps {
   className?: string;
   itemLabel?: string;
   isPending?: boolean;
+  preserveFocusWhilePending?: boolean;
   pageSizeOptions?: readonly number[];
   onPageSizeChange?: (pageSize: number) => void;
 }
@@ -24,6 +25,7 @@ export function PaginationBar({
   className,
   itemLabel,
   isPending = false,
+  preserveFocusWhilePending = false,
   pageSizeOptions,
   onPageSizeChange,
 }: PaginationBarProps) {
@@ -114,9 +116,11 @@ export function PaginationBar({
           <button
             ref={previousButtonRef}
             type="button"
-            className="ipc-pagination-button"
-            disabled={isPending || !meta.hasPrevious}
+            className={cn('ipc-pagination-button', isPending && preserveFocusWhilePending && 'cursor-not-allowed opacity-50')}
+            disabled={(isPending && !preserveFocusWhilePending) || !meta.hasPrevious}
+            aria-disabled={isPending && preserveFocusWhilePending || undefined}
             onClick={(event) => {
+              if (isPending) return;
               rememberAnchor('previous', event.currentTarget);
               onPageChange(Math.max(1, meta.page - 1));
             }}
@@ -130,9 +134,11 @@ export function PaginationBar({
           <button
             ref={nextButtonRef}
             type="button"
-            className="ipc-pagination-button"
-            disabled={isPending || !meta.hasNext}
+            className={cn('ipc-pagination-button', isPending && preserveFocusWhilePending && 'cursor-not-allowed opacity-50')}
+            disabled={(isPending && !preserveFocusWhilePending) || !meta.hasNext}
+            aria-disabled={isPending && preserveFocusWhilePending || undefined}
             onClick={(event) => {
+              if (isPending) return;
               rememberAnchor('next', event.currentTarget);
               onPageChange(Math.min(meta.totalPages, meta.page + 1));
             }}

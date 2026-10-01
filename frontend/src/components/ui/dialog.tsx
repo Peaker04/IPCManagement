@@ -91,6 +91,7 @@ function notifyDialogStack() {
 }
 
 function registerDialogEntry(id: string, portalRoot: HTMLElement | null) {
+  cancelPendingFocusRestore?.()
   const index = activeDialogs.findIndex((d) => d.id === id)
   if (index >= 0) {
     activeDialogs[index].portalRoot = portalRoot
@@ -171,12 +172,52 @@ function syncInertState() {
   })
 }
 
+let cancelPendingFocusRestore: (() => void) | null = null
+
+function restoreDialogOpener(opener: HTMLElement | null) {
+  cancelPendingFocusRestore?.()
+  if (!opener?.isConnected) return () => undefined
+  const viable = () => !opener.matches(":disabled") && !opener.closest("[inert], [hidden]")
+  if (viable()) {
+    opener.focus()
+    return () => undefined
+  }
+  if (activeDialogs.length > 0) return () => undefined
+  const fallback = document.activeElement
+  if (fallback !== document.body && !(fallback instanceof HTMLElement && fallback.closest("[data-ipc-dialog-portal]"))) return () => undefined
+  const stillWaiting = () => document.activeElement === document.body || document.activeElement === fallback
+  const cancel = () => {
+    observer.disconnect()
+    clearTimeout(timer)
+    document.removeEventListener("focusin", onFocus)
+    window.removeEventListener("popstate", cancel)
+    window.removeEventListener("hashchange", cancel)
+    window.removeEventListener("pagehide", cancel)
+    if (cancelPendingFocusRestore === cancel) cancelPendingFocusRestore = null
+  }
+  const onFocus = () => { if (!stillWaiting()) cancel() }
+  const retry = () => {
+    if (!opener.isConnected || activeDialogs.length > 0 || !stillWaiting()) return cancel()
+    if (viable()) { cancel(); opener.focus() }
+  }
+  const observer = new MutationObserver(retry)
+  observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["disabled", "inert", "hidden"] })
+  // Resource cap only: readiness may take longer; never substitute another opener.
+  const timer = setTimeout(cancel, 5000)
+  document.addEventListener("focusin", onFocus)
+  window.addEventListener("popstate", cancel)
+  window.addEventListener("hashchange", cancel)
+  window.addEventListener("pagehide", cancel)
+  cancelPendingFocusRestore = cancel
+  return cancel
+}
+
 function getFocusableElements(dialog: HTMLElement) {
   return Array.from(
     dialog.querySelectorAll<HTMLElement>(
       'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
     ),
-  ).filter((element) => !element.hasAttribute("aria-hidden"))
+  ).filter((element) => !element.matches(":disabled") && !element.closest('[hidden], [inert], [aria-hidden="true"]'))
 }
 
 function closeOpenSelectPopups() {
@@ -189,6 +230,7 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
   const titleId = React.useId()
   const portalId = React.useId()
   const openerRef = React.useRef<HTMLElement | null>(null)
+  const cancelRestoreRef = React.useRef<(() => void) | null>(null)
   const onOpenChangeRef = React.useRef(onOpenChange)
   const onCloseRequestRef = React.useRef(onCloseRequest)
   React.useEffect(() => {
@@ -237,10 +279,12 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
       if (!orphanedDialogIds.delete(portalId)) {
         unlockBodyScroll()
       }
-      openerRef.current?.focus()
+      cancelRestoreRef.current = restoreDialogOpener(openerRef.current)
       openerRef.current = null
     }
   }, [open, portalId])
+
+  React.useEffect(() => () => cancelRestoreRef.current?.(), [])
 
   React.useEffect(() => {
     const portalRoot = document.getElementById(portalId)
@@ -253,8 +297,18 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
       return undefined
     }
 
-    const focusable = getFocusableElements(dialog)
-    ;(focusable[0] ?? dialog).focus()
+    if (!isTopDialog) return undefined
+    const retargetFocus = () => {
+      if (!dialog.isConnected || activeDialogs.at(-1)?.id !== portalId) return
+      const active = document.activeElement
+      if (!dialog.contains(active) || active instanceof HTMLElement && active.matches(":disabled")) {
+        ;(getFocusableElements(dialog)[0] ?? dialog).focus()
+      }
+    }
+    ;(getFocusableElements(dialog)[0] ?? dialog).focus()
+    const focusObserver = new MutationObserver(retargetFocus)
+    focusObserver.observe(dialog, { subtree: true, childList: true, attributes: true, attributeFilter: ["disabled", "hidden", "tabindex", "aria-hidden"] })
+    document.addEventListener("focusin", retargetFocus)
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -268,7 +322,11 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
     }
 
     window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      document.removeEventListener("focusin", retargetFocus)
+      focusObserver.disconnect()
+    }
   }, [open, portalId, isTopDialog, requestClose])
 
   if (!open || typeof document === "undefined") {
@@ -350,6 +408,9 @@ export function DialogContent({
       if (!first || !last) {
         event.preventDefault()
         event.currentTarget.focus()
+      } else if (!focusable.includes(document.activeElement as HTMLElement)) {
+        event.preventDefault()
+        ;(event.shiftKey ? last : first).focus()
       } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault()
         last.focus()

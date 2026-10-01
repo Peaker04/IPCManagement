@@ -1,0 +1,14 @@
+import { useWeeklyProductionPlan } from '@/features/projects/weekly-menu/production-plan/useWeeklyProductionPlan'
+import type { WeeklyMenuScope } from '@/features/projects/weekly-menu/schedule/types'
+import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
+import { EmptyState } from '@/components/common'
+import { PageStepper } from '@/components/common/PageStepper'
+import { formatDateOnly, formatNumber } from '@/lib/formatters'
+import { getShiftLabel } from '@/features/projects/weekly-menu/model/formatters'
+import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
+export function ProductionPlanScreen({ scope, enabled }: { scope: WeeklyMenuScope; enabled: boolean }) {
+  const { state, actions, presentation, dataState } = useWeeklyProductionPlan(scope, enabled)
+  return <QueryViewBoundary queries={[{ label: 'kế hoạch sản xuất', view: dataState }]}><section aria-label="Kế hoạch sản xuất đã sinh"><div className="planning-read-scope"><label>Ngày phục vụ<select value={state.selectedDayKey ?? ''} onChange={event=>actions.selectDay(event.target.value || null)}><option value="">Cả tuần</option>{scope.displayDays.map(day=><option key={day.key} value={day.key}>{day.label} · {day.date}</option>)}</select></label>{presentation.pages.length > 0 && <PageStepper page={state.pageIndex+1} totalPages={presentation.pages.length} label="Nhóm KHSX" ariaLabel="Điều hướng kế hoạch sản xuất" onPageChange={actions.setPage}/>}</div>
+    {presentation.pages.length === 0 ? <EmptyState title="Chưa có kế hoạch sản xuất trong tuần đã chọn"/> : presentation.activePage?.plans.map(plan=><article key={plan.planId} className="mb-4 border border-slate-300 bg-white p-3"><header className="flex flex-wrap justify-between gap-3"><h2>{plan.planCode}</h2><span>{getWorkflowStatusPresentation(plan.status ?? undefined).label}</span></header><dl className="planning-read-summary"><div><dt>Ngày phục vụ</dt><dd>{formatDateOnly(plan.planDate)}</dd></div><div><dt>Plan ID</dt><dd className="break-all">{plan.planId}</dd></div><div><dt>Phiên bản thực đơn</dt><dd>{plan.menuVersionNo ?? 'Chưa có'} · {plan.menuVersionStatus ?? 'Chưa xác định'}<small className="block break-all">{plan.menuVersionId ?? 'Không có ID phiên bản'}</small></dd></div></dl><div className="planning-read-table"><table><caption className="sr-only">Dòng món của {plan.planCode}</caption><colgroup><col style={{width:'20%'}}/><col style={{width:'60%'}}/><col style={{width:'20%'}}/></colgroup><thead><tr><th scope="col">Ca</th><th scope="col">Món ăn</th><th scope="col" data-cell-role="numeric">Số suất</th></tr></thead><tbody>{plan.lines.map(line=><tr key={line.planLineId}><td>{getShiftLabel(line.shiftName ?? undefined)}</td><td>{line.dishName ?? 'Chưa xác định món'}</td><td data-cell-role="numeric">{formatNumber(line.totalServings)}</td></tr>)}</tbody></table></div></article>)}
+  </section></QueryViewBoundary>
+}

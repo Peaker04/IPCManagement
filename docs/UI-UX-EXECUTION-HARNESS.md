@@ -89,13 +89,33 @@ trong run; không lưu đường dẫn tuyệt đối của input/output. Input 
 không tạo manifest và không để lại Chrome do command sở hữu. Sau triage, điền linkage trong evidence của wave;
 không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
 
-## 2. Vòng lặp thực thi — reproduce once, fix once, prove once
+## 2. Canonical fail-closed execution
+
+UI work follows exactly one pipeline owned by the active GSD checklist:
+
+`SOURCE LOCK → DESIGN LOCK → IMPLEMENT → VISUAL CONFORMANCE → FR/NFR/PERF → EVIDENCE`.
+
+Before step 5 below or any JSX/layout/CSS edit, the checklist must contain concrete values for `DESIGN_TEMPLATE`, `CANONICAL_SPECIMEN`, `ZONES`, `SHARED_PRIMITIVES`, `TOKENS`, `SKILLS_READ`, and `ALLOWED_DEVIATIONS`. Missing/placeholder value means `NO_EDIT`. `SKILLS_READ` records exact skill path and applicable coverage used; merely naming a skill in project docs is not evidence.
+
+Visual conformance requires a named reference and side-by-side review of same-state/same-viewport before/after images. Record each image's candidate or `NO_CANDIDATE`; absent review means `NEEDS_EVIDENCE`, never visual PASS.
+
+### Enforcement checks
+
+1. **Lock schema check:** all seven DESIGN LOCK keys exist once in the active GSD checklist and have non-placeholder values.
+2. **Skill receipt check:** every mandatory skill has exact path + coverage; unavailable retrieval is recorded as a limitation, not claimed.
+3. **Specimen boundary check:** no specimen fixture/mock business data is imported into production; references are visual only.
+4. **Preview disposition check:** every preview is `SANDBOX_ONLY` or `PRODUCTION_OWNER_REUSE`; independent preview JSX cannot be claimed as a second production owner.
+5. **Visual reference check:** named reference + matching before/after denominator + reviewed-image ledger reconcile.
+6. **Owner-preservation check:** route/query/mutation/permission and domain/BE/API/DB owners are unchanged unless an attributed claim authorizes change.
+7. **Evidence check:** FR/NFR/PERF verdicts are separate and immutable artifacts are linked from GSD; no parallel checklist/state store.
+
+### Execution detail — reproduce once, fix once, prove once
 
 1. Chọn `L0/L1/L2` theo [`harness/DELIVERY.md`](harness/DELIVERY.md).
    UI fix thông thường là L1 và làm inline; không tự gọi planner + executor + hai reviewer.
 2. Đọc `AGENTS.md`, `MEMORY.md`, [đầu mối rule](UI-PHILOSOPHY.md) và `DESIGN.md`, sau đó chỉ mở contract
-   liên quan. **Khóa design brief, actor/action matrix và walkthrough ở DESIGN §7 trước implementation**;
-   lưu trong cùng GSD plan/ledger, không tạo design workflow khác. Contract debug bổ sung:
+   liên quan. Hoàn tất SOURCE LOCK và DESIGN LOCK trong active GSD checklist; **không đủ bảy field ⇒ `NO_EDIT`**.
+   Contract debug bổ sung:
    `symptom | route/mode/actor/state/grain | floorplan | geometry role | red loop | owner | success | out-of-scope`.
    UI mới dùng acceptance scenario red-capable; không giả tạo một reproduction trên route chưa tồn tại.
    Thiếu quyết định outcome/quyền/data safety thì dừng phần phụ thuộc và hỏi owner, không vẽ/coding để lấp chỗ trống.

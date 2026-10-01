@@ -74,7 +74,64 @@ không thể tạo feedback loop tại seam hiện tại. Không nâng lane ch�
 non-visual logic, `lite` cho component/layout/visual work; frontend `ultra` chỉ khi owner yêu cầu rõ cho cleanup
 non-visual hẹp. Simplification không được xóa hierarchy, state, accessibility hoặc business context bắt buộc.
 
-## 4. Contract và retrieval packet trước khi sửa
+### 3.1. Skill envelope — không trộn các process/design authority
+
+Skill là phương pháp hỗ trợ một bước, không phải nguồn quyền hay contract. Discovery/đã đọc không có nghĩa
+mọi chỉ dẫn của skill đều đang active. Trong cùng checklist, ghi một dòng cho mỗi skill được áp dụng:
+`stage | skill + path | phần được dùng | phần không áp dụng | output/oracle`.
+Không tạo skill manifest hoặc checklist thứ hai. Bảng dưới là giới hạn áp dụng, không tăng số skill bắt buộc.
+
+| Stage | Discipline áp dụng | Không được mang sang |
+|---|---|---|
+| Intake / contract | GSD + karpathy; domain/source quyết định task/grain/permission | Skill tự thêm role, endpoint, KPI, scope hoặc workflow |
+| Design lock | DESIGN quyết định; Fiori là lens workbench đã tích hợp | Theme SAP, full Taste/Pro Max, canvas/poster/marketing grammar |
+| Implement UI | ui-styling: mechanics của primitives đã cài; Ponytail lite | `shadcn init/add`, package mới, Radix thay Base UI, dark mode/mobile tự phát, xóa hierarchy để ít code |
+| Diagnose / regression | diagnosing-bugs + tdd cho behavior; test-audit quyết định giá trị/owner test | Mỗi skill tạo suite riêng; test count hoặc source-string thay observable outcome |
+| Verify UI | frontend-checklist-global: nhóm rule phù hợp, dưới project adapter | Public SEO/PWA/print/mobile mặc định, quét 385 rule hoặc external MCP khi chưa có capability/quyền |
+| Performance | Measurement Protocol + attribution tại FE/network/BE/DB | Memoization/virtualization/cache/index/architecture chỉ vì skill đề xuất |
+| Closeout | GSD checklist + per-claim evidence | Auto-commit/ship, skill/subagent tự đóng task, prose PASS thay oracle |
+
+**Conflict rule:** safety/authorization và domain truth không bị design/skill hạ thấp; DESIGN sở hữu hình thái,
+DASHBOARD-UI-RULES sở hữu normative rule IDs, data contract sở hữu FE–API–DB integrity, Measurement Protocol sở hữu
+metric/oracle, DELIVERY sở hữu process. Nếu hai project owners thật sự mâu thuẫn, ghi exact clauses và chặn
+phần phụ thuộc để reconcile owner; không chọn skill đọc sau cùng, trộn hai phương án hay âm thầm sửa expected
+contract theo implementation. External guidance trái owner được ghi `NOT_APPLICABLE` với lý do.
+
+Ví dụ: upstream yêu cầu mobile-first không mở thêm mobile acceptance; "ít code" không bỏ dirty guard;
+"chỉ transform/opacity" không tự xóa bounded disclosure đã được DESIGN cho phép, nhưng CSS Grid cũng không
+chứng minh không có layout cost; khuyến nghị DB index chỉ được áp sau query evidence và migration authority.
+Đổi stage phải bỏ các chỉ dẫn không thuộc stage đó; receipt `SKILLS_READ` không phải blanket activation.
+
+## 4. Contract, SOURCE LOCK và DESIGN LOCK trước khi sửa
+
+Mọi FE/UI execution dùng đúng một fail-closed pipeline; các loop khác trong tài liệu này chỉ là sub-step, không phải process song song:
+
+```text
+SOURCE LOCK → DESIGN LOCK → IMPLEMENT → VISUAL CONFORMANCE → FR/NFR/PERF → EVIDENCE
+```
+
+- **SOURCE LOCK:** active GSD checklist giữ retrieval packet, scope, domain/grain, actor/mode, capability/permission, query/mutation owners, invariants và unknowns.
+- **DESIGN LOCK:** active GSD checklist giữ đúng bảy field bắt buộc bên dưới. Thiếu hoặc placeholder bất kỳ field nào thì verdict là `NO_EDIT`; không sửa JSX/layout/CSS.
+- **IMPLEMENT:** chỉ bắt đầu sau hai lock; giữ domain/BE/API/DB behavior trừ khi source evidence quy trách nhiệm cho owner đó.
+- **VISUAL CONFORMANCE:** named reference + cùng state/viewport before/after + review side-by-side từng ảnh; JSON/DOM xanh mà chưa review ảnh không phải visual PASS.
+- **FR/NFR/PERF:** disposition theo claim/owner, không suy từ visual PASS.
+- **EVIDENCE:** immutable receipts và per-claim verdict được link từ GSD; không tạo task-state database khác.
+
+DESIGN LOCK schema bắt buộc:
+
+```text
+DESIGN_TEMPLATE     : named DESIGN template/approved floorplan
+CANONICAL_SPECIMEN  : exact specimen/image reference, or NOT_APPLICABLE + authority reason
+ZONES               : page zones and one presentation owner per business fact/action
+SHARED_PRIMITIVES   : existing production primitives to reuse; legacy wrappers to exclude/retire
+TOKENS              : named semantic tokens and permitted component variants
+SKILLS_READ         : skill + exact SKILL.md path + coverage used for this lock
+ALLOWED_DEVIATIONS  : explicit deviations with authority/reason; NONE is valid
+```
+
+Specimen authority is limited to visual grammar/interaction. It never supplies business data, role, permission, capability, route, lifecycle or product fact.
+
+### Contract và retrieval packet
 
 Trước production edit, ghi ngắn gọn trong commentary hoặc finding ledger:
 

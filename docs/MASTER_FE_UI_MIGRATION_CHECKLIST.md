@@ -8,6 +8,14 @@ Replace the mounted frontend experience with the **adopted UI Kit's page grammar
 
 The existing route `/weekly-menu?view=schedule` is the current mount, not the mandatory final information architecture. DESIGN §7 describes target Weekly Menu workspaces; changing routes/sidebar, preserving deep links, actor permissions and query scope needs an explicit architecture cutover gate, not a silent CSS change. FE can be rewritten or deleted where the replacement is verified. BE can be corrected or removed **only for a specific demonstrated contradiction with domain/product authority**, after tracing consumers, persisted data and deployment/migration consequences; never delete BE merely because a new UI does not use an endpoint. No DB/schema/data change, seed, restore, mode switch or destructive cleanup is implicitly authorized by this roadmap.
 
+## Canonical execution pipeline
+
+This roadmap has no independent execution flow. Every page family must pass the single GSD-owned pipeline in `docs/harness/DELIVERY.md`:
+
+`SOURCE LOCK → DESIGN LOCK → IMPLEMENT → VISUAL CONFORMANCE → FR/NFR/PERF → EVIDENCE`.
+
+Before JSX/layout/CSS changes, the active GSD checklist must contain `DESIGN_TEMPLATE`, `CANONICAL_SPECIMEN`, `ZONES`, `SHARED_PRIMITIVES`, `TOKENS`, `SKILLS_READ`, and `ALLOWED_DEVIATIONS`; otherwise `NO_EDIT`. Campaign stages below describe dependencies only and cannot override or duplicate those gates.
+
 ## Campaign stages (dependencies, not a rigid page order)
 
 1. **Rebaseline the kit and mounted product.** Compare the 23 accepted specimen images and `docs/DESIGN.md` against real route×mode×actor×state screens. Reuse Wave 0 inventory as discovery, not migrated acceptance. Identify concrete target floorplan, design tokens, states, responsive behavior and workflow per page family. Inventory existing FE owners and backend contracts, classifying keep/rebuild/retire and unresolved domain conflicts.

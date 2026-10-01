@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -20,7 +20,64 @@ function BodyScrollFixture() {
   return <Dialog open onOpenChange={() => undefined}><DialogContent scrollMode="body"><DialogHeader><DialogTitle>Luồng dài</DialogTitle></DialogHeader><DialogBody><div>Nội dung dài</div></DialogBody><DialogFooter><DialogClose>Đóng</DialogClose></DialogFooter></DialogContent></Dialog>
 }
 
+function BusyFixture({ busy = false, closed = false, openerDisabled = false }: { busy?: boolean; closed?: boolean; openerDisabled?: boolean }) {
+  const [open, setOpen] = useState(false)
+  return <><button disabled={openerDisabled} onClick={() => setOpen(true)}>Opener</button><button>Other control</button><Dialog open={open && !closed} onOpenChange={setOpen}><DialogContent><DialogTitle>Busy operation</DialogTitle><button disabled={busy}>Continue</button></DialogContent></Dialog></>
+}
+
 describe('shared dialog contract', () => {
+  it('retargets disabled modal focus and restores the same temporarily disabled opener after completion', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<BusyFixture />)
+    const opener = screen.getByRole('button', { name: 'Opener' })
+    await user.click(opener)
+    expect(screen.getByRole('button', { name: 'Continue' })).toHaveFocus()
+    rerender(<BusyFixture busy openerDisabled />)
+    const dialog = screen.getByRole('dialog', { name: 'Busy operation' })
+    await waitFor(() => expect(dialog).toHaveFocus())
+    await user.keyboard('{Tab}{Shift>}{Tab}{/Shift}')
+    expect(dialog).toHaveFocus()
+    rerender(<BusyFixture closed openerDisabled />)
+    expect(opener.parentElement).not.toHaveAttribute('inert')
+    expect(document.body.style.overflow).not.toBe('hidden')
+    rerender(<BusyFixture closed />)
+    await waitFor(() => expect(opener).toHaveFocus())
+  })
+
+  it.each(['navigation', 'timeout', 'opener removal'] as const)('cancels deferred opener restore on %s', async (reason) => {
+    vi.useFakeTimers()
+    try {
+      const { rerender } = render(<BusyFixture />)
+      const opener = screen.getByRole('button', { name: 'Opener' })
+      opener.focus()
+      fireEvent.click(opener)
+      rerender(<BusyFixture closed openerDisabled />)
+      if (reason === 'navigation') window.dispatchEvent(new PopStateEvent('popstate'))
+      if (reason === 'timeout') act(() => vi.advanceTimersByTime(5000))
+      if (reason === 'opener removal') {
+        const parent = opener.parentElement!
+        const next = opener.nextSibling
+        opener.remove()
+        await act(async () => {})
+        parent.insertBefore(opener, next)
+      }
+      rerender(<BusyFixture closed />)
+      await act(async () => {})
+      expect(opener).not.toHaveFocus()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('does not steal deliberate outside focus while awaiting opener readiness', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<BusyFixture />)
+    await user.click(screen.getByRole('button', { name: 'Opener' }))
+    rerender(<BusyFixture closed openerDisabled />)
+    const other = screen.getByRole('button', { name: 'Other control' })
+    await user.click(other)
+    rerender(<BusyFixture closed />)
+    await waitFor(() => expect(other).toHaveFocus())
+  })
+
   it('DIALOG-01 limits content to approved sizes and preserves fixed chrome while content scrolls', () => {
     render(<Fixture />)
     const dialog = screen.getByRole('dialog')

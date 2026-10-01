@@ -25,9 +25,10 @@ import { useMaterialDemand } from '@/features/projects/weekly-menu/demand/useMat
 import { WeeklyMenuImportDialog } from '@/features/projects/weekly-menu/import/WeeklyMenuImportDialog'
 import { useWeeklyMenuImport } from '@/features/projects/weekly-menu/import/useWeeklyMenuImport'
 import { WeeklyScheduleEditorDialog } from '@/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog'
+import type { WeeklyScheduleFeedback } from '@/features/projects/weekly-menu/schedule/types'
 import { useWeeklyScheduleEditor } from '@/features/projects/weekly-menu/schedule/useWeeklyScheduleEditor'
 import { SchedulePage } from './SchedulePage'
-import { MaterialDemandWorkspacePage } from '../demand/MaterialDemandWorkspacePage'
+import { DemandPlanningScreen } from '../demand/DemandPlanningScreen'
 import { PlanningPreviewShell } from '../PlanningPreviewShell'
 import { buildSchedulePageModel } from './schedulePageModel'
 
@@ -41,6 +42,12 @@ export default function SchedulePreviewPage() {
   const [params, setParams] = useSearchParams()
   const customerId = params.get('customerId') ?? ''
   const weekStartDate = normalizeWeekStartDate(params.get('weekStartDate') ?? '')
+  const [servingFeedback, setServingFeedback] = useState<WeeklyScheduleFeedback | null>(null)
+  const [feedbackScope, setFeedbackScope] = useState(`${customerId}:${weekStartDate}`)
+  if (feedbackScope !== `${customerId}:${weekStartDate}`) {
+    setFeedbackScope(`${customerId}:${weekStartDate}`)
+    setServingFeedback(null)
+  }
   const [confirmClose, setConfirmClose] = useState<'import' | 'editor' | null>(null)
   const [editorContentReady, setEditorContentReady] = useState(false)
   const reduxWeeklyMenu = useCoordinationStoreSelector((state) => state.coordination.weeklyMenu)
@@ -81,6 +88,9 @@ export default function SchedulePreviewPage() {
   const menuSchedules = schedulesQuery.data?.data ?? schedulesQuery.currentData?.data ?? []
   const mealPlansQuery = useGetMealQuantityPlansQuery({ customerId, ...(weekStartDate ? { weekStartDate } : {}) }, { skip: isReconciliationMode || !customerId || !weekStartDate })
   const mealQuantityPlans = mealPlansQuery.data?.data ?? mealPlansQuery.currentData?.data ?? []
+  const demandInputViews = [committedView, toLabeledQueryView(schedulesQuery, 'lịch thực đơn'), toLabeledQueryView(mealPlansQuery, 'số suất'), toLabeledQueryView(catalogQuery, 'BOM món')]
+  const demandInputFailure = demandInputViews.find(view => view.phase === 'forbidden' || view.phase === 'error')
+  const demandInputPhase = demandInputFailure?.phase === 'forbidden' ? 'forbidden' : demandInputFailure?.phase === 'error' ? 'error' : demandInputViews.some(view => view.phase !== 'ready') ? 'loading' : 'ready'
   const [publishSchedule, { isLoading: isPublishing }] = useUpdateMenuScheduleVersionMutation()
 
   const schedulePrices = [...new Set(menuSchedules.map((schedule) => schedule.menuPrice).filter((price) => Number.isFinite(price) && price > 0))]
@@ -121,7 +131,7 @@ export default function SchedulePreviewPage() {
     lockedShifts,
     catalogDishes,
     onMenuFeedback: () => undefined,
-    onQuickServingFeedback: () => undefined,
+    onQuickServingFeedback: setServingFeedback,
   })
   const importWorkflow = useWeeklyMenuImport({
     customers,
@@ -178,6 +188,7 @@ export default function SchedulePreviewPage() {
     dishesById,
     dishesByName,
     aggregatePageSize: 12,
+    retainRecoverableData: true,
   })
 
   function updateScope(update: { customerId?: string; weekStartDate?: string }) {
@@ -222,7 +233,7 @@ export default function SchedulePreviewPage() {
   return (
     <PlanningPreviewShell activeView={activeView}>
       {activeView === 'demand'
-        ? <MaterialDemandWorkspacePage workflow={demandWorkflow} scheduleWorkflow={editorWorkflow} />
+        ? <DemandPlanningScreen key={`${customerId}:${weekStartDate}`} workflow={demandWorkflow} scheduleWorkflow={editorWorkflow} servingFeedback={servingFeedback} coordinates={model.scope} pricing={model.pricing} inputPhase={demandInputPhase} onCustomerChange={(nextCustomerId) => updateScope({ customerId: nextCustomerId })} onWeekChange={(nextWeek) => updateScope({ weekStartDate: nextWeek })} onRetryInputs={() => { for (const query of [committedQuery, schedulesQuery, mealPlansQuery, catalogQuery]) if (!query.isUninitialized) void query.refetch() }} />
         : <SchedulePage
           model={model}
           isImporting={importWorkflow.status.isImporting}

@@ -70,20 +70,10 @@ output path or compact return; escalation boundary; timeout.
 
 ## 5. Context-pressure checkpoint and fresh-session handover
 
-Do not claim a fixed 250k/300k session API unless the active runtime actually exposes one. Monitor practical pressure instead: remaining work versus verification cost, command duration, repeated compaction, and whether the current state can still be reviewed safely. Checkpoint after every verified wave and before a long gate.
-
-The active GSD checklist remains the task-state owner; `MEMORY.md` stores only its current pointer. Before leaving a pressured session, write one fresh-session handover with:
-
-- goal and exact current wave/task;
-- completed bounded commit hashes;
-- current branch/HEAD plus worktree and index status;
-- task-owned paths versus inherited owner dirt;
-- exact remaining command or edit;
-- tests, evidence paths and residual evidence limits;
-- owned listeners/runners and teardown state;
-- blockers and authoritative resume pointers.
-
-When the user has authorized local checkpoints, stage only task-owned files or hunks, inspect `git diff --cached`, run the wave gate, commit locally, then verify the index is empty. Never push implicitly. Start the next wave in a fresh child/session with a minimal packet, or stop and provide the exact resume pointer/command. The receiving session must re-read source/runtime and compare HEAD/status/index; it does not inherit unpersisted chat merely because a handover exists.
+The single handover/checkpoint contract is [DELIVERY §10](DELIVERY.md#10-ngân-sách-context-và-subagent).
+Keep the GSD checklist as state owner and MEMORY as its pointer; do not create a runtime-specific handover schema.
+A fresh Pi session must reconcile live HEAD/status/index and cannot inherit unpersisted chat. Never claim a fixed
+250k/300k context API or automatic commit authority. Checkpoint only task-owned hunks when the user permits commits.
 
 ## 6. Acceptance and recovery adapter
 

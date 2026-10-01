@@ -1,0 +1,30 @@
+/* Kit candidate bindings confined to the sandbox Demand presentation. */
+.demand-screen {
+  --ipc-primitive-marine-700: #164e87;
+  --ipc-primitive-marine-800: #113c69;
+  --ipc-primitive-marine-900: #0c2b4c;
+  --ipc-primitive-marine-50: #f0f5fc;
+  --ipc-primitive-focus: #2d7acf;
+  --status-neutral-fg: #475569;
+  --status-info-fg: #0369a1;
+  --status-success-fg: #0f766e;
+  --status-warning-fg: #92400e;
+  --status-danger-fg: #b91c1c;
+  --status-info-bg: #f0f9ff;
+  --status-success-bg: #f0fdfa;
+  --status-warning-bg: #fffbeb;
+  --status-danger-bg: #fef2f2;
+  --alert-info-fg: var(--status-info-fg);
+  --alert-info-bg: var(--status-info-bg);
+  --alert-success-fg: var(--status-success-fg);
+  --alert-success-bg: var(--status-success-bg);
+  --alert-warning-fg: var(--status-warning-fg);
+  --alert-warning-bg: var(--status-warning-bg);
+  --alert-danger-fg: var(--status-danger-fg);
+  --alert-danger-bg: var(--status-danger-bg);
+  --demand-action: var(--ipc-primitive-marine-700);
+  --demand-action-hover: var(--ipc-primitive-marine-800);
+  --demand-action-active: var(--ipc-primitive-marine-900);
+  --demand-selection: var(--ipc-primitive-marine-50);
+  --demand-focus: var(--ipc-primitive-focus);
+}

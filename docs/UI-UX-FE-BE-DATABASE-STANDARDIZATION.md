@@ -8,7 +8,17 @@ source_of_truth: source code, test và evidence hiện hành
 
 # Chuẩn hóa UI/UX và dữ liệu FE–BE–Database
 
-## 1. Kết luận hiện trạng
+## 1. Cách áp dụng hiện hành
+
+File này sở hữu **contract xuyên lớp**, không sở hữu task status hoặc một workflow riêng. Quy trình/gate nằm ở
+[DELIVERY](harness/DELIVERY.md) và [UI execution harness](UI-UX-EXECUTION-HARNESS.md); FR/NFR/performance phải có
+claim, owner, oracle và verdict riêng trong GSD checkpoint. BE/DB được ghi `UNCHANGED` khi diff không đụng contract
+của chúng, không bắt đổi cả ba lớp cho mọi UI edit. E2E/persisted outcome được claim thì vẫn cần chain ở §3.
+
+Các rollout/closeout ngày 2026-08-03 ở §1.1, §2.1, §5.4 và §7 là **historical observations**, không chứng minh
+HEAD/runtime hiện tại. Không lấy số migrations, trạng thái OPEN hay command cũ làm preflight hiện hành.
+
+### 1.1. Historical baseline (2026-08-03)
 
 Tại thời điểm `2026-08-03`, IPC Management **chưa nên được kết luận là đã chuẩn hóa 100% từ FE đến Database**. Trạng thái chính xác là:
 
@@ -34,8 +44,8 @@ Bản này là contract làm việc để:
 Bản này **không thay thế** các nguồn chuyên biệt:
 
 - quy tắc grain và chống double-count: [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md);
-- quyết định UI canon: [`UI-CONFORMANCE-MATRIX.md`](UI-CONFORMANCE-MATRIX.md) và [`PB-UI-VARIANT-AUDIT.md`](PB-UI-VARIANT-AUDIT.md);
-- trạng thái/evidence hiện hành: [`MEMORY.md`](../MEMORY.md) và [`EVIDENCE-INDEX.md`](EVIDENCE-INDEX.md);
+- quyết định UI hiện hành: [`DESIGN.md`](DESIGN.md); normative IDs: [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md). `UI-CONFORMANCE-MATRIX`/`PB-UI-VARIANT-AUDIT` là nguồn legacy có scope riêng, không thay design authority;
+- task status: GSD checkpoint được [`MEMORY.md`](../MEMORY.md) trỏ tới; accepted evidence: [`EVIDENCE-INDEX.md`](EVIDENCE-INDEX.md);
 - điểm vào nguyên tắc UI/UX của IPCManagement: [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md); rule normative đầy đủ: [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md).
 
 ### 2.1. Trạng thái rollout
@@ -222,17 +232,25 @@ Một thay đổi chỉ được xem là hoàn tất khi tất cả điều ki�
   Không có overflow, console/page error, escaped mutation hoặc layout shift ngoài ngưỡng đã được duyệt.
 - [ ] `git diff --check` và secret/stub scan pass; tài liệu liên quan được đồng bộ trong cùng thay đổi.
 
-## 9. Bộ kiểm chứng tối thiểu
+## 9. Chọn bộ kiểm chứng theo owner và claim
 
-Chạy từ project root, không reset/seed/import lại database chỉ để làm test xanh:
+Không có một lệnh broad duy nhất làm gate cho mọi thay đổi. Chọn command hiện hành từ [TESTING](TESTING.md)
+và package/project source; chạy focused loop trước, rồi các gate bắt buộc cho diff. Không dùng `--no-build` với
+binary chưa chứng minh cùng source. Không reset/seed/import database để làm test xanh.
 
-```powershell
-dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-build --no-restore
-npm run verify
-git diff --check
-```
+| Diff / claim | Kiểm chứng bắt buộc phù hợp | Không suy ra |
+|---|---|---|
+| Presentation/reference-only | Owner behavior/a11y, TS/lint, browser/visual theo declared envelope | BE/DB correctness hoặc production acceptance |
+| Query/filter/state/cache | FE owner state tests + request/response/scope/reload khi claim live | 403/failed query là empty; local aggregate là server truth |
+| DTO/API/permission | Wire/generated parity + server allow/deny/validation + affected FE consumer | Hidden button là authorization |
+| Domain mutation | Service/transaction/concurrency/idempotency + FE→API→DB→reload cho E2E claim | HTTP 200 là durable outcome |
+| Schema/query/provider | Explicit lane/migration authority, provider translation/integrity/query evidence, recovery phù hợp | In-memory/SQLite là MySQL proof |
+| Performance | Matched before/after conditions, cold/warm, request economy, loading stability và attributed metric theo Measurement Protocol | Lab sample là field p75/SLO; specimen là production timing |
 
-Với thay đổi chỉ ở UI, vẫn phải chạy source-aware/UI tests phù hợp. Với thay đổi liên quan dữ liệu hoặc mutation, phải bổ sung API regression và E2E/browser evidence; không dùng kết quả BE/API riêng lẻ để kết luận UI đã đúng.
+Security, reliability, compatibility và operability là NFR độc lập, không gộp thành "UI đẹp/mượt". Chỉ mở BE/DB
+work khi request/trace/contract xác định root owner; không cache/index hay tạo endpoint để che FE duplication.
+Luôn `git diff --check` và scoped secret/stub scan. Thiếu quyền/runtime/data thì giữ đúng claim ở
+`BLOCKED`/`NEEDS_EVIDENCE`; không hạ gate để lấy PASS.
 
 ## 10. Nguồn kiểm chứng
 

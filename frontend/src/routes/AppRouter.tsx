@@ -33,6 +33,10 @@ const SchedulePreviewPage = planningPreviewEnabled
   ? lazy(() => import('../features/planning/schedule/SchedulePreviewPage'))
   : null;
 
+const ReadPlanningPreviewPage = planningPreviewEnabled
+  ? lazy(() => import('../features/planning/cost/ReadPlanningPreviewPage'))
+  : null;
+
 const routeFallback = (
   <section
     aria-busy="true"
@@ -77,6 +81,9 @@ export const AppRouter = () => {
               <Route path="/__kit/planning/demand" element={<RoleGuard requiredPermissions={routeRegistry[ROUTES.WEEKLY_MENU].requiredPermissions!}><SystemOperationProvider><Suspense fallback={routeFallback}><SchedulePreviewPage /></Suspense></SystemOperationProvider></RoleGuard>} />
             </>
           )}
+          {planningPreviewEnabled && ReadPlanningPreviewPage && (['dish-materials', 'cost', 'production-plan', 'purchase-summary'] as const).map(view => (
+            <Route key={view} path={`/__kit/planning/${view}`} element={<RoleGuard requiredPermissions={routeRegistry[ROUTES.WEEKLY_MENU].requiredPermissions!}><SystemOperationProvider><Suspense fallback={routeFallback}><ReadPlanningPreviewPage view={view} /></Suspense></SystemOperationProvider></RoleGuard>} />
+          ))}
           <Route element={<MainLayout />}>
             <Route path={ROUTES.FORBIDDEN} element={<Suspense fallback={routeFallback}><ForbiddenPage /></Suspense>} />
             <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={routeFallback}><DashboardPage /></Suspense>} />

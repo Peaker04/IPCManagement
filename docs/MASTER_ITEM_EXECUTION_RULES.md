@@ -9,9 +9,29 @@
 3. Existing FE hooks/API/BE policies/tests reveal compatibility obligations and reuse candidates. **Do not preserve old JSX, CSS, tab layout or route topology just because they exist.** Rebuild or delete FE after callsite and consumer verification. Do not invent ButtonV2/TableV2 or a second state system when the existing accessible primitive can be adapted.
 4. A specific BE endpoint/service can be fixed or retired if proven inconsistent with domain authority, with callers, auth, DB lineage, migration/rollback and regression gates. Unused from the redesigned FE ≠ wrong business behavior. Destructive schema/data changes, protected-lane writes, seeds, restores, mode switches and deletion of historical records require their own explicit safe authorization; this campaign grants none by default.
 
-## 2. Retrieval packet và design brief trước implementation (Gate B)
+## 2. SOURCE LOCK + DESIGN LOCK trước implementation (Gate B)
 
-Gate B bắt đầu bằng retrieval, không bắt đầu từ specimen. Trước khi khóa page, active GSD checklist phải link và tóm tắt đủ: workflow trước/sau của work object; actor/mode; grain; source-of-truth và precedence; route/capability/permission hiện hành; query/mutation owner; quyết định người dùng; consumer hạ nguồn. Tái sử dụng knowledge trong `DOMAIN.md`, `DATA-GRAIN-MATRIX.md`, matching `docs/domain/*` và source owners; chỉ nghiên cứu mới phần thực sự thiếu. Specimen quyết định visual grammar, không được sinh module, role, navigation leaf, context fact hoặc business state không tồn tại trong authority/codebase.
+Gate B implements the canonical fail-closed pipeline from `docs/harness/DELIVERY.md`:
+
+`SOURCE LOCK → DESIGN LOCK → IMPLEMENT → VISUAL CONFORMANCE → FR/NFR/PERF → EVIDENCE`.
+
+The active GSD checklist is the only state owner. This file supplies campaign acceptance only. Any older `SOURCE → IMPLEMENT → TEST → BROWSER VERIFY → RECORD`, Gate letter, red/green or browser loop is subordinate to this sequence and cannot skip a lock.
+
+**SOURCE LOCK** bắt đầu bằng retrieval, không bắt đầu từ specimen. Trước khi khóa page, active GSD checklist phải link và tóm tắt đủ: workflow trước/sau của work object; actor/mode; grain; source-of-truth và precedence; route/capability/permission hiện hành; query/mutation owner; quyết định người dùng; consumer hạ nguồn. Tái sử dụng knowledge trong `DOMAIN.md`, `DATA-GRAIN-MATRIX.md`, matching `docs/domain/*` và source owners; chỉ nghiên cứu mới phần thực sự thiếu. Specimen quyết định visual grammar, không được sinh module, role, navigation leaf, context fact hoặc business state không tồn tại trong authority/codebase.
+
+**DESIGN LOCK** phải ghi đủ bảy field sau trong cùng active GSD checklist trước mọi JSX/layout/CSS edit:
+
+```text
+DESIGN_TEMPLATE
+CANONICAL_SPECIMEN
+ZONES
+SHARED_PRIMITIVES
+TOKENS
+SKILLS_READ
+ALLOWED_DEVIATIONS
+```
+
+Mỗi field phải có value cụ thể; `CANONICAL_SPECIMEN` chỉ được `NOT_APPLICABLE` khi có authority reason, và `ALLOWED_DEVIATIONS: NONE` là hợp lệ. Thiếu field, placeholder, hoặc skill chỉ được nhắc trong docs nhưng không có path/coverage receipt ⇒ `NO_EDIT`.
 
 Cùng Gate B phải khóa FR/NFR claim matrix và owner split. FR mô tả scenario có outcome/handoff chứ không chỉ component có mặt. NFR tối thiểu disposition usability/accessibility, performance, reliability/recovery, security/privacy, compatibility và operability. Mỗi claim ghi `FE | API/BE | DB | shared`, oracle, threshold authority và escalation trigger. Với chiến dịch FE mới, mặc định giữ BE/DB `UNCHANGED`; chỉ mở backend batch khi mounted FE/source/trace chứng minh contract, permission, payload, latency, integrity, concurrency, transaction, audit hoặc observability owner nằm ở server. Visual PASS không đóng FR hoặc NFR.
 
@@ -19,9 +39,11 @@ For each **page lock** define: actor/mode/work object/data grain; intended task 
 
 Scope is a **coherent page/workflow**, not one CSS selector. Include directly owned tabs/dialogs/consumers needed for its Kit composition. Independent workstreams can be batched/reordered by dependency and capacity; keep one writer per cwd/owner and one GSD plan/checklist. Do not force reference after reference onto legacy shell when the target IA requires a shell cutover. Keep affected legacy consumers operational until replacement is verified.
 
-## 3. Implementation and research loop (Gate C)
+## 3. IMPLEMENT → VISUAL CONFORMANCE → FR/NFR/PERF → EVIDENCE (Gate C)
 
-`SOURCE + DESIGN BRIEF → red-capable oracle → REBUILD/ADAPT → TEST → HEADED BROWSER → IMAGE REVIEW → RECORD`. Trace route/query/action/permission/BE/DB implications first. Choose the smallest **complete page-level** reconstruction that meets the brief, not the smallest diff. Diagnose root causes at the correct owner; a mask, pixel-only test, or new CSS override is not acceptance if static/scroll/focus/other states diverge. A visual defect must have a DOM/geometry/interaction oracle; evaluate after-images individually. If an oracle can turn green while the image remains wrong, repair the oracle rather than declaring PASS.
+Sau hai lock, implementation dùng red-capable oracle tại owner thấp nhất. Visual conformance bắt buộc có `DESIGN_TEMPLATE`/`CANONICAL_SPECIMEN` đã đặt tên, cùng-state/cùng-viewport before/after và review side-by-side từng ảnh. Không có named reference hoặc chưa review ảnh sau sửa thì visual verdict là `NEEDS_EVIDENCE`, kể cả runner JSON xanh. Sau đó mới disposition FR/NFR/PERF và ghi evidence immutable; không dùng visual PASS thay functional, reliability, accessibility, security hoặc performance acceptance.
+
+`SOURCE + DESIGN BRIEF → red-capable oracle → REBUILD/ADAPT → TEST → HEADED BROWSER → IMAGE REVIEW → RECORD` là implementation loop nội bộ của pipeline trên, không phải pipeline cạnh tranh. Trace route/query/action/permission/BE/DB implications first. Choose the smallest complete page-level reconstruction that meets the lock; a mask, pixel-only test or class assertion is not acceptance when mounted state, focus or image conformance diverges.
 
 Bind target kit tokens to mounted CSS/primitive consumers and measure computed values, not just class names or gallery snapshots. Preserve input validation, data-loss handling, security and accessibility. Use existing owner tests; add/change tests only after `test-audit`, with a credible pre-fix failure and no test-only production seam. Run focused owner tests, affected shared consumers, TypeScript, scoped ESLint and `git diff --check`; expand gates based on actual impact.
 
