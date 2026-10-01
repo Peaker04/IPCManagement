@@ -1,0 +1,37 @@
+
+ RUN  v4.1.10 D:/ki7/PRN222 Doanh Nghiệp/IPCManagement/frontend
+
+ ❯ src/features/planning/cost/ReadPlanningPreviewPage.test.tsx (12 tests | 6 failed) 274ms
+   × blocks every invalid present schedule price 0 without denying physical reads 2ms
+   × blocks every invalid present schedule price -25000 without denying physical reads 0ms
+   × blocks every invalid present schedule price 25000 without denying physical reads 0ms
+   × blocks every invalid present schedule price 25000 without denying physical reads 0ms
+   × blocks every invalid present schedule price null without denying physical reads 0ms
+   × blocks every invalid present schedule price null without denying physical reads 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price 0 without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price -25000 without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price 25000 without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price 25000 without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price null without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price null without denying physical reads
+TypeError: prices.map is not a function
+ ❯ src/features/planning/cost/ReadPlanningPreviewPage.test.tsx:63:30
+     61| })
+     62| it.each([[0], [-25000], [25000, 0], [25000, -1], [NaN], [Infinity]])('…
+     63|   fixture.schedules = prices.map(menuPrice => ({ menuPrice, serviceDat…
+       |                              ^
+     64|   const cost = show('cost')
+     65|   expect(screen.getByText('Không xác định được định mức tuần')).toBeVi…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 6 passed (12)
+   Start at  19:52:07
+   Duration  2.12s (transform 462ms, setup 142ms, import 855ms, tests 274ms, environment 705ms)
+
+exitCode=1

@@ -1,0 +1,186 @@
+
+ RUN  v4.1.10 D:/ki7/PRN222 Doanh Nghiệp/IPCManagement/frontend
+
+ ❯ src/features/planning/cost/ReadPlanningPreviewPage.test.tsx (12 tests | 6 failed) 296ms
+   × blocks every invalid present schedule price [ +0 ] without denying physical reads 13ms
+   × blocks every invalid present schedule price [ -25000 ] without denying physical reads 13ms
+   × blocks every invalid present schedule price [ 25000, +0 ] without denying physical reads 9ms
+   × blocks every invalid present schedule price [ 25000, -1 ] without denying physical reads 9ms
+   × blocks every invalid present schedule price [ NaN ] without denying physical reads 9ms
+   × blocks every invalid present schedule price [ Infinity ] without denying physical reads 13ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price [ +0 ] without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price [ -25000 ] without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price [ 25000, +0 ] without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price [ 25000, -1 ] without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price [ NaN ] without denying physical reads
+ FAIL  src/features/planning/cost/ReadPlanningPreviewPage.test.tsx > blocks every invalid present schedule price [ Infinity ] without denying physical reads
+TestingLibraryElementError: Unable to find an element with the text: Không xác định được định mức tuần. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33mclass[39m=[32m"flex min-h-screen bg-slate-100"[39m
+      [33mdata-testid[39m=[32m"planning-preview-shell"[39m
+    [36m>[39m
+      [36m<aside[39m
+        [33mclass[39m=[32m"hidden w-[272px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex h-12 items-center gap-2 border-b border-slate-200 px-3.5"[39m
+        [36m>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"grid size-7 place-items-center rounded-[3px] bg-[#164e87] text-white"[39m
+          [36m>[39m
+            [36m<svg[39m
+              [33maria-hidden[39m=[32m"true"[39m
+              [33mclass[39m=[32m"lucide lucide-chef-hat"[39m
+              [33mfill[39m=[32m"none"[39m
+              [33mheight[39m=[32m"16"[39m
+              [33mstroke[39m=[32m"currentColor"[39m
+              [33mstroke-linecap[39m=[32m"round"[39m
+              [33mstroke-linejoin[39m=[32m"round"[39m
+              [33mstroke-width[39m=[32m"2"[39m
+              [33mviewBox[39m=[32m"0 0 24 24"[39m
+              [33mwidth[39m=[32m"16"[39m
+              [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+            [36m>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M17 21a1 1 0 0 0 1-1v-5.35c0-.457.316-.844.727-1.041a4 4 0 0 0-2.134-7.589 5 5 0 0 0-9.186 0 4 4 0 0 0-2.134 7.588c.411.198.727.585.727 1.041V20a1 1 0 0 0 1 1Z"[39m
+              [36m/>[39m
+              [36m<path[39m
+                [33md[39m=[32m"M6 17h12"[39m
+              [36m/>[39m
+            [36m</svg>[39m
+          [36m</span>[39m
+          [36m<span[39m
+            [33mclass[39m=[32m"text-xs font-bold text-slate-900"[39m
+          [36m>[39m
+            [0mIPC System[0m
+          [36m</span>[39m
+        [36m</div>[39m
+        [36m<nav[39m
+          [33maria-label[39m=[32m"Điều hướng chính IPCManagement"[39m
+          [33mclass[39m=[32m"flex-1 overflow-y-auto px-2 py-3 text-slate-700"[39m
+        [36m>[39m
+          [36m<div>[39m
+            [36m<button[39m
+              [33maria-controls[39m=[32m"preview-group-planning"[39m
+              [33maria-expanded[39m=[32m"true"[39m
+              [33mclass[39m=[32m"flex w-full items-center gap-3 rounded-[3px] px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d7acf] focus-visible:ring-offset-1"[39m
+              [33mtype[39m=[32m"button"[39m
+            [36m>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-calendar-days text-[#164e87]"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"18"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"18"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 2v4"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M16 2v4"[39m
+                [36m/>[39m
+                [36m<rect[39m
+                  [33mheight[39m=[32m"18"[39m
+                  [33mrx[39m=[32m"2"[39m
+                  [33mwidth[39m=[32m"18"[39m
+                  [33mx[39m=[32m"3"[39m
+                  [33my[39m=[32m"4"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M3 10h18"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 14h.01"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M12 14h.01"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M16 14h.01"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M8 18h.01"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M12 18h.01"[39m
+                [36m/>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"M16 18h.01"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+              [36m<span[39m
+                [33mclass[39m=[32m"min-w-0 flex-1 truncate"[39m
+              [36m>[39m
+                [0mKế hoạch & Điều phối[0m
+              [36m</span>[39m
+              [36m<svg[39m
+                [33maria-hidden[39m=[32m"true"[39m
+                [33mclass[39m=[32m"lucide lucide-chevron-down text-slate-400 transition-transform rotate-180"[39m
+                [33mfill[39m=[32m"none"[39m
+                [33mheight[39m=[32m"15"[39m
+                [33mstroke[39m=[32m"currentColor"[39m
+                [33mstroke-linecap[39m=[32m"round"[39m
+                [33mstroke-linejoin[39m=[32m"round"[39m
+                [33mstroke-width[39m=[32m"2"[39m
+                [33mviewBox[39m=[32m"0 0 24 24"[39m
+                [33mwidth[39m=[32m"15"[39m
+                [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+              [36m>[39m
+                [36m<path[39m
+                  [33md[39m=[32m"m6 9 6 6 6-6"[39m
+                [36m/>[39m
+              [36m</svg>[39m
+            [36m</button>[39m
+            [36m<ul[39m
+              [33mclass[39m=[32m"ml-5 space-y-0.5 border-l border-slate-200 py-0.5 pl-6 pr-1"[39m
+              [33mid[39m=[32m"preview-group-planning"[39m
+              [33mrole[39m=[32m"list"[39m
+            [36m>[39m
+              [36m<li>[39m
+                [36m<a[39m
+                  [33mclass[39m=[32m"relative flex items-center gap-2 rounded-[3px] px-2.5 py-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d7acf] focus-visible:ring-offset-1 text-slate-600 hover:bg-slate-100"[39m
+                  [33mdata-discover[39m=[32m"true"[39m
+                  [33mhref[39m=[32m"/__kit/planning/dish-materials?customerId=customer&weekStartDate=2026-09-21"[39m
+                [36m>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"lucide lucide-book-open text-slate-400"[39m
+                    [33mfill[39m=[32m"none"[39m
+                    [33mheight[39m=[32m"14"[39m
+                    [33mstroke[39m=[32m"currentColor"[39m
+                    [33mstroke-linecap[39m=[32m"round"[39m
+              ...
+ ❯ Object.getElementError ../node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ ../node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ ../node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ ../node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/features/planning/cost/ReadPlanningPreviewPage.test.tsx:65:17
+     63|   fixture.schedules = prices.map(menuPrice => ({ menuPrice, serviceDat…
+     64|   const cost = show('cost')
+     65|   expect(screen.getByText('Không xác định được định mức tuần')).toBeVi…
+       |                 ^
+     66|   expect(screen.queryByLabelText('Ngày tính giá vốn')).not.toBeInTheDo…
+     67|   cost.unmount()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 6 passed (12)
+   Start at  19:53:28
+   Duration  2.17s (transform 479ms, setup 144ms, import 870ms, tests 296ms, environment 712ms)
+
+exitCode=1

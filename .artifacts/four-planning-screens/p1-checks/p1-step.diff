@@ -1,0 +1,68 @@
+--- .artifacts/four-planning-screens/p1-intake-1790859079061/ReadPlanningPreviewPage.tsx.before
++++ frontend/src/features/planning/cost/ReadPlanningPreviewPage.tsx
+@@ -83,8 +83,9 @@
+   const schedules = schedulesView.phase === 'ready' ? schedulesView.data.data ?? [] : []
+   const contracts = contractsView.phase === 'ready' ? contractsView.data.data ?? [] : []
+   const plans = servingsView.phase === 'ready' ? servingsView.data.data ?? [] : []
+-  const prices = [...new Set(schedules.map(item => item.menuPrice).filter(price => Number.isFinite(price) && price > 0))]
+-  const invalidTier = prices.some(price => !isBomPriceTier(price)) || prices.length > 1
++  // menuPrice is required/non-null in MenuScheduleDto; only no schedules permits fallback.
++  const prices = [...new Set(schedules.map(item => item.menuPrice))]
++  const invalidTier = prices.some(price => !Number.isFinite(price) || !isBomPriceTier(price)) || prices.length > 1
+   const tier = normalizeBomPriceTier(prices[0] ?? contracts.find(item => item.customerId === scope.customerId)?.defaultMenuPrice ?? DEFAULT_BOM_PRICE_TIER)
+   const effectiveScope = { ...scope, menuPrice: tier }
+   const rows = menu?.rows ?? []
+--- .artifacts/four-planning-screens/p1-intake-1790859079061/ReadPlanningPreviewPage.test.tsx.before
++++ frontend/src/features/planning/cost/ReadPlanningPreviewPage.test.tsx
+@@ -5,21 +5,21 @@
+ import { beforeEach, expect, it, vi } from 'vitest'
+ import ReadPlanningPreviewPage from './ReadPlanningPreviewPage'
+ 
+-const fixture = vi.hoisted(() => ({ mode: 'DEFAULT', menu: {} as Record<string, unknown>, catalog: {} as Record<string, unknown>, production: vi.fn(), report: vi.fn(), catalogCall: vi.fn() }))
++const fixture = vi.hoisted(() => ({ schedules: [] as { menuPrice: number; serviceDate: string; shiftName: string }[], contracts: [] as { customerId: string; defaultMenuPrice: number }[], mode: 'DEFAULT', menu: {} as Record<string, unknown>, catalog: {} as Record<string, unknown>, production: vi.fn(), report: vi.fn(), catalogCall: vi.fn() }))
+ const ready = (data: unknown) => ({ currentData: data, isSuccess: true, refetch: vi.fn() })
+ vi.mock('@/lib/systemOperationContext', () => ({ useSystemOperation: () => ({ mode: fixture.mode, capabilities: { navigation: ['weekly-menu'], pageTabs: { 'weekly-menu': ['dish-materials', 'cost', 'production-plan', 'purchase-summary'] } } }) }))
+ vi.mock('@/api/coordinationApi', () => ({
+   useGetCoordinationCustomersQuery: () => ({ currentData: { data: [{ customerId: 'customer', customerCode: 'KH', customerName: 'Alpha' }] }, isSuccess: true, refetch: vi.fn() }),
+   useGetCommittedWeeklyMenuQuery: () => fixture.menu,
+-  useGetCustomerContractsQuery: () => ({ currentData: { data: [] }, isSuccess: true, refetch: vi.fn() }),
+-  useGetMenuSchedulesQuery: () => ({ currentData: { data: [] }, isSuccess: true, refetch: vi.fn() }),
++  useGetCustomerContractsQuery: () => ready({ data: fixture.contracts }),
++  useGetMenuSchedulesQuery: () => ready({ data: fixture.schedules }),
+   useGetMealQuantityPlansQuery: () => ({ currentData: { data: [] }, isSuccess: true, refetch: vi.fn() }),
+   useGetProductionPlansQuery: (...args: unknown[]) => { fixture.production(...args); return { currentData: { data: [] }, isSuccess: true, refetch: vi.fn() } },
+ }))
+ vi.mock('@/api/dishCatalogApi', () => ({ useGetDishesCatalogQuery: () => { fixture.catalogCall(); return fixture.catalog } }))
+ vi.mock('@/api/reportsApi', () => ({ useGetIngredientDemandAggregatePageQuery: (...args: unknown[]) => { fixture.report(...args); return { currentData: { items: [], totalCount: 0, totalPages: 0, pageNumber: 1, remainingToIssueCount: 0, pendingKitchenReceiptCount: 0 }, isSuccess: true, refetch: vi.fn() } } }))
+ beforeEach(() => {
+-  vi.clearAllMocks(); fixture.mode = 'DEFAULT'
++  vi.clearAllMocks(); fixture.mode = 'DEFAULT'; fixture.schedules = []; fixture.contracts = []
+   fixture.menu = ready({ data: { rows: [], importedWeeklyMenu: {}, weekStartDate: '2026-09-21' } })
+   fixture.catalog = ready([])
+ })
+@@ -59,3 +59,25 @@
+   expect(screen.getByRole('button', { name: 'Xuất BOM dự kiến' })).toBeDisabled()
+   expect(screen.queryByRole('table')).not.toBeInTheDocument()
+ })
++it.each([[0], [-25000], [25000, 0], [25000, -1], [NaN], [Infinity]].map(prices => ({ prices })))('blocks every invalid present schedule price $prices without denying physical reads', ({ prices }) => {
++  fixture.schedules = prices.map(menuPrice => ({ menuPrice, serviceDate: '2026-09-21', shiftName: 'MORNING' }))
++  const cost = show('cost')
++  expect(screen.getByText('Không xác định được định mức tuần')).toBeVisible()
++  expect(screen.queryByLabelText('Ngày tính giá vốn')).not.toBeInTheDocument()
++  cost.unmount()
++  show('purchase-summary')
++  expect(screen.getByText('Chưa có dòng bàn giao vật lý trong tuần')).toBeVisible()
++  expect(fixture.report).toHaveBeenCalled()
++  expect(screen.getByRole('button', { name: 'Xuất BOM dự kiến' })).toBeDisabled()
++  fireEvent.click(screen.getByText('Vì sao chưa xuất được BOM dự kiến?'))
++  expect(screen.getByText('Định mức tuần không hợp lệ hoặc không đồng nhất.')).toBeVisible()
++})
++it('uses contract fallback only for absent schedules and resolves fresh schedule pricing on week change', () => {
++  fixture.contracts = [{ customerId: 'customer', defaultMenuPrice: 30000 }]
++  show('cost')
++  expect(screen.getByText('30.000 ₫')).toBeVisible()
++  fixture.schedules = [{ menuPrice: 34000, serviceDate: '2026-09-28', shiftName: 'MORNING' }]
++  fireEvent.change(screen.getByLabelText('Tuần bắt đầu'), { target: { value: '2026-09-28' } })
++  expect(screen.getByText('34.000 ₫')).toBeVisible()
++  expect(screen.queryByText('30.000 ₫')).not.toBeInTheDocument()
++})

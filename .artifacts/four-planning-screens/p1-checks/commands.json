@@ -1,0 +1,18 @@
+[
+  {
+    "command": "npx vitest run src/features/planning/cost/ReadPlanningPreviewPage.test.tsx src/features/planning/handoff/HandoffScreen.test.tsx src/features/projects/weekly-menu/purchasing/usePurchaseSummary.handoff.test.tsx --maxWorkers=1",
+    "exitCode": 0
+  },
+  {
+    "command": "npx tsc -b --pretty false",
+    "exitCode": 0
+  },
+  {
+    "command": "npx eslint src/features/planning/cost/ReadPlanningPreviewPage.tsx src/features/planning/cost/ReadPlanningPreviewPage.test.tsx",
+    "exitCode": 0
+  },
+  {
+    "command": "npx vite build --outDir ../.artifacts/four-planning-screens/p1-checks/preview-build",
+    "exitCode": 0
+  }
+]

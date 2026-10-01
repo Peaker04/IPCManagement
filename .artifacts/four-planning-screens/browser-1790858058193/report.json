@@ -1,0 +1,1393 @@
+{
+  "verdict": "PASS_SCOPED",
+  "runtime": {
+    "head": "db8d9ed43769f59cc0cb0221f99a44cfb5e8ad75",
+    "backendDirty": "",
+    "listeners": [
+      {
+        "LocalPort": 5262,
+        "OwningProcess": 11452
+      },
+      {
+        "LocalPort": 5173,
+        "OwningProcess": 8648
+      },
+      {
+        "LocalPort": 5262,
+        "OwningProcess": 11452
+      }
+    ],
+    "binary": {
+      "Length": 8302592,
+      "LastWriteTimeUtc": "/Date(1790775366759)/"
+    },
+    "health": {
+      "status": "Degraded",
+      "totalDurationMs": 8.4,
+      "checks": [
+        {
+          "name": "database",
+          "status": "Healthy",
+          "description": "Kết nối MySQL bình thường.",
+          "durationMs": 5
+        },
+        {
+          "name": "migrations",
+          "status": "Healthy",
+          "description": "Database đã chạy hết migration.",
+          "durationMs": 8.1
+        },
+        {
+          "name": "lifecycle-outbox",
+          "status": "Degraded",
+          "description": "Lifecycle outbox relay đang tắt.",
+          "durationMs": 1.6
+        }
+      ]
+    },
+    "browser": "154.0.8037.58",
+    "headed": true,
+    "environment": "VITE_DEV",
+    "credentialSource": "K6_PASSWORD environment; memory only",
+    "mode": "DEFAULT",
+    "version": 129,
+    "capabilities": {
+      "navigation": [
+        "dashboard",
+        "weekly-menu",
+        "meal-orders",
+        "approvals",
+        "purchasing",
+        "warehouse",
+        "chef-dashboard",
+        "reports",
+        "admin-data",
+        "approval-rules"
+      ],
+      "pageTabs": {
+        "weekly-menu": [
+          "schedule",
+          "demand",
+          "production-plan",
+          "purchase-summary",
+          "cost",
+          "dish-materials"
+        ],
+        "warehouse": [
+          "receiving",
+          "demand",
+          "exceptions",
+          "movement"
+        ],
+        "approvals": [
+          "queue",
+          "history"
+        ],
+        "purchasing": [
+          "workflow",
+          "supplemental",
+          "quotations"
+        ],
+        "chef": [
+          "production",
+          "documents"
+        ],
+        "reports": [
+          "price",
+          "demand",
+          "purchase",
+          "stock",
+          "movement",
+          "kitchen",
+          "usage",
+          "audit",
+          "data-quality"
+        ],
+        "admin-data": [
+          "bom-import",
+          "contracts",
+          "cleanup",
+          "inventory",
+          "statistics",
+          "audit",
+          "employees"
+        ]
+      }
+    }
+  },
+  "captures": [
+    {
+      "file": "dish-materials-natural-1440.png",
+      "state": "natural",
+      "url": "http://localhost:5173/__kit/planning/dish-materials?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 443.203125,
+                "text": "Nguyên liệu"
+              },
+              {
+                "width": 110.796875,
+                "text": "Đơn vị"
+              },
+              {
+                "width": 199.4375,
+                "text": "Lượng gross / suất"
+              },
+              {
+                "width": 177.265625,
+                "text": "Giá tham chiếu"
+              },
+              {
+                "width": 177.296875,
+                "text": "Giá vốn"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.000015277777777777777
+      }
+    },
+    {
+      "file": "cost-natural-1440.png",
+      "state": "natural",
+      "url": "http://localhost:5173/__kit/planning/cost?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 373.328125,
+                "text": "Món / vị trí"
+              },
+              {
+                "width": 153.71875,
+                "text": "Ca"
+              },
+              {
+                "width": 131.75,
+                "text": "BOM"
+              },
+              {
+                "width": 109.796875,
+                "text": "Suất"
+              },
+              {
+                "width": 164.6875,
+                "text": "Giá vốn / suất"
+              },
+              {
+                "width": 164.71875,
+                "text": "Thành tiền"
+              }
+            ],
+            "overflow": false
+          },
+          {
+            "columns": [
+              {
+                "width": 274.5,
+                "text": "Nguyên liệu"
+              },
+              {
+                "width": 274.5,
+                "text": "Đơn vị"
+              },
+              {
+                "width": 274.5,
+                "text": "Lượng BOM"
+              },
+              {
+                "width": 274.5,
+                "text": "Món nguồn"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.0010364829306357469
+      }
+    },
+    {
+      "file": "production-plan-natural-1440.png",
+      "state": "natural",
+      "url": "http://localhost:5173/__kit/planning/production-plan?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 216.390625,
+                "text": "Ca"
+              },
+              {
+                "width": 649.203125,
+                "text": "Món ăn"
+              },
+              {
+                "width": 216.40625,
+                "text": "Số suất"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.00015270555372172504
+      }
+    },
+    {
+      "file": "purchase-summary-natural-1440.png",
+      "state": "natural",
+      "url": "http://localhost:5173/__kit/planning/purchase-summary?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 329.390625,
+                "text": "Nguyên liệu / ngày / nguồn"
+              },
+              {
+                "width": 87.828125,
+                "text": "Đơn vị"
+              },
+              {
+                "width": 175.671875,
+                "text": "Cần / đã xuất"
+              },
+              {
+                "width": 175.671875,
+                "text": "Chưa xuất"
+              },
+              {
+                "width": 175.671875,
+                "text": "Bếp nhận / chờ nhận"
+              },
+              {
+                "width": 153.765625,
+                "text": "Trạng thái / owner"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.006943442276590768
+      }
+    },
+    {
+      "file": "cost-natural-1366.png",
+      "state": "natural",
+      "url": "http://localhost:5173/__kit/planning/cost?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 348.15625,
+                "text": "Món / vị trí"
+              },
+              {
+                "width": 143.359375,
+                "text": "Ca"
+              },
+              {
+                "width": 122.875,
+                "text": "BOM"
+              },
+              {
+                "width": 102.390625,
+                "text": "Suất"
+              },
+              {
+                "width": 153.59375,
+                "text": "Giá vốn / suất"
+              },
+              {
+                "width": 153.625,
+                "text": "Thành tiền"
+              }
+            ],
+            "overflow": false
+          },
+          {
+            "columns": [
+              {
+                "width": 256,
+                "text": "Nguyên liệu"
+              },
+              {
+                "width": 256,
+                "text": "Đơn vị"
+              },
+              {
+                "width": 256,
+                "text": "Lượng BOM"
+              },
+              {
+                "width": 256,
+                "text": "Món nguồn"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.0017256417082516476
+      }
+    },
+    {
+      "file": "handoff-natural-1920.png",
+      "state": "natural",
+      "url": "http://localhost:5173/__kit/planning/purchase-summary?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 476.390625,
+                "text": "Nguyên liệu / ngày / nguồn"
+              },
+              {
+                "width": 127.03125,
+                "text": "Đơn vị"
+              },
+              {
+                "width": 254.078125,
+                "text": "Cần / đã xuất"
+              },
+              {
+                "width": 254.078125,
+                "text": "Chưa xuất"
+              },
+              {
+                "width": 254.078125,
+                "text": "Bếp nhận / chờ nhận"
+              },
+              {
+                "width": 222.34375,
+                "text": "Trạng thái / owner"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.004473069932725695
+      }
+    },
+    {
+      "file": "handoff-controlled-long-1366.png",
+      "state": "handoffLong",
+      "url": "http://localhost:5173/__kit/planning/purchase-summary?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 307.203125,
+                "text": "Nguyên liệu / ngày / nguồn"
+              },
+              {
+                "width": 81.90625,
+                "text": "Đơn vị"
+              },
+              {
+                "width": 163.828125,
+                "text": "Cần / đã xuất"
+              },
+              {
+                "width": 163.828125,
+                "text": "Chưa xuất"
+              },
+              {
+                "width": 163.828125,
+                "text": "Bếp nhận / chờ nhận"
+              },
+              {
+                "width": 143.40625,
+                "text": "Trạng thái / owner"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.009002146637797023
+      }
+    },
+    {
+      "file": "dish-materials-controlled403.png",
+      "state": "dish403",
+      "url": "http://localhost:5173/__kit/planning/dish-materials?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [],
+        "longTasks": [],
+        "shift": 0.000015277777777777777
+      }
+    },
+    {
+      "file": "cost-controlled-missingBOM.png",
+      "state": "costMissing",
+      "url": "http://localhost:5173/__kit/planning/cost?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [
+          {
+            "columns": [
+              {
+                "width": 373.328125,
+                "text": "Món / vị trí"
+              },
+              {
+                "width": 153.71875,
+                "text": "Ca"
+              },
+              {
+                "width": 131.75,
+                "text": "BOM"
+              },
+              {
+                "width": 109.796875,
+                "text": "Suất"
+              },
+              {
+                "width": 164.6875,
+                "text": "Giá vốn / suất"
+              },
+              {
+                "width": 164.71875,
+                "text": "Thành tiền"
+              }
+            ],
+            "overflow": false
+          },
+          {
+            "columns": [
+              {
+                "width": 277,
+                "text": "Nguyên liệu"
+              },
+              {
+                "width": 277,
+                "text": "Đơn vị"
+              },
+              {
+                "width": 277,
+                "text": "Lượng BOM"
+              },
+              {
+                "width": 277,
+                "text": "Món nguồn"
+              }
+            ],
+            "overflow": false
+          }
+        ],
+        "longTasks": [],
+        "shift": 0.0006247349775321803
+      }
+    },
+    {
+      "file": "production-controlled403.png",
+      "state": "production403",
+      "url": "http://localhost:5173/__kit/planning/production-plan?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [],
+        "longTasks": [],
+        "shift": 0.000015277777777777777
+      }
+    },
+    {
+      "file": "handoff-controlled-empty.png",
+      "state": "handoffEmpty",
+      "url": "http://localhost:5173/__kit/planning/purchase-summary?customerId=b1e40f3e-bda5-4c16-be27-ea7146e10d37&weekStartDate=2026-09-21",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "metrics": {
+        "overflow": false,
+        "table": [],
+        "longTasks": [],
+        "shift": 0.006666391782407407
+      }
+    }
+  ],
+  "actions": [
+    {
+      "view": "dish-materials",
+      "state": "natural",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 1055.9650000000001,
+      "requests": 7
+    },
+    {
+      "view": "cost",
+      "state": "natural",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 1056.1561000000002,
+      "requests": 7
+    },
+    {
+      "view": "production-plan",
+      "state": "natural",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 987.7809000000007,
+      "requests": 4
+    },
+    {
+      "view": "purchase-summary",
+      "state": "natural",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 1174.8184999999994,
+      "requests": 8
+    },
+    {
+      "view": "cost",
+      "state": "natural",
+      "action": "directload",
+      "width": 1366,
+      "labElapsedMs": 1029.0140000000001,
+      "requests": 7
+    },
+    {
+      "view": "purchase-summary",
+      "state": "natural",
+      "action": "directload",
+      "width": 1920,
+      "labElapsedMs": 1206.7757000000001,
+      "requests": 8
+    },
+    {
+      "action": "BOM CSV download",
+      "filenameHasRealScope": true,
+      "physicalExport": false
+    },
+    {
+      "action": "physical server page",
+      "requests": [
+        {
+          "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+          "args": {
+            "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+            "dateFrom": "2026-09-21",
+            "dateTo": "2026-09-27",
+            "pageNumber": "2",
+            "pageSize": "10"
+          },
+          "method": "GET",
+          "state": "natural"
+        }
+      ]
+    },
+    {
+      "view": "purchase-summary",
+      "state": "handoffLong",
+      "action": "directload",
+      "width": 1366,
+      "labElapsedMs": 1191.639000000001,
+      "requests": 8
+    },
+    {
+      "view": "dish-materials",
+      "state": "dish403",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 1025.0072,
+      "requests": 7
+    },
+    {
+      "view": "cost",
+      "state": "costMissing",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 1071.3630000000012,
+      "requests": 7
+    },
+    {
+      "view": "production-plan",
+      "state": "production403",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 1016.5632000000005,
+      "requests": 4
+    },
+    {
+      "view": "purchase-summary",
+      "state": "handoffEmpty",
+      "action": "directload",
+      "width": 1440,
+      "labElapsedMs": 1219.1306000000022,
+      "requests": 8
+    }
+  ],
+  "requests": [
+    {
+      "path": "/api/auth/login",
+      "args": {},
+      "method": "POST",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/production-plans/filter",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-26"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "pageNumber": "1",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "pageNumber": "1",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "searchKeyword": "controlled-no-match",
+        "pageNumber": "1",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "pageNumber": "2",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "pageNumber": "1",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffLong"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "dish403"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "dish403"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "dish403"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "dish403"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "dish403"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "dish403"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "dish403"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "costMissing"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "costMissing"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "costMissing"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "costMissing"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "costMissing"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "costMissing"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "costMissing"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "production403"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "production403"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "production403"
+    },
+    {
+      "path": "/api/production-plans/filter",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-26"
+      },
+      "method": "GET",
+      "state": "production403"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "pageNumber": "1",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffEmpty"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/coordination/weekly-menu",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "pageNumber": "1",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/dishes/catalog",
+      "args": {},
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/coordination/customer-contracts",
+      "args": {},
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/coordination/menu-schedules",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/coordination/meal-quantity-plans",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "weekStartDate": "2026-09-21"
+      },
+      "method": "GET",
+      "state": "handoffError"
+    },
+    {
+      "path": "/api/workflow-reports/ingredient-demand/aggregate/page",
+      "args": {
+        "customerId": "b1e40f3e-bda5-4c16-be27-ea7146e10d37",
+        "dateFrom": "2026-09-21",
+        "dateTo": "2026-09-27",
+        "pageNumber": "1",
+        "pageSize": "10"
+      },
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/system-operation-mode",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    },
+    {
+      "path": "/api/coordination/customers",
+      "args": {},
+      "method": "GET",
+      "state": "natural"
+    }
+  ],
+  "blockedWrites": [],
+  "errors": [],
+  "failures": [],
+  "teardown": {
+    "browserCreated": true,
+    "browserClosed": true,
+    "userServersUntouched": true
+  },
+  "needsEvidence": [
+    "real actor denial matrix",
+    "durable lifecycle (not authorized)",
+    "field performance/CLS/frame gate/native zoom",
+    "full keyboard boundary matrix"
+  ]
+}

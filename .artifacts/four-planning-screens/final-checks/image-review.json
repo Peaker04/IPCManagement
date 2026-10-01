@@ -1,0 +1,137 @@
+[
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/dish-materials-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/cost-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/production-plan-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/purchase-summary-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/cost-natural-1366.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/handoff-natural-1920.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/handoff-controlled-long-1366.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/dish-materials-controlled403.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/cost-controlled-missingBOM.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/production-controlled403.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790858058193/handoff-controlled-empty.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/interactions-1790857974007/dish-selected-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/interactions-1790857974007/production-selected-day-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/interactions-1790857974007/handoff-last-page-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/interactions-1790857974007/handoff-search-empty-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/interactions-1790857974007/handoff-denied-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/dish-materials-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/cost-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/production-plan-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/purchase-summary-natural-1440.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/cost-natural-1366.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/handoff-natural-1920.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/handoff-controlled-long-1366.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/dish-materials-controlled403.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/cost-controlled-missingBOM.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/production-controlled403.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  },
+  {
+    "file": ".artifacts/four-planning-screens/browser-1790857999704/handoff-controlled-empty.png",
+    "individuallyOpened": true,
+    "finding": "No visible clipping/overlap; DOM overflow false; bounded state review only."
+  }
+]
