@@ -12,7 +12,7 @@ scope: MATERIAL_RECONCILIATION
 
 Approved daily-line contract:
 
-- Warehouse issue is changing from one weekly initial issue to independent issue transactions per service date.
+- Warehouse initial issue transactions are independent per service date; a weekly summary is not an initial-issue mutation surface.
 - UI provides `Cả tuần | Thứ 2 … Chủ nhật`; `Cả tuần` is a read-only weekly ingredient summary and cannot submit an issue. The weekly summary groups the same frozen batch line across service dates into one row, sums required/net-issued/positive remaining quantities, and derives progress from date-level statuses so opposite daily variances cannot cancel each other. Concrete dates retain the exact daily-line mutation surface.
 - Daily and weekly statuses must come from one backend ledger-derived projection. The active filter must never change weekly status.
 - Daily frozen authority requires durable `batch × serviceDate × ingredient × unit` lineage; do not simulate this by filtering weekly aggregate lines.
@@ -38,7 +38,7 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 - Mode này **không có Thu mua, Báo cáo, KHSX hay MaterialDemand của DEFAULT**. Không mount/fetch/mutate owner Purchasing/default-demand và không hướng người dùng sang Thu mua để tiếp tục MRX.
 - `DEFAULT` và `MATERIAL_RECONCILIATION` dùng chung master data và physical stock, nhưng workflow record/lineage/query/mutation/audit của hai family phải tách tuyệt đối. Không chuyển, copy, re-parent hoặc cộng chéo record khi đổi mode.
 - Mọi API read sở hữu batch/report của MRX phải khai báo `ReconciliationOnly`; route ẩn không phải ranh giới API. Shared InventoryIssue read phải ràng buộc `sourceFamily` với mode hiện hành trước repository access, không cho caller tự chọn family chéo mode.
-- Trước mọi screenshot, browser action hoặc verdict phải gọi `GET /api/system-operation-mode` và assert đúng mode. Evidence từ mode khác không có giá trị. Không đổi mode khi Kỳ đang kiểm thử thủ công; Nếu mode change được ủy quyền riêng, ghi version trước/sau và xác minh trạng thái; process reset không cấp quyền đổi mode.
+- Trước browser action/verdict phải gọi `GET /api/system-operation-mode` và assert đúng mode; evidence mode khác không có giá trị. Không đổi mode trong khi người dùng đang kiểm thử. Mode change cần authorization riêng, ghi version trước/sau và xác minh trạng thái; documentation không cấp quyền đổi mode.
 
 ### 2. Authority và grain nguồn
 

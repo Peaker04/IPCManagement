@@ -1,9 +1,8 @@
-# Warehouse & Logistics Feature Business & UI Contract
+# Warehouse and kitchen logistics
 
-**Status:** Adopted Domain Contract  
-**Owner:** Warehouse, Inventory & Kitchen Logistics Domain  
-**Target Routes:** `/warehouse`, `/chef-dashboard`
-**Last Updated:** 2026-09-30  
+Canonical bounded owner for operational shortcuts, document matching and queues. Shared stock identity/grain/lifecycle belongs to [DOMAIN](../DOMAIN.md); MRX daily transactions belong to [MRX](material-reconciliation.md).
+
+Routes: `/warehouse`, `/chef-dashboard`. This filename remains stable because a retained behavior-test inventory references it; no competing warehouse.md owner is created.
 
 ---
 

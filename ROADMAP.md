@@ -1,13 +1,11 @@
 # Outcome roadmap
 
-Priorities require owner confirmation; this roadmap is not a task database or permission to resume old campaigns.
+Priorities require product-owner confirmation; outcomes do not authorize execution.
 
-| Outcome | Acceptance boundary | Status |
-|---|---|---|
-| Simple source-first development workflow | One owner per concept, source-first authorization and a compact task lifecycle | Complete |
-| Production-safe planning experience | Explicit owner authorization and mounted functional/accessibility/data/performance acceptance before candidate routes replace production | Pending acceptance; existing working code preserved, no cutover authorized by process reset |
-| Demonstrated operational recovery | Authorized encrypted independent backup + restore drill, lineage and integrity checks; qualified RPO/RTO | Needs evidence; documentation targets are not certification |
+| Desired outcome | Acceptance boundary |
+|---|---|
+| Source-first, maintainable development | One canonical owner per concept; progressive context routing; behavior-backed changes and protected inherited work |
+| Production-safe planning experience | Explicit cutover authorization with mounted functional, accessibility, data-integrity and measured performance acceptance |
+| Demonstrated operational recovery | Authorized encrypted independent backup and restore drill, lineage/integrity checks and measured RPO/RTO |
 
-Process reset provenance: commit `ba3ed8534be8b14a8083e1c7b3317149f30c624a`.
-
-Detailed plan, checklist, current state and next action belong only in `.planning/WORK.md`. Completed outcomes must not link to overwriteable active-task content. Product requirements belong in [domain contracts](docs/README.md).
+Product requirements belong to the [domain owners](docs/README.md). This file contains neither task checklists nor implementation history.

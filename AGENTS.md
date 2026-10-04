@@ -1,23 +1,48 @@
-# IPCManagement — project entry
+# IPCManagement — agent entry
 
-Read this file, [documentation index](docs/README.md), and [.planning/WORK.md](.planning/WORK.md). Read [ROADMAP.md](ROADMAP.md) only for outcome priorities. No other memory/state/checkpoint/handover owner exists.
+Read this file and [current task](.planning/WORK.md) at intake. Load only the owner relevant to the task; the [documentation router](docs/README.md) is optional navigation, not a full-doc preload requirement.
 
-## Authority and safety
-- User authorization and security/data safety come first. Current source, behavior tests and product contracts determine technical truth; stale plans/reviews never authorize actions. Surface contradictions rather than silently changing expected business behavior.
-- Check `git status --short --branch`, `git rev-parse HEAD`, and `git diff --cached --name-only` at intake. Distinguish new work from an explicitly requested resume. Preserve inherited changes and untracked work; backup dirty owners outside the repo and check for intervening edits before replacement.
-- Never reset/restore working code, commit/push/deploy, install packages, change auth/mode, or mutate schema/data without explicit scope and authorization. No seeds, fabricated credentials/business records or lowered gates to manufacture PASS.
-- Keep DEFAULT and MATERIAL_RECONCILIATION source families separate. Before DB work read [database recovery](docs/operations/database-recovery.md), lineage and the matching domain contract. Never assume a database is disposable.
-- Do not publish secrets, credentials, connection strings, private workbooks, personal data, authenticated profiles or business recovery bundles.
-- Pi is the agent runtime. Other CLI runtimes and external tools require explicit request; do not auto-install or index a repository. Skills are optional bounded techniques, not process or permission owners. Global test-audit rules still apply to test changes.
+## Authority
 
-## INTAKE → PLAN → EXECUTE → VERIFY → CLOSE
-All task state lives in `.planning/WORK.md`: goal, scope, constraints, checklist, acceptance criteria, verification, status and next action. Update that same file after verified steps and before long commands/context switches. Keep it concise and current; do not accumulate execution history or create an archive hierarchy. Closed-task records remain in Git history, not another process owner.
+User authorization and security/data safety → current source, behavior tests and machine contracts → canonical documentation → outcome roadmap → current WORK → supporting/generated material. A stale plan, specimen or previous permission never authorizes execution. Surface contradictory rules; do not silently choose business policy.
 
-1. **INTAKE:** capture request, HEAD/index/inherited dirt and missing authorization.
-2. **PLAN:** choose actual source/contract owners, allowed files, exclusions and acceptance commands. One concept = one owner; link facts rather than copying them.
-3. **EXECUTE:** surgical changes at existing owners. Update relevant product docs. Subagents only when requested and work is independent; compact packets, clear outputs, one writer per cwd. Parent verifies results.
-4. **VERIFY:** run focused behavior checks then necessary build/lint/contracts; inspect diff, references and secrets. Report `PASS`, `FAIL`, `NEEDS_EVIDENCE` or `BLOCKED` per claim. Tool completion and scoped tests do not certify the whole product.
-5. **CLOSE:** report results and limitations, update outcome roadmap only if an outcome actually changed, then return WORK to `IDLE` with no active objective and at most a brief last-closed result/commit. Remove the completed checklist, logs, local paths and consumed authorizations. New work requires fresh INTAKE and current user authorization; completed-task permissions never carry forward. No automatic commit or deployment.
+## Hard safety
 
-## Product changes
-Use the domain/grain/API owners before touching UI. Existing approved design rules constrain presentation; specimens never invent data, navigation, roles or permissions. Browser verification uses headed Chrome, real app URL and confirmed build/mode/actor/credential source; use a separate profile and never stop user-owned processes. Screenshots are candidates, not behavior proof. Persisted outcomes require control → request → state transition → reload. Performance claims require measured metrics and declared environment.
+- No reset/restore of working code, commit/push/deploy, package installation, auth/mode switch or schema/data mutation without explicit current scope and authorization.
+- Never assume a database is disposable. Before DB work load [OPERATIONS](docs/OPERATIONS.md), immutable lineage and the matching mode contract.
+- `DEFAULT != MATERIAL_RECONCILIATION`: shared master data/physical stock do not make their records, lineage or commands interchangeable.
+- Do not publish credentials, private `.docs/` inputs, workbook rows, authenticated profiles, business/recovery bundles or keys. Fixture use is not publication consent.
+- No seeds, fabricated business evidence, lowered permissions or weakened tests to manufacture PASS. Synthetic fixture creation requires its own authorized scope.
+- Pi is the runtime. Other CLI runtimes, auto-installation/indexing and subagents require explicit user/project authorization. Skills do not own permissions or task state.
+- Protect user-owned processes, browser tabs and profiles. Browser checks use separate headed Chrome, actual URL/build/mode/actor and confirmed credential source.
+
+## Intake and inherited work
+
+Run `git status --short --branch`, `git rev-parse HEAD`, `git diff --cached --name-only`. Distinguish new work from an explicit resume. Preserve inherited dirt and untracked files; back up dirty owners outside the repository, check for intervening edits before replacement, and never reset them to simplify a task. For local documentation audits inventory ignored/hidden files too; exclude `.git` and do not traverse junctions/symlinks blindly.
+
+## Task routing
+
+| Read when | Load | Then inspect |
+|---|---|---|
+| Business/data/status/lifecycle | [DOMAIN](docs/DOMAIN.md) | Relevant bounded contract and feature/model/behavior tests |
+| Weekly menus, servings, BOM/planning | [Weekly menu](docs/domain/weekly-menu.md) | Planning/Coordination/Catalog owners |
+| Stock, warehouse or kitchen logistics | [Warehouse](docs/domain/warehouse-contract.md) | Inventory/warehouse/chef owners |
+| Material reconciliation | [MRX](docs/domain/material-reconciliation.md) | MRX daily lineage, commands and mode guards |
+| Modules, data flow, compatibility | [ARCHITECTURE](docs/ARCHITECTURE.md) | Source, generated API and machine contracts |
+| Setup/config/build/test/generated API | [ENGINEERING](docs/ENGINEERING.md) | Manifests, CI and relevant scripts/tests |
+| UI/interaction/accessibility | [DESIGN](docs/DESIGN.md) | Domain rules, actual primitives and rendered behavior |
+| Deploy/health/DB/recovery/performance operations | [OPERATIONS](docs/OPERATIONS.md) | Exact script guards, target and operator approval |
+| Desired outcomes | [ROADMAP](ROADMAP.md) | Not execution history or task authorization |
+| Current goal/checklist/status/next action | [WORK](.planning/WORK.md) | Only the current task |
+
+## Lifecycle
+
+`IDLE → INTAKE → PLAN → EXECUTE → VERIFY → CLOSE → IDLE`
+
+1. **INTAKE:** capture request, HEAD/index/inherited changes and missing authority.
+2. **PLAN:** name source/contract owners, allowed files, exclusions, acceptance commands and remaining owner decisions in WORK. One concept has one owner.
+3. **EXECUTE:** surgical changes at existing owners; update relevant docs. Parent integrates authorized ephemeral read-only/writer work; one writer per cwd/worktree. Subagents do not create persistent state owners.
+4. **VERIFY:** focused behavior checks first, then necessary builds/lint/contracts. Inspect diff, references and added secrets. Persisted outcomes require control → request → state transition → reload. Performance needs measured metrics and declared environment. Tool completion, screenshots or scoped tests do not certify the entire product.
+5. **CLOSE:** report PASS/FAIL/NEEDS_EVIDENCE/BLOCKED per scoped claim. Update roadmap only if an outcome changed. Return WORK to IDLE, remove completed checklist/logs/consumed authorizations; at most a brief last-closed result. New work needs fresh intake.
+
+WORK is the only task state owner. Git history is the archive; do not create MEMORY/STATE/HANDOVER/CHECKPOINT systems, audit-report trees or vendor-specific duplicate instructions. Separate authorization is still required for publication, commit/push, deployment and DB operations.

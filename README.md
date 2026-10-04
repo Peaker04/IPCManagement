@@ -1,12 +1,12 @@
 # IPCManagement
 
-Industrial kitchen management: customer weekly menus, serving plans, BOM/material requirements, purchasing, warehouse movements, kitchen handoff and reconciliation.
+Industrial kitchen management: customer weekly menus, servings and BOM, material planning, purchasing, warehouse movements, kitchen handoff and reconciliation.
 
-`DEFAULT` and `MATERIAL_RECONCILIATION` are separate workflows sharing master data and physical stock, not interchangeable business records. Backend permissions/mode/version checks are authoritative.
+`DEFAULT` and `MATERIAL_RECONCILIATION` share master data/physical stock but have separate workflow records and permissions.
 
-## Start
+## Quick start
 
-Prerequisites: Node 22.19+ (Pi requires this; frontend/CI use Node 22), npm, .NET SDK selected by `global.json`, and authorized MySQL configuration. See [development setup](docs/DEVELOPMENT.md) and [configuration](docs/CONFIGURATION.md).
+Prerequisites: Node 22.19+, npm, the .NET SDK selected by `global.json`, and authorized MySQL configuration. Follow [ENGINEERING](docs/ENGINEERING.md) to configure local secrets and verify actual listeners/readiness. Setup is not authorization for migration, seeding or business-data creation.
 
 ```sh
 npm ci
@@ -15,18 +15,14 @@ npm run be
 npm run fe
 ```
 
-Set backend configuration from `.example` files using local secrets. Do not run migrations/seed or create business data merely to start a test.
+## Read next
 
-```sh
-npm run build:be
-npm run build:fe
-npm run test:be:ci
-npm run test:fe:unit -- --maxWorkers=1
-```
+- [Documentation router](docs/README.md): choose a canonical owner by task.
+- [DOMAIN](docs/DOMAIN.md): business language, roles and invariants.
+- [ARCHITECTURE](docs/ARCHITECTURE.md): current source/module boundaries.
+- [ENGINEERING](docs/ENGINEERING.md): setup, configuration and focused verification.
+- [DESIGN](docs/DESIGN.md): presentation and accessibility.
+- [OPERATIONS](docs/OPERATIONS.md): deployment, health and recovery safety.
+- [ROADMAP](ROADMAP.md): desired outcomes.
 
-- [Documentation index](docs/README.md): product, architecture, setup, tests and operations.
-- [Agent/project entry](AGENTS.md): safety and INTAKE → PLAN → EXECUTE → VERIFY → CLOSE.
-- [Outcome roadmap](ROADMAP.md).
-- [Active work](.planning/WORK.md): the only task plan/checklist/state owner.
-
-CI verifies quality/security; it does not deploy the backend. Commit/push/deploy and database operations require separate authorization.
+AI coding agents start at [AGENTS](AGENTS.md).

@@ -1,6 +1,6 @@
 # Performance tools
 
-Method/measurement owner: [TESTING](../../docs/TESTING.md); production targets: [DEPLOYMENT](../../docs/DEPLOYMENT.md). Historical result files do not certify current performance.
+Method/measurement owner: [ENGINEERING](../../docs/ENGINEERING.md); operational targets and probe safety: [OPERATIONS](../../docs/OPERATIONS.md). Historical result files do not certify current performance.
 
 - `k6/`: authenticated HTTP smoke/load/stress and read-only throughput probes. Supply actual authorized `BASE_URL`, `K6_USERNAME`, `K6_PASSWORD` privately, not in source/reports. Release build and a known approved dataset are required. No seed/account creation is implied.
 - `sql/`: diagnostic SQL. Enable/disable scripts can change server-global settings; exact target/admin authorization and restoration plan are mandatory. Do not run them for repository cleanup.

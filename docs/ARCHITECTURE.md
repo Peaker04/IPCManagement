@@ -1,184 +1,58 @@
-# Kiến trúc hệ thống
+# Architecture — as-built ownership
 
-Tổng quan nghiệp vụ tại [DOMAIN.md](DOMAIN.md). Design grammar tại [DESIGN.md](DESIGN.md), rule chi tiết tại [DASHBOARD-UI-RULES.md](DASHBOARD-UI-RULES.md), và grain/source identity tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md). Kiểm chứng FE → API → persisted state → reload theo [TESTING.md](TESTING.md).
+Business/grain/lifecycle: [DOMAIN](DOMAIN.md). Setup/config/test methods: [ENGINEERING](ENGINEERING.md). UI grammar: [DESIGN](DESIGN.md). Operational execution: [OPERATIONS](OPERATIONS.md). Current source/generated contracts and behavior tests override stale architecture claims; no historical diagnostic PASS certifies runtime.
 
-## Tổng quan
+## Runtime and module boundaries
 
-IPC Management là monorepo cho hệ thống quản lý bếp ăn công nghiệp. Hệ thống dùng một backend ASP.NET Core 9 dạng modular monolith, frontend React/Vite/TypeScript và MySQL thông qua Entity Framework Core với Pomelo. Backend nhận request HTTP từ frontend, áp dụng middleware xác thực/ủy quyền/rate limit, điều phối qua controller và service, rồi đọc ghi dữ liệu qua repository/Unit of Work và `IpcManagementContext`.
+React/Vite/TypeScript browser → single RTK Query API → ASP.NET Core 9 middleware/controller → feature service/repository/Unit of Work → EF Core/Pomelo → MySQL.
 
-## Các thành phần chính
-
-```text
-Browser
-  -> React routes + feature pages
-  -> Redux Toolkit store / RTK Query (`frontend/src/api/apiSlice.ts`)
-  -> ASP.NET Core middleware pipeline (`backend/src/IPCManagement.Api/Program.cs`)
-  -> Feature controller (`backend/src/IPCManagement.Api/Features/*/Controllers`)
-  -> Feature service (`backend/src/IPCManagement.Api/Features/*/Services`)
-  -> Repositories + Unit of Work (`backend/src/IPCManagement.Api/Data`)
-  -> EF Core `IpcManagementContext`
-  -> MySQL
-```
-
-## Luồng dữ liệu
-
-1. `frontend/src/main.tsx` khởi tạo React và Redux store; `frontend/src/App.tsx` gắn router và toast provider.
-2. `frontend/src/routes/AppRouter.tsx` phân biệt route công khai `/login` với các route cần đăng nhập. `ProtectedRoute` kiểm tra session, còn `RoleGuard` kiểm tra permission trước khi render màn hình. Khi session hết hạn, login chỉ nhận same-app pathname/query/hash đã sanitize rồi điều hướng lại qua chính route guards; external/protocol-relative/login-loop paths về Dashboard.
-3. Toàn frontend dùng đúng một `frontend/src/api/apiSlice.ts`. Bảy feature owner cùng `workflowDocumentsApi` inject endpoint vào slice này; `frontend/src/api/workflowApi.ts` chỉ là compatibility barrel đăng ký/re-export public contract. Base query gắn Bearer token, xử lý refresh token và dùng `/api` hoặc `VITE_API_BASE_URL` tùy môi trường. Access JWT và user metadata đều tab-scoped trong `sessionStorage`; startup xóa auth metadata legacy khỏi `localStorage`, còn refresh credential chỉ ở HttpOnly cookie.
-4. `Program.cs` chạy correlation ID, exception middleware, Swagger ở Development, CORS, authentication, rate limiting, authorization và controller mapping. Backend hiện direct-host, không tin `X-Forwarded-*`; reverse proxy chỉ được bật qua thay đổi riêng có trusted-proxy allowlist.
-5. Controller xác thực model và policy, gọi service nghiệp vụ. Service dùng repository/Unit of Work và `IpcManagementContext` để thao tác các entity, migration và audit/workflow.
-6. Response JSON được trả về frontend để cập nhật RTK Query cache và giao diện feature tương ứng.
-
-## Các lớp và abstraction quan trọng
-
-| Abstraction | Vị trí | Vai trò |
+| Boundary | Source owner | Contract |
 |---|---|---|
-| `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình direct host, middleware, JWT, CORS, Swagger và rate limit; rejection dùng lease metadata để trả `Retry-After` khi có. |
-| `AddBackendServices` | `backend/src/IPCManagement.Api/DependencyInjection.cs` | Đăng ký DbContext, repository, service và security dependency. |
-| `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext/registration root cho MySQL; 53 mapping nằm trong 11 file feature-owned `Features/*/Persistence` qua `IEntityTypeConfiguration<T>`. |
-| `DishCatalogCache` | `backend/src/IPCManagement.Api/Caching/DishCatalogCache.cs` | Root-owned cache contract dùng chéo Catalog và SampleData; giữ hai key catalog active/all và xóa cả hai sau các mutation liên quan. |
-| `IEfTransactionRunner` | `backend/src/IPCManagement.Api/Data/Transactions/` | Chủ sở hữu duy nhất của manual transaction; chạy qua EF execution strategy, clear tracking trước retry/commit verification và yêu cầu verifier ổn định để tránh duplicate side effect. |
-| Coordination use-case services | `backend/src/IPCManagement.Api/Features/Coordination/Services/` | Tách customer contract, portion rule, menu schedule, meal quantity plan và order lifecycle thành các shell/policy riêng. |
-| `MaterialDemandService` | `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
-| Purchasing use-case services | `backend/src/IPCManagement.Api/Features/Purchasing/Services/` | Workbench, generate-from-demand, supplier decision và submit có port/shell/policy riêng; controller không qua workflow facade. |
-| Reports use-case services | `backend/src/IPCManagement.Api/Features/Reports/Services/` | Tách price, demand, purchasing, inventory, audit/data-quality, KPI và aggregate cache theo use case. |
-| `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. Routine auth diagnostics không ghi username, User-Agent/device hoặc token/hash prefix; opaque user ID và remote IP chỉ giữ khi cần cho security trace. |
-| `formatters` / `chefServiceDate` | `frontend/src/lib/formatters.ts`, `frontend/src/lib/chefServiceDate.ts` | Owner chung cho `Asia/Ho_Chi_Minh`: instant UTC được render theo giờ nghiệp vụ Việt Nam; date-only/service-date giữ nguyên calendar date. |
-| `AuthService` / `RefreshTokenRepository` | `backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs`, `backend/src/IPCManagement.Api/Data/Repositories/RefreshTokenRepository.cs` | Login/rotation chạy trong `IEfTransactionRunner`; rotation giữ device identity và recheck active/token state trong transaction, thay session cũ cùng device và dọn token đóng. Login, refresh và Admin deactivate dùng cùng MySQL user-row `FOR UPDATE` seam trước session mutation; configurable cap mặc định là 3. Rotation kế thừa expiry gốc nên không kéo dài quá 24 giờ mặc định. Source/unit khóa ordering và sequential behavior; concurrent cap/deactivate guarantees vẫn NEEDS_EVIDENCE tới khi chạy two-connection MySQL gate. |
-| `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session, exact-mutation single-flight và namespace RTK Query cache duy nhất. |
-| `workflowApi` compatibility barrel | `frontend/src/api/workflowApi.ts` | Đăng ký/re-export endpoint và public hook từ `workflowDocumentsApi` cùng feature owner; danh sách thực tế lấy từ source/generated contracts, không từ counter trong docs. không tạo slice, endpoint hoặc tag registry thứ hai. |
-| `MainLayout` | `frontend/src/app/layout/MainLayout.tsx` | App-owned shell cho permission navigation, mobile nav, route preload và `IdleSessionGuard`: mặc định cảnh báo sau 60 phút không thao tác, grace 2 phút rồi gọi shared logout/revoke đúng một lần. |
-| `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |
+| Browser composition | frontend/src/main.tsx, App.tsx, app/layout/MainLayout.tsx | Redux/router, permission navigation, mobile shell, idle-session guard |
+| Routes/guards/preload | frontend/src/routes/AppRouter.tsx, RoleGuard.tsx, routeLoaders.ts | Public login vs protected routes; same-app sanitized login return, no external/protocol-relative/login-loop return |
+| HTTP middleware | backend/src/IPCManagement.Api/Program.cs | Correlation, exceptions, Development Swagger, CORS, authentication, rate limits, authorization; rejection Retry-After from lease metadata |
+| DI/persistence | DependencyInjection.cs, Data/IpcManagementContext.cs | MySQL context, feature IEntityTypeConfiguration mappings; models/migrations stay outside feature slice |
+| API use cases | backend/src/IPCManagement.Api/Features/ | Admin, Approvals, Auth, Catalog, Coordination, Inventory, Planning, Purchasing, Reports, SampleData controllers/services/contracts/validators |
+| Shared wire contract | backend Shared/Contracts; frontend/src/shared/api/contracts/ | Backend metadata → generated OpenAPI/types; prefix api/ |
+| Transaction runner | Data/Transactions/IEfTransactionRunner, EfTransactionRunner | Manual transactions only through execution strategy; clear tracking/recheck verifier on retry |
+| Catalog cache | Caching/DishCatalogCache.cs | Active/all catalog cache identities and mutation invalidation shared by Catalog/SampleData |
+| Stock/demand | MaterialDemandService, MaterialStockPool; InventoryIssueLineResolver | One unit-consistent physical stock pool consumed once; exact source-line issue allowance |
+| Reports mapping | frontend/src/api/reportsApiMappers.ts | Canonical mapping; feature facade re-exports, not duplicate implementation |
 
-Pomelo bật `EnableRetryOnFailure`; production source chỉ còn một `BeginTransactionAsync(` nằm trong
-`EfTransactionRunner`. `IUnitOfWork` chỉ còn trách nhiệm `SaveChangesAsync`, không còn mở transaction.
-Convention test khóa cả hai điều kiện này để manual transaction mới không thể lách execution strategy.
-Auth cold path được warm read-only trước khi host nhận traffic; không tạo user/session/token giả và readiness
-vẫn là nguồn phán quyết nếu database không sẵn sàng.
+Frontend app owns multi-feature AdminDataPage/composition. Feature pages use existing model/panel owners; do not rename everything into shared/ or cross-import feature internals. Projects uses lower-level coordination transport/projections, not Coordination internals. Reusable reconciliation UI is components/reconciliation; pure lifecycle/correlation/audit presentation is lib. Compatibility re-exports do not invert dependency direction.
 
-Request ownership của frontend nằm ở hai lớp. RTK Query gộp subscriber có cùng endpoint/cache key và
-`routeDataPreloaders` dùng `ifOlderThan` để pointer/focus/touch không phát lại cùng GET. Với mutation,
-`apiSlice` fingerprint method + URL + params + headers + body + access-token generation và chia sẻ đúng
-một promise khi request giống hệt còn in-flight; payload khác hoặc lần gọi tuần tự sau khi request kết thúc
-vẫn độc lập. Refresh 401 so token đã dùng cho request với token hiện hành: response muộn của token cũ chỉ
-retry bằng token mới, không khởi tạo vòng refresh thứ hai. Login, logout và action nhiều bước còn có
-synchronous in-flight guard tại interaction owner để tránh xử lý response/UI side effect hai lần.
+## Query, request and navigation ownership
 
-Sau khi shell đăng nhập ổn định, `MainLayout` preload tuần tự module của các route sidebar mà người dùng có quyền trong các idle slot. Scheduler chỉ warm code, không bulk-fetch dữ liệu; data vẫn được intent-prefetch khi hover, focus hoặc touch. Bulk preload bị bỏ qua khi trình duyệt bật Data Saver hoặc báo mạng 2G. `routeLoaders` giữ component đã resolve để lần render đầu sau preload không quay lại Suspense fallback; nếu người dùng click trước khi preload xong thì fallback có kích thước ổn định vẫn là đường lui.
+frontend/src/api/apiSlice.ts is the only base API/cache namespace; feature owners plus workflowDocumentsApi inject endpoints. workflowApi.ts is a registration/re-export compatibility barrel, not another slice/tag/endpoint owner. workflowCacheTags is the registry; dependency-cruiser allowlist is reviewed separately from documentation.
 
-Trong các workbench nhiều tab, query RTK Query được gate theo panel cần dữ liệu thay vì chạy toàn bộ ở page parent. Weekly Menu split Demand, Production Plan, Purchase Summary, Cost và Dish Materials thành chunk riêng; sau khi route ổn định, các chunk này được preload tuần tự trong idle slot mà không preload API. Weekly, Chef và Warehouse dùng selected view riêng với deferred rendered view: tab strip phản hồi ngay, còn panel cũ được giữ trong boundary cục bộ cho tới frame mới. Shell/sidebar/header không remount; trạng thái pending là overlay tuyệt đối nên không chiếm layout, và transition tôn trọng `prefers-reduced-motion`.
+RTK Query coalesces subscribers with same endpoint/key. routeDataPreloaders uses ifOlderThan for intent GET warming. Exact in-flight mutations fingerprint method/URL/params/headers/body/access-token generation and share one promise; different payloads and subsequent sequential calls remain independent. Late 401 from old token retries with current token, not a competing refresh. Interaction owners still have synchronous login/logout/multi-step guards.
 
-`frontend/src/lib/queryView.ts` là hợp đồng opt-in cho kiến trúc hàm thuần từ data + state sang UI: adapter thuần chuyển RTK
-Query snapshot thành `uninitialized`, `loading`, `forbidden`, `error` hoặc `ready`; `ready` giữ riêng
-`isRefreshing` và bằng chứng truncation. Empty chỉ được dẫn xuất từ dữ liệu authoritative trong `ready`.
-Lint chặn query đã đi qua adapter nhưng vẫn đọc trực tiếp `query.data ?? []`. Hợp đồng đã có test nền;
-Material Demand và Warehouse là hai pilot đầu tiên, nên các feature chưa pilot vẫn giữ state handling hiện có.
+MainLayout warms permitted sidebar code sequentially in idle slots, not bulk API data; Data Saver/2G skip bulk warming. Resolved route modules avoid first-render fallback; clicks before warming retain stable fallback. Active panels own their query families and lazy code; deferred rendered views preserve shell/header/sidebar and explicitly pending presentation. The same-key cache/readiness rules of bounded owners still govern retained data.
 
-Frontend giữ cây module hiện tại thay vì đổi tên hàng loạt sang `shared/`. Hai composition
-lớn đã được tách theo page model/panel: `frontend/src/features/reports/pages/ReportsPage.tsx` dùng compatibility facade
-`useReportsPageModel` trên năm view-model owner; `frontend/src/app/pages/AdminDataPage.tsx` là shell dùng compatibility facade
-`useAdminDataPageModel` trên bảy panel-model owner. Các owner hook được gọi vô điều kiện theo thứ tự query cũ để giữ React hook order, cache timing,
-URL/permission contract và flat page-model API. CSS global được nạp theo thứ tự tường minh
-từ `frontend/src/main.tsx`: `frontend/src/styles/index.css` giữ token/base, `frontend/src/styles/components/*` chứa shell/table/document/
-operation/domain/responsive, còn `frontend/src/styles/ui-redesign.css` + `frontend/src/styles/redesign/*` giữ lớp Fiori/demand/
-dashboard/responsive. Việc tách file không đổi selector order hay DOM contract.
+frontend/src/lib/queryView.ts is opt-in: uninitialized/loading/forbidden/error/ready; ready retains refreshing/truncation metadata, empty only from authoritative ready. Adapter consumers cannot bypass it via query.data ?? []; existing nonpilot handling is not silently converted.
 
-## Preset BOM import compatibility boundary
+Global CSS order comes from main.tsx: styles/index.css + styles/components, then ui-redesign.css + styles/redesign. Import order and opt-in shared primitive variants are actual implementation contracts, not proof that provisional design tokens are production defaults. App/report/admin model facade hook order preserves React/query timing; dependencies are enforced by frontend/.dependency-cruiser.cjs, not historical violation counts.
 
-Technical owner: `Features/SampleData/Services/PresetBomImportPolicy.cs`, called by `SampleBomImportService`; regression examples are in `SampleDataImportServiceTests`. These are current executable legacy-preset compatibility behaviors, not general approved BOM business rules:
+## Auth, hosting and persistence mechanics
 
-- `LEGACY_COMPATIBILITY_BEHAVIOR`: duplicate tier/dish/ingredient groups with differing quantities use serving-weighted consolidation of positive quantities with positive serving counts; if no positive serving counts exist, use the positive-quantity average. Equal quantities retain the first row. This does not establish safe identity deduplication for arbitrary imports.
-- `LEGACY_COMPATIBILITY_BEHAVIOR`: use a positive per-serving quantity first; otherwise fall back to positive total weight divided by positive servings, else zero. Dedicated tests cover weighting, merge warning, fallback and scientific notation.
-- `UNSUPPORTED_HEURISTIC` as a general conversion rule: a parsed per-serving value greater than 5 is divided by 1,000; smaller positive values are retained. This is a current compatibility implementation, not unit/provenance evidence. No owner-approved general magnitude-to-unit rule was established. Validation of any expansion remains required from the business owner. New inputs must provide explicit unit/provenance; new development must not infer conversion solely from magnitude. Do not apply this heuristic to arbitrary new imports.
-- `IMPLEMENTATION_DETAIL`: quantity rounding uses `DecimalPolicy`, parsing accepts localized/scientific cached text, and name normalization collapses whitespace.
+Backend is direct-host and does not trust X-Forwarded-*; trusted proxies require separate implementation/integration scope. Rate partition uses actual direct connection identity. DbContext configuration does not perform a network version probe; readiness/startup warehouse checks still observe real state.
 
-The business safety contract remains [DOMAIN](DOMAIN.md): reviewed conversion evidence and unambiguous source identity are required. Recording existing compatibility does not resolve its suitability for new business data, change behavior, or authorize fixture publication.
+Access JWT/user metadata are tab-scoped sessionStorage; refresh credential is HttpOnly cookie; startup clears legacy persistent auth metadata. BCrypt uses cost encoded in stored hashes, never reduced to improve latency. AuthService/RefreshTokenRepository use IEfTransactionRunner and MySQL user-row FOR UPDATE ordering for login/rotation/Admin deactivation. Rotation keeps device identity and absolute expiry, replaces same-device session, rechecks inactive state inside transaction. Validated active-session cap defaults to 3; two-connection concurrent cap/deactivate guarantees remain NEEDS_EVIDENCE, not inferred from sequential tests. Default token family is absolute 24h, access 30m; deactivation revokes refresh while issued access has remaining-expiry residual window. IdleSessionGuard defaults 60m plus 2m grace then shared revoke/logout once; configurable values belong to ENGINEERING.
 
-## Phạm vi API
+Pomelo retry-enabled execution strategy and the single runner prevent manual transactions outside retry boundaries; IUnitOfWork owns SaveChanges, not transaction creation. Auth cold-path warmup is read-only, never fake user/session creation. Outbox/idempotency creation is transactional; delivery/recovery is separate.
 
-Các controller/service/DTO/validator được nhóm theo VSA-lite trong 10 slice
-`backend/src/IPCManagement.Api/Features/{Admin,Approvals,Auth,Catalog,Coordination,Inventory,Planning,Purchasing,Reports,SampleData}`.
-Route dùng prefix `api/`; `MaterialDemandController` công bố action generate cho luồng tạo demand,
-còn frontend gọi API qua RTK Query. Contract dùng chung nằm ở `Shared/Contracts`; `Data`, entity,
-resource và migration được giữ ngoài feature slice để không làm nhiễu EF history.
+PurchaseReceiptActiveLine lease has unique PurchaseOrderLineId, admitting one DRAFT/PENDING_APPROVAL/APPROVED owner; POSTED/full rejection/audited VOIDED release it. Legacy active-line read fallback remains until reconciled; DB fence arbitrates concurrent writes. VOIDED is reasoned Admin pre-post remediation with audit/lifecycle, no stock movement and no direct SQL deletion. Shared business transition semantics belong to DOMAIN.
 
-## Cấu trúc thư mục
+## Compatibility boundaries
 
-```text
-IPCManagement/
-├── backend/
-│   ├── src/IPCManagement.Api/
-│   │   ├── Caching/           cache key/invalidation dùng chéo feature
-│   │   ├── Features/          10 vertical slice; controller/service/contract/validator
-│   │   ├── Shared/Contracts/  contract dùng chéo slice
-│   │   ├── Data/              DbContext, repository, Unit of Work, transaction runner
-│   │   ├── Helpers/           mapping, response, validation hỗ trợ
-│   │   ├── Middlewares/       exception, correlation, production guard
-│   │   ├── Migrations/        EF Core migrations
-│   │   ├── Models/Entities/   entity EF giữ ngoài feature slice
-│   │   ├── Security/          JWT và current-user context
-│   │   └── Resources/         resource dùng chung
-│   ├── tests/                 xUnit backend tests
-│   └── database/              SQL schema/cleanup/migration hỗ trợ
-├── frontend/
-│   ├── src/app/               Redux store, app layout và composition page đa-feature
-│   ├── src/api/               RTK Query base API + compatibility/types/tag/document modules
-│   ├── src/features/          module nghiệp vụ: admin, approvals, chef, coordination, projects,
-│   │                          purchasing, reports và warehouse
-│   ├── src/components/        component dùng chung/layout/UI
-│   ├── src/routes/             route, guard, preload
-│   ├── src/lib/                formatter, pagination, status và utility
-│   ├── src/styles/             base CSS + component/redesign slices theo thứ tự import
-│   └── tests/                  browser specs, behavioral contracts, support and fixtures
-├── docs/                      tài liệu kỹ thuật và MVP flow
-├── .docs/                     private business inputs; không là publication/execution authority
-└── scripts/                   script vận hành/quality gate hiện có
-```
+PresetBomImportPolicy.cs, called by SampleBomImportService, owns existing preset interpretation; SampleDataImportServiceTests has weighting/fallback/scientific parsing examples:
+- **LEGACY_COMPATIBILITY_BEHAVIOR:** differing quantities for tier/dish/ingredient groups consolidate positive quantities with positive-serving weights; absent positive weights uses positive-quantity mean. Equal quantities retain first row. Not a generic safe identity merge.
+- **LEGACY_COMPATIBILITY_BEHAVIOR:** positive per-serving quantity first; otherwise positive total weight / positive servings, else zero.
+- **UNSUPPORTED_HEURISTIC** as a general rule: parsed value >5 is divided by 1,000, smaller positive values retained. Behavior exists for legacy compatibility, not unit/provenance evidence. New inputs require explicit unit/provenance; new development must not infer conversion solely from magnitude. Expanding it needs owner validation.
+- **IMPLEMENTATION_DETAIL:** DecimalPolicy rounding, localized/scientific cached parsing, whitespace normalization. Does not authorize fixture publication or override DOMAIN conversion safeguards.
 
-Frontend không còn `frontend/src/features/workflow`: core dùng chung nằm ở `frontend/src/api/workflowApi.ts`,
-`frontend/src/lib/workflowConfig.ts`, `frontend/src/lib/actionEligibility.ts` và `frontend/src/types/workflow.ts`; page được sở hữu
-bởi feature nghiệp vụ tương ứng. Endpoint implementation nằm trong dashboard, reports, purchasing,
-warehouse, chef, approvals và admin owner; `workflowDocumentsApi` là owner trung lập cho document overview.
-Cache giữ một `workflowCacheTags` registry 22 tag. `AdminDataPage` ở tầng `src/app/pages` vì nó composition
-dữ liệu của admin, auth và coordination thay vì thuộc riêng một feature. Cross-feature Projects chỉ dùng
-coordination transport/read projection và action contract ở tầng thấp hơn, không import ruột feature Coordination.
+## Machine/tool boundaries
 
-Dependency-cruiser áp dụng R1–R6 với baseline known-violation `[]`. Reusable reconciliation UI nằm ở
-`frontend/src/components/reconciliation`, còn pure lifecycle/correlation/audit presentation nằm ở
-`frontend/src/lib`; feature/app paths cũ chỉ là compatibility re-export và không được import ngược từ owner
-thấp hơn. Report mapping canonical nằm ở `frontend/src/api/reportsApiMappers.ts`; feature Reports chỉ giữ
-facade re-export thay vì implementation trùng lặp. Configuration/rule owner là
-`frontend/.dependency-cruiser.cjs`; diagnostic hiện hành lấy từ `npm run depcruise:fe`, không từ kết quả cũ
-trong tài liệu. Compatibility barrel workflow chỉ được import chính xác các endpoint owner đã liệt kê;
-việc thay đổi allowlist hoặc retire barrel cần review riêng, không phụ thuộc milestone lịch sử.
+[table-contracts.json](table-contracts.json) is test-read metadata, not a prose owner. Immutable [migration lineage](../tools/db/migration-lineage.json), exact-target SQL/schema and source/test guards remain technical contracts even with historical filenames. Generated API is maintained through ENGINEERING, not hand edits.
 
-## Technical safety and growth checks
-
-Source-size diagnostics belong to `scripts/check-architecture-growth.mjs` and its reviewed baseline; they are not behavior proof or task state. CI runs architecture and route-budget diagnostics advisory. Backend tests are organized by workflow and fixture owners, not execution phases.
-
-`scripts/check-architecture-growth.mjs` và `scripts/architecture-growth-baseline.json` khóa growth theo
-baseline đơn điệu. Controller cảnh báo trên 250 dòng hoặc 12 action và buộc plan split trên 400 dòng hoặc
-20 action; service cảnh báo trên 600 dòng và buộc plan split trên 1.000 dòng; frontend viết tay cảnh báo
-trên 600 dòng; test file trên 1.500 dòng là lỗi. Strict gate còn fail khi có production debt mới/tăng,
-test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline và findings hiện hành thuộc script/JSON baseline, không phải một kết quả PASS trong tài liệu.
-Purchasing routing của `SupplementalMaterialRequestService` thuộc internal non-DI owner
-`SupplementalMaterialRequestPurchasingRouter`; reconciliation issue creation của `InventoryIssueService`
-thuộc `ReconciliationInventoryIssueCreator`; stored-audit/quantity-import/menu-import reads của
-`AuditReportService` thuộc `AuditChangeQueryReader`. Các owner này không đăng ký DI riêng; public
-service/controller contract vẫn thuộc source và generated API owners. Không suy mức debt hiện tại từ
-lịch sử extraction hoặc số service trong một lượt kiểm trước.
-
-Root `Directory.Build.props` bật .NET SDK artifacts layout và gom output mặc định vào `.artifacts/dotnet`; gate cần cô lập dùng `--artifacts-path .artifacts/dotnet/<run-id>`. `DefaultItemExcludes` chặn output cũ (`.artifacts`, `.artifactslk*`, `.tmp-*`, `.phase*test`, `bin-*` và recursive `backend/`) bị coi là content rồi tự sao chép vào output mới. Không tái sử dụng `BaseOutputPath` tương đối trong project tree.
-
-Create-response `Location` thuộc `InventoryIssuesController.CreateAsync`. Demand stock conversion/allocation
-thuộc `MaterialDemandService.GenerateAsync` và `MaterialStockPool`: cùng physical stock pool phải được tiêu
-thụ nhất quán theo đơn vị BOM, không phân bổ lặp cùng lượng tồn cho nhiều demand line. Source và behavior
-contracts xác minh implementation; Git history giữ chronology sửa lỗi, không phải tài liệu as-built.
-
-Receipt lifecycle uses immutable purchase-order source-line identity. A `PurchaseReceiptActiveLine` lease has a
-unique primary key per `PurchaseOrderLineId`, so only one receipt in `DRAFT`, `PENDING_APPROVAL` or `APPROVED`
-can own a line at once; `POSTED`, full quality rejection and audited `VOIDED` release the lease. The application
-also reads active legacy receipt lines as a fallback until they are reconciled, while the database fence resolves
-concurrent writes. The Warehouse UI receives the active receipt code/status and disables duplicate receive actions.
-`VOIDED` is an append-only pre-POSTED remediation transition requiring an Admin reason, audit log and lifecycle
-command; it never produces stock movement and must not be replaced with direct SQL deletion.
+Directory.Build.props owns SDK artifacts layout under .artifacts/dotnet and excludes recursive/old output from content; isolated runs use artifacts-path, not relative project-tree BaseOutputPath. Growth diagnostics and route budgets belong to scripts/baselines/CI with their actual severity; they are not business proof. Check source for current thresholds/debt, not counts copied into documentation. PurchasingRouter, ReconciliationInventoryIssueCreator and AuditChangeQueryReader are internal service owners, not parallel DI/public APIs.
