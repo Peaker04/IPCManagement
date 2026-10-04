@@ -27,6 +27,11 @@ TestResults/
 test-results/
 playwright-report/
 coverage/
+# k6 summaries are generated measurements, not tracked/current performance baselines.
+/tools/perf/k6/results-*.json
+/results-load.json
+/results-smoke.json
+/results-stress.json
 .dotnet-tools/
 __pycache__/
 *.pyc

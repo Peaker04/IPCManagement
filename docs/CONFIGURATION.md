@@ -2,7 +2,7 @@
 
 ## Runtime servicing baseline
 
-- `global.json` selects SDK `9.0.313` as the minimum in the 9.0.3xx feature band and permits a newer installed patch through `latestPatch`; it prevents silently building with an installed .NET 10 SDK but is not a byte-for-byte SDK pin. CI independently requests the supported `9.0.x` channel.
+- `global.json` selects SDK `9.0.313` as the minimum in the 9.0.3xx feature band and permits a newer installed patch through `latestPatch`; it prevents silently building with an installed .NET 10 SDK but is not a byte-for-byte SDK pin. CI uses the same root `global.json` through `actions/setup-dotnet` rather than an independent SDK channel.
 - ASP.NET Core and EF Core package family is serviced coherently at `9.0.20`; test packages `Microsoft.AspNetCore.Mvc.Testing`, EF InMemory and SQLite match `9.0.20`.
 - `System.IdentityModel.Tokens.Jwt` is `8.19.2`, the minimum coherent dependency required by JwtBearer 9.0.20. Pomelo remains `9.0.0`; no unrelated dependency upgrade or target-framework change was made.
 - CI installs `dotnet-ef 9.0.20`. Package servicing never authorizes schema/data migration by itself.

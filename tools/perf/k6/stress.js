@@ -4,7 +4,7 @@
 // thời gian phản hồi tăng vọt. KHÔNG đặt threshold từng endpoint —
 // mục tiêu là quan sát hệ thống suy giảm ở mức tải nào.
 //
-// ⚠ Nhớ nới rate limit trước khi chạy (xem RUNBOOK.md).
+// ⚠ Không tự nới rate limit; 429 vẫn là diagnostic evidence (xem tools/perf/RUNBOOK.md).
 // Chạy:  k6 run stress.js
 // Env:   BASE_URL, K6_USERNAME, K6_PASSWORD, K6_START_RATE, K6_PEAK_RATE
 // ============================================================

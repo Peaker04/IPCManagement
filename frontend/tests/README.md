@@ -1,14 +1,14 @@
 # Frontend test taxonomy
 
-The frontend keeps tests close to the seam they verify. This is a migration contract, not a reason to move every historical file at once.
+The frontend keeps tests close to the seam they verify. This index describes current locations, not campaign state or a migration-completion report. Acceptance and measurement authority: [TESTING](../../docs/TESTING.md).
 
 | Location | Owner |
 |---|---|
 | `src/**/*.test.{ts,tsx}` | Unit/component behavior colocated with its production module |
-| `tests/evidence/` | Campaign/evidence validators; excluded from default product CI unless explicitly selected |
+| `tests/config/` | Browser configuration and focused verification settings |
 | `tests/browser/**/*.spec.ts` | Playwright/browser suites and their adjacent screenshot baselines |
-| `tests/contracts/` | New cross-module contracts; historical root contracts remain bounded migration debt |
+| `tests/contracts/` | Suggested location for new cross-module contracts; current root contracts remain at their existing owners |
 | `tests/support/` | Shared browser/cross-module support code; browser specs must never import another spec |
 | `tests/fixtures/` | Browser and contract fixtures |
 
-All Playwright specs have moved out of the test root. Phase 27/28/35 path contracts and snapshot manifests were migrated with the specs and remain covered by their existing lineage validators.
+Browser specs live under `tests/browser` and must remain isolated from Vitest. Screenshot baselines are consumed by their browser assertions; a historical result or snapshot-path manifest is not a current acceptance owner.

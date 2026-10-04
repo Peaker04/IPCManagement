@@ -2,7 +2,7 @@
 
 **Status:** Adopted Domain Contract  
 **Owner:** Warehouse, Inventory & Kitchen Logistics Domain  
-**Target Routes:** `/warehouse`, `/chef`  
+**Target Routes:** `/warehouse`, `/chef-dashboard`
 **Last Updated:** 2026-09-30  
 
 ---

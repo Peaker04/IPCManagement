@@ -36,7 +36,7 @@ last_reviewed: 2026-08-12
 ### 0.3 Chỉ dẫn bắt buộc khi thực thi (dành cho AI agent và dev)
 
 1. Mọi ví dụ trong tài liệu là **placeholder generic**. MUST NOT coi chúng là mô tả một màn hình có thật, và MUST NOT chỉ sửa đúng chỗ trùng với ví dụ.
-2. Khi nhận yêu cầu dạng "sửa màn hình X": MUST discovery cùng anti-pattern và callsite của root owner trên codebase, ghi mọi occurrence tìm thấy vào một ledger trước khi sửa. Discovery không tự cấp quyền sửa toàn hệ thống: khóa implementation scope và acceptance scope theo Lean delivery. Occurrence ngoài scope phải có disposition; sửa shared owner phải kiểm các consumer bị ảnh hưởng hoặc chặn phần chưa đủ evidence/authority. Không chỉ vá màn được nêu rồi bỏ qua cùng nguyên nhân.
+2. Khi nhận yêu cầu dạng "sửa màn hình X": MUST discovery cùng anti-pattern và callsite của root owner trên codebase. Ghi scope, occurrence liên quan và disposition ngoài scope trong `.planning/WORK.md` khi task đang active hoặc output runtime; không tạo ledger/registry hay process owner riêng. Discovery không tự cấp quyền sửa toàn hệ thống. Sửa shared owner phải kiểm các consumer bị ảnh hưởng hoặc chặn phần chưa đủ evidence/authority. Không chỉ vá màn được nêu rồi bỏ qua cùng nguyên nhân.
 3. MUST sửa ở **tầng thấp nhất có thể**, theo thứ tự: design token → primitive component → shared hook/formatter/util → layout → màn hình. Cấm vá cục bộ trong file màn hình nếu nguyên nhân nằm ở component dùng chung.
 4. MUST NOT tạo biến thể song song (`BadgeV2`, `TableNew`, `ModalCustom`, `*.old.tsx`). Sửa hoặc mở rộng component gốc.
 5. Mỗi thay đổi MUST ghi ID rule đang áp trong mô tả PR/commit, ví dụ `C3`, `M3.2`.
@@ -70,7 +70,7 @@ nghiệp vụ/quyền/data safety chưa đủ authority ở `BLOCKED` hoặc `NE
 - **P7 (MUST)** Phòng lỗi trước khi báo lỗi: chặn giá trị không hợp lệ tại nguồn, gợi ý giá trị hợp lệ, mặc định thông minh.
 - **P8 (SHOULD)** Mọi màn hình phải trả lời được trong 2 giây: *cái gì đang bất thường* và *tôi cần làm gì tiếp theo*.
 - **P9 (MUST)** Trước tạo/sửa/loại bỏ UI, khóa design brief, actor–action–transition matrix và walkthrough theo
-  `DESIGN.md` §7: mục đích, role/data scope, pre/postcondition, next owner, recovery, composition và acceptance.
+  `DESIGN.md` §9: mục đích, role/data scope, pre/postcondition, next owner, recovery, composition và acceptance.
   Delta/link có căn cứ đủ cho phần không đổi; không tạo process/registry song song. Thiếu quyết định nghiệp vụ,
   quyền hoặc data safety phải chặn phần phụ thuộc, không dùng styling để thay câu trả lời.
 
@@ -104,7 +104,7 @@ nghiệp vụ/quyền/data safety chưa đủ authority ở `BLOCKED` hoặc `NE
 - **L9 (MUST)** Vòng đời nghiệp vụ hiển thị bằng stepper có nhãn nghiệp vụ, nêu rõ: bước hiện tại, người chịu trách nhiệm, việc kế tiếp, nút để làm việc đó. Cấm hiển thị chuỗi trạng thái kỹ thuật thô.
 - **L10 (MUST)** Viết tắt lần đầu xuất hiện phải có dạng đầy đủ hoặc tooltip giải nghĩa.
 - **L11 (MUST)** Nhãn cột, nhãn field, nhãn nút dùng đúng từ ngữ trong `docs/GLOSSARY.md`. Cấm dịch máy hoặc tự chế biến thể.
-- **L12 (SHOULD)** Ngày giờ hiển thị theo múi giờ người dùng, có nhãn tương đối khi hữu ích, và giữ giá trị tuyệt đối trong tooltip.
+- **L12 (SHOULD)** Ngày giờ hiển thị theo business timezone policy tại [CONFIGURATION](CONFIGURATION.md); nhãn tương đối khi hữu ích vẫn giữ giá trị tuyệt đối trong tooltip. Không suy per-user timezone từ một rule generic.
 
 ---
 
@@ -153,14 +153,14 @@ context phải cùng tone trên mọi màn. Không tự thêm mapping local ho�
 
 ## T. Bảng dữ liệu & danh sách
 
-- **T1 (MUST)** Căn lề theo loại dữ liệu: chữ căn trái; số định lượng (tiền, khối lượng, %, số đếm) căn phải theo dấu thập phân; số định tính (ngày, mã bưu chính, số điện thoại) có thể căn trái. **MUST NOT căn giữa.**
+- **T1 (MUST)** Căn lề theo loại dữ liệu: số định lượng (tiền, khối lượng, %, số đếm) căn phải và dùng `tabular-nums`; chữ căn trái mặc định. Trạng thái, mã hoặc ngày ngắn chỉ được căn giữa khi table owner định nghĩa rõ. Quy tắc canonical tại DESIGN.md §11; không suy ngoại lệ cho số định lượng.
 - **T2 (MUST)** Header căn cùng chiều với nội dung cột.
 - **T3 (MUST)** Mọi số trong bảng dùng `font-variant-numeric: tabular-nums`.
 - **T4 (SHOULD)** Không lặp từ chung trong mọi ô — đưa từ chung lên header.
 - **T5 (MUST)** Chọn **một** kiểu phân tách hàng. Đường kẻ ngang 1px màu nhạt là mặc định an toàn. Tránh zebra stripe khi bảng có nhiều state (hover, selected, disabled).
 - **T6 (SHOULD)** Chêch lệch chiều cao hàng dưới 3 dòng thì căn giữa theo chiều dọc; trên 3 dòng thì căn trên.
 - **T7 (MUST)** Bảng cuộn ngang MUST có header dính và cột định danh đóng băng bên trái.
-- **T8 (MUST)** Cho người dùng kiểm soát: ẩn/hiện cột, đổi thứ tự cột, 3 mức mật độ hàng (gọn 32–36px / thường 40–44px / thoáng 48–56px theo DESIGN.md §5.6). Kèm **lưu trạng thái** theo tài khoản và **nút khôi phục mặc định**.
+- **T8 (OWNER_DECISION_REQUIRED)** Canonical decision owner: DESIGN.md, “Canonical rule dispositions”. Chưa có explicit product decision chọn three densities + account persistence/reset REQUIRED hay density preference OPTIONAL/PROVISIONAL. Không dùng rule này làm blanket acceptance gate hoặc tự cấp ngoại lệ. Các khả năng và defaults đang có trong source không phải quyết định product mới.
 - **T9 (MUST)** Sắp xếp mặc định phải có chủ đích: bản ghi mới nhất hoặc bản ghi **cần hành động nhất**. MUST NOT mặc định theo khoá chính.
 - **T10 (MUST)** Chỉ báo sắp xếp MUST NOT làm xê dịch canh lề header.
 - **T11 (SHOULD)** Hành động dòng bộc lộ khi hover, và MUST có đường vào tương đương bằng bàn phím.
@@ -245,7 +245,7 @@ Layout shift luôn đến từ bốn nguồn: ảnh hoặc embed không khai bá
 - **C4 (MUST)** Mọi con số cập nhật động (bộ đếm, đồng hồ, KPI, polling) dùng `tabular-nums`.
 - **C5 (MUST)** Đặt `scrollbar-gutter: stable` ở `html` để layout không dịch ngang khi mở modal hoặc khi trang đổi từ có sang không có scrollbar.
 - **C6 (MUST)** Toast, banner, cảnh báo MUST NOT chèn vào giữa luồng tài liệu. Đặt ở lớp overlay hoặc trong slot đã đặt chỗ sẵn.
-- **C7 (MUST)** Animation chỉ dùng `transform` và `opacity`. MUST NOT animate `top`, `left`, `width`, `height`, `box-shadow`, `filter`.
+- **C7 (MUST)** Theo canonical motion policy tại DESIGN.md §14.2: motion không được là nguồn thông tin bắt buộc duy nhất; phải tôn trọng reduced-motion. `transform`/`opacity` là default an toàn; tránh layout animation nếu chưa có justification. Focus/color/shadow transitions chỉ được phép khi không thiết yếu và accessible. Grid-row disclosure là optional pattern, không phải requirement hay performance certification.
 - **C8 (MUST)** `content-visibility: auto` MUST đi kèm `contain-intrinsic-size`. Thiếu nó, phần ngoài viewport bị coi là cao 0px và thanh cuộn sẽ nhảy.
 - **C9 (MUST)** Font fallback MUST khớp metric (`size-adjust`, `ascent-override`, `descent-override`) hoặc preload font chính. `font-display: swap` một mình không chống shift.
 - **C10 (MUST)** Khi query resolve empty/prerequisite, thay skeleton bằng đúng một purposeful state surface
@@ -451,7 +451,7 @@ html { scrollbar-gutter: stable; }
   cell, các message/surface mô tả cùng một vấn đề nền và dẫn tới cùng recovery/next action được tính là một state
   dù khác câu chữ hoặc component; chỉ render một owner giải thích chính. Summary/detail chỉ được lặp khi phục vụ
   grain hoặc quyết định actor khác và phần detail bổ sung fact không trùng; ngoại lệ phải được disposition trong
-  claim ledger.
+  phạm vi kiểm chứng của task tại WORK/output runtime, không tạo claim ledger riêng.
 - **V4 (MUST)** Async boundary phải khai geometry đúng semantic role: `compact`, `section`, `table` hoặc
   `workspace`. Boundary bọc select/filter/action MUST NOT dùng min-height của bảng/workspace.
 - **V5 (MUST)** `min-height`, `height`, `flex-grow` và viewport units chỉ được dùng khi có content/skeleton
@@ -499,7 +499,7 @@ Không hạ rule, sửa expectation theo bug, hoặc tự thay CI/hooks để l�
 
 ### Q1. Checklist review PR
 
-- [ ] Brief/ma trận actor–action/walkthrough đã khóa trước code và được đối chiếu lại sau sửa (`P9`, DESIGN §7)
+- [ ] Brief/ma trận actor–action/walkthrough đã khóa trước code và được đối chiếu lại sau sửa (`P9`, DESIGN §9)
 - [ ] Có outcome, next owner, recovery và disposition actor bị từ chối; không chỉ kiểm happy path của Admin (`P2`, `P9`)
 - [ ] Không có mã kỹ thuật nào đứng một mình ở cột hoặc nhãn chính (`L1`, `L2`)
 - [ ] Mọi enum backend đi qua từ điển nhãn tập trung (`L4`)
@@ -536,11 +536,9 @@ Không hạ rule, sửa expectation theo bug, hoặc tự thay CI/hooks để l�
 | Mã kỹ thuật lộ ra cấp danh sách | 0 | Rà soát theo checklist mỗi sprint |
 | Thời gian hoàn thành tác vụ chuẩn | Giảm theo từng đợt | Test 5 người dùng thật với 3 kịch bản nghiệp vụ chính |
 
-### Q3. Thứ tự triển khai
+### Q3. Phạm vi và ưu tiên thực thi
 
-1. **Đợt 1 — Nền tảng (không đổi UI nhìn thấy được).** Token ngữ nghĩa, từ điển nhãn, formatter, chuẩn hoá component Badge/Tag/StatusPill/Modal, `scrollbar-gutter` và `tabular-nums` ở layer base, lint chặn màu hardcode.
-2. **Đợt 2 — Ổn định và ngôn ngữ.** Áp `C` (đặt chỗ, skeleton, min-width) và `L` (tên trước mã sau) cho toàn bộ bảng, KPI và modal. Đây là đợt tạo khác biệt cảm nhận lớn nhất.
-3. **Đợt 3 — Hiệu năng và chiều sâu tương tác.** Áp `M3` và `F` (mount theo nhu cầu, code-split, cuộn ảo, huỷ request), master–detail drawer, quản lý cột, mật độ hàng, 4 loại empty state, stepper vòng đời nghiệp vụ.
+Ưu tiên finding có evidence, root owner và acceptance oracle trong phạm vi được ủy quyền. Không coi danh sách rule là một campaign hoặc rollout toàn hệ thống. `AGENTS.md` sở hữu workflow; `.planning/WORK.md` chỉ giữ kế hoạch/thứ tự đang active, rồi trở về IDLE khi đóng task. Các invariant token, ngôn ngữ, accessibility, layout và performance ở trên vẫn áp dụng; không cần một wave/ledger owner thứ hai.
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Deployment targets
 
-- **Frontend trên Vercel:** root `vercel.json` là file cấu hình duy nhất — chọn framework Vite, chạy `npm run build:fe`, lấy artifact ở `frontend/dist`, khai rewrite SPA và security header (nosniff, `X-Frame-Options`, Referrer-Policy, HSTS, CSP). `frontend/vercel.json` **đã bị xóa ở P1.6** vì Vercel chỉ đọc file nằm tại Root Directory; rewrite SPA khai trong đó chưa từng có hiệu lực, deep-link sống được là nhờ preset Vite mặc định.
+- **Frontend trên Vercel:** root `vercel.json` là file cấu hình duy nhất — chọn framework Vite, chạy `npm run build:fe`, lấy artifact ở `frontend/dist`, khai rewrite SPA và security header (nosniff, `X-Frame-Options`, Referrer-Policy, HSTS, CSP). Vercel đọc cấu hình tại Root Directory của project; phải xác nhận provider setting trước release, không suy từ một deployment lịch sử.
 - **Backend ASP.NET Core:** repository có project `backend/src/IPCManagement.Api/IPCManagement.Api.csproj`, root `Dockerfile` multi-stage cho .NET 9 và các file cấu hình mẫu `backend/src/IPCManagement.Api/appsettings.Demo.example.json`, `backend/src/IPCManagement.Api/appsettings.Lan.example.json`, `backend/src/IPCManagement.Api/appsettings.Production.example.json`. Chưa có GitHub Actions deployment workflow hoặc provider-specific backend manifest; image/deployment backend vẫn cần được phát hành riêng trên host .NET/MySQL phù hợp.
 
 <!-- VERIFY: Tên project/team/domain Vercel và host backend production phải được xác nhận trong tài khoản triển khai thực tế. -->
@@ -25,7 +25,7 @@ Quy trình xử lý CI đỏ:
 4. Chỉ dùng **Re-run failed jobs** cho lỗi hạ tầng runner/network đã có bằng chứng. Test hoặc gate deterministic đỏ phải được sửa trước khi rerun.
 5. `CodeQL` là workflow độc lập cho `main` và lịch tuần. Repository chưa có workflow deploy backend; Vercel frontend và backend host vẫn là các lane phát hành riêng.
 
-Root Directory của project trên Vercel là `./` (gốc repository) — **đã xác minh trực tiếp trong Vercel → Settings → Build & Development ngày 26/07/2026**, kèm tuỳ chọn "Include files outside the root directory in the Build Step" đang bật. Đây là căn cứ để chỉ giữ root `vercel.json`: Vercel chỉ đọc file cấu hình nằm tại Root Directory, nên `frontend/vercel.json` trước đây không bao giờ được áp dụng.
+Trước release, xác nhận Root Directory của project trên Vercel là `./` và provider build/include-files settings tương thích root `vercel.json` cùng workspace build. Repository không chứng minh current account settings; một lần kiểm provider trước đây không là verification cho deployment mới.
 
 ## Environment setup
 

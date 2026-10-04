@@ -10,7 +10,7 @@ export const PASSWORD = __ENV.K6_PASSWORD || '';
 
 // Danh mục endpoint đo hiệu năng.
 // "name" dùng làm tag để đặt threshold riêng cho từng endpoint.
-// "target" (ms) lấy từ mục 5 — Ngưỡng mục tiêu đề xuất, .docs/ipc-hieu-nang-mysql.md
+// "target" (ms): diagnostic budgets in tools/perf/RUNBOOK.md; not measured production SLOs.
 export const ENDPOINTS = [
   { name: 'list-current-stock',     method: 'GET', path: '/api/workflow-reports/current-stock/page?pageNumber=1&pageSize=20',            target: 800 },
   { name: 'list-stock-movements',   method: 'GET', path: '/api/workflow-reports/stock-movements/page?pageNumber=1&pageSize=20',          target: 800 },

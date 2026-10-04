@@ -83,6 +83,17 @@ từ `frontend/src/main.tsx`: `frontend/src/styles/index.css` giữ token/base, 
 operation/domain/responsive, còn `frontend/src/styles/ui-redesign.css` + `frontend/src/styles/redesign/*` giữ lớp Fiori/demand/
 dashboard/responsive. Việc tách file không đổi selector order hay DOM contract.
 
+## Preset BOM import compatibility boundary
+
+Technical owner: `Features/SampleData/Services/PresetBomImportPolicy.cs`, called by `SampleBomImportService`; regression examples are in `SampleDataImportServiceTests`. These are current executable legacy-preset compatibility behaviors, not general approved BOM business rules:
+
+- `LEGACY_COMPATIBILITY_BEHAVIOR`: duplicate tier/dish/ingredient groups with differing quantities use serving-weighted consolidation of positive quantities with positive serving counts; if no positive serving counts exist, use the positive-quantity average. Equal quantities retain the first row. This does not establish safe identity deduplication for arbitrary imports.
+- `LEGACY_COMPATIBILITY_BEHAVIOR`: use a positive per-serving quantity first; otherwise fall back to positive total weight divided by positive servings, else zero. Dedicated tests cover weighting, merge warning, fallback and scientific notation.
+- `UNSUPPORTED_HEURISTIC` as a general conversion rule: a parsed per-serving value greater than 5 is divided by 1,000; smaller positive values are retained. This is a current compatibility implementation, not unit/provenance evidence. No owner-approved general magnitude-to-unit rule was established. Validation of any expansion remains required from the business owner. New inputs must provide explicit unit/provenance; new development must not infer conversion solely from magnitude. Do not apply this heuristic to arbitrary new imports.
+- `IMPLEMENTATION_DETAIL`: quantity rounding uses `DecimalPolicy`, parsing accepts localized/scientific cached text, and name normalization collapses whitespace.
+
+The business safety contract remains [DOMAIN](DOMAIN.md): reviewed conversion evidence and unambiguous source identity are required. Recording existing compatibility does not resolve its suitability for new business data, change behavior, or authorize fixture publication.
+
 ## Phạm vi API
 
 Các controller/service/DTO/validator được nhóm theo VSA-lite trong 10 slice
@@ -120,7 +131,7 @@ IPCManagement/
 │   ├── src/styles/             base CSS + component/redesign slices theo thứ tự import
 │   └── tests/                  browser specs, behavioral contracts, support and fixtures
 ├── docs/                      tài liệu kỹ thuật và MVP flow
-├── .docs/                     tài liệu tham chiếu nghiệp vụ/demo
+├── .docs/                     private business inputs; không là publication/execution authority
 └── scripts/                   script vận hành/quality gate hiện có
 ```
 
@@ -136,9 +147,10 @@ Dependency-cruiser áp dụng R1–R6 với baseline known-violation `[]`. Reusa
 `frontend/src/components/reconciliation`, còn pure lifecycle/correlation/audit presentation nằm ở
 `frontend/src/lib`; feature/app paths cũ chỉ là compatibility re-export và không được import ngược từ owner
 thấp hơn. Report mapping canonical nằm ở `frontend/src/api/reportsApiMappers.ts`; feature Reports chỉ giữ
-facade re-export thay vì implementation trùng lặp. Strict dependency-cruiser hiện trả 0 violation. Ngoại lệ
-duy nhất là compatibility barrel workflow chỉ được import chính xác các endpoint owner đã liệt kê và phải
-được review lại ở milestone v1.3.
+facade re-export thay vì implementation trùng lặp. Configuration/rule owner là
+`frontend/.dependency-cruiser.cjs`; diagnostic hiện hành lấy từ `npm run depcruise:fe`, không từ kết quả cũ
+trong tài liệu. Compatibility barrel workflow chỉ được import chính xác các endpoint owner đã liệt kê;
+việc thay đổi allowlist hoặc retire barrel cần review riêng, không phụ thuộc milestone lịch sử.
 
 ## Technical safety and growth checks
 
@@ -148,20 +160,20 @@ Source-size diagnostics belong to `scripts/check-architecture-growth.mjs` and it
 baseline đơn điệu. Controller cảnh báo trên 250 dòng hoặc 12 action và buộc plan split trên 400 dòng hoặc
 20 action; service cảnh báo trên 600 dòng và buộc plan split trên 1.000 dòng; frontend viết tay cảnh báo
 trên 600 dòng; test file trên 1.500 dòng là lỗi. Strict gate còn fail khi có production debt mới/tăng,
-test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline production chỉ grandfather hai service plan-required hiện có. Phase 33 đã chuyển purchasing routing
-của `SupplementalMaterialRequestService` sang internal non-DI owner `SupplementalMaterialRequestPurchasingRouter`,
-chuyển riêng reconciliation issue creation của `InventoryIssueService` sang `ReconciliationInventoryIssueCreator`,
-và chuyển stored-audit/quantity-import/menu-import reads của `AuditReportService` sang `AuditChangeQueryReader`.
-Các owner mới không đăng ký DI; public service constructor/interface/controller/routes và page/export orchestration giữ nguyên.
-Mọi service gốc và owner mới đều dưới ngưỡng 600 dòng, nên strict gate chỉ còn hai service plan-required đã baseline.
+test debt, metric/severity xấu đi hoặc baseline không co sau khi source đã giảm. Baseline và findings hiện hành thuộc script/JSON baseline, không phải một kết quả PASS trong tài liệu.
+Purchasing routing của `SupplementalMaterialRequestService` thuộc internal non-DI owner
+`SupplementalMaterialRequestPurchasingRouter`; reconciliation issue creation của `InventoryIssueService`
+thuộc `ReconciliationInventoryIssueCreator`; stored-audit/quantity-import/menu-import reads của
+`AuditReportService` thuộc `AuditChangeQueryReader`. Các owner này không đăng ký DI riêng; public
+service/controller contract vẫn thuộc source và generated API owners. Không suy mức debt hiện tại từ
+lịch sử extraction hoặc số service trong một lượt kiểm trước.
 
 Root `Directory.Build.props` bật .NET SDK artifacts layout và gom output mặc định vào `.artifacts/dotnet`; gate cần cô lập dùng `--artifacts-path .artifacts/dotnet/<run-id>`. `DefaultItemExcludes` chặn output cũ (`.artifacts`, `.artifactslk*`, `.tmp-*`, `.phase*test`, `bin-*` và recursive `backend/`) bị coi là content rồi tự sao chép vào output mới. Không tái sử dụng `BaseOutputPath` tương đối trong project tree.
 
-Lượt E2E cuối phát hiện hai lỗi thực mà test tĩnh trước đó chưa chạm tới. `InventoryIssuesController.CreateAsync`
-trả lại `Location` hợp lệ cho response create. `MaterialDemandService.GenerateAsync` dùng
-`MaterialStockPool` để quy đổi và tiêu thụ cùng một tồn kho dùng chung theo đơn vị BOM, tránh phân bổ lặp
-cùng lượng tồn cho nhiều demand line. API route, OpenAPI/generated TypeScript, public hook, cache key/tag
-và UI behavior không đổi.
+Create-response `Location` thuộc `InventoryIssuesController.CreateAsync`. Demand stock conversion/allocation
+thuộc `MaterialDemandService.GenerateAsync` và `MaterialStockPool`: cùng physical stock pool phải được tiêu
+thụ nhất quán theo đơn vị BOM, không phân bổ lặp cùng lượng tồn cho nhiều demand line. Source và behavior
+contracts xác minh implementation; Git history giữ chronology sửa lỗi, không phải tài liệu as-built.
 
 Receipt lifecycle uses immutable purchase-order source-line identity. A `PurchaseReceiptActiveLine` lease has a
 unique primary key per `PurchaseOrderLineId`, so only one receipt in `DRAFT`, `PENDING_APPROVAL` or `APPROVED`

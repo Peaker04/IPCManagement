@@ -64,13 +64,25 @@ Thư viện và kỹ thuật hỗ trợ không sở hữu design hoặc permissi
 
 ---
 
+## Canonical rule dispositions
+
+DESIGN owns the normative synthesis for these topics; DASHBOARD rule IDs refer to it rather than defining competing requirements. This documentation normalization does not change production behavior or certify runtime compliance.
+
+- **Density/preferences — OWNER_DECISION_REQUIRED:** no explicit product decision selects three densities plus account persistence/reset as REQUIRED versus density preference OPTIONAL/PROVISIONAL. Neither historical statement is an active blanket acceptance rule. §5.6 lists candidate defaults; references to preferences describe available implementation capability, not an approved requirement or optionality decision. Product/design owner must choose one policy before acceptance of density-related changes.
+- **Alignment:** §11 is canonical: quantitative cells right aligned; text left by default; short status/code/date may center only when explicitly defined by the table owner.
+- **Motion:** §14.2 is canonical; accessibility and reduced-motion remain mandatory. Small-surface transitions are conditional, not a competing prohibition.
+- **Layout transitions:** grid-row disclosure is `OPTIONAL_IMPLEMENTATION_PATTERN`, not REQUIRED and not production performance evidence.
+- **Navigation:** actual shell/product behavior and its permission/route contracts own production navigation. §7 promotion is a design recommendation; §20.3 covers specimen exploration only. A preview rail or specimen pass cannot certify or mandate production shell behavior.
+
+No UI changes or new exceptions to permission, data safety or accessibility are authorized by these dispositions.
+
 ## 3. Compliance Framework: MUST / SHOULD / MAY
 
 | Cấp độ | Định nghĩa và Phạm vi áp dụng | Điều kiện Override |
 |---|---|---|
 | **MUST** | **Bất biến cứng (Invariants):** An toàn dữ liệu, tính chính trực của quyền (permission truth), tính trung thực của trạng thái (state honesty), tương phản WCAG 2.2 AA, tiếp cận bàn phím cơ bản (không bẫy phím), phông chữ nội bộ (CSP `font-src 'self'`), số liệu động bật `tabular-nums`, sàn cỡ chữ tối thiểu 12px, phân định rõ ràng giữa điều hướng workspace và lọc dữ liệu. | **Không thể override.** Bất kỳ vi phạm nào đều là lỗi chặn release. |
 | **SHOULD** | **Mặc định hệ thống mạnh (Strong Defaults):** Thứ bậc floorplan 5 vùng tuần tự khi hiện diện, độ sâu điều hướng sidebar $\le 2$ cấp, hành động chính mặc định 1 nút Primary Navy (trừ ngoại lệ thẩm định), mật độ hiển thị theo phân hệ, chiều cao hàng bảng khuyến nghị (32–36px / 40–44px), cỡ chữ 13/14px, cấu trúc Dialog/Drawer chuẩn, sentence-case cho table headers, kỷ luật triệt tiêu màu trạng thái thường nhật (ISA-101 Quiet Baseline). | Chỉ được override khi nghiệp vụ cụ thể chứng minh được lý do bằng văn bản trong Feature Contract (`docs/domain/*.md`). |
-| **MAY** | **Vùng thích ứng linh hoạt (Adaptive Options):** Bố cục split rail vs drawer vs route con, đóng/mở mặc định của khối nguồn (KHSX disclosure), bật/tắt cột nâng cao qua preferences, mật độ hiển thị do người dùng chọn, phím mũi tên điều hướng mở rộng, ghi nhớ trạng thái mở rộng nhóm sidebar. | Được phép tùy biến theo ngữ cảnh người dùng và độ phân giải màn hình. |
+| **MAY** | **Vùng thích ứng linh hoạt (Adaptive Options):** Bố cục split rail vs drawer vs route con, đóng/mở mặc định của khối nguồn (KHSX disclosure), bật/tắt cột nâng cao qua preferences, phím mũi tên điều hướng mở rộng, ghi nhớ trạng thái mở rộng nhóm sidebar. | Được phép tùy biến theo ngữ cảnh người dùng và độ phân giải màn hình. |
 
 ---
 
@@ -382,7 +394,7 @@ Level 1: Application (Vỏ ứng dụng toàn hệ thống — Chế độ DEFAU
 ---
 
 ### 7.2. Weekly Menu Workspace Reclassification (TARGET IA — chưa mount)
-**Target tương lai, không phải route đang chạy.** CURRENT tại HEAD `1efd0b95`: DEFAULT `/weekly-menu?view=demand` vẫn nằm trong sáu in-page views; MATERIAL_RECONCILIATION có views riêng theo capability. Bảng dưới mô tả intent route/sidebar ứng viên, không cấp quyền thay đổi URL, permission, scope hoặc behavior ở lát cắt đầu tiên. Chỉ khi một migration riêng được phê duyệt và verified mới bỏ tab tương ứng; không dựng sidebar + sáu tabs trùng nhau.
+**Target tương lai, không phải route đang chạy.** Current routing và capability authority nằm tại `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeRegistry.ts` và server operation-mode owner. DEFAULT `/weekly-menu` và các preview không được coi là production cutover chỉ từ target IA. Bảng dưới mô tả intent route/sidebar ứng viên, không cấp quyền thay đổi URL, permission, scope hoặc behavior ở lát cắt đầu tiên. Chỉ khi một migration riêng được phê duyệt và verified mới bỏ tab tương ứng; không dựng sidebar + sáu tabs trùng nhau.
 *Quyết định Thẩm quyền của Product Owner:* Toàn bộ 6 góc nhìn trước đây của Thực đơn tuần được **tái phân loại từ LOCAL_TAB thành WORKSPACE / ROUTE ứng viên** trực thuộc nhóm `Kế hoạch & Điều phối` trên Sidebar:
 
 | Phân hệ / Tên góc nhìn | Phân loại Cũ | Phân loại Mới | Trạng thái Route | Rationale Nghiệp vụ | Persona Hợp lệ (VERIFIED) |
@@ -471,7 +483,7 @@ Các tham số và trạng thái trong hệ thống IPCManagement được phân
    - **Nguyên tắc:** **MAY** lưu trữ tại component state hoặc bộ nhớ cục bộ của ứng dụng (application memory state). Trạng thái này chỉ phục vụ cơ học tương tác (mechanics), không can thiệp vào thẩm quyền nghiệp vụ.
 
 4. **Tier 4: Presentation Preference (Tùy chọn Trình bày Cá nhân - MAY):**
-   - **Thành phần:** Trạng thái thu gọn sidebar (`sidebar collapsed state`: mở rộng vs icon rail), tùy chọn mật độ hiển thị (`density preference`: chuẩn vs cô đọng), và trạng thái ẩn/hiện cột tùy chọn trên bảng dữ liệu.
+   - **Thành phần:** Trạng thái thu gọn sidebar (`sidebar collapsed state`: mở rộng vs icon rail), tùy chọn mật độ hiển thị (`density preference`: capability hiện có; policy OWNER_DECISION_REQUIRED), và trạng thái ẩn/hiện cột tùy chọn trên bảng dữ liệu.
    - **Nguyên tắc:** **MAY** sử dụng `localStorage` hoặc cơ chế client storage tương đương để ghi nhớ tùy chọn cá nhân giữa các phiên làm việc của cùng một trình duyệt. Không nhúng tên khóa storage cục bộ cụ thể vào tài liệu thẩm quyền thiết kế.
 
 5. **Bất biến Kiến trúc Thẩm quyền (Authority Invariant - MUST):**
@@ -869,7 +881,7 @@ TWO-TIER ICON ARCHITECTURE
 ```
 
 ### 11.2. Chính sách Hình tượng Nghiệp vụ & Phân loại 22 Biểu tượng Domain
-Dựa trên kết quả khảo sát từ Flaticon và kho dữ liệu thực tế 571 tệp/91 icon Lucide hiện hành:
+Danh mục dưới giữ quyết định hình tượng; không là inventory/count hay chứng nhận adoption hiện tại:
 1. **Dấu hiệu Nhận diện Sản phẩm Hiện hành (Current Product Mark - ChefHat):**
    - Biểu tượng `ChefHat` được phân loại là **CURRENT PRODUCT MARK** (dấu hiệu sản phẩm hiện hành của IPC System trên Login và đỉnh Sidebar). Đây là dấu hiệu tạm thời được bảo lưu, không tự động coi là nhận diện thương hiệu vĩnh viễn (Final Brand Identity).
    - Tuyến đường phân hệ Bếp (`/chef/*`) và vai trò Bếp trưởng bắt buộc chuyển sang sử dụng hình tượng chuẩn **`CookingPot`**, giải quyết triệt để va chạm ngữ nghĩa với logo hệ thống.
@@ -896,7 +908,7 @@ Dựa trên kết quả khảo sát từ Flaticon và kho dữ liệu thực t�
 1. **Căn lề dữ liệu chuẩn (MUST):**
    - Cột văn bản, tên nguyên vật liệu, tên nhà cung cấp: **Căn trái** (`text-left`).
    - Cột số lượng, định mức BOM (6 số thập phân), đơn giá, thành tiền VND, tỷ lệ %: **Căn phải** (`text-right`) và **bắt buộc dùng `tabular-nums`**.
-   - Cột mã chứng từ ngắn, ngày tháng, trạng thái: **Căn giữa** hoặc **Căn trái** tùy header.
+   - Cột mã chứng từ ngắn, ngày tháng, trạng thái: **Căn trái mặc định**; chỉ **căn giữa** khi table owner định nghĩa rõ, không áp dụng ngoại lệ này cho số định lượng.
 2. **Kỷ luật Sentence Case cho Tiêu đề Cột (MUST):**
    Tiêu đề bảng bắt buộc viết dạng Sentence Case (`Mã NVL`, `Tên nguyên vật liệu`, `Định mức BOM`) thay vì All-Caps để triệt tiêu hiện tượng xếp chồng dấu thanh tiếng Việt và giữ khoảng thoáng hàng 32px/36px an toàn.
 3. **Ưu tiên Tên nghiệp vụ trước Mã kỹ thuật (Rule L1 - SHOULD):**
@@ -989,12 +1001,13 @@ Hệ thống chuyển động của IPCManagement được thiết kế như m�
 ```
 
 ### 14.2. Danh mục Thuộc tính Cho phép & Quy tắc Chống Reflow Layout
-1. **Thuộc tính Cho phép (GPU Composite Layer Whitelist):**
-   - Chỉ được phép tạo animation trên: `transform` (`translate3d`, `scale`, `rotate`), `opacity`.
-   - Màu sắc (`color`, `background-color`, `border-color`) và bóng đổ focus (`box-shadow`) chỉ áp dụng transition trên các bề mặt nhỏ.
-2. **Quy tắc Chống Reflow Layout (Reflow Prevention Rules - MUST):**
-   - **Nghiêm cấm** animate các thuộc tính gây tính toán lại bố cục toàn trang: `width`, `height`, `min-width`, `max-width`, `margin`, `padding`, `top`, `left`.
-   - **Quy tắc Bounded Layout Transition:** Khi mở rộng nhóm danh mục hoặc thanh bên, **cấm dùng transition `height: auto`**. Bắt buộc dùng CSS Grid:
+1. **Canonical motion policy (MUST):**
+   - Motion không được là nguồn thông tin bắt buộc duy nhất và phải tôn trọng reduced-motion; focus/state vẫn rõ khi không có transition.
+   - `transform` (`translate3d`, `scale`, `rotate`) và `opacity` là default an toàn, không phải exclusive whitelist.
+   - Focus/color/shadow transitions chỉ được phép trên bề mặt nhỏ khi không thiết yếu và accessible.
+2. **Layout-affecting motion:**
+   - Tránh animation làm layout/reflow nếu chưa có justification tại owner và evidence phù hợp; không suy performance từ loại thuộc tính CSS.
+   - **OPTIONAL_IMPLEMENTATION_PATTERN — Bounded Layout Transition:** Grid-row disclosure dưới đây là recipe tùy chọn, không phải requirement. Chỉ áp dụng khi được justify và có reduced-motion fallback; không yêu cầu animate `height: auto`:
      ```css
      .ipc-disclosure-content {
        display: grid;
@@ -1008,9 +1021,10 @@ Hệ thống chuyển động của IPCManagement được thiết kế như m�
        overflow: hidden;
      }
      ```
-     Kỹ thuật chuyển đổi bố cục cục bộ giới hạn (Bounded Layout Transition) này giữ công việc tính toán layout bên trong container disclosure, hạn chế tối đa nguy cơ ảnh hưởng giàn trang lan truyền tới các bảng dữ liệu lớn bên ngoài.
+     Recipe này vẫn có layout work; phạm vi ảnh hưởng và hiệu năng production cần được đo, không được suy ra từ CSS Grid.
 
-### 14.3. Hợp đồng 12 Mẫu Chuyển động Vận hành Cốt lõi
+### 14.3. Mẫu Chuyển động Tham khảo (không phải production requirements)
+Các recipe dưới đây tuân theo §14.2; chỉ áp dụng khi accessible, không thiết yếu và phù hợp scope. Không tự tạo thêm acceptance gate.
 1. **Nút Bấm (Button Press):** 100ms, `translateY(1px)` khi active, standard curve.
 2. **Vòng Focus (Focus Ring):** 100ms, nở đều từ 0px lên 2px quanh phần tử, enter curve.
 3. **Checkbox Press:** 100ms, nhấn scale 0.9 → 1.0 khi thả; không animate trạng thái checked bằng scale của toàn control.
@@ -1181,11 +1195,11 @@ Mẫu phẩm điều hướng Sidebar bắt buộc chứng minh và phân loại
    - Không xuất hiện bẫy bàn phím (No keyboard trap).
    - Thẻ ngữ nghĩa hợp lệ: Dùng `<nav>`, `<ul>`, `<li>`, `<a>` và `<button type="button">`. Khai báo thuộc tính trợ năng chính xác: `aria-current="page"` trên liên kết active, `aria-expanded="true|false"` trên nút mở rộng. Tuyệt đối không dùng `role="menu"` cho điều hướng trang.
 2. **[B. IPC QUALITY TARGET] Cơ học Điều hướng & Trình bày Nghiệp vụ IPC:**
-   - Chế độ hiển thị linh hoạt: Sidebar mở rộng cố định (Persistent Expanded) trên màn hình lớn và thanh thu gọn (Compact Rail) trên màn hình trung bình.
+   - Khám phá specimen: Sidebar mở rộng trên màn hình lớn; Compact Rail trên màn hình trung bình là OPTIONAL/PROVISIONAL, không bắt buộc production.
    - Nhóm mở rộng (Expandable Group) chuyển đổi mượt mà giữa trạng thái mở và đóng.
    - Link con đang active luôn hiển thị vạch chỉ báo nhận diện.
    - Nhóm cha bị đóng nhưng chứa link con active phải hiển thị chỉ báo tổ tiên (Ancestor Active Indicator).
-   - Quy tắc nâng cấp mục đơn (Single-Child Auto-Promotion): Nhóm chỉ có đúng 1 route con hợp lệ phải được phẳng hóa thành liên kết cấp 1 trực tiếp.
+   - Single-Child Auto-Promotion: specimen có thể minh họa recommendation SHOULD tại §7; không biến thành production requirement.
    - Chống vỡ layout: Các nhãn điều hướng tiếng Việt dài tự động ngắt dòng hoặc rút gọn an toàn mà không làm rách khung Sidebar.
    - Phục hồi ngữ cảnh deep-link: Tự động mở đúng nhóm cha và focus/định vị đúng route con khi nạp trang trực tiếp từ URL.
    - **Quyết định về Compact Rail (Architecture Decision):** `COMPACT_RAIL` được phân loại là **`OPTIONAL / PROVISIONAL`**. Mô hình 2-tier rút gọn (Expanded Sidebar trên Desktop $\rightarrow$ Temporary Drawer trên Tablet/Mobile) được khuyến nghị làm kiến trúc responsive mặc định tinh gọn hơn, giúp giảm bớt sự phân mảnh nhận thức và độ phức tạp bảo trì của trạng thái trung gian 3-chế độ.
@@ -1222,10 +1236,10 @@ Bố cục giao diện công nghiệp của IPCManagement tuân thủ nghiêm ng
 5. **Đường bao Vùng Vận hành Ngoài cùng (Container Perimeter - 1px Structural):** Chỉ sử dụng 1 đường viền duy nhất (`border border-[#cbd5e1] rounded-[3px]`) bao quanh phân vùng lớn nhất (như toàn bộ `TableViewport` hoặc `SplitWorkbench`). **Ngăn chặn hội chứng lồng hộp nhiều tầng (Box-in-a-box syndrome).**
 6. **Bóng đổ & Nổi bề mặt (Elevation & Shadows - Floating Layers Only):** Bề mặt phẳng 2D toàn trang. Bóng đổ (`shadow-md`, `shadow-xl`) chỉ được phép xuất hiện trên các lớp nổi độc lập (Popover, Dropdown Menu, Modal Dialog, Drawer).
 
-### 20.6. Bảng Phân loại Trạng thái Bằng chứng Token & Thành phần (Evidence Reclassification Ledger)
-Thay vì sử dụng nhãn gộp chung, mọi quyết định thiết kế và token được phân định minh bạch theo 7 trạng thái bằng chứng:
+### 20.6. Phân loại quyết định thiết kế và giới hạn bằng chứng
+Các designation dưới phân biệt định nghĩa, quyết định specimen và bằng chứng có phạm vi. Quyết định `SPECIMEN_ACCEPTED` được giữ nguyên; các mô tả measurement/Chrome/specimen phản ánh scope đã ghi nhận, không chứng minh current build, toàn bộ consumer hay production acceptance. Diagnostic/measurement hiện hành phải theo [TESTING](TESTING.md); không dùng bảng này làm task ledger hoặc trạng thái campaign.
 
-| Nhóm Quy chuẩn | Hạng mục / Token Cụ thể | Trạng thái Bằng chứng Hiện hành | Căn cứ Kiểm chứng Thực nghiệm |
+| Nhóm Quy chuẩn | Hạng mục / Token Cụ thể | Phân loại quyết định / bằng chứng giới hạn | Căn cứ và giới hạn phạm vi |
 |---|---|:---:|---|
 | **Kiến trúc Chuyển động** | Motion Tokens (0ms/100ms/150ms/200ms) | **`DEFINED`** | Đã định nghĩa 4 thời lượng và 3 easing chuẩn trong `DESIGN.md`; chỉ Button, Checkbox và Accordion đã đo computed transition. Các pattern khác chưa được xác thực cơ học. |
 | **Hướng Chuyển động Thị giác** | Tactile Press (1px), Tab Slide, Overlay | **`SPECIMEN_ACCEPTED`** | Đã nghiệm thu hình thái trên `MotionSpecimen.tsx`. |
@@ -1242,7 +1256,9 @@ Thay vì sử dụng nhãn gộp chung, mọi quyết định thiết kế và t
 
 ---
 
-## 21. Agent Implementation Guide (Prompt Recipes & Quick Reference)
+## 21. Specimen Implementation Examples
+
+Các recipe/hex bên dưới chỉ là ví dụ target/specimen. Production component phải dùng semantic token tại executable owner và tuân thủ rule D4; ví dụ không cấp quyền hardcode màu hoặc đổi theme.
 
 ### A. Quick Color Reference cho AI Agent
 - Canvas: `#f1f5f9` (`--color-canvas-default`)
@@ -1275,7 +1291,7 @@ Thay vì sử dụng nhãn gộp chung, mọi quyết định thiết kế và t
 
 ---
 
-## 22. Canonical Feature Contracts & Open Architecture Ledgers
+## 22. Canonical Feature Contracts
 
 Các quy tắc tính toán chi tiết và luồng điều hướng đặc thù của từng phân hệ đã được di chuyển về đúng tài liệu sở hữu nghiệp vụ:
 

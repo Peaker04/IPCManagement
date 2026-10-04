@@ -65,7 +65,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', '**/*.csproj', '**/*.slnx', '.config/dotnet-tools.json') }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', '**/*.csproj', '**/*.slnx', 'dotnet-tools.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
 
