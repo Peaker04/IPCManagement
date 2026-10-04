@@ -1,11 +1,6 @@
-<!-- generated-by: gsd-doc-writer -->
 # Kiến trúc hệ thống
 
-Tổng quan nghiệp vụ và bốn vai trò vận hành nằm tại [DOMAIN.md](DOMAIN.md). Nguyên tắc UI/UX project-specific
-nằm tại [UI-PHILOSOPHY.md](UI-PHILOSOPHY.md), rule chi tiết tại [DASHBOARD-UI-RULES.md](DASHBOARD-UI-RULES.md),
-và contract phân biệt dữ liệu theo ngày, tuần, snapshot, chứng từ và audit event tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md).
-Mọi bảng nguyên liệu và phép aggregate mới phải tuân theo ma trận này. Chuỗi kiểm chứng và nguyên tắc phân xử lỗi
-giữa UI, FE, API và Database nằm tại [UI-UX-FE-BE-DATABASE-STANDARDIZATION.md](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md).
+Tổng quan nghiệp vụ tại [DOMAIN.md](DOMAIN.md). Design grammar tại [DESIGN.md](DESIGN.md), rule chi tiết tại [DASHBOARD-UI-RULES.md](DASHBOARD-UI-RULES.md), và grain/source identity tại [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md). Kiểm chứng FE → API → persisted state → reload theo [TESTING.md](TESTING.md).
 
 ## Tổng quan
 
@@ -51,7 +46,7 @@ Browser
 | `formatters` / `chefServiceDate` | `frontend/src/lib/formatters.ts`, `frontend/src/lib/chefServiceDate.ts` | Owner chung cho `Asia/Ho_Chi_Minh`: instant UTC được render theo giờ nghiệp vụ Việt Nam; date-only/service-date giữ nguyên calendar date. |
 | `AuthService` / `RefreshTokenRepository` | `backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs`, `backend/src/IPCManagement.Api/Data/Repositories/RefreshTokenRepository.cs` | Login/rotation chạy trong `IEfTransactionRunner`; rotation giữ device identity và recheck active/token state trong transaction, thay session cũ cùng device và dọn token đóng. Login, refresh và Admin deactivate dùng cùng MySQL user-row `FOR UPDATE` seam trước session mutation; configurable cap mặc định là 3. Rotation kế thừa expiry gốc nên không kéo dài quá 24 giờ mặc định. Source/unit khóa ordering và sequential behavior; concurrent cap/deactivate guarantees vẫn NEEDS_EVIDENCE tới khi chạy two-connection MySQL gate. |
 | `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session, exact-mutation single-flight và namespace RTK Query cache duy nhất. |
-| `workflowApi` compatibility barrel | `frontend/src/api/workflowApi.ts` | Đăng ký/re-export đúng 75 workflow endpoint và 75 public hook từ `workflowDocumentsApi` cùng bảy feature owner; không tạo slice, endpoint hoặc tag registry thứ hai. |
+| `workflowApi` compatibility barrel | `frontend/src/api/workflowApi.ts` | Đăng ký/re-export endpoint và public hook từ `workflowDocumentsApi` cùng feature owner; danh sách thực tế lấy từ source/generated contracts, không từ counter trong docs. không tạo slice, endpoint hoặc tag registry thứ hai. |
 | `MainLayout` | `frontend/src/app/layout/MainLayout.tsx` | App-owned shell cho permission navigation, mobile nav, route preload và `IdleSessionGuard`: mặc định cảnh báo sau 60 phút không thao tác, grace 2 phút rồi gọi shared logout/revoke đúng một lần. |
 | `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |
 
@@ -123,7 +118,7 @@ IPCManagement/
 │   ├── src/routes/             route, guard, preload
 │   ├── src/lib/                formatter, pagination, status và utility
 │   ├── src/styles/             base CSS + component/redesign slices theo thứ tự import
-│   └── tests/                  taxonomy: evidence, support, fixtures; root browser/contracts là debt có ceiling
+│   └── tests/                  browser specs, behavioral contracts, support and fixtures
 ├── docs/                      tài liệu kỹ thuật và MVP flow
 ├── .docs/                     tài liệu tham chiếu nghiệp vụ/demo
 └── scripts/                   script vận hành/quality gate hiện có
@@ -145,12 +140,9 @@ facade re-export thay vì implementation trùng lặp. Strict dependency-cruiser
 duy nhất là compatibility barrel workflow chỉ được import chính xác các endpoint owner đã liệt kê và phải
 được review lại ở milestone v1.3.
 
-## Guardrail kiến trúc và workflow closeout
+## Technical safety and growth checks
 
-Phase 18 giữ nguyên identity của ba xUnit partial class nhưng chia responsibility theo workflow và fixture:
-`WorkflowGenerationTests` có 11 partial definition, `PurchaseHistoryReconciliationTests` có 4 và
-`SupplierDecisionWorkflowTests` có 4. Route smoke Playwright được chia thành ba spec cùng năm helper domain
-dưới `frontend/tests/support/route-smoke`; discovery cuối vẫn là 17/17 scenario.
+Source-size diagnostics belong to `scripts/check-architecture-growth.mjs` and its reviewed baseline; they are not behavior proof or task state. CI runs architecture and route-budget diagnostics advisory. Backend tests are organized by workflow and fixture owners, not execution phases.
 
 `scripts/check-architecture-growth.mjs` và `scripts/architecture-growth-baseline.json` khóa growth theo
 baseline đơn điệu. Controller cảnh báo trên 250 dòng hoặc 12 action và buộc plan split trên 400 dòng hoặc
@@ -163,7 +155,7 @@ và chuyển stored-audit/quantity-import/menu-import reads của `AuditReportSe
 Các owner mới không đăng ký DI; public service constructor/interface/controller/routes và page/export orchestration giữ nguyên.
 Mọi service gốc và owner mới đều dưới ngưỡng 600 dòng, nên strict gate chỉ còn hai service plan-required đã baseline.
 
-Root `Directory.Build.props` bật .NET SDK artifacts layout và gom output mặc định vào `.artifacts/dotnet`; gate cần cô lập dùng `--artifacts-path .artifacts/dotnet/<run-id>`. `DefaultItemExcludes` chặn output cũ (`.artifacts`, `.artifactslk*`, `.tmp-*`, `.phase*test`, `bin-*` và recursive `backend/`) bị coi là content rồi tự sao chép vào output mới. Phase 42 contract tests khóa không tái sử dụng `BaseOutputPath` tương đối trong project tree.
+Root `Directory.Build.props` bật .NET SDK artifacts layout và gom output mặc định vào `.artifacts/dotnet`; gate cần cô lập dùng `--artifacts-path .artifacts/dotnet/<run-id>`. `DefaultItemExcludes` chặn output cũ (`.artifacts`, `.artifactslk*`, `.tmp-*`, `.phase*test`, `bin-*` và recursive `backend/`) bị coi là content rồi tự sao chép vào output mới. Không tái sử dụng `BaseOutputPath` tương đối trong project tree.
 
 Lượt E2E cuối phát hiện hai lỗi thực mà test tĩnh trước đó chưa chạm tới. `InventoryIssuesController.CreateAsync`
 trả lại `Location` hợp lệ cho response create. `MaterialDemandService.GenerateAsync` dùng

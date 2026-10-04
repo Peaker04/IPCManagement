@@ -22,12 +22,7 @@ import {
 
 const FRONTEND_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const REPO_ROOT = resolve(FRONTEND_ROOT, '..')
-const EVIDENCE_ROOT = resolve(
-  REPO_ROOT,
-  '.artifacts',
-  'shipyard-live',
-  'pa2b-pc-weekly-menu-20260730',
-)
+const EVIDENCE_ROOT = resolve(process.cwd(), 'test-results', 'weekly-menu-lifecycle')
 const EVIDENCE_JSON = resolve(EVIDENCE_ROOT, 'pa2b-pc-weekly-menu-fixture.json')
 
 type ApiCall = {

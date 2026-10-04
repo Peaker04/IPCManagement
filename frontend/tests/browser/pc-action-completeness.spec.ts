@@ -1,7 +1,6 @@
 import { expect, type Locator, type Page, test } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import {
   assertPcMeasurementRows,
   PC_EVIDENCE_KIND,
@@ -38,19 +37,9 @@ test.beforeEach(({ browserName }, testInfo) => {
   testInfo.setTimeout(900_000)
 })
 
-const FRONTEND_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const REPO_ROOT = resolve(FRONTEND_ROOT, '..')
-const EVIDENCE_ROOT = resolve(REPO_ROOT, '.artifacts', 'shipyard-live', process.env.PC_EVIDENCE_RUN ?? 'pc-action-completeness-20-02')
+const EVIDENCE_ROOT = resolve(process.cwd(), 'test-results', 'pc-action-completeness', process.env.PC_EVIDENCE_RUN ?? 'measurement')
 const EVIDENCE_JSON = resolve(EVIDENCE_ROOT, 'pc-action-completeness.json')
-const TRACKED_AGGREGATE_JSON = resolve(
-  REPO_ROOT,
-  '.planning',
-  'workstreams',
-  'goal-make-every-existing-route-tab-and-declared-canonical-st',
-  'phases',
-  '20-pc-pd-action-completeness',
-  '20-PC-AGGREGATE.json',
-)
+const OUTPUT_AGGREGATE_JSON = resolve(EVIDENCE_ROOT, 'aggregate.json')
 
 type BrowserIssue = {
   viewport: string
@@ -832,7 +821,7 @@ test.afterAll(() => {
     : resolve(EVIDENCE_ROOT, `pc-action-completeness-${measuredViewports.map(({ id }) => id).join('_')}.json`)
   writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, 'utf8')
   if (measuredViewports.length === PC_VIEWPORTS.length) {
-    writeFileSync(TRACKED_AGGREGATE_JSON, `${JSON.stringify({
+    writeFileSync(OUTPUT_AGGREGATE_JSON, `${JSON.stringify({
       schemaVersion: 1,
       generatedAt,
       evidenceKind: PC_EVIDENCE_KIND,
@@ -845,7 +834,7 @@ test.afterAll(() => {
       performance: performanceEvidence,
       browserIssueCount: browserIssues.length,
       overflowCount: performanceEvidence.filter((record) => record.overflow).length,
-      sourceArtifact: '.artifacts/shipyard-live/pc-action-completeness-20-02/pc-action-completeness.json',
+      sourceArtifact: EVIDENCE_JSON,
     }, null, 2)}\n`, 'utf8')
   }
 })

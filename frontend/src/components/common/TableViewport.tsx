@@ -10,6 +10,7 @@ interface TableViewportProps {
   caption?: string;
   className?: string;
   size?: 'default' | 'weekly';
+  appearance?: 'default' | 'quiet-operational';
   density?: TableDensity;
   stickyHeader?: boolean;
   frozenFirstIdentifier?: boolean;
@@ -37,6 +38,7 @@ export function TableViewport({
   caption,
   className,
   size = 'default',
+  appearance = 'default',
   density = 'standard',
   stickyHeader = true,
   frozenFirstIdentifier = true,
@@ -68,6 +70,7 @@ export function TableViewport({
     <div
       className={cn(typography.body, 'ipc-table-viewport min-w-0 w-full overscroll-x-contain rounded-md border border-slate-200 bg-white shadow-xs', viewportSizeClasses[size], className)}
       data-table-viewport="true"
+      data-appearance={appearance === 'quiet-operational' ? appearance : undefined}
       data-density={resolvedDensity}
       data-vertical-scroll={size === 'weekly' ? 'bounded' : 'page'}
       data-sticky-header={stickyHeader}

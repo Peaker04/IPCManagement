@@ -1,7 +1,7 @@
 import { Fragment, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Calculator, Check, CircleCheck, CircleHelp, Clock3, ChevronDown, LockKeyhole, RefreshCw } from 'lucide-react'
-import { ConfirmDialog, InlineAlert, PaginationBar, StatusBadge } from '@/components/common'
+import { CommandBar, ConfirmDialog, InlineAlert, PaginationBar, StatusBadge, TableViewport } from '@/components/common'
 import { ActionGuard } from '@/components/common/ActionGuard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -67,8 +67,9 @@ export function DemandPlanningScreen({ workflow, scheduleWorkflow, servingFeedba
   }, [scopeKey, view.activeDay?.key, view.aggregatePage?.pageNumber])
   const term = (search ? debouncedSearch : '').trim().toLocaleLowerCase('vi-VN')
   const appliedFilter = filter === 'all' ? 'all' : debouncedFilter
+  const projectedPurchase = (line: typeof lines[number]) => line.projectedPurchaseQty
   const visible = lines.filter(line => (!term || `${line.material} ${line.source} ${line.unit}`.toLocaleLowerCase('vi-VN').includes(term))
-    && (appliedFilter === 'all' || (appliedFilter === 'issue' ? (line.remainingToIssueQty ?? 0) > 0 : (line.pendingKitchenReceiptQty ?? 0) > 0)))
+    && (appliedFilter === 'all' || (appliedFilter === 'purchase' ? (projectedPurchase(line) ?? 0) > 0 : (line.historicalAllocatedQty ?? 0) > 0)))
   const activeDate = view.activeDate || view.activeDay?.rows?.[0]?.serviceDate
   const dayPreflight = weeklyCommand.dates.find(date => date.serviceDate === activeDate)?.preflight
   const groups = [...new Set(view.activeRows.map(row => row.shiftLabel))].map(shiftLabel => {
@@ -117,16 +118,16 @@ export function DemandPlanningScreen({ workflow, scheduleWorkflow, servingFeedba
   return <main className="demand-screen" data-testid="demand-planning-screen">
     <header className="demand-masthead">
       <div className="demand-heading"><p>Kế hoạch &amp; Điều phối</p><h1>Nhu cầu nguyên liệu</h1></div>
-      <div className="demand-week-action" data-read-pending={pending || undefined}><ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
+      <CommandBar variant="scope" actions={<div className="demand-week-action" data-read-pending={pending || undefined}><ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
         <Button type="button" size="sm" disabled={!canCalculate || busy} onClick={() => setConfirmation(true)}>{busy ? <RefreshCw aria-hidden="true" /> : <Calculator aria-hidden="true" />}{busy ? 'Đang tính nhu cầu tuần…' : command}</Button>
-      </ActionGuard></div>
-      {weeklyConditions}
+      </ActionGuard></div>}>
       <div className="demand-coordinates">
         <label>Khách hàng<select ref={customerControl} value={coordinates.customerId} disabled={busy} onChange={event => onCustomerChange(event.target.value)}><option value="">Chọn khách hàng</option>{coordinates.customers.map(customer => <option key={customer.customerId} value={customer.customerId}>{customer.customerCode} — {customer.customerName}</option>)}</select></label>
         <label>Tuần bắt đầu<Input ref={weekControl} type="date" weekStartOnly value={coordinates.weekStartDate} disabled={busy} onChange={event => onWeekChange(event.target.value)} /></label>
         {!missingScope && pricing.tier && <p className="demand-tier"><span>Định mức</span><strong>{formatBomTierLabel(pricing.tier)}</strong></p>}
 
-      </div>
+      </div></CommandBar>
+      {weeklyConditions}
     </header>
 
     {state.feedback && <InlineAlert role="status" title={state.feedback.title} variant={state.feedback.variant}>{state.feedback.message}
@@ -153,13 +154,13 @@ export function DemandPlanningScreen({ workflow, scheduleWorkflow, servingFeedba
           {dayPreflight?.canRegenerate === false && <p className="demand-day-note" data-tone="neutral"><LockKeyhole size={16} aria-hidden="true" />{dayPreflight.regenerationBlockReason || 'Ngày đã khóa, chỉ xem nhu cầu.'}</p>}
           {dayPreflight?.isStale && <p className="demand-day-note"><AlertTriangle size={16} aria-hidden="true" />Nguồn đã thay đổi: {dayPreflight.reasons.join(' · ')}. Nhu cầu dưới đây là lần tính trước.</p>}
           {(readable || retained || transitioning) && lines.length > 0 ? <>
-            <div className="demand-filters"><label>Tìm trong trang<input type="search" value={search} onChange={event => { setExpanded(null); setSearch(event.target.value) }} /></label><label>Bàn giao trong trang<select value={filter} onChange={event => { setExpanded(null); setFilter(event.target.value) }}><option value="all">Tất cả</option><option value="issue">Còn xuất kho</option><option value="receipt">Chờ Bếp nhận</option></select></label>{(search || filter !== 'all') && <Button type="button" size="sm" variant="ghost" onClick={() => { setSearch(''); setFilter('all') }}>Xóa bộ lọc</Button>}</div>
+            <div className="demand-filters"><label>Tìm trong trang<input type="search" value={search} onChange={event => { setExpanded(null); setSearch(event.target.value) }} /></label><label>Phân bổ trong trang<select value={filter} onChange={event => { setExpanded(null); setFilter(event.target.value) }}><option value="all">Tất cả</option><option value="purchase">Có đề xuất mua</option><option value="allocation">Có phân bổ</option></select></label>{(search || filter !== 'all') && <Button type="button" size="sm" variant="ghost" onClick={() => { setSearch(''); setFilter('all') }}>Xóa bộ lọc</Button>}</div>
             <div ref={rowsScroller} className="demand-table-scroll" role="region" aria-label="Bảng nguyên liệu ngày" tabIndex={0}>
-              <table className="demand-table"><caption className="sr-only">Nhu cầu và bàn giao vật lý của ngày đang chọn; tìm kiếm chỉ áp dụng trang hiện tại.</caption><colgroup><col /><col className="demand-column-unit" /><col className="demand-column-quantity" span={3} /><col className="demand-column-handoff" /></colgroup><thead><tr><th scope="col">Nguyên liệu</th><th scope="col">Đơn vị</th><th scope="col" className="demand-number">Nhu cầu</th><th scope="col" className="demand-number">Còn xuất kho</th><th scope="col" className="demand-number">Chờ Bếp nhận</th><th scope="col">Bàn giao</th></tr></thead><tbody>
-                {visible.map(line => <Fragment key={line.id}><tr><th scope="row"><button type="button" aria-expanded={expanded === line.id} aria-controls={`demand-line-${line.id}`} onClick={() => setExpanded(expanded === line.id ? null : line.id)}><ChevronDown size={14} aria-hidden="true" /><span>{line.material}</span></button></th><td>{formatUnit(line.unit)}</td><td className="demand-number demand-required">{quantity(line.required)}</td><td className="demand-number">{quantity(line.remainingToIssueQty)}</td><td className="demand-number">{quantity(line.pendingKitchenReceiptQty)}</td><td><span className="demand-handoff" data-tone={line.tone} title={line.nextAction}>{line.status}</span></td></tr>
-                  {expanded === line.id && <tr className="demand-line-detail" id={`demand-line-${line.id}`} onKeyDown={event => { if (event.key === 'Escape') { setExpanded(null); event.currentTarget.previousElementSibling?.querySelector('button')?.focus() } }}><td colSpan={6}><div className="demand-line-content"><div><h3>Nguồn món</h3><p>{line.source || 'Chưa có nguồn món trong dữ liệu trả về.'}</p></div><dl><div><dt>Kho đã xuất</dt><dd>{quantity(line.issuedQty)} {formatUnit(line.unit)}</dd></div><div><dt>Bếp đã nhận</dt><dd>{quantity(line.receivedByKitchenQty)} {formatUnit(line.unit)}</dd></div></dl><Button type="button" variant="ghost" size="sm" onClick={event => { const trigger = event.currentTarget.closest('tr')?.previousElementSibling?.querySelector('button'); setExpanded(null); trigger?.focus() }}>Đóng chi tiết</Button></div></td></tr>}
+              <TableViewport appearance="quiet-operational" density="compact" ariaLabel="Bảng lượng nguyên liệu dự kiến"><table className="ipc-data-table demand-table"><caption className="sr-only">Nhu cầu và phân bổ dự kiến của ngày đang chọn; không phải tồn kho hiện tại hoặc bàn giao vật lý; tìm kiếm chỉ áp dụng trang hiện tại.</caption><colgroup><col /><col className="demand-column-unit" /><col className="demand-column-quantity" span={3} /></colgroup><thead><tr><th scope="col">Nguyên liệu</th><th scope="col">Đơn vị</th><th scope="col" className="demand-number">Nhu cầu</th><th scope="col" className="demand-number">Đã phân bổ khi tính</th><th scope="col" className="demand-number">Đề xuất mua khi tính</th></tr></thead><tbody>
+                {visible.map(line => <Fragment key={line.id}><tr><th scope="row"><button type="button" aria-expanded={expanded === line.id} aria-controls={`demand-line-${line.id}`} onClick={() => setExpanded(expanded === line.id ? null : line.id)}><ChevronDown size={14} aria-hidden="true" /><span>{line.material}</span></button></th><td>{formatUnit(line.unit)}</td><td className="demand-number demand-required">{quantity(line.required)}</td><td className="demand-number">{quantity(line.historicalAllocatedQty)}</td><td className="demand-number">{quantity(projectedPurchase(line))}</td></tr>
+                  {expanded === line.id && <tr className="demand-line-detail" id={`demand-line-${line.id}`} onKeyDown={event => { if (event.key === 'Escape') { setExpanded(null); event.currentTarget.previousElementSibling?.querySelector('button')?.focus() } }}><td colSpan={5}><div className="demand-line-content"><div><h3>Nguồn món</h3><p>{line.source || 'Chưa có nguồn món trong dữ liệu trả về.'}</p>{(view.demandLines ?? []).filter(source => source.serviceDate === activeDate && source.ingredientId === line.ingredientId && source.unitId === line.unitId && source.priceTierAmount === line.priceTierAmount).length > 0 && <ul>{(view.demandLines ?? []).filter(source => source.serviceDate === activeDate && source.ingredientId === line.ingredientId && source.unitId === line.unitId && source.priceTierAmount === line.priceTierAmount).map(source => <li key={source.id}>{source.source} · {quantity(source.required)} {formatUnit(source.unit)}</li>)}</ul>}</div><dl><div><dt>Phân bổ tại lần tính</dt><dd>{quantity(line.historicalAllocatedQty)} {formatUnit(line.unit)}</dd></div><div><dt>Đề xuất mua tại lần tính</dt><dd>{quantity(projectedPurchase(line))} {formatUnit(line.unit)}</dd></div></dl><Button type="button" variant="ghost" size="sm" onClick={event => { const trigger = event.currentTarget.closest('tr')?.previousElementSibling?.querySelector('button'); setExpanded(null); trigger?.focus() }}>Đóng chi tiết</Button></div></td></tr>}
                 </Fragment>)}
-              </tbody></table>
+              </tbody></table></TableViewport>
               {visible.length === 0 && <p className="demand-filter-empty" role="status">Không có nguyên liệu khớp bộ lọc trong trang này. Xóa bộ lọc để xem lại.</p>}
             </div>
             {view.aggregatePage && <PaginationBar page={view.aggregatePage.pageNumber} pageSize={view.aggregatePage.pageSize} totalItems={view.aggregatePage.totalCount} itemLabel="nguyên liệu" preserveFocusWhilePending isPending={pending} onPageChange={page => { setExpanded(null); setSearch(''); setFilter('all'); actions.setAggregatePage(page) }} />}

@@ -1,8 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import recoveryAuthoritySource from '../../.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-BASELINE-RECOVERY-AUTHORITY.json?raw';
-import selectedBaselineSource from '../../.artifacts/phase28-ui-audit/baseline-recovery/attempt-3/evidence/canonical-combined.json?raw';
-import adminHandoffSource from '../../.planning/phases/28-project-wide-ui-ux-contract-rollout-and-single-warehouse-pre/28-05-ADMIN-RESIDUAL-HANDOFF.json?raw';
 import weeklyMenuCommandBarSource from '../src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx?raw';
 import materialDemandSectionSource from '../src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx?raw';
 import quickServingCellSource from '../src/features/projects/weekly-menu/schedule/QuickServingCell.tsx?raw';
@@ -24,67 +21,7 @@ import axeEvidenceSource from './uiAuditAxe.ts?raw';
 
 const uiRedesignSource = readFileSync('src/styles/ui-redesign.css', 'utf8');
 
-type Finding = {
-  identity: string;
-  ruleId: string;
-  verdict: string;
-  expected?: string;
-  actual?: string;
-  severity?: string;
-  lowestOwner?: string;
-};
-
-const exactKey = ({ identity, ruleId, expected, actual, severity, lowestOwner }: Finding) => ({
-  identity,
-  ruleId,
-  expected,
-  actual,
-  severity,
-  lowestOwner,
-});
-const serialize = (keys: ReturnType<typeof exactKey>[]) => JSON.stringify(
-  [...keys].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
-);
-const sha256 = async (value: string) => {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
-};
-
-const routeOwners = new Set([
-  'WeeklyMenuPage',
-  'ChefDashboardPage',
-  'ReportsPage',
-  'WarehousePage',
-  'CoordinationPage/OrderTable',
-  'ApprovalPage',
-]);
-const adminOwners = new Set(['AdminDataPage', 'ApprovalRulesPage', 'AdvancedDisplaySettings']);
-const predecessorOwners = new Set(['DashboardPage', 'LoginPage']);
-
-describe('Phase 28 non-admin route-owner remediation inventory', () => {
-  it('reproduces and partitions the exact 28-03 residual authority', async () => {
-    const authority = JSON.parse(recoveryAuthoritySource) as { selectedRecovery: { root: string } };
-    const baseline = JSON.parse(selectedBaselineSource) as { records: Array<{ findings: Finding[] }> };
-    const failures = baseline.records.flatMap(({ findings }) => findings)
-      .filter(({ verdict, identity }) => verdict === 'FAIL' && identity.split('|')[0] !== '/purchasing');
-    const route = failures.filter(({ lowestOwner }) => routeOwners.has(lowestOwner ?? ''));
-    const admin = failures.filter(({ lowestOwner }) => adminOwners.has(lowestOwner ?? ''));
-    const predecessor = failures.filter(({ lowestOwner }) => predecessorOwners.has(lowestOwner ?? ''));
-    const unknown = failures.filter(({ lowestOwner }) => !routeOwners.has(lowestOwner ?? '') && !adminOwners.has(lowestOwner ?? '') && !predecessorOwners.has(lowestOwner ?? ''));
-
-    expect(authority.selectedRecovery.root).toBe('.artifacts/phase28-ui-audit/baseline-recovery/attempt-3');
-    expect(failures).toHaveLength(1_258);
-    expect(await sha256(serialize(failures.map(exactKey)))).toBe('b8fa28d6f612c719912c89620a5729b83b0264be4fc8b57aadeb9c2ddc98fa6a');
-    expect(route).toHaveLength(1_078);
-    expect(predecessor).toHaveLength(28);
-    expect(admin).toHaveLength(152);
-    expect(await sha256(serialize(admin.map(exactKey)))).toBe('55b48a6c2ae84dd1b6aca529e1076af9e3b251d587c9d06d7e72d673ac3ad3a3');
-    expect(JSON.parse(adminHandoffSource)).toMatchObject({ count: 152, sha256: '55b48a6c2ae84dd1b6aca529e1076af9e3b251d587c9d06d7e72d673ac3ad3a3' });
-    expect(unknown).toEqual([]);
-    expect(new Set([...route, ...predecessor, ...admin].map((finding) => JSON.stringify(exactKey(finding)))).size).toBe(1_258);
-    expect(failures.every(({ identity, expected, actual, severity, lowestOwner }) => identity.split('|').length === 6 && expected && actual && severity && lowestOwner)).toBe(true);
-  });
-
+describe('Route accessibility regression contracts', () => {
   it('keeps visible-label controls actionable while excluding hidden Base UI internals', () => {
     const harnesses = [weeklyHarnessSource, chefHarnessSource, reportsHarnessSource, warehouseHarnessSource, mealOrdersHarnessSource, approvalsHarnessSource];
     expect(axeEvidenceSource).toContain("violation.impact === 'serious' || violation.impact === 'critical'");
@@ -106,13 +43,10 @@ describe('Phase 28 non-admin route-owner remediation inventory', () => {
     expect(uiRedesignSource).toContain('color: #475569 !important');
     expect(kitchenReceiptSectionSource).toContain('[&_.text-slate-500]:text-slate-700!');
     expect(stockMovementTableSource).not.toContain('text-xs text-slate-400 font-sans font-normal');
-
     expect(reportsPricePanelSource).not.toContain('text-xs font-normal text-slate-400');
     expect(reportsPricePanelSource).toContain('scrollLabel="Hàng đợi cảnh báo giá có thể cuộn"');
-
     expect(actionToolbarSource).toContain('role="group" aria-label="Thao tác điều phối"');
     expect(orderTableSource).not.toContain('mt-0.5 text-xs text-slate-400');
-
     expect(menuAmendmentSource).not.toContain('mt-3 text-sm text-slate-500');
     expect(approvalQueryPanelsSource).not.toContain('text-slate-500 text-xs');
     expect(approvalPageSource).not.toContain('ml-2 text-xs text-slate-400');

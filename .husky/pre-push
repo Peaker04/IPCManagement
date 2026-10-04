@@ -1,3 +1,0 @@
-#!/bin/sh
-
-npm run build:fe && CI=true npm run test:unit -w frontend -- --maxWorkers=2

@@ -1,6 +1,5 @@
 /**
- * Luật phụ thuộc frontend — R1..R7 theo Phần I của
- * docs/ARCHITECTURE-REDESIGN-2026-07-26.md.
+ * Luật phụ thuộc frontend — contract và owner tại docs/ARCHITECTURE.md.
  *
  * Mô hình 4 tầng, phụ thuộc chỉ đi MỘT CHIỀU:
  *

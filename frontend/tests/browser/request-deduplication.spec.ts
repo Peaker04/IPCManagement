@@ -12,7 +12,7 @@ const viewports = [
   { id: '1280x900', width: 1280, height: 900 },
 ] as const
 
-const artifactRoot = path.resolve('../.artifacts/shipyard-live/request-deduplication-20260803')
+const artifactRoot = path.resolve('test-results/request-deduplication')
 
 test.use({ channel: 'chrome' })
 

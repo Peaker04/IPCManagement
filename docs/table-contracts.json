@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "sourceOfTruth": "docs/TABLE-INVENTORY.md",
+  "sourceOfTruth": "docs/DATA-GRAIN-MATRIX.md",
   "contracts": [
     {"id":"weekly-demand","route":"/weekly-menu","surface":"demand","file":"frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx","type":"action-queue","grain":"service-date-material","rowKey":"materialId+serviceDate","owner":"weekly-menu query model","pagination":"server-or-scoped-snapshot","primaryStatus":"procurement"},
     {"id":"weekly-purchase-summary","route":"/weekly-menu","surface":"purchase-summary","file":"frontend/src/features/projects/weekly-menu/purchasing/PurchaseSummarySection.tsx","type":"action-queue","grain":"service-date-material","rowKey":"materialId+serviceDate","owner":"weekly-menu query model","pagination":"server-or-scoped-snapshot","primaryStatus":"procurement"},

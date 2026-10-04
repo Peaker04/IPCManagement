@@ -25,10 +25,10 @@ const base = {
     activeDay: day, activeDate: '2026-09-21', dayPages: [day, { key: 't3', label: 'Thứ Ba', date: '22/09/2026', rows: [{ ...sourceRow, serviceDate: '2026-09-22' }] }],
     activeRows: [sourceRow], activeQuickServingRows: [], missingBomRows: [],
     aggregateLines: [
-      { id: 'rice', material: 'Gạo', unit: 'kg', source: 'Cơm', required: 20, issuedQty: 20, receivedByKitchenQty: 18, remainingToIssueQty: 0, pendingKitchenReceiptQty: 2, status: 'Chờ Bếp nhận' },
-      { id: 'pork', material: 'Thịt heo', unit: 'kg', source: 'Thịt kho', required: 12.345678, issuedQty: 8, receivedByKitchenQty: 8, remainingToIssueQty: 4.345678, pendingKitchenReceiptQty: 0, status: 'Chưa xuất' },
+      { id: 'rice', ingredientId: 'rice', unitId: 'kg', historicalAllocatedQty: 20, projectedPurchaseQty: 0, material: 'Gạo', unit: 'kg', source: 'Cơm', required: 20, issuedQty: 20, receivedByKitchenQty: 18, remainingToIssueQty: 0, pendingKitchenReceiptQty: 2, status: 'Chờ Bếp nhận' },
+      { id: 'pork', ingredientId: 'pork', unitId: 'kg', historicalAllocatedQty: 0, projectedPurchaseQty: 12.345678, material: 'Thịt heo', unit: 'kg', source: 'Thịt kho', required: 12.345678, issuedQty: 8, receivedByKitchenQty: 8, remainingToIssueQty: 4.345678, pendingKitchenReceiptQty: 0, status: 'Chưa xuất' },
     ],
-    demandApprovalStatus: { label: 'Đã duyệt' }, aggregatePage: { pageNumber: 1, pageSize: 12, totalCount: 29 },
+    demandApprovalStatus: { label: 'Đã duyệt' }, aggregatePage: { pageNumber: 1, pageSize: 12, totalCount: 29, items: [{ ingredientId: 'rice', unitId: 'kg', suggestedPurchaseQty: 0 }, { ingredientId: 'pork', unitId: 'kg', suggestedPurchaseQty: 12.345678 }] },
   },
 } as unknown as MaterialDemandWorkflow
 const schedule = {
@@ -150,16 +150,17 @@ describe('BE-backed DemandPlanningScreen', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('retains generated quantities when servings change; opens physical handoff and source detail inline', () => {
+  it('retains generated quantities when servings change; attaches projected allocation and source to the selected ingredient', () => {
     mount({ scheduleWorkflow: { ...schedule, presentation: { ...schedule.presentation, getQuickServingRow: () => ({ ...serving, isCompleted: false }) } } as unknown as WeeklyScheduleEditorWorkflow })
     const table = screen.getByRole('table')
     const row = within(table).getByRole('button', { name: 'Thịt heo' })
-    expect(within(table).getByText('12,345678')).toBeInTheDocument()
+    expect(within(row.closest('tr')!).getAllByText('12,345678')).toHaveLength(2)
     fireEvent.click(row)
     const detail = document.getElementById(row.getAttribute('aria-controls')!)!
     expect(detail).toHaveTextContent('Thịt kho')
-    expect(detail).toHaveTextContent('Kho đã xuất')
-    expect(detail).toHaveTextContent('Bếp đã nhận')
+    expect(detail).toHaveTextContent('Phân bổ tại lần tính')
+    expect(detail).toHaveTextContent('Đề xuất mua tại lần tính')
+    expect(within(table).queryByRole('columnheader', { name: 'Còn xuất kho' })).not.toBeInTheDocument()
     fireEvent.click(within(detail).getByRole('button', { name: 'Đóng chi tiết' }))
     expect(row).toHaveFocus()
     expect(row).toHaveAttribute('aria-expanded', 'false')
@@ -177,8 +178,8 @@ describe('BE-backed DemandPlanningScreen', () => {
       expect(within(table).queryByRole('button', { name: 'Thịt heo' })).not.toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: 'Xóa bộ lọc' }))
       expect(within(table).getByRole('button', { name: 'Thịt heo' })).toBeInTheDocument()
-      const filter = screen.getByRole('combobox', { name: 'Bàn giao trong trang' })
-      fireEvent.change(filter, { target: { value: 'receipt' } })
+      const filter = screen.getByRole('combobox', { name: 'Phân bổ trong trang' })
+      fireEvent.change(filter, { target: { value: 'allocation' } })
       act(() => vi.advanceTimersByTime(249))
       expect(within(table).getByRole('button', { name: 'Thịt heo' })).toBeInTheDocument()
       act(() => vi.advanceTimersByTime(1))

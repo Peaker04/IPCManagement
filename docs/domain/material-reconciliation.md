@@ -1,17 +1,16 @@
 ---
 title: Material Reconciliation business contract
 status: canonical-domain-contract
-owner: GSD
+owner: Material Reconciliation domain
 scope: MATERIAL_RECONCILIATION
-extracted_from: ../../MEMORY.md
 ---
 # Material Reconciliation
 
-> Contract này được extract nguyên nghĩa từ working memory ngày 08/09/2026. Source/runtime có thể phát hiện implementation lệch contract nhưng không tự thay đổi expected behavior. Mọi thay đổi nghiệp vụ cần owner decision và cập nhật tài liệu này trong cùng task.
+> Source/tests và contract này sở hữu nghiệp vụ; thay đổi expected behavior cần owner decision. Tài liệu không là roadmap, checkpoint hay chứng nhận runtime.
 
-## PLANNED BUSINESS CHANGE — daily issue and kitchen export · 17/09/2026
+## Daily issue and kitchen export
 
-The next implementation campaign is owned by `.planning/notes/MRX-DAILY-ISSUE-KITCHEN-EXPORT-PLAN.md`. Owner decisions:
+Approved daily-line contract:
 
 - Warehouse issue is changing from one weekly initial issue to independent issue transactions per service date.
 - UI provides `Cả tuần | Thứ 2 … Chủ nhật`; `Cả tuần` is a read-only weekly ingredient summary and cannot submit an issue. The weekly summary groups the same frozen batch line across service dates into one row, sums required/net-issued/positive remaining quantities, and derives progress from date-level statuses so opposite daily variances cannot cancel each other. Concrete dates retain the exact daily-line mutation surface.
@@ -20,19 +19,17 @@ The next implementation campaign is owned by `.planning/notes/MRX-DAILY-ISSUE-KI
 - Kitchen cooking export is generated from frozen batch facts with servings, dish, ingredient, BOM-per-serving and total required quantity; it excludes IDs, versions, fingerprints, price and purchasing data.
 - Existing protected batches are not silently rewritten. Compatibility must be explicit and tested before migration.
 
-Wave A persistence decision is additive: a new frozen daily-line owner retains `batch × serviceDate × ingredient × unit`, new contributors and MRX issue lines reference that owner, and the weekly line remains an aggregate projection. Existing rows keep nullable daily linkage and are not backfilled automatically. A retained batch without complete daily lineage remains readable but date issuing is blocked with `LEGACY_DAILY_LINEAGE_MISSING`; completed batches remain read-only.
+Daily persistence is additive: a new frozen daily-line owner retains `batch × serviceDate × ingredient × unit`, new contributors and MRX issue lines reference that owner, and the weekly line remains an aggregate projection. Existing rows keep nullable daily linkage and are not backfilled automatically. A retained batch without complete daily lineage remains readable but date issuing is blocked with `LEGACY_DAILY_LINEAGE_MISSING`; completed batches remain read-only.
 
-Wave A command implementation now requires every MRX issue line to carry the exact frozen daily-line ID for the request `IssueDate`. Initial issue validation covers every positive daily line for that date exactly once; another date can receive its own initial issue after the batch is already `IN_PROGRESS`. Supplemental eligibility is date-scoped. Wrong/outside/mixed dates, duplicate daily lines, stale versions and wrong operation mode fail closed before durable issue/stock writes.
+Daily command implementation requires every MRX issue line to carry the exact frozen daily-line ID for the request `IssueDate`. Initial issue validation covers every positive daily line for that date exactly once; another date can receive its own initial issue after the batch is already `IN_PROGRESS`. Supplemental eligibility is date-scoped. Wrong/outside/mixed dates, duplicate daily lines, stale versions and wrong operation mode fail closed before durable issue/stock writes.
 
 The backend daily Warehouse projection is now the status owner: it returns all seven dates, daily frozen lines, required/net-issued/confirmed-return/remaining quantities, daily status and one weekly status computed across every applicable date. It has no day-filter input, so a UI filter cannot alter weekly truth. Completion consults this projection for new-lineage batches. Daily overage resolution is owned by a versioned `ReconciliationDailyDisposition` attached to exactly one frozen daily line; supplemental issues and confirmed returns invalidate only affected daily dispositions. Completion succeeds only when every applicable date is exact or has a valid daily overage disposition. Weekly legacy dispositions are not reused across dates.
 
 Kitchen cooking export is owned by frozen contributor facts written with the batch: service date comes from the daily line, while shift, dish identity/name, servings, BOM quantity per serving and retained waste rate are frozen on each contributor. The canonical projection groups exactly by `serviceDate × shift × dish × ingredient`, aggregates duplicate contributions only when their frozen facts agree, and fails closed on ambiguity or legacy missing facts. Preview JSON and UTF-8-BOM CSV use the same ordering and quantities; export excludes technical IDs, versions, fingerprints, price, supplier and purchasing data.
 
-The sections below describe the current implemented contract and are the baseline to migrate from. Where the planned change conflicts with the current weekly-issue wording, the new checklist governs implementation only after its red gates and additive lineage design are approved in source/tests.
+Daily-line identity and date-scoped initial/supplemental rules above govern new-lineage batches; retained weekly-only records remain readable and fail closed for date issuing.
 
-## BUSINESS CONTRACT HIỆN HÀNH — MATERIAL_RECONCILIATION · 04/09/2026
-
-> Đây là memory ưu tiên cao và là bản nghiệp vụ tự đủ phải được đọc trước mọi task liên quan MRX. Nó supersede mọi ghi chú lịch sử phía dưới nếu có mâu thuẫn, đặc biệt các câu cũ nói issued quantity không nhập tay, issue chỉ được tạo một lần hoặc shortage là hành vi dự kiến.
+## MATERIAL_RECONCILIATION contract
 
 ### 1. Mục tiêu và ranh giới mode
 
@@ -41,7 +38,7 @@ The sections below describe the current implemented contract and are the baselin
 - Mode này **không có Thu mua, Báo cáo, KHSX hay MaterialDemand của DEFAULT**. Không mount/fetch/mutate owner Purchasing/default-demand và không hướng người dùng sang Thu mua để tiếp tục MRX.
 - `DEFAULT` và `MATERIAL_RECONCILIATION` dùng chung master data và physical stock, nhưng workflow record/lineage/query/mutation/audit của hai family phải tách tuyệt đối. Không chuyển, copy, re-parent hoặc cộng chéo record khi đổi mode.
 - Mọi API read sở hữu batch/report của MRX phải khai báo `ReconciliationOnly`; route ẩn không phải ranh giới API. Shared InventoryIssue read phải ràng buộc `sourceFamily` với mode hiện hành trước repository access, không cho caller tự chọn family chéo mode.
-- Trước mọi screenshot, browser action hoặc verdict phải gọi `GET /api/system-operation-mode` và assert đúng mode. Evidence từ mode khác không có giá trị. Không đổi mode khi Kỳ đang kiểm thử thủ công; harness đổi mode phải ghi version trước/sau và phục hồi mode gốc.
+- Trước mọi screenshot, browser action hoặc verdict phải gọi `GET /api/system-operation-mode` và assert đúng mode. Evidence từ mode khác không có giá trị. Không đổi mode khi Kỳ đang kiểm thử thủ công; Nếu mode change được ủy quyền riêng, ghi version trước/sau và xác minh trạng thái; process reset không cấp quyền đổi mode.
 
 ### 2. Authority và grain nguồn
 
@@ -70,16 +67,16 @@ The sections below describe the current implemented contract and are the baselin
 
 ### 5. Invariant tồn kho bắt buộc
 
-- **Trong `MATERIAL_RECONCILIATION`, operational warehouse luôn được giả định là đủ nguyên liệu để xuất.** Đây là quyết định nghiệp vụ gốc tại `30-CONTEXT.md:13`; mode không có bước Thu mua.
+- **Trong `MATERIAL_RECONCILIATION`, operational warehouse luôn được giả định là đủ nguyên liệu để xuất.** Đây là invariant nghiệp vụ; mode không có bước Thu mua.
 - `Không đủ tồn kho để tạo phiếu xuất` trong MRX là **vi phạm invariant/readiness defect**, không phải nhánh nghiệp vụ người dùng phải xử lý. Không hướng người dùng sang Thu mua và không dùng shortage rollback làm acceptance chính của mode này.
 - Warehouse vẫn là owner duy nhất của issue + stock movement; issue là giao dịch kho thật và physical stock/ledger/audit vẫn phải nhất quán.
 - Invariant đủ tồn không cho phép seed/reset tùy tiện, direct current-stock write, receipt giả, stock ledger thứ hai, lineage giả, xóa lịch sử hoặc âm thầm làm tồn kho âm. Phải bảo đảm sufficient-stock precondition bằng public/official authority hoặc contract provisioning MRX có canonical ledger/audit; không bypass validator. MySQL `stockmovements.movementType` chỉ chấp nhận `RECEIPT|ISSUE|RETURN|ADJUSTMENT|RECEIPT_CORRECTION`, vì vậy provisioning phải dùng `ADJUSTMENT` và nhận diện MRX qua reason/note + `refTable/refId`, không phát minh enum mới.
-- Runtime defect ngày 04/09 tại `MATERIAL_RECONCILIATION / 64`, batch `ca139119-eb5b-4d47-baa4-5f2ee3b3536d`: 67/67 dòng `Dự kiến xuất đủ` nhưng issue từng trả `Không đủ tồn kho để tạo phiếu xuất`. Source hiện đã được sửa để reconciliation issue bắt shortage, bổ sung đúng `MissingQty` qua canonical `StockLedgerService.AddStockAsync` với movement enum hợp lệ `ADJUSTMENT`, reason/note `MRX provision` và batch lineage rồi tạo issue và ISSUE movement trong cùng protected transaction; không direct-write, không âm kho, không mở Thu mua. Focused application-path 23/23 PASS; runtime API 5262 đã rebuild/restart, nhưng chưa tự tạo phiếu trên batch của Kỳ để tránh mutation thay người dùng.
+- Canonical provisioning bổ sung đúng `MissingQty` qua `StockLedgerService.AddStockAsync`, movement `ADJUSTMENT`, reason/note `MRX provision` và batch lineage rồi tạo issue/ISSUE movement trong cùng protected transaction. Không direct-write, âm kho hoặc mở Thu mua; verification không tự tạo phiếu thay người dùng.
 
 ### 6. Phiếu xuất đầu tiên — manual actual issue
 
-- Chỉ được tạo khi batch là `TRANSFERRED`, chưa có linked issue và actor có Warehouse permission.
-- Phiếu đầu tiên phải chứa **mọi frozen batch line đúng một lần**; không thiếu dòng, lặp dòng, thêm ingredient ngoài lô hoặc trộn batch/customer.
+- Chỉ được tạo khi actor có Warehouse permission, batch là `TRANSFERRED` hoặc `IN_PROGRESS` và ngày đích chưa có initial issue.
+- Phiếu đầu tiên phải chứa **mọi positive frozen daily line của ngày đích đúng một lần**; không thiếu dòng, lặp dòng, thêm ingredient ngoài lô hoặc trộn ngày/batch/customer.
 - `RequestedQty` luôn bằng frozen `RequiredQuantity`; người dùng không được sửa requested source fact.
 - Người dùng nhập `IssuedQty > 0` cho từng frozen line. Under-issue được phép. Over-issue được phép chỉ khi có `VarianceReason` tiếng Việt bắt buộc và audit được giữ.
 - UI phải hiển thị required/input tối đa 6 chữ số, bỏ zero thừa; so sánh qua quantity precision 6 chữ số, không dùng raw JS comparison. Draft labels: `Chưa nhập`, `Dự kiến xuất thiếu`, `Dự kiến xuất đủ`, `Dự kiến xuất vượt`; committed labels: `Đã xuất thiếu`, `Đã xuất đủ`, `Đã xuất vượt`.
@@ -136,4 +133,3 @@ The sections below describe the current implemented contract and are the baselin
 - Full acceptance phải đi qua public UI/API từ import/select menu → corrections → servings → missing-BOM recovery → preview → commit → READY → transfer → initial manual issue → optional supplemental → reconciliation/disposition → completion/reload.
 - E2E phải đối chiếu đồng thời DOM/browser state, request/response, backend state, DB transitions, lineage, stock movement và render sau reload. Screenshot một mình không phải PASS oracle.
 - Disposable fixture chỉ được bootstrap declared master/start stock; hành vi từ menu import trở đi phải dùng public seams. Protected data không reset/seed/direct-write.
-- Current Phase 34 disposable lifecycle evidence: `.artifacts/shipyard-live/material-reconciliation-full-e2e/runs/20260909-224848/full/`, 49/49 headed browser/API lifecycle PASS, final batch `COMPLETED`, 84 frozen lines, 494 contributors, 2 issues/85 issue lines and movements, one confirmed return, supplemental and exact-return disposition invalidation PASS. Database: `ipc_mrx_full_e2e_phase34_20260909224848_f`; `ipc_lane9` was not referenced or mutated.

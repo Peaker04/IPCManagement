@@ -16,6 +16,7 @@ export interface ContextStripItem {
 interface ContextStripProps {
   items: ContextStripItem[];
   className?: string;
+  variant?: 'badge' | 'inline';
 }
 
 const toneClasses = {
@@ -34,9 +35,9 @@ const toneIcons = {
   danger: AlertTriangle,
 };
 
-export function ContextStrip({ items, className }: ContextStripProps) {
+export function ContextStrip({ items, className, variant = 'badge' }: ContextStripProps) {
   return (
-    <dl className={cn('ipc-context-strip', className)}>
+    <dl data-variant={variant === 'inline' ? 'inline' : undefined} className={cn('ipc-context-strip', className)}>
       {items.map((item, index) => {
         const tone = item.tone ?? 'neutral';
         const ToneIcon = toneIcons[tone];
@@ -49,7 +50,8 @@ export function ContextStrip({ items, className }: ContextStripProps) {
               item.emphasis !== 'strong' && (tone === 'success' || tone === 'info') && 'is-quiet',
             )}
           >
-            <span className="ipc-context-icon" aria-hidden="true">{item.icon ?? <ToneIcon size={16} />}</span>
+            {(item.icon != null || variant !== 'inline' || tone === 'warning' || tone === 'danger' || item.emphasis === 'strong') &&
+              <span className="ipc-context-icon" aria-hidden="true">{item.icon ?? <ToneIcon size={16} />}</span>}
             <dt className={cn(typography.body, 'ipc-context-label font-medium')}>{item.label}</dt>
             <dd className={cn(typography.body, 'ipc-context-value font-bold')}>{item.value}</dd>
           </div>

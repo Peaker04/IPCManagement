@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Triển khai
 
 ## Deployment targets
@@ -16,7 +15,7 @@ Backend remains `net9.0`. The servicing lane uses SDK `9.0.313` via root `global
 
 `.github/workflows/verify.yml` là quality gate, không phải deployment workflow. Pipeline chạy một lần cho pull request vào `main`, chạy lại trên commit đã merge/push trực tiếp vào `main`, và hỗ trợ `workflow_dispatch` khi cần chạy thủ công. Không chạy đồng thời cả sự kiện `push` và `pull_request` cho cùng commit feature branch.
 
-CI dùng SDK đúng theo root `global.json`, Node 22 và root `package-lock.json`. Thứ tự gate là architecture advisory → backend build/contract/migration/MySQL → frontend lint/dependency/build/route-budget advisory/unit test. Integration MySQL bị loại khỏi lượt backend chung và chạy đúng một lần ở bước riêng; route budget chạy trước Vitest để regression bundle được báo sớm. Architecture line-count và route budget là heuristic diagnostics (`continue-on-error`) vì lịch sử cho thấy chúng làm chặn release bởi baseline/count drift dù behavior suite xanh; build, generated contract, migration/schema, backend/frontend tests, lint và dependency rules vẫn fail-closed. Test result backend được upload ở bước `if: always()` cuối pipeline. Hook `.husky/pre-push` chạy production build và đúng frontend unit suite của CI trước khi gửi commit lên remote; hook không thay thế backend/MySQL CI.
+CI dùng SDK đúng theo root `global.json`, Node 22 và root `package-lock.json`. Thứ tự gate là architecture advisory → backend build/contract/migration/MySQL → frontend lint/dependency/build/route-budget advisory/unit test. Integration MySQL bị loại khỏi lượt backend chung và chạy đúng một lần ở bước riêng; route budget chạy trước Vitest để regression bundle được báo sớm. Architecture line-count và route budget là heuristic diagnostics (`continue-on-error`) vì lịch sử cho thấy chúng làm chặn release bởi baseline/count drift dù behavior suite xanh; build, generated contract, migration/schema, backend/frontend tests, lint và dependency rules vẫn fail-closed. Test result backend được upload ở bước `if: always()` cuối pipeline. CI không là quyền deploy, DB mutation hoặc commit/push; không có hook local làm process authority thứ hai.
 
 Quy trình xử lý CI đỏ:
 
@@ -36,7 +35,7 @@ Production backend cần `ConnectionStrings:DefaultConnection`, `JwtSettings:*`,
 
 Frontend cần build với `VITE_API_BASE_URL` khi API không cùng origin. Không bật `VITE_ENABLE_MOCK_LOGIN` trong production build.
 
-## Kích hoạt kho vận hành — checkpoint được ủy quyền riêng
+## Kích hoạt kho vận hành — thao tác được ủy quyền riêng
 
 Migration `20260824161853_EnforceSingleOperationalWarehouse` chỉ bổ sung `IsOperationalActive` (mặc định `FALSE`), cột sinh nullable `OperationalSingletonKey` và unique index. Chạy migration không chọn hay kích hoạt kho. Executor tự động phải dừng trước mọi lệnh áp dụng migration hoặc thay đổi dữ liệu; chỉ operator có ủy quyền riêng, sau khi xác nhận đúng database/lane và backup, mới được tiếp tục.
 

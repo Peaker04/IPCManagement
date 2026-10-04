@@ -46,7 +46,13 @@ Mỗi bước phải giữ ID dòng nguồn. UI có thể gộp dòng để dễ
 
 Action chỉ xuất hiện khi role có permission và object ở đúng state. UI phải hiển thị lý do bị chặn; backend vẫn là nơi enforce cuối cùng. Phê duyệt, nhận hàng, xuất kho và xác nhận Bếp là các transition có audit, không phải các nút “đánh dấu xong” cục bộ trên frontend.
 
+## Source normalization and identity
+
+BOM is a per-serving requirement, never receipt/current-stock authority. Ingredient identity, SKU, brand, package/specification, supplier and unit must not be conflated. Name deduplication loses source context; exact authorized identity and compatible units are required. Fractional BOM quantities are retained, not forced to integers by locale cleanup. Conversion requires reviewed evidence; unknown date/unit/conversion or ambiguous source mapping is HOLD_IMPORT, not a guessed default. Private source rows/workbooks remain local and must not be copied into public docs.
+
 ## Thuật ngữ phải dùng nhất quán
+
+UI label/status mapping has one owner: [GLOSSARY.md](GLOSSARY.md).
 
 | Thuật ngữ | Nghĩa trong IPC |
 |---|---|
@@ -57,6 +63,4 @@ Action chỉ xuất hiện khi role có permission và object ở đúng state. 
 | **Supplemental** | Vòng cấp bổ sung khi Bếp thiếu so với phiếu đã nhận; có thể được Kho cấp tiếp hoặc chuyển Thu mua. |
 | **Legacy lineage disposition** | Work object đối soát một dòng chứng từ lịch sử chưa có source-line: Admin đề xuất mapping có lý do, Manager khác danh tính duyệt, rồi Admin mới áp dụng provenance đã duyệt. Không được suy đoán theo tên nguyên liệu hoặc header. |
 | **Signoff** | Xác nhận có danh tính và audit rằng người nhận đã kiểm đếm/kết thúc trách nhiệm ở một transition. |
-| **Protected fingerprint** | Dấu vân checksum/identity của artifact hoặc dữ liệu cần bảo toàn; thay đổi phải bị gate phát hiện. |
-| **Sanitizer** | Luồng dọn dữ liệu có allowlist, precondition, audit và rollback; không đồng nghĩa seed/reset. |
 | **Quick-completion** | Nhánh hoàn tất nhanh chỉ hợp lệ khi precondition nghiệp vụ chứng minh không còn bước vật lý hay chứng từ bắt buộc. |

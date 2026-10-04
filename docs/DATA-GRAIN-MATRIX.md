@@ -85,6 +85,6 @@ Aggregate không có exact source request-line command identity hoặc eligibili
 
 - Unit/API test khóa key và phép cộng ở từng grain.
 - Source-contract test khóa title, caption, cột ngày và khả năng mở dòng nguồn.
-- Browser gate kiểm tra cùng dữ liệu trên ma trận viewport khai trong `MEMORY.md`, không overflow/tab wrap/layout shift.
+- Browser gate kiểm tra declared actor/state/viewport scope của task, không suy full acceptance từ một ảnh hoặc một viewport.
 - E2E đối chiếu FE control → API request/response → DB transition → FE reload.
-- Dữ liệu regression “Bột nở” và artifact authoritative được định danh trong `docs/EVIDENCE-INDEX.md`; không copy số đo vào contract này.
+- Regression dùng fixture/source thuộc test owner và oracle hiện hành; receipt/historical hash không là product authority.

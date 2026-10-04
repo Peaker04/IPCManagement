@@ -32,7 +32,7 @@ it('mounts only active analytical queries and retains customer/week in sibling l
   expect(screen.getByText('Danh mục chưa có món')).toBeVisible()
   expect(fixture.catalogCall).toHaveBeenCalled()
   expect(fixture.production).not.toHaveBeenCalled(); expect(fixture.report).not.toHaveBeenCalled()
-  expect(screen.getByRole('link', { name: 'Giá vốn tuần' })).toHaveAttribute('href', '/__kit/planning/cost?customerId=customer&weekStartDate=2026-09-21')
+  expect(screen.getByRole('link', { name: 'Giá vốn & định mức' })).toHaveAttribute('href', '/__kit/planning/cost?customerId=customer&weekStartDate=2026-09-21')
   fireEvent.change(screen.getByLabelText('Khách hàng'), { target: { value: '' } })
   expect(screen.getByText('Chọn phạm vi để xem')).toBeVisible()
   expect(screen.queryByText('Danh mục chưa có món')).not.toBeInTheDocument()
@@ -56,7 +56,8 @@ it('production uses its read owner without analytical or demand report queries',
 it('successful empty physical report remains physical empty, not BOM fallback', () => {
   show('purchase-summary')
   expect(screen.getByText('Chưa có dòng bàn giao vật lý trong tuần')).toBeVisible()
-  expect(screen.getByRole('button', { name: 'Xuất BOM dự kiến' })).toBeDisabled()
+  expect(screen.getByRole('button', { name: 'CSV bàn giao trang hiện tại' })).toBeDisabled()
+  expect(fixture.catalogCall).not.toHaveBeenCalled()
   expect(screen.queryByRole('table')).not.toBeInTheDocument()
 })
 it.each([[0], [-25000], [25000, 0], [25000, -1], [NaN], [Infinity]].map(prices => ({ prices })))('blocks every invalid present schedule price $prices without denying physical reads', ({ prices }) => {
@@ -68,9 +69,7 @@ it.each([[0], [-25000], [25000, 0], [25000, -1], [NaN], [Infinity]].map(prices =
   show('purchase-summary')
   expect(screen.getByText('Chưa có dòng bàn giao vật lý trong tuần')).toBeVisible()
   expect(fixture.report).toHaveBeenCalled()
-  expect(screen.getByRole('button', { name: 'Xuất BOM dự kiến' })).toBeDisabled()
-  fireEvent.click(screen.getByText('Vì sao chưa xuất được BOM dự kiến?'))
-  expect(screen.getByText('Định mức tuần không hợp lệ hoặc không đồng nhất.')).toBeVisible()
+  expect(screen.getByRole('button', { name: 'CSV bàn giao trang hiện tại' })).toBeDisabled()
 })
 it('uses contract fallback only for absent schedules and resolves fresh schedule pricing on week change', () => {
   fixture.contracts = [{ customerId: 'customer', defaultMenuPrice: 30000 }]

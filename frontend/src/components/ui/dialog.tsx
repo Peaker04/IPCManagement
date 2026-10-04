@@ -23,6 +23,8 @@ interface DialogContextValue {
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null)
+// Keep owned Select portals within the modal's existing focus and inert boundary.
+export const DialogPortalContainerContext = React.createContext<React.RefObject<HTMLDivElement | null> | undefined>(undefined)
 const inertSiblings = new Map<HTMLElement, { count: number; hadInert: boolean; value: string | null }>()
 
 let activeDialogCount = 0
@@ -311,7 +313,7 @@ export function Dialog({ open, onOpenChange, onCloseRequest, children }: DialogP
     document.addEventListener("focusin", retargetFocus)
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !event.defaultPrevented) {
         if (!isTopDialog) {
           // Scoped escape: only the top-most dialog handles Escape
           return
@@ -387,6 +389,7 @@ export function DialogContent({
   scrollMode = "content",
   ...props
 }: DialogContentProps) {
+  const contentRef = React.useRef<HTMLDivElement | null>(null)
   const context = React.useContext(DialogContext)
   const isNested = (context?.depth ?? 1) > 1
   const ariaModal = role === "dialog" && props["aria-modal"] === undefined
@@ -400,7 +403,7 @@ export function DialogContent({
   }
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLDivElement> = (event) => {
-    if (event.key === "Tab") {
+    if (event.key === "Tab" && !event.defaultPrevented) {
       const focusable = getFocusableElements(event.currentTarget)
       const first = focusable[0]
       const last = focusable.at(-1)
@@ -426,6 +429,7 @@ export function DialogContent({
   return (
     <div
       {...props}
+      ref={contentRef}
       role={role}
       tabIndex={props.tabIndex ?? -1}
       aria-modal={ariaModal}
@@ -447,7 +451,9 @@ export function DialogContent({
       onClick={handleClick}
       onKeyDown={handleKeyDown}
     >
-      {children}
+      <DialogPortalContainerContext.Provider value={contentRef}>
+        {children}
+      </DialogPortalContainerContext.Provider>
     </div>
   )
 }

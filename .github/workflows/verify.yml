@@ -76,8 +76,6 @@ jobs:
           cache: npm
 
       - name: Install npm dependencies
-        env:
-          HUSKY: "0"
         run: npm ci
 
       - name: Enforce repository ignore policy
@@ -144,7 +142,7 @@ jobs:
           mysql -h 127.0.0.1 -uroot -p123456789 -e "SELECT COUNT(*) AS created_tables FROM information_schema.tables WHERE table_schema = 'ipcmanagement_ci';"
 
       # Evidence-owned Phase 42 cases consume ignored local archive/approval receipts and
-      # stay in the Windows evidence lane. Clean CI runs the hermetic Phase 42 contracts.
+      # Provider-dependent recovery tests need separately authorized adapters; core tests are hermetic.
       # RecoveryScriptContractTests remains Windows PowerShell-specific.
       # Integration chạy riêng trên database vừa dựng ở bước kế tiếp; loại khỏi lượt
       # unit/application chung để không chạy hai lần và không dùng lại database đã mutate.

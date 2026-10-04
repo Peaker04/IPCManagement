@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Tests;
 public class PerformanceQualificationContractTests
 {
     [Fact]
-    public void Read_only_probe_should_fail_on_dropped_work_and_disclaim_full_D04_qualification()
+    public void Read_only_probe_should_fail_on_dropped_work_and_disclaim_full_qualification()
     {
         var root = FindRepositoryRoot();
         var script = File.ReadAllText(Path.Combine(root, "tools", "perf", "k6", "read-only-throughput-probe.js"));
@@ -21,8 +21,8 @@ public class PerformanceQualificationContractTests
             .And.Contain("K6_RUN_ID is required")
             .And.Contain("results-readonly-${__ENV.K6_RUN_ID}.json")
             .And.Contain("does not certify authenticated-user count");
-        runbook.Should().Contain("chưa phải D04 qualification")
-            .And.Contain("Không** dùng probe này để claim 50 authenticated users");
+        runbook.Should().Contain("does not prove 50 authenticated users")
+            .And.Contain("multi-user write/import correctness");
     }
 
     private static string FindRepositoryRoot()

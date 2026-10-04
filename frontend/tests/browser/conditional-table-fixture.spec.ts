@@ -64,7 +64,7 @@ test.describe('Wave 2 conditional table production rendering', () => {
   test.describe.configure({ mode: 'serial', timeout: 180_000 })
 
   test.afterAll(() => {
-    const output = path.resolve(process.cwd(), '../.artifacts/shipyard-live/phase05-wave2-conditional-table-render-20260814.json')
+    const output = path.resolve(process.cwd(), 'test-results/conditional-table-render.json')
     fs.mkdirSync(path.dirname(output), { recursive: true })
     fs.writeFileSync(output, JSON.stringify({
       schemaVersion: 1,
@@ -143,7 +143,7 @@ test.describe('Wave 2 conditional table production rendering', () => {
         expect(consoleErrors.slice(consoleStart), fixture.id).toEqual([])
         expect(pageErrors.slice(pageErrorStart), fixture.id).toEqual([])
       }
-      const screenshotPath = path.resolve(process.cwd(), `../.artifacts/shipyard-live/phase05-wave2-conditional-table-${viewport.name}-20260814.png`)
+      const screenshotPath = path.resolve(process.cwd(), `test-results/conditional-table-${viewport.name}.png`)
       await page.screenshot({ path: screenshotPath, fullPage: true })
     })
   }

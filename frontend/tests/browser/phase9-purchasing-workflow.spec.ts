@@ -30,7 +30,7 @@ async function expectNoPageOverflow(page: Page) {
 }
 
 test.describe('Phase 09 six-stage purchasing workflow', () => {
-  test.skip(!realStackEnabled, 'Runs only through the restored Shipyard lane with PHASE09_REAL_STACK=1.');
+  test.skip(!realStackEnabled, 'Runs only with an explicitly approved real stack and PHASE09_REAL_STACK=1.');
 
   test('traverses the restored Manager to Purchasing to Warehouse workflow', async ({ page }) => {
     await loginToRealStack(page);

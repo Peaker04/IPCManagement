@@ -9,6 +9,7 @@ interface CommandBarProps {
   className?: string;
   leadingClassName?: string;
   actionsClassName?: string;
+  variant?: 'default' | 'scope';
 }
 
 /**
@@ -21,6 +22,7 @@ export function CommandBar({
   className,
   leadingClassName,
   actionsClassName,
+  variant = 'default',
 }: CommandBarProps) {
   // Extract children of fragment if it's a fragment
   let actionList = React.Children.toArray(actions);
@@ -53,6 +55,7 @@ export function CommandBar({
 
   return (
     <div
+      data-variant={variant === 'scope' ? 'scope' : undefined}
       className={cn(
         typography.body,
         'ipc-command-bar flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between',
@@ -65,16 +68,16 @@ export function CommandBar({
       {actions && (
         <div
           className={cn(
-            'ipc-command-bar-actions flex shrink-0 flex-wrap items-center justify-end gap-2',
+            'ipc-command-bar-actions flex max-w-full shrink-0 flex-wrap items-center justify-end gap-2',
             actionsClassName
           )}
         >
           {actionList.length > 3 ? (
             <>
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
                 {secondaryActions}
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex max-w-full flex-wrap items-center justify-end gap-2">
                 {primaryActions}
               </div>
             </>

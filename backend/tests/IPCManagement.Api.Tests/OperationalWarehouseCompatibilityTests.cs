@@ -65,7 +65,7 @@ public sealed class OperationalWarehouseCompatibilityTests
 
         new("frontend/src/shared/api/contracts/openapi.json", "generated warehouse request/response contracts", Disposition.RetainedInternalIdentity, 13),
         new("frontend/src/shared/api/contracts/schema.ts", "generated warehouse request/response types", Disposition.RetainedInternalIdentity, 13),
-        new("docs/API-CONTRACTS.md", "single-warehouse compatibility contract", Disposition.HistoricalDetail, 13),
+        new("docs/domain/warehouse-contract.md", "single-warehouse compatibility contract", Disposition.HistoricalDetail, 13),
         new("backend/src/IPCManagement.Api/Models/Entities/Warehouse.cs", "Warehouse.WarehouseId/IsOperationalActive", Disposition.RetainedInternalIdentity, 13),
         new("backend/src/IPCManagement.Api/Models/Entities/Ingredient.cs", "Ingredient.WarehouseId", Disposition.RetainedInternalIdentity, 13),
         new("backend/src/IPCManagement.Api/Models/Entities/InventoryReceipt.cs", "InventoryReceipt.WarehouseId", Disposition.RetainedInternalIdentity, 13),

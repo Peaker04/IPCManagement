@@ -725,7 +725,7 @@ test.describe('operational control surface', () => {
 
       expect(Math.abs(secondHeight - firstHeight)).toBeLessThanOrEqual(1);
       await panel.screenshot({
-        path: `../.planning/ui-reviews/pagination/after-improvements/weekly-menu-grouped-${viewport.name.toLowerCase()}.png`,
+        path: `test-results/pagination/weekly-menu-grouped-${viewport.name.toLowerCase()}.png`,
         animations: 'disabled',
       });
     });

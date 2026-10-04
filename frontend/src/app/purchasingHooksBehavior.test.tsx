@@ -136,7 +136,7 @@ describe('purchasing hook behavior', { timeout: 15_000 }, () => {
 
   // Trước 27/07 khối này còn kiểm cả usePurchaseSupplier/usePurchaseOrders/usePurchaseHandoff.
   // Ba hook đó đã bị xoá cùng 4 sub-module chết (không page nào import), nên phần còn lại chỉ
-  // kiểm hook đang sống. Query gating vẫn là hạng mục GIỮ NGUYÊN — xem CONTRIBUTING.md.
+  // kiểm hook đang sống. Query gating giữ nguyên theo docs/ARCHITECTURE.md.
   it('skips every inactive purchasing-tab query', () => {
     mocks.getIngredients.mockReturnValue(uninitializedQuery())
     mocks.getSuppliers.mockReturnValue(uninitializedQuery())

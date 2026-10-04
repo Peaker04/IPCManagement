@@ -2,7 +2,7 @@
 title: UI/UX & Performance Rules — Web Dashboard
 status: adopted-contract
 scope: frontend
-owner: GSD
+owner: frontend product contracts
 last_reviewed: 2026-08-12
 ---
 
@@ -14,11 +14,8 @@ last_reviewed: 2026-08-12
 
 > **Trạng thái áp dụng:** Đây là contract normative cho UI mới và UI được sửa trong IPCManagement. Tài liệu
 > không tự chứng minh mọi route đã tuân thủ; mức `PASS`, `GAP`, `NEEDS_EVIDENCE` và `UNRESOLVED` phải lấy từ
-> source, test và evidence hiện hành. Điểm vào dành cho dev là [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md).
-> Front-End Checklist được tích hợp như corpus quality bổ sung tại
-> [`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md); nó không phải design system
-> hoặc nguồn rule ngang hàng và không được ghi đè contract này. Kiến trúc surface, floorplan và geometry role
-> bắt buộc được định nghĩa tại [`DESIGN.md`](DESIGN.md).
+> source và test hiện hành. Design owner là [`DESIGN.md`](DESIGN.md); phương pháp kiểm chứng nằm tại
+> [`TESTING.md`](TESTING.md). Tài liệu này sở hữu rule ID, không sở hữu task state.
 
 ---
 
@@ -45,60 +42,20 @@ last_reviewed: 2026-08-12
 5. Mỗi thay đổi MUST ghi ID rule đang áp trong mô tả PR/commit, ví dụ `C3`, `M3.2`.
 6. Khi hai rule mâu thuẫn, ưu tiên theo thứ tự: **An toàn dữ liệu > Accessibility > Ổn định layout > Hiệu năng > Nhất quán thị giác > Thẩm mỹ**.
 7. Rule nào không kiểm chứng được bằng lint, test hoặc checklist thì MUST NOT được coi là đã hoàn thành.
-8. Với mọi thay đổi UI/UX, MUST chạy discipline của `frontend-checklist-global` sau khi xác định rule project:
-   ưu tiên finding Critical/High có bằng chứng, disposition rule không phù hợp là `NOT_APPLICABLE`, và cấm
-   biến danh sách 385 rule thành scope triển khai mặc định.
+8. Ưu tiên finding Critical/High có source/DOM evidence; disposition rule không phù hợp là
+   `NOT_APPLICABLE`. Không biến toàn bộ corpus quality thành implementation scope mặc định.
 
-### 0.4 Vị trí lưu trữ canonical trong worktree này
+### 0.4 Ownership và phạm vi kiểm chứng
 
-Tài liệu này là **planning input**, không phải bằng chứng rằng code hiện tại đã tuân thủ. GSD Core MUST audit
-source, test và runtime hiện hành trước khi chuyển bất kỳ rule nào thành task triển khai.
+Rule ID thuộc file này; design grammar thuộc `DESIGN.md`; nhãn nghiệp vụ thuộc `GLOSSARY.md`.
+Token, formatter và status implementation ở source, không copy sang plan. Task state duy nhất là
+`.planning/WORK.md`. Output runtime là disposable và không tự chứng minh acceptance.
 
-| Artifact | Vị trí canonical | Trạng thái/gate khi audit |
-| --- | --- | --- |
-| Bộ rule làm đầu vào audit | `docs/DASHBOARD-UI-RULES.md` | File này là bản duy nhất; MUST NOT copy sang `.docs/` hoặc `.planning/` |
-| Triết lý UI và quy ước điều hướng | `docs/UI-PHILOSOPHY.md` | Điểm vào project-specific; liên kết về rule ID, owner và gate |
-| Token màu, khoảng cách và typography | `frontend/src/styles/index.css` | Giữ tại CSS entry hiện hành; chỉ tách module token khi plan chứng minh seam rõ ràng |
-| Từ điển nhãn trạng thái/workflow | `frontend/src/lib/workflowConfig.ts` | Mở rộng nguồn hiện có; MUST NOT tạo một từ điển song song |
-| Formatter số, tiền, ngày giờ, đơn vị và phần trăm | `frontend/src/lib/formatters.ts` | Mở rộng nguồn hiện có; formatter đặc thù domain chỉ được giữ khi audit nêu rõ ownership |
-| Từ điển thuật ngữ nghiệp vụ | `docs/GLOSSARY.md` | Nguồn nhãn UI; mở rộng khi thêm khái niệm hoặc status mới |
-| Artifact phase, plan và verification | `.planning/phases/<phase>/` | Chỉ GSD tạo và quản lý; tài liệu này không tự tạo state planning |
-| Evidence runtime/visual | `.artifacts/<run>/` | Chỉ lưu output có thể tái tạo; hash authoritative được đăng ký tại `docs/EVIDENCE-INDEX.md` |
-
-Quy tắc lưu trữ:
-
-1. `.docs/` là vùng ignored của worktree, MUST NOT dùng cho tài liệu cần audit, review hoặc commit.
-2. `docs/` giữ source-of-truth lâu dài; `.planning/` chỉ giữ state và artifact do workflow GSD sinh ra;
-   `.artifacts/` chỉ giữ evidence/runtime output.
-3. MUST NOT nhân bản toàn bộ rule vào `UI-PHILOSOPHY.md`, `GLOSSARY.md`, plan hoặc checklist. Các file đó
-   liên kết về rule ID trong tài liệu này để tránh nhiều nguồn sự thật.
-4. Đường dẫn trong plan phải được kiểm chứng lại với source hiện hành. Nếu code đã đổi vị trí, plan cập nhật
-   canonical path trong cùng thay đổi docs thay vì tạo file tương đương ở đường dẫn cũ.
-
-### 0.5 Contract audit → plan cho GSD Core
-
-Khi áp dụng tài liệu này cho IPCManagement, GSD Core thực hiện theo thứ tự:
-
-1. Với audit toàn hệ thống được giao rõ ràng, audit toàn bộ rule; với task focused, disposition các rule liên quan
-   declared scope và các consumer bị ảnh hưởng. Trước audit phải khóa claim envelope/mẫu số gồm mounted route,
-   retained view, state, actor, viewport, action và nhóm rule áp dụng; mỗi required cell phải được disposition và
-   tổng required phải khớp tổng verdict cells. Dùng source/test/runtime hiện hành để phân loại `PASS`, `GAP`,
-   `NOT_APPLICABLE` hoặc `NEEDS_EVIDENCE`; phần chưa audit là `NOT_CLAIMED`, không được mặc định PASS. Ví dụ
-   generic không là bằng chứng và số lượng rule không tự mở scope.
-2. Gộp các `GAP` theo **shared seam/root cause** (token, primitive, shared formatter/hook, layout, route),
-   không tạo task hoặc phase riêng cho từng rule ID, component hay màn hình.
-3. Chỉ đưa `GAP` có bằng chứng và acceptance test kiểm chứng được vào plan. Mục chưa đủ evidence phải nằm
-   trong audit backlog, không được biến thành implementation task mang tính phỏng đoán.
-4. Mặc định tạo **một phase triển khai, tối đa ba wave**:
-   - **Wave 1 — contract/foundation:** test hoặc checker, token, vocabulary và formatter dùng chung.
-   - **Wave 2 — shared UI seams:** primitive, hook, layout và component dùng chung.
-   - **Wave 3 — rollout/verification:** callsite còn lại, regression, headed browser và evidence closeout.
-5. Chỉ tách thêm phase khi audit chứng minh có milestone độc lập, dependency tuần tự không thể tránh, trust/data
-   boundary khác nhau hoặc authority blocker. Số lượng rule, route hay file lớn tự nó không phải lý do tách phase.
-6. Trong một wave, nhóm việc độc lập thành task song song nhưng giữ số plan tối thiểu cần thiết. Audit, research,
-   verification và closeout là gate của phase, không được biến thành các phase triển khai riêng chỉ để tăng số bước.
-7. Plan phải ghi rõ rule ID, source owner thấp nhất cần sửa, acceptance test, phạm vi deferred và điều kiện dừng;
-   MUST NOT mở rộng sang backend/business behavior nếu audit UI không chứng minh dependency đó.
+Với task focused, kiểm rule và consumer thuộc declared scope. Với audit toàn hệ thống được giao rõ ràng,
+khóa mẫu số route/state/actor/viewport/action, disposition từng required cell; phần chưa audit không được
+mặc định PASS. Gộp defect theo root owner (token → primitive → shared hook/formatter → layout → route),
+không tạo wave/phase cho từng rule. Chỉ implement finding có evidence và acceptance oracle; giữ quyết định
+nghiệp vụ/quyền/data safety chưa đủ authority ở `BLOCKED` hoặc `NEEDS_EVIDENCE`.
 
 ---
 
@@ -532,7 +489,7 @@ Không có oracle cho các quan hệ trên thì verdict composition là `NEEDS_E
 ### Q0. Rule maintenance và chống tái diễn (MUST)
 
 Khi phát hiện defect UI/UX chưa được rule bao phủ hoặc rule mơ hồ, agent MUST tự bổ sung/làm rõ rule kỹ thuật
-có bằng chứng tại canonical owner trong cùng task, theo [execution harness §4.1](UI-UX-EXECUTION-HARNESS.md).
+có bằng chứng tại canonical owner trong cùng task; xem [TESTING.md](TESTING.md).
 Rule đã đủ thì sửa enforcement/regression, không tạo ID trùng nghĩa. Mỗi invariant mới phải có scope, ngoại lệ
 hợp lệ, oracle và liên kết tới regression red-capable; không chỉ thêm lời nhắc vào docs rồi coi là đã phòng lỗi.
 
@@ -564,7 +521,7 @@ Không hạ rule, sửa expectation theo bug, hoặc tự thay CI/hooks để l�
 - [ ] Không có hex hoặc rgb hardcode trong component (`D4`)
 - [ ] PR ghi rõ ID rule đã áp (mục `0.3`)
 - [ ] Finding mới/tái diễn đã disposition coverage; rule gap được bổ sung tại owner, regression có red/green
-  evidence và liên kết rule ↔ test ↔ command trong GSD ledger (`Q0`, execution harness §4.1). Không có defect thì
+  evidence và liên kết rule ↔ test ↔ command trong `.planning/WORK.md` (`Q0`). Không có defect thì
   ghi không áp dụng có lý do, không bịa rule để hoàn thành checklist.
 
 ### Q2. Chỉ số theo dõi

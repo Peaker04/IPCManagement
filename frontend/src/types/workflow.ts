@@ -156,6 +156,7 @@ export interface DemandLine {
   // Only aggregate rows project gross DEFAULT handoff; generic demand keeps its own allocation semantics.
   projection?: 'physical-handoff';
   customerId?: string;
+  projectedPurchaseQty?: number;
   historicalAllocatedQty?: number;
   issuedQty?: number;
   receivedByKitchenQty?: number;

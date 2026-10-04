@@ -11,6 +11,7 @@ export const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto)
     id: `aggregate-${serviceDate}-${item.customerId}-${item.priceTierAmount}-${item.ingredientId}-${item.unitId}`,
     projection: 'physical-handoff',
     customerId: item.customerId,
+    projectedPurchaseQty: item.suggestedPurchaseQty,
     historicalAllocatedQty: item.currentStockQty,
     issuedQty: item.issuedQty,
     receivedByKitchenQty: item.receivedByKitchenQty,

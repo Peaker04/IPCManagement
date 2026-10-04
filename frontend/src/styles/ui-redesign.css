@@ -128,7 +128,7 @@
 }
 
 @media (min-width: 1200px) {
-  .ipc-redesign-shell .ipc-context-strip {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 1px;
@@ -138,7 +138,7 @@
     background: var(--ipc-slate-200);
   }
 
-  .ipc-redesign-shell .ipc-context-badge {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge {
     display: grid;
     min-width: 0;
     min-height: 54px;
@@ -157,13 +157,13 @@
     text-align: left;
   }
 
-  .ipc-redesign-shell .ipc-context-icon {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-icon {
     grid-area: icon;
     align-self: center;
     color: var(--ipc-slate-400);
   }
 
-  .ipc-redesign-shell .ipc-context-label {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-label {
     grid-area: label;
     overflow: hidden;
     color: var(--ipc-slate-700);
@@ -174,7 +174,7 @@
     white-space: nowrap;
   }
 
-  .ipc-redesign-shell .ipc-context-value {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-value {
     grid-area: value;
     overflow: hidden;
     margin: 0;
@@ -189,35 +189,35 @@
     min-width: 1.5rem;
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-success:not(.is-quiet) {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-success:not(.is-quiet) {
     background: color-mix(in srgb, var(--ipc-success) 7%, var(--card));
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-info:not(.is-quiet) {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-info:not(.is-quiet) {
     background: var(--ipc-primary-soft);
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-warning {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-warning {
     background: color-mix(in srgb, var(--ipc-warning) 8%, var(--card));
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-danger {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-danger {
     background: color-mix(in srgb, var(--ipc-danger) 7%, var(--card));
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-success .ipc-context-icon {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-success .ipc-context-icon {
     color: var(--ipc-success);
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-info .ipc-context-icon {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-info .ipc-context-icon {
     color: var(--ipc-primary);
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-warning .ipc-context-icon {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-warning .ipc-context-icon {
     color: var(--ipc-warning);
   }
 
-  .ipc-redesign-shell .ipc-context-badge.is-danger .ipc-context-icon {
+  .ipc-redesign-shell .ipc-context-strip:not([data-variant="inline"]) .ipc-context-badge.is-danger .ipc-context-icon {
     color: var(--ipc-danger);
   }
 

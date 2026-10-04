@@ -56,6 +56,8 @@ describe('ingredient demand aggregate presentation', () => {
     expect(line.priceTierAmount).toBe(30_000)
     expect(line.source).toBe('Nhà máy B · 30k · 2 dòng nhu cầu')
     expect(line.required).toBe(5.5233)
+    expect(line.historicalAllocatedQty).toBe(10)
+    expect(line.projectedPurchaseQty).toBe(0)
   })
 
   it('hands issued material to the kitchen actor without inventing a permitted destination', () => {
@@ -89,5 +91,7 @@ describe('ingredient demand aggregate presentation', () => {
     expect(line.actionHref).toBeUndefined()
     expect(line.tone).toBe('warning')
     expect(line.available).toBeCloseTo(5.21154, 6)
+    expect(line.historicalAllocatedQty).toBe(5)
+    expect(line.projectedPurchaseQty).toBeCloseTo(2.21154, 6)
   })
 })

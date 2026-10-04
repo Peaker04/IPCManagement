@@ -4,6 +4,7 @@ import * as React from "react"
 import { Select as SelectPrimitive } from "@base-ui/react/select"
 
 import { cn } from "@/lib/utils"
+import { DialogPortalContainerContext } from "./dialog"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
 function Select<Value, Multiple extends boolean | undefined = false>(props: SelectPrimitive.Root.Props<Value, Multiple>) {
@@ -89,8 +90,9 @@ function SelectContent({
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   >) {
+  const container = React.useContext(DialogPortalContainerContext)
   return (
-    <SelectPrimitive.Portal>
+    <SelectPrimitive.Portal container={container} className={container ? 'contents' : undefined}>
       <SelectPrimitive.Positioner
         side={side}
         sideOffset={sideOffset}

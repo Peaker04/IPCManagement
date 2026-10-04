@@ -12,7 +12,7 @@ param(
     [string]$EncryptionKeyReference,
     [string]$RestoreDatabase,
     [string]$DcrClosureArtifactPath,
-    [string]$EvidenceDirectory = '.artifacts/shipyard-live/phase-04.2/db/recovery',
+    [string]$EvidenceDirectory = '.artifacts/database-recovery',
     [switch]$Teardown
 )
 

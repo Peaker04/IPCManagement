@@ -23,19 +23,21 @@ export function PlanningPreviewShell({ children, activeView = 'schedule' }: { ch
   const currentUser = useAppSelector(selectCurrentUser)
   const [planningExpanded, setPlanningExpanded] = useState(true)
   const capabilityIds = operation?.capabilities.navigation ?? []
-  const planningIds = (operation?.capabilities.pageTabs['weekly-menu'] ?? ['schedule'])
+  const availableViews = (operation?.capabilities.pageTabs['weekly-menu'] ?? [])
     .filter((id): id is PlanningView => id in planningViews)
+  const financialView: PlanningView | null = availableViews.includes('cost') ? 'cost' : availableViews.includes('dish-materials') ? 'dish-materials' : null
+  const planningIds: PlanningView[] = [...availableViews.filter(id => id !== 'cost' && id !== 'dish-materials'), ...(financialView ? [financialView] : [])]
   const canReadPlanning = Boolean(currentUser && (currentUser.isAdminFullAccess || currentUser.role === 'admin' || currentUser.permissions?.some(permission => permission === '*' || permission === 'coordination.read')))
 
   return (
-    <div className="flex min-h-screen bg-slate-100" data-testid="planning-preview-shell">
-      <aside className="hidden w-[272px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
+    <div className="planning-preview-shell flex h-dvh overflow-hidden bg-slate-100" data-testid="planning-preview-shell">
+      <aside className="hidden w-[240px] shrink-0 flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="flex h-12 items-center gap-2 border-b border-slate-200 px-3.5">
           <span className="grid size-7 place-items-center rounded-[3px] bg-[#164e87] text-white"><ChefHat size={16} aria-hidden="true" /></span>
           <span className="text-xs font-bold text-slate-900">IPC System</span>
         </div>
         <nav aria-label="Điều hướng chính IPCManagement" className="flex-1 overflow-y-auto px-2 py-3 text-slate-700">
-          {capabilityIds.includes('dashboard') && <a href="/" onClick={(event) => event.preventDefault()} className="mb-1 flex items-center gap-3 rounded-[3px] px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"><LayoutDashboard size={18} className="text-slate-500" />Bàn điều hành hôm nay</a>}
+          {capabilityIds.includes('dashboard') && <Link to="/" className="mb-1 flex items-center gap-3 rounded-[3px] px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"><LayoutDashboard size={18} className="text-slate-500" />Bàn điều hành hôm nay</Link>}
           <div>
             <button type="button" aria-expanded={planningExpanded} aria-controls="preview-group-planning" onClick={() => setPlanningExpanded((open) => !open)} className="flex w-full items-center gap-3 rounded-[3px] px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2d7acf] focus-visible:ring-offset-1">
               <CalendarDays size={18} className="text-[#164e87]" />
@@ -44,9 +46,9 @@ export function PlanningPreviewShell({ children, activeView = 'schedule' }: { ch
             </button>
             {planningExpanded && <ul id="preview-group-planning" role="list" className="ml-5 space-y-0.5 border-l border-slate-200 py-0.5 pl-6 pr-1">
               {planningIds.map((id) => {
-                const item = planningViews[id]
+                const item = id === financialView ? { ...planningViews[id], label: 'Giá vốn & định mức' } : planningViews[id]
                 const Icon = item.icon
-                const active = id === activeView
+                const active = id === activeView || (id === financialView && (activeView === 'cost' || activeView === 'dish-materials'))
                 const previewHref = canReadPlanning && id !== 'material-demand' && (id === 'schedule' || id === 'demand' || operation?.mode === 'DEFAULT') ? `/__kit/planning/${id}${location.search}` : null
                 return <li key={id}>{previewHref === null
                   ? <span aria-disabled="true" className="relative flex items-center gap-2 rounded-[3px] px-2.5 py-1.5 text-xs text-slate-500"><Icon size={14} className="text-slate-400" />{item.label}</span>
@@ -55,7 +57,7 @@ export function PlanningPreviewShell({ children, activeView = 'schedule' }: { ch
               })}
             </ul>}
           </div>
-          {capabilityIds.includes('meal-orders') && <a href="/meal-orders" onClick={(event) => event.preventDefault()} className="mt-1 flex items-center gap-3 rounded-[3px] px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"><Utensils size={18} className="text-slate-500" />Điều phối suất ăn</a>}
+          {capabilityIds.includes('meal-orders') && <Link to="/meal-orders" className="mt-1 flex items-center gap-3 rounded-[3px] px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100"><Utensils size={18} className="text-slate-500" />Điều phối suất ăn</Link>}
         </nav>
         {currentUser && <div className="flex items-center gap-2 border-t border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-600">
           <span className="grid size-6 shrink-0 place-items-center rounded-full bg-[#164e87] font-bold text-white">{currentUser.fullName?.charAt(0).toUpperCase() || 'U'}</span>

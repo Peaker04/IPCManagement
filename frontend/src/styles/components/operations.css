@@ -67,6 +67,14 @@
   box-shadow: none;
 }
 
+.ipc-command-bar[data-variant="scope"] {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  box-shadow: none;
+}
+
 .ipc-command-bar-main,
 .ipc-command-bar-actions {
   display: flex;
@@ -172,6 +180,31 @@
 
 .ipc-context-badge.is-quiet.is-info .ipc-context-value {
   color: var(--ipc-primary);
+}
+
+.ipc-context-strip[data-variant="inline"] {
+  align-items: baseline;
+  gap: var(--ipc-space-2) var(--ipc-space-4);
+}
+
+.ipc-context-strip[data-variant="inline"] > .ipc-context-badge {
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.ipc-context-strip[data-variant="inline"] > .ipc-context-badge > :is(dt, dd) {
+  font-size: inherit;
+  line-height: inherit;
+  white-space: normal;
 }
 
 .ipc-context-icon {

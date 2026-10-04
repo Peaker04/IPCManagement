@@ -30,9 +30,9 @@ restores, and compares migration/schema/FK/trigger/row checksum plus DCR closure
 GTID/binlog fields are retained as source-manifest metadata but are **not yet snapshot-bound recovery-point provenance**
 and are not compared with the new restore target.
 
-Current E21 scope is a data-integrity comparator only. Business-state oracle, exact dump snapshot coordinates/time,
+The recovery comparator covers data integrity only. Business-state oracle, exact dump snapshot coordinates/time,
 meaningful binlog provenance validation, elapsed operator recovery duration, measured RPO/RTO and off-host/provider
-certification remain `NEEDS_EVIDENCE` under E22. The current success receipt must not be presented as those guarantees.
+certification remain `NEEDS_EVIDENCE`. A success receipt must not be presented as those guarantees.
 
 ```powershell
 powershell.exe -File scripts/database-recovery/Invoke-DatabaseRecovery.ps1 -Mode RestoreDrill `

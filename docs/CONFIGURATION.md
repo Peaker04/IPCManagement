@@ -1,4 +1,3 @@
-<!-- generated-by: gsd-doc-writer -->
 # Cấu hình
 
 ## Runtime servicing baseline
@@ -32,10 +31,6 @@ Backend đọc cấu hình ASP.NET Core từ `backend/src/IPCManagement.Api/apps
 | `VITE_ENABLE_MOCK_LOGIN` | Optional | Tắt | Chỉ bật mock login trong Development/UI test; không dùng production. |
 | `VITE_IDLE_TIMEOUT_MINUTES` | Optional | `60` | Số phút không có keyboard/pointer/touch activity trước khi hiện cảnh báo idle. Giá trị không dương/invalid dùng fallback. |
 | `VITE_IDLE_WARNING_MINUTES` | Optional | `2` | Grace period cảnh báo trước khi gọi logout/revoke đúng một lần. |
-| `E2E_SERVICE_DATE` | Optional | `2026-07-20` trong Shipyard profile | Ngày phục vụ cho happy-path E2E của lane. |
-| `E2E_CUSTOMER_CODE` | Optional | `ANV` | Mã khách hàng dùng khi chạy Shipyard E2E. |
-| `E2E_PRICE_TIER_AMOUNT` | Optional | `25000` | Định mức giá thực đơn dùng khi preview/commit E2E. |
-| `E2E_WEEKLY_MENU_TEMPLATE_PATH` | Optional | Template ANV mặc định trong thư mục Pictures của máy test | Đường dẫn workbook đầu vào cho Shipyard E2E. |
 
 Tên `ConnectionStrings__DefaultConnection`, `JwtSettings__SecretKey`, `Cors__AllowedOrigins__0` và tương tự có thể dùng dạng environment variable theo quy tắc double-underscore của ASP.NET Core.
 

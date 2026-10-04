@@ -6,7 +6,7 @@ import * as chefFixture from '../support/chef-dashboard-production-queryFixture'
 import * as approvalFixture from '../support/approval-rules-production-queryFixture';
 import * as weeklyFixture from '../support/weekly-menu-production-queryFixture';
 
-const outputRoot = resolve(process.cwd(), '../.artifacts/shipyard-live/full-ui-remediation/phase31-convergence');
+const outputRoot = resolve(process.cwd(), 'test-results/primitive-convergence');
 const viewports = [
   { name: 'S-390', width: 390, height: 844 },
   { name: 'M-768', width: 768, height: 1024 },

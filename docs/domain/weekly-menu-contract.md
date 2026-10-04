@@ -118,6 +118,25 @@ Weekly confirmation keeps all per-date reasons in the shared DialogBody primary 
 The Demand preview controller renders quick-serving feedback using the existing InlineAlert (danger uses role=alert, non-error uses role=status), replaces it with subsequent workflow feedback and clears it on customer/week change. Failed saves retain the existing date/shift-key draft; source refetch readiness and retry through existing blur/Enter/completion controls remain owned by the unchanged schedule workflow. Unsaved status alone is not failure feedback. This scoped repair is not durable-save, actor, performance or whole-page acceptance.
 
 
+## Template Studio contract
+
+Default template fallback is immutable. A customer override identifies source and version explicitly; preview/parsing/diagnostic navigation never persists menu data. Save is explicit. Blocking errors prevent save; acknowledged warnings remain distinguishable. Diagnostics retain sheet/cell/range identity. Drag-selected and A1 ranges normalize to the same range and retain keyboard parity. Numeric sketch widths/themes are not business authority.
+
+## Planning preview composition — production cutover pending
+
+The existing `/__kit/planning/*` owners implement the approved five-destination hybrid (Cost/BOM remain independently capability-gated local views), not a new application. These entries still obey their DEV/exact-preview-flag and auth/mode gates. Production `/weekly-menu` and navigation are unchanged until mounted visual/FR/NFR acceptance passes; approval of drawings alone is not cutover evidence.
+
+This revision supersedes the older sandbox presentation paragraphs above where they prescribe a six-column physical Demand table, bounded vertical workbench scrolling or Handoff BOM export:
+- Schedule renders four distinct shift×variant matrices using the existing import merge primitive; source cells and ordering remain unchanged.
+- Demand uses page-flow projected quantities, historical allocation and server-supplied suggested purchase quantity. `DemandLine.projectedPurchaseQty` preserves `SuggestedPurchaseQty` additively; it does not redefine physical `available`/`issuedQty`. Neither allocation nor suggestion is current stock/purchase entitlement. Sources attach to their ingredient; the week command and incomplete-shift serving controls retain existing workflow handlers/guards.
+- Production presents persisted plans as master/detail. A persisted `sentToKitchenAt` is shown as a sending fact, without changing the generic status mapper or moving the Coordination send action.
+- Cost keeps existing model rounding; per-dish explanation uses its effective scoped BOM and quantity factor, directly after the selected row. Missing BOM is not zero; nonpositive reference prices are marked for checking, not asserted to be free.
+- BOM shows one dish/per-serving gross quantity to six decimals; the API does not supply an independent net quantity. CSV exports only that selected dish. No invented net/loss calculation.
+- Handoff reads only its physical report family (no analytical BOM/catalog query). CSV is explicitly **current page**, not full-week report or BOM. Aggregate metadata cannot invent issue/receipt source-line identities; document-level detail remains an API/evidence limitation.
+- Shared CommandBar scope, ContextStrip inline and TableViewport quiet-operational own the relevant surfaces/density. No global theme/token/portal Phase B changes.
+
+Implementation/check status and bounded residuals belong to `.planning/WORK.md`; authenticated browser, persistence, compatibility and performance are not certified by unit/build checks.
+
 ## DEFAULT read-oriented planning sandbox candidates
 
 Four sandbox entries `/__kit/planning/dish-materials`, `/cost`, `/production-plan` and `/purchase-summary` under the same planning prefix are DEV/exact preview-flag only, ProtectedRoute + coordination.read + SystemOperationProvider. They do not replace `/weekly-menu`, production navigation, capability lists or the Schedule/Demand candidates. DEFAULT and the matching weekly-menu capability must be present before business queries mount; MRX material-demand and meal-orders are separate.

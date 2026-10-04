@@ -863,3 +863,32 @@
   color: var(--ipc-slate-500);
   font-size: 0.75rem;
 }
+
+/* Opt-in plain ledger only; direct children prevent nested legacy leakage. */
+.ipc-table-viewport[data-appearance="quiet-operational"] {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.ipc-table-viewport[data-appearance="quiet-operational"] > .ipc-data-table:not(.ipc-matrix-grid-table, .ipc-erp-grid-table, .ipc-schedule-table, .ipc-logistics-table) {
+  border: 0;
+}
+
+.ipc-table-viewport[data-appearance="quiet-operational"] > .ipc-data-table:not(.ipc-matrix-grid-table, .ipc-erp-grid-table, .ipc-schedule-table, .ipc-logistics-table) > :is(thead, tbody, tfoot) > tr > :is(th, td) {
+  border-right: 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.ipc-table-viewport[data-appearance="quiet-operational"] > .ipc-data-table:not(.ipc-matrix-grid-table, .ipc-erp-grid-table, .ipc-schedule-table, .ipc-logistics-table) > thead > tr > th {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.ipc-table-viewport[data-appearance="quiet-operational"][data-density="compact"] > .ipc-data-table:not(.ipc-matrix-grid-table, .ipc-erp-grid-table, .ipc-schedule-table, .ipc-logistics-table) > :is(tbody, tfoot) > tr > :is(th, td) {
+  height: 36px;
+  min-height: 36px;
+  padding-block: 6px;
+}

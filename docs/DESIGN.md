@@ -10,7 +10,7 @@ last_reviewed: 2026-09-30
 
 > **Quiet Operational: An industrial precision instrument engineered for high-density food-service logistics and kitchen operations on cool slate.**
 
-Đây là **authority thiết kế frontend toàn cục duy nhất** cho product character, hình thái và target UI. Business truth thuộc `docs/domain/*.md` và BE; rule ID normative thuộc `docs/DASHBOARD-UI-RULES.md`; quy trình thuộc `docs/UI-UX-EXECUTION-HARNESS.md`. Giá trị target ở đây không đồng nghĩa token đã được mount trong production. `frontend/src/styles/index.css` hiện giữ legacy `--ipc-*`/shadcn tokens; specimen dùng ứng viên `--color-*`/hex để kiểm định, **không** phải executable token owner của app. Khi một lát cắt được tái cấu trúc, ánh xạ target → một token owner có thể chạy trong `index.css`/shared primitives ở chính lát cắt đó, đo cùng consumer rồi mới mở rộng; không global-rewrite legacy CSS. Domain, mode, permission và query contract vẫn là authority riêng. Không dùng ảnh specimen để thay thế production acceptance.
+Đây là **authority thiết kế frontend toàn cục duy nhất** cho product character, hình thái và target UI. Business truth thuộc `docs/domain/*.md` và BE; rule ID normative thuộc `docs/DASHBOARD-UI-RULES.md`; measurement thuộc `docs/TESTING.md`, còn process thuộc `AGENTS.md`. Giá trị target ở đây không đồng nghĩa token đã được mount trong production. `frontend/src/styles/index.css` hiện giữ legacy `--ipc-*`/shadcn tokens; specimen dùng ứng viên `--color-*`/hex để kiểm định, **không** phải executable token owner của app. Khi một lát cắt được tái cấu trúc, ánh xạ target → một token owner có thể chạy trong `index.css`/shared primitives ở chính lát cắt đó, đo cùng consumer rồi mới mở rộng; không global-rewrite legacy CSS. Domain, mode, permission và query contract vẫn là authority riêng. Không dùng ảnh specimen để thay thế production acceptance.
 
 ---
 
@@ -60,7 +60,7 @@ Mục tiêu của `DESIGN.md` là **thống nhất ngôn ngữ thị giác và k
 - **Bất biến về Ngôn ngữ & Token (Authority Invariants):** Bảng màu ngữ nghĩa, độ tương phản WCAG 2.2 AA, viền hairline 1px phẳng, kỷ luật trạng thái ISA-101, font an toàn tiếng Việt, và số liệu `tabular-nums` là bắt buộc toàn hệ thống.
 - **Tự do Thích ứng về Hình thái Không gian (Adaptive Topology):** Bố cục không gian tùy biến theo bản chất công việc (ma trận 2D cho lập lịch, bảng hẹp cho quét kho, split master-detail cho đơn hàng, thẻ chạm lớn cho bếp). Hệ thống sản sinh các "màn hình anh em" (sibling screens) hài hòa, không sinh ra các bản sao nhân bản (cloned screens).
 
-*Lưu ý:* `ui-ux-pro-max` và full `design-taste-frontend` bị nghiêm cấm làm router quyết định. Ponytail giữ mức `lite` cho component/layout/visual work và `full` cho non-visual logic.
+Thư viện và kỹ thuật hỗ trợ không sở hữu design hoặc permissions; dùng primitives hiện có, không cài thêm process router.
 
 ---
 
@@ -825,6 +825,15 @@ IPC UI KIT
 1. **Không tạo song song (MUST):** Nghiêm cấm tạo `ButtonV2`, `CustomTable`, hay `NewDialog`. Nếu component thiếu tính năng, mở rộng component hiện có bằng kiểm thử hồi quy.
 2. **Component không chứa logic nghiệp vụ (MUST):** Các component trong `shared/ui` không được import model nghiệp vụ hoặc enum của domain.
 
+### Opt-in shared-owner APIs — Planning dependency package
+
+Current implementation: CommandBar retains action grouping/text and caps action groups to available width; Select uses its owning DialogContent portal container and Dialog honors handled popup keyboard events. Standalone portals and modal focus/inert boundaries must remain intact. These are shared primitive contracts, not proof of product adoption or global theme approval.
+
+- `CommandBar variant="scope"`: flat scope surface; omitted/`default` retains legacy surface and action grouping.
+- `ContextStrip variant="inline"`: wrapping label/value context; omitted/`badge` retains legacy badges. Explicit icons, warning/danger and strong signals remain; neutral quiet items omit decorative glyphs. Legacy redesign grid selectors exclude inline context.
+- `TableViewport appearance="quiet-operational"`: flat boundary and direct-child plain-ledger recipe, sentence-case 12/16 headers, 13/18 cells, nominal compact36px with natural growth. Omitted/`default`, preference precedence/storage and scroll/sticky/frozen contracts remain unchanged. Matrix/ERP/schedule/logistics recipes are excluded; nested default viewports retain legacy styling.
+- These APIs do not activate a global theme or authorize product migrations. Semantic token/profile/portal adoption requires explicit product acceptance; shared component tests do not certify every consumer.
+
 ### 10.2. Giải phẫu Thành phần & Bố cục Phối hợp (Component Anatomy & Composition)
 Giao diện vận hành của IPCManagement tuân thủ ngữ pháp 5 phân vùng cố định trên nền canvas Cool Slate (`#f1f5f9`):
 1. **Zone 1: Định danh Vùng làm việc (`OperationalFrame`)**:
@@ -1115,11 +1124,11 @@ Chính sách thích ứng theo ngữ cảnh khung nhìn:
 Khi tiến hành tái cấu trúc presentation layer từ đầu (Greenfield presentation + Brownfield verified behavior):
 1. **Được phép thay thế hoàn toàn:** Mã CSS cũ, file CSS redesign tạm bợ, cây JSX cũ, các hàng tab ngang mức route cũ (bao gồm cả 6 tab Thực đơn tuần khi chuyển lên Sidebar), cấu trúc thẻ card thừa thãi, khoảng cách pixel cũ, và các snapshot hình ảnh cũ không phản ánh đúng chuẩn này.
 2. **Bất biến Thay thế Presentation (MUST — Anti-Wrapper Replacement):**
-   - Trước mọi JSX/layout/CSS edit, active GSD checklist phải PASS `SOURCE LOCK` và `DESIGN LOCK` theo `docs/harness/DELIVERY.md`. DESIGN LOCK bắt buộc ghi đủ `DESIGN_TEMPLATE`, `CANONICAL_SPECIMEN`, `ZONES`, `SHARED_PRIMITIVES`, `TOKENS`, `SKILLS_READ`, `ALLOWED_DEVIATIONS`; thiếu bất kỳ field nào ⇒ `NO_EDIT`.
+   - Trước JSX/layout/CSS edit, xác định domain/grain/permission/query owner và approved presentation reference trong active WORK; thiếu authority hoặc reference thì chặn phần phụ thuộc, không đoán design từ specimen.
    - Một page/workspace chỉ được gọi là **đã thay FE** khi cây presentation mới sở hữu trực tiếp route identity, scope/commands, conditional state và primary work surface. Việc tạo component owner mới rồi tiếp tục delegate primary surface, heading, command bar hoặc navigation composition cho page/section legacy chỉ là extraction/refactor, **không phải replacement** và không được promote thành migration PASS.
    - Trong giai đoạn chuyển đổi, không chèn thêm lớp Kit vào giữa shell/tab/page legacy nếu kết quả giữ nhiều owner cạnh tranh cho cùng fact. Customer, week, lifecycle, readiness và primary action phải có đúng một presentation owner trong page mới.
    - Khi shell/navigation cũ làm sai hierarchy của page mới, dựng presentation greenfield trên route preview/harness non-production trong **cùng frontend application**, dùng chung auth/API/domain hooks/primitives. Không tạo application thứ hai. Chỉ cutover production sau khi page family đạt acceptance; route preview không được xuất hiện trong production navigation.
-   - Preview/harness phải có disposition trong active GSD checklist:
+   - Preview phải có disposition trong active WORK:
      - `SANDBOX_ONLY`: presentation độc lập chỉ dùng cho exploration/conformance, không là production acceptance owner, không xuất hiện trong production navigation và không được trở thành implementation song song lâu dài. Không thực hiện business mutation trừ một gate được owner cấp quyền riêng.
      - `PRODUCTION_OWNER_REUSE`: preview mount chính production presentation owner với adapter/data harness mỏng; không fork JSX/layout.
      - Không có disposition hoặc preview độc lập nhưng được claim như production owner ⇒ `NO_EDIT`/`FAIL`.
@@ -1275,4 +1284,4 @@ Các quy tắc tính toán chi tiết và luồng điều hướng đặc thù c
 2. **Warehouse & Logistics UI Contract:** Xem chi tiết tại [`docs/domain/warehouse-contract.md`](domain/warehouse-contract.md).
    *(Quy định lối tắt Xem tồn kho, liên kết bàn giao Bếp, giới hạn 20 chứng từ trên rail, và lọc mặc định allowedActions cho Admin).*
 3. **Material Reconciliation Closed Loop Contract:** Xem chi tiết tại [`docs/domain/material-reconciliation.md`](domain/material-reconciliation.md).
-4. **Hồ sơ quyết định kiến trúc (ADR):** Lịch sử các lần nâng cấp thành phần Nhu cầu (2026-09-29) và thu hồi bản thử nghiệm được lưu vết tại `.planning/notes/` và GSD history ledger.
+4. Product design targets are not mounted implementation or acceptance proof. Current route/capability/source owners and the active WORK determine permitted changes, not historical design ledgers.

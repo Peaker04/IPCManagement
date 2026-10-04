@@ -3,7 +3,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$WeekStartDate,
     [string]$Database = 'ipc_lane7',
-    [string]$OutputPath = '.artifacts/shipyard-live/phase05-golden-demo-scope.json',
+    [string]$OutputPath = '.artifacts/workbook-scope/scope.json',
     [switch]$ValidateOnly
 )
 
