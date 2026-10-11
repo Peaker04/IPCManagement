@@ -78,3 +78,6 @@ Project_Tracking*.xlsx
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Local dev runtime logs (BE + Vite)
+*.log
