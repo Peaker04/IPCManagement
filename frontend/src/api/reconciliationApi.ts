@@ -4,7 +4,7 @@ import type { ApiResponse } from '@/types/api'
 
 export interface ReconciliationDisposition { category: string; reason: string; version: number; disposedAt: string }
 export type ReconciliationDispositionCategory = components['schemas']['ReconciliationDispositionCategoryDto']
-export interface ReconciliationLine { batchLineId: string; ingredientId: string; ingredientCode?: string | null; ingredientName?: string | null; canonicalUnitId: string; canonicalUnitName?: string | null; requiredQuantity: number; frozenTolerance: number; purchasedQuantity?: number | null; purchasedVersion?: number | null; issuedQuantity?: number | null; issuedVersion?: number | null; purchasedRequiredDifference?: number | null; issuedRequiredDifference?: number | null; purchasedIssuedDifference?: number | null; triggers: string[]; status: 'MATCHED'|'NEEDS_REVIEW'|'INCOMPLETE'; version: number; disposition?: ReconciliationDisposition | null; issueNotes?: string[] | null }
+export interface ReconciliationLine { dailyLineId?: string | null; serviceDate?: string | null; batchLineId: string; ingredientId: string; ingredientCode?: string | null; ingredientName?: string | null; canonicalUnitId: string; canonicalUnitName?: string | null; requiredQuantity: number; frozenTolerance: number; purchasedQuantity?: number | null; purchasedVersion?: number | null; issuedQuantity?: number | null; issuedVersion?: number | null; purchasedRequiredDifference?: number | null; issuedRequiredDifference?: number | null; purchasedIssuedDifference?: number | null; triggers: string[]; status: 'MATCHED'|'NEEDS_REVIEW'|'INCOMPLETE'; version: number; disposition?: ReconciliationDisposition | null; issueNotes?: string[] | null }
 export interface ReconciliationBatch {
   batchId: string
   menuVersionId: string
@@ -15,6 +15,7 @@ export interface ReconciliationBatch {
   readyAt?: string|null
   completedAt?: string|null
   lines: ReconciliationLine[]
+  dailyReview?: { weeklyStatus: ReconciliationWarehouseDaily['weeklyStatus']; lines: ReconciliationLine[] } | null
   customerId?: string | null
   customerName?: string | null
   customerCode?: string | null
@@ -160,7 +161,11 @@ export const reconciliationApi = apiSlice.injectEndpoints({ endpoints: builder =
   getReconciliationKitchenCookingXlsx: builder.query<Blob, string>({ query: id => ({ url: `/reconciliation/batches/${id}/kitchen-cooking/xlsx`, responseHandler: response => response.blob() }) }),
   createReconciliationIssue: builder.mutation<ReconciliationIssueCreated, CreateReconciliationIssueRequest>({ query: body => ({ url: '/inventory-issues', method: 'POST', body }), transformResponse: (r: ApiResponse<ReconciliationIssueCreated>) => r.data!, invalidatesTags: (_result, _error, body) => ['ReconciliationBatches', { type: 'ReconciliationBatches', id: body.reconciliationBatchId! }, { type: 'ReconciliationIssueHistory', id: body.reconciliationBatchId! }] }),
   completeReconciliationBatch: builder.mutation<ReconciliationBatch,{id:string;expectedVersion:number}>({ query:({id,...body})=>({url:`/reconciliation/batches/${id}/complete`,method:'POST',body}), transformResponse: (r: ApiResponse<ReconciliationBatch>) => r.data!, invalidatesTags:['ReconciliationBatches'] }),
-  setReconciliationDisposition: builder.mutation<void,{lineId:string;category:string;reason:string;expectedVersion?:number}>({query:({lineId,...body})=>({url:`/reconciliation/lines/${lineId}/disposition`,method:'PUT',body}),invalidatesTags:['ReconciliationBatches']}),
+  setReconciliationDisposition: builder.mutation<void,({lineId:string}|{dailyLineId:string}) & {category:string;reason:string;expectedVersion?:number}>({query:request => {
+    const {category,reason,expectedVersion} = request
+    const url = 'dailyLineId' in request ? `/reconciliation/daily-lines/${request.dailyLineId}/disposition` : `/reconciliation/lines/${request.lineId}/disposition`
+    return {url,method:'PUT',body:{category,reason,expectedVersion}}
+  },invalidatesTags:['ReconciliationBatches']}),
 })})
 
 export const {

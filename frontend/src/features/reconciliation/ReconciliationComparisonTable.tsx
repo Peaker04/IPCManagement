@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { formatQuantity, formatUnit } from '@/lib/formatters'
+import { formatDateOnly, formatQuantity, formatUnit } from '@/lib/formatters'
 import { PaginationBar, SearchField, StatusBadge, TableViewport } from '@/components/common'
 import { reconciliationStatusRegistry } from '@/lib/status/statusRegistry'
 import type { StatusPresentation } from '@/lib/statusPresentation'
@@ -205,9 +205,10 @@ export function ReconciliationComparisonTable({ lines, showAll = false, onDetail
                 : line.issuedRequiredDifference ?? line.issuedQuantity - line.requiredQuantity
               const rowHighlight = undefined
               return (
-                <TableRow key={line.batchLineId} className={rowHighlight}>
+                <TableRow key={line.dailyLineId ?? line.batchLineId} className={rowHighlight}>
                   <TableCell>
                     <span className="block font-medium text-slate-900">{line.ingredientName || 'Nguyên liệu chưa đặt tên'}</span>
+                    {line.serviceDate && <span className="block text-xs text-slate-600">{formatDateOnly(line.serviceDate)}</span>}
                     {line.ingredientCode && <span className={cn('block text-xs text-slate-500 tabular-nums', typography.code)}>{line.ingredientCode}</span>}
                   </TableCell>
                   <TableCell className="text-right tabular-nums"><CompactQuantity quantity={line.requiredQuantity} unit={unit} /></TableCell>

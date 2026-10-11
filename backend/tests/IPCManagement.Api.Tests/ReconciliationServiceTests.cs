@@ -463,6 +463,118 @@ public sealed partial class ReconciliationServiceTests
         Assert.Equal(new DateOnly(2026, 9, 26), batch.WeekEndDate);
     }
 
+    [Theory]
+    [InlineData(5, 5)]
+    [InlineData(6, 5)]
+    [InlineData(6, 4)]
+    public async Task Daily_review_drives_exact_disposition_reload_and_all_date_completion(decimal firstIssued, decimal secondIssued)
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, 1, 1);
+        var first = Daily(new DateOnly(2026, 8, 25));
+        var second = Daily(new DateOnly(2026, 8, 26));
+        context.Reconciliationbatchdailylines.AddRange(first, second);
+        var originalIssueLine = context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity;
+        originalIssueLine.ReconciliationBatchDailyLineId = first.DailyLineId;
+        originalIssueLine.RequestedQty = 5m;
+        originalIssueLine.IssuedQty = firstIssued;
+        var secondIssue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(), IssueCode = "ISS-SECOND-DATE", IssueDate = second.ServiceDate,
+            WarehouseId = originalIssueLine.Issue.WarehouseId, ReconciliationBatchId = fixture.Batch.BatchId,
+            IssuedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
+        };
+        secondIssue.Inventoryissuelines.Add(new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(), Issue = secondIssue, IssueId = secondIssue.IssueId,
+            IngredientId = fixture.Line.IngredientId, UnitId = fixture.Line.CanonicalUnitId,
+            ReconciliationBatchLineId = fixture.Line.BatchLineId, ReconciliationBatchDailyLineId = second.DailyLineId,
+            RequestedQty = 5m, IssuedQty = secondIssued
+        });
+        context.Inventoryissues.Add(secondIssue);
+        context.Auditlogs.Add(new AuditLog
+        {
+            AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = fixture.Actor,
+            BusinessArea = "Inventory", EntityName = nameof(InventoryIssueLine), EntityId = first.DailyLineId,
+            FieldName = nameof(InventoryIssueLine.IssuedQty), Reason = "First date issue reason"
+        });
+        await context.SaveChangesAsync();
+        var runner = new ImmediateTransactionRunner();
+        var batches = new ReconciliationBatchService(context, runner, ProtectedContext());
+        var actuals = new ReconciliationActualService(context, runner, ProtectedContext());
+        var completion = new ReconciliationCompletionService(context, batches, runner, ProtectedContext());
+        var batchId = GuidHelper.ToGuidString(fixture.Batch.BatchId);
+        var actor = GuidHelper.ToGuidString(fixture.Actor);
+        var detail = (await batches.GetAsync(batchId))!;
+        var review = Assert.IsType<ReconciliationDailyReviewDto>(detail.DailyReview);
+        Assert.Equal(2, review.Lines.Count);
+        var selected = Assert.Single(review.Lines, line => line.ServiceDate == first.ServiceDate);
+        Assert.Equal(GuidHelper.ToGuidString(first.DailyLineId), selected.DailyLineId);
+        Assert.Equal(5m, selected.RequiredQuantity);
+        Assert.Equal(firstIssued, selected.IssuedQuantity);
+        Assert.Equal("First date issue reason", Assert.Single(selected.IssueNotes!));
+        Assert.Null(Assert.Single(review.Lines, line => line.ServiceDate == second.ServiceDate).IssueNotes);
+        Assert.Null(selected.Disposition); // Weekly legacy conclusion cannot satisfy a daily line.
+        if (firstIssued == 5 && secondIssued == 5)
+        {
+            var controller = new IPCManagement.Api.Features.Reconciliation.Controllers.ReconciliationBatchesController(
+                batches, completion, null!, new StubCurrentUser("Warehouse"));
+            var response = Assert.IsType<Microsoft.AspNetCore.Mvc.OkObjectResult>(await controller.Get(batchId, default));
+            var operational = Assert.IsType<ApiResponse<ReconciliationBatchDto>>(response.Value).Data!;
+            Assert.Null(operational.DailyReview);
+            Assert.Empty(operational.Lines);
+        }
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => actuals.SetDailyDispositionAsync(
+            GuidHelper.ToGuidString(fixture.Line.BatchLineId), new("ACCEPTED_VARIANCE", "Wrong identity", null), actor));
+        Assert.Empty(await context.Reconciliationdailydispositions.ToListAsync());
+        if (firstIssued > 5)
+        {
+            Assert.Equal("NEEDS_REVIEW", selected.Status);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(batchId, new(1), actor));
+            await actuals.SetDailyDispositionAsync(selected.DailyLineId!, new("ACCEPTED_VARIANCE", "Daily decision", null), actor);
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => actuals.SetDailyDispositionAsync(
+                selected.DailyLineId!, new("ACCEPTED_VARIANCE", "Stale writer", null), actor));
+            context.ChangeTracker.Clear();
+            var reloaded = (await batches.GetAsync(batchId))!.DailyReview!;
+            Assert.Equal(1, Assert.Single(reloaded.Lines, line => line.DailyLineId == selected.DailyLineId).Disposition!.Version);
+            Assert.Equal("Daily decision", Assert.Single(reloaded.Lines, line => line.DailyLineId == selected.DailyLineId).Disposition!.Reason);
+            Assert.Null(Assert.Single(reloaded.Lines, line => line.DailyLineId != selected.DailyLineId).Disposition);
+            await actuals.SetDailyDispositionAsync(selected.DailyLineId!, new("ACCEPTED_VARIANCE", "Corrected daily reason", 1), actor);
+            context.ChangeTracker.Clear();
+            var corrected = Assert.Single((await batches.GetAsync(batchId))!.DailyReview!.Lines, line => line.DailyLineId == selected.DailyLineId);
+            Assert.Equal(2, corrected.Disposition!.Version);
+            Assert.Equal("Corrected daily reason", corrected.Disposition.Reason);
+            Assert.Single(await context.Reconciliationdailydispositions.ToListAsync());
+        }
+        else
+        {
+            Assert.Equal("MATCHED", selected.Status);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => actuals.SetDailyDispositionAsync(
+                selected.DailyLineId!, new("ACCEPTED_VARIANCE", "No discrepancy", null), actor));
+        }
+        if (secondIssued < 5)
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => actuals.SetDailyDispositionAsync(
+                GuidHelper.ToGuidString(second.DailyLineId), new("ACCEPTED_VARIANCE", "Cannot waive shortage", null), actor));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(batchId, new(1), actor));
+            Assert.NotEqual("WEEK_COMPLETE", (await batches.GetAsync(batchId))!.DailyReview!.WeeklyStatus);
+        }
+        else
+        {
+            Assert.Equal("WEEK_COMPLETE", (await batches.GetAsync(batchId))!.DailyReview!.WeeklyStatus);
+            await completion.CompleteAsync(batchId, new(1), actor);
+            context.ChangeTracker.Clear();
+            Assert.Equal("COMPLETED", (await batches.GetAsync(batchId))!.Status);
+        }
+
+        ReconciliationBatchDailyLine Daily(DateOnly date) => new()
+        {
+            DailyLineId = GuidHelper.NewId(), BatchId = fixture.Batch.BatchId, BatchLineId = fixture.Line.BatchLineId,
+            BatchLine = fixture.Line, IngredientId = fixture.Line.IngredientId, CanonicalUnitId = fixture.Line.CanonicalUnitId,
+            ServiceDate = date, RequiredQuantity = 5m, Version = 1
+        };
+    }
+
     private static async Task<Exception?> Capture(Func<Task> operation)
     {
         try { await operation(); return null; }
@@ -538,10 +650,10 @@ public sealed partial class ReconciliationServiceTests
 
     private sealed record Fixture(ReconciliationBatch Batch, ReconciliationBatchLine Line, byte[] Actor);
 
-    private sealed class StubCurrentUser : IPCManagement.Api.Security.ICurrentUserService
+    private sealed class StubCurrentUser(string role = "Coordinator") : IPCManagement.Api.Security.ICurrentUserService
     {
         public string? GetUserId(System.Security.Claims.ClaimsPrincipal user) => Guid.Empty.ToString();
-        public IReadOnlyList<string> GetRoleNames(System.Security.Claims.ClaimsPrincipal user) => ["Coordinator"];
+        public IReadOnlyList<string> GetRoleNames(System.Security.Claims.ClaimsPrincipal user) => [role];
         public string? GetWarehouseId(System.Security.Claims.ClaimsPrincipal user) => null;
     }
 

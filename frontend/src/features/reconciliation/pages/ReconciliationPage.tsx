@@ -9,7 +9,7 @@ import { formatDateOnly, formatQuantity, formatQuantityWithUnit, formatUnit } fr
 import { readReconciliationSelection, writeReconciliationSelection } from '@/lib/navigationPreferences'
 import { ReconciliationComparisonTable } from '../ReconciliationComparisonTable'
 import { ReconciliationDispositionDrawer } from '../ReconciliationDispositionDrawer'
-import { useCompleteReconciliationBatchMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery, type ReconciliationLine } from '@/api/reconciliationApi'
+import { useCompleteReconciliationBatchMutation, useGetReconciliationBatchQuery, useListReconciliationBatchesQuery } from '@/api/reconciliationApi'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 import { dispositionCategoryLabel } from '@/lib/reconciliationIssueCorrelation'
@@ -109,10 +109,10 @@ export default function ReconciliationPage() {
   }, [filteredBatches, selectedId, selectedCustomerId])
 
   const [showAll, setShowAll] = useState(false)
-  const [detailLine, setDetailLine] = useState<ReconciliationLine>()
-  const [disposingLine, setDisposingLine] = useState<ReconciliationLine>()
-  const [bulkDispositionOpen, setBulkDispositionOpen] = useState(false)
-  const [completionOpen, setCompletionOpen] = useState(false)
+  const [detailSelection, setDetailSelection] = useState<{ batchId: string; lineId: string }>()
+  const [disposingSelection, setDisposingSelection] = useState<{ batchId: string; lineId: string }>()
+  const [bulkDispositionBatchId, setBulkDispositionBatchId] = useState<string>()
+  const [completionBatchId, setCompletionBatchId] = useState<string>()
   const [completionError, setCompletionError] = useState('')
   const [completionVersion, setCompletionVersion] = useState<number>()
   const [isRefreshingCompletion, setIsRefreshingCompletion] = useState(false)
@@ -123,18 +123,29 @@ export default function ReconciliationPage() {
   const canSetDisposition = canComplete
   const canViewReconciliationDetails = canComplete
   const canViewKitchen = useHasRole(['beptruong'])
-  const batch = selectedId ? (batchQuery.currentData ?? batchQuery.data) : undefined
-  const actionableLines = useMemo(() => batch?.lines.filter((line) => line.status === 'NEEDS_REVIEW' && !line.disposition) ?? [], [batch?.lines])
+  const candidateBatch = selectedId ? (batchQuery.currentData ?? batchQuery.data) : undefined
+  const batch = candidateBatch?.batchId === selectedId ? candidateBatch : undefined
+  const comparisonLines = useMemo(() => batch?.dailyReview?.lines ?? batch?.lines ?? [], [batch])
+  const detailLine = detailSelection?.batchId === batch?.batchId ? comparisonLines.find((line) =>
+    (line.dailyLineId ?? line.batchLineId) === detailSelection?.lineId) : undefined
+  const activeDisposingLine = disposingSelection?.batchId === batch?.batchId ? comparisonLines.find((line) =>
+    line.status === 'NEEDS_REVIEW' && (line.dailyLineId ?? line.batchLineId) === disposingSelection?.lineId) : undefined
+  const actionableLines = useMemo(() => comparisonLines.filter((line) => line.status === 'NEEDS_REVIEW' && !line.disposition), [comparisonLines])
   const actionableCount = actionableLines.length
-  const resultPresentation = getReconciliationResultPresentation({ total: batch?.lines.length ?? 0, actionable: actionableCount, issueId: selectedIssueId, showAll })
-  const completionReady = Boolean(batch && batch.status === 'IN_PROGRESS' && batch.lines.length > 0 && batch.lines.every((line) => line.issuedQuantity != null && (line.triggers.length === 0 || Boolean(line.disposition?.reason.trim()))))
+  const unresolvedCount = batch?.dailyReview
+    ? comparisonLines.filter((line) => line.status === 'INCOMPLETE' || (line.status === 'NEEDS_REVIEW' && !line.disposition)).length
+    : actionableCount
+  const resultPresentation = getReconciliationResultPresentation({ total: comparisonLines.length, actionable: unresolvedCount, issueId: selectedIssueId, showAll })
+  const completionReady = Boolean(batch && batch.status === 'IN_PROGRESS' && comparisonLines.length > 0 && (batch.dailyReview
+    ? batch.dailyReview.weeklyStatus === 'WEEK_COMPLETE'
+    : comparisonLines.every((line) => line.issuedQuantity != null && (line.triggers.length === 0 || Boolean(line.disposition?.reason.trim())))))
   const batchLabel = (item: typeof batches[number]) => {
     const customerPrefix = item.customerName ? `[${item.customerName}] ` : item.customerCode ? `[${item.customerCode}] ` : ''
     return `${customerPrefix}${item.weekStartDate ? `Tuần ${formatDateOnly(item.weekStartDate)}` : 'Chưa xác định tuần'} · ${item.lines.length} nguyên liệu · ${getReconciliationLifecyclePresentation(item.status).label}`
   }
   const closeCompletion = () => {
     completionSessionRef.current += 1
-    setCompletionOpen(false)
+    setCompletionBatchId(undefined)
     setCompletionError('')
     setCompletionVersion(undefined)
     setIsRefreshingCompletion(false)
@@ -146,7 +157,7 @@ export default function ReconciliationPage() {
     setCompletionVersion(batch?.version)
     setIsRefreshingCompletion(false)
     setIsCompletionPending(false)
-    setCompletionOpen(true)
+    setCompletionBatchId(batch?.batchId)
   }
   const refreshCompletion = async () => {
     if (!batch) return
@@ -169,7 +180,7 @@ export default function ReconciliationPage() {
     }
   }
   const complete = async () => {
-    if (!batch || completionVersion == null || !completionReady || !canComplete) return
+    if (!batch || completionBatchId !== batch.batchId || completionVersion == null || !completionReady || !canComplete) return
     const session = completionSessionRef.current
     setCompletionError('')
     setIsCompletionPending(true)
@@ -336,9 +347,9 @@ export default function ReconciliationPage() {
           <SectionPanel
             title={resultPresentation.title}
             description={batch.customerName ? `Khách hàng: ${batch.customerName} · ${resultPresentation.description}` : resultPresentation.description}
-            actions={<div className="flex flex-wrap justify-end gap-2">{canViewKitchen && <KitchenCookingExport batchId={batch.batchId} />}<Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{batch.status === 'IN_PROGRESS' && canSetDisposition && actionableLines.length > 1 && <Button type="button" variant="secondary" size="sm" onClick={() => setBulkDispositionOpen(true)}>Xử lý hàng loạt ({actionableLines.length})</Button>}{completionReady && canComplete && <Button type="button" size="sm" onClick={openCompletion}>Hoàn tất đối chiếu</Button>}</div>}
+            actions={<div className="flex flex-wrap justify-end gap-2">{canViewKitchen && <KitchenCookingExport batchId={batch.batchId} />}<Button type="button" variant="outline" size="sm" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Chỉ hiện chênh lệch' : resultPresentation.showAllLabel}</Button>{batch.status === 'IN_PROGRESS' && canSetDisposition && actionableLines.length > 1 && <Button type="button" variant="secondary" size="sm" onClick={() => setBulkDispositionBatchId(batch.batchId)}>Xử lý hàng loạt ({actionableLines.length})</Button>}{completionReady && canComplete && <Button type="button" size="sm" onClick={openCompletion}>Hoàn tất đối chiếu</Button>}</div>}
           >
-            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={batch.lines} showAll={showAll} onDetail={setDetailLine} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title={batch.status === 'COMPLETED' ? 'Đã hoàn tất đối chiếu' : 'Sẵn sàng hoàn tất'} description={batch.status === 'COMPLETED' ? `${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp và lô đã hoàn tất đối chiếu thành công.` : `${batch.lines.length}/${batch.lines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
+            {resultPresentation.showTable ? <ReconciliationComparisonTable lines={comparisonLines} showAll={showAll} onDetail={(line) => setDetailSelection({ batchId: batch.batchId, lineId: line.dailyLineId ?? line.batchLineId })} /> : <EmptyState icon={<CheckCircle2 className="h-6 w-6 text-emerald-600" aria-hidden="true" />} title={batch.status === 'COMPLETED' ? 'Đã hoàn tất đối chiếu' : 'Sẵn sàng hoàn tất'} description={batch.status === 'COMPLETED' ? `${comparisonLines.length}/${comparisonLines.length} nguyên liệu đã khớp và lô đã hoàn tất đối chiếu thành công.` : `${comparisonLines.length}/${comparisonLines.length} nguyên liệu đã khớp. Lô vẫn ở bước 4/5 cho đến khi người có thẩm quyền xác nhận hoàn tất.`} />}
             {batch.status === 'IN_PROGRESS' && actionableCount > 0 && !canSetDisposition && <p role="status" className="mt-3 text-sm text-slate-600">Quản trị hoặc Quản lý cần xử lý chênh lệch trước khi lô có thể hoàn tất.</p>}
             {completionReady && !canComplete && <p role="status" className="mt-3 text-sm text-slate-600">Lô đã đủ điều kiện; Quản trị hoặc Quản lý cần xác nhận hoàn tất đối chiếu.</p>}
           </SectionPanel>
@@ -353,14 +364,14 @@ export default function ReconciliationPage() {
       showOpenBatch={false}
       onClose={() => { const next = new URLSearchParams(searchParams); next.delete('issueId'); setSearchParams(next, { replace: true }) }}
     />
-    <Dialog open={completionOpen} onOpenChange={(open) => { if (!open) closeCompletion() }}>
+    <Dialog open={Boolean(batch && completionBatchId === batch.batchId)} onOpenChange={(open) => { if (!open) closeCompletion() }}>
       <DialogContent size="sm" aria-label="Xác nhận hoàn tất đối chiếu">
         <DialogHeader><DialogTitle>Hoàn tất đối chiếu?</DialogTitle></DialogHeader>
         {completionError && <p role="alert" className="text-sm text-red-700">{completionError}</p>}
         <DialogFooter><Button type="button" variant="outline" disabled={isCompletionPending || isRefreshingCompletion} onClick={() => void refreshCompletion()}>{isRefreshingCompletion ? 'Đang tải lại...' : 'Tải lại dữ liệu'}</Button><Button type="button" variant="outline" onClick={closeCompletion}>Hủy</Button><Button type="button" disabled={isCompletionPending || isRefreshingCompletion || completionVersion == null} onClick={() => void complete()}>{isCompletionPending ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất'}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
-    <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailLine(undefined) }}>
+    <Dialog open={Boolean(detailLine)} onOpenChange={(open) => { if (!open) setDetailSelection(undefined) }}>
       <DialogContent size="lg" aria-label="Chi tiết nguyên liệu">
         <DialogHeader><DialogTitle>{detailLine?.ingredientName || 'Chi tiết nguyên liệu'}</DialogTitle></DialogHeader>
         {detailLine && <>
@@ -369,6 +380,7 @@ export default function ReconciliationPage() {
             <dd className="font-medium text-slate-950">{detailLine.ingredientCode || 'Chưa có mã'}</dd>
             <dt className="text-slate-600">Đơn vị</dt>
             <dd className="font-medium text-slate-950">{formatUnit(detailLine.canonicalUnitName || '') || 'Chưa có tên đơn vị'}</dd>
+            {detailLine.serviceDate && <><dt className="text-slate-600">Ngày phục vụ</dt><dd>{formatDateOnly(detailLine.serviceDate)}</dd></>}
             <dt className="text-slate-600">Cần xuất (BOM)</dt>
             <dd className="font-semibold tabular-nums text-slate-950">{formatQuantityWithUnit(detailLine.requiredQuantity, detailLine.canonicalUnitName ?? '', { maximumFractionDigits: 6 })}</dd>
             <dt className="text-slate-600">Thực tế đã xuất</dt>
@@ -405,21 +417,21 @@ export default function ReconciliationPage() {
                 </dd>
               </>
             ) : null}
-            <dt className="text-slate-400 text-xs pt-1 border-t border-slate-200">ID dòng lô</dt>
-            <dd className="min-w-0 text-xs text-slate-500 pt-1 border-t border-slate-200"><IdentifierText value={detailLine.batchLineId} /></dd>
+            <dt className="text-slate-400 text-xs pt-1 border-t border-slate-200">{detailLine.dailyLineId ? 'ID dòng theo ngày' : 'ID dòng lô'}</dt>
+            <dd className="min-w-0 text-xs text-slate-500 pt-1 border-t border-slate-200"><IdentifierText value={detailLine.dailyLineId ?? detailLine.batchLineId} /></dd>
           </dl>
         </>}
         <DialogFooter>
           {detailLine && batch?.status === 'IN_PROGRESS' && canSetDisposition && detailLine.status === 'NEEDS_REVIEW' && (
-            <Button type="button" variant="secondary" onClick={() => { setDetailLine(undefined); setDisposingLine(detailLine) }}>
+            <Button type="button" variant="secondary" onClick={() => { setDetailSelection(undefined); setDisposingSelection(detailSelection) }}>
               {detailLine.disposition ? 'Cập nhật xử lý' : 'Xử lý chênh lệch'}
             </Button>
           )}
-          <Button type="button" variant="outline" onClick={() => setDetailLine(undefined)}>Đóng</Button>
+          <Button type="button" variant="outline" onClick={() => setDetailSelection(undefined)}>Đóng</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    {disposingLine && <ReconciliationDispositionDrawer line={disposingLine} onClose={() => setDisposingLine(undefined)} onRefetch={() => batchQuery.refetch()} />}
-    {bulkDispositionOpen && <ReconciliationDispositionDrawer lines={actionableLines} onClose={() => setBulkDispositionOpen(false)} onRefetch={() => batchQuery.refetch()} />}
+    {activeDisposingLine && <ReconciliationDispositionDrawer line={activeDisposingLine} onClose={() => setDisposingSelection(undefined)} onRefetch={() => batchQuery.refetch()} />}
+    {batch && bulkDispositionBatchId === batch.batchId && <ReconciliationDispositionDrawer lines={actionableLines} onClose={() => setBulkDispositionBatchId(undefined)} onRefetch={() => batchQuery.refetch()} />}
   </OperationalFrame>
 }

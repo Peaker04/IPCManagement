@@ -213,7 +213,41 @@ public sealed class ReconciliationBatchService(
             .GroupBy(audit => Convert.ToHexString(audit.EntityId!))
             .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.Select(audit => audit.Reason!).ToList(), StringComparer.Ordinal);
         var customer = await TryGetCustomerAsync(batch.MenuVersionId, token);
-        return Map(batch, actuals, dispositions, issued, batchLines, issueNotes, customer);
+        var result = Map(batch, actuals, dispositions, issued, batchLines, issueNotes, customer);
+        var daily = await GetWarehouseDailyAsync(id, token);
+        if (daily is null || daily.Compatibility.ReasonCode == "LEGACY_DAILY_LINEAGE_MISSING") return result;
+
+        var dailyIds = daily.Dates.SelectMany(day => day.Lines).Select(line => RequiredId(line.DailyLineId)).ToList();
+        var dailyDispositions = await context.Reconciliationdailydispositions.AsNoTracking()
+            .Where(item => dailyIds.Contains(item.DailyLineId)).ToListAsync(token);
+        var dispositionById = dailyDispositions.ToDictionary(item => GuidHelper.ToGuidString(item.DailyLineId), StringComparer.Ordinal);
+        var dailyNotes = (await context.Auditlogs.AsNoTracking()
+                .Where(audit => audit.EntityName == nameof(InventoryIssueLine) && audit.FieldName == nameof(InventoryIssueLine.IssuedQty)
+                    && audit.EntityId != null && dailyIds.Contains(audit.EntityId) && audit.Reason != null)
+                .OrderBy(audit => audit.ChangedAt).Select(audit => new { audit.EntityId, audit.Reason }).ToListAsync(token))
+            .GroupBy(audit => GuidHelper.ToGuidString(audit.EntityId!))
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.Select(audit => audit.Reason!).ToList(), StringComparer.Ordinal);
+        var weeklyById = result.Lines.ToDictionary(line => line.BatchLineId, StringComparer.Ordinal);
+        var reviewLines = daily.Dates.SelectMany(day => day.Lines.Select(line =>
+        {
+            dispositionById.TryGetValue(line.DailyLineId, out var disposition);
+            var over = line.QuantityStatus == "OVER_ISSUED";
+            return weeklyById[line.BatchLineId] with
+            {
+                DailyLineId = line.DailyLineId, ServiceDate = day.ServiceDate,
+                RequiredQuantity = line.RequiredQuantity, FrozenTolerance = 0,
+                PurchasedQuantity = null, PurchasedVersion = null, PurchasedRequiredDifference = null,
+                PurchasedIssuedDifference = null, IssuedQuantity = line.IssuedQuantity, IssuedVersion = null,
+                IssuedRequiredDifference = line.IssuedQuantity is { } issuedQuantity
+                    ? DecimalPolicy.RoundQuantity(issuedQuantity - line.RequiredQuantity) : null,
+                Status = line.QuantityStatus == "EXACT" ? "MATCHED" : over ? "NEEDS_REVIEW" : "INCOMPLETE",
+                Triggers = over ? ["ISSUED_REQUIRED"] : [],
+                Disposition = line.HasValidDisposition && disposition is not null
+                    ? new ReconciliationDispositionDto(disposition.Category, disposition.Reason, disposition.Version, disposition.DisposedAt) : null,
+                IssueNotes = dailyNotes.GetValueOrDefault(line.DailyLineId)
+            };
+        })).ToList();
+        return result with { DailyReview = new ReconciliationDailyReviewDto(daily.WeeklyStatus, reviewLines) };
     }
 
     public async Task<IReadOnlyList<ReconciliationSourceChangeDto>> ListSourceChangesAsync(string id, CancellationToken token = default)

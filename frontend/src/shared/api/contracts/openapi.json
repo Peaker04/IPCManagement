@@ -34422,6 +34422,9 @@
             "type": "string",
             "format": "date",
             "nullable": true
+          },
+          "dailyReview": {
+            "$ref": "#/components/schemas/ReconciliationDailyReviewDto"
           }
         },
         "additionalProperties": false
@@ -34612,6 +34615,25 @@
           },
           "dailyLine": {
             "$ref": "#/components/schemas/ReconciliationBatchDailyLine"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationDailyReviewDto": {
+        "required": [
+          "lines",
+          "weeklyStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "weeklyStatus": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationLineDto"
+            }
           }
         },
         "additionalProperties": false
@@ -34939,6 +34961,15 @@
             "items": {
               "type": "string"
             },
+            "nullable": true
+          },
+          "dailyLineId": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date",
             "nullable": true
           }
         },

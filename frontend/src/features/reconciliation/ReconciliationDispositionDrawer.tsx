@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import type { ReconciliationLine } from '@/api/reconciliationApi'
 import { useListReconciliationDispositionCategoriesQuery, useSetReconciliationDispositionMutation } from '@/api/reconciliationApi'
+import { formatDateOnly } from '@/lib/formatters'
 import { describeReconciliationError } from './reconciliationErrors'
 
 export function ReconciliationDispositionDrawer({ line, lines, onClose, onRefetch }: { line?: ReconciliationLine; lines?: ReconciliationLine[]; onClose: () => void; onRefetch: () => void }) {
@@ -34,7 +35,7 @@ export function ReconciliationDispositionDrawer({ line, lines, onClose, onRefetc
   return <Dialog open onOpenChange={(open) => { if (!open && !isLoading) onClose() }} onCloseRequest={() => !isLoading}>
     <DialogContent aria-label="Xử lý chênh lệch đối chiếu" size="md">
     <DialogHeader><DialogTitle>{isBulk ? `Xử lý hàng loạt (${targetLines.length})` : 'Xử lý chênh lệch'}</DialogTitle>
-    <DialogDescription>{isBulk ? `Áp dụng cùng một kết luận cho ${targetLines.length} nguyên liệu đang cần kiểm tra.` : `Ghi nhận kết luận xử lý cho ${firstLine.ingredientName || 'nguyên liệu chưa đặt tên'}.`}</DialogDescription></DialogHeader>
+    <DialogDescription>{isBulk ? `Áp dụng cùng một kết luận cho ${targetLines.length} nguyên liệu đang cần kiểm tra.` : `Ghi nhận kết luận xử lý cho ${firstLine.ingredientName || 'nguyên liệu chưa đặt tên'}${firstLine.serviceDate ? ` · ${formatDateOnly(firstLine.serviceDate)}` : ''}.`}</DialogDescription></DialogHeader>
     <div className="mt-4 text-sm"><span id="reconciliation-disposition-category-label">Nhóm xử lý</span>
       <Select value={category || null} onValueChange={(value) => { setCategory(value ?? ''); setFieldErrors((current) => ({ ...current, category: undefined })); setError(undefined) }} disabled={categoriesLoading || categoriesError}>
         <SelectTrigger className="mt-1 w-full" aria-labelledby="reconciliation-disposition-category-label" aria-invalid={Boolean(fieldErrors.category) || undefined} aria-describedby={fieldErrors.category ? 'reconciliation-disposition-category-error' : undefined}><SelectValue placeholder={categoriesLoading ? 'Đang tải nhóm xử lý...' : 'Chọn nhóm xử lý'}>{selectedCategoryLabel}</SelectValue></SelectTrigger>
@@ -72,7 +73,7 @@ export function ReconciliationDispositionDrawer({ line, lines, onClose, onRefetc
         setError(undefined)
         try {
           for (const targetLine of targetLines) {
-            await save({ lineId: targetLine.batchLineId, category: category.trim(), reason: reason.trim(), expectedVersion: targetLine.disposition?.version }).unwrap()
+            await save({ ...(targetLine.dailyLineId ? { dailyLineId: targetLine.dailyLineId } : { lineId: targetLine.batchLineId }), category: category.trim(), reason: reason.trim(), expectedVersion: targetLine.disposition?.version }).unwrap()
           }
           onRefetch()
           onClose()

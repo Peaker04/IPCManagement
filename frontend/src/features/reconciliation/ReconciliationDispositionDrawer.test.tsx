@@ -22,6 +22,17 @@ const line = { batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientNa
 
 beforeEach(() => vi.clearAllMocks())
 
+it('submits the authoritative daily identity and its disposition version instead of the weekly aggregate', async () => {
+  save.mockReturnValue({ unwrap: () => Promise.resolve() })
+  const onRefetch = vi.fn()
+  render(<ReconciliationDispositionDrawer line={{ ...line, dailyLineId: 'daily-1', serviceDate: '2026-08-25' }} onClose={vi.fn()} onRefetch={onRefetch} />)
+
+  fireEvent.change(screen.getByLabelText('Lý do'), { target: { value: 'Kết luận cho ngày đã chọn' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }))
+  await waitFor(() => expect(save).toHaveBeenCalledWith({ dailyLineId: 'daily-1', category: 'ACCEPTED_VARIANCE', reason: 'Kết luận cho ngày đã chọn', expectedVersion: 3 }))
+  expect(onRefetch).toHaveBeenCalledOnce()
+})
+
 it('preserves a disposition correction and offers refetch on stale version', async () => {
   save.mockReturnValue({ unwrap: () => Promise.reject({ status: 409, data: { message: 'Kết luận đã thay đổi.' } }) })
   const onClose = vi.fn()

@@ -15,6 +15,12 @@ Additional approval boundaries retained without choosing new policy:
 - T7 is mandatory for horizontally scrolling tables; sticky/frozen advice elsewhere describes tables without that condition, not a weaker alternative.
 - M1.2's one blocking layer and retained nested-confirmation mechanics in the planning contract have unresolved product applicability. Preserve existing behavior; any change to the overlapping case needs an explicit owner decision, not this documentation synthesis.
 
+## Scoped pre-code design gate
+
+For affected UI, record the approved visual/reference source and applicable loading, empty, error, permission-denied, disabled/pending and success states; keyboard/focus, responsive/accessibility behavior and primary/destructive actions. Use the existing P9 readiness brief and actual primitives; mark a state not applicable only with a scope reason rather than require a universal mockup matrix. Task-specific decisions belong in WORK, not a new design process file.
+
+Figma, v0, Stitch and reference images are design inputs, never business/permission authority or evidence that a workflow exists. If a reference conflicts with source, DOMAIN or an API/permission contract, surface the conflict before implementation; do not alter business behavior to imitate the image. Density remains OWNER_DECISION_REQUIRED as above. ENGINEERING owns intake/verification; this gate adds no new business action, token threshold or rule-ID family.
+
 ## Foundations and visual grammar
 
 Quiet Operational: flat cool-slate surfaces, hairline boundaries, precise food-service logistics rather than landing-page decoration. Semantic role tokens distinguish primary-action navy from informational blue and critical warning/danger. Routine states stay quiet; MRX contextual tones come from DOMAIN. Do not clone external Fiori/Carbon/ISA visual branding or copy a specimen as production authority.

@@ -15959,6 +15959,7 @@ export interface components {
             readonly customerCode?: string | null;
             readonly customerId?: string | null;
             readonly customerName?: string | null;
+            readonly dailyReview?: components["schemas"]["ReconciliationDailyReviewDto"];
             readonly lines: readonly components["schemas"]["ReconciliationLineDto"][];
             readonly menuVersionId: string;
             readonly quantityImportBatchId: string;
@@ -16027,6 +16028,10 @@ export interface components {
             /** Format: int64 */
             readonly version: number;
         };
+        readonly ReconciliationDailyReviewDto: {
+            readonly lines: readonly components["schemas"]["ReconciliationLineDto"][];
+            readonly weeklyStatus: string;
+        };
         readonly ReconciliationDispositionCategoryDto: {
             readonly label: string;
             readonly value: string;
@@ -16092,6 +16097,7 @@ export interface components {
             readonly batchLineId: string;
             readonly canonicalUnitId: string;
             readonly canonicalUnitName?: string | null;
+            readonly dailyLineId?: string | null;
             readonly disposition?: components["schemas"]["ReconciliationDispositionDto"];
             /** Format: double */
             readonly frozenTolerance: number;
@@ -16115,6 +16121,8 @@ export interface components {
             readonly purchasedVersion?: number | null;
             /** Format: double */
             readonly requiredQuantity: number;
+            /** Format: date */
+            readonly serviceDate?: string | null;
             readonly status: string;
             readonly triggers: readonly string[];
             /** Format: int64 */

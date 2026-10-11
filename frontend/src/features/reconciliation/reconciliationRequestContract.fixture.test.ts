@@ -49,7 +49,7 @@ const stableValue = (value: unknown): unknown => {
 
 const serializeTrackedRequest = (request: TrackedRequest) => `${JSON.stringify(stableValue(request), null, 2)}\n`
 
-const captureProductionRequest = async () => {
+const captureProductionRequest = async (disposition?: Parameters<typeof reconciliationApi.endpoints.setReconciliationDisposition.initiate>[0]) => {
   let captured: Request | undefined
   const NativeRequest = globalThis.Request
   vi.stubGlobal('Request', class extends NativeRequest {
@@ -73,7 +73,8 @@ const captureProductionRequest = async () => {
     middleware: getDefaultMiddleware => getDefaultMiddleware().concat(apiSlice.middleware),
   })
 
-  await store.dispatch(reconciliationApi.endpoints.createReconciliationIssue.initiate(staleRequest))
+  if (disposition) await store.dispatch(reconciliationApi.endpoints.setReconciliationDisposition.initiate(disposition))
+  else await store.dispatch(reconciliationApi.endpoints.createReconciliationIssue.initiate(staleRequest))
   if (!captured) throw new Error('Production RTK endpoint did not issue a request.')
 
   const url = new URL(captured.url, 'http://fixture.invalid')
@@ -105,6 +106,17 @@ afterEach(() => {
 })
 
 describe('production reconciliation issue request fixture', () => {
+  it.each([
+    { target: { dailyLineId: 'daily-source' }, path: '/api/reconciliation/daily-lines/daily-source/disposition' },
+    { target: { lineId: 'legacy-weekly-source' }, path: '/api/reconciliation/lines/legacy-weekly-source/disposition' },
+  ])('routes the authoritative disposition target to $path without putting identity in the body', async ({ target, path }) => {
+    const body = { category: 'ACCEPTED_VARIANCE', reason: 'Selected source decision', expectedVersion: 3 }
+    const request = JSON.parse(await captureProductionRequest({ ...target, ...body }))
+    expect(request.method).toBe('PUT')
+    expect(request.path).toBe(path)
+    expect(request.body).toEqual(body)
+  })
+
   it('is credential-free and byte-identical to current RTK serialization', async () => {
     const fresh = await captureProductionRequest()
 

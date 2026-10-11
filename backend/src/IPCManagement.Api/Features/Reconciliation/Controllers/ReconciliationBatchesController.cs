@@ -50,6 +50,7 @@ public sealed class ReconciliationBatchesController : ControllerBase
     {
         MenuVersionId = string.Empty,
         QuantityImportBatchId = string.Empty,
-        Lines = []
+        Lines = [],
+        DailyReview = null
     };
 }

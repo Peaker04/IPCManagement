@@ -4,11 +4,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { issueState, listState, completionState } = vi.hoisted(() => ({
   issueState: { batchId: 'batch-1' },
-  listState: { phase: 'ready' as 'ready' | 'loading' },
+  listState: { phase: 'ready' as 'ready' | 'loading', includeSecond: false },
   completionState: { allowed: true, shouldFail: false, refreshedVersion: 2, mutate: vi.fn(), unwrap: vi.fn(), refetch: vi.fn() },
 }))
 const batch = {
   batchId: 'batch-1', menuVersionId: 'menu-1', quantityImportBatchId: 'import-1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-05T08:00:00Z',
+  dailyReview: undefined as import('@/api/reconciliationApi').ReconciliationBatch['dailyReview'],
   lines: [
     { batchLineId: 'batch-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', canonicalUnitId: 'kg', canonicalUnitName: 'kg', requiredQuantity: 1.25, issuedQuantity: 1.25, frozenTolerance: 0, triggers: [] as string[], status: 'MATCHED', version: 1 },
     { batchLineId: 'batch-line-2', ingredientId: 'ingredient-2', ingredientName: 'Sữa', canonicalUnitId: 'ml', canonicalUnitName: 'ml', requiredQuantity: 900, issuedQuantity: 900, frozenTolerance: 0, triggers: [] as string[], status: 'MATCHED', version: 1 },
@@ -20,7 +21,7 @@ const uninitialized = () => ({ data: undefined, currentData: undefined, isLoadin
 vi.mock('@/api/reconciliationApi', async () => {
   const { useState } = await import('react')
   return {
-    useListReconciliationBatchesQuery: () => listState.phase === 'loading' ? loading() : ready([batch]),
+    useListReconciliationBatchesQuery: () => listState.phase === 'loading' ? loading() : ready(listState.includeSecond ? [batch, { ...batch, batchId: 'batch-2', lines: [] }] : [batch]),
     useGetReconciliationBatchQuery: (_id: string, options: { skip?: boolean }) => options.skip ? uninitialized() : ready(batch),
     useGetReconciliationIssueQuery: (_id: string, options: { skip?: boolean }) => options.skip ? uninitialized() : ready({
       issueId: 'issue-1', issueCode: 'ISS-001', sourceFamily: 'MATERIAL_RECONCILIATION', reconciliationBatchId: issueState.batchId,
@@ -55,7 +56,7 @@ import ReconciliationPage from './ReconciliationPage'
 function LocationProbe() {
   const location = useLocation()
   const navigate = useNavigate()
-  return <><output data-testid="location">{location.pathname}{location.search}</output><button type="button" onClick={() => navigate(-1)}>Browser Back</button></>
+  return <><output data-testid="location">{location.pathname}{location.search}</output><button type="button" onClick={() => navigate(-1)}>Browser Back</button><button type="button" onClick={() => navigate('/reconciliation?batchId=batch-2')}>Chọn lô khác</button></>
 }
 
 const renderPage = (url = '/reconciliation?batchId=batch-1&issueId=issue-1', initialEntries = [url]) => render(<MemoryRouter initialEntries={initialEntries}><Routes><Route path="/reconciliation" element={<><ReconciliationPage /><LocationProbe /></>} /></Routes></MemoryRouter>)
@@ -72,7 +73,9 @@ function deferred<T>() {
 
 describe('MXE-09 reconciliation issue deep link', () => {
   beforeEach(() => {
+    batch.dailyReview = undefined
     issueState.batchId = 'batch-1'
+    listState.includeSecond = false
     listState.phase = 'ready'
     completionState.allowed = true
     batch.lines[0].status = 'MATCHED'
@@ -84,6 +87,53 @@ describe('MXE-09 reconciliation issue deep link', () => {
     completionState.unwrap.mockImplementation(() => completionState.shouldFail ? Promise.reject({ data: { message: 'Lô đã thay đổi.' } }) : Promise.resolve(batch))
     completionState.refetch.mockReset()
     completionState.refetch.mockResolvedValue({ data: { ...batch, version: completionState.refreshedVersion } })
+  })
+
+  it('hides stale batch data and completion intent when the selected batch changes before its read model arrives', () => {
+    listState.includeSecond = true
+    renderPage('/reconciliation?batchId=batch-1')
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' }))
+    expect(screen.getByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn lô khác' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('batchId=batch-2')
+    expect(screen.queryByRole('dialog', { name: 'Xác nhận hoàn tất đối chiếu' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Xác nhận hoàn tất' })).not.toBeInTheDocument()
+    expect(completionState.mutate).not.toHaveBeenCalled()
+  })
+
+  it('uses daily rows and all-date readiness even when opposite date variances cancel in weekly totals', () => {
+    batch.dailyReview = {
+      weeklyStatus: 'IN_PROGRESS',
+      lines: [
+        { ...batch.lines[0], dailyLineId: 'daily-over', serviceDate: '2026-09-07', requiredQuantity: 5, issuedQuantity: 6, status: 'NEEDS_REVIEW', triggers: ['ISSUED_REQUIRED'] },
+        { ...batch.lines[0], dailyLineId: 'daily-under', serviceDate: '2026-09-08', requiredQuantity: 5, issuedQuantity: 4, status: 'INCOMPLETE', triggers: [] },
+      ],
+    }
+    renderPage('/reconciliation?batchId=batch-1')
+
+    expect(screen.getAllByText('Gạo')).toHaveLength(2)
+    expect(screen.queryByRole('button', { name: 'Hoàn tất đối chiếu' })).not.toBeInTheDocument()
+    const actions = screen.getAllByRole('button', { name: 'Thao tác' })
+    fireEvent.click(actions[1])
+    expect(screen.getByRole('dialog', { name: 'Chi tiết nguyên liệu' })).toHaveTextContent('Ngày phục vụ')
+    expect(screen.queryByRole('button', { name: 'Xử lý chênh lệch' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Đóng' }))
+    fireEvent.click(actions[0])
+    expect(screen.getByRole('button', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
+  })
+
+  it('renders reloaded daily disposition and only offers completion for WEEK_COMPLETE', () => {
+    batch.dailyReview = {
+      weeklyStatus: 'WEEK_COMPLETE',
+      lines: [{ ...batch.lines[0], dailyLineId: 'daily-over', serviceDate: '2026-09-07', requiredQuantity: 5, issuedQuantity: 6, status: 'NEEDS_REVIEW', triggers: ['ISSUED_REQUIRED'], disposition: { category: 'ACCEPTED_VARIANCE', reason: 'Persisted daily reason', version: 2, disposedAt: '2026-09-07' } }],
+    }
+    renderPage('/reconciliation?batchId=batch-1')
+
+    expect(screen.getByRole('button', { name: 'Hoàn tất đối chiếu' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Xem toàn bộ' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Thao tác' }))
+    expect(screen.getByRole('dialog', { name: 'Chi tiết nguyên liệu' })).toHaveTextContent('Persisted daily reason')
+    expect(screen.getByRole('button', { name: 'Cập nhật xử lý' })).toBeInTheDocument()
   })
 
   it('restores issue detail in the canonical drawer without replacing the all-lot composition', () => {

@@ -10,6 +10,16 @@ Backend: [Dockerfile](../Dockerfile), backend project and appsettings environmen
 
 [verify.yml](../.github/workflows/verify.yml) is quality CI, not deployment authority: main PR/push/manual, root SDK/lockfile, focused/static/build/contract/migration/MySQL and frontend checks. Integration runs separately from core selection. Advisory architecture/route budgets do not override fail-closed behavior/security gates. CodeQL is separate. Diagnose the first failure by product/generated/schema/diagnostic category; reproduce the actual manifest/workflow command. Rerun only evidenced infrastructure faults, not deterministic failures; do not inflate baselines/thresholds merely to hide warning.
 
+### CURRENT / TARGET / NEEDS_EVIDENCE promotion
+
+| Level | Evidence and boundary |
+|---|---|
+| CURRENT | Quality CI and separate CodeQL configuration; Vercel build/SPA configuration enables Git deployment for main/dev only; Docker builds the API for direct hosting. These establish recipes/triggers, not successful recent runs, a live dev/staging/production environment or backend deployment automation |
+| TARGET | `CODE → CI → DEV → STAGING → HUMAN APPROVAL → PRODUCTION`; validate the same identified artifact, environment, actor/mode and business-flow acceptance before promotion. Human approval is explicit current authorization, not a branch name or old permission |
+| NEEDS_EVIDENCE | Actual provider/project/domain/TLS/origins, environment isolation/data access, immutable artifact identity/retention, CI result, staging and promotion mechanism, approver identity, secrets/private-file exclusion, representative persisted acceptance and rollback rehearsal |
+
+No staging provider/promotion workflow is established in the inspected repository. Vercel main/dev Git-deployment configuration does not establish CI-gated or human-approved promotion; reconcile that trigger with the target approval gate before claiming compliance. Do not invent infrastructure from branch names, package versions or comments. Deployment, migration/seed/restore/delete and auth/mode changes remain separately authorized; passing CI cannot authorize them. After a confirmed release, update [CHANGELOG](../CHANGELOG.md) only for identified release-relevant behavior/security/operational changes under [ENGINEERING](ENGINEERING.md#release-history-ownership); documentation cleanup alone is not an entry.
+
 Rollback: stop promotion, retain failed/prior artifacts; redeploy prior frontend build and backend artifact/image, then verify health/auth and an authorized representative workflow. Schema compatibility is reviewed separately; an older artifact does not authorize migration reversal, data loss or editing migration history. Provider artifact retention/official rollback procedure must be confirmed by operators.
 
 ## Health, monitoring and selected targets
@@ -17,11 +27,26 @@ Rollback: stop promotion, retain failed/prior artifacts; redeploy prior frontend
 - Service window: 05:00–22:00 Asia/Ho_Chi_Minh daily.
 - Internal monthly qualification SLO: 99.5% successful eligible requests in that window; no customer/legal SLA implied.
 - Watchdog target: /health/live and /health/ready at least each minute; alert after two consecutive ready failures; primary acknowledgement 5 minutes, backup escalation 10 minutes.
-- Live answers 200 while process responds; ready maps Healthy/Degraded to 200, Unhealthy to 503. DB unavailable/pending migrations are Unhealthy; Degraded outbox means alert, not a silently invented critical threshold.
+- Live answers 200 while process responds; ready maps Healthy/Degraded to 200, Unhealthy to 503. DB unavailable/pending migrations are Unhealthy. Outbox disabled or aged backlog is Degraded; any POISON is Unhealthy. A status-code-only watchdog misses Degraded; inspect the JSON status/checks without inventing another critical threshold.
 - Encrypted backup target every <=4 hours, 14-day operational retention, RPO <=4 hours, RTO <=30 minutes. Quarterly restore drill and after material DB/recovery changes.
 - These are targets, **NEEDS_EVIDENCE** until authorized staging/provider drills prove alert delivery, outage handling, independent retention, business oracle and timed encrypted restore.
 
 Program logging owns console/rolling JSONL (`logs/ipc-.jsonl`); retained-file count does not prove elapsed retention. Repository does not establish current production aggregation/uptime/alert dashboard or Sentry/Datadog/New Relic/OpenTelemetry integration. Confirm operators' actual monitoring rather than infer certification.
+
+### Technical and business signals
+
+CURRENT means inspected implementation, not active monitoring. Read-only observation still requires the right actor/target; replay and recovery are mutations, not observation.
+
+| Signal | CURRENT source boundary | TARGET / NEEDS_EVIDENCE |
+|---|---|---|
+| Health/logs | [Program](../backend/src/IPCManagement.Api/Program.cs) health registrations, correlation/request logging and rolling JSONL; [health writer](../backend/src/IPCManagement.Api/HealthChecks/HealthResponseWriter.cs) returns status/check descriptions/durations | Authorized URL/build check, log access/redaction/central retention, actual watchdog and alert-delivery/on-call incident rehearsal. No deployed dashboard established |
+| Latency/errors/timeouts/resources | Request timing and health durations implemented; k6 diagnostic checks exist | Measured p95/p99/error/timeout rate, CPU/RAM saturation, host limits, DB pool usage/wait/connections and alert thresholds/retention. DB readiness is not capacity proof; no metrics exporter/resource dashboard established in inspected runtime owners |
+| Jobs/outbox | [health check](../backend/src/IPCManagement.Api/HealthChecks/LifecycleOutboxHealthCheck.cs) computes pending/processing/failed/poison and oldest age internally; ordering/leases/retries/consumer receipts implemented | Public health JSON **omits entry.Data**, so it is not a count/age metrics endpoint. Confirm effective worker settings/processing and authorized Admin inspection. Current payload-validation consumer proves no external notification delivery |
+| Replay/idempotency | Admin FAILED/POISON replay requires actor/reason and appends audit; transaction runner verifies uncertain commit against caller-specific DB predicate | Approved replay scope and business-state/replay oracle; no blanket exactly-once guarantee or fleet reconciliation metric inferred |
+| Approval/stock/source readiness | Approval target/assignment/actor guards, warehouse identity resolver, source-line/ledger and DEFAULT/MRX daily readiness logic exist | Authorized pending/stuck approval observation and exact request-line/stock/movement/net-ledger oracle. These are business diagnostic candidates, not deployed health alerts; one ready date/warehouse is not whole-week stock integrity |
+| Backup/restore/rollback | Script/adapter guards and limited comparator below; rollback procedure is conditional | Actual approved provider/adapter, independent immutable off-host retention/key recovery, artifact retention and timed business-oracle drill proving RPO/RTO. No scheduler or real drill qualification established |
+
+Choose signals against the affected [flow](FLOWS.md) and keep technical health separate from business completion. Incidents/user feedback return to fresh WORK intake; owner-approved outcome changes route to ROADMAP, release history to CHANGELOG, stable corrections to their existing owner. Do not create a second incident/task-memory framework.
 
 ## Before database mutation
 
@@ -65,9 +90,11 @@ After direct restore clear/restart catalog/BOM cache (potentially thirty minutes
 
 Invoke-DatabaseRecovery.ps1 fails closed without real credentials and approved external provider adapter. Adapter implements Upload-ProviderObjectVersion, Read-ProviderObjectMetadata and Download-ProviderObjectVersion using official provider API/CLI. Local directories/archives or hand-entered receipt strings are not offsite proof. Read parameter definitions at source; docs do not duplicate shell command implementations or supply credentials.
 
-Backup encrypts dump and manifest including headers before upload; require live immutable object-version lock/retention metadata. RestoreDrill downloads exact receipt/object version into run-owned temporary storage, validates archive/inner manifest and compares migrations/schema/FK/triggers/row checksums plus approved DCR closure fields. Only newly absent ipc_restore_* target is allowed. Existing databases, ipcmanagement, ipc_lane1, ipc_lane9 and templates are forbidden; teardown is optional authorized scope. Seven dated backup_* tables remain blocked pending real provider restore and business/rehearsal gates.
+Backup encrypts dump and manifest including headers before upload; require live immutable object-version lock/retention metadata. RestoreDrill is intended to download the exact receipt/object version into run-owned temporary storage and validate archive/inner manifest; runtime qualification remains NEEDS_EVIDENCE. Only newly absent ipc_restore_* target is allowed. Existing databases, ipcmanagement, ipc_lane1, ipc_lane9 and templates are forbidden; teardown is optional authorized scope. Seven dated backup_* tables remain blocked pending real provider restore and business/rehearsal gates.
 
-GTID/binlog source-manifest fields are not yet snapshot-bound provenance and are not compared to restored target. Comparator success does not certify business-state oracle, dump snapshot time/coordinate, meaningful binlog provenance, operator duration/RPO/RTO or provider/off-host recovery. Keys, dumps and closure receipts stay outside Git.
+**CURRENT comparator scope:** [RestoreOracle](../scripts/database-recovery/RestoreOracle.ps1) compares migration IDs/head, table name/engine/collation, FK table/constraint/referenced-table metadata, trigger definitions, row counts, CHECKSUM TABLE results and hash of the supplied external DCR closure file. It does **not** compare full column/index/default/generated/check semantics or FK columns/actions, and the external-file hash is not a recomputed restored business oracle. The provider-script manifest is collected after dump, not bound to its snapshot. GTID/binlog fields are checked for presence, not meaningful snapshot-bound provenance or restored-target equivalence.
+
+Comparator success/RESTORE_VERIFIED does not certify full schema/business fidelity, dump snapshot time/coordinate, meaningful binlog provenance, operator duration/RPO/RTO or provider/off-host recovery. An authorized runtime drill with independent schema/ledger/business/snapshot/provider/timing oracles remains required; do not silently expand the comparator or bypass its guards. Keys, dumps and closure receipts stay outside Git.
 
 Retained PurchaseHistoryReconciliationService has a fail-closed reader of legacy protected safety evidence. Missing evidence is not permission to reconstruct proof or execute the guarded operation. Parameterized DB runbook validators can have external callers; absence of a fixed in-repo caller never makes their private inputs disposable.
 

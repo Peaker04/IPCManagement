@@ -16,8 +16,14 @@ public sealed record ReconciliationBatchDto(
     public string? CustomerCode { get; init; }
     public DateOnly? WeekStartDate { get; init; }
     public DateOnly? WeekEndDate { get; init; }
+    public ReconciliationDailyReviewDto? DailyReview { get; init; }
 }
-public sealed record ReconciliationLineDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, decimal FrozenTolerance, decimal? PurchasedQuantity, long? PurchasedVersion, decimal? IssuedQuantity, long? IssuedVersion, decimal? PurchasedRequiredDifference, decimal? IssuedRequiredDifference, decimal? PurchasedIssuedDifference, IReadOnlyList<string> Triggers, string Status, long Version, ReconciliationDispositionDto? Disposition, IReadOnlyList<string>? IssueNotes = null);
+public sealed record ReconciliationDailyReviewDto(string WeeklyStatus, IReadOnlyList<ReconciliationLineDto> Lines);
+public sealed record ReconciliationLineDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, decimal FrozenTolerance, decimal? PurchasedQuantity, long? PurchasedVersion, decimal? IssuedQuantity, long? IssuedVersion, decimal? PurchasedRequiredDifference, decimal? IssuedRequiredDifference, decimal? PurchasedIssuedDifference, IReadOnlyList<string> Triggers, string Status, long Version, ReconciliationDispositionDto? Disposition, IReadOnlyList<string>? IssueNotes = null)
+{
+    public string? DailyLineId { get; init; }
+    public DateOnly? ServiceDate { get; init; }
+}
 public sealed record ReconciliationDispositionDto(string Category, string Reason, long Version, DateTime DisposedAt);
 public sealed record ReconciliationDispositionCategoryDto(string Value, string Label);
 public sealed record ReconciliationDraftSourceDto(string MenuVersionId, string MenuLabel, string QuantityImportBatchId, string ImportBatchLabel);
