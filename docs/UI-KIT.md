@@ -259,6 +259,8 @@ Duration: 300ms (smooth). Property: transform + opacity (safe defaults per C7).
 | `--ipc-shell-width` | `248px` | Sidebar/nav width (source: `index.css:195`) |
 | `--ipc-shell-header-height` | (verify) | Top header height |
 | `--ipc-shell-sidebar-width` | (verify) | Sidebar width when expanded |
+| `--ipc-nav-ancestor-bg` | `var(--ipc-slate-50)` | Background của group disclosure khi 1 trong các leaf là current (NESTED-4 resolved) |
+| `--ipc-nav-ancestor-fg` | `var(--ipc-slate-900)` | Text color của group disclosure khi active-ancestor (NESTED-4 resolved) |
 
 **Layout contract**:
 - **2-column shell** (S2): header (top, full-width) + sidebar (left, `--ipc-shell-width`) + main content (right, flex-1).
@@ -546,10 +548,10 @@ Tổng cộng **70+ rule IDs** theo 12 families. File `docs/DESIGN.md` là canon
 - **S4 (z-index layers)**: §12 listed toast at 50; §14 and `shell.css` say 100. Picked 100 in §1; owner confirmation requested. See §1 "Shell layout" and §14.
 - **NEW-5 (OperationalFrame `<section>` landmark)**: `OperationalFrame` renders a `<section>` (region role) but does not wrap an inner `<header>` for the title. A4 audit gap — screen-reader users hear the section name but not the title. Owner pick: add nested `<header>` or expose `aria-labelledby`. See §3.
 - **NEW-6 (two button systems)**: `.ipc-button` legacy CSS + `<Button>` CVA primitive coexist. Owner pick: deprecate `.ipc-button` and migrate all consumers, or formalize the split. See §2 and §6.
-- **NESTED-1 (sidebar leaf visibility model)**: source stores per-tab visibility via `readPageTabPreferences` and per-primary via `readNavigationPreferences`. After nested sidebar, the per-tab key must equal the leaf id, and one resolver should answer both. Owner pick: unify storage key + resolver and migrate `pageTabGroups` out of `navigationPreferences.ts` over G4 batches. See §4.E.
-- **NESTED-2 (canonical breakpoint for drawer)**: §1 flags 1024px missing; component CSS already uses 599/640/767/900/980/1023/1024/1200/1280/1366/1399. Nested sidebar needs one canonical `sm` (drawer) / `md` (expanded sidebar) / `lg` (rail when S1 approves) breakpoint scale. Owner pick: declare 4-tier (xs/sm/md/lg) in §1 and migrate component CSS. See §1 "Shell layout" and §12.
-- **NESTED-3 (drawer z-index)**: §12 listed toast at 50, canonical pick = 100. Nested sidebar drawer must pick a layer above toast (toast can appear inside drawer) or below (drawer below toast); §14 has not been updated. Owner pick: assign `var(--ipc-z-drawer)` to one of the existing 50/100 tiers and document in §1. See §1 "Shell layout" and §14.
-- **NESTED-4 (active-ancestor marker)**: DESIGN.md N7 requires the parent group carry a visual marker when one of its leaves is current. Source has no `data-active-ancestor` convention. Owner pick: token (`--ipc-nav-ancestor`) or component prop, and apply in MainLayout/sidebar. See §4.E.
+- **NESTED-1 RESOLVED (sidebar leaf visibility model)**: storage canonical là `localStorage` key `ipc.navigation-preferences.v2`, schema `{ [leafId]: boolean }`. Auto-migrate: nếu user đã có `ipc.navigation-preferences.v1` (primary) hoặc `ipc.page-tab-preferences.v1` (tab), copy sang v2 1 lần rồi xóa key cũ. Resolver thống nhất: `readNavigationPreferences` trả về 1 object flat theo leaf id; bỏ `readPageTabPreferences` ở G4 batch B. Source code: `frontend/src/lib/navigationPreferences.ts` mở rộng thêm migration logic. See §4.E and G4 batch B.
+- **NESTED-2 PENDING (canonical breakpoint for drawer)**: chờ F6 (redesign shell opt-in/global) — chưa chốt, không sửa component CSS ở G3.
+- **NESTED-3 PENDING (drawer z-index)**: chờ F6 — chưa chốt.
+- **NESTED-4 RESOLVED (active-ancestor marker)**: dùng 2 token `--ipc-nav-ancestor-bg` + `--ipc-nav-ancestor-fg` (xem §1 "Shell layout") + attribute `data-active-ancestor="true"` trên group disclosure (parent, không phải leaf). CSS contract: `[data-active-ancestor="true"] { background: var(--ipc-nav-ancestor-bg); color: var(--ipc-nav-ancestor-fg); }`. Source áp dụng ở MainLayout/sidebar component ở G4 batch D.
 
 ## 9. Authority & canonical sources (NEW)
 
