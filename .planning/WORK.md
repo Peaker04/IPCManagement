@@ -1,24 +1,37 @@
 # Active work
 
-Status: G0 + G1 + G2 + G3-doc-only PASS (commit d5d299ad trên cleanup/revert-sidebar-v2, ahead of origin 8)
+Status: G0 + G1 + G2 + G3-doc-only + G4-batch-B PASS (commit 9929380e trên cleanup/revert-sidebar-v2, ahead of origin 10)
 
-Last closed: Commit d5d299ad — `docs(IA): resolve NESTED-1 + NESTED-4 (G3 doc-only)`. 1 file: `docs/UI-KIT.md`. 6 insertions, 4 deletions.
+Last closed: Commit 9929380e — `feat(fe): navigation preferences v2 (flat leaf keys + auto-migrate)`. 2 file: `frontend/src/lib/navigationPreferences.ts` (113 insertions, 0 deletion, append-only) + `frontend/src/lib/navigationPreferences.test.ts` (71 insertions, 6 test mới). 184 insertions, 0 deletion.
 
-G3 evidence (doc-only, 2 NESTED resolved, 2 PENDING):
-- NESTED-1 RESOLVED: `localStorage` key `ipc.navigation-preferences.v2`, schema `{ [leafId]: boolean }`, auto-migrate từ v1. Resolver thống nhất `readNavigationPreferences`. Source: `frontend/src/lib/navigationPreferences.ts` mở rộng ở G4 batch B.
-- NESTED-2 PENDING: chờ F6 (redesign shell opt-in/global).
-- NESTED-3 PENDING: chờ F6.
-- NESTED-4 RESOLVED: 2 token mới `--ipc-nav-ancestor-bg` + `--ipc-nav-ancestor-fg` (UI-KIT §1 "Shell layout") + `data-active-ancestor="true"` trên group disclosure. Source: MainLayout/sidebar ở G4 batch D.
+G4 batch B evidence (worktree verify `D:\Temp\ipc-g4b-verify-20261012-235136\`):
+- Lint:fe PASS (1 warning giống G0, không phải batch B).
+- Build:fe PASS (23 chunks, 1.37s).
+- Test:fe:unit 19 file fail / 26 test fail (G0 baseline) — 0 fail mới do batch B (run 2 confirm, run 1 có 1 flakey test).
+- Targeted `navigationPreferences.test.ts`: 14/14 PASS (8 test cũ + 6 test mới).
+- Targeted 7 file known fail: 19 file fail / 26 test fail — giống G0.
 
-Worktree verify: `D:\Temp\ipc-g3-verify-20261012-234630\` (lint:fe PASS 1 warning giống G0, build:fe PASS 23 chunks 1.45s).
+API mới (chỉ append, không đụng backward compat):
+- `NAVIGATION_PREFERENCES_V2_STORAGE_KEY` = `'ipc.navigation-preferences.v2'`
+- `LeafPreferenceKey` = `NavigationPreferenceKey | '${groupId}.${tabId}'`
+- `NavigationPreferencesV2` = `Record<string, boolean>`
+- `defaultNavigationPreferencesV2` (41 key: 11 primary + 30 leaf)
+- `readNavigationPreferencesV2(storage?)` — auto-migrate 1 lần rồi đọc
+- `writeNavigationPreferencesV2(next, storage?)` — dispatch `ipc:navigation-preferences-v2-changed`
+- `resetNavigationPreferencesV2(storage?)` — defaults, không xóa v1 keys
 
-Plan còn lại G4→G6:
-- G4 Implementation: 6 batch theo thứ tự.
-  - Batch B (resolver): mở rộng `navigationPreferences.ts` thêm migration logic, thống nhất `readNavigationPreferences` cho leaf id. Input từ G1 Q1.2 (backend id = leaf id) + G3 NESTED-1.
-  - Batch C (route aliases + leaf identity): thêm `children: NavChild[]` vào `routeRegistry`, leaf id = `pageTabGroups.tabs[i][0]`.
-  - Batch D (nested shell): MainLayout/sidebar nested UI, áp NESTED-4 marker, token mới vào `index.css`.
-  - Batch E (page tab de-dup): 7 page owner tự migrate, mỗi trang 1 commit.
-  - Batch F (visual/perf/a11y): verify evidence.
+Backward compat (giữ đến batch E):
+- v1 primary: `readNavigationPreferences`, `writeNavigationPreferences`, `resetNavigationPreferences`
+- v1 page-tab: `readPageTabPreferences`, `writePageTabPreferences`
+- legacy admin: `readAdminTabPreferences`, `writeAdminTabPreferences`
+- `pageTabGroups` (const)
+- 4 file consumer: `MainLayout.tsx`, `useAdminDataPageModel.ts`, `AdvancedDisplaySettings.tsx`, `AdvancedDisplaySettings.test.tsx` — không đụng.
+
+Plan còn lại G4 (C/D/E/F) → G5 → G6:
+- G4 batch C (route aliases + leaf identity): thêm `children: NavChild[]` vào `routeRegistry`, leaf id = `pageTabGroups.tabs[i][0]`. Input: G1 Q1.2 + G2 + batch B v2 API.
+- G4 batch D (nested shell): MainLayout/sidebar nested UI, áp NESTED-4 marker, 2 token mới (`--ipc-nav-ancestor-bg/fg`) vào `index.css` 245 entries.
+- G4 batch E (page tab de-dup): 7 page owner tự migrate `?view=<leafId>`, 1 commit/page. Sau batch E, bỏ v1 API + `pageTabGroups` const.
+- G4 batch F (visual/perf/a11y): evidence cho G5.
 - G5 Verify: actor×mode×permission×sidebar scenario matrix.
 - G6 Cutover: feature flag, rollback map, decision record.
 
