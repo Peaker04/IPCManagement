@@ -15,10 +15,20 @@ import {
 } from 'lucide-react'
 import type { UiOwnershipMarker } from '@/components/common/OperationalFrame'
 import type { AppRole } from '@/lib/auth/roleUtils'
-import type { NavigationPreferenceKey } from '@/lib/navigationPreferences'
+import { pageTabGroups, type NavigationPreferenceKey, type PageTabGroupId } from '@/lib/navigationPreferences'
 import { ROUTES } from '@/lib/routeConfig'
 
 type RoutePath = (typeof ROUTES)[keyof typeof ROUTES]
+
+export type { RoutePath }
+
+/** Flat leaf for nested sidebar. `id` is the canonical leaf id (matches
+ *  `pageTabGroups.tabs[*][0]` and the v2 leaf key suffix). `label` is the
+ *  localized leaf title shown in the sidebar disclosure body. */
+export type NavChild = {
+  readonly id: string
+  readonly label: string
+}
 
 type RouteMetadata = {
   path: RoutePath
@@ -34,6 +44,7 @@ type RouteMetadata = {
   reconciliationRoles?: readonly AppRole[]
   primaryNavigation?: boolean
   ownership?: UiOwnershipMarker
+  children?: readonly NavChild[]
 }
 
 export const routeRegistry: Record<RoutePath, RouteMetadata> = {
@@ -70,4 +81,32 @@ export const navigationRoutes = [
 export const routeMetadataForPath = (pathname: string) => {
   const canonicalPath = pathname !== '/' ? pathname.replace(/\/+$/, '') : pathname
   return routeRegistry[canonicalPath as RoutePath]
+}
+
+const ROUTE_TO_PAGE_TAB_GROUP: Partial<Record<RoutePath, PageTabGroupId>> = {
+  [ROUTES.WEEKLY_MENU]: 'weekly-menu',
+  [ROUTES.WAREHOUSE]: 'warehouse',
+  [ROUTES.APPROVALS]: 'approvals',
+  [ROUTES.PURCHASING]: 'purchasing',
+  [ROUTES.CHEF_DASHBOARD]: 'chef',
+  [ROUTES.REPORTS]: 'reports',
+  [ROUTES.ADMIN_DATA]: 'admin-data',
+}
+
+/** Project `pageTabGroups` into a flat NavChild[] for a single route. */
+const buildChildrenForGroup = (groupId: PageTabGroupId): readonly NavChild[] => {
+  const group = pageTabGroups.find((candidate) => candidate.id === groupId)
+  if (!group) return []
+  return group.tabs.map(([id, label]) => ({ id, label }))
+}
+
+for (const [path, groupId] of Object.entries(ROUTE_TO_PAGE_TAB_GROUP) as [RoutePath, PageTabGroupId][]) {
+  routeRegistry[path] = { ...routeRegistry[path], children: buildChildrenForGroup(groupId) }
+}
+
+/** Returns the flat leaf ids for a route, or `undefined` when the route
+ *  has no children (e.g. primary routes with a single tab). */
+export const getRouteLeafIds = (path: RoutePath): readonly string[] | undefined => {
+  const children = routeRegistry[path]?.children
+  return children ? children.map((child) => child.id) : undefined
 }
