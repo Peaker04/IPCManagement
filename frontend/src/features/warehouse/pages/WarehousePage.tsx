@@ -3,7 +3,7 @@ import { skipToken } from '@reduxjs/toolkit/query';
 import { useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { useHasRole } from '@/lib/useHasRole';
-import { InlineAlert, KeepAliveTabPanel, OperationalFrame, QueryErrorAlert, TabContentSkeleton, ViewSwitcher } from '@/components/common';
+import { InlineAlert, KeepAliveTabPanel, OperationalFrame, QueryErrorAlert, TabContentSkeleton } from '@/components/common';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { ROUTES } from '@/lib/routeConfig';
 import { useSystemOperation } from '@/lib/systemOperationContext';
@@ -362,18 +362,7 @@ function DefaultWarehousePage() {
         onOpenIssueDialog: openIssueDialog,
       })}
     >
-      <ViewSwitcher
-        compact
-        ariaLabel="Chọn góc nhìn kho"
-        tabs={[
-          { id: 'warehouse-receiving', label: 'Nhập hàng' },
-          { id: 'warehouse-demand', label: 'Xuất hàng' },
-          { id: 'warehouse-exceptions', label: 'Ngoại lệ' },
-          { id: 'warehouse-movement', label: 'Tra cứu' },
-        ].filter((tab) => warehouseTabIds.includes(tab.id.replace('warehouse-', '') as WarehouseView))}
-        activeTab={`warehouse-${selectedView}`}
-        onTabChange={(id) => selectWarehouseView(id.replace('warehouse-', '') as WarehouseView)}
-      />
+      {/* G4 batch E pilot: leaf navigation moved to sidebar (MainLayout). */}
 
       {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
         <WarehouseIssueCreationBlocker reason={issueCreationAvailability.disabledReason} />
