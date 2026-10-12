@@ -1,26 +1,24 @@
 # Active work
 
-Status: G0 + G1 + G2 PASS (commit e4a44112 trên cleanup/revert-sidebar-v2, ahead of origin 6)
+Status: G0 + G1 + G2 + G3-doc-only PASS (commit d5d299ad trên cleanup/revert-sidebar-v2, ahead of origin 8)
 
-Last closed: Commit e4a44112 — `docs(WORK): record G2 PASS and commit 065dbbcd`. 1 file: `.planning/WORK.md`. 16 insertions, 32 deletions.
+Last closed: Commit d5d299ad — `docs(IA): resolve NESTED-1 + NESTED-4 (G3 doc-only)`. 1 file: `docs/UI-KIT.md`. 6 insertions, 4 deletions.
 
-G1 evidence (Requirements, 5 câu policy qua AskQuestion, 1 lượt):
-- Q1.1 reconciliationRoles: **giữ nguyên** (commit A đã enforce trong `RoleGuard.tsx` + `routeRegistry.reconciliationRoles`).
-- Q1.2 capabilities.navigation: **giữ backend id = leaf id** (khớp 1-1, không cần rename). Sau G2, 30 leaf id = `pageTabGroups.tabs[i][0]` (vd `receiving`, `demand`, `exceptions`).
-- Q1.3 page-tab classification: **giữ rule G2** (page > 1 tab lên sidebar). Admin-data 7 tabs và reports 9 tabs còn lại nguyên, không tách group, không gộp tab `audit` (audit §5.2 đã nói khác work object).
-- Q1.4 actor × mode × capability matrix: **server-authoritative** (ghi chú: source hiện tại là hybrid — backend capabilities + client `RoleGuard` permission check. Hiểu theo nghĩa: backend là source of truth, client `RoleGuard` chỉ là presentation filter, server vẫn enforce thật qua API. Nếu owner muốn bỏ `RoleGuard` thuần, cần xác nhận lại).
-- Q1.5 MRX source-changes: **giữ view-only** (không cần capability riêng). `ReconciliationSourceChangeLog.tsx` là sub-feature của reconciliation, không route/permission gate thêm.
+G3 evidence (doc-only, 2 NESTED resolved, 2 PENDING):
+- NESTED-1 RESOLVED: `localStorage` key `ipc.navigation-preferences.v2`, schema `{ [leafId]: boolean }`, auto-migrate từ v1. Resolver thống nhất `readNavigationPreferences`. Source: `frontend/src/lib/navigationPreferences.ts` mở rộng ở G4 batch B.
+- NESTED-2 PENDING: chờ F6 (redesign shell opt-in/global).
+- NESTED-3 PENDING: chờ F6.
+- NESTED-4 RESOLVED: 2 token mới `--ipc-nav-ancestor-bg` + `--ipc-nav-ancestor-fg` (UI-KIT §1 "Shell layout") + `data-active-ancestor="true"` trên group disclosure. Source: MainLayout/sidebar ở G4 batch D.
 
-Hệ quả cho G4:
-- Batch B (resolver): cần `eligibleCapabilityIds` + `eligiblePageTabs` từ `systemOperationEligibility.ts` (đã có). Resolver thêm 1 bước: backend capability id == leaf id thì mới render leaf.
-- Batch C (route aliases + leaf identity): leaf id = `pageTabGroups.tabs[i][0]`. Không cần rename.
-- Batch D (nested shell): giữ `RoleGuard` + thêm nested leaf route `?view=<leafId>`.
-- Batch E (page tab de-dup): 7 page owner tự migrate.
-- Batch F: visual/perf/a11y như kế hoạch.
+Worktree verify: `D:\Temp\ipc-g3-verify-20261012-234630\` (lint:fe PASS 1 warning giống G0, build:fe PASS 23 chunks 1.45s).
 
-Plan còn lại G3→G6:
-- G3 UI System: trả lời 4 NESTED-* owner decisions trong UI-KIT §8. NESTED-2 (breakpoint) và NESTED-3 (drawer z-index) còn chờ F6 (redesign shell opt-in/global — chưa chốt) + backend decision về NESTED-1 (visibility model giữ client localStorage hay backend). Đề xuất: G3 doc-only cho NESTED-4 (active-ancestor token) + khẳng định NESTED-1 (giữ client localStorage đến khi backend sync yêu cầu).
-- G4 Implementation: 6 batch theo thứ tự B → C → D → E → F.
+Plan còn lại G4→G6:
+- G4 Implementation: 6 batch theo thứ tự.
+  - Batch B (resolver): mở rộng `navigationPreferences.ts` thêm migration logic, thống nhất `readNavigationPreferences` cho leaf id. Input từ G1 Q1.2 (backend id = leaf id) + G3 NESTED-1.
+  - Batch C (route aliases + leaf identity): thêm `children: NavChild[]` vào `routeRegistry`, leaf id = `pageTabGroups.tabs[i][0]`.
+  - Batch D (nested shell): MainLayout/sidebar nested UI, áp NESTED-4 marker, token mới vào `index.css`.
+  - Batch E (page tab de-dup): 7 page owner tự migrate, mỗi trang 1 commit.
+  - Batch F (visual/perf/a11y): verify evidence.
 - G5 Verify: actor×mode×permission×sidebar scenario matrix.
 - G6 Cutover: feature flag, rollback map, decision record.
 
