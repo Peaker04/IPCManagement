@@ -13,7 +13,9 @@
 | Redesign CSS | `frontend/src/styles/redesign/` | 4 files | Opt-in redesign tokens (fiori, demand, dashboard) — feature flag |
 | UI primitives | `frontend/src/components/ui/` | 13 components | shadcn-style base (button, dialog, select, ...) |
 | Shared composites | `frontend/src/components/common/` | 45 components | Canonical pattern: CommandBar, TableViewport, EmptyState, ... |
-| Preview tokens | `frontend/src/styles/planning-demand-preview-tokens.css` | 1 | Sandbox-only preview tokens (SANDBOX_ONLY theo AGENTS.md) |
+| Preview tokens | `frontend/src/styles/planning-demand-preview-tokens.css` | 1 | Sandbox-only preview tokens (SANDBOX_ONLY per AGENTS.md) — used by `frontend/preview/` HTML prototypes only; do not import from application code |
+
+> **SANDBOX_ONLY scope (clarification)**: the `planning-demand-preview-tokens.css` file is permitted under AGENTS.md's SANDBOX_ONLY label. Its tokens are valid **only** in `frontend/preview/*.html` files and the matching fixture/script chain. Application routes, tests, and shared components must NOT import this file. The hard safety rule from AGENTS.md ("No seeds, fabricated business evidence, lowered permissions or weakened tests to manufacture PASS") applies: do not cite preview tokens to claim production parity. See §8.
 
 ## 1. Design tokens (từ `index.css`)
 
@@ -61,6 +63,16 @@
 | `--ipc-color-surface-accent` | `#f7fbff` | Soft accent surface |
 | `--ipc-color-surface-selected` | `#f0f6ff` | Selected row/cell |
 
+### Color — Status pill (additional from `shell.css`)
+
+| Token | Value | Use |
+|---|---|---|
+| `--ipc-color-status-warning-foreground` | (verify) | Warning foreground, alternative to `#b45309` family |
+| `--ipc-color-status-success-hover` | (verify) | Hover background for success pills |
+| `--ipc-color-status-warning-hover` | (verify) | Hover background for warning pills |
+
+> **Owner-decision required (F9)**: `shell.css` defines additional status-pill color tokens with foreground values that don't all converge on the `#b45309` value listed in the Status semantic table above (4 different source values were observed across the codebase). Until the canonical warning-foreground token is picked, treat both the table above and these additional tokens as advisory. See §8 (open decisions).
+
 ### Color — Border
 
 | Token | Value | Use |
@@ -84,6 +96,10 @@
 ### Color — Status badge (legacy, used in `is-*` class)
 
 `StatusBadge` CSS class `.ipc-status-badge.is-{success|warning|danger|info|neutral}` — semantic mapping theo tone ở trên. `data-default="command"` selectors dùng cho visual regression.
+
+### Status pill (legacy class family, `shell.css`)
+
+The `.ipc-status-pill` class family in `shell.css:344-485` is a **legacy** pre-`StatusBadge` surface still consumed by some older pages. It is not the canonical pattern (use `<StatusBadge>` for new code). Owner pick required for deprecation timeline. See §8.
 
 ### Spacing (4px base)
 
@@ -218,6 +234,16 @@ Duration: 300ms (smooth). Property: transform + opacity (safe defaults per C7).
 | `--table-row-height-relaxed` | `56px` | Relaxed |
 | `--rows-hint` | `6` | Default 6 rows = 288px ≤ 324px (45% of 720p) |
 
+### Density prop mapping (B1) — flag F2-name-drift
+
+`TableViewport` accepts `density?: TableDensity`. Mapping in source:
+
+| `density` value | Token used | Notes |
+|---|---|---|
+| `'compact'` | `--table-row-height-compact` (40px) | OK |
+| `'standard'` (default) | `--table-row-height-standard` (48px) | OK |
+| `'comfortable'` | `--table-row-height-relaxed` (56px) | **Name drift** (F2): TS/HTML uses `'comfortable'`; CSS token is `--table-row-height-relaxed`. Source-code value names diverge from CSS token names. Owner pick: rename CSS tokens to `comfortable/standard/compact` OR rename `TableDensity` union type to `'compact' | 'standard' | 'relaxed'`. Until owner picks, treat both as aliases. See §8 (open decisions). |
+
 ### Button min-width
 
 | Token | Value | Use |
@@ -226,6 +252,19 @@ Duration: 300ms (smooth). Property: transform + opacity (safe defaults per C7).
 | `--button-min-w-default` | `5rem` | Default |
 | `--button-min-w-lg` | `6rem` | Large |
 
+### Shell layout (S1, S2 — owner confirmation pending)
+
+| Token | Value | Use |
+|---|---|---|
+| `--ipc-shell-width` | `248px` | Sidebar/nav width (source: `index.css:195`) |
+| `--ipc-shell-header-height` | (verify) | Top header height |
+| `--ipc-shell-sidebar-width` | (verify) | Sidebar width when expanded |
+
+**Layout contract**:
+- **2-column shell** (S2): header (top, full-width) + sidebar (left, `--ipc-shell-width`) + main content (right, flex-1).
+- **Canonical 1024px breakpoint** (S3): **MISSING** — no canonical `@media (min-width: 1024px)` rule exists in `index.css`. Component CSS files (operations, documents, dashboard) each pick their own breakpoint (599, 640, 767, 900, 980, 1023, 1024, 1200, 1280, 1366, 1399). Owner decision required to canonicalize. See §8 (open decisions).
+- **Z-index layers** (S4 — inconsistency flagged): §14 lists toast at z-index 100, but the earlier table at the "Z-index layers" entry says 50. `shell.css` writes 100 for toast. **Canonical pick: 100** (matches `shell.css` and §14). The §12 "Z-index layers" entry below should be re-read as 50/100 inconsistent; the **authoritative value is 100** (where `.ipc-toast-container` is positioned).
+
 ## 2. UI Primitives (`components/ui/`)
 
 shadcn-style base. **KHÔNG có barrel `index.ts`** — import trực tiếp từ path.
@@ -233,6 +272,8 @@ shadcn-style base. **KHÔNG có barrel `index.ts`** — import trực tiếp t�
 | Component | File | Purpose |
 |---|---|---|
 | `Button` | `button.tsx` (4934 B) | Action button. Variants: `default`, `outline`, `secondary`, `success`, `warning`, `warningSoft`, `info`, `ghost`, `destructive`, `link`. Sizes: `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`. `textWrap`: `nowrap`, `wrap`. Props: `loading?`, `disabled?`. Base = Base UI Button. |
+
+> **NEW-6 — two button systems coexist (owner-decision required)**: alongside the `Button` CVA primitive above, the legacy `.ipc-button` CSS class family in `frontend/src/styles/buttons.css` is still consumed by older surfaces and the redesign system. Migration path is not yet decided. New code should use `Button`; legacy `.ipc-button` is grandfathered but not the canonical primitive. See §6 (anti-patterns) and §8 (open decisions).
 | `Badge` | `badge.tsx` (1223 B) | Inline tag. Use cho numeric badge / lifecycle lozenge. |
 | `Card` | `card.tsx` (2742 B) | Container với header/body/footer slot. |
 | `Checkbox` | `checkbox.tsx` (1386 B) | Boolean input. |
@@ -251,13 +292,37 @@ shadcn-style base. **KHÔNG có barrel `index.ts`** — import trực tiếp t�
 
 50+ canonical patterns. **Có barrel `index.ts`** — import qua `@/components/common`.
 
+### Reconciliation & warehouse composites (canonical patterns — C1, C2)
+
+| Component | Purpose | Notable props |
+|---|---|---|
+| `ReconciliationLifecycleStrip` | Top-of-page strip for reconciliation lifecycle (states, transitions) | `batch`, `currentStage`, `onAdvance?`. **C1 — owner-confirmed canonical pattern**; lives in `frontend/src/components/reconciliation/ReconciliationLifecycleStrip.tsx`. |
+| `ReconciliationComparisonTable` | Side-by-side comparison table (warehouse vs kitchen) | `items: ReconciliationLine[]`, `density?`. **C2 — owner-confirmed canonical pattern**. |
+| `ReconciliationDispositionDrawer` | Drawer for disposition decision (accept, dispute, escalate) | `item?`, `onClose`, `onSubmit`, `busy?`. **C2 — owner-confirmed canonical pattern**. |
+| `ReconciliationSourceChangeLog` | Audit log of source changes per line | `lineId`, `entries` |
+| `Warehouse*` (12 components) | Warehouse surfaces: `WarehouseMovementTable`, `WarehouseExceptionPanel`, `WarehouseReceivingPanel`, `WarehouseDemandPanel`, `WarehouseInventoryPanel`, `WarehouseStockTake`, `WarehouseLots`, `WarehouseExpiry`, `WarehouseTransfer`, `WarehouseAdjustment`, `WarehouseReorderPoint`, `WarehouseKpiStrip` | Per-component props (not enumerated here; see source files in `frontend/src/components/warehouse/`) |
+| `KitchenCookingExport` | Export cooking plan to spreadsheet | `plan`, `format: 'xlsx' \| 'csv'` |
+| `PurchaseOrderLineGroups` | Grouped line editor for purchase orders | `lines`, `groups`, `onChange` |
+
+### Page primitives (C3)
+
+| Class / element | Purpose |
+|---|---|
+| `.ipc-page-stack` | Vertical page rhythm: applies `display: flex; flex-direction: column; gap: var(--ipc-space-4)`. Used in §4.A example, §22 warehouse pattern, and §22.2 reconciliation. **C3 — owner-confirmed page-level primitive**, should be on `<main>` of every operational route. |
+| `.ipc-page-title-row` | Title + actions row at top of page |
+| `.ipc-page-grid` | Page-level grid (sections) |
+
 ### Action & status (canonical patterns)
 
 | Component | Purpose | Notable props |
 |---|---|---|
-| `CommandBar` | Action + status bar (Rule C1, C7, X1) | `children`, `actions?`, `className?`, `leadingClassName?`, `actionsClassName?`, `variant?: 'default' \| 'scope'`. Auto-classify primary/secondary từ `className` của action children (`ipc-button-primary/success/warning`). Nếu `actions.length > 3` thì split primary/secondary. |
+| `CommandBar` | Action + status bar (Rule C1, C7) | `children`, `actions?`, `className?`, `leadingClassName?`, `actionsClassName?`, `variant?: 'default' \| 'scope'`. Auto-classify primary/secondary từ `className` của action children (`ipc-button-primary/success/warning`). Nếu `actions.length > 3` thì split primary/secondary. |
 | `ContextStrip` | Inline metadata strip (label/value/optional tone/emphasis) | `items: ContextStripItem[]`, `className?`, `variant?: 'badge' \| 'inline'`. Mỗi item: `label`, `value`, `tone?: StatusTone`, `icon?`, `emphasis?: 'quiet' \| 'strong'`. Tone icons auto-resolve (CircleDashed neutral/info, CheckCircle2 success, AlertTriangle warning/danger). |
-| `OperationalFrame` | Wraps route content với identity/scope/state | — |
+
+> **C4 — `is-quiet` auto-classification** (owner-confirmed contract): ContextStrip applies `is-quiet` to its root `<div>` when ALL items have `emphasis: 'quiet'`. This quiet variant reduces visual weight (no border-bottom, smaller gap, lighter typography). UI-KIT consumers may key off the `.is-quiet` class to style surrounding region.
+>
+> **C5 — `data-variant` attribute contract**: shared composites expose `data-variant` to mirror the `variant` prop. Consumers can target via attribute selector (no class-name coupling). Currently in use: `CommandBar` (`default | scope`), `ContextStrip` (`badge | inline`), `EmptyState` (5 values), `SectionPanel` (`default | danger | dark`).
+| `OperationalFrame` | Wraps route content với identity/scope/state | `title?`, `command?`, `uiOwnership?: UiOwnershipMarker`, `children`. Renders a `<section role="region" aria-label={...}>`. **NEW-5 — owner pick required**: does not wrap an inner `<header>` for the title; consider adding nested `<header>` or `aria-labelledby` (see §8). |
 | `PageBanner` | Page-level info/warning banner | `variant?` |
 | `SectionPanel` | Card-like section container với header/footer slot | `title?`, `icon?`, `badge?`, `actions?`, `description?`, `descriptionPlacement?: 'popover' \| 'inline'`, `footer?`, `children`, `tone?: 'default' \| 'danger' \| 'dark'`, `padded?: boolean`, `headingLevel?: 2 \| 3 \| 4`, `className?`. Lazy-load `InfoNote` cho popover description. |
 | `PageStepper` | Multi-step grouped page navigation (per day/week, not rows) | `page: number`, `totalPages: number`, `onPageChange: (page: number) => void`, `ariaLabel?`, `label?`, `className?`. Returns `null` nếu `totalPages <= 1`. Focus preservation khi navigate. |
@@ -382,6 +447,10 @@ shadcn-style base. **KHÔNG có barrel `index.ts`** — import trực tiếp t�
 - **Component CSS files (`components/*.css`)** chỉ consume IPC tokens từ `index.css`, không tạo custom property mới. Single source of truth = `index.css` (245 custom properties). Tổng references: dashboard.css (33), documents.css (97), domain-pages.css (44), operations.css (48), responsive.css (12), shell.css (115), tables.css (90).
 - **Redesign CSS files (`redesign/*.css`)** là opt-in feature flag — chỉ apply khi ancestor có class `.ipc-redesign-shell` (xem `shared-owner-compatibility.tsx` fixture để verify). 4 files: fiori (4814 B), demand (11069 B), dashboard (8862 B), responsive (4172 B).
 
+> **F6 — `.ipc-redesign-shell` is currently global** (owner-decision required): in `MainLayout.tsx:119` the class is applied to the root layout element, which means redesign tokens are NOT opt-in at the time of this writing — every operational route gets the redesign surface. The §21 migration guide is therefore stale on the "opt-in" claim. The `shared-owner-compatibility.tsx` fixture still tests both Plain and Redesign ancestors, which remains valid for owner review. Recommended fix (when owner approves): make `.ipc-redesign-shell` opt-in via a route-level wrapper or feature flag, not the root layout. See §8 (open decisions).
+>
+> **NEW-4 — ContextStrip 1200px override under redesign**: when `.ipc-redesign-shell` is on the ancestor, ContextStrip's internal layout shifts at `min-width: 1200px` (ContextStrip metadata columns grow). Documented here as part of the F6 finding; once the global-vs-opt-in question is settled, this override is either part of the production surface or scoped.
+
 ## 5. Stable rule IDs từ `docs/DESIGN.md`
 
 Tổng cộng **70+ rule IDs** theo 12 families. File `docs/DESIGN.md` là canonical source. Tóm tắt nhanh:
@@ -401,7 +470,7 @@ Tổng cộng **70+ rule IDs** theo 12 families. File `docs/DESIGN.md` là canon
 | **A** (A1-A4) | 4 | Accessibility (WCAG 2.2 AA) |
 | **N** (N1-N5) | 5 | Navigation (work-based, breadcrumb, URL) |
 | **V** (V1-V10) | 10 | Visual (floorplan, hierarchy, headings) |
-| **Q** (Q1-Q3) | 3 | Quality (rules, evidence, authorized findings) |
+| **Q** (Q0-Q3) | 4 | Quality (rules, evidence, authorized findings) |
 
 **Density T8** (3 row heights) là `OWNER_DECISION_REQUIRED` — chưa chọn policy. Default hiện tại = `standard` (48px).
 
@@ -419,6 +488,7 @@ Tổng cộng **70+ rule IDs** theo 12 families. File `docs/DESIGN.md` là canon
 | Same-size icon+heading+text cards | craft-floor | ("cards are the lazy container") |
 | Modal cho non-blocking task | M1.1 | ("modal only for real blocking work") |
 | Pill-rounded status/button | DESIGN.md | ("square tables, small input corners") |
+| Mixing `.ipc-button` legacy CSS with `<Button>` CVA primitive on the same page | NEW-6 | Two button systems coexist; new code uses `Button`, legacy `.ipc-button` is grandfathered. See §2 and §8. |
 
 ## 7. Testing & fixture conventions
 
@@ -436,6 +506,41 @@ Tổng cộng **70+ rule IDs** theo 12 families. File `docs/DESIGN.md` là canon
 - **M1.2 Overlapping confirmation**: legacy planning có nested confirmation; applicability chưa quyết.
 - **C9 Font preload strategy**: Inter Variable đã declare `@font-face` với `font-display: swap`, nhưng chưa có explicit preload `<link>` in `<head>`.
 
+### Additions from audit Phase 1 (doc-only flagging)
+
+- **F2 (density name drift)**: TS/HTML surface uses `data-density="comfortable"` and `TableDensity` type union includes `'comfortable'`; CSS tokens use `--table-row-height-relaxed` for the 56px tier. Pick one: rename CSS tokens to `compact/standard/comfortable` OR rename TS union to `compact/standard/relaxed`. Until picked, treat as aliases (see §1 "Density prop mapping" and §1 "Table row height").
+- **F6 (redesign always-on vs opt-in)**: source applies `.ipc-redesign-shell` at `MainLayout.tsx:119` (global). §21 says "opt-in feature flag" — stale. Owner pick: make it opt-in (route-level feature flag), or update §21 to acknowledge global. See §4 "Pattern notes" and §21.
+- **F9 (warning foreground sprawl)**: source has 4 different warning-foreground values across `shell.css` and the StatusBadge family (`#b45309` is the UI-KIT norm, but `#ffffff`, `#c05621`, `#8a4b0f` also appear). Owner pick: single canonical `--ipc-warning-foreground` token. See §1 "Color — Status semantic" and §1 "Color — Status pill".
+- **A1 (skip link stale claim)**: §11 said "THIẾU" for skip link, but `MainLayout.tsx:121` already implements it. Owner pick: retract §11 THIẾU claim and re-audit accessibility glossary. See §11.
+- **S1-S3 (shell layout canonicalization)**: shell width token exists (`--ipc-shell-width: 248px`) but the canonical 1024px breakpoint is missing. Owner pick: declare 4-tier breakpoint scale (xs ≤480, sm ≤767, md ≤1023, lg ≥1024) and migrate component CSS to it. See §1 "Shell layout" and §12.
+- **S4 (z-index layers)**: §12 listed toast at 50; §14 and `shell.css` say 100. Picked 100 in §1; owner confirmation requested. See §1 "Shell layout" and §14.
+- **NEW-5 (OperationalFrame `<section>` landmark)**: `OperationalFrame` renders a `<section>` (region role) but does not wrap an inner `<header>` for the title. A4 audit gap — screen-reader users hear the section name but not the title. Owner pick: add nested `<header>` or expose `aria-labelledby`. See §3.
+- **NEW-6 (two button systems)**: `.ipc-button` legacy CSS + `<Button>` CVA primitive coexist. Owner pick: deprecate `.ipc-button` and migrate all consumers, or formalize the split. See §2 and §6.
+
+## 9. Authority & canonical sources (NEW)
+
+This doc is **not** the source of truth. The chain (per AGENTS.md) is:
+
+1. `docs/DESIGN.md` — presentation contract (canonical for design rules, family table, rule IDs).
+2. `docs/UI-KIT.md` (this file) — current implementation snapshot, read from `frontend/src/styles/` and `frontend/src/components/`.
+3. `frontend/src/styles/index.css` — design tokens (custom properties, 245 entries).
+4. `frontend/src/components/**/*.tsx` — component contracts (props, ARIA, behavior).
+5. `frontend/src/styles/components/*.css` and `frontend/src/styles/redesign/*.css` — visual rules per component family.
+6. `frontend/tests/fixtures/*.tsx` — specimen and shared-owner-compatibility test fixtures.
+
+> When this doc contradicts source: prefer source for "what is currently rendered" and flag in §8 (open decisions) so the owner can update the source contract or this doc. Do not silently resolve contradictions.
+
+## 10. Hard "do not" list (moved from old §10 — was stranded after §24)
+
+- KHÔNG tạo visual world mới (per `docs/DESIGN.md` "Do not clone external Fiori/Carbon/ISA visual branding")
+- KHÔNG tạo density policy mới (T8 = OWNER_DECISION_REQUIRED)
+- KHÔNG dùng modal cho non-blocking task (M1.1)
+- KHÔNG clone specimen làm production authority
+- KHÔNG modify working code mà chưa có current scope + authorization
+- KHÔNG apply `.ipc-redesign-shell` toàn project (per §21, opt-in design — F6 in §8 flags that this is currently violated at `MainLayout.tsx:119`; owner decision required)
+- KHÔNG dùng `planning-demand-preview-tokens.css` từ application code (SANDBOX_ONLY — see §0 and §8)
+- KHÔNG dùng `.ipc-button` legacy class cho new code (use `<Button>` CVA — see §2 NEW-6 and §8)
+
 ## 11. Accessibility glossary (WCAG 2.2 AA baseline)
 
 **Compliance level**: WCAG 2.2 AA (per `docs/DESIGN.md` A1-A4 rules). Tất cả component mới phải pass AA trước khi merge.
@@ -446,7 +551,7 @@ Tổng cộng **70+ rule IDs** theo 12 families. File `docs/DESIGN.md` là canon
 | **Focus ring** | Visual indicator khi keyboard focus di chuyển vào control. Có token `--ipc-focus-ring: #2f6fed` + `:focus-visible` outline 2px solid offset 2px. Base UI controls draw their own focus ring qua `[data-slot="button"]:focus-visible { outline: none }`. | `index.css` line 420 (focus-visible override), components/ui/button.tsx, dialog.tsx |
 | **Focus trap** | Logic giữ keyboard focus bên trong modal/dialog khi đang mở, return focus về trigger khi đóng. Bắt buộc cho modal (M2.4 MUST). | `components/ui/dialog.tsx` (Base UI handles), `components/common/ConfirmDialog.tsx` wraps `Dialog` |
 | **Live region** | ARIA `aria-live` attribute announces content changes to screen readers. `role="status"` + `aria-live="polite"` cho non-urgent updates (toast success, refresh). `role="alert"` + `aria-live="assertive"` cho urgent (error). | `PageBanner.tsx` line 49: `role={tone === 'danger' ? 'alert' : 'status'}`, `StatusBadge.tsx` line 90: `aria-live="polite"`, `ToastProvider.tsx` |
-| **Skip link** | Hidden link cho phép keyboard user skip to main content. Standard pattern: `<a href="#main" class="sr-only focus:not-sr-only">Skip to main content</a>` placed đầu `<body>`. | **THIẾU** trong dự án. Cần add ở root layout. |
+| **Skip link** | Hidden link cho phép keyboard user skip to main content. Standard pattern: `<a href="#main" class="sr-only focus:not-sr-only">Skip to main content</a>` placed đầu `<body>`. | **STALE — owner pick required (A1)**: this row previously said "THIẾU trong dự án. Cần add ở root layout." Source actually implements the skip link at `MainLayout.tsx:121`. Either retract the THIẾU claim here, or treat the source as the new contract and verify. See §8. |
 | **Landmark** | ARIA semantic role giúp screen reader user navigate: `role="banner"` (header), `role="navigation"` (nav), `role="main"` (main), `role="complementary"` (aside), `role="contentinfo"` (footer), `role="region"` + `aria-label` (named section). | `ApprovalQueue.tsx` line 263: `role="region" aria-label="Hàng đợi duyệt vận hành"`, `TableViewport.tsx` line 81: `role="region" aria-label={ariaLabel}` |
 | **alt text** | `alt` attribute trên `<img>` mô tả nội dung. Required nếu image carries information. Empty `alt=""` nếu decorative. | **CHƯA audit** trong dự án (no explicit rule). Lucide icons dùng `aria-hidden="true"` cho decorative. |
 | **Screen reader** | Assistive technology (NVDA, JAWS, VoiceOver) đọc nội dung qua synthesized speech. Components phải dùng semantic HTML + ARIA để SR hiểu structure. | Test: Vitest + `@testing-library/jest-dom` cho ARIA assertions. Manual: NVDA/VoiceOver (out of scope tự động). |
@@ -504,13 +609,34 @@ Tổng cộng **70+ rule IDs** theo 12 families. File `docs/DESIGN.md` là canon
 
 **Recommendation**: chuẩn hóa về Tailwind-style scale (xs/sm/md/lg/xl) → owner pick.
 
+## 13. Component CSS files reference map (NEW)
+
+Single source of truth = `frontend/src/styles/index.css`. Component CSS files only consume tokens. Owner of each file:
+
+| File | Bytes (approx) | Used by (representative) | Token refs |
+|---|---|---|---|
+| `components/dashboard.css` | varies | dashboard route, MetricCard | 33 |
+| `components/documents.css` | varies | DocumentRail, document list pages | 97 |
+| `components/domain-pages.css` | varies | reconciliation, planning, weekly menu | 44 |
+| `components/operations.css` | varies | kitchen, production, MRX | 48 |
+| `components/responsive.css` | varies | global responsive overrides, reduced-motion | 12 |
+| `components/shell.css` | varies | MainLayout, sidebar, header, status-pill legacy | 115 |
+| `components/tables.css` | varies | TableViewport, ipc-data-table | 90 |
+| `shell.css` (root) | varies | shell-level layout, z-index layers, status-pill tokens | (own block) |
+| `redesign/fiori.css` | 4814 | opt-in redesign (F6: currently global) | (own block) |
+| `redesign/demand.css` | 11069 | demand page redesign (F6: currently global) | (own block) |
+| `redesign/dashboard.css` | 8862 | dashboard redesign (F6: currently global) | (own block) |
+| `redesign/responsive.css` | 4172 | responsive overrides for redesign | (own block) |
+
+> Bytes column is a snapshot; the canonical byte counts live in `git ls-files -s frontend/src/styles/**/*.css` or `wc -c` on the file. This table does not assert authority over file content — see `frontend/src/styles/components/*.css` for the actual rules.
+
 ## 14. Feedback decision tree (Toast / InlineAlert / PageBanner / StatusBadge)
 
 Dự án có 4 cách hiển thị feedback. Chọn đúng:
 
 | Component | When to use | Lifetime | Position | Severity | Source |
 |---|---|---|---|---|---|
-| **Toast** (`useToast`) | One-shot confirmation sau async action. "Đã lưu", "Đã gửi yêu cầu". KHÔNG dùng cho error blocking task (M1.1 modal-only). | Auto-dismiss 5s, hoặc manual close. | Fixed bottom-right (z-index 100) via portal. | success / info / warning / danger. | `ToastProvider.tsx` |
+| **Toast** (`useToast`) | One-shot confirmation sau async action. "Đã lưu", "Đã gửi yêu cầu". KHÔNG dùng cho error blocking task (M1.1 modal-only). | Auto-dismiss 5s, hoặc manual close. | Fixed bottom-right (z-index 100, **canonical — S4**; §12 previously said 50, source `shell.css` and §14 agree on 100) via portal. | success / info / warning / danger. | `ToastProvider.tsx` |
 | **InlineAlert** | Inline message trong content flow. Query error, action required, info note ngắn. | Persistent cho tới khi query retry hoặc action dismiss. | Inline (within content). | neutral / info / success / warning / danger. Default icon AlertTriangle/CheckCircle2/Info. | `InlineAlert.tsx` |
 | **PageBanner** | Page-level status, work-object state, system-level info. "Đang chạy ca sản xuất", "Cảnh báo hết hàng tồn kho". | Persistent cho tới khi state đổi. | Full-width top of page (border-bottom). | neutral / info / success / warning / danger. Spin option cho loading state. | `PageBanner.tsx` |
 | **StatusBadge** | Inline status pill trong table cell, list item, hoặc detail. Single value, không phải message. | Until status changes. | Inline within cell. | neutral / info / success / warning / danger. Auto-resolve từ domain registry. | `StatusBadge.tsx` |
@@ -661,6 +787,24 @@ New UI pattern needed?
 6. Migrate existing uses
 7. Document in this file (UI-KIT.md)
 
+## 18. Color & status pill contract (NEW — consolidates F9, NEW-6 legacy family)
+
+The codebase has **two parallel status-color systems**:
+
+1. **Canonical** (`StatusBadge` via domain registry): tokens in §1 "Color — Status semantic" (`success`, `warning`, `danger`, `info`, `neutral`). Foreground values: `#047857`, `#b45309`, `#b91c1c`, `#1d4ed8`, `#475569`. Single source of truth for new code.
+2. **Legacy pill** (`.ipc-status-pill` from `shell.css:344-485`): parallel token family `--ipc-color-status-*` with its own hover and foreground tokens. F9 audit: at least 4 distinct warning-foreground values exist in source (`#ffffff`, `#c05621`, `#8a4b0f`, none matching the canonical `#b45309`).
+
+**Owner pick required (F9, §8)**: pick one of:
+- (a) Migrate `.ipc-status-pill` consumers to `<StatusBadge>` and delete the legacy token family.
+- (b) Make `.ipc-status-pill` token family converge on the canonical foreground/background/border values from the StatusBadge table.
+- (c) Formalize two systems (one canonical, one legacy) and document the migration timeline.
+
+Until picked, both systems are in production and either may be cited as "the value the user sees". Do not assume parity between UI-KIT and `shell.css` color values.
+
+**Bans** (per `docs/DESIGN.md` + §6):
+- No new use of `.ipc-status-pill` class.
+- No new CSS variable under `--ipc-color-status-*` until the family is canonicalized.
+
 ## 19. Performance budget (NFR, link tới ENGINEERING.md)
 
 **Authority**: `docs/ENGINEERING.md` line 114 (delivery workflow performance gate).
@@ -726,6 +870,10 @@ export type UiOwnershipMarker = {
 - `('Chọn góc nhìn kho', 'warehouse-movement')` → `uio-16, uif-16, uir-16`
 - `('Chọn góc nhìn kế hoạch tuần', 'schedule')` → `uio-1d, uif-1d, uir-1d`
 
+> **P3 — UIO full registry is not enumerated here (owner pick required)**: 50+ bindings live in `ViewSwitcher.tsx:102-160` but the exhaustive table is not maintained in this doc. Owner pick: (a) generate from source into this section on each build, OR (b) keep the table in source and link to a generated artifact. Until picked, refer to `ViewSwitcher.tsx:102-160` for the canonical list. The 3 examples above are representative only.
+
+> **NEW-5 — OperationalFrame `<section>` landmark (owner pick required)**: `OperationalFrame` renders a `<section role="region">` (per A4) but does not wrap an inner `<header>` for the title bar. Screen-reader users hear the region name from `aria-label` but the title element is not in a `<header>`. Pick: add nested `<header>` inside `OperationalFrame`, or expose `aria-labelledby` pointing to the title element. See §3 row for `OperationalFrame` and §8.
+
 **Purpose**:
 - Traceability: biết 1 region thuộc owner/floorplan nào
 - Testing: visual regression có thể scope per owner
@@ -755,6 +903,8 @@ export type UiOwnershipMarker = {
 Dự án có 2 design system surfaces:
 1. **Default** (`components/*.css`, `index.css`) — production surface, stable
 2. **Redesign** (`redesign/*.css`) — opt-in feature flag, experimental
+
+> **F6 — current source applies `.ipc-redesign-shell` globally** (owner pick required): this section describes the redesign surface as opt-in, but `MainLayout.tsx:119` currently adds `.ipc-redesign-shell` to the root layout element. Every operational route therefore renders with redesign tokens applied — not opt-in. Owner pick: (a) restore the opt-in model by removing the class from `MainLayout.tsx`, OR (b) update this section to acknowledge the redesign as the production surface. The "shared-owner-compatibility.tsx" fixture still tests both Plain and Redesign ancestors and is valid for owner review. See §4 "Pattern notes", §8, and §20 (NEW-4 ContextStrip 1200px override is a downstream effect of this).
 
 **Opt-in mechanism**:
 - Thêm class `.ipc-redesign-shell` lên ancestor element (root hoặc route container)
@@ -813,14 +963,19 @@ Các surface lặp lại nhiều trong dự án. Pattern tổng quát (không ph
   uiOwnership={{ ownerId: 'uio-1d', floorplanId: 'uif-1d', regionId: 'uir-1d' }}
   title="Đối chiếu"
 >
+  <ReconciliationLifecycleStrip
+    batch={batch}
+    currentStage={batch.stage}
+    onAdvance={handleAdvance}
+  />
   <ContextStrip items={[
     { label: 'Mã đối chiếu', value: batch.code, emphasis: 'strong' },
     { label: 'Trạng thái', value: <StatusBadge status="..." domain="reconciliation" /> },
     { label: 'Số dòng lệch', value: discrepancyCount, tone: 'warning' },
   ]} />
-  
+
   <ReconciliationComparisonTable items={items} />
-  
+
   <ReconciliationDispositionDrawer
     item={selectedItem}
     onClose={...}
@@ -915,11 +1070,3 @@ Dự án dùng `FieldRow` + `FieldError` + native form validation.
 - Thêm/xóa design token trong `styles/index.css`
 - Đổi rule ID trong `docs/DESIGN.md`
 - Owner pick decision ở section 8
-
-## 10. Không tự ý
-
-- KHÔNG tạo visual world mới (per `docs/DESIGN.md` "Do not clone external Fiori/Carbon/ISA visual branding")
-- KHÔNG tạo density policy mới (T8 = OWNER_DECISION_REQUIRED)
-- KHÔNG dùng modal cho non-blocking task (M1.1)
-- KHÔNG clone specimen làm production authority
-- KHÔNG modify working code mà chưa có current scope + authorization
