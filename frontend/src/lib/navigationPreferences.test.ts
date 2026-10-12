@@ -75,6 +75,9 @@ describe('navigation display preferences', () => {
     const descriptor = Object.getOwnPropertyDescriptor(window, 'localStorage');
     Object.defineProperty(window, 'localStorage', { configurable: true, get: () => { throw new DOMException('blocked', 'SecurityError'); } });
     try {
+      expect(() => readNavigationPreferences()).not.toThrow();
+      expect(() => readPageTabPreferences()).not.toThrow();
+      expect(() => readReconciliationSelection()).not.toThrow();
       expect(() => writeNavigationPreferences(defaultNavigationPreferences)).not.toThrow();
       expect(() => resetNavigationPreferences()).not.toThrow();
       expect(() => writeReconciliationSelection({ batchId: 'batch-1' })).not.toThrow();

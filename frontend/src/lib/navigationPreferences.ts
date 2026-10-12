@@ -34,7 +34,7 @@ export const defaultNavigationPreferences: NavigationPreferences = {
   'approval-rules': true,
 };
 
-export const readNavigationPreferences = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage): NavigationPreferences => {
+export const readNavigationPreferences = (storage: Storage | undefined = browserStorage()): NavigationPreferences => {
   if (!storage) return { ...defaultNavigationPreferences };
   try {
     const parsed: unknown = JSON.parse(storage.getItem(NAVIGATION_PREFERENCES_STORAGE_KEY) ?? '{}');
@@ -76,7 +76,7 @@ export interface ReconciliationSelectionPreferences {
   weekEndDate?: string;
 }
 
-export const readReconciliationSelection = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage): ReconciliationSelectionPreferences => {
+export const readReconciliationSelection = (storage: Storage | undefined = browserStorage()): ReconciliationSelectionPreferences => {
   if (!storage) return {};
   try {
     const parsed: unknown = JSON.parse(storage.getItem(RECONCILIATION_SELECTION_STORAGE_KEY) ?? '{}');
@@ -132,7 +132,7 @@ export const ADMIN_TAB_PREFERENCES_STORAGE_KEY = 'ipc.admin-tab-preferences.v1';
 export const defaultAdminTabPreferences: Record<AdminTabPreferenceKey, boolean> = {
   'bom-import': true, contracts: true, cleanup: true, inventory: true, statistics: true, audit: true, employees: true,
 };
-export const readAdminTabPreferences = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage) => {
+export const readAdminTabPreferences = (storage: Storage | undefined = browserStorage()) => {
   if (!storage) return { ...defaultAdminTabPreferences };
   try {
     const parsed: unknown = JSON.parse(storage.getItem(ADMIN_TAB_PREFERENCES_STORAGE_KEY) ?? '{}');
@@ -164,7 +164,7 @@ export type PageTabPreferences = Record<string, Record<string, boolean>>;
 export const PAGE_TAB_PREFERENCES_STORAGE_KEY = 'ipc.page-tab-preferences.v1';
 export const defaultPageTabPreferences: PageTabPreferences = Object.fromEntries(pageTabGroups.map((group) => [group.id, Object.fromEntries(group.tabs.map(([id]) => [id, true]))]));
 
-export const readPageTabPreferences = (storage: Storage | undefined = typeof window === 'undefined' ? undefined : window.localStorage): PageTabPreferences => {
+export const readPageTabPreferences = (storage: Storage | undefined = browserStorage()): PageTabPreferences => {
   if (!storage) return structuredClone(defaultPageTabPreferences);
   let parsed: unknown = {};
   try { parsed = JSON.parse(storage.getItem(PAGE_TAB_PREFERENCES_STORAGE_KEY) ?? '{}'); } catch { parsed = {}; }

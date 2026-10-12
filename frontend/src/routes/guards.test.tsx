@@ -10,6 +10,8 @@ import authReducer from '@/lib/auth/authSlice';
 import ForbiddenPage from '../features/auth/pages/ForbiddenPage';
 import type { User } from '@/lib/auth/authTypes';
 import { ROUTES } from '../lib/routeConfig';
+import { SystemOperationContext } from '@/lib/systemOperationContext';
+import type { SystemOperationSnapshot } from '@/lib/systemOperationTypes';
 import { ActionGuard } from '@/components/common/ActionGuard';
 import { RoleGuard } from './RoleGuard';
 
@@ -127,6 +129,45 @@ describe('RoleGuard permission decisions', () => {
 
     expect(screen.getByText('Forbidden')).toBeInTheDocument();
     expect(screen.queryByText('Purchasing')).not.toBeInTheDocument();
+  });
+
+  it('redirects to forbidden page in MATERIAL_RECONCILIATION mode when role is outside route reconciliationRoles', () => {
+    const mrxSnapshot: SystemOperationSnapshot = {
+      mode: 'MATERIAL_RECONCILIATION',
+      label: 'Đối chiếu nguyên liệu',
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      reasonRequired: false,
+      capabilities: {
+        navigation: ['dashboard', 'weekly-menu', 'warehouse', 'reconciliation', 'admin-data'],
+        pageTabs: {
+          'weekly-menu': ['schedule', 'material-demand'],
+          warehouse: ['demand', 'movement'],
+          'admin-data': ['bom-import', 'audit'],
+        },
+      },
+    };
+
+    renderWithStore(
+      <SystemOperationContext.Provider value={mrxSnapshot}>
+        <Routes>
+          <Route
+            path={ROUTES.WAREHOUSE}
+            element={(
+              <RoleGuard requiredPermissions={['warehouse.read']}>
+                <span>Warehouse</span>
+              </RoleGuard>
+            )}
+          />
+          <Route path={ROUTES.FORBIDDEN} element={<span>Forbidden</span>} />
+        </Routes>
+      </SystemOperationContext.Provider>,
+      { user: buildUser({ role: 'quanly', permissions: ['warehouse.read'] }), isAuthenticated: true },
+      ROUTES.WAREHOUSE,
+    );
+
+    expect(screen.getByText('Forbidden')).toBeInTheDocument();
+    expect(screen.queryByText('Warehouse')).not.toBeInTheDocument();
   });
 });
 
