@@ -188,3 +188,116 @@ export const visibleTabIds = (groupId: PageTabGroupId, preferences = readPageTab
   const group = pageTabGroups.find((candidate) => candidate.id === groupId);
   return group?.tabs.filter(([id]) => preferences[groupId]?.[id] !== false).map(([id]) => id) ?? [];
 };
+
+/* ------------------------------------------------------------------ *
+ * v2 (G4 batch B): flat leaf keys for nested sidebar.
+ *
+ *   - Primary: same as v1 ('dashboard', 'weekly-menu', ...).
+ *   - Leaf:    '${groupId}.${tabId}' (e.g. 'warehouse.receiving').
+ *
+ * Flat+prefixed avoids collisions when multiple groups expose a tab
+ * with the same local id ('demand' in weekly-menu, warehouse, reports).
+ *
+ * The v2 reader is the only thing that should look at localStorage in
+ * future code; legacy v1 and `pageTabGroups` callers keep their own
+ * v1 keys until batch E retires them.
+ * ------------------------------------------------------------------ */
+
+export const NAVIGATION_PREFERENCES_V2_STORAGE_KEY = 'ipc.navigation-preferences.v2';
+
+export type LeafPreferenceKey = NavigationPreferenceKey | `${PageTabGroupId}.${string}`;
+
+export type NavigationPreferencesV2 = Record<string, boolean>;
+
+const flattenTabId = (groupId: PageTabGroupId, tabId: string): LeafPreferenceKey =>
+  `${groupId}.${tabId}` as LeafPreferenceKey;
+
+export const defaultNavigationPreferencesV2: NavigationPreferencesV2 = (() => {
+  const defaults: NavigationPreferencesV2 = { ...defaultNavigationPreferences };
+  for (const group of pageTabGroups) {
+    for (const [tabId] of group.tabs) {
+      defaults[flattenTabId(group.id, tabId)] = true;
+    }
+  }
+  return defaults;
+})();
+
+const readJsonObject = (raw: string | null): Record<string, unknown> => {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+};
+
+const parseV2Stored = (raw: string | null): NavigationPreferencesV2 => {
+  const parsed = readJsonObject(raw);
+  const result: NavigationPreferencesV2 = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value === 'boolean') result[key] = value;
+  }
+  return result;
+};
+
+/**
+ * Idempotent: copies any v1 primary + v1 page-tab visibility into v2
+ * using flat leaf keys. Keeps v1 keys in place (audit trail + rollback).
+ * No-op when v2 already exists.
+ */
+const migrateV1ToV2 = (storage: Storage | undefined): void => {
+  if (!storage) return;
+  const v2Raw = storage.getItem(NAVIGATION_PREFERENCES_V2_STORAGE_KEY);
+  if (v2Raw !== null) return;
+
+  const v1Primary = readJsonObject(storage.getItem(NAVIGATION_PREFERENCES_STORAGE_KEY));
+  const v1Tabs = readJsonObject(storage.getItem(PAGE_TAB_PREFERENCES_STORAGE_KEY));
+  if (Object.keys(v1Primary).length === 0 && Object.keys(v1Tabs).length === 0) return;
+
+  const merged: NavigationPreferencesV2 = { ...defaultNavigationPreferencesV2 };
+  for (const [key, value] of Object.entries(v1Primary)) {
+    if (typeof value === 'boolean') merged[key] = value;
+  }
+  for (const [groupIdRaw, tabs] of Object.entries(v1Tabs)) {
+    if (!tabs || typeof tabs !== 'object') continue;
+    const groupId = groupIdRaw as PageTabGroupId;
+    if (!pageTabGroups.some((g) => g.id === groupId)) continue;
+    for (const [tabId, value] of Object.entries(tabs as Record<string, unknown>)) {
+      if (typeof value === 'boolean') merged[flattenTabId(groupId, tabId)] = value;
+    }
+  }
+  writeStorage(storage, NAVIGATION_PREFERENCES_V2_STORAGE_KEY, JSON.stringify(merged));
+};
+
+export const readNavigationPreferencesV2 = (
+  storage: Storage | undefined = browserStorage(),
+): NavigationPreferencesV2 => {
+  if (!storage) return { ...defaultNavigationPreferencesV2 };
+  migrateV1ToV2(storage);
+  const stored = parseV2Stored(storage.getItem(NAVIGATION_PREFERENCES_V2_STORAGE_KEY));
+  const result: NavigationPreferencesV2 = { ...defaultNavigationPreferencesV2 };
+  for (const [key, value] of Object.entries(stored)) {
+    if (key in defaultNavigationPreferencesV2 && typeof value === 'boolean') {
+      result[key] = value;
+    }
+  }
+  return result;
+};
+
+export const writeNavigationPreferencesV2 = (
+  preferences: NavigationPreferencesV2,
+  storage: Storage | undefined = browserStorage(),
+) => {
+  const written = writeStorage(
+    storage,
+    NAVIGATION_PREFERENCES_V2_STORAGE_KEY,
+    JSON.stringify(preferences),
+  );
+  if (written && storage === browserStorage()) {
+    window.dispatchEvent(new Event('ipc:navigation-preferences-v2-changed'));
+  }
+};
+
+export const resetNavigationPreferencesV2 = (storage?: Storage) =>
+  writeNavigationPreferencesV2({ ...defaultNavigationPreferencesV2 }, storage);

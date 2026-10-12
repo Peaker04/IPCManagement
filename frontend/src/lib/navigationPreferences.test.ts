@@ -13,6 +13,11 @@ import {
   writePageTabPreferences,
   writeReconciliationSelection,
   clearReconciliationSelection,
+  NAVIGATION_PREFERENCES_V2_STORAGE_KEY,
+  defaultNavigationPreferencesV2,
+  readNavigationPreferencesV2,
+  writeNavigationPreferencesV2,
+  resetNavigationPreferencesV2,
 } from './navigationPreferences';
 
 const storage = () => {
@@ -112,5 +117,71 @@ describe('navigation display preferences', () => {
     preferences.reports.audit = false;
     writePageTabPreferences(preferences, target);
     expect(visibleTabIds('reports', readPageTabPreferences(target))).not.toContain('audit');
+  });
+});
+
+describe('navigation preferences v2 (nested sidebar flat leaf keys)', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('defaults include every primary and every pageTabGroup tab as a flat leaf', () => {
+    const expectedLeafCount = Object.keys(defaultNavigationPreferences).length
+      + pageTabGroups.reduce((sum, group) => sum + group.tabs.length, 0);
+    expect(Object.keys(defaultNavigationPreferencesV2)).toHaveLength(expectedLeafCount);
+    expect(defaultNavigationPreferencesV2['warehouse.receiving']).toBe(true);
+    expect(defaultNavigationPreferencesV2['reports.audit']).toBe(true);
+  });
+
+  it('migrates v1 primary + v1 page-tab preferences into v2 with flat leaf keys', () => {
+    const target = storage();
+    target.setItem('ipc.navigation-preferences.v1', JSON.stringify({ reports: false }));
+    target.setItem('ipc.page-tab-preferences.v1', JSON.stringify({
+      warehouse: { receiving: false, demand: true },
+      reports: { audit: false },
+    }));
+
+    const result = readNavigationPreferencesV2(target);
+
+    expect(result.reports).toBe(false);
+    expect(result['warehouse.receiving']).toBe(false);
+    expect(result['warehouse.demand']).toBe(true);
+    expect(result['reports.audit']).toBe(false);
+    expect(result['warehouse.exceptions']).toBe(true);
+    expect(target.getItem(NAVIGATION_PREFERENCES_V2_STORAGE_KEY)).not.toBeNull();
+    // v1 keys preserved (audit + rollback), migration is additive
+    expect(target.getItem('ipc.navigation-preferences.v1')).not.toBeNull();
+    expect(target.getItem('ipc.page-tab-preferences.v1')).not.toBeNull();
+  });
+
+  it('round-trips boolean v2 settings and ignores unknown keys on read', () => {
+    const target = storage();
+    const next = { ...readNavigationPreferencesV2(target), reports: false, 'warehouse.receiving': false, 'unknown.key': true };
+    writeNavigationPreferencesV2(next, target);
+    const read = readNavigationPreferencesV2(target);
+    expect(read.reports).toBe(false);
+    expect(read['warehouse.receiving']).toBe(false);
+    expect(read['unknown.key']).toBeUndefined();
+  });
+
+  it('is idempotent: re-running migration does not duplicate v2 entries', () => {
+    const target = storage();
+    target.setItem('ipc.navigation-preferences.v1', JSON.stringify({ reports: false }));
+    const first = readNavigationPreferencesV2(target);
+    const second = readNavigationPreferencesV2(target);
+    expect(second).toEqual(first);
+  });
+
+  it('resetNavigationPreferencesV2 restores defaults without touching v1 keys', () => {
+    const target = storage();
+    target.setItem('ipc.navigation-preferences.v1', JSON.stringify({ reports: false }));
+    writeNavigationPreferencesV2({ ...readNavigationPreferencesV2(target), reports: false }, target);
+    resetNavigationPreferencesV2(target);
+    expect(readNavigationPreferencesV2(target).reports).toBe(true);
+    expect(target.getItem('ipc.navigation-preferences.v1')).not.toBeNull();
+  });
+
+  it('returns defaults without a storage backend and does not throw', () => {
+    expect(readNavigationPreferencesV2(undefined)).toEqual(defaultNavigationPreferencesV2);
+    expect(() => writeNavigationPreferencesV2(defaultNavigationPreferencesV2, undefined)).not.toThrow();
+    expect(() => resetNavigationPreferencesV2(undefined)).not.toThrow();
   });
 });
