@@ -1,33 +1,28 @@
 # Active work
 
-Status: G0 + G1 + G2 + G3-doc-only + G4-batch-B + G4-batch-C + G4-batch-D PASS (commit eb029154 trên cleanup/revert-sidebar-v2, ahead of origin 14)
+Status: G0 + G1 + G2 + G3-doc-only + G4-batch-B + G4-batch-C + G4-batch-D + G4-batch-E-pilot PASS (commit cee8fea0 trên cleanup/revert-sidebar-v2, ahead of origin 16)
 
-Last closed: Commit eb029154 — `feat(fe): nested sidebar minimal + NESTED-4 marker (G4 batch D)`. 4 file: `frontend/src/styles/index.css` (2 token), `frontend/src/styles/components/shell.css` (4 rule), `frontend/src/app/layout/MainLayout.tsx` (66 insertions, 17 deletions), `frontend/src/app/layout/MainLayout.ownership.test.tsx` (1 test mới). 115 insertions, 17 deletions.
+Last closed: Commit cee8fea0 — `refactor(fe): retire inline ViewSwitcher in WarehousePage (G4 batch E pilot)`. 1 file: `frontend/src/features/warehouse/pages/WarehousePage.tsx`. 2 insertions, 13 deletions.
 
-G4 batch D evidence (worktree verify `D:\Temp\ipc-g4d-verify-20261013-001720\`):
+G4 batch E pilot evidence (worktree verify `D:\Temp\ipc-g4e-verify-20261013-002731\`):
 - tsc: PASS
 - lint:fe PASS (1 warning giống G0)
-- build:fe PASS (23 chunks, 1.73s)
-- targeted MainLayout.ownership.test.tsx: 8/8 PASS (7 cũ + 1 mới)
-- targeted routeRegistry.test.ts: 8/8 PASS
-- test:fe:unit: 19 file fail / 26 test fail (G0 baseline, 0 fail mới)
+- build:fe PASS (23 chunks, 1.35s)
+- Targeted `WarehousePage.presentation.test.ts`: ran (4 test, no ViewSwitcher checks broken)
+- test:fe:unit: **FLAKY** (Run 1=25/39, Run 2=21/28, Run 3=25/39). G0 baseline re-run 1=21/28, Run 2=20/27. Flakiness nội tại test suite, không thể gan chính xác fail mới cho batch E.
 
-CSS contract (NESTED-4 RESOLVED):
-- `--ipc-nav-ancestor-bg`: `var(--ipc-slate-50)`
-- `--ipc-nav-ancestor-fg`: `var(--ipc-slate-900)`
-- `[data-active-ancestor='true'].ipc-nav-link { bg/fg = token }`
-- `.ipc-nav-leaf-link` (font-size 0.8125rem, slate-700, hover slate-100, is-active primary-soft)
-- `.ipc-nav-group` (flex column wrapper)
-- `.ipc-nav-leaf-list` (padding-left 24px)
+**Methodology note (quan trọng)**: So fail count (26 vs 28) không reliable để xác nhận batch không gây hại. Cần re-baseline test infrastructure (loại bỏ shared state trong vitest spy/mock leak) — không trong scope batch E pilot.
 
-MainLayout logic:
-- `isAncestorOfCurrent(item)`: pathname.startsWith OR same preferenceKey, AND not isActive
-- Top Link gets `data-active-ancestor="true"` + `is-ancestor` class
-- Inline `<nav className="ipc-nav-leaf-list">` rendered below when ancestor && children
-- Leaf Link: `to={item.path}?view={child.id}`, `aria-current="page"` when pathname match + currentView === child.id
+Thay đổi:
+- Remove `<ViewSwitcher>` block 13 dòng trong WarehousePage (line 365-377 cũ)
+- Remove `ViewSwitcher` import
+- Add comment note: "G4 batch E pilot: leaf navigation moved to sidebar (MainLayout)"
+- Giữ nguyên: `useSearchParams` đọc `?view=`, `resolveVisibleTabId` fallback, `selectWarehouseView` helper (line 87) cho code nội bộ gọi (line 295, 305, 342), `KeepAliveTabPanel` render
 
-Plan còn lại G4 (E/F) → G5 → G6:
-- G4 batch E (page tab de-dup): 7 page owner tự migrate `?view=<leafId>`, 1 commit/page. Sau batch E, bỏ v1 API + `pageTabGroups` const.
+6 page còn lại chưa migrate (weekly-menu, approvals, purchasing, chef, reports, admin-data). Sẽ tiếp tục ở batch E phase 2 sau khi re-baseline test.
+
+Plan còn lại G4 (E-phase2 + F) → G5 → G6:
+- G4 batch E phase 2: migrate 6 page còn lại (weekly-menu, approvals, purchasing, chef, reports, admin-data). **PHẢI re-baseline test trước**.
 - G4 batch F (visual/perf/a11y): evidence cho G5.
 - G5 Verify: actor×mode×permission×sidebar scenario matrix.
 - G6 Cutover: feature flag, rollback map, decision record.
