@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '@/features/auth';
 import { IdleSessionGuard } from '@/features/auth/components/IdleSessionGuard';
@@ -115,6 +115,15 @@ const MainLayoutContent = () => {
     }
   };
 
+  const [searchParams] = useSearchParams();
+  const currentView = searchParams.get('view');
+
+  const isAncestorOfCurrent = (item: typeof menuItems[number]): boolean => {
+    if (location.pathname === item.path) return false;
+    if (!item.children) return false;
+    return location.pathname.startsWith(item.path) || routeMetadata?.preferenceKey === item.preferenceKey;
+  };
+
   return (
     <div className="ipc-app-shell ipc-redesign-shell">
       <IdleSessionGuard onLogout={handleLogout} />
@@ -150,24 +159,47 @@ const MainLayoutContent = () => {
         >
           {visibleMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const ancestor = isAncestorOfCurrent(item);
             const Icon = item.icon!;
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                onPointerEnter={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
-                onFocus={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
-                onTouchStart={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
-                onClick={() => setIsMobileNavOpen(false)}
-                aria-current={isActive ? 'page' : undefined}
-                className={[
-                  'ipc-nav-link',
-                  isActive ? 'is-active' : '',
-                ].join(' ')}
-              >
-                <span className="ipc-nav-icon"><Icon size={18} /></span>
-                <span className="ipc-nav-label">{item.navLabel}</span>
-              </Link>
+              <div key={item.path} className="ipc-nav-group">
+                <Link
+                  to={item.path}
+                  onPointerEnter={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
+                  onFocus={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
+                  onTouchStart={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}
+                  onClick={() => setIsMobileNavOpen(false)}
+                  aria-current={isActive ? 'page' : undefined}
+                  data-active-ancestor={ancestor || undefined}
+                  className={[
+                    'ipc-nav-link',
+                    isActive ? 'is-active' : '',
+                    ancestor ? 'is-ancestor' : '',
+                  ].join(' ')}
+                >
+                  <span className="ipc-nav-icon"><Icon size={18} /></span>
+                  <span className="ipc-nav-label">{item.navLabel}</span>
+                </Link>
+                {ancestor && item.children && (
+                  <nav aria-label={`${item.navLabel} sub-navigation`} className="ipc-nav-leaf-list">
+                    {item.children.map((child) => {
+                      const leafPath = `${item.path}?view=${child.id}`;
+                      const leafActive = location.pathname === item.path && currentView === child.id;
+                      return (
+                        <Link
+                          key={child.id}
+                          to={leafPath}
+                          onClick={() => setIsMobileNavOpen(false)}
+                          aria-current={leafActive ? 'page' : undefined}
+                          className={['ipc-nav-leaf-link', leafActive ? 'is-active' : ''].join(' ')}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                )}
+              </div>
             );
           })}
         </nav>

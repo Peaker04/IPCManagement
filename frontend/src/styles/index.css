@@ -193,6 +193,8 @@
   --ipc-space-7: 28px;
   --ipc-space-8: 32px;
   --ipc-shell-width: 248px;
+  --ipc-nav-ancestor-bg: var(--ipc-slate-50);
+  --ipc-nav-ancestor-fg: var(--ipc-slate-900);
   --ipc-radius-sm: 2px;
   --ipc-radius-md: 3px;
   --ipc-radius-lg: 4px;

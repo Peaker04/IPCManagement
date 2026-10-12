@@ -745,3 +745,48 @@ body.ipc-modal-open main {
     overflow-y: scroll;
   }
 }
+
+/* G4 batch D: nested sidebar leaf list (NESTED-4) */
+.ipc-nav-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.ipc-nav-leaf-list {
+  display: flex;
+  flex-direction: column;
+  padding-left: 24px;
+  margin: 0;
+  list-style: none;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.ipc-nav-leaf-link {
+  display: block;
+  padding: 4px 8px 4px 12px;
+  font-size: 0.8125rem;
+  color: var(--ipc-slate-700);
+  text-decoration: none;
+  border-radius: var(--ipc-radius-sm);
+  transition: background-color 0.1s ease;
+}
+
+.ipc-nav-leaf-link:hover {
+  background: var(--ipc-slate-100);
+  color: var(--ipc-slate-900);
+}
+
+.ipc-nav-leaf-link.is-active {
+  background: var(--ipc-primary-soft, #e8f1ff);
+  color: var(--ipc-primary-700, #1d4ed8);
+  font-weight: 500;
+}
+
+/* NESTED-4 active-ancestor marker: data-active-ancestor on top nav link */
+[data-active-ancestor='true'].ipc-nav-link,
+.ipc-nav-link.is-ancestor {
+  background: var(--ipc-nav-ancestor-bg);
+  color: var(--ipc-nav-ancestor-fg);
+  border-radius: var(--ipc-radius-md);
+}

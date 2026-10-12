@@ -43,6 +43,25 @@ describe('MainLayout ownership and behavior contract', () => {
     });
   });
 
+  it('preloads only a route for which the user has shown navigation intent', () => {
+    expect(currentLayoutSource).not.toContain('requestIdleCallback');
+    expect(currentLayoutSource).not.toContain('scheduleNextRoute');
+    expect(currentLayoutSource).not.toContain('visibleMenuItems[nextRouteIndex]');
+  });
+
+  // G4 batch D: nested sidebar minimal (NESTED-4)
+  it('renders nested leaf nav when route has children', () => {
+    // Top-level nav link carries data-active-ancestor marker
+    expect(currentLayoutSource).toContain('data-active-ancestor=');
+    // Leaf list uses ?view= query param
+    expect(currentLayoutSource).toContain('?view=');
+    // Leaf nav uses ipc-nav-leaf-list class
+    expect(currentLayoutSource).toContain('ipc-nav-leaf-list');
+    expect(currentLayoutSource).toContain('ipc-nav-leaf-link');
+    // Wraps each nav item in ipc-nav-group div
+    expect(currentLayoutSource).toContain('ipc-nav-group');
+  });
+
   it('does not rerender the app shell for every feature query transition', () => {
     expect(currentLayoutSource).not.toContain('Object.values(state.api.queries)');
     expect(currentLayoutSource).not.toContain('activeRequestCount');
