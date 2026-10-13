@@ -52,3 +52,28 @@ UI audit (`test:ui-audit`) NOT executed: same authorization boundary.
 F phase evidence owner: requires separate lane 5 (Component/accessibility) + lane 7 (Operational/security/performance) authorization per [ENGINEERING.md] §"Seven risk-based verification lanes". Not pursued in current session.
 
 Re-baseline of flaky test infrastructure also remains a separate NEEDS_EVIDENCE — see commit a526375a for tooling risk notes.
+
+## G5 Verify: DEFERRED
+
+Per [AGENTS.md] workflow, each phase requires fresh intake + plan. G5 (actor×mode×permission×sidebar scenario matrix) is a new evidence-collection phase that needs:
+- 7 risk-based verification lanes per [ENGINEERING.md]
+- Lane 1 Unit (33/33 already collected) ✓
+- Lane 5 Component/accessibility (needs browser) → blocked by F NEEDS_EVIDENCE
+- Lane 6 E2E/business flow (needs headed Chrome + actual server) → blocked by auth
+- Lane 7 Operational/security/performance/recovery (needs OPERATIONS auth) → blocked
+
+No existing matrix contract in repo (grep'd for `actor.*mode.*permission`, `scenarioMatrix`). G5 entry deferred to a fresh session with separate auth for browser probes and OPERATIONS approval.
+
+## G6 Cutover: DEFERRED
+
+G6 requires feature flag, rollback map, decision record per [ROADMAP.md] acceptance boundary "Explicit cutover authorization with mounted functional, accessibility, data-integrity and measured performance acceptance". F + G5 evidence are NEEDS_EVIDENCE; cutover authorization cannot proceed without them.
+
+## Current session scope limits
+
+- Branch: cleanup/revert-sidebar-v2 (ahead of origin 23)
+- Last 7 commits: 5 batch E refactors + 2 WORK.md updates
+- G4 batch E phase 2: PASS (5 page-level ViewSwitcher retired, 33/33 targeted tests)
+- F phase: NEEDS_EVIDENCE (browser auth + visual test infrastructure issue separate)
+- G5/G6: DEFERRED to fresh session with separate authorization
+
+Scope limits (unchanged): no push/deploy/seed/sửa backend policy/thay `.ipc-redesign-shell` (FE-03 chờ F6). Mỗi thay đổi UI bám canonical owner. Một concept một owner. Không lấy SidebarNavigationSpecimen làm authority.
