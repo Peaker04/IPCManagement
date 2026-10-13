@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Info, Plus, Trash2 } from 'lucide-react'
-import { EmptyState, InfoNote, InlineAlert, OperationalFrame, PaginationBar, RefreshStatus, SearchField, SectionPanel, StatusBadge, TableSkeleton, TabContentSkeleton, TableViewport, ViewSwitcher } from '@/components/common'
+import { EmptyState, InfoNote, InlineAlert, OperationalFrame, PaginationBar, RefreshStatus, SearchField, SectionPanel, StatusBadge, TableSkeleton, TabContentSkeleton, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
 import { Input } from '@/components/ui/input'
@@ -784,7 +784,7 @@ export default function ReconciliationWarehousePage() {
       )}
       {batchId && !batchQuery.isLoading && !batchQuery.isError && !batch && <section className="rounded-lg border border-slate-200 bg-white p-6"><h2 className="font-semibold">Không tìm thấy lô đối chiếu đã chọn</h2><p className="mt-2 text-sm text-slate-600">Liên kết có thể đã cũ hoặc lô không còn thuộc phạm vi hiện tại.</p><Link className="ipc-button ipc-button-primary mt-4" to={buildWeeklyMenuRoute({ view: 'demand' })}>Mở Định lượng xuất kho</Link></section>}
       {batchId && batch && activeView && !batchQuery.isLoading && !batchQuery.isError && <>
-        <ViewSwitcher compact ariaLabel="Chọn góc nhìn kho đối chiếu" tabs={tabs.map((id) => ({ id: `warehouse-${id}`, label: id === 'demand' ? 'Danh sách cần xuất' : 'Lịch sử xuất kho' }))} activeTab={`warehouse-${activeView}`} onTabChange={(id) => updateRoute({ view: id.replace('warehouse-', '') as ReconciliationWarehouseView })} />
+        {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout). */}
         {activeView === 'demand' && !dailyProjection && dailyQuery.isError && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><InlineAlert role="alert" variant="danger" action={<Button type="button" variant="link" className="h-auto p-0" onClick={() => void dailyQuery.refetch()}>Thử lại</Button>}>Không tải được định lượng xuất kho theo ngày. Lịch sử và thông tin lô vẫn có thể xem.</InlineAlert></div>}
         {activeView === 'demand' && dailyProjection && !dailyProjection.compatibility.canIssueByDate && <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"><EmptyState
           variant="empty"
