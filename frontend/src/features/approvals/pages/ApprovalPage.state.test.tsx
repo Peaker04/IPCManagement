@@ -166,9 +166,16 @@ const renderPage = () => render(
   </MemoryRouter>,
 );
 
-const openHistory = () => {
-  fireEvent.click(screen.getByRole('tab', { name: 'Lịch sử đề xuất mua' }));
-};
+// G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout);
+// tests now drive the history view via ?view= history instead of the
+// retired in-page <ViewSwitcher tab> control.
+const renderHistoryView = () => render(
+  <MemoryRouter initialEntries={['/approvals?view=history']}>
+    <ToastProvider>
+      <ApprovalPage />
+    </ToastProvider>
+  </MemoryRouter>,
+);
 
 describe('ApprovalPage query state boundary', () => {
   it('does not present a global workflow-document list as selected approval detail', async () => {
@@ -385,8 +392,7 @@ describe('ApprovalPage query state boundary', () => {
       isLoading: true,
     });
 
-    renderPage();
-    openHistory();
+    renderHistoryView();
 
     expect(await screen.findByText('Đang tải danh sách đề xuất mua hàng...')).toHaveAttribute('role', 'status');
     expect(screen.queryByLabelText('Tiến trình phê duyệt')).toBeNull();
@@ -395,8 +401,7 @@ describe('ApprovalPage query state boundary', () => {
   it('renders purchase-request forbidden on the history tab without a false empty list', async () => {
     mocks.getPurchaseRequests.mockReturnValue(failedQuery(403));
 
-    renderPage();
-    openHistory();
+    renderHistoryView();
 
     expect(await screen.findByText('Bạn không có quyền xem danh sách đề xuất mua hàng.')).toBeInTheDocument();
     expect(screen.queryByText('Không có đề xuất mua hàng nào.')).toBeNull();
@@ -404,8 +409,7 @@ describe('ApprovalPage query state boundary', () => {
   });
 
   it('keeps approval history uninitialized until a purchase request is selected', async () => {
-    renderPage();
-    openHistory();
+    renderHistoryView();
 
     expect(await screen.findByText('Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt')).toBeInTheDocument();
     expect(screen.queryByText('Không tìm thấy bước duyệt nào.')).toBeNull();
@@ -413,8 +417,7 @@ describe('ApprovalPage query state boundary', () => {
 
   it('moves keyboard focus to selected history detail and restores it on close', async () => {
     const user = userEvent.setup();
-    renderPage();
-    openHistory();
+    renderHistoryView();
 
     const requestButton = await screen.findByRole('button', { name: /PR-001/ });
     requestButton.focus();
@@ -431,8 +434,7 @@ describe('ApprovalPage query state boundary', () => {
       ? uninitializedQuery()
       : failedQuery(403));
 
-    renderPage();
-    openHistory();
+    renderHistoryView();
     fireEvent.click(await screen.findByRole('button', { name: /PR-001/ }));
 
     expect(await screen.findByText('Bạn không có quyền xem lịch sử phê duyệt.')).toBeInTheDocument();
@@ -444,8 +446,7 @@ describe('ApprovalPage query state boundary', () => {
       ? uninitializedQuery()
       : readyQuery(historyResponse, { isFetching: true }));
 
-    renderPage();
-    openHistory();
+    renderHistoryView();
     fireEvent.click(await screen.findByRole('button', { name: /PR-001/ }));
 
     expect(await screen.findByText('Quản lý vận hành')).toBeInTheDocument();

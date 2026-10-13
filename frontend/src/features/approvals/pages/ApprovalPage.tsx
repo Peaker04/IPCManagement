@@ -5,7 +5,6 @@ import { KeepAliveTabPanel } from '@/components/common/KeepAliveTabPanel';
 import { OperationalFrame } from '@/components/common/OperationalFrame';
 import { SectionPanel } from '@/components/common/SectionPanel';
 import { useToast } from '@/components/common/useToast';
-import { ViewSwitcher } from '@/components/common/ViewSwitcher';
 import { TabContentSkeleton } from '@/components/common/TabContentSkeleton';
 import { toQueryView } from '@/lib/queryView';
 import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetApprovalHistoryQuery } from '@/api/approvalsApi';
@@ -26,7 +25,7 @@ const MenuAmendmentReconciliation = lazy(() => import('../components/MenuAmendme
 
 export default function ApprovalPage() {
   const { toast } = useToast();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const queueFocusRef = useRef<HTMLDivElement>(null);
   const decisionTriggerRef = useRef<HTMLElement | null>(null);
   const approvalTabIds = visibleTabIds('approvals') as Array<'queue' | 'history'>;
@@ -39,11 +38,6 @@ export default function ApprovalPage() {
       : requestedView === 'amendments'
         ? 'amendments'
         : approvalTabIds.includes('queue') ? 'queue' : approvalTabIds.includes('history') ? 'history' : 'amendments';
-  const selectView = (view: ApprovalView) => {
-    const next = new URLSearchParams(searchParams);
-    next.set('view', view);
-    setSearchParams(next);
-  };
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   const [approvalPagination, setApprovalPagination] = useState<{ scopeKey: string; cursors: string[] }>({ scopeKey: '', cursors: [] });
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
@@ -241,18 +235,7 @@ export default function ApprovalPage() {
 
   return (
     <OperationalFrame>
-      <ViewSwitcher
-        compact
-        ariaLabel="Chọn góc nhìn duyệt vận hành"
-        tabs={[
-          { id: 'approval-amendments', label: 'Điều chỉnh thực đơn' },
-          ...(approvalTabIds.includes('queue') ? [{ id: 'approval-queue', label: 'Duyệt chứng từ' }] : []),
-          ...(approvalTabIds.includes('history') ? [{ id: 'approval-history', label: 'Lịch sử đề xuất mua' }] : []),
-        ]}
-        activeTab={`approval-${activeView}`}
-        onTabChange={(id) => selectView(id.replace('approval-', '') as ApprovalView)}
-      />
-
+      {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout) */}
       <div className="flex-1 min-h-0 flex flex-col">
         <KeepAliveTabPanel
           id="approval-amendments"
