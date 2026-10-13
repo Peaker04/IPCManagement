@@ -154,6 +154,17 @@
   --color-status-warning-hover: var(--ipc-color-status-warning-hover);
   --color-status-warning-border: var(--ipc-color-status-warning-border);
   --color-status-warning-foreground: var(--ipc-color-status-warning-foreground);
+  --color-slate-50: var(--ipc-slate-50);
+  --color-slate-100: var(--ipc-slate-100);
+  --color-slate-200: var(--ipc-slate-200);
+  --color-slate-300: var(--ipc-slate-300);
+  --color-slate-400: var(--ipc-slate-400);
+  --color-slate-500: var(--ipc-slate-500);
+  --color-slate-600: var(--ipc-slate-600);
+  --color-slate-700: var(--ipc-slate-700);
+  --color-slate-800: var(--ipc-slate-800);
+  --color-slate-900: var(--ipc-slate-900);
+  --color-slate-950: var(--ipc-slate-950);
   --radius-sm: calc(var(--radius) * 0.75);
   --radius-md: var(--radius);
   --radius-lg: calc(var(--radius) * 1.25);
@@ -184,6 +195,7 @@
   --ipc-slate-700: #334155;
   --ipc-slate-800: #1e293b;
   --ipc-slate-900: #0f172a;
+  --ipc-slate-950: #020618;
   --ipc-space-1: 4px;
   --ipc-space-2: 8px;
   --ipc-space-3: 12px;
@@ -723,8 +735,6 @@ code {
   font-size: var(--text-table-header);
   line-height: var(--text-table-header--line-height);
   font-weight: var(--text-table-header--font-weight);
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
   color: #334155;
   padding: 0.5rem 0.75rem;
   white-space: nowrap;

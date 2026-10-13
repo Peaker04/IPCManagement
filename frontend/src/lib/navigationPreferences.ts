@@ -61,6 +61,10 @@ const removeStorage = (storage: Storage | undefined, key: string) => {
 
 export const writeNavigationPreferences = (preferences: NavigationPreferences, storage: Storage | undefined = browserStorage()) => {
   const written = writeStorage(storage, NAVIGATION_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+  if (storage?.getItem(NAVIGATION_PREFERENCES_V2_STORAGE_KEY) !== null) {
+    const v2 = parseV2Stored(storage?.getItem(NAVIGATION_PREFERENCES_V2_STORAGE_KEY) ?? null);
+    writeStorage(storage, NAVIGATION_PREFERENCES_V2_STORAGE_KEY, JSON.stringify({ ...defaultNavigationPreferencesV2, ...v2, ...preferences }));
+  }
   if (written && storage === browserStorage()) window.dispatchEvent(new Event('ipc:navigation-preferences-changed'));
 };
 
@@ -178,6 +182,16 @@ export const readPageTabPreferences = (storage: Storage | undefined = browserSto
 
 export const writePageTabPreferences = (preferences: PageTabPreferences, storage: Storage | undefined = browserStorage()) => {
   const written = writeStorage(storage, PAGE_TAB_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));
+  if (storage?.getItem(NAVIGATION_PREFERENCES_V2_STORAGE_KEY) !== null) {
+    const nextV2: NavigationPreferencesV2 = { ...defaultNavigationPreferencesV2, ...parseV2Stored(storage?.getItem(NAVIGATION_PREFERENCES_V2_STORAGE_KEY) ?? null) };
+    for (const group of pageTabGroups) {
+      for (const [tabId] of group.tabs) {
+        const val = preferences[group.id]?.[tabId];
+        if (typeof val === 'boolean') nextV2[flattenTabId(group.id, tabId)] = val;
+      }
+    }
+    writeStorage(storage, NAVIGATION_PREFERENCES_V2_STORAGE_KEY, JSON.stringify(nextV2));
+  }
   if (written && storage === browserStorage()) window.dispatchEvent(new Event('ipc:page-tab-preferences-changed'));
 };
 

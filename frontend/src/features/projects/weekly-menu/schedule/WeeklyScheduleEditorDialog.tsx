@@ -126,7 +126,7 @@ export function WeeklyScheduleEditorDialog({
       key={`section-${title}`}
       className={isVegetarian ? 'bg-emerald-50/70 border-y border-emerald-200/70' : 'bg-slate-100/70 border-y border-slate-200'}
     >
-      <td colSpan={scope.displayDays.length + 1} className="px-3 py-1 text-caption font-bold uppercase tracking-wider">
+      <td colSpan={scope.displayDays.length + 1} className="px-3 py-1 text-caption font-bold">
         <span className={isVegetarian ? 'text-emerald-800 font-bold' : 'text-slate-700 font-bold'}>
           {title}
         </span>
@@ -232,7 +232,7 @@ export function WeeklyScheduleEditorDialog({
                 <table className="ipc-data-table w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-700">
-                      <th scope="col" className="p-2.5 font-bold uppercase tracking-wider text-caption w-36 border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
+                      <th scope="col" className="p-2.5 font-bold text-caption w-36 border-r border-slate-200 sticky left-0 bg-slate-50 z-10">
                         Ca & Hạng mục
                       </th>
                       {scope.displayDays.map((day) => (
@@ -246,7 +246,7 @@ export function WeeklyScheduleEditorDialog({
                   <tbody className="divide-y divide-slate-200">
                     {/* CA SÁNG Group */}
                     <tr className="bg-slate-100/80 text-slate-800 font-bold text-caption">
-                      <td colSpan={scope.displayDays.length + 1} className="px-3 py-1.5 uppercase tracking-wider">
+                      <td colSpan={scope.displayDays.length + 1} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-blue-900 font-bold">CA SÁNG</span>
                           {actions.applyServingToShift && hasServings && (
@@ -292,7 +292,7 @@ export function WeeklyScheduleEditorDialog({
 
                     {/* CA CHIỀU Group */}
                     <tr className="bg-slate-100/80 text-slate-800 font-bold text-caption">
-                      <td colSpan={scope.displayDays.length + 1} className="px-3 py-1.5 uppercase tracking-wider">
+                      <td colSpan={scope.displayDays.length + 1} className="px-3 py-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-blue-900 font-bold">CA CHIỀU</span>
                           {actions.applyServingToShift && hasServings && (

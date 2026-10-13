@@ -54,6 +54,34 @@ describe('QueryViewBoundary', () => {
     expect(screen.getByText('Kết quả điều phối').parentElement).toHaveClass('invisible')
   })
 
+  it('renders structured TableSkeleton when loading with geometry="table"', () => {
+    render(
+      <QueryViewBoundary
+        geometry="table"
+        queries={[{ label: 'danh sách nguyên liệu', view: { phase: 'loading' } }]}
+      >
+        <table><tbody><tr><td>Dữ liệu thật</td></tr></tbody></table>
+      </QueryViewBoundary>,
+    )
+    expect(screen.getByRole('table', { name: 'Đang tải danh sách nguyên liệu' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Đang tải danh sách nguyên liệu' })).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('renders custom skeleton prop when provided during loading phase', () => {
+    render(
+      <QueryViewBoundary
+        geometry="section"
+        skeleton={<div data-testid="custom-skeleton">Khung chờ tùy chỉnh</div>}
+        queries={[{ label: 'báo cáo', view: { phase: 'loading' } }]}
+      >
+        <div>Dữ liệu thật</div>
+      </QueryViewBoundary>,
+    )
+    expect(screen.getByTestId('custom-skeleton')).toBeInTheDocument()
+    expect(screen.queryByText('Đang tải báo cáo')).toBeNull()
+  })
+
   it('renders forbidden without retry', () => {
     renderBoundary([{ phase: 'forbidden', message: 'Không có quyền.' }])
     expect(screen.getByRole('alert')).toHaveTextContent('Không có quyền.')

@@ -231,7 +231,7 @@ export default function ReconciliationPage() {
               <div className="flex flex-wrap items-center gap-2">
                 {customers.length > 0 && (
                   <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                    <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Khách hàng:</span>
+                    <span className="text-slate-500 text-caption whitespace-nowrap">Khách hàng:</span>
                     <Select value={selectedCustomerId} onValueChange={(val) => setSelectedCustomerId(val ?? 'ALL')}>
                       <SelectTrigger className="h-8 min-w-[180px] w-auto text-xs" aria-label="Lọc theo khách hàng">
                         <SelectValue placeholder="Khách hàng" className="whitespace-nowrap">{selectedCustomerLabel}</SelectValue>
@@ -249,7 +249,7 @@ export default function ReconciliationPage() {
                 )}
 
                 <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                  <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Năm:</span>
+                  <span className="text-slate-500 text-caption whitespace-nowrap">Năm:</span>
                   <Select value={selectedYear} onValueChange={(val) => setSelectedYear(val ?? 'ALL')}>
                     <SelectTrigger className="h-8 min-w-[125px] w-auto text-xs" aria-label="Lọc theo năm">
                       <SelectValue placeholder="Năm" className="whitespace-nowrap">{selectedYearLabel}</SelectValue>
@@ -264,7 +264,7 @@ export default function ReconciliationPage() {
                 </label>
 
                 <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                  <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Tháng:</span>
+                  <span className="text-slate-500 text-caption whitespace-nowrap">Tháng:</span>
                   <Select value={selectedMonth} onValueChange={(val) => setSelectedMonth(val ?? 'ALL')}>
                     <SelectTrigger className="h-8 min-w-[130px] w-auto text-xs" aria-label="Lọc theo tháng">
                       <SelectValue placeholder="Tháng" className="whitespace-nowrap">{selectedMonthLabel}</SelectValue>
@@ -279,7 +279,7 @@ export default function ReconciliationPage() {
                 </label>
 
                 <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                  <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Trạng thái:</span>
+                  <span className="text-slate-500 text-caption whitespace-nowrap">Trạng thái:</span>
                   <Select value={batchStatusFilter} onValueChange={(val) => setBatchStatusFilter(val ?? 'ALL')}>
                     <SelectTrigger className="h-8 min-w-[170px] w-auto text-xs" aria-label="Lọc theo trạng thái">
                       <SelectValue placeholder="Trạng thái" className="whitespace-nowrap">{selectedStatusLabel}</SelectValue>

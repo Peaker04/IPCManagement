@@ -37,7 +37,7 @@ import {
   useReportsPageModel,
 } from './useReportsPageModel';
 import { StockMovementTable } from '@/components/common/StockMovementTable';
-import { ReportsNavigation } from './ReportsNavigation';
+// Leaf navigation moved to sidebar (MainLayout).
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';
 import { ReportsFilters } from './ReportsFilters';
@@ -111,7 +111,7 @@ const ReportsPage = () => {
         </CommandBar>
       }
     >
-      <ReportsNavigation model={model} />
+      {/* Leaf navigation moved to sidebar (MainLayout). */}
 
       <KeepAliveTabPanel id="reports-price" active={activeView === 'price'} fallback={reportCapabilityFallback}>
         <Suspense fallback={reportCapabilityFallback}><ReportsPricePanel model={model} /></Suspense>

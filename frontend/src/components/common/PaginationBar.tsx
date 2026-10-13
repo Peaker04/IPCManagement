@@ -44,27 +44,24 @@ export function PaginationBar({
     if (isPending || !requestedFocusRef.current) return;
 
     if (anchorRef.current) {
-      const currentTop = nextButtonRef.current?.closest('nav')?.getBoundingClientRect().top;
-      if (currentTop !== undefined) {
-        if (!navigator.userAgent.toLowerCase().includes('jsdom')) {
-          window.scrollTo({ top: Math.max(0, anchorRef.current.scrollY + currentTop - anchorRef.current.top) });
-        }
+      const navEl = nextButtonRef.current?.closest('nav');
+      const currentTop = navEl?.getBoundingClientRect().top;
+      if (currentTop !== undefined && Math.abs(currentTop - anchorRef.current.top) > 1 && !navigator.userAgent.toLowerCase().includes('jsdom')) {
+        const delta = currentTop - anchorRef.current.top;
+        const mainScroller = navEl?.closest('.ipc-main') as HTMLElement | null;
+        if (mainScroller && mainScroller.scrollHeight > mainScroller.clientHeight) mainScroller.scrollTop = Math.max(0, mainScroller.scrollTop + delta);
+        else window.scrollTo({ top: Math.max(0, anchorRef.current.scrollY + delta) });
       }
       anchorRef.current = null;
     }
 
     if (requestedFocusRef.current === 'jump') {
-      jumpButtonRef.current?.focus();
+      jumpButtonRef.current?.focus({ preventScroll: true });
     } else {
-      const preferredButton = requestedFocusRef.current === 'previous'
-        ? previousButtonRef.current
-        : nextButtonRef.current;
-      const fallbackButton = requestedFocusRef.current === 'previous'
-        ? nextButtonRef.current
-        : previousButtonRef.current;
-
-      if (preferredButton && !preferredButton.disabled) preferredButton.focus();
-      else if (fallbackButton && !fallbackButton.disabled) fallbackButton.focus();
+      const preferredButton = requestedFocusRef.current === 'previous' ? previousButtonRef.current : nextButtonRef.current;
+      const fallbackButton = requestedFocusRef.current === 'previous' ? nextButtonRef.current : previousButtonRef.current;
+      if (preferredButton && !preferredButton.disabled) preferredButton.focus({ preventScroll: true });
+      else if (fallbackButton && !fallbackButton.disabled) fallbackButton.focus({ preventScroll: true });
     }
 
     requestedFocusRef.current = null;

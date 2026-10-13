@@ -324,6 +324,7 @@ export function WarehouseExceptionsWorkbench({
 
       <KeepAliveTabPanel id="warehouse-exception-supplemental" active={activeTask === 'supplemental'} className="min-w-0">
       <SectionPanel
+        padded={false}
         title="Yêu cầu cấp nguyên liệu bổ sung"
         icon={<RefreshCw size={18} aria-hidden="true" />}
         description="Kho xử lý theo tồn thực tế; phần thiếu được chuyển thành đề xuất mua có thể truy vết."
@@ -396,6 +397,7 @@ export function WarehouseExceptionsWorkbench({
 
       <KeepAliveTabPanel id="warehouse-exception-returns" active={activeTask === 'returns'} className="min-w-0">
       <SectionPanel
+        padded={false}
         title="Phiếu trả dư và hao hụt chờ kho tiếp nhận"
         icon={<Undo2 size={18} aria-hidden="true" />}
         description="Nguyên liệu trả lại được cộng tồn theo số thực nhận; hao hụt chỉ được ghi vào lịch sử, không cộng tồn."

@@ -59,6 +59,9 @@ export function usePurchaseSummary({
     ? toLabeledQueryView({ ...aggregateResult, data: aggregateResult.currentData, isSuccess: aggregateResult.isSuccess && aggregateResult.currentData !== undefined }, 'tổng hợp mua của tuần')
     : null
   const aggregatePage = queryView?.phase === 'ready' ? queryView.data : undefined
+  const retainedPagerMeta = queryView?.phase === 'loading' && aggregateResult.data
+    ? { totalItems: aggregateResult.data.totalCount, totalPages: aggregateResult.data.totalPages }
+    : undefined
   const presentation = aggregatePage ? {
     ...localPresentation,
     // An empty filtered server result is still a daily handoff view, not the whole-week BOM fallback.
@@ -70,6 +73,16 @@ export function usePurchaseSummary({
     materialRows: [],
     shortageCount: aggregatePage.remainingToIssueCount,
     pendingKitchenCount: aggregatePage.pendingKitchenReceiptCount,
+  } : retainedPagerMeta ? {
+    ...localPresentation,
+    usesDemand: true,
+    totalItems: retainedPagerMeta.totalItems,
+    totalPages: retainedPagerMeta.totalPages,
+    pageIndex,
+    demandRows: [],
+    materialRows: [],
+    shortageCount: 0,
+    pendingKitchenCount: 0,
   } : localPresentation
 
   const exportWarehouseReport = () => {

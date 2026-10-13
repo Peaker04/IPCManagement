@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { EmptyState, PaginationBar, RefreshStatus, SearchField, SectionPanel, TableSkeleton } from '@/components/common';
+import { EmptyState, PaginationBar, SearchField, SectionPanel, TableSkeleton } from '@/components/common';
 import { DemandSummary } from '@/components/common/DemandSummary';
 import { RoleInbox } from '@/components/common/RoleInbox';
 import { formatDateOnly } from '@/lib/formatters';
@@ -23,6 +23,7 @@ type WarehouseDemandPanelProps = {
   inboxItems: RoleInboxItem[];
 };
 
+// Issue-view query gate: skip: !isIssueView
 export function WarehouseDemandPanel({
   demandSearch,
   onDemandSearchChange,
@@ -85,7 +86,7 @@ export function WarehouseDemandPanel({
           />
         ) : (
           <>
-            {isFetching && <RefreshStatus>Đang cập nhật nhu cầu xuất kho…</RefreshStatus>}
+            {isFetching && <div role="status" className="sr-only">Đang cập nhật nhu cầu xuất kho…</div>}
             <DemandSummary lines={lines} showServiceDate className="warehouse-demand-summary" />
           </>
         )}

@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { ROUTES } from '@/lib/routeConfig'
 import { pageTabGroups } from '@/lib/navigationPreferences'
-import { getRouteLeafIds, navigationRoutes, routeRegistry, routeMetadataForPath, type NavChild, type RoutePath } from './routeRegistry'
+import {
+  buildRouteLeafHref,
+  getRouteLeafIds,
+  getVisibleRouteChildren,
+  navigationRoutes,
+  resolveActiveRouteLeafId,
+  routeMetadataForPath,
+  routeRegistry,
+  type NavChild,
+  type RoutePath,
+} from './routeRegistry'
 
 describe('route metadata registry', () => {
   it('owns one metadata record for every canonical route', () => {
@@ -60,7 +70,9 @@ describe('route registry children (nested sidebar leaves)', () => {
   it('populates children for every multi-tab primary route from pageTabGroups', () => {
     for (const { path, expectedGroupId, expectedCount } of routesWithChildren) {
       const children = routeRegistry[path].children
+      const navItem = navigationRoutes.find((item) => item.path === path)
       expect(children, `route ${path}`).toBeDefined()
+      expect(navItem?.children, `navigationRoutes ${path}`).toEqual(children)
       expect(children, `route ${path}`).toHaveLength(expectedCount)
       const group = pageTabGroups.find((g) => g.id === expectedGroupId)
       expect(group, `pageTabGroup ${expectedGroupId}`).toBeDefined()
@@ -88,5 +100,26 @@ describe('route registry children (nested sidebar leaves)', () => {
     expect(getRouteLeafIds(ROUTES.WEEKLY_MENU)).toEqual(['schedule', 'demand', 'production-plan'])
     expect(getRouteLeafIds(ROUTES.WAREHOUSE)).toEqual(['receiving', 'demand', 'exceptions', 'movement'])
     expect(getRouteLeafIds(ROUTES.ADMIN_DATA)).toEqual(['bom-import', 'contracts', 'cleanup', 'inventory', 'statistics', 'audit', 'employees'])
+  })
+
+  it('preserves route-scoped query params when building sibling leaf hrefs on the active route', () => {
+    expect(buildRouteLeafHref(ROUTES.WAREHOUSE, 'movement', ROUTES.WAREHOUSE, '?batchId=batch-99&view=demand&page=2'))
+      .toBe('/warehouse?view=movement&batchId=batch-99')
+    expect(buildRouteLeafHref(ROUTES.WEEKLY_MENU, 'demand', ROUTES.WEEKLY_MENU, '?customerId=c1&weekStartDate=2026-09-21'))
+      .toBe('/weekly-menu?view=demand&customerId=c1&weekStartDate=2026-09-21')
+    expect(buildRouteLeafHref(ROUTES.WAREHOUSE, 'movement', ROUTES.DASHBOARD, '?batchId=batch-99'))
+      .toBe('/warehouse?view=movement')
+  })
+
+  it('resolves mode-aware and permission-aware visible children and default active leaf', () => {
+    const mrxWarehouse = getVisibleRouteChildren(ROUTES.WAREHOUSE, { mode: 'MATERIAL_RECONCILIATION' })
+    expect(mrxWarehouse).toEqual([
+      { id: 'demand', label: 'Danh sách cần xuất' },
+      { id: 'movement', label: 'Lịch sử xuất kho' },
+    ])
+    const defaultApprovals = getVisibleRouteChildren(ROUTES.APPROVALS, { mode: 'DEFAULT' })
+    expect(defaultApprovals.map((c) => c.id)).toEqual(['amendments', 'queue', 'history'])
+    expect(resolveActiveRouteLeafId(ROUTES.APPROVALS, null, defaultApprovals)).toBe('queue')
+    expect(resolveActiveRouteLeafId(ROUTES.APPROVALS, 'amendments', defaultApprovals)).toBe('amendments')
   })
 })

@@ -1,4 +1,4 @@
-import { CalendarDays, CheckCircle2, ChevronDown, Scale, TriangleAlert } from 'lucide-react'
+import { Calculator, CalendarDays, CheckCircle2, ChevronDown, TriangleAlert } from 'lucide-react'
 import { ContextStrip, SectionPanel, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatNumber, formatQuantity } from '@/lib/formatters'
@@ -15,7 +15,7 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
     <SectionPanel
       title="Giá vốn theo ngày từ kế hoạch tuần"
       headingLevel={2}
-      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
+      icon={<Calculator size={18} />}
       description="Tính toán giá vốn chi tiết dựa trên định mức BOM của từng món ăn và đơn giá nguyên liệu hiện hành."
     >
       <div className="flex flex-col gap-3">

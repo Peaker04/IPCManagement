@@ -7,13 +7,17 @@ type Props = { mode: SystemOperationMode; views: WeeklyMenuView[]; activeView: W
 
 const labels: Array<[WeeklyMenuView, string]> = [
   ['schedule', 'Kế hoạch tuần'], ['demand', 'Nhu cầu'], ['production-plan', 'Kế hoạch sản xuất'],
-  ['purchase-summary', 'Bàn giao tuần'], ['cost', 'Giá vốn tuần'], ['dish-materials', 'Định mức theo món'],
+  ['purchase-summary', 'Tổng quan bàn giao cả tuần'], ['cost', 'Giá vốn tuần'], ['dish-materials', 'Định mức theo món'],
 ];
 
 export function WeeklyMenuNavigation({ mode, views, activeView, onViewChange }: Props) {
-  const tabs = (mode === 'MATERIAL_RECONCILIATION' ? labels.slice(0, 2) : labels)
-    .filter(([id]) => views.includes(id))
-    .map(([id, label]) => ({ id, label: mode === 'MATERIAL_RECONCILIATION' && id === 'demand' ? MRX_QUANTITY_TAB_LABEL : label }));
+  const mrxTabs = [
+    { id: 'schedule', label: 'Kế hoạch tuần' },
+    { id: 'demand', label: MRX_QUANTITY_TAB_LABEL },
+  ];
+  const tabs = (mode === 'MATERIAL_RECONCILIATION'
+    ? mrxTabs.filter((tab) => views.includes(tab.id as WeeklyMenuView))
+    : labels.filter(([id]) => views.includes(id)).map(([id, label]) => ({ id, label })));
   return <ViewSwitcher compact ariaLabel="Chọn góc nhìn kế hoạch tuần" tabs={tabs}
     activeTab={activeView} onTabChange={(id) => onViewChange(id as WeeklyMenuView)} />;
 }

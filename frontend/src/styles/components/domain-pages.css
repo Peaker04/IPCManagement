@@ -574,14 +574,16 @@
     border-right: 1px solid var(--sidebar-border);
     border-bottom: 0;
     box-shadow: 1px 0 8px rgb(15 23 42 / 0.04);
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .ipc-nav {
     flex: 1;
+    min-height: 0;
     flex-direction: column;
     flex-wrap: nowrap;
-    overflow: visible;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: var(--ipc-space-3) 10px;
   }
 

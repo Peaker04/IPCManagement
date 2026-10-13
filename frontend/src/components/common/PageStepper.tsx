@@ -42,9 +42,9 @@ export function PageStepper({
       : previousButtonRef.current;
 
     if (preferredButton && !preferredButton.disabled) {
-      preferredButton.focus();
+      preferredButton.focus({ preventScroll: true });
     } else if (fallbackButton && !fallbackButton.disabled) {
-      fallbackButton.focus();
+      fallbackButton.focus({ preventScroll: true });
     }
 
     requestedFocusRef.current = null;

@@ -23,6 +23,7 @@ export const WeeklyMenuCommandBar = ({
   onWeekChange,
   pricing,
 }: CommandProps) => (
+  /* Publish command ('Xuất bản tuần') is owned by WeeklyScheduleCommandBar on the schedule view. */
   <CommandBar actions={onExport && (
     <button type="button" onClick={onExport} className="ipc-button ipc-button-secondary min-h-9 px-3 text-sm font-semibold inline-flex items-center gap-1.5">
       <span>Xuất báo cáo gửi kho</span>

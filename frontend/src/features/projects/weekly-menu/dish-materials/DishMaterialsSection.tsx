@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Scale, Utensils } from 'lucide-react'
+import { Utensils } from 'lucide-react'
 import { ContextStrip, InlineAlert, SearchField, SectionPanel, TableViewport } from '@/components/common'
 import { formatCurrency, formatDateOnly, formatPercent, formatQuantity } from '@/lib/formatters'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -39,7 +39,7 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
     <SectionPanel
       title="Phân tích nguyên liệu món"
       headingLevel={2}
-      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
+      icon={<Utensils size={18} />}
       description="Xem định mức nguyên liệu theo BOM và phân tích chi phí món ăn."
     >
       <div className="flex flex-col gap-3">

@@ -94,7 +94,7 @@ describe('DEFAULT Admin page composition', () => {
     expect(weeklyMenuLink).toHaveAttribute('href', ROUTES.WEEKLY_MENU);
     expect(within(navigation).getByRole('link', { name: 'Tổng quan' })).toHaveAttribute('href', ROUTES.DASHBOARD);
 
-    expect(screen.getByRole('tab', { name: 'Hợp đồng' })).toHaveAttribute('aria-selected', 'true');
+    expect(within(navigation).getByRole('link', { name: 'Hợp đồng' })).toHaveAttribute('aria-current', 'page');
     expect(await screen.findByRole('heading', { level: 2, name: 'Hợp đồng khách hàng và quy tắc suất ăn' })).toBeInTheDocument();
     expect(screen.getByLabelText('Khách hàng')).toHaveValue('customer-1');
     expect(screen.queryByRole('link', { name: /Xem KHSX\/BOM/i })).not.toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('DEFAULT Admin page composition', () => {
     backButton.focus();
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'Hợp đồng' })).toHaveAttribute('aria-selected', 'true'));
+    await waitFor(() => expect(within(navigation).getByRole('link', { name: 'Hợp đồng' })).toHaveAttribute('aria-current', 'page'));
     expect(await screen.findByRole('heading', { level: 2, name: 'Hợp đồng khách hàng và quy tắc suất ăn' })).toBeInTheDocument();
     expect(screen.getByLabelText('Khách hàng')).toHaveValue('customer-1');
     expect(container.querySelector('.ipc-command-bar')).toBeNull();
@@ -123,7 +123,6 @@ describe('DEFAULT Admin page composition', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('tab', { name: 'BOM theo đơn giá' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { level: 2, name: 'Import BOM theo đơn giá' })).toBeInTheDocument();
     expect(screen.queryByRole('heading', { level: 3, name: 'Import BOM theo đơn giá' })).not.toBeInTheDocument();
     await waitFor(() => expect(container.querySelectorAll('dl.ipc-context-strip')).toHaveLength(0));

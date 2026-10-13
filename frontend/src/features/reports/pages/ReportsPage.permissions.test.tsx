@@ -9,6 +9,8 @@ import { ToastProvider } from '@/components/common';
 import { mapDemandAggregateLine } from '@/api/reportMappers';
 import authReducer from '@/lib/auth/authSlice';
 import type { User } from '@/lib/auth/authTypes';
+import { ROUTES } from '@/lib/routeConfig';
+import { getVisibleRouteChildren } from '@/routes/routeRegistry';
 
 const emptyResult = () => ({ data: undefined, isFetching: false, isError: false, refetch: vi.fn() });
 
@@ -157,7 +159,14 @@ const renderPriceReportsPage = async (role: TestRole, initialPath = '/reports') 
   return renderReportsPage(role, initialPath);
 };
 
-const tabNames = () => screen.getAllByRole('tab').map((tab) => tab.textContent);
+const visibleReportLabelsForRole = (role: TestRole) => {
+  const user = buildUser(role);
+  return getVisibleRouteChildren(ROUTES.REPORTS, {
+    mode: 'DEFAULT',
+    isAdmin: Boolean(user.isAdminFullAccess),
+    permissions: user.permissions,
+  }).map((child) => child.label);
+};
 
 const PURCHASE_ACCESS_TABS = ['Biến động giá', 'Kế hoạch thu mua'];
 const ADMIN_ACCESS_TAB = 'Nhật ký thay đổi';
@@ -196,52 +205,51 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
 
   it('hides restricted groups from Bếp trưởng and shows only the active group children', () => {
     renderReportsPage('beptruong');
+    const labels = visibleReportLabelsForRole('beptruong');
 
-    expect(screen.queryByRole('tab', { name: 'Chi phí & giá' })).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Kế hoạch & nhu cầu' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Kho & sử dụng' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Kiểm soát' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Nhu cầu nguyên liệu' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Tồn kho' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
+    expect(labels).toContain('Nhu cầu nguyên liệu');
+    expect(labels).not.toContain('Biến động giá');
+    expect(labels).not.toContain('Kế hoạch thu mua');
+    expect(labels).not.toContain(ADMIN_ACCESS_TAB);
+    expect(screen.getByRole('heading', { level: 2, name: 'Nhu cầu theo ngày trong khoảng chọn' })).toBeInTheDocument();
   });
 
   it('hides the same restricted tabs from Điều phối', () => {
     renderReportsPage('dieuphoi');
+    const labels = visibleReportLabelsForRole('dieuphoi');
 
     [...PURCHASE_ACCESS_TABS, ADMIN_ACCESS_TAB].forEach((label) => {
-      expect(screen.queryByRole('tab', { name: label })).not.toBeInTheDocument();
+      expect(labels).not.toContain(label);
     });
   });
 
   it('shows every report group to Admin while limiting children to the active group', () => {
     renderReportsPage('admin');
+    const labels = visibleReportLabelsForRole('admin');
 
-    ['Chi phí & giá', 'Kế hoạch & nhu cầu', 'Kho & sử dụng', 'Kiểm soát'].forEach((label) => {
-      expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
-    });
-    expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Kế hoạch thu mua' })).not.toBeInTheDocument();
+    expect(labels).toContain('Biến động giá');
+    expect(labels).toContain('Kế hoạch thu mua');
+    expect(labels).toContain(ADMIN_ACCESS_TAB);
   });
 
   it('shows Thu mua price access and keeps the audit report admin-only', async () => {
-    const user = userEvent.setup();
     await renderPriceReportsPage('thumua');
+    const labels = visibleReportLabelsForRole('thumua');
 
-    expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Kế hoạch & nhu cầu' }));
-    expect(await screen.findByRole('tab', { name: 'Kế hoạch thu mua' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
+    expect(labels).toContain('Biến động giá');
+    expect(labels).toContain('Kế hoạch thu mua');
+    expect(labels).not.toContain(ADMIN_ACCESS_TAB);
   });
 
   it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', async () => {
     await renderPriceReportsPage('thukho');
+    const labels = visibleReportLabelsForRole('thukho');
 
     // receipt-price-variance dùng PurchaseOrderReadAccess nên Thủ kho vẫn xem được dòng nhập.
-    expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
+    expect(labels).toContain('Biến động giá');
     expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: 'Kế hoạch thu mua' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
+    expect(labels).not.toContain('Kế hoạch thu mua');
+    expect(labels).not.toContain(ADMIN_ACCESS_TAB);
   });
 });
 
@@ -253,8 +261,8 @@ describe('ReportsPage falls back when the URL points at a forbidden tab', () => 
   it('forces Bếp trưởng from ?view=audit to the first allowed tab without calling the audit query', () => {
     renderReportsPage('beptruong', '/reports?view=audit');
 
-    expect(tabNames()).not.toContain(ADMIN_ACCESS_TAB);
-    expect(screen.getByRole('tab', { name: 'Nhu cầu nguyên liệu' })).toHaveAttribute('aria-selected', 'true');
+    expect(visibleReportLabelsForRole('beptruong')).not.toContain(ADMIN_ACCESS_TAB);
+    expect(screen.getByRole('heading', { level: 2, name: 'Nhu cầu theo ngày trong khoảng chọn' })).toBeInTheDocument();
     expect(mocks.auditChangePage).toHaveBeenCalledWith(expect.anything(), { skip: true });
     expect(mocks.ingredientDemandPage).toHaveBeenCalledWith(expect.anything(), { skip: false });
   });
@@ -262,7 +270,7 @@ describe('ReportsPage falls back when the URL points at a forbidden tab', () => 
   it('forces Bếp trưởng from ?view=purchase to the first allowed tab without calling the purchase-plan query', () => {
     renderReportsPage('beptruong', '/reports?view=purchase');
 
-    expect(screen.getByRole('tab', { name: 'Nhu cầu nguyên liệu' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { level: 2, name: 'Nhu cầu theo ngày trong khoảng chọn' })).toBeInTheDocument();
     expect(mocks.purchasePlanPage).toHaveBeenCalledWith(expect.anything(), { skip: true });
   });
 
@@ -354,7 +362,6 @@ describe('ReportsPage query state boundary', () => {
   });
 
   it('renders source-line reconciliation without grouping legacy lineage into a demand row', async () => {
-    const user = userEvent.setup();
     mocks.issueVsReturnPage.mockReturnValue(readyResult(emptyReadyPage));
     mocks.supplyLineReconciliation.mockImplementation((_args: unknown, options?: { skip?: boolean }) => options?.skip
       ? uninitializedResult()
@@ -382,10 +389,7 @@ describe('ReportsPage query state boundary', () => {
         disposition: 'LEGACY_LINEAGE_RECONCILIATION_REQUIRED',
         legacyLineageExceptionCount: 3,
       }]));
-    renderReportsPage('admin');
-    await user.click(screen.getByRole('tab', { name: 'Kho & sử dụng' }));
-    await user.click(await screen.findByRole('tab', { name: 'Sử dụng thực tế' }));
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'Sử dụng thực tế' })).toHaveAttribute('aria-selected', 'true'));
+    renderReportsPage('admin', '/reports?view=usage');
 
     expect(await screen.findByText(/Đối soát.*theo dòng nhu cầu/)).toBeInTheDocument();
     expect(screen.getByText('MR-TEST-001')).toBeInTheDocument();

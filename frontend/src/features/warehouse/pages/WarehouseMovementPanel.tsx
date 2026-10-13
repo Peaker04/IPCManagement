@@ -178,7 +178,7 @@ export function WarehouseMovementPanel({
         </KeepAliveTabPanel>
 
         <KeepAliveTabPanel id="warehouse-lookup-ledger" active={activeTask === 'ledger'} className="min-w-0">
-        <SectionPanel title="Sổ luân chuyển kho" icon={<ClipboardList size={18} />} description="Mặc định hiển thị bút toán từ 31 ngày trước đến hôm nay; tìm kiếm chỉ trong phạm vi này.">
+        <SectionPanel padded={false} title="Sổ luân chuyển kho" icon={<ClipboardList size={18} />} description="Mặc định hiển thị bút toán từ 31 ngày trước đến hôm nay; tìm kiếm chỉ trong phạm vi này.">
           <div className="space-y-3 px-4 pb-4 pt-2">
           <SearchField
             id="warehouse-stock-movement-search"

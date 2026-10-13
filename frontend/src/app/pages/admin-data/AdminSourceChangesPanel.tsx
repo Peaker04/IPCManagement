@@ -121,7 +121,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
       <div className="rounded-xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-xs" data-ui-work-surface="admin-source-changes-scope">
         <div className="flex flex-wrap items-center justify-between gap-2.5">
           <div className="flex items-center gap-1.5 shrink-0">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">Phạm vi lô đối chiếu</h3>
+            <h3 className="text-xs font-bold text-slate-700">Phạm vi lô đối chiếu</h3>
             <InfoNote
               title="Lịch sử thay đổi nguồn"
               content="Chỉ gồm thay đổi của nguồn dùng để tạo đúng lô này. Giao dịch Kho và chẩn đoán sẵn sàng thuộc các khu vực riêng."
@@ -132,7 +132,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
             <div className="flex flex-wrap items-center gap-2">
               {customers.length > 0 && (
                 <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                  <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Khách hàng:</span>
+                  <span className="text-slate-500 text-caption whitespace-nowrap">Khách hàng:</span>
                   <Select value={selectedCustomerId} onValueChange={(val) => setSelectedCustomerId(val ?? 'ALL')}>
                     <SelectTrigger className="h-8 min-w-[180px] w-auto text-xs" aria-label="Lọc theo khách hàng">
                       <SelectValue placeholder="Khách hàng" className="whitespace-nowrap">{selectedCustomerLabel}</SelectValue>
@@ -150,7 +150,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
               )}
 
               <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Năm:</span>
+                <span className="text-slate-500 text-caption whitespace-nowrap">Năm:</span>
                 <Select value={selectedYear} onValueChange={(val) => setSelectedYear(val ?? 'ALL')}>
                   <SelectTrigger className="h-8 min-w-[125px] w-auto text-xs" aria-label="Lọc theo năm">
                     <SelectValue placeholder="Năm" className="whitespace-nowrap">{selectedYearLabel}</SelectValue>
@@ -165,7 +165,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
               </label>
 
               <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Tháng:</span>
+                <span className="text-slate-500 text-caption whitespace-nowrap">Tháng:</span>
                 <Select value={selectedMonth} onValueChange={(val) => setSelectedMonth(val ?? 'ALL')}>
                   <SelectTrigger className="h-8 min-w-[130px] w-auto text-xs" aria-label="Lọc theo tháng">
                     <SelectValue placeholder="Tháng" className="whitespace-nowrap">{selectedMonthLabel}</SelectValue>
@@ -180,7 +180,7 @@ export function AdminSourceChangesPanel({ model }: AdminSourceChangesPanelProps)
               </label>
 
               <label className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
-                <span className="text-slate-500 text-caption uppercase tracking-wider whitespace-nowrap">Trạng thái:</span>
+                <span className="text-slate-500 text-caption whitespace-nowrap">Trạng thái:</span>
                 <Select value={batchStatusFilter} onValueChange={(val) => setBatchStatusFilter(val ?? 'ALL')}>
                   <SelectTrigger className="h-8 min-w-[170px] w-auto text-xs" aria-label="Lọc theo trạng thái">
                     <SelectValue placeholder="Trạng thái" className="whitespace-nowrap">{selectedStatusLabel}</SelectValue>

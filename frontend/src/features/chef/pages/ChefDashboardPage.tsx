@@ -3,7 +3,7 @@
 import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
 import { ShieldAlert, ShieldCheck } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CommandBar, InlineAlert, KeepAliveTabPanel, OperationalFrame, RefreshStatus } from '@/components/common';
+import { CommandBar, InlineAlert, KeepAliveTabPanel, OperationalFrame, RefreshStatus, ViewSwitcher } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig'
 import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import type { ShiftType } from '@/types/coordination'
@@ -27,7 +27,7 @@ const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection'
 const chefCapabilityFallback = <div role="status" aria-busy="true" className="flex min-h-24 items-center justify-center rounded-md border border-slate-200 bg-white text-sm text-slate-600">Đang tải dữ liệu bếp trưởng...</div>
 
 export default function ChefDashboardPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
   const [serviceDate, setServiceDate] = useState<string>(() => getBangkokToday())
   const activeDay = getDayCodeFromIsoDate(serviceDate)
@@ -40,7 +40,12 @@ export default function ChefDashboardPage() {
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
   const isProductionView = activeView === 'production'
   const productionTask = searchParams.get('task') === 'materials' ? 'materials' : 'run'
-  // G4 batch E phase 2: leaf navigation moved to sidebar; ?task= sub-tab also driven by sidebar deep-link.
+  const selectProductionTask = (task: 'run' | 'materials') => {
+    const next = new URLSearchParams(searchParams)
+    if (task === 'run') next.delete('task')
+    else next.set('task', task)
+    setSearchParams(next, { replace: true })
+  }
   const isViewPending = selectedView !== activeView
   const lockKey = `${activeDay}-${activeShift}`
   const scope = useMemo<ChefShiftScope>(() => ({
@@ -109,7 +114,16 @@ export default function ChefDashboardPage() {
                 sentPlans={production.dailyPlan?.sentPlans ?? 0}
                 />
               </Suspense>
-              {/* G4 batch E phase 2: leaf navigation moved to sidebar; ?task= sub-tab also driven by sidebar deep-link. */}
+              <ViewSwitcher
+                compact
+                ariaLabel="Chọn tác vụ ca sản xuất"
+                tabs={[
+                  { id: 'chef-task-run', label: 'Thực hiện ca' },
+                  { id: 'chef-task-materials', label: 'Nhận & xử lý vật tư' },
+                ]}
+                activeTab={`chef-task-${productionTask}`}
+                onTabChange={(id) => selectProductionTask(id === 'chef-task-materials' ? 'materials' : 'run')}
+              />
               {productionTask === 'run' ? (
                 <Suspense fallback={chefCapabilityFallback}>
                   <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />

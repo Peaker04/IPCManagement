@@ -14,6 +14,8 @@ import {
   visibleTabIds,
 } from '@/lib/navigationPreferences'
 import { eligibleCapabilityIds, eligiblePageTabs } from '@/lib/systemOperationEligibility'
+import { ROUTES } from '@/lib/routeConfig'
+import { getVisibleRouteChildren } from '@/routes/routeRegistry'
 import { ReconciliationAdminDataPage } from '@/app/pages/admin-data/ReconciliationAdminDataPage'
 
 const mrxSnapshot: SystemOperationSnapshot = {
@@ -117,11 +119,18 @@ describe('MATERIAL_RECONCILIATION display and navigation synchronization contrac
       </Provider>
     )
 
-    // BOM tab should not be in the ViewSwitcher
-    expect(screen.queryByRole('tab', { name: 'BOM theo đơn giá' })).not.toBeInTheDocument()
-    // Audit tab should be present
-    expect(screen.getByRole('tab', { name: 'Nhật ký thay đổi' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Lịch sử thay đổi nguồn' })).toBeInTheDocument()
+    const visibleLeaves = getVisibleRouteChildren(ROUTES.ADMIN_DATA, {
+      mode: 'MATERIAL_RECONCILIATION',
+      isAdmin: true,
+      pageTabPreferences: customTabPrefs,
+      backendPageTabs: mrxSnapshot.capabilities.pageTabs,
+    }).map((leaf) => leaf.label)
+
+    // BOM tab should not be in the visible sidebar leaves
+    expect(visibleLeaves).not.toContain('BOM theo đơn giá')
+    // Audit and source-changes leaves should be present
+    expect(visibleLeaves).toContain('Nhật ký thay đổi')
+    expect(visibleLeaves).toContain('Lịch sử thay đổi nguồn')
   })
 
   it('shows empty state when all tabs in admin-data are disabled', () => {

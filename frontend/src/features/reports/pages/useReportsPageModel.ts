@@ -51,7 +51,7 @@ export const useReportsPageModel = ({
     priceSubViewTabs.some((tab) => tab.id === initialPriceSubView) ? initialPriceSubView as PriceSubView : 'lines',
   );
   const canReadReceiptPriceVariance = canReadPurchaseReports || canReadWarehouseReports;
-  const preferredReportViews = useMemo(() => visibleTabIds('reports') as ReportView[], []);
+  const preferredReportViews = visibleTabIds('reports') as ReportView[];
   const preferredPriceSubViews = useMemo(() => priceSubViewTabs.map((tab) => tab.id), []);
   const visibleReportViews = useMemo<ReportView[]>(() => validReportViews.filter((view) => {
     if (!preferredReportViews.includes(view)) return false;

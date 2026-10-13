@@ -335,10 +335,8 @@
   font-size: var(--text-table-header);
   line-height: var(--text-table-header--line-height);
   font-weight: var(--text-table-header--font-weight);
-  letter-spacing: 0.025em;
   padding: 8px 12px;
   text-align: left;
-  text-transform: uppercase;
   white-space: normal;
 }
 
@@ -575,17 +573,20 @@
 .ipc-weekly-menu-matrix-frame {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--ipc-color-border-subtle);
+  border: 0;
   background: var(--ipc-color-surface);
 }
 
 .ipc-weekly-menu-matrix-frame .ipc-matrix-header-viewport {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-gutter: stable;
 }
 
 .ipc-weekly-menu-matrix-frame .ipc-matrix-fixed-header {
-  border: 0;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
 }
 
 .ipc-weekly-menu-matrix-frame .ipc-weekly-menu-body {
@@ -594,6 +595,13 @@
   box-shadow: none;
   max-height: min(68vh, 720px);
   overflow-y: auto;
+}
+
+.ipc-weekly-menu-matrix-frame .ipc-weekly-menu-body > .ipc-matrix-grid-table {
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
 }
 
 .ipc-weekly-menu-matrix-frame .ipc-weekly-menu-body:focus-visible {
@@ -606,8 +614,6 @@
   border-bottom: 1px solid var(--ipc-color-border-table-header);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.025em;
-  text-transform: uppercase;
   color: var(--ipc-color-text);
   padding: 0.5rem 0.75rem;
   white-space: nowrap;

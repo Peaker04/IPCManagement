@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from 'react'
-import { ChevronDown, TriangleAlert } from 'lucide-react'
+import { ChevronDown, Scale, TriangleAlert } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert, TableViewport, TabContentSkeleton } from '@/components/common'
 import { formatDateOnly, formatNumber, formatQuantity } from '@/lib/formatters'
@@ -127,16 +127,17 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
     }
   }
 
-  return <section className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-xs" aria-label="Chuẩn bị và chuyển định lượng sang kho">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div><h3 className="font-semibold text-slate-950">Định lượng xuất kho</h3><p className="mt-1 text-sm text-slate-600">{scopeLabel}. Kiểm tra kế hoạch, tạo lô và khóa định lượng trước khi chuyển sang Kho.</p></div>
+  return <section className="overflow-hidden rounded-[var(--ipc-radius-md,3px)] border border-[var(--ipc-color-border-muted,#d8e2ef)] bg-white" aria-label="Chuẩn bị và chuyển định lượng sang kho">
+    <header className="flex min-h-[48px] flex-wrap items-center justify-between gap-3 border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-white px-4 py-1.5">
+      <div className="flex min-w-0 items-center gap-2"><Scale size={18} aria-hidden="true" className="shrink-0 text-[var(--ipc-primary,#1a56a8)]" /><h3 className="ipc-section-title font-bold leading-5 text-slate-900">Định lượng xuất kho</h3><span className="text-slate-300" aria-hidden="true">|</span><span className="text-xs text-slate-500">{scopeLabel}</span></div>
       <div className="flex flex-wrap gap-2">
-        {!batch && menuVersionId && isMenuPublished && incompleteServingPlanCount === 0 && <Button type="button" variant="outline" disabled={busy} onClick={() => void inspectSource()}>{isPreviewing ? 'Đang kiểm tra...' : preview ? 'Kiểm tra lại nguồn' : 'Kiểm tra nguồn định lượng'}</Button>}
-        {!batch && preview && <Button type="button" disabled={busy || !previewSummary.complete} onClick={() => void commitPreview()}>{isCommitting ? 'Đang tạo lô...' : 'Tạo lô định lượng'}</Button>}
-        {batch?.status === 'DRAFT' && <Button type="button" disabled={busy || (batch.lines?.length ?? 0) === 0} onClick={() => void freezeBatch()}>{isFreezing ? 'Đang khóa...' : 'Xác nhận và khóa'}</Button>}
-        {batch?.status === 'READY' && <Button type="button" disabled={busy} onClick={() => void transferBatch()}>{isTransferring ? 'Đang chuyển...' : 'Chuyển sang Kho'}</Button>}
+        {!batch && menuVersionId && isMenuPublished && incompleteServingPlanCount === 0 && <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => void inspectSource()}>{isPreviewing ? 'Đang kiểm tra...' : preview ? 'Kiểm tra lại nguồn' : 'Kiểm tra nguồn định lượng'}</Button>}
+        {!batch && preview && <Button type="button" size="sm" disabled={busy || !previewSummary.complete} onClick={() => void commitPreview()}>{isCommitting ? 'Đang tạo lô...' : 'Tạo lô định lượng'}</Button>}
+        {batch?.status === 'DRAFT' && <Button type="button" size="sm" disabled={busy || (batch.lines?.length ?? 0) === 0} onClick={() => void freezeBatch()}>{isFreezing ? 'Đang khóa...' : 'Xác nhận và khóa'}</Button>}
+        {batch?.status === 'READY' && <Button type="button" size="sm" disabled={busy} onClick={() => void transferBatch()}>{isTransferring ? 'Đang chuyển...' : 'Chuyển sang Kho'}</Button>}
       </div>
-    </div>
+    </header>
+    <div className="p-4">
 
     {!batch && menuVersionId && !isMenuPublished ? (
       <div className="mt-3">
@@ -187,7 +188,7 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
       {(preview.diagnostics?.length ?? 0) > 0 && <div className="border-b border-amber-200 bg-amber-50 px-4 py-3"><strong className="text-sm font-semibold text-amber-900">Cần bổ sung định mức nguyên liệu</strong><ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-800">{preview.diagnostics.map((diagnostic) => <li key={diagnostic}>{diagnostic}</li>)}</ul></div>}
       <TableViewport ariaLabel="Kế hoạch định lượng theo ngày và ca" frozenFirstIdentifier={false}>
         <table className="ipc-data-table w-full min-w-[720px] table-fixed border-collapse text-sm">
-          <thead className="bg-white text-left text-xs font-semibold uppercase tracking-wide text-slate-600"><tr><th scope="col" className="px-4 py-2.5">Ngày</th><th scope="col" className="px-4 py-2.5">Ca</th><th scope="col" className="px-4 py-2.5 text-right">Số suất</th><th scope="col" className="px-4 py-2.5 text-right">Số món</th><th scope="col" className="w-28 px-4 py-2.5 text-right"><span className="sr-only">Chi tiết</span></th></tr></thead>
+          <thead className="bg-white text-left text-xs font-semibold text-slate-600"><tr><th scope="col" className="px-4 py-2.5">Ngày</th><th scope="col" className="px-4 py-2.5">Ca</th><th scope="col" className="px-4 py-2.5 text-right">Số suất</th><th scope="col" className="px-4 py-2.5 text-right">Số món</th><th scope="col" className="w-28 px-4 py-2.5 text-right"><span className="sr-only">Chi tiết</span></th></tr></thead>
           <tbody className="divide-y divide-slate-200">{preview.plans.flatMap((plan) => plan.lines.map((line) => ({ plan, line }))).map(({ plan, line }) => {
             const expanded = expandedLineId === line.quantityPlanLineId
             return <Fragment key={line.quantityPlanLineId}><tr className="hover:bg-slate-50"><td className="px-4 py-3 font-medium text-slate-900">{plan.serviceDate ? formatDateOnly(plan.serviceDate) : 'Chưa xác định'}</td><td className="px-4 py-3">{shiftLabel(line.shift)}</td><td className="px-4 py-3 text-right tabular-nums">{formatNumber(line.finalServings)}</td><td className="px-4 py-3 text-right tabular-nums">{(line.dishes ?? []).length}</td><td className="px-4 py-3 text-right"><Button type="button" size="sm" variant="ghost" aria-expanded={expanded} onClick={() => setExpandedLineId(expanded ? undefined : line.quantityPlanLineId)}>{expanded ? 'Thu gọn' : 'Xem món'}<ChevronDown className={`ml-1 size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" /></Button></td></tr>
@@ -203,5 +204,6 @@ export function ClosedLoopTransferPanel({ menuVersionId, menuVersionStatus, scop
     {isError && <p className="mt-3 text-sm text-red-700" role="alert">Không tải được định lượng xuất kho. <Button type="button" variant="link" className="h-auto p-0" onClick={() => refetch()}>Thử lại</Button></p>}
     {!isLoading && !isError && !menuVersionId && <p className="mt-3 text-sm text-slate-600">Chọn đúng khách hàng và tuần có kế hoạch đã nhập để mở định lượng xuất kho.</p>}
     {!isLoading && !isError && menuVersionId && isMenuPublished && incompleteServingPlanCount === 0 && !batch && !preview && <p className="mt-3 flex items-start gap-2 text-sm text-slate-600"><TriangleAlert className="mt-0.5 shrink-0" size={16} aria-hidden="true" />Chưa có lô định lượng. Hãy kiểm tra nguồn để xác nhận thực đơn, định mức nguyên liệu và số suất đã sẵn sàng.</p>}
+    </div>
   </section>
 }

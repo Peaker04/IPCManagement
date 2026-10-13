@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { OperationalFrame, ViewSwitcher } from '@/components/common'
+import { OperationalFrame } from '@/components/common'
 import { ROUTES } from '@/lib/routeConfig'
 import type { AdminView } from './adminDataPageTypes'
 import { useReconciliationAdminDataPageModel } from './useReconciliationAdminDataPageModel'
@@ -11,21 +11,10 @@ const AdminSourceChangesPanel = lazy(() => import('./AdminSourceChangesPanel').t
 
 export function ReconciliationAdminDataPage() {
   const model = useReconciliationAdminDataPageModel()
-  const [visited, setVisited] = useState<ReadonlySet<AdminView>>(() => new Set([model.effectiveActiveView]))
-  const activate = (view: AdminView) => {
-    setVisited((current) => current.has(view) ? current : new Set(current).add(view))
-    model.startViewTransition(() => model.setActiveView(view))
-  }
+  const [visited] = useState<ReadonlySet<AdminView>>(() => new Set([model.effectiveActiveView]))
+  const mounted = visited.has(model.effectiveActiveView) ? visited : new Set(visited).add(model.effectiveActiveView)
 
   const eligibleTabs = model.eligibleAdminTabs ?? ['bom-import', 'audit']
-  const allTabs: Array<{ id: string; label: string; view: AdminView }> = [
-    { id: 'admin-bom-import', label: 'BOM theo đơn giá', view: 'bom-import' },
-    { id: 'admin-audit', label: 'Nhật ký thay đổi', view: 'audit' },
-    { id: 'admin-source-changes', label: 'Lịch sử thay đổi nguồn', view: 'source-changes' },
-  ]
-  const availableTabs = allTabs.filter((t) =>
-    t.view === 'source-changes' ? eligibleTabs.includes('audit') : eligibleTabs.includes(t.view)
-  )
 
   if (eligibleTabs.length === 0) {
     return (
@@ -41,18 +30,12 @@ export function ReconciliationAdminDataPage() {
 
   return (
     <OperationalFrame>
-      <ViewSwitcher
-        compact
-        ariaLabel="Chọn vùng dữ liệu đối chiếu"
-        tabs={availableTabs}
-        activeTab={`admin-${model.effectiveActiveView}`}
-        onTabChange={(id) => activate(id.replace('admin-', '') as AdminView)}
-      />
+      {/* Leaf navigation moved to sidebar (MainLayout). */}
       {model.isViewPending ? <span className="sr-only" role="status">Đang chuyển vùng dữ liệu quản trị.</span> : null}
       <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50" />}>
-        {visited.has('bom-import') && <AdminBomPanel model={model} />}
-        {visited.has('audit') && <AdminAuditPanel model={model} />}
-        {visited.has('source-changes') && <AdminSourceChangesPanel model={model} />}
+        {mounted.has('bom-import') && <AdminBomPanel model={model} />}
+        {mounted.has('audit') && <AdminAuditPanel model={model} />}
+        {mounted.has('source-changes') && <AdminSourceChangesPanel model={model} />}
       </Suspense>
     </OperationalFrame>
   )

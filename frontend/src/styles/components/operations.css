@@ -9,7 +9,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .ipc-operational-title-group {
@@ -53,6 +53,10 @@
   min-width: 0;
 }
 
+.ipc-operational-primary .ipc-weekly-readiness-strip {
+  margin-bottom: 10px;
+}
+
 .ipc-command-bar {
   display: flex;
   min-width: 0;
@@ -80,8 +84,8 @@
   display: flex;
   min-width: 0;
   flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ipc-space-2);
+  align-items: flex-end;
+  gap: var(--ipc-space-3);
 }
 
 .ipc-command-bar-actions {

@@ -71,12 +71,20 @@
 }
 
 .ipc-weekly-pricing-context {
-  display: grid;
+  display: inline-flex;
+  height: 36px;
+  min-height: 36px;
+  align-items: center;
   gap: var(--ipc-space-2);
-  margin-top: var(--ipc-space-2);
-  border-radius: var(--ipc-radius-md);
-  background: var(--card);
-  padding: 6px 10px;
+  margin-top: 0;
+  border: 1px solid var(--ipc-slate-300, #cbd5e1);
+  border-radius: var(--ipc-radius-sm, 2px);
+  background: var(--ipc-slate-50, #f8fafc);
+  padding: 0 12px;
+}
+
+.ipc-command-bar [data-slot="input"] {
+  border-color: var(--ipc-slate-300, #cbd5e1);
 }
 
 .ipc-weekly-pricing-primary,
@@ -123,8 +131,82 @@
   font-weight: 650;
 }
 
-.ipc-weekly-schedule-panel .ipc-section-header {
-  margin-bottom: var(--ipc-space-2);
+.ipc-weekly-schedule-panel .ipc-section-header,
+[data-weekly-menu-work-surface="true"] .ipc-section-header {
+  min-height: 48px;
+  margin-bottom: 0;
+  padding: 6px 16px;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-header .ipc-search-field {
+  gap: 0;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-header .ipc-search-field__input {
+  block-size: 2rem;
+  min-block-size: 2rem;
+  font-size: 0.75rem;
+  line-height: 2rem;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-title svg {
+  color: var(--ipc-primary, #1a56a8);
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel {
+  border-color: var(--ipc-color-border-muted, #d8e2ef);
+  border-radius: var(--ipc-radius-md, 3px);
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel > .flex.flex-col.gap-3 {
+  gap: 0;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel .ipc-fiori-object-card {
+  margin-top: 12px;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel .ipc-fiori-disclosure {
+  margin-top: 12px;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel > .flex.flex-col.gap-3 > .ipc-table-viewport,
+[data-weekly-menu-work-surface="true"] .ipc-section-panel .ipc-table-viewport.ipc-cost-table-shell {
+  margin-top: 8px;
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel .ipc-cost-table-shell > .ipc-data-table {
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+[data-weekly-menu-work-surface="true"] [data-query-geometry] > .grid > .z-10 {
+  align-self: start;
+  margin: 12px 16px;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel > .flex.flex-col.gap-3 > :is([role="alert"], [role="status"], .ipc-inline-alert-enter, .ipc-empty-state) {
+  margin: 12px 16px;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-section-panel .ipc-pagination-bar {
+  margin: 0;
+  border-top: 1px solid var(--ipc-color-border-subtle, #e2eaf4);
+  border-left: 0;
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 0;
+  padding: 10px 16px;
+}
+
+[data-weekly-menu-work-surface="true"] .ipc-context-strip {
+  width: auto;
+  margin: 12px 16px 4px;
 }
 
 @media (min-width: 1200px) {
@@ -222,7 +304,7 @@
   }
 
   .ipc-weekly-pricing-context {
-    padding: 6px 10px;
+    padding: 0 12px;
   }
 
   .ipc-weekly-pricing-meta {

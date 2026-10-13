@@ -127,7 +127,7 @@ export function DishDetailDialog({ order, onClose }: DishDetailDialogProps) {
           </section>
           {order.specialNotes && (
             <section className="rounded-md border border-slate-200 bg-slate-50 p-3">
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Ghi chú phục vụ</h3>
+              <h3 className="mb-1 text-xs font-semibold text-slate-500">Ghi chú phục vụ</h3>
               <p className="text-sm leading-5 text-slate-700">{order.specialNotes}</p>
             </section>
           )}

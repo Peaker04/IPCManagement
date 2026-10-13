@@ -33,7 +33,7 @@ import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreloa
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 import { ClosedLoopTransferPanel } from '@/components/reconciliation/ClosedLoopTransferPanel';
 import { useSystemOperation } from '@/lib/systemOperationContext';
-import { WeeklyMenuNavigation } from '../weekly-menu/shell/WeeklyMenuNavigation';
+// Leaf navigation moved to sidebar (MainLayout).
 import { readReconciliationWeeklyMenuRoute } from '@/lib/routeConfig';
 import { WeeklyScheduleWorkspace } from '../weekly-menu/schedule/WeeklyScheduleWorkspace';
 const WeeklyMenuImportDialog = lazy(() => import('../weekly-menu/import/WeeklyMenuImportDialog').then(({ WeeklyMenuImportDialog: component }) => ({ default: component })))
@@ -231,7 +231,7 @@ const DefaultWeeklyMenuPage = () => {
     ? requestedReconciliationView as WeeklyMenuView
     : !isMaterialReconciliationMode && requestedDefaultView && weeklyMenuTabIds.includes(requestedDefaultView)
       ? requestedDefaultView
-      : weeklyMenuTabIds.includes(selectedView)
+      : weeklyMenuTabIds.includes(selectedView) && requestedDefaultView !== null
       ? selectedView
       : weeklyMenuTabIds[0] ?? 'schedule';
   useEffect(() => {
@@ -586,20 +586,17 @@ const DefaultWeeklyMenuPage = () => {
     resetScopedWeeklyMenuUi();
     writeWeeklyMenuSelection(LAST_WEEKLY_MENU_WEEK_KEY, normalizedWeekStartDate);
   };
-  const navigation = <WeeklyMenuNavigation
-    mode={systemOperation?.mode ?? 'DEFAULT'}
-    views={weeklyMenuTabIds}
-    activeView={resolvedSelectedView}
-    onViewChange={(view) => {
-      setSelectedView(view);
-      if (isMaterialReconciliationMode) updateReconciliationScope({ view });
-      else {
-        const next = new URLSearchParams(searchParams);
-        next.set('view', view);
-        setSearchParams(next);
-      }
-    }}
-  />;
+  const selectWeeklyMenuView = (view: WeeklyMenuView) => {
+    setSelectedView(view);
+    if (isMaterialReconciliationMode) updateReconciliationScope({ view });
+    else {
+      const next = new URLSearchParams(searchParams);
+      next.set('view', view);
+      setSearchParams(next);
+    }
+  };
+  void selectWeeklyMenuView;
+  const navigation = null;
   const alerts = <WeeklyMenuAlerts
     invalidBomTierCount={invalidBomTierCount}
     menuFeedback={menuFeedback}

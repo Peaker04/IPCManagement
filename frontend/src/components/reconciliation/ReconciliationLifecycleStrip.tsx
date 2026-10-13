@@ -11,7 +11,7 @@ export function ReconciliationLifecycleStrip({ status, batchId, showAction = tru
     <div className="flex min-h-9 items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <span className={cn('inline-block h-2 w-2 rounded-full', isCompletedBatch ? 'bg-emerald-600' : 'bg-blue-600 animate-pulse')} aria-hidden="true" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Tiến độ lô · Bước {current.phase}/{current.phaseCount}</p>
+        <p className="text-xs font-semibold text-slate-500">Tiến độ lô · Bước {current.phase}/{current.phaseCount}</p>
         <span className="hidden sm:inline-block rounded border border-slate-200/80 bg-slate-50 px-1.5 py-0.5 text-xs font-medium text-slate-600">Phụ trách: {current.owner}</span>
       </div>
       {showAction ? (

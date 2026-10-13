@@ -53,6 +53,8 @@ describe('MainLayout ownership and behavior contract', () => {
   it('renders nested leaf nav when route has children', () => {
     // Top-level nav link carries data-active-ancestor marker
     expect(currentLayoutSource).toContain('data-active-ancestor=');
+    // Disclosure state with aria-expanded
+    expect(currentLayoutSource).toContain('aria-expanded=');
     // Leaf list uses ?view= query param
     expect(currentLayoutSource).toContain('?view=');
     // Leaf nav uses ipc-nav-leaf-list class

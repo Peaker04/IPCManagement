@@ -148,22 +148,22 @@ export function ReconciliationDashboardPage() {
         {/* KPI Operational Metrics Cards */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Chỉ số vận hành đối chiếu">
           <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Tổng số lô</span>
+            <span className="text-xs font-semibold text-slate-500">Tổng số lô</span>
             <div className="mt-2 text-2xl font-bold tabular-nums text-slate-900">{totalBatches}</div>
           </div>
 
           <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Chờ Kho xuất</span>
+            <span className="text-xs font-semibold text-slate-500">Chờ Kho xuất</span>
             <div className="mt-2 text-2xl font-bold tabular-nums text-amber-700">{waitingWarehouseCount}</div>
           </div>
 
           <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Đang đối chiếu</span>
+            <span className="text-xs font-semibold text-slate-500">Đang đối chiếu</span>
             <div className="mt-2 text-2xl font-bold tabular-nums text-sky-700">{inProgressCount}</div>
           </div>
 
           <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Đã hoàn tất</span>
+            <span className="text-xs font-semibold text-slate-500">Đã hoàn tất</span>
             <div className="mt-2 text-2xl font-bold tabular-nums text-emerald-700">{completedCount}</div>
           </div>
         </div>

@@ -476,7 +476,7 @@ function DefaultWarehousePage() {
             {isFetchingDeepLinkedReceipt || isFetchingDeepLinkedPurchaseOrder ? 'Đang đối chiếu phiếu nhập với đơn mua.' : isDeepLinkedReceiptError || isDeepLinkedPurchaseOrderError || !receiptPurchaseOrderId ? 'Không tìm thấy phiếu nhập hoặc đơn mua tương ứng.' : 'Phiếu nhập không thuộc đơn mua được chọn.'}
           </InlineAlert>
         )}
-        {selectedPurchaseOrder && <WarehouseReceiptLifecyclePanel
+        {isReceivingView && selectedPurchaseOrder && <WarehouseReceiptLifecyclePanel
           purchaseOrderId={selectedPurchaseOrder.purchaseOrderId}
           selectedReceiptId={selectedReceiptId}
           verifiedReceiptId={deepLinkedReceipt?.purchaseOrderId === selectedPurchaseOrder.purchaseOrderId ? deepLinkedReceipt.receiptId : undefined}

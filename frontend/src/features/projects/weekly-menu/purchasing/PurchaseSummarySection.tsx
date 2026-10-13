@@ -25,27 +25,31 @@ const renderStatusIcon = (tone: string) => {
 
 const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflow }) => {
   const { actions, presentation, queryView, state } = workflow
+  const isPaginationPending = queryView?.phase === 'loading' || Boolean(queryView?.phase === 'ready' && queryView.isRefreshing)
   return (
     <SectionPanel
       title="Bàn giao nguyên liệu"
       headingLevel={2}
-      icon={<ShoppingCart size={18} color="var(--ipc-slate-600)" />}
+      icon={<ShoppingCart size={18} />}
       description="Theo dõi lượng đã xuất, chờ Bếp nhận và đã nhận theo ngày."
       actions={
         <SearchField
           id="weekly-purchase-search"
           label="Tìm nguyên liệu trong tuần của khách hàng đang chọn"
           hideLabel
-          width="compact"
+          width="standard"
+          className="w-64 sm:w-72"
           value={state.search}
           disabled={Boolean(queryView && queryView.phase !== 'ready')}
           onChange={(event) => actions.setSearch(event.target.value)}
           placeholder="Tìm tên hoặc mã nguyên liệu..."
-          inputClassName="bg-slate-50 text-xs focus:bg-white"
+          inputClassName="h-8 min-h-8 bg-slate-50 text-xs focus:bg-white"
         />
       }
     >
       <QueryViewBoundary
+        geometry="table"
+        skeletonColumns={presentation.usesDemand ? 6 : 7}
         queries={queryView ? [{ label: 'tổng hợp mua của tuần', view: queryView }] : []}
         refreshLabel="Đang cập nhật tổng hợp tuần"
       >
@@ -123,11 +127,32 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
               <td data-cell-role="numeric" className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
               <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
             </tr>)}
-            {presentation.totalItems === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 6 : 7}>{presentation.usesDemand ? 'Chưa có dòng nhu cầu đã phát sinh trong tuần này. Giá trị BOM dự kiến không phải lượng đã bàn giao.' : 'Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.'}</td></tr>}
+            {presentation.totalItems === 0 && (
+              <tr>
+                <td className="p-6 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 6 : 7}>
+                  {state.search.trim().length > 0 ? (
+                    <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
+                      <span>Không tìm thấy nguyên liệu nào phù hợp với từ khóa &ldquo;{state.search}&rdquo;.</span>
+                      <button
+                        type="button"
+                        onClick={() => actions.setSearch('')}
+                        className="font-medium text-blue-600 hover:text-blue-800 underline focus-visible:outline-2 focus-visible:outline-blue-600 rounded px-1"
+                      >
+                        Xóa tìm kiếm
+                      </button>
+                    </span>
+                  ) : presentation.usesDemand ? (
+                    'Chưa có dòng nhu cầu đã phát sinh trong tuần này. Giá trị BOM dự kiến không phải lượng đã bàn giao.'
+                  ) : (
+                    'Chưa có nguyên liệu tổng hợp. Kiểm tra thực đơn tuần và định lượng món ăn.'
+                  )}
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </TableViewport>
-      <PaginationBar className="mt-3" page={presentation.pageIndex + 1} pageSize={PURCHASE_SUMMARY_PAGE_SIZE} totalItems={presentation.totalItems} onPageChange={actions.setPage} />
+      <PaginationBar className="mt-3" page={presentation.pageIndex + 1} pageSize={PURCHASE_SUMMARY_PAGE_SIZE} totalItems={presentation.totalItems} isPending={isPaginationPending} preserveFocusWhilePending onPageChange={actions.setPage} />
       </QueryViewBoundary>
     </SectionPanel>
   )

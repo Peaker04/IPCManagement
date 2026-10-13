@@ -53,7 +53,7 @@ type Props = {
 }
 
 export function WeeklyScheduleWorkspace({
-  description,
+  description: _description,
   customers,
   selectedCustomerId,
   weekStartDate,
@@ -88,11 +88,9 @@ export function WeeklyScheduleWorkspace({
   dishNamesById,
   isViewPending,
 }: Props) {
+  void _description
   return (
     <OperationalFrame
-      eyebrow="Kế hoạch & Điều phối"
-      title="Kế hoạch tuần"
-      description={description}
       command={<WeeklyScheduleCommandBar
         customers={customers}
         selectedCustomerId={selectedCustomerId}
@@ -129,19 +127,23 @@ export function WeeklyScheduleWorkspace({
         <div data-weekly-menu-work-surface="true" className={`${typography.body} relative`} aria-busy={isViewPending} aria-live="polite">
           {isViewPending && <RefreshStatus>Đang cập nhật</RefreshStatus>}
           <div id="schedule-panel" role="tabpanel" aria-labelledby="schedule-tab">
-          <section aria-labelledby="weekly-schedule-matrix-title" className="overflow-hidden rounded-[3px] border border-slate-300 bg-white">
-            <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 text-slate-900">
-                  <CalendarDays size={18} aria-hidden="true" className="shrink-0 text-slate-600" />
-                  <h2 id="weekly-schedule-matrix-title" className="text-base font-bold leading-5">Ma trận thực đơn tuần</h2>
-                </div>
-                <p className="mt-1 text-sm text-slate-600">Theo dõi món ăn theo ngày, ca và nhóm phục vụ trong phạm vi đã chọn.</p>
+          <section aria-labelledby="weekly-schedule-matrix-title" className="overflow-hidden rounded-[var(--ipc-radius-md,3px)] border border-[var(--ipc-color-border-muted,#d8e2ef)] bg-white">
+            <header className="flex min-h-[48px] flex-wrap items-center justify-between gap-3 border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-white px-4 py-1.5">
+              <div className="flex min-w-0 items-center gap-2 text-slate-900">
+                <CalendarDays size={18} aria-hidden="true" className="shrink-0 text-[var(--ipc-primary,#1a56a8)]" />
+                <h2 id="weekly-schedule-matrix-title" className="ipc-section-title font-bold leading-5 text-slate-900">Ma trận thực đơn tuần</h2>
               </div>
-              <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm">
-                <span className="text-slate-600"><strong className="font-semibold text-slate-900">Khách hàng:</strong> {scope.customerLabel}</span>
-                <span className="text-slate-600"><strong className="font-semibold text-slate-900">Tuần:</strong> {selectedWeekLabel}</span>
-                {layoutRows.length > 0 && !scope.activeDayKey && <StatusBadge variant="warning">{scope.activeServiceLabel}</StatusBadge>}
+              <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1 text-xs">
+                <span className="text-slate-500">Khách hàng: <strong className="font-semibold text-slate-800">{scope.customerLabel}</strong></span>
+                <span className="text-slate-300" aria-hidden="true">|</span>
+                {layoutRows.length > 0 && !scope.activeDayKey ? (
+                  <>
+                    <span className="sr-only">{selectedWeekLabel}</span>
+                    <StatusBadge variant="neutral">{scope.activeServiceLabel}</StatusBadge>
+                  </>
+                ) : (
+                  <span className="text-slate-500">Tuần: <strong className="font-semibold text-slate-800 tabular-nums">{selectedWeekLabel}</strong></span>
+                )}
               </div>
             </header>
             {layoutRows.length === 0 ? (

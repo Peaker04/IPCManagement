@@ -1,4 +1,4 @@
-import { CalendarDays, Scale } from 'lucide-react'
+import { CalendarDays, ClipboardList } from 'lucide-react'
 import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport, TableSkeleton, RefreshStatus } from '@/components/common';
 import { PageStepper } from '@/components/common/PageStepper'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
@@ -19,7 +19,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
     <SectionPanel
       title="Kế hoạch sản xuất"
       headingLevel={2}
-      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
+      icon={<ClipboardList size={18} />}
       description="Kế hoạch sản xuất được sinh từ thực đơn tuần, phân bổ số suất theo từng ca và món ăn."
     >
       <div className="relative flex flex-col gap-3">

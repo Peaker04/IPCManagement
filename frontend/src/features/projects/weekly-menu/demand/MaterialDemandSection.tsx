@@ -2,7 +2,7 @@ import { Fragment, useState } from 'react'
 import { CalendarDays, CheckCircle2, ClipboardList, PackageSearch, Calculator, TriangleAlert, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/formatters'
-import { ConfirmDialog, DocumentRail, EmptyState, InlineAlert, PaginationBar, StatusBadge, TableViewport } from '@/components/common'
+import { ConfirmDialog, DocumentRail, EmptyState, InlineAlert, PaginationBar, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
 import { InfoNote } from '@/components/common/InfoNote'
 import { DemandSummary } from '@/components/common/DemandSummary'
 import { ActionGuard } from '@/components/common/ActionGuard'
@@ -228,7 +228,10 @@ export function MaterialDemandSection({
           </InlineAlert>
         )}
         {demandView.phase === 'loading' ? (
-          <div className="ipc-demand-summary is-empty" role="status">Đang tải nhu cầu nguyên liệu...</div>
+          <div className="space-y-2">
+            <span role="status" className="sr-only">Đang tải nhu cầu nguyên liệu...</span>
+            <TableSkeleton columns={5} rows={5} ariaLabel="Bảng nhu cầu nguyên liệu" />
+          </div>
         ) : demandView.phase === 'forbidden' ? (
           <InlineAlert title="Không có quyền xem nhu cầu nguyên liệu" variant="danger">
             {demandView.message}
@@ -253,7 +256,9 @@ export function MaterialDemandSection({
             {demandView.phase === 'ready' && inventoryStatus.totalCount === 0 && !status.isFetchingAggregate && (
               <p className="ipc-demand-empty-note">{presentation.demandApprovalStatus.status === 'not-created' ? 'Chưa tạo nhu cầu cho ngày này. Kiểm tra KHSX và số suất trước khi tính nguyên liệu.' : 'Không có dòng nguyên liệu trong phạm vi ngày đang xem.'}</p>
             )}
-            {status.isFetchingAggregate && !presentation.aggregatePage ? <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div> : (
+            {status.isFetchingAggregate && !presentation.aggregatePage ? (
+              <TableSkeleton columns={6} rows={4} ariaLabel="Đang tải nguyên liệu ngày đang xem..." />
+            ) : (
               <>
                 {inventoryGroups.exceptionLines.length > 0 && (
                   <div className="ipc-demand-exception-block">

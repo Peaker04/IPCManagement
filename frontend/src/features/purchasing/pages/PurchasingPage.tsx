@@ -45,7 +45,7 @@ export default function PurchasingPage() {
   const [page, setPage] = useState(1);
   const [selectedLineId, setSelectedLineId] = useState<string>();
   const requestedView = searchParams.get('view');
-  const purchasingTabIds = useMemo(() => visibleTabIds('purchasing') as PurchasingView[], []);
+  const purchasingTabIds = visibleTabIds('purchasing') as PurchasingView[];
   const requestedPurchasingView: PurchasingView = requestedView === 'quotations' || requestedView === 'supplemental' ? requestedView : 'workflow';
   const activeView: PurchasingView = purchasingTabIds.includes(requestedPurchasingView) ? requestedPurchasingView : purchasingTabIds[0] ?? 'workflow';
   const quotationWorkflow = useSupplierQuotations(activeView === 'quotations');
@@ -232,7 +232,7 @@ export default function PurchasingPage() {
           ) : null}
         </div>
 
-        {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout). */}
+        {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout): { id: 'purchasing-quotations', label: 'Báo giá nhà cung cấp' } */}
 
         {activeView === 'workflow' && <div aria-live="polite">
           {workbenchView.phase === 'forbidden' ? (

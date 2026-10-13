@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { OperationalFrame, TabContentSkeleton, ViewSwitcher } from '@/components/common';
+import { OperationalFrame, TabContentSkeleton } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
 import { useAdminDataPageModel } from './admin-data/useAdminDataPageModel';
 import type { AdminView } from './admin-data/adminDataPageTypes';
@@ -24,12 +24,9 @@ const AdminPanelFallback = (
 
 function DefaultAdminDataPage() {
   const model = useAdminDataPageModel();
-  const { adminTabs, effectiveActiveView, isViewPending, setActiveView, startViewTransition } = model;
-  const [visitedViews, setVisitedViews] = useState<ReadonlySet<AdminView>>(() => new Set([effectiveActiveView]));
-  const activateView = (view: AdminView) => {
-    setVisitedViews((current) => current.has(view) ? current : new Set(current).add(view));
-    startViewTransition(() => setActiveView(view));
-  };
+  const { adminTabs, effectiveActiveView, isViewPending } = model;
+  const [visitedViews] = useState<ReadonlySet<AdminView>>(() => new Set([effectiveActiveView]));
+  const mountedViews = visitedViews.has(effectiveActiveView) ? visitedViews : new Set(visitedViews).add(effectiveActiveView);
   return (
     <OperationalFrame>
       <div className="min-w-0 [&_.text-slate-400]:text-slate-700! [&_.text-slate-500]:text-slate-700!">
@@ -45,14 +42,7 @@ function DefaultAdminDataPage() {
           </section>
         ) : (
           <>
-            <ViewSwitcher
-              compact
-              ariaLabel="Chọn vùng dữ liệu quản trị"
-              tabs={adminTabs}
-              activeTab={`admin-${effectiveActiveView}`}
-              onTabChange={(id) => activateView(id.replace('admin-', '') as AdminView)}
-            />
-
+            {/* Leaf navigation moved to sidebar (MainLayout). */}
             {isViewPending ? (
               <span className="sr-only" role="status">
                 Đang chuyển vùng dữ liệu quản trị.
@@ -60,13 +50,13 @@ function DefaultAdminDataPage() {
             ) : null}
 
             <Suspense fallback={AdminPanelFallback}>
-              {visitedViews.has('bom-import') && <AdminBomPanel model={model} />}
-              {visitedViews.has('contracts') && <AdminContractsPanel model={model} />}
-              {visitedViews.has('cleanup') && <AdminCleanupPanel model={model} />}
-              {visitedViews.has('inventory') && <AdminInventoryPanel model={model} />}
-              {visitedViews.has('statistics') && <AdminStatisticsPanel model={model} />}
-              {visitedViews.has('employees') && <AdminEmployeesPanel model={model} />}
-              {visitedViews.has('audit') && <AdminAuditPanel model={model} />}
+              {mountedViews.has('bom-import') && <AdminBomPanel model={model} />}
+              {mountedViews.has('contracts') && <AdminContractsPanel model={model} />}
+              {mountedViews.has('cleanup') && <AdminCleanupPanel model={model} />}
+              {mountedViews.has('inventory') && <AdminInventoryPanel model={model} />}
+              {mountedViews.has('statistics') && <AdminStatisticsPanel model={model} />}
+              {mountedViews.has('employees') && <AdminEmployeesPanel model={model} />}
+              {mountedViews.has('audit') && <AdminAuditPanel model={model} />}
             </Suspense>
           </>
         )}

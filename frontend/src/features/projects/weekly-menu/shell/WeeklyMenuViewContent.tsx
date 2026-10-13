@@ -1,4 +1,5 @@
 import { lazy } from 'react';
+// Eager schedule closure: import { WeeklyScheduleSection } from '../schedule/WeeklyScheduleSection';
 import type { WeeklyMenuView } from '../model/types';
 import type { WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from '../schedule/types';
 import type { WeeklyProductionPlanWorkflow } from '../production-plan/useWeeklyProductionPlan';

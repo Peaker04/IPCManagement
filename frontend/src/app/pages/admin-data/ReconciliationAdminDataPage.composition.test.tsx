@@ -27,7 +27,6 @@ describe('MATERIAL_RECONCILIATION Admin page composition', () => {
     )
 
     expect(screen.queryByRole('heading', { name: 'Quản trị dữ liệu' })).not.toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'BOM theo đơn giá' })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Import BOM theo đơn giá' })).toBeInTheDocument()
   })
 })

@@ -282,15 +282,14 @@ describe('Warehouse reconciliation issue detail preserve-context behavior', () =
     daily.compatibility = { canRead: true, canIssueByDate: false }
     renderPage('/warehouse?view=demand&batchId=batch-1')
 
-    const demandTab = screen.getByRole('tab', { name: 'Danh sách cần xuất' })
-    const unavailableState = screen.getByText('Lô này không có dữ liệu xuất theo ngày').closest('[data-empty-variant]')
-    expect(demandTab.compareDocumentPosition(unavailableState!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
-    expect(unavailableState?.closest('[role="tabpanel"]')).toHaveAttribute('aria-labelledby', 'warehouse-demand-tab')
+    const demandPanel = screen.getByRole('tabpanel', { name: 'Danh sách cần xuất' })
+    const unavailableState = screen.getByText('Lô này không có dữ liệu xuất theo ngày').closest<HTMLElement>('[data-empty-variant]')
+    expect(demandPanel).toContainElement(unavailableState)
     expect(screen.getByRole('button', { name: 'Xem lịch sử xuất kho' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Xem lịch sử xuất kho' }))
-    expect(screen.getByRole('tab', { name: 'Lịch sử xuất kho' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tabpanel', { name: 'Lịch sử xuất kho' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Browser Back' }))
-    expect(screen.getByRole('tab', { name: 'Danh sách cần xuất' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tabpanel', { name: 'Danh sách cần xuất' })).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
