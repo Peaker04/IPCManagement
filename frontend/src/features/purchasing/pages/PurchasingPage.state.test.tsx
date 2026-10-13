@@ -204,7 +204,8 @@ describe('PurchasingPage query state boundary', () => {
 
     renderPage('/purchasing?week=2026-07-20&view=supplemental');
 
-    expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true');
+    // G4 batch E phase 2: <ViewSwitcher> retired; verify supplemental view
+    // activates via ?view= supplemental without needing in-page tab control.
     expect(screen.getByTestId('supplemental-workbench')).toBeInTheDocument();
     expect(document.getElementById('purchasing-workflow-panel')).toHaveAttribute('hidden');
     expect(screen.getByRole('heading', { name: 'Mua bổ sung cho bếp' })).toBeInTheDocument();
@@ -212,13 +213,15 @@ describe('PurchasingPage query state boundary', () => {
 
   it('opens the supplemental tab without letting workflow URL reconciliation clobber the selected view', async () => {
     mocks.getWorkbench.mockReturnValue(queryResult({ data: workbench, currentData: workbench, isSuccess: true }));
-    renderPage();
-
-    fireEvent.click(screen.getByRole('tab', { name: 'Mua bổ sung' }));
+    // G4 batch E phase 2: <ViewSwitcher> retired; view is set via ?view=
+    // in the URL. The reconciliation useEffect (syncs week/date/stage only)
+    // must not touch ?view=, so supplemental stays stable.
+    renderPage('/purchasing?week=2026-07-20&view=supplemental');
 
     expect(screen.getByTestId('supplemental-workbench')).toBeInTheDocument();
-    expect(screen.getByTestId('service-date-workbench').closest('[hidden]')).not.toBeNull();
-    await waitFor(() => expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true'));
+    // Workflow panel is not rendered when activeView !== 'workflow'
+    expect(screen.queryByTestId('service-date-workbench')).toBeNull();
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Mua bổ sung cho bếp' })).toBeInTheDocument());
     expect(document.getElementById('purchasing-supplemental-panel')).not.toHaveAttribute('hidden');
   });
 
@@ -260,12 +263,9 @@ describe('PurchasingPage query state boundary', () => {
     expect(screen.queryByText('Ngoại lệ giá')).toBeNull();
     expect(screen.queryByText('Đơn chờ nhập')).toBeNull();
 
-    // Scope CommandBar, page heading, ViewSwitcher still present
+    // G4 batch E phase 2: Scope CommandBar, page heading; ViewSwitcher tabs retired.
     expect(screen.getByRole('heading', { name: 'Thu mua theo nhu cầu đã duyệt' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Xử lý thu mua' })).toBeInTheDocument();
     expect(screen.getByText(/Tuần mua hàng/i)).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Báo giá nhà cung cấp' })).toBeInTheDocument();
   });
 
   it('keeps workflow guide and workbench when ready service dates exist', () => {

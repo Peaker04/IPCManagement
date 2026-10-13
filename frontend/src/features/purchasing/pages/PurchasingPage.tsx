@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Info, RotateCcw, ShoppingCart, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { CommandBar, ContextStrip, EmptyState, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, TabContentSkeleton, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, EmptyState, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, TabContentSkeleton } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Drawer, DrawerBody, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { visibleTabIds } from '@/lib/navigationPreferences';
@@ -136,19 +136,7 @@ export default function PurchasingPage() {
     }
   }, [activeView, routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams, workbench, workbenchView.phase]);
 
-  const changeView = (id: string) => {
-    const view: PurchasingView = id === 'purchasing-quotations'
-      ? 'quotations'
-      : id === 'purchasing-supplemental'
-        ? 'supplemental'
-        : 'workflow';
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      if (view === 'workflow') next.delete('view');
-      else next.set('view', view);
-      return next;
-    });
-  };
+  // G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout); ?view= deep link remains the entrypoint for workflow/supplemental/quotations.
 
   const replaceRouteContext = (nextContext: {
     week?: string;
@@ -244,17 +232,7 @@ export default function PurchasingPage() {
           ) : null}
         </div>
 
-        <ViewSwitcher
-          compact
-          ariaLabel="Chọn góc nhìn thu mua"
-          tabs={[
-            { id: 'purchasing-workflow', label: 'Xử lý thu mua' },
-            { id: 'purchasing-supplemental', label: 'Mua bổ sung' },
-            { id: 'purchasing-quotations', label: 'Báo giá nhà cung cấp' },
-          ].filter((tab) => purchasingTabIds.includes(tab.id.replace('purchasing-', '') as PurchasingView))}
-          activeTab={`purchasing-${activeView}`}
-          onTabChange={changeView}
-        />
+        {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout). */}
 
         {activeView === 'workflow' && <div aria-live="polite">
           {workbenchView.phase === 'forbidden' ? (
