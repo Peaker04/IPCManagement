@@ -18,17 +18,7 @@
       "files": [
         "frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx"
       ],
-      "lines": 1320,
-      "level": "WARNING"
-    },
-    {
-      "id": "frontend:frontend/src/features/projects/pages/WeeklyMenuPage.tsx",
-      "kind": "frontend",
-      "name": "frontend/src/features/projects/pages/WeeklyMenuPage.tsx",
-      "files": [
-        "frontend/src/features/projects/pages/WeeklyMenuPage.tsx"
-      ],
-      "lines": 690,
+      "lines": 1313,
       "level": "WARNING"
     },
     {
@@ -68,7 +58,7 @@
       "files": [
         "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
       ],
-      "lines": 776,
+      "lines": 766,
       "level": "WARNING"
     },
     {

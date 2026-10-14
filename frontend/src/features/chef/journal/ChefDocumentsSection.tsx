@@ -1,6 +1,6 @@
 import { ClipboardList } from 'lucide-react'
 import { DocumentRail, EmptyState, SectionPanel } from '@/components/common'
-import { StockMovementTable } from '@/components/common/StockMovementTable'
+import { StockMovementTable } from '@/features/warehouse/components/StockMovementTable'
 import type { StockMovement, WorkflowDocument } from '@/types/workflow'
 import { typography } from '@/lib/typography'
 import { cn } from '@/lib/utils'

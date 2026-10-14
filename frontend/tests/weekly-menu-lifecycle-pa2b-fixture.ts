@@ -262,7 +262,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: allAvailable(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:46-59',
-      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:42-49',
+      'frontend/src/features/projects/weekly-menu/schedule/WeeklyScheduleCommandBar.tsx:35-50',
       'backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs:19,166',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
     ],
@@ -281,7 +281,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:94-116',
       'frontend/src/features/projects/pages/WeeklyMenuPage.tsx:440-460',
-      'frontend/src/features/projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx:61-68',
+      'frontend/src/features/projects/weekly-menu/schedule/WeeklyScheduleCommandBar.tsx:35-50',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs:13,51-68',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
     ],
@@ -299,7 +299,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: completionAvailability(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:113-116',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:255-275',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:85-115',
       'frontend/src/features/auth/pages/LoginPage.tsx:20-24',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs:15,34',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
@@ -319,7 +319,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:117-127',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:140-160',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:190-215',
       'backend/src/IPCManagement.Api/Program.cs:176-177',
     ],
     schedules: activeSchedules,
@@ -369,7 +369,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:121-124',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32,53-60',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:34,135-145',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:190-215',
       'frontend/src/routes/AppRouter.tsx:60',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:150-187',
     ],

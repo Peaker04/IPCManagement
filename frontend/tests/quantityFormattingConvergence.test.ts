@@ -51,7 +51,7 @@ const residualFragments: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['src/features/purchasing/PurchaseLineGroups.tsx', [
     "group.purchaseQty.toLocaleString('vi-VN')",
   ]],
-  ['src/components/common/ApprovalQueue.tsx', [
+  ['src/features/approvals/components/ApprovalQueue.tsx', [
     'formatSignedPercent(record.variancePercent)',
   ]],
 ]
@@ -75,7 +75,7 @@ describe('quantity/count/percent formatting convergence', () => {
     }, 0)
 
     expect(residualCount).toBe(0)
-    expect(readSource('src/components/common/ApprovalQueue.tsx')).not.toContain('const formatSignedPercent')
+    expect(readSource('src/features/approvals/components/ApprovalQueue.tsx')).not.toContain('const formatSignedPercent')
   })
 
   it('preserves model-rounding and file-size exceptions', () => {

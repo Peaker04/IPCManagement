@@ -1,10 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { EmptyState } from './EmptyState';
-import { StatusBadge } from './StatusBadge';
-import { IdentifierText } from './IdentifierText';
-import { TableViewport } from './TableViewport';
+import { EmptyState, IdentifierText, StatusBadge, TableViewport } from '@/components/common';
 import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/types/workflow';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';

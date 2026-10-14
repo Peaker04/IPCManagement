@@ -8,7 +8,7 @@ import {
   RefreshStatus,
   StatusBadge,
 } from "@/components/common";
-import { ApprovalQueue } from '@/components/common/ApprovalQueue';
+import { ApprovalQueue } from '../components/ApprovalQueue';
 import type {
   ApprovalInboxPage,
   PageNumberPage,

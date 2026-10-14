@@ -9,7 +9,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Multi-panel administration shell has panel-local state and operations, not one importable lifecycle.",
         "sources": [
-          "frontend/src/app/pages/AdminDataPage.tsx:15-80"
+          "frontend/src/app/pages/AdminDataPage.tsx:15-70"
         ]
       },
       "backendBacked": false,

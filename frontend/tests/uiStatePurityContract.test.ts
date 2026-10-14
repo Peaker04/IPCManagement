@@ -4,9 +4,9 @@ import { createElement, type ReactElement } from 'react'
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { DemandSummary } from '@/components/common/DemandSummary'
+import { DemandSummary } from '@/features/planning/components/DemandSummary'
 import { DocumentRail } from '@/components/common/DocumentRail'
-import { StockMovementTable } from '@/components/common/StockMovementTable'
+import { StockMovementTable } from '@/features/warehouse/components/StockMovementTable'
 import { ToastProvider } from '@/components/common/ToastProvider'
 import {
   SAME_STATE_FIXTURES,

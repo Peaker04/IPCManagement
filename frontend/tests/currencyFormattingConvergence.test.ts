@@ -32,7 +32,7 @@ const residualFragments: ReadonlyArray<readonly [string, readonly string[]]> = [
 ]
 
 const canonicalFragments: ReadonlyArray<readonly [string, readonly string[]]> = [
-  ['src/components/common/ApprovalQueue.tsx', [
+  ['src/features/approvals/components/ApprovalQueue.tsx', [
     'formatCurrency(record.referencePrice)',
     'formatCurrency(record.proposedPrice)',
   ]],
@@ -73,7 +73,7 @@ describe('currency formatting convergence', () => {
   })
 
   it('recounts the exact PB section 15 residual set to zero', () => {
-    const approvalQueue = readSource('src/components/common/ApprovalQueue.tsx')
+    const approvalQueue = readSource('src/features/approvals/components/ApprovalQueue.tsx')
     const localHelperConsumers = approvalQueue.includes('const formatCurrency')
       ? countOccurrences(approvalQueue, 'formatCurrency(record.referencePrice)')
         + countOccurrences(approvalQueue, 'formatCurrency(record.proposedPrice)')

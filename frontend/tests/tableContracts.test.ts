@@ -38,7 +38,7 @@ describe('table contracts', () => {
     const tableViewport = readFileSync(resolve(process.cwd(), 'src/components/common/TableViewport.tsx'), 'utf8');
     const paginatedFrame = readFileSync(resolve(process.cwd(), 'src/components/common/PaginatedTableFrame.tsx'), 'utf8');
     const tableCss = readFileSync(resolve(process.cwd(), 'src/styles/components/tables.css'), 'utf8');
-    const responsiveCss = readFileSync(resolve(process.cwd(), 'src/styles/redesign/responsive.css'), 'utf8');
+    const responsiveCss = readFileSync(resolve(process.cwd(), 'src/styles/components/responsive.css'), 'utf8');
 
     expect(tableViewport).not.toContain('rowCapacity');
     expect(paginatedFrame).not.toContain('rowCapacity');

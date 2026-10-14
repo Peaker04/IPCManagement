@@ -1,7 +1,7 @@
 import { fireEvent, render, within } from '@testing-library/react';
 import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
-import { ApprovalQueue } from '@/components/common/ApprovalQueue';
+import { ApprovalQueue } from '../components/ApprovalQueue';
 import type { ApprovalRecord } from '@/types/workflow';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
 

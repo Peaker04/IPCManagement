@@ -25,7 +25,7 @@ const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
   'src/app/pages/admin-data/AdminContractsPanel.tsx': 'contract labels retain the established strong form hierarchy',
   'src/components/common/ContextStrip.tsx': 'context label/value contrast is a component-level hierarchy contract',
   'src/components/common/EmptyState.tsx': 'empty-state title remains emphasized within the body role',
-  'src/components/common/StockMovementTable.tsx': 'movement identifiers and quantities retain compact table emphasis',
+  'src/features/warehouse/components/StockMovementTable.tsx': 'movement identifiers and quantities retain compact table emphasis',
   'src/components/ui/input.tsx': 'file input text has its own nested control emphasis',
   'src/components/ui/VietnameseDateInput.tsx': 'calendar weekday labels retain compact header emphasis',
   'src/features/chef/components/chef-header.tsx': 'headline date and meal total retain dashboard emphasis',
@@ -45,7 +45,7 @@ const featureRoleContracts: Readonly<Record<string, readonly string[]>> = {
   'src/features/projects/pages/WeeklyMenuPage.tsx': ['typography.body'],
   'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx': ['typography.body', 'typography.sectionTitle'],
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': ['typography.code'],
-  'src/components/common/ApprovalQueue.tsx': ['typography.body', 'typography.sectionTitle', 'typography.numeric'],
+  'src/features/approvals/components/ApprovalQueue.tsx': ['typography.body', 'typography.sectionTitle', 'typography.numeric'],
   'src/features/warehouse/pages/WarehousePage.tsx': ['typography.body'],
   'src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx': ['typography.body', 'typography.sectionTitle', 'typography.caption', 'typography.code'],
   'src/features/chef/pages/ChefDashboardPage.tsx': ['typography.body'],
@@ -174,7 +174,7 @@ describe('typography contract', () => {
     expect(helper).not.toMatch(/(?:React|JSX|createElement|<\/?[A-Za-z])/)
     expect(wrapperNames).toEqual([])
     expect(readSource('src/components/common/SectionPanel.tsx')).toContain("const HeadingTag = `h${headingLevel}` as 'h2' | 'h3' | 'h4'")
-    expect(readSource('src/components/common/ApprovalQueue.tsx')).toContain('<h4 className={typography.sectionTitle}>')
+    expect(readSource('src/features/approvals/components/ApprovalQueue.tsx')).toContain('<h4 className={typography.sectionTitle}>')
     expect(readSource('src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx')).toContain('<h3 id="receipt-lifecycle-title"')
   })
 

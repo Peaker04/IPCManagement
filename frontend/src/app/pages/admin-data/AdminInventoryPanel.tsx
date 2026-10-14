@@ -1,5 +1,5 @@
 import { KeepAliveTabPanel, PaginatedTableFrame, PaginationBar, SearchField, SectionPanel } from '@/components/common';
-import { StockMovementTable } from '@/components/common/StockMovementTable';
+import { StockMovementTable } from '@/features/warehouse/components/StockMovementTable';
 import { toNextReportCursor } from '@/api/workflowApiTypes';
 import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';

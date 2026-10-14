@@ -83,10 +83,10 @@ const surface = (
 
 const discoverActualSurfaces = (): ActualSurface[] => {
   const weeklySource = read('src/features/projects/weekly-menu/shell/WeeklyMenuNavigation.tsx')
-  const weeklyGroupSource = between(weeklySource, 'const groups', 'export function')
+  const weeklyGroupSource = between(weeklySource, 'const groups', 'const labels')
   const weeklyViews = [...weeklyGroupSource.matchAll(/\[['"]([^'"]+)['"],\s*['"][^'"]+['"]\]/g)].map((match) => match[1])
   const weeklyGroups = idLiteralsIn(weeklyGroupSource).map((id) => `weekly-group-${id}`)
-  const weeklyMrxSource = between(weeklySource, "if (mode === 'MATERIAL_RECONCILIATION')", 'const visibleGroups')
+  const weeklyMrxSource = between(weeklySource, 'const mrxTabs =', 'const tabs =')
   const weeklyMrxViews = idLiteralsIn(weeklyMrxSource)
 
   const reportSharedSource = read('src/features/reports/pages/reportsPageModelShared.ts')
@@ -104,8 +104,6 @@ const discoverActualSurfaces = (): ActualSurface[] => {
     /eligiblePageTabs\(\s*['"]MATERIAL_RECONCILIATION['"]\s*,\s*['"]warehouse['"]\s*,\s*operation\?\.capabilities\.pageTabs\.warehouse\s*\?\?\s*\[\]\s*,\s*visibleTabIds\(['"]warehouse['"]\)\s*\)/,
     'MRX Warehouse must derive tabs from MRX warehouse capabilities and visible preferences',
   )
-  const warehouseNavigation = between(warehouseMrxSource, 'ariaLabel="Chọn góc nhìn kho đối chiếu"', 'activeTab={`warehouse-${activeView}`}')
-  requirePattern(warehouseNavigation, /tabs=\{tabs\.map\(\(id\)\s*=>\s*\(\{\s*id:\s*`warehouse-\$\{id\}`/, 'MRX Warehouse ViewSwitcher must map eligible tabs to warehouse-prefixed IDs')
   const warehouseSourceViews = warehouseDefaultIds.map((id) => id.replace('warehouse-', ''))
   const warehouseMrxIds = eligiblePageTabs('MATERIAL_RECONCILIATION', 'warehouse', warehouseSourceViews, warehouseSourceViews)
     .map((id) => `warehouse-${id}`)

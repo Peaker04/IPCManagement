@@ -1,6 +1,31 @@
-@import '../../../styles/planning-demand-preview-tokens.css';
-
 .demand-screen {
+  --ipc-primitive-marine-700: var(--ipc-primary);
+  --ipc-primitive-marine-800: var(--ipc-primary-hover);
+  --ipc-primitive-marine-900: var(--ipc-primary-600);
+  --ipc-primitive-marine-50: var(--ipc-primary-soft);
+  --ipc-primitive-focus: var(--ipc-primary);
+  --status-neutral-fg: var(--ipc-slate-600);
+  --status-info-fg: var(--ipc-primary);
+  --status-success-fg: var(--ipc-success);
+  --status-warning-fg: var(--ipc-warning);
+  --status-danger-fg: var(--ipc-danger);
+  --status-info-bg: var(--ipc-primary-soft);
+  --status-success-bg: var(--ipc-success-soft);
+  --status-warning-bg: var(--ipc-warning-soft);
+  --status-danger-bg: var(--ipc-danger-soft);
+  --alert-info-fg: var(--status-info-fg);
+  --alert-info-bg: var(--status-info-bg);
+  --alert-success-fg: var(--status-success-fg);
+  --alert-success-bg: var(--status-success-bg);
+  --alert-warning-fg: var(--status-warning-fg);
+  --alert-warning-bg: var(--status-warning-bg);
+  --alert-danger-fg: var(--status-danger-fg);
+  --alert-danger-bg: var(--status-danger-bg);
+  --demand-action: var(--ipc-primary);
+  --demand-action-hover: var(--ipc-primary-hover);
+  --demand-action-active: var(--ipc-primary-600);
+  --demand-selection: var(--ipc-primary-soft);
+  --demand-focus: var(--ipc-primary);
   --demand-canvas: var(--ipc-slate-100);
   --demand-surface: var(--ipc-color-surface);
   --demand-subtle: var(--ipc-slate-50);

@@ -30,7 +30,7 @@ export function ReconciliationAdminDataPage() {
 
   return (
     <OperationalFrame>
-      {/* Leaf navigation moved to sidebar (MainLayout). */}
+      {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout): { id: 'admin-bom-import' }, { id: 'admin-audit' }, { id: 'admin-source-changes' } */}
       {model.isViewPending ? <span className="sr-only" role="status">Đang chuyển vùng dữ liệu quản trị.</span> : null}
       <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50" />}>
         {mounted.has('bom-import') && <AdminBomPanel model={model} />}

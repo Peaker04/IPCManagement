@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertTriangle, CircleCheck, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { EmptyState } from './EmptyState';
+import { EmptyState } from '@/components/common';
 
 export interface ExceptionLaneItem {
   title: ReactNode;

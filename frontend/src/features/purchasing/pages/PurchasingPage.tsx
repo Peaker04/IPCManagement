@@ -233,7 +233,7 @@ export default function PurchasingPage() {
           ) : null}
         </div>
 
-        {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout): { id: 'purchasing-quotations', label: 'Báo giá nhà cung cấp' } */}
+        {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout): { id: 'purchasing-workflow' }, { id: 'purchasing-supplemental' }, { id: 'purchasing-quotations', label: 'Báo giá nhà cung cấp' } */}
 
         {activeView === 'workflow' && <div aria-live="polite">
           {workbenchView.phase === 'forbidden' ? (

@@ -2,7 +2,7 @@
 
 IPCManagement coordinates meals from customer menus/servings through materials, purchasing, physical stock and kitchen handoff. Current source, behavior tests and machine contracts determine implemented truth. This owner defines shared language, identity, grain and cross-domain invariants; bounded rules belong to [weekly menu](domain/weekly-menu.md), [warehouse](domain/warehouse-contract.md) and [MRX](domain/material-reconciliation.md).
 
-## Modes and roles
+## Modes and roles (DOM-MODE-1, DOM-ROLE-1)
 
 `DEFAULT != MATERIAL_RECONCILIATION`. They share master data and physical stock, never workflow records, lineage, query/mutation authority or audit families. Mode is server authority and does not grant permission. Backend actor/mode/version checks remain final; hidden controls are not security boundaries.
 
@@ -19,7 +19,7 @@ MRX has a different role matrix: Coordination owns source/freeze/transfer, Wareh
 
 DEFAULT flow: menu + locked servings → daily demand → Warehouse supply → authorized shortage/purchasing → PO → quality/approval/posted receipt → remaining issue → whole-issue kitchen acknowledgement → ServiceRun reconciliation/close or compensating supplemental/return. Projections do not prove physical handoff.
 
-## Language and status ownership
+## Language and status ownership (DOM-LANG-1, DOM-STATUS-1)
 
 Use Vietnamese work vocabulary in UI; enum/table/column names, UUID/hash and technical identity are detail/copy data, not primary headings. One concept has one label and contextual semantic tone. Human name precedes code. Units accompany quantities; source formatters/status dictionaries implement these projections.
 
@@ -57,7 +57,7 @@ Each entity has one primary lifecycle/status column; secondary approval/delivery
 
 Query language is distinct: Đang tải, Đang cập nhật, Chưa có dữ liệu, Không tìm thấy kết quả, Không tải được dữ liệu, Không có quyền. Refresh retains only allowed scoped data; [DESIGN](DESIGN.md) owns interaction surfaces and bounded contracts control denial/readiness.
 
-## Identity and canonical grains
+## Identity and canonical grains (DOM-GRAIN-1)
 
 Customer is the served organization; tier selects scoped menu/BOM/cost and cannot be mixed within customer/week; week is a planning object, not the mutation grain of every physical transaction. BOM is per serving, never current stock/receipt authority. Ingredient, SKU, brand, specification/package, supplier and unit are distinct identities. Do not merge names or round fractional BOM quantities to integers. Unknown date/unit/conversion or ambiguous mapping is HOLD_IMPORT; conversion needs reviewed unit/provenance evidence, not guesses.
 
@@ -83,7 +83,7 @@ Cross-screen projections:
 
 Never add a repeated stock snapshot on every BOM row. Allocation sums only when the backend contract gives allocations; repeated snapshots need contract normalization, not guessed FE `Max`. Duplicate means same source-line/owned unique key, not a similar name. Multi-day rows expose dates; grouped mutation uses original line IDs, never aggregate IDs.
 
-## Operational warehouse identity
+## Operational warehouse identity (DOM-INVAR-1)
 
 A passive one-warehouse UI does not remove warehouseId from FK, lots/snapshots, stock, purchasing fingerprints, authorization/audit/lineage, reports/cache/deep links/exports. Historical/inactive rows and IDs remain; no merge/reassign/delete. Zero/multiple operational rows block commands; no fallback by name/code/index/order/activity.
 
@@ -119,3 +119,46 @@ Shared vocabulary describes, not replaces feature enums: MUTABLE draft/cutoff; A
 - Nullable legacy provenance requires reviewed proposal → different-actor approval → approved apply, rechecking exact source/unit at create/apply. No name/header/first-candidate backfill, quantity rewrite or destructive history repair.
 
 Private source rows/workbooks remain local. Fixture/distribution boundaries are in [ENGINEERING](ENGINEERING.md#private-inputs-and-fixtures); operational restore/migration authority is in [OPERATIONS](OPERATIONS.md).
+
+---
+
+## Project-Wide Requirements Contract (BR, FR, NFR)
+
+Ma trận yêu cầu chuẩn hóa toàn diện liên kết 12 Phân hệ Backend và 14 Routes Frontend.
+
+### 1. Global Business Rules (BR-GLOBAL)
+
+| Rule ID | Tiêu đề | Đặc tả nghiệp vụ bất biến | Ràng buộc kiến trúc |
+|---|---|---|---|
+| `BR-GLOBAL-01` | Mode Isolation | Chế độ `DEFAULT` và `MATERIAL_RECONCILIATION` chia sẻ danh mục dùng chung và tồn kho vật lý nhưng tuyệt đối tách biệt 100% về quy trình nghiệp vụ, dòng chứng từ, lệnh command, truy vấn projection và nhật ký kiểm toán (`DOM-MODE-1`). | Cấm trộn lẫn các API endpoints, bảng cơ sở dữ liệu hoặc state machine giữa hai chế độ. |
+| `BR-GLOBAL-02` | Quantitative Traceability Chain | Mọi đơn vị nguyên liệu từ lúc tính định mức thực đơn → nhu cầu ngày → phiếu xuất kho → bếp nhận bàn giao → đối soát đóng ca phải đảm bảo cân bằng định lượng chính xác; không có hao hụt ngầm hoặc phân bổ ảo. | Mọi chênh lệch số lượng phải được giải trình qua chứng từ cấp bổ sung hoặc phiếu trả hàng. |
+| `BR-GLOBAL-03` | Ledger Immutability | Các chứng từ sau khi chốt sổ hoặc ghi sổ kế toán kho (`Approved`, `Posted`, `Locked`, `Closed`) là bất biến (append-only); nghiêm cấm cập nhật đè (update) hoặc xóa vật lý (hard delete). | Sai sót chỉ được điều chỉnh bằng các bút toán bù trừ nghịch đảo mang đầy đủ dấu vết kiểm toán. |
+| `BR-GLOBAL-04` | Explicit Blocker Evidence | Khi một tiến trình vận hành bị chặn (ví dụ: `ServiceRun` bị kẹt, phiếu PO chưa duyệt, kho chưa đủ hàng), hệ thống phải cung cấp đầy đủ bằng chứng nguyên nhân, điều kiện tiên quyết và hướng dẫn khắc phục cụ thể (`UXR-02`). | Cấm hiển thị trạng thái bị khóa mà không chỉ rõ mắt xích bị tắc hoặc người chịu trách nhiệm. |
+
+### 2. Functional Requirements Matrix (13 FRs — 12 BE Features <-> 14 FE Routes)
+
+| FR Code | Tên phân hệ nghiệp vụ | Phân hệ Backend (`backend/.../Features/`) | Route & Feature Frontend (`frontend/.../`) | Primary Work Object & Năng lực chính |
+|---|---|---|---|---|
+| `FR-AUTH` | Xác thực & Phân quyền | `Auth` | `/login`, `/forbidden`<br>(`features/auth/`) | Quản lý phiên làm việc, JWT tokens, kiểm soát vai trò (`AppRole`), chuyển hướng người dùng khi không đủ quyền hạn. |
+| `FR-DASH` | Bàn điều hành tổng quan | Aggregated (`Planning`, `Inventory`, `Approvals`) | `/`<br>(`features/dashboard/`) | `OperationalFrame`: Theo dõi điểm tắc luồng vận hành hôm nay, tiến độ KHSX các ca, cảnh báo thiếu nguyên liệu tức thời. |
+| `FR-CAT` | Quản trị danh mục & BOM gốc | `Catalog` | `/admin-data`<br>(`features/admin/`, `features/projects/`) | `SplitWorkbench`: Quản lý danh mục nguyên liệu, danh mục món ăn, công thức định mức BOM gốc theo khay/suất chuẩn. |
+| `FR-ADMIN`| Quản trị hệ thống & Quy tắc duyệt | `Admin` | `/admin-data`, `/settings/approval-rules`, `/settings/advanced`<br>(`features/admin/`) | Thiết lập tổ chức/khách hàng, bảng giá theo đối tượng, quy tắc phân cấp phê duyệt chứng từ, cấu hình thông số hệ thống. |
+| `FR-MENU` | Lập thực đơn & Kế hoạch tuần | `Planning`, `Coordination` | `/weekly-menu`<br>(`features/planning/`, `features/coordination/`) | `WeeklyMenuWorkspaceShell` & `SplitWorkbench`: Lập thực đơn tuần, ma trận món 7 ngày, tổng hợp nhu cầu vật tư, bàn giao bếp, giá vốn BOM. |
+| `FR-COORD`| Điều phối suất ăn khách hàng | `Coordination` | `/meal-orders`<br>(`features/coordination/`) | `OperationalFrame`: Tiếp nhận và chốt số lượng suất ăn theo ca/ngày cho từng khách hàng, xử lý lệch suất đột xuất. |
+| `FR-CHEF` | Bếp sản xuất & Bàn giao ca | `Planning` | `/chef`<br>(`features/chef/`, `features/planning/`) | `OperationalFrame`: Theo dõi KHSX theo ca, checklist kiểm đếm nhận nguyên liệu từ kho, xác nhận bàn giao toàn bộ, tạo phiếu trả hàng thừa. |
+| `FR-APPR` | Phê duyệt vận hành | `Approvals` | `/approvals`<br>(`features/approvals/`) | `OperationalFrame`: Trung tâm duyệt tập trung các đề xuất mua hàng (Purchase Request), bảng báo giá nhà cung cấp, duyệt phiếu nhập kho. |
+| `FR-PUR`  | Thu mua & Nhà cung cấp | `Purchasing` | `/purchasing`<br>(`features/purchasing/`) | `SplitWorkbench`: Tổng hợp nhu cầu thiếu hụt từ kho, tạo đề xuất mua hàng, quản lý đơn mua (PO), theo dõi tiến độ giao hàng từ NCC. |
+| `FR-WH`   | Quản lý kho & Tồn trữ | `Inventory` | `/warehouse`<br>(`features/warehouse/`) | `OperationalFrame` & `TableViewport`: Quản lý tồn kho tức thời, lập và duyệt phiếu nhập/xuất kho, ghi sổ thẻ kho bất biến. |
+| `FR-RECON`| Đối soát nguyên liệu (MRX) | `Reconciliation` | `/reconciliation`<br>(`features/reconciliation/`) | `OperationalFrame` (MRX mode): Đối soát lượng xuất kho sổ sách với lượng tiêu hao thực tế của ca nấu ăn, lập biên bản xử lý sai lệch. |
+| `FR-REP`  | Báo cáo vận hành & Chi phí | `Reports` | `/reports`<br>(`features/reports/`) | `OperationalFrame` & `TableViewport`: Báo cáo chi phí thực phẩm (Food Cost %), biến động giá nguyên liệu, báo cáo tồn kho định kỳ. |
+| `FR-SYS`  | Vận hành & Chẩn đoán hệ thống | `SystemOperation`, `SampleData` | `/settings/advanced`<br>(`features/system-operation/`) | `SectionPanel`: Chuyển đổi linh hoạt chế độ vận hành (`DEFAULT` / `MRX`), nạp và dọn dẹp dữ liệu mẫu, theo dõi sức khỏe hệ thống. |
+
+### 3. Non-Functional Requirements (NFR)
+
+| NFR Code | Nhóm tiêu chuẩn | Chỉ số định lượng bắt buộc | Phương pháp kiểm chứng |
+|---|---|---|---|
+| `NFR-PERF-01` | Thời gian phản hồi (Latency) | P75 API latency <= 300ms; thời gian render khung đầu tiên của FE < 100ms; tải hoàn tất dữ liệu màn hình < 1.0s. | Playwright performance trace và kiểm thử tải `perf:load`. |
+| `NFR-PERF-02` | Khả năng mở rộng bảng dữ liệu | Mọi bảng dữ liệu > 50 dòng phải bọc trong `TableViewport` (`T7`) kết hợp phân trang server hoặc ảo hóa; chỉ số CLS <= 0.1. | Vitest contract tests và Playwright layout-shift audit. |
+| `NFR-SEC-01` | Bảo mật phân quyền 3 lớp | RBAC đa tầng: (1) Route Guard tại React Router, (2) Navigation display filtering, (3) Component/Action token-permission guard. | `FrontendPermissionVocabularyTests` và `*.contract.test.tsx`. |
+| `NFR-REL-01` | Độ tin cậy & Tính giao dịch | Sử dụng Outbox pattern cho các sự kiện bất đồng bộ; 100% nghiệp vụ ghi sổ kho và chốt đơn đảm bảo ACID transaction. | Unit/Integration tests với database transaction rollbacks. |
+| `NFR-I18N-01` | Bản địa hóa & Ngôn ngữ vận hành | 100% giao diện sử dụng tiếng Việt chuyên ngành công nghiệp (`DOM-LANG-1`); múi giờ hiển thị đồng nhất `Asia/Ho_Chi_Minh`. | UI audit specs và static analysis kiểm tra chuỗi giao diện. |

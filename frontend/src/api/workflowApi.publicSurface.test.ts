@@ -66,6 +66,7 @@ const expectedEndpointNames = [
   'getPriceVarianceBySupplier',
   'getPriceVarianceBySupplierPage',
   'getPriceVariancePage',
+  'getPurchaseOrderById',
   'getPurchaseOrders',
   'getPurchaseOrdersPage',
   'getPurchasePlan',

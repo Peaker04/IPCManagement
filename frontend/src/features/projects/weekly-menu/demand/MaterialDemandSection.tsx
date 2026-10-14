@@ -1,10 +1,11 @@
 import { Fragment, useState } from 'react'
-import { CalendarDays, CheckCircle2, ClipboardList, PackageSearch, Calculator, TriangleAlert, ChevronDown } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { CalendarDays, CheckCircle2, ClipboardList, PackageSearch, Calculator, ShoppingCart, TriangleAlert, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/formatters'
 import { ConfirmDialog, DocumentRail, EmptyState, InlineAlert, PaginationBar, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
 import { InfoNote } from '@/components/common/InfoNote'
-import { DemandSummary } from '@/components/common/DemandSummary'
+import { DemandSummary } from '@/features/planning/components/DemandSummary'
 import { ActionGuard } from '@/components/common/ActionGuard'
 import { Button } from '@/components/ui/button'
 import { QuickServingCell } from '../schedule/QuickServingCell'
@@ -12,6 +13,7 @@ import type { WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from '../sc
 import type { MaterialDemandWorkflow } from './useMaterialDemand'
 import { getDemandActionPresentation } from './demandModel'
 import { typography } from '@/lib/typography'
+import { ROUTES } from '@/lib/routeConfig'
 export function MaterialDemandSection({
   workflow,
   scheduleWorkflow,
@@ -29,6 +31,7 @@ export function MaterialDemandSection({
   const { activeDay, dayPages, dayIndex, activeRows, activeQuickServingRows, inventoryStatus, inventoryGroups } = presentation
   const servingBusy = status.isSavingQuickServings || scheduleWorkflow.status.isSavingQuickServings
   const isStalenessUnavailable = status.stalenessState === 'loading' || status.stalenessState === 'error'
+  const purchasingHref = `${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(presentation.activeDate)}`
   const activeShiftGroups = Array.from(new Set(activeRows.map((row) => row.shiftLabel))).map((shiftLabel) => {
     const rows = activeRows.filter((row) => row.shiftLabel === shiftLabel)
     return {
@@ -140,13 +143,13 @@ export function MaterialDemandSection({
         </details>
   )
   return (
-    <section className="ipc-demand-workspace" aria-label="Nhu cầu và tiến độ nguyên liệu">
+    <section className="ipc-demand-workspace" aria-label="KHSX và tiến độ xuất nguyên liệu">
       {demandView.phase === 'uninitialized' ? (
         <div className="py-2 text-sm text-slate-600">
           <header className="ipc-demand-context-heading">
             <h2>
               <PackageSearch size={18} aria-hidden="true" />
-              <span>Nhu cầu và tiến độ nguyên liệu</span>
+              <span>KHSX và tiến độ xuất nguyên liệu</span>
             </h2>
           </header>
           <p className="px-4 py-6 text-center text-slate-500">Chọn khách hàng và tuần để xem KHSX và tiến độ bàn giao nguyên liệu.</p>
@@ -157,7 +160,7 @@ export function MaterialDemandSection({
           <header className="ipc-demand-context-heading">
             <h2>
               <PackageSearch size={18} aria-hidden="true" />
-              <span>Nhu cầu và tiến độ nguyên liệu</span>
+              <span>KHSX và tiến độ xuất nguyên liệu</span>
             </h2>
             <span className="text-xs font-medium text-slate-500">Phê duyệt nhu cầu:</span>
             <StatusBadge variant={presentation.demandApprovalStatus.tone}>{presentation.demandApprovalStatus.label}</StatusBadge>
@@ -180,9 +183,19 @@ export function MaterialDemandSection({
           </nav>
           <dl className="ipc-demand-day-checkpoints" aria-label="Tóm tắt vận hành ngày đang xem">
             <div><ClipboardList size={16} aria-hidden="true" /><dt>KHSX trong ngày</dt><dd>{activeRows.length} dòng</dd></div>
-            <div className={completedShiftCount === activeShiftGroups.length && activeShiftGroups.length > 0 ? 'is-complete' : 'is-warning'}><CheckCircle2 size={16} aria-hidden="true" /><dt>Số suất theo ca</dt><dd>{completedShiftCount}/{activeShiftGroups.length} ca hoàn tất</dd></div>
+            <div className={completedShiftCount === activeShiftGroups.length && activeShiftGroups.length > 0 ? 'is-complete' : 'is-warning [&>dt]:text-slate-800!'}><CheckCircle2 size={16} aria-hidden="true" /><dt>Số suất theo ca</dt><dd>{completedShiftCount}/{activeShiftGroups.length} ca hoàn tất</dd></div>
             <div className={hasMaterials ? inventoryStatus.shortageCount > 0 || inventoryStatus.pendingKitchenCount > 0 ? 'is-warning' : 'is-complete' : undefined}><PackageSearch size={16} aria-hidden="true" /><dt>Bàn giao nguyên liệu</dt><dd>{handoffText}</dd></div>
           </dl>
+          {presentation.demandApprovalStatus.status === 'pending' && presentation.approvalHref && (
+            <ActionGuard allowedRoles={['quanly']}>
+              <Link className="ipc-button ipc-button-primary whitespace-nowrap" to={presentation.approvalHref}>{presentation.demandApprovalStatus.actionLabel}</Link>
+            </ActionGuard>
+          )}
+          {presentation.demandApprovalStatus.status === 'approved' && (
+            <ActionGuard allowedRoles={['quanly', 'thukho']}>
+              <Link className="ipc-button ipc-button-primary whitespace-nowrap" to={purchasingHref}><ShoppingCart size={16} />Mở thu mua</Link>
+            </ActionGuard>
+          )}
           {actionPresentation.showGenerate && (
             <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
               <div className="ipc-demand-day-action"><Button variant="default" size="sm" type="button" onClick={handleGenerate}

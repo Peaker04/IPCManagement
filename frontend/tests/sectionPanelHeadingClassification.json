@@ -218,14 +218,6 @@
       "headingLevel": 2
     },
     {
-      "path": "src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx",
-      "occurrence": 1,
-      "title": "KHSX và tiến độ xuất nguyên liệu",
-      "classification": "route-primary",
-      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
-      "headingLevel": 2
-    },
-    {
       "path": "src/features/projects/weekly-menu/dish-materials/DishMaterialsSection.tsx",
       "occurrence": 1,
       "title": "Phân tích nguyên liệu món",
@@ -261,14 +253,6 @@
       "path": "src/features/projects/weekly-menu/purchasing/PurchaseSummarySection.tsx",
       "occurrence": 1,
       "title": "Bàn giao nguyên liệu",
-      "classification": "route-primary",
-      "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
-      "headingLevel": 2
-    },
-    {
-      "path": "src/features/projects/weekly-menu/schedule/WeeklyScheduleSection.tsx",
-      "occurrence": 1,
-      "title": "Bố cục menu theo file khách hàng",
       "classification": "route-primary",
       "rationale": "Selected route/view work surface directly below the shell-owned route h1.",
       "headingLevel": 2

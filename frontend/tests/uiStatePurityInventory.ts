@@ -84,7 +84,7 @@ export const SAME_STATE_PAIRS: readonly SameStatePair[] = [
       sourceFragment: '<DemandSummary lines={lines} showServiceDate',
     },
     sharedProjectionOwner: {
-      sourcePath: 'src/components/common/DemandSummary.tsx',
+      sourcePath: 'src/features/planning/components/DemandSummary.tsx',
       sourceFragment: 'export function DemandSummary',
     },
     selectors: {
@@ -108,7 +108,7 @@ export const SAME_STATE_PAIRS: readonly SameStatePair[] = [
     left: {
       surface: 'Weekly menu demand documents',
       sourcePath: 'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx',
-      sourceFragment: '<DocumentRail documents={presentation.documents}',
+      sourceFragment: '<DocumentRail documents={showWeeklyDocuments ? presentation.weeklyDocuments : presentation.documents}',
     },
     right: {
       surface: 'Chef journal documents',
@@ -150,7 +150,7 @@ export const SAME_STATE_PAIRS: readonly SameStatePair[] = [
       sourceFragment: '<StockMovementTable',
     },
     sharedProjectionOwner: {
-      sourcePath: 'src/components/common/StockMovementTable.tsx',
+      sourcePath: 'src/features/warehouse/components/StockMovementTable.tsx',
       sourceFragment: 'export function StockMovementTable',
     },
     selectors: {
@@ -435,7 +435,7 @@ export const HIDDEN_STATE_BASELINE: readonly HiddenStateClassification[] = [
   classified('order', 'src/lib/useDebouncedValue.ts', 1, '45297b3ec8aa22d251d89eae10dcf7dd9c482d01868d8f47904ea90c7fe09047', 'justified-non-visibility-infrastructure', asyncInteractionReason),
 
   classified('time', 'src/app/layout/MainLayout.tsx', 1, '4c5772a30700b7ff5ab5b7041076179729234fb1ea1ef9a32bd45721e142479e', 'declared-domain-query-state', domainClockReason),
-  classified('time', 'src/components/common/ApprovalQueue.tsx', 1, 'eb09750477cafed0791320dfbd6d7fb322cd08513afdd222b9e6dbb2edfdda73', 'declared-domain-query-state', 'SLA projection captures one stable reference time at component mount; render no longer reads the clock repeatedly.'),
+  classified('time', 'src/features/approvals/components/ApprovalQueue.tsx', 1, 'eb09750477cafed0791320dfbd6d7fb322cd08513afdd222b9e6dbb2edfdda73', 'declared-domain-query-state', 'SLA projection captures one stable reference time at component mount; render no longer reads the clock repeatedly.'),
   classified('time', 'src/components/common/ToastProvider.tsx', 1, 'f31d7afd495a37718e76f219d505f3415173b6f15f84400e5da43aadabf7a472', 'justified-non-visibility-infrastructure', infrastructureClockReason),
   classified('time', 'src/features/chef/components/excess-material-dialog.tsx', 1, 'b7889592840266e010e5edbb73b39f137734ac8d1b1453e67dd3fe4177e50666', 'declared-domain-query-state', domainClockReason),
   classified('time', 'src/features/coordination/components/action-toolbar.tsx', 2, 'a331406aade15f5c4c701713de3bf4387883316fb96b2afcee1d3d0396dd8fab', 'justified-non-visibility-infrastructure', infrastructureClockReason),

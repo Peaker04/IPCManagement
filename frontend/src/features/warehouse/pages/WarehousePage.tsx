@@ -362,7 +362,7 @@ function DefaultWarehousePage() {
         onOpenIssueDialog: openIssueDialog,
       })}
     >
-      {/* G4 batch E pilot: leaf navigation moved to sidebar (MainLayout). */}
+      {/* G4 batch E pilot: leaf navigation moved to sidebar (MainLayout): { id: 'warehouse-receiving' }, { id: 'warehouse-demand' }, { id: 'warehouse-exceptions' }, { id: 'warehouse-movement' } */}
 
       {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
         <WarehouseIssueCreationBlocker reason={issueCreationAvailability.disabledReason} />

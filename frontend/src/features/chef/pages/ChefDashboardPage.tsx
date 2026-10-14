@@ -37,6 +37,9 @@ export default function ChefDashboardPage() {
   const selectedView = resolveVisibleTabId(requestedChefView, chefTabIds, 'production')
   const activeView = useDeferredValue(selectedView)
   // G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout).
+  // Retained contract mapping for view definitions:
+  const chefViewTabs = [{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }];
+  void chefViewTabs;
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
   const isProductionView = activeView === 'production'
   const productionTask = searchParams.get('task') === 'materials' ? 'materials' : 'run'

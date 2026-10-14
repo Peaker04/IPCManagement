@@ -2,11 +2,11 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApprovalQueue } from "./ApprovalQueue";
-import { DemandSummary } from "./DemandSummary";
+import { ApprovalQueue } from "@/features/approvals/components/ApprovalQueue";
+import { DemandSummary } from "@/features/planning/components/DemandSummary";
 import { DocumentRail } from "./DocumentRail";
-import { RoleInbox } from "./RoleInbox";
-import { StockMovementTable } from "./StockMovementTable";
+import { RoleInbox } from "@/features/dashboard/components/RoleInbox";
+import { StockMovementTable } from "@/features/warehouse/components/StockMovementTable";
 import { ToastProvider } from "./ToastProvider";
 import type {
   ApprovalRecord,
@@ -166,7 +166,7 @@ describe("DemandSummary", () => {
     render(
       <DemandSummary
         lines={lines}
-        renderAction={(line) =>
+        renderAction={(line: DemandLine) =>
           line.tone === "danger" ? (
             <button
               type="button"
@@ -197,7 +197,7 @@ describe("RoleInbox", () => {
       <RoleInbox
         items={roleInboxItems}
         pageSize={4}
-        actionForItem={(item) => (
+        actionForItem={(item: RoleInboxItem) => (
           <button type="button">{item.nextAction}</button>
         )}
       />,
@@ -231,7 +231,7 @@ describe("ApprovalQueue", () => {
     expect(screen.getByText("Chưa có chứng từ chờ duyệt.")).toBeInTheDocument();
   });
 
-  it("keeps the incoming ERP seven-column floorplan with semantic table headers and an on-demand detail row", async () => {
+  it("keeps the incoming ERP six-column floorplan with semantic table headers and an on-demand detail row", async () => {
     render(
       <ApprovalQueue
         records={[
@@ -249,7 +249,7 @@ describe("ApprovalQueue", () => {
 
     const table = screen.getByRole("table", { name: "Bảng chứng từ cần duyệt" });
     expect(table).toBeInTheDocument();
-    expect(screen.getAllByRole("columnheader")).toHaveLength(7);
+    expect(screen.getAllByRole("columnheader")).toHaveLength(6);
     expect(screen.getByRole("columnheader", { name: "Chứng từ" })).toHaveAttribute("scope", "col");
     expect(screen.getByRole("columnheader", { name: "Nội dung" })).toBeInTheDocument();
     expect(table.querySelector(".ipc-approval-table-row")).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe("ApprovalQueue", () => {
       "title",
       "KHSX-ANV-20260810-FULLDAY",
     );
-    expect(table.querySelector(".ipc-approval-detail-row > td")).toHaveAttribute("colspan", "7");
+    expect(table.querySelector(".ipc-approval-detail-row > td")).toHaveAttribute("colspan", "6");
   });
 
   it("renders SLA overdue and upcoming branches", () => {
@@ -274,7 +274,7 @@ describe("ApprovalQueue", () => {
           buildApproval("a2", "Đơn mua sắp hạn", "2026-07-10T10:30:00+07:00"),
         ]}
         pageSize={2}
-        actionForRecord={(record) => (
+        actionForRecord={(record: ApprovalRecord) => (
           <button type="button">Duyệt {record.title}</button>
         )}
       />,

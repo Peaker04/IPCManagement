@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { DemandSummary } from '@/components/common/DemandSummary'
+import { DemandSummary } from '@/features/planning/components/DemandSummary'
 import { mapDemandAggregateLine } from '@/api/reportMappers'
 import PurchaseSummarySection from './PurchaseSummarySection'
 import type { PurchaseSummaryWorkflow } from './usePurchaseSummary'

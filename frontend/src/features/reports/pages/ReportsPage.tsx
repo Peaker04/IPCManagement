@@ -36,7 +36,7 @@ import {
   standardPageSizeOptions,
   useReportsPageModel,
 } from './useReportsPageModel';
-import { StockMovementTable } from '@/components/common/StockMovementTable';
+import { StockMovementTable } from '@/features/warehouse/components/StockMovementTable';
 // Leaf navigation moved to sidebar (MainLayout).
 import { ReportEmptyRow as EmptyRow } from './ReportEmptyRow';
 import { ReportQueryBoundary } from './ReportQueryBoundary';

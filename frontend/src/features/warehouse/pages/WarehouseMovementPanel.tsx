@@ -17,7 +17,7 @@ import {
   ViewSwitcher,
 } from '@/components/common';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
-import { StockMovementTable } from '@/components/common/StockMovementTable';
+import { StockMovementTable } from '../components/StockMovementTable';
 import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
 import type { CurrentStockRow } from '@/api/workflowApiTypes';
 import type { StockMovement, WorkflowDocument } from '@/types/workflow';

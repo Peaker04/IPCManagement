@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { PaginationBar } from './PaginationBar';
-import { CursorPaginationBar } from './CursorPaginationBar';
-import { EmptyState } from './EmptyState';
-import { StatusBadge } from './StatusBadge';
-import { TableViewport } from './TableViewport';
+import {
+  CursorPaginationBar,
+  EmptyState,
+  PaginationBar,
+  StatusBadge,
+  TableViewport,
+  useToast,
+} from '@/components/common';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
 import type { StockMovement } from '@/types/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
-import { useToast } from './useToast';
 import { typography } from '@/lib/typography';
 
 interface StockMovementTableProps {

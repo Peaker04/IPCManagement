@@ -88,10 +88,10 @@ const manifestDebtRawSources: Record<string, string> = {
 
 const manifestDebtExpectations: DebtSourceExpectations = {
   AdminData: {
-    'frontend/src/app/pages/AdminDataPage.tsx:15-80': [
+    'frontend/src/app/pages/AdminDataPage.tsx:15-70': [
       'const model = useAdminDataPageModel();',
-      '<ViewSwitcher',
-      "onTabChange={(id) => activateView(id.replace('admin-', '') as AdminView)}",
+      '{/* Leaf navigation moved to sidebar (MainLayout). */}',
+      "{mountedViews.has('cleanup') && <AdminCleanupPanel model={model} />}",
     ],
   },
   AdvancedDisplaySettings: {
@@ -131,7 +131,7 @@ const manifestDebtExpectations: DebtSourceExpectations = {
   MaterialReconciliation: {
     'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-360': [
       'export default function ReconciliationPage()',
-      '<ReconciliationComparisonTable lines={batch.lines}'
+      '<ReconciliationComparisonTable lines={comparisonLines}'
     ],
     'frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-46': [
       'export function ReconciliationDispositionDrawer(',
@@ -353,7 +353,7 @@ const materialDemandRegistry = materialDemandScenarios.map(({ scenarioId, backen
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-160',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-220',
       'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
       'backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs:61-69',
     ],
@@ -628,7 +628,7 @@ describe('operational state/action family coverage', () => {
   })
 
   it('rejects a missing AdminData fragment in raw source', () => {
-    const descriptor = 'frontend/src/app/pages/AdminDataPage.tsx:15-80'
+    const descriptor = 'frontend/src/app/pages/AdminDataPage.tsx:15-70'
     const mutatedExpectations = structuredClone(manifestDebtExpectations)
     mutatedExpectations.AdminData[descriptor] = [
       '__missing_admin_data_fragment__',
@@ -640,7 +640,7 @@ describe('operational state/action family coverage', () => {
       mutatedExpectations,
       manifestDebtRawSources,
     )).toThrow(
-      'Debt source "frontend/src/app/pages/AdminDataPage.tsx:15-80" expected fragment "__missing_admin_data_fragment__" exactly once in raw source, found 0.',
+      'Debt source "frontend/src/app/pages/AdminDataPage.tsx:15-70" expected fragment "__missing_admin_data_fragment__" exactly once in raw source, found 0.',
     )
   })
 

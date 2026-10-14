@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { PaginationBar } from "./PaginationBar";
-import { EmptyState } from "./EmptyState";
-import { TableViewport } from "./TableViewport";
+import { PaginationBar } from "@/components/common";
+import { EmptyState } from "@/components/common";
+import { TableViewport } from "@/components/common";
 import { useLocalPagination } from "@/lib/useLocalPagination";
-import { StatusBadge } from "./StatusBadge";
-import { IdentifierText } from "./IdentifierText";
+import { StatusBadge } from "@/components/common";
+import { IdentifierText } from "@/components/common";
 import {
   formatCurrency,
   formatDateOnly,

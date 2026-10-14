@@ -1,5 +1,5 @@
 import { CalendarDays, ClipboardList } from 'lucide-react'
-import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport, TableSkeleton, RefreshStatus } from '@/components/common';
+import { EmptyState, IdentifierText, InlineAlert, SectionPanel, StatusBadge, TableViewport, TableSkeleton, RefreshStatus } from '@/components/common';
 import { PageStepper } from '@/components/common/PageStepper'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
@@ -91,7 +91,9 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                   <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-3 border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-[var(--ipc-slate-50,#f8fafc)] px-4 py-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold tracking-wider text-slate-500">Mã KHSX:</span>
-                      <h3 className="font-mono text-sm font-bold text-slate-900">{plan.planCode}</h3>
+                      <h3 className="text-sm font-bold text-slate-900">
+                        <IdentifierText value={plan.planCode} />
+                      </h3>
                       <StatusBadge variant={planStatus.tone}>{planStatus.label}</StatusBadge>
                     </div>
                     <dl className="ipc-fiori-meta flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-slate-600">

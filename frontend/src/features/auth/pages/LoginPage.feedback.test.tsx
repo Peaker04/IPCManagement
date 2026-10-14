@@ -154,4 +154,38 @@ describe('LoginPage validation feedback', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Tài khoản hoặc mật khẩu không đúng.');
     });
   });
+
+  it('displays the backend message when login succeeds but account status rejects access', async () => {
+    mocks.login.mockReturnValue({
+      unwrap: () => Promise.resolve({
+        success: false,
+        message: 'Tài khoản đã bị tạm khóa. Vui lòng liên hệ quản trị viên.',
+        data: null,
+      }),
+    });
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('Tài khoản'), { target: { value: 'locked-user' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Tài khoản đã bị tạm khóa. Vui lòng liên hệ quản trị viên.');
+    });
+    expect(mocks.dispatch).not.toHaveBeenCalled();
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
+  it('informs the user of connection error on unexpected network or 500 status', async () => {
+    mocks.login.mockReturnValue({ unwrap: () => Promise.reject({ status: 500 }) });
+    render(<LoginPage />);
+
+    fireEvent.change(screen.getByLabelText('Tài khoản'), { target: { value: 'user' } });
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'secret' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Không thể đăng nhập. Vui lòng kiểm tra kết nối máy chủ.');
+    });
+  });
 });

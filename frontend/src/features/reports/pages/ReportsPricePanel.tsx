@@ -11,7 +11,7 @@ import {
   TableViewport,
 } from '@/components/common';
 import { resolvePriceVarianceStatus } from '@/lib/status/statusRegistry';
-import { ExceptionLane } from '@/components/common/ExceptionLane';
+import { ExceptionLane } from '@/features/reconciliation/components/ExceptionLane';
 import { ROUTES } from '@/lib/routeConfig';
 import { formatCurrency, formatDateOnly, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';

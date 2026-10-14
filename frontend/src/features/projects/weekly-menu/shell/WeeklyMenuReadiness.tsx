@@ -42,7 +42,7 @@ export function WeeklyMenuReadiness({ readiness }: { readiness: Readiness }) {
           aria-hidden="true"
         />
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
-          <span className="text-[0.72rem] font-semibold text-slate-500">Mức sẵn sàng:</span>
+          <span className="text-xs font-semibold text-slate-500">Mức sẵn sàng:</span>
           <strong className="text-xs font-bold text-slate-900">{readiness.label}</strong>
           <small className="sr-only">{readiness.detail}</small>
         </div>
@@ -56,7 +56,7 @@ export function WeeklyMenuReadiness({ readiness }: { readiness: Readiness }) {
               key={checkpoint.key}
               title={`${checkpoint.label}: ${checkpoint.value}`}
               className={cn(
-                'inline-flex items-center gap-1 rounded-[var(--ipc-radius-sm,2px)] border px-1.5 py-0.5 text-[0.7rem] font-medium leading-none',
+                'inline-flex items-center gap-1 rounded-[var(--ipc-radius-sm,2px)] border px-1.5 py-0.5 text-xs font-medium leading-none',
                 checkpoint.state === 'complete' && 'border-[var(--status-success-border,#99ddd2)] bg-[var(--status-success-bg,#e6f7f3)] text-[var(--status-success-fg,#0f766e)]',
                 checkpoint.state === 'warning' && 'border-[var(--status-warning-border,#c05621)]/35 bg-[var(--status-warning-bg,#fff7e6)] text-[var(--status-warning-fg,#c05621)]',
                 checkpoint.state === 'danger' && 'border-[var(--status-danger-border,#fecaca)] bg-[var(--status-danger-bg,#fff1f1)] text-[var(--status-danger-fg,#c53030)]',

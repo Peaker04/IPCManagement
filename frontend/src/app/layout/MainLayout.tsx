@@ -124,7 +124,7 @@ const MainLayoutContent = () => {
   const isAncestorOfCurrent = (item: typeof menuItems[number], children: readonly NavChild[]): boolean => children.length > 0 && (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`) || routeMetadata?.preferenceKey === item.preferenceKey);
 
   return (
-    <div className="ipc-app-shell ipc-redesign-shell">
+    <div className="ipc-app-shell">
       <IdleSessionGuard onLogout={handleLogout} />
       <a href="#ipc-main-content" className="ipc-skip-link">{uiCopy.navigation.skipToContent}</a>
       <aside className={`ipc-sidebar${isMobileNavOpen ? ' is-mobile-open' : ''}`}>
@@ -169,7 +169,21 @@ const MainLayoutContent = () => {
                   >
                     <span className="ipc-nav-icon"><Icon size={18} /></span>
                     <span className="ipc-nav-label">{item.navLabel}</span>
-                    {hasChildren && <span className={`ipc-nav-chevron${isExpanded ? ' is-expanded' : ''}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleGroup(item.path); }}><ChevronDown size={14} aria-hidden="true" /></span>}
+                    {hasChildren && (
+                      <button
+                        type="button"
+                        aria-label={isExpanded ? `Thu gọn ${item.navLabel}` : `Mở rộng ${item.navLabel}`}
+                        aria-expanded={isExpanded}
+                        className={`ipc-nav-chevron${isExpanded ? ' is-expanded' : ''}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          toggleGroup(item.path);
+                        }}
+                      >
+                        <ChevronDown size={14} aria-hidden="true" />
+                      </button>
+                    )}
                   </Link>
                 </div>{isExpanded && (
                   <nav aria-label={`${item.navLabel} sub-navigation`} className="ipc-nav-leaf-list">
@@ -191,7 +205,23 @@ const MainLayoutContent = () => {
             const activeAdvLeaf = resolveActiveLeafId(ROUTES.ADVANCED_SETTINGS, advChildren);
             return (
               <div className={`ipc-nav-group has-children${isAdvExpanded ? ' is-expanded' : ''}`}><div className="ipc-nav-item-row">
-                  <Link to={ROUTES.ADVANCED_SETTINGS} onPointerEnter={() => preloadNavigationTarget(ROUTES.ADVANCED_SETTINGS, systemOperation?.mode ?? 'DEFAULT')} onFocus={() => preloadNavigationTarget(ROUTES.ADVANCED_SETTINGS, systemOperation?.mode ?? 'DEFAULT')} onClick={() => { setIsMobileNavOpen(false); if (isAdvActive) toggleGroup(ROUTES.ADVANCED_SETTINGS); else setToggledGroups((prev) => ({ ...prev, [ROUTES.ADVANCED_SETTINGS]: { atPath: ROUTES.ADVANCED_SETTINGS, open: true } })); }} aria-current={isAdvActive ? 'page' : undefined} aria-expanded={isAdvExpanded} data-active-ancestor={isAdvActive || undefined} className={`ipc-advanced-settings-link${isAdvActive ? ' is-active is-ancestor' : ''}`}><span className="ipc-nav-icon"><SlidersHorizontal size={16} /></span><span className="ipc-nav-label">Thiết lập nâng cao</span><span className={`ipc-nav-chevron${isAdvExpanded ? ' is-expanded' : ''}`} onClick={(event) => { event.preventDefault(); event.stopPropagation(); toggleGroup(ROUTES.ADVANCED_SETTINGS); }}><ChevronDown size={14} aria-hidden="true" /></span></Link>
+                  <Link to={ROUTES.ADVANCED_SETTINGS} onPointerEnter={() => preloadNavigationTarget(ROUTES.ADVANCED_SETTINGS, systemOperation?.mode ?? 'DEFAULT')} onFocus={() => preloadNavigationTarget(ROUTES.ADVANCED_SETTINGS, systemOperation?.mode ?? 'DEFAULT')} onClick={() => { setIsMobileNavOpen(false); if (isAdvActive) toggleGroup(ROUTES.ADVANCED_SETTINGS); else setToggledGroups((prev) => ({ ...prev, [ROUTES.ADVANCED_SETTINGS]: { atPath: ROUTES.ADVANCED_SETTINGS, open: true } })); }} aria-current={isAdvActive ? 'page' : undefined} aria-expanded={isAdvExpanded} data-active-ancestor={isAdvActive || undefined} className={`ipc-advanced-settings-link${isAdvActive ? ' is-active is-ancestor' : ''}`}>
+                    <span className="ipc-nav-icon"><SlidersHorizontal size={16} /></span>
+                    <span className="ipc-nav-label">Thiết lập nâng cao</span>
+                    <button
+                      type="button"
+                      aria-label={isAdvExpanded ? 'Thu gọn Thiết lập nâng cao' : 'Mở rộng Thiết lập nâng cao'}
+                      aria-expanded={isAdvExpanded}
+                      className={`ipc-nav-chevron${isAdvExpanded ? ' is-expanded' : ''}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleGroup(ROUTES.ADVANCED_SETTINGS);
+                      }}
+                    >
+                      <ChevronDown size={14} aria-hidden="true" />
+                    </button>
+                  </Link>
                 </div>
                 {isAdvExpanded && <nav aria-label="Thiết lập nâng cao sub-navigation" className="ipc-nav-leaf-list">{advChildren.map((child) => { const leafActive = activeAdvLeaf === child.id; return <Link key={child.id} to={`${ROUTES.ADVANCED_SETTINGS}?view=${child.id}`} onClick={() => setIsMobileNavOpen(false)} aria-current={leafActive ? 'page' : undefined} className={['ipc-nav-leaf-link', leafActive ? 'is-active' : ''].filter(Boolean).join(' ')}><span className="ipc-nav-leaf-label">{child.label}</span></Link>; })}</nav>}
               </div>
@@ -221,7 +251,25 @@ const MainLayoutContent = () => {
               {location.pathname !== ROUTES.DASHBOARD && (
                 <>
                   <span className="mx-1 text-slate-300">/</span>
-                  <span>{pageContext.workflow}</span>
+                  {location.pathname === ROUTES.WEEKLY_MENU ? (
+                    <>
+                      <Link to={ROUTES.WEEKLY_MENU} className="hover:underline" style={{ color: 'inherit', textDecoration: 'none' }}>
+                        Thực đơn tuần
+                      </Link>
+                      <span className="mx-1 text-slate-300">/</span>
+                      <span>
+                        {currentView === 'demand'
+                          ? 'Bàn giao nguyên liệu'
+                          : currentView === 'production-plan'
+                            ? 'Kế hoạch sản xuất'
+                            : currentView === 'cost'
+                              ? 'Giá vốn & Định mức BOM'
+                              : 'Kế hoạch tuần'}
+                      </span>
+                    </>
+                  ) : (
+                    <span>{pageContext.workflow}</span>
+                  )}
                 </>
               )}
             </span>

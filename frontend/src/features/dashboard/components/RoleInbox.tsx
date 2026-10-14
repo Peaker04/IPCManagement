@@ -1,9 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { PaginationBar } from './PaginationBar';
-import { EmptyState } from './EmptyState';
-import { TableViewport } from './TableViewport';
-import { StatusBadge } from './StatusBadge';
+import { EmptyState, PaginationBar, StatusBadge, TableViewport } from '@/components/common';
 import type { RoleInboxItem } from '@/types/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';

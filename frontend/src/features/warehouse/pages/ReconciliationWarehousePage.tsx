@@ -27,12 +27,7 @@ import { useLocalPagination } from '@/lib/useLocalPagination'
 
 const isReconciliationWarehouseView = (value: string | null | undefined): value is ReconciliationWarehouseView => value === 'demand' || value === 'movement'
 
-const weeklyStatusLabel: Record<string, string> = {
-  WEEK_UNTOUCHED: 'Chưa xuất',
-  IN_PROGRESS: 'Đang xuất theo ngày',
-  VARIANCE_REQUIRES_RESOLUTION: 'Cần xử lý chênh lệch',
-  WEEK_COMPLETE: 'Đã xuất đủ',
-}
+const weeklyStatusLabel: Record<string, string> = { WEEK_UNTOUCHED: 'Chưa xuất', IN_PROGRESS: 'Đang xuất theo ngày', VARIANCE_REQUIRES_RESOLUTION: 'Cần xử lý chênh lệch', WEEK_COMPLETE: 'Đã xuất đủ' }
 
 const errorMessage = (error: unknown, fallback = 'Không tạo được phiếu xuất. Hãy tải lại danh sách cần xuất rồi thử lại.') => {
   if (typeof error === 'object' && error && 'data' in error) {
@@ -43,18 +38,7 @@ const errorMessage = (error: unknown, fallback = 'Không tạo được phiếu 
 }
 
 type DailyDemandLine = ReconciliationLine & { dailyLineId: string; serviceDate: string }
-type WeeklyDemandLine = {
-  batchLineId: string
-  ingredientCode?: string | null
-  ingredientName?: string | null
-  canonicalUnitName?: string | null
-  requiredQuantity: number
-  issuedQuantity: number | null
-  remainingQuantity: number
-  applicableDateCount: number
-  completedDateCount: number
-  hasUnresolvedOverage: boolean
-}
+type WeeklyDemandLine = { batchLineId: string; ingredientCode?: string | null; ingredientName?: string | null; canonicalUnitName?: string | null; requiredQuantity: number; issuedQuantity: number | null; remainingQuantity: number; applicableDateCount: number; completedDateCount: number; hasUnresolvedOverage: boolean }
 
 const WeeklyDemandRow = memo(function WeeklyDemandRow({ line }: { line: WeeklyDemandLine }) {
   const untouched = line.issuedQuantity == null

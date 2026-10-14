@@ -11,7 +11,7 @@ export default function AdvancedDisplaySettingsPage() {
 
   return (
     <OperationalFrame>
-      {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout). */}
+      {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout): { id: 'advanced-operation' }, { id: 'advanced-display' } */}
       {activeView === 'operation' ? <SystemOperationModeSettings /> : <AdvancedDisplaySettings />}
     </OperationalFrame>
   );

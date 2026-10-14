@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import approvalQueue from '@/components/common/ApprovalQueue.tsx?raw'
+import approvalQueue from '@/features/approvals/components/ApprovalQueue.tsx?raw'
 import materialChecklist from '@/features/chef/components/material-checklist.tsx?raw'
 import amendmentInbox from '@/features/approvals/components/MenuAmendmentInbox.tsx?raw'
 import receiptLifecycle from '@/features/warehouse/WarehouseReceiptLifecyclePanel.tsx?raw'

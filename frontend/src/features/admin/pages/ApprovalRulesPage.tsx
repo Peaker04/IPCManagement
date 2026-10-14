@@ -139,7 +139,7 @@ export default function ApprovalRulesPage() {
     setSlaHours(rule.slaHours ?? '');
     setIsActive(rule.isActive);
     
-    const formattedAssignments = (rule.approvalassignments ?? []).map((a: ApprovalAssignmentDto) => ({
+    const formattedAssignments = ((rule.approvalassignments ?? []) as ApprovalAssignmentDto[]).map((a: ApprovalAssignmentDto) => ({
       sequence: a.sequence,
       approverRole: a.approverRole,
       approverUserId: a.approverUserId ?? '',
@@ -306,7 +306,7 @@ export default function ApprovalRulesPage() {
                     <div className="mt-3 pt-3 border-t border-slate-100">
                       <h4 className="text-xs font-semibold text-slate-700 mb-2">Trình tự duyệt:</h4>
                       <div className="space-y-1">
-                        {(rule.approvalassignments ?? []).map((a: ApprovalAssignmentDto) => (
+                        {((rule.approvalassignments ?? []) as ApprovalAssignmentDto[]).map((a: ApprovalAssignmentDto) => (
                           <div key={a.assignmentId ?? `${rule.ruleId}-${a.sequence}-${a.approverRole}`} className="flex items-center gap-2 text-xs">
                             <NotificationBadge count={a.sequence} variant="info" />
                             <span className="font-semibold text-slate-700">{formatApproverRole(a.approverRole)}</span>

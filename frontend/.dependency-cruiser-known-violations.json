@@ -1,4 +1,21 @@
-﻿[
+[
+  {
+    "type": "dependency",
+    "from": "src/features/chef/journal/ChefDocumentsSection.tsx",
+    "to": "src/features/warehouse/components/StockMovementTable.tsx",
+    "unresolvedTo": "@/features/warehouse/components/StockMovementTable",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R2-feature-khong-goi-feature"
+    }
+  },
   {
     "type": "dependency",
     "from": "src/features/planning/cost/CostScreen.tsx",
@@ -763,6 +780,91 @@
   },
   {
     "type": "dependency",
+    "from": "src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx",
+    "to": "src/features/planning/components/DemandSummary.tsx",
+    "unresolvedTo": "@/features/planning/components/DemandSummary",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R2-feature-khong-goi-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/reports/pages/ReportsPage.tsx",
+    "to": "src/features/warehouse/components/StockMovementTable.tsx",
+    "unresolvedTo": "@/features/warehouse/components/StockMovementTable",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R2-feature-khong-goi-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/reports/pages/ReportsPricePanel.tsx",
+    "to": "src/features/reconciliation/components/ExceptionLane.tsx",
+    "unresolvedTo": "@/features/reconciliation/components/ExceptionLane",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R2-feature-khong-goi-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/warehouse/WarehouseDemandPanel.tsx",
+    "to": "src/features/dashboard/components/RoleInbox.tsx",
+    "unresolvedTo": "@/features/dashboard/components/RoleInbox",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R2-feature-khong-goi-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/warehouse/WarehouseDemandPanel.tsx",
+    "to": "src/features/planning/components/DemandSummary.tsx",
+    "unresolvedTo": "@/features/planning/components/DemandSummary",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R2-feature-khong-goi-feature"
+    }
+  },
+  {
+    "type": "dependency",
     "from": "src/features/planning/PlanningPreviewShell.tsx",
     "to": "src/app/hooks.ts",
     "unresolvedTo": "@/app/hooks",
@@ -793,6 +895,23 @@
     "rule": {
       "severity": "error",
       "name": "R3-feature-khong-goi-app"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/chef/journal/ChefDocumentsSection.tsx",
+    "to": "src/features/warehouse/components/StockMovementTable.tsx",
+    "unresolvedTo": "@/features/warehouse/components/StockMovementTable",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R6-khong-import-sau-vao-ruot-feature"
     }
   },
   {
@@ -1442,6 +1561,91 @@
     "from": "src/features/planning/schedule/SchedulePreviewPage.tsx",
     "to": "src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx",
     "unresolvedTo": "@/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R6-khong-import-sau-vao-ruot-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx",
+    "to": "src/features/planning/components/DemandSummary.tsx",
+    "unresolvedTo": "@/features/planning/components/DemandSummary",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R6-khong-import-sau-vao-ruot-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/reports/pages/ReportsPage.tsx",
+    "to": "src/features/warehouse/components/StockMovementTable.tsx",
+    "unresolvedTo": "@/features/warehouse/components/StockMovementTable",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R6-khong-import-sau-vao-ruot-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/reports/pages/ReportsPricePanel.tsx",
+    "to": "src/features/reconciliation/components/ExceptionLane.tsx",
+    "unresolvedTo": "@/features/reconciliation/components/ExceptionLane",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R6-khong-import-sau-vao-ruot-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/warehouse/WarehouseDemandPanel.tsx",
+    "to": "src/features/dashboard/components/RoleInbox.tsx",
+    "unresolvedTo": "@/features/dashboard/components/RoleInbox",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "R6-khong-import-sau-vao-ruot-feature"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/warehouse/WarehouseDemandPanel.tsx",
+    "to": "src/features/planning/components/DemandSummary.tsx",
+    "unresolvedTo": "@/features/planning/components/DemandSummary",
     "dependencyTypes": [
       "aliased",
       "aliased-tsconfig",

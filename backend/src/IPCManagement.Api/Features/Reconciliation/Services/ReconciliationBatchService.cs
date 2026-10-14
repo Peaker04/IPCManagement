@@ -196,9 +196,9 @@ public sealed class ReconciliationBatchService(
             .Include(x => x.Lines).ThenInclude(x => x.CanonicalUnit)
             .SingleOrDefaultAsync(x => x.BatchId == bytes, token);
         if (batch is null) return null;
-        var batchLines = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal)
-            ? (await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit).ToListAsync(token))
-                .Where(line => line.BatchId.SequenceEqual(bytes)).ToList()
+        var inMemory = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
+        var batchLines = inMemory
+            ? (await context.Reconciliationbatchlines.AsNoTracking().ToListAsync(token)).Where(line => line.BatchId != null && line.BatchId.SequenceEqual(bytes)).ToList()
             : await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit)
                 .Where(line => line.BatchId == bytes).ToListAsync(token);
         var actuals = await context.Reconciliationactuals.AsNoTracking().Where(x => x.BatchLine.BatchId == bytes).ToListAsync(token);
@@ -721,89 +721,45 @@ public sealed class ReconciliationBatchService(
 
     private async Task<(string? CustomerId, string? CustomerName, string? CustomerCode)?> TryGetCustomerAsync(byte[] menuVersionId, CancellationToken token)
     {
-        if (context.Model.FindEntityType(typeof(MenuVersion)) is null)
-            return null;
-
-        var menuVersion = await context.Menuversions.AsNoTracking()
-            .Where(mv => mv.MenuVersionId == menuVersionId)
-            .Select(mv => new { mv.CustomerId })
-            .SingleOrDefaultAsync(token);
-
-        if (menuVersion is null)
-            return null;
-
+        if (context.Model.FindEntityType(typeof(MenuVersion)) is null) return null;
+        var menuVersion = await context.Menuversions.AsNoTracking().Where(mv => mv.MenuVersionId == menuVersionId).Select(mv => new { mv.CustomerId }).SingleOrDefaultAsync(token);
+        if (menuVersion is null) return null;
         var customerId = GuidHelper.ToGuidString(menuVersion.CustomerId);
-
-        if (context.Model.FindEntityType(typeof(Customer)) is null)
-            return (customerId, null, null);
-
-        var customer = await context.Customers.AsNoTracking()
-            .Where(c => c.CustomerId == menuVersion.CustomerId)
-            .Select(c => new { c.CustomerName, c.CustomerCode })
-            .SingleOrDefaultAsync(token);
-
+        if (context.Model.FindEntityType(typeof(Customer)) is null) return (customerId, null, null);
+        var customer = await context.Customers.AsNoTracking().Where(c => c.CustomerId == menuVersion.CustomerId).Select(c => new { c.CustomerName, c.CustomerCode }).SingleOrDefaultAsync(token);
         return (customerId, customer?.CustomerName, customer?.CustomerCode);
     }
 
     private async Task<IReadOnlyDictionary<string, DateOnly>> LoadWeeksForBatchesAsync(IReadOnlyList<ReconciliationBatch> batches, CancellationToken token)
     {
-        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null)
-            return new Dictionary<string, DateOnly>(StringComparer.Ordinal);
+        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null) return new Dictionary<string, DateOnly>(StringComparer.Ordinal);
         var menuVersionIds = batches.Select(batch => batch.MenuVersionId).Distinct().ToList();
-        return await context.Menuversions.AsNoTracking()
-            .Where(version => menuVersionIds.Contains(version.MenuVersionId))
-            .ToDictionaryAsync(version => Convert.ToHexString(version.MenuVersionId), version => version.WeekStartDate, StringComparer.Ordinal, token);
+        return await context.Menuversions.AsNoTracking().Where(version => menuVersionIds.Contains(version.MenuVersionId)).ToDictionaryAsync(version => Convert.ToHexString(version.MenuVersionId), version => version.WeekStartDate, StringComparer.Ordinal, token);
     }
 
-    private async Task<IReadOnlyDictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>> LoadCustomersForBatchesAsync(
-        IReadOnlyList<ReconciliationBatch> batches,
-        CancellationToken token)
+    private async Task<IReadOnlyDictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>> LoadCustomersForBatchesAsync(IReadOnlyList<ReconciliationBatch> batches, CancellationToken token)
     {
         var result = new Dictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>(StringComparer.Ordinal);
-        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null)
-            return result;
-
+        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null) return result;
         var menuVersionIds = batches.Select(x => x.MenuVersionId).Distinct().ToList();
-        var menuVersions = await context.Menuversions.AsNoTracking()
-            .Where(mv => menuVersionIds.Contains(mv.MenuVersionId))
-            .Select(mv => new { mv.MenuVersionId, mv.CustomerId })
-            .ToListAsync(token);
-
-        if (menuVersions.Count == 0)
-            return result;
-
+        var menuVersions = await context.Menuversions.AsNoTracking().Where(mv => menuVersionIds.Contains(mv.MenuVersionId)).Select(mv => new { mv.MenuVersionId, mv.CustomerId }).ToListAsync(token);
+        if (menuVersions.Count == 0) return result;
         Dictionary<string, (string CustomerName, string CustomerCode)>? customerLookup = null;
         if (context.Model.FindEntityType(typeof(Customer)) is not null)
         {
             var customerIds = menuVersions.Select(mv => mv.CustomerId).Distinct().ToList();
-            var customers = await context.Customers.AsNoTracking()
-                .Where(c => customerIds.Contains(c.CustomerId))
-                .Select(c => new { c.CustomerId, c.CustomerName, c.CustomerCode })
-                .ToListAsync(token);
-            customerLookup = customers.ToDictionary(
-                c => Convert.ToHexString(c.CustomerId),
-                c => (c.CustomerName, c.CustomerCode),
-                StringComparer.Ordinal
-            );
+            var customers = await context.Customers.AsNoTracking().Where(c => customerIds.Contains(c.CustomerId)).Select(c => new { c.CustomerId, c.CustomerName, c.CustomerCode }).ToListAsync(token);
+            customerLookup = customers.ToDictionary(c => Convert.ToHexString(c.CustomerId), c => (c.CustomerName, c.CustomerCode), StringComparer.Ordinal);
         }
-
         foreach (var mv in menuVersions)
         {
-            string? name = null;
-            string? code = null;
+            string? name = null, code = null;
             if (customerLookup is not null && customerLookup.TryGetValue(Convert.ToHexString(mv.CustomerId), out var cInfo))
             {
-                name = cInfo.CustomerName;
-                code = cInfo.CustomerCode;
+                name = cInfo.CustomerName; code = cInfo.CustomerCode;
             }
-
-            result[Convert.ToHexString(mv.MenuVersionId)] = (
-                GuidHelper.ToGuidString(mv.CustomerId),
-                name,
-                code
-            );
+            result[Convert.ToHexString(mv.MenuVersionId)] = (GuidHelper.ToGuidString(mv.CustomerId), name, code);
         }
-
         return result;
     }
 }

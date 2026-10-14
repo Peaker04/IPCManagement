@@ -247,14 +247,14 @@ const materialRows: PcProjectedRegistryRow[] = [
     : {
         role: operation === 'approval' || operation === 'purchasing' ? 'link' : 'button',
         name: name as string,
-        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-160',
+        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-220',
         route: weeklyMenuRoute,
         tab: 'Nhu cầu',
       },
   source: [
     'frontend/tests/operationalStateActionRegistry.test.ts:315-356',
     'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-160',
+    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-220',
     'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
   ],
   disposition: operation === 'none' ? 'Terminal state intentionally has no business action.' : 'Actor set resolved from route and ActionGuard evidence.',
@@ -336,7 +336,7 @@ const weeklyRows: PcProjectedRegistryRow[] = weeklyCanonicalScenarioIds.map((sce
     ? 'AdminContractsPanel.tsx'
     : scenario.expectedControl?.surface === 'demand-panel'
       ? 'MaterialDemandSection.tsx'
-      : 'WeeklyMenuCommandBar.tsx'
+      : 'WeeklyScheduleCommandBar.tsx'
   const expectedControl = scenario.expectedControl
     ? {
         ...scenario.expectedControl,

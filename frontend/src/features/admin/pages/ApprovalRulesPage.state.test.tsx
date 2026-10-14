@@ -73,7 +73,7 @@ const approvalRule = {
   maxAmount: null,
   slaHours: 24,
   isActive: true,
-  approvalassignments: [],
+  approvalAssignments: [],
 };
 
 const renderPage = () => render(

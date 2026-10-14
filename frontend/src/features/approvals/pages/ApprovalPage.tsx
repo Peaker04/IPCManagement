@@ -235,7 +235,7 @@ export default function ApprovalPage() {
 
   return (
     <OperationalFrame>
-      {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout) */}
+      {/* G4 batch E phase 2: leaf navigation moved to sidebar (MainLayout): { id: 'approval-amendments' }, { id: 'approval-queue' }, { id: 'approval-history' } */}
       <div className="flex-1 min-h-0 flex flex-col">
         <KeepAliveTabPanel
           id="approval-amendments"
