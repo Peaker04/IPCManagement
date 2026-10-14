@@ -212,16 +212,17 @@ export default function PurchasingPage() {
       ) : undefined}
     >
       <div className="min-w-0 space-y-4 overflow-x-clip">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex min-h-[48px] flex-wrap items-center justify-between gap-3 rounded-[var(--ipc-radius-md,3px)] border border-[var(--ipc-color-border-muted,#d8e2ef)] bg-white px-4 py-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-[20px] font-semibold leading-[1.2] text-slate-950">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : activeView === 'supplemental' ? 'Mua bổ sung cho bếp' : 'Quản lý báo giá nhà cung cấp'}</h2>
+            <ShoppingCart size={18} aria-hidden="true" className="shrink-0 text-[var(--ipc-primary,#1a56a8)]" />
+            <h2 className="text-[20px] font-bold text-slate-900 leading-[1.2]">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : activeView === 'supplemental' ? 'Mua bổ sung cho bếp' : 'Quản lý báo giá nhà cung cấp'}</h2>
             {activeView !== 'workflow' ? (
               <span
                 className="inline-flex cursor-help text-slate-400 hover:text-slate-600 transition-colors"
                 title={activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}
                 aria-label={activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}
               >
-                <Info size={16} aria-hidden="true" />
+                <Info size={14} aria-hidden="true" />
               </span>
             ) : null}
           </div>
