@@ -1,70 +1,53 @@
 .ipc-fiori-command {
-  display: grid;
-  min-height: 54px;
-  grid-template-columns: minmax(260px, 1fr) auto;
-  gap: var(--ipc-space-3);
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 40px;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border: 0;
   border-bottom: 1px solid var(--ipc-color-border-subtle, #e2eaf4);
   border-radius: 0;
   background: var(--ipc-slate-50, #f8fafc);
-  padding: 10px 16px;
+  padding: 4px 16px;
 }
 
 .ipc-fiori-object {
-  display: grid;
+  display: inline-flex;
   min-width: 0;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: var(--ipc-space-2);
+  gap: 8px;
   align-items: center;
 }
 
 .ipc-fiori-object > svg {
   color: var(--ipc-primary);
+  flex-shrink: 0;
 }
 
 .ipc-fiori-object > div {
-  display: grid;
+  display: inline-flex;
   min-width: 0;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0 var(--ipc-space-2);
+  gap: 6px;
   align-items: baseline;
 }
 
 .ipc-fiori-object span,
 .ipc-fiori-object small {
   color: var(--ipc-slate-500);
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.ipc-fiori-field > span {
-  color: var(--ipc-slate-700);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1rem;
-}
-
-.ipc-fiori-object span {
-  grid-column: 1;
-  grid-row: 1;
+  font-size: 0.72rem;
+  font-weight: 500;
 }
 
 .ipc-fiori-object strong {
-  grid-column: 1;
-  grid-row: 2;
-  overflow: hidden;
   color: var(--ipc-slate-900);
-  font-size: 0.9375rem;
-  text-overflow: ellipsis;
+  font-size: 0.85rem;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .ipc-fiori-object small {
-  grid-column: 2;
-  grid-row: 2;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--ipc-slate-400);
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 
@@ -112,21 +95,21 @@
 
 .ipc-fiori-object-card {
   overflow: hidden;
-  margin: 0 16px 12px;
-  border: 1px solid var(--ipc-color-border-muted, #d8e2ef);
-  border-radius: var(--ipc-radius-md);
-  background: var(--card);
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
 }
 
 .ipc-fiori-object-card__header {
   display: flex;
-  min-height: 46px;
+  min-height: 40px;
   align-items: center;
   justify-content: space-between;
   gap: var(--ipc-space-3);
   border-bottom: 1px solid var(--ipc-color-border-subtle, #e2eaf4);
   background: var(--ipc-slate-50, #f8fafc);
-  padding: 8px 14px;
+  padding: 6px 16px;
 }
 
 .ipc-fiori-object-card__header span {
@@ -136,62 +119,73 @@
 }
 
 .ipc-fiori-object-card__header h3 {
-  margin: 1px 0 0;
+  margin: 0;
   color: var(--ipc-slate-900);
-  font-size: 0.9375rem;
-  font-weight: 750;
+  font-size: 0.875rem;
+  font-weight: 700;
 }
 
 .ipc-fiori-meta {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
   margin: 0;
-  border-bottom: 1px solid var(--ipc-slate-200);
+  border-bottom: 1px solid var(--ipc-color-border-subtle, #e2eaf4);
+  background: #ffffff;
+  padding: 6px 16px;
+  font-size: 0.75rem;
+  color: var(--ipc-slate-600);
 }
 
 .ipc-fiori-meta > div {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
   min-width: 0;
-  padding: 8px 12px;
+  padding: 0;
+  border: none;
 }
 
 .ipc-fiori-meta > div + div {
-  border-left: 1px solid var(--ipc-slate-200);
+  border-left: none;
 }
 
 .ipc-fiori-meta dt {
   color: var(--ipc-slate-500);
-  font-size: 0.7rem;
-  font-weight: 650;
+  font-size: 0.72rem;
+  font-weight: 500;
 }
 
 .ipc-fiori-meta dd {
   overflow: hidden;
-  margin: 2px 0 0;
-  color: var(--ipc-slate-800);
+  margin: 0;
+  color: var(--ipc-slate-900);
   font-size: 0.8125rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ipc-fiori-disclosure {
   overflow: hidden;
-  margin: 4px 16px 16px;
-  border: 1px solid var(--ipc-color-border-muted, #d8e2ef);
-  border-radius: var(--ipc-radius-md);
-  background: var(--card);
+  margin: 12px 16px;
+  border: 1px solid var(--ipc-color-border-subtle, #e2eaf4);
+  border-radius: var(--ipc-radius-sm, 2px);
+  background: #ffffff;
 }
 
 .ipc-fiori-disclosure > summary {
   display: flex;
-  min-height: 44px;
+  min-height: 38px;
   cursor: pointer;
   list-style: none;
   align-items: center;
   justify-content: space-between;
   gap: var(--ipc-space-3);
   background: var(--ipc-slate-50, #f8fafc);
-  padding: 8px 14px;
+  padding: 6px 14px;
 }
 
 .ipc-fiori-disclosure > summary::-webkit-details-marker {
