@@ -34,20 +34,6 @@
 .ipc-demand-workspace :is(.ipc-material-demand-table th, .ipc-demand-shift-row td) { background: var(--ipc-color-surface-subtle); }
 .ipc-demand-workspace .ipc-demand-day-action [data-slot="button"] { min-height: 36px; }
 
-
-.ipc-demand-day-command {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "date navigation" "summary action";
-  gap: 8px 16px;
-  align-items: center;
-  border: 0;
-  border-bottom: 1px solid var(--ipc-color-border-subtle, #e2eaf4);
-  border-radius: 0;
-  background: var(--ipc-slate-50, #f8fafc);
-  padding: 10px 16px;
-}
-
 .ipc-demand-context-heading {
   grid-area: heading;
   display: flex;
@@ -74,52 +60,56 @@
   color: var(--ipc-primary, #1a56a8);
 }
 
+.ipc-demand-day-command {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  grid-template-areas: "date navigation summary action";
+  gap: 12px 20px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid var(--ipc-color-border-subtle, #e2eaf4);
+  border-radius: 0;
+  background: var(--ipc-slate-50, #f8fafc);
+  padding: 6px 16px;
+  min-height: 40px;
+}
+
 .ipc-demand-day-object {
   grid-area: date;
-  display: grid;
+  display: inline-flex;
   min-width: 0;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: var(--ipc-space-2);
+  gap: 8px;
   align-items: center;
 }
 
 .ipc-demand-day-object > svg {
   color: var(--ipc-primary);
+  flex-shrink: 0;
 }
 
 .ipc-demand-day-object > div {
-  display: grid;
+  display: inline-flex;
   min-width: 0;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0 var(--ipc-space-2);
+  gap: 6px;
   align-items: baseline;
 }
 
-.ipc-demand-day-object span,
-.ipc-demand-day-object small {
-  color: var(--ipc-slate-500);
-  font-size: 0.7rem;
-  font-weight: 650;
-}
-
 .ipc-demand-day-object span {
-  grid-column: 1;
-  grid-row: 1;
+  color: var(--ipc-slate-500);
+  font-size: 0.72rem;
+  font-weight: 500;
 }
 
 .ipc-demand-day-object strong {
-  grid-column: 1;
-  grid-row: 2;
   color: var(--ipc-slate-900);
-  font-size: 0.9375rem;
+  font-size: 0.85rem;
+  font-weight: 700;
   white-space: nowrap;
 }
 
 .ipc-demand-day-object small {
-  grid-column: 2;
-  grid-row: 2;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--ipc-slate-400);
+  font-size: 0.7rem;
   white-space: nowrap;
 }
 
