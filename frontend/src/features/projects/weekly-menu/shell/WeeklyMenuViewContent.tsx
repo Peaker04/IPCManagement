@@ -53,7 +53,15 @@ export function WeeklyMenuViewContent({
     return <div {...panelProps('production-plan')}><ProductionPlanSection workflow={productionPlanWorkflow} /></div>;
   }
   if (activeView === 'demand') {
-    return <div {...panelProps('demand')}><MaterialDemandSection workflow={demandWorkflow} scheduleWorkflow={scheduleWorkflow} servingFeedback={servingFeedback} /></div>;
+    return (
+      <div {...panelProps('demand')}>
+        <MaterialDemandSection
+          workflow={demandWorkflow}
+          scheduleWorkflow={scheduleWorkflow}
+          servingFeedback={servingFeedback}
+        />
+      </div>
+    );
   }
   if (activeView === 'cost') {
     return <div {...panelProps('cost')}><MenuCostSection workflow={menuCostWorkflow} /></div>;

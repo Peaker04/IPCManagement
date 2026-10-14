@@ -121,5 +121,11 @@ describe('route registry children (nested sidebar leaves)', () => {
     expect(defaultApprovals.map((c) => c.id)).toEqual(['amendments', 'queue', 'history'])
     expect(resolveActiveRouteLeafId(ROUTES.APPROVALS, null, defaultApprovals)).toBe('queue')
     expect(resolveActiveRouteLeafId(ROUTES.APPROVALS, 'amendments', defaultApprovals)).toBe('amendments')
+
+    const defaultWeeklyMenu = getVisibleRouteChildren(ROUTES.WEEKLY_MENU, {
+      mode: 'DEFAULT',
+      backendPageTabs: { 'weekly-menu': ['schedule', 'demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials'] },
+    })
+    expect(defaultWeeklyMenu.map((c) => c.id)).toEqual(['schedule', 'demand', 'production-plan', 'cost'])
   })
 })

@@ -1,4 +1,4 @@
-import { AlertCircle, ArrowRight, Check, Clock, ShoppingCart } from 'lucide-react'
+import { AlertCircle, Check, Clock, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ContextStrip, PaginationBar, SearchField, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
@@ -6,7 +6,6 @@ import { formatCurrency, formatDateOnly, formatQuantity, formatQuantityWithUnit 
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
 import type { PurchaseSummaryWorkflow } from './usePurchaseSummary'
-import { Link } from 'react-router-dom'
 
 const formatStatusLabel = (status: string, tone: string) => {
   if (tone === 'success') return 'Đủ hàng'
@@ -49,7 +48,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
     >
       <QueryViewBoundary
         geometry="table"
-        skeletonColumns={presentation.usesDemand ? 6 : 7}
+        skeletonColumns={presentation.usesDemand ? 5 : 7}
         queries={queryView ? [{ label: 'tổng hợp mua của tuần', view: queryView }] : []}
         refreshLabel="Đang cập nhật tổng hợp tuần"
       >
@@ -73,12 +72,11 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
       >
         <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
           <thead>{presentation.usesDemand ? <tr>
-            <th scope="col" style={{ width: '10%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Ngày</th>
-            <th scope="col" style={{ width: '27%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu / nguồn</th>
-            <th scope="col" style={{ width: '12%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Cần</th>
-            <th scope="col" style={{ width: '19%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Bàn giao</th>
-            <th scope="col" style={{ width: '15%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Trạng thái</th>
-            <th scope="col" style={{ width: '17%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Tiếp theo</th>
+            <th scope="col" style={{ width: '12%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Ngày</th>
+            <th scope="col" style={{ width: '32%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu / nguồn</th>
+            <th scope="col" style={{ width: '16%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Cần</th>
+            <th scope="col" style={{ width: '24%' }} className="sticky top-0 z-10 text-right whitespace-nowrap">Bàn giao</th>
+            <th scope="col" style={{ width: '16%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">Trạng thái</th>
           </tr> : <tr>
             <th scope="col" style={{ width: '20%' }} className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th>
             <th scope="col" style={{ width: '8%' }} className="sticky top-0 z-10 text-center whitespace-nowrap">ĐV</th>
@@ -103,19 +101,6 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
                     <span>{line.projection === 'physical-handoff' ? (line.status === 'Chờ bếp xác nhận' ? 'Chờ nhận' : line.status) : formatStatusLabel(line.status, line.tone)}</span>
                   </StatusBadge>
                 </td>
-                <td className="text-center whitespace-nowrap px-1">
-                  {line.actionHref ? (
-                    <Link
-                      className="inline-flex items-center justify-center gap-1 text-xs font-medium text-slate-700 hover:text-blue-700 hover:underline transition-colors focus-visible:ring-1 focus-visible:ring-blue-500 rounded px-1.5 py-0.5"
-                      to={line.actionHref}
-                    >
-                      <span>{line.nextAction}</span>
-                      <ArrowRight size={12} className="text-slate-400 shrink-0" aria-hidden="true" />
-                    </Link>
-                  ) : (
-                    <span className="text-xs text-slate-400">{line.nextAction}</span>
-                  )}
-                </td>
               </tr>
             })}
             {presentation.materialRows.map(([identityKey, data]) => <tr key={identityKey}>
@@ -129,7 +114,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
             </tr>)}
             {presentation.totalItems === 0 && (
               <tr>
-                <td className="p-6 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 6 : 7}>
+                <td className="p-6 text-center text-sm text-slate-500" colSpan={presentation.usesDemand ? 5 : 7}>
                   {state.search.trim().length > 0 ? (
                     <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
                       <span>Không tìm thấy nguyên liệu nào phù hợp với từ khóa &ldquo;{state.search}&rdquo;.</span>

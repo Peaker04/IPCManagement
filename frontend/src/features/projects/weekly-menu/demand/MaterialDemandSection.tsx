@@ -143,15 +143,23 @@ export function MaterialDemandSection({
     <section className="ipc-demand-workspace" aria-label="Nhu cầu và tiến độ nguyên liệu">
       {demandView.phase === 'uninitialized' ? (
         <div className="py-2 text-sm text-slate-600">
-          <h2 className="text-base font-semibold text-slate-800">Nhu cầu và tiến độ nguyên liệu</h2>
-          Chọn khách hàng và tuần để xem KHSX và tiến độ bàn giao nguyên liệu.
+          <header className="ipc-demand-context-heading">
+            <h2>
+              <PackageSearch size={18} aria-hidden="true" />
+              <span>Nhu cầu và tiến độ nguyên liệu</span>
+            </h2>
+          </header>
+          <p className="px-4 py-6 text-center text-slate-500">Chọn khách hàng và tuần để xem KHSX và tiến độ bàn giao nguyên liệu.</p>
         </div>
       ) : (
         <>
           <div className="flex flex-col gap-3">
           <header className="ipc-demand-context-heading">
-            <h2>Nhu cầu và tiến độ nguyên liệu</h2>
-            <span className="text-xs font-semibold text-slate-500">Phê duyệt nhu cầu</span>
+            <h2>
+              <PackageSearch size={18} aria-hidden="true" />
+              <span>Nhu cầu và tiến độ nguyên liệu</span>
+            </h2>
+            <span className="text-xs font-medium text-slate-500">Phê duyệt nhu cầu:</span>
             <StatusBadge variant={presentation.demandApprovalStatus.tone}>{presentation.demandApprovalStatus.label}</StatusBadge>
             {presentation.demandApprovalStatus.documentCode && (
               <span className={cn(typography.code, 'max-w-[220px] truncate text-xs font-semibold text-slate-600')} title={presentation.demandApprovalStatus.documentCode}>{presentation.demandApprovalStatus.documentCode}</span>

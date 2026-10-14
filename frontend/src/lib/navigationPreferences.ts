@@ -154,7 +154,7 @@ export const writeAdminTabPreferences = (preferences: Record<AdminTabPreferenceK
 };
 
 export const pageTabGroups = [
-  { id: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch, nhu cầu và sản xuất', tabs: [['schedule', 'Kế hoạch tuần'], ['demand', 'Nhu cầu'], ['production-plan', 'Kế hoạch sản xuất']] },
+  { id: 'weekly-menu', label: 'Thực đơn tuần', description: 'Kế hoạch, sản xuất và bàn giao nguyên liệu', tabs: [['schedule', 'Kế hoạch tuần'], ['demand', 'Bàn giao nguyên liệu'], ['production-plan', 'Kế hoạch sản xuất']] },
   { id: 'warehouse', label: 'Kho nguyên liệu', description: 'Nhập hàng, xuất hàng, ngoại lệ và tra cứu', tabs: [['receiving', 'Nhập hàng'], ['demand', 'Xuất hàng'], ['exceptions', 'Ngoại lệ'], ['movement', 'Tra cứu']] },
   { id: 'approvals', label: 'Duyệt vận hành', description: 'Hàng chờ và lịch sử phê duyệt', tabs: [['queue', 'Cần duyệt'], ['history', 'Lịch sử']] },
   { id: 'purchasing', label: 'Thu mua', description: 'Quy trình mua, mua bổ sung và báo giá', tabs: [['workflow', 'Xử lý thu mua'], ['supplemental', 'Mua bổ sung'], ['quotations', 'Báo giá nhà cung cấp']] },

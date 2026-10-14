@@ -25,7 +25,7 @@ describe('physical handoff consumers', () => {
           customerLabel: 'Khách A', weekLabel: 'Tuần đang xem', demandRows: [aggregate(issued, received)], materialRows: [] },
       } as unknown as PurchaseSummaryWorkflow
       render(<PurchaseSummarySection workflow={workflow} />)
-      expect(screen.getAllByRole('columnheader')).toHaveLength(6)
+      expect(screen.getAllByRole('columnheader')).toHaveLength(5)
       expect(screen.getAllByRole('columnheader').every((header) => header.getAttribute('scope') === 'col')).toBe(true)
       expect(screen.getByText((_, element) => element?.textContent === '200 kg' && element?.tagName === 'TD')).toHaveAttribute('data-cell-role', 'numeric')
       expect(screen.getByText((_, element) => element?.textContent?.startsWith(`Đã xuất: ${issued} kg`) === true && element?.tagName === 'TD')).toHaveAttribute('data-cell-role', 'numeric')

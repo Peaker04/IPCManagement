@@ -219,9 +219,16 @@ const DefaultWeeklyMenuPage = () => {
     const primaryTabs = eligiblePageTabs(systemOperation?.mode ?? 'DEFAULT', 'weekly-menu', backendTabs, locallyVisibleTabs) as WeeklyMenuView[];
     return systemOperation?.mode === 'MATERIAL_RECONCILIATION'
       ? primaryTabs
-      : [...primaryTabs, ...(['purchase-summary', 'cost', 'dish-materials'] as WeeklyMenuView[]).filter((view) => backendTabs.includes(view))];
+      : [...primaryTabs, ...(['cost'] as WeeklyMenuView[]).filter((view) => backendTabs.includes(view))];
   }, [systemOperation?.capabilities.pageTabs, systemOperation?.mode]);
-  const requestedDefaultView = searchParams.get('view') as WeeklyMenuView | null;
+  const rawRequestedDefaultView = searchParams.get('view');
+  const requestedDefaultView = (
+    rawRequestedDefaultView === 'purchase-summary'
+      ? 'demand'
+      : rawRequestedDefaultView === 'dish-materials'
+        ? 'cost'
+        : rawRequestedDefaultView
+  ) as WeeklyMenuView | null;
   const [selectedView, setSelectedView] = useState<WeeklyMenuView>(() =>
     requestedDefaultView && weeklyMenuTabIds.includes(requestedDefaultView) ? requestedDefaultView : weeklyMenuTabIds[0] ?? 'schedule');
   const requestedReconciliationView = reconciliationRouteScope.view;
@@ -673,7 +680,13 @@ const DefaultWeeklyMenuPage = () => {
       {navigation}
       <div role={!effectiveMenuCustomerId ? 'tabpanel' : undefined} id={!effectiveMenuCustomerId ? `${resolvedSelectedView}-panel` : undefined} aria-labelledby={!effectiveMenuCustomerId ? `${resolvedSelectedView}-tab` : undefined}>
       <QueryViewBoundary preserveFallback queries={weeklyMenuQueries} refreshLabel="Đang cập nhật kế hoạch tuần">
-        <WeeklyMenuReadiness readiness={readiness} />
+        {isMaterialReconciliationMode ? (
+          <WeeklyMenuReadiness readiness={readiness} />
+        ) : (
+          <div className="sr-only">
+            <WeeklyMenuReadiness readiness={readiness} />
+          </div>
+        )}
         {alerts}
 
         {(requestedWorkflow === 'import' || importWorkflow.state.isOpen) && (

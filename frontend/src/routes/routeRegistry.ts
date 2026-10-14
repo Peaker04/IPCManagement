@@ -87,9 +87,7 @@ export const ADVANCED_SETTINGS_CHILDREN: readonly NavChild[] = [
 ]
 
 const WEEKLY_MENU_EXTRA_DEFAULT_CHILDREN: readonly NavChild[] = [
-  { id: 'purchase-summary', label: 'Bàn giao tuần' },
-  { id: 'cost', label: 'Giá vốn tuần' },
-  { id: 'dish-materials', label: 'Định mức theo món' },
+  { id: 'cost', label: 'Giá vốn & Định mức BOM' },
 ]
 
 const MRX_LEAF_LABELS: Partial<Record<RoutePath, Readonly<Record<string, string>>>> = {

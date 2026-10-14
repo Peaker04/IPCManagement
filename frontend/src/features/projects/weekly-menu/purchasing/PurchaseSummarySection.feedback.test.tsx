@@ -127,16 +127,16 @@ describe('PurchaseSummarySection query feedback', () => {
     expect(screen.getByText('Gạo')).toBeInTheDocument()
   })
 
-  it('presents concise status labels and clean action links without overflow', () => {
+  it('presents concise status labels and clean 5-column table without cross-role action clutter', () => {
     const workflow = {
       actions: { retry: vi.fn(), setPage: vi.fn(), setSearch: vi.fn() },
       presentation: {
         customerLabel: 'Khách hàng ANV', weekLabel: '27/07/2026 - 02/08/2026', usesDemand: true,
         totalItems: 3, materialCount: 0, shortageCount: 1, totalCost: 0, pageIndex: 0,
         demandRows: [
-          { id: 'line-1', serviceDate: '2026-07-27', material: 'Bầu', source: 'Canh', required: 50, available: 10, reserved: 0, unit: 'kg', tone: 'danger', status: 'Còn thiếu nguyên liệu', nextAction: 'Mở thu mua', actionHref: '/purchasing?date=2026-07-27' },
-          { id: 'line-2', serviceDate: '2026-07-27', material: 'Cà chua', source: 'Xào', required: 30, available: 30, reserved: 0, unit: 'kg', tone: 'success', status: 'Đã đáp ứng đủ', nextAction: 'Đã hoàn tất' },
-          { id: 'line-3', serviceDate: '2026-07-27', material: 'Thịt bằm', source: 'Kho', required: 20, available: 10, reserved: 0, unit: 'kg', tone: 'warning', status: 'Chờ bếp xác nhận', nextAction: 'Mở nhận hàng', actionHref: '/chef-dashboard?date=2026-07-27' },
+          { id: 'line-1', serviceDate: '2026-07-27', material: 'Bầu', source: 'Canh', required: 50, available: 10, reserved: 0, unit: 'kg', tone: 'danger', status: 'Còn thiếu nguyên liệu' },
+          { id: 'line-2', serviceDate: '2026-07-27', material: 'Cà chua', source: 'Xào', required: 30, available: 30, reserved: 0, unit: 'kg', tone: 'success', status: 'Đã đáp ứng đủ' },
+          { id: 'line-3', serviceDate: '2026-07-27', material: 'Thịt bằm', source: 'Kho', required: 20, available: 10, reserved: 0, unit: 'kg', tone: 'warning', status: 'Chờ bếp xác nhận' },
         ],
         materialRows: [],
       },
@@ -156,12 +156,9 @@ describe('PurchaseSummarySection query feedback', () => {
     expect(screen.getByText('Đủ hàng')).toBeInTheDocument()
     expect(screen.getByText('Chờ nhận')).toBeInTheDocument()
 
-    // Action links render gọn gàng
-    const purchaseLink = screen.getByRole('link', { name: /Mở thu mua/ })
-    expect(purchaseLink).toHaveAttribute('href', '/purchasing?date=2026-07-27')
-    expect(purchaseLink).not.toHaveClass('ipc-button-primary')
-
-    const finishedSpan = screen.getByText('Đã hoàn tất')
-    expect(finishedSpan.tagName).toBe('SPAN')
+    // Bảng 5 cột chuẩn, không có cột Tiếp theo chéo role
+    const headers = screen.getAllByRole('columnheader')
+    expect(headers).toHaveLength(5)
+    expect(screen.queryByText('Tiếp theo')).not.toBeInTheDocument()
   })
 })

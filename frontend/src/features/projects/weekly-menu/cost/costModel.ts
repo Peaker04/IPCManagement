@@ -68,6 +68,7 @@ export const buildMenuCostPresentation = ({
       ...row,
       hasCatalogBom: ingredients.length > 0,
       unitCost: getDishUnitCost(dish, row.quantityFactor, bomContext),
+      ingredients,
     }
   })
   const rowsWithBom = rows.filter((row) => row.hasCatalogBom)

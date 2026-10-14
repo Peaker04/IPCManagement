@@ -85,17 +85,21 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
           <>
             {activePage?.plans.map((plan) => {
               const planStatus = getWorkflowStatusPresentation(plan.status ?? undefined)
+              const totalServings = plan.lines.reduce((total, line) => total + line.totalServings, 0)
               return (
-                <article key={plan.planId} className="ipc-fiori-object-card">
-                  <div className="ipc-fiori-object-card__header">
-                    <div><span>Mã KHSX</span><h3>{plan.planCode}</h3></div>
+                <article key={plan.planId} className="ipc-fiori-object-card overflow-hidden rounded-[var(--ipc-radius-md,3px)] border border-[var(--ipc-color-border-muted,#d8e2ef)] bg-white shadow-2xs">
+                  <div className="ipc-fiori-object-card__header flex min-h-[42px] items-center justify-between border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-[var(--ipc-slate-50,#f8fafc)] px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Mã KHSX:</span>
+                      <h3 className="font-mono text-sm font-bold text-slate-900">{plan.planCode}</h3>
+                    </div>
                     <StatusBadge variant={planStatus.tone}>{planStatus.label}</StatusBadge>
                   </div>
-                  <dl className="ipc-fiori-meta">
-                    <div><dt>Ngày phục vụ</dt><dd>{formatDateOnly(plan.planDate)}</dd></div>
-                    <div><dt>Khách hàng</dt><dd title={`${plan.customerName} (${plan.customerCode})`}>{plan.customerName} ({plan.customerCode})</dd></div>
-                    <div><dt>Số dòng món</dt><dd>{plan.lines.length}</dd></div>
-                    <div><dt>Tổng số suất</dt><dd>{formatNumber(plan.lines.reduce((total, line) => total + line.totalServings, 0))} suất</dd></div>
+                  <dl className="ipc-fiori-meta flex flex-wrap items-center gap-x-6 gap-y-1.5 border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-white px-4 py-2 text-xs text-slate-600">
+                    <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Ngày phục vụ:</dt><dd className="font-medium text-slate-800">{formatDateOnly(plan.planDate)}</dd></div>
+                    <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Khách hàng:</dt><dd className="font-medium text-slate-800" title={`${plan.customerName} (${plan.customerCode})`}>{plan.customerName} ({plan.customerCode})</dd></div>
+                    <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Số dòng món:</dt><dd className="font-semibold text-slate-800 tabular-nums">{plan.lines.length}</dd></div>
+                    <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Tổng số suất:</dt><dd className="font-bold text-[var(--ipc-primary,#1a56a8)] tabular-nums">{formatNumber(totalServings)} suất</dd></div>
                   </dl>
                   <TableViewport
                     caption="Dòng món của từng KHSX theo ngày phục vụ, ca và số suất"
@@ -114,9 +118,9 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                       <tbody>
                         {plan.lines.map((line) => (
                           <tr key={line.planLineId}>
-                            <td className="text-slate-600">{getShiftLabel(line.shiftName ?? undefined)}</td>
-                            <td className="font-medium text-slate-900">{line.dishName ?? '-'}</td>
-                            <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-800">{formatNumber(line.totalServings)} suất</td>
+                            <td className="text-slate-600 font-medium">{getShiftLabel(line.shiftName ?? undefined)}</td>
+                            <td className="font-semibold text-slate-900">{line.dishName ?? '-'}</td>
+                            <td data-cell-role="numeric" className="text-right tabular-nums font-bold text-slate-800">{formatNumber(line.totalServings)} suất</td>
                           </tr>
                         ))}
                       </tbody>
