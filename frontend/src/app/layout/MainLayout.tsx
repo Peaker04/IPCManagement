@@ -18,6 +18,7 @@ import { isRouteVisibleToPermissions } from '@/lib/systemOperationEligibility';
 import { canAccessRole } from '@/lib/auth/roleUtils';
 import { getDateTimeFormat } from '@/lib/formatters';
 import { buildRouteLeafHref, getVisibleRouteChildren, navigationRoutes, resolveActiveRouteLeafId, routeMetadataForPath, routeRegistry, type NavChild, type RoutePath } from '@/routes/routeRegistry';
+import { StatusBadge } from '@/components/common';
 import {
   CalendarDays,
   ChefHat,
@@ -234,15 +235,11 @@ const MainLayoutContent = () => {
             {systemOperation && <div className="ipc-header-chip" aria-label="Chế độ vận hành"><SlidersHorizontal size={16} /><span>{systemOperation.label}</span></div>}
             {showHeaderState && (
               location.pathname === ROUTES.WEEKLY_MENU ? (
-                <button type="button" className={`ipc-status-pill is-${statusTone}`} onClick={refreshWeeklyMenu} title="Làm mới dữ liệu kế hoạch tuần">
-                  <span className="ipc-status-dot" />
-                  <span>{pageContext.state}</span>
+                <button type="button" onClick={refreshWeeklyMenu} title="Làm mới dữ liệu kế hoạch tuần" className="cursor-pointer transition-opacity hover:opacity-80">
+                  <StatusBadge variant={statusTone}>{pageContext.state}</StatusBadge>
                 </button>
               ) : (
-                <div className={`ipc-status-pill is-${statusTone}`}>
-                  <span className="ipc-status-dot" />
-                  <span>{pageContext.state}</span>
-                </div>
+                <StatusBadge variant={statusTone}>{pageContext.state}</StatusBadge>
               )
             )}
           </div>

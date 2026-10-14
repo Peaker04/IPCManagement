@@ -499,9 +499,11 @@
 }
 
 .ipc-table-viewport[data-density="comfortable"] .ipc-data-table td,
-.ipc-table-shell[data-density="comfortable"] .ipc-data-table td {
-  height: var(--table-row-height-relaxed);
-  min-height: var(--table-row-height-relaxed);
+.ipc-table-shell[data-density="comfortable"] .ipc-data-table td,
+.ipc-table-viewport[data-density="relaxed"] .ipc-data-table td,
+.ipc-table-shell[data-density="relaxed"] .ipc-data-table td {
+  height: var(--table-row-height-comfortable, var(--table-row-height-relaxed));
+  min-height: var(--table-row-height-comfortable, var(--table-row-height-relaxed));
   padding-top: 12px;
   padding-bottom: 12px;
 }

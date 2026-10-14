@@ -386,7 +386,7 @@
 .ipc-status-pill.is-warning {
   border-color: #f6d58b;
   background: var(--ipc-warning-soft);
-  color: #8a4b0f;
+  color: var(--ipc-warning, #b45309);
 }
 
 .ipc-status-pill.is-danger {
@@ -580,7 +580,7 @@
 .ipc-demand-next-action.is-warning {
   border-color: #f6d58b;
   background: var(--ipc-warning-soft);
-  color: #8a4b0f;
+  color: var(--ipc-warning, #b45309);
 }
 
 .ipc-demand-next-action.is-danger {
@@ -634,7 +634,7 @@
 .ipc-demand-next-action.is-warning {
   border-color: #f6d58b;
   background: var(--ipc-warning-soft);
-  color: #8a4b0f;
+  color: var(--ipc-warning, #b45309);
 }
 
 .ipc-demand-next-action.is-danger {

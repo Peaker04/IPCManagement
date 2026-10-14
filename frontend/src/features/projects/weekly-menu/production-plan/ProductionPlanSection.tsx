@@ -90,7 +90,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                 <article key={plan.planId} className="ipc-fiori-object-card mt-0 rounded-none border-0 shadow-none">
                   <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-3 border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-[var(--ipc-slate-50,#f8fafc)] px-4 py-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Mã KHSX:</span>
+                      <span className="text-xs font-semibold tracking-wider text-slate-500">Mã KHSX:</span>
                       <h3 className="font-mono text-sm font-bold text-slate-900">{plan.planCode}</h3>
                       <StatusBadge variant={planStatus.tone}>{planStatus.label}</StatusBadge>
                     </div>

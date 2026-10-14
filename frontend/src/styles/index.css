@@ -181,8 +181,8 @@
   --ipc-primary-600: #0e3a6e;
   --ipc-success: #0f766e;
   --ipc-success-soft: #e6f7f3;
-  --ipc-warning: #c05621;
-  --ipc-warning-soft: #fff7e6;
+  --ipc-warning: #b45309;
+  --ipc-warning-soft: #fffbeb;
   --ipc-danger: #c53030;
   --ipc-danger-soft: #fff1f1;
   --ipc-slate-50: #f8fafc;
@@ -249,8 +249,8 @@
   --ipc-color-status-warning: var(--ipc-warning);
   --ipc-color-status-warning-soft: var(--ipc-warning-soft);
   --ipc-color-status-warning-hover: #92400e;
-  --ipc-color-status-warning-border: #c05621;
-  --ipc-color-status-warning-foreground: #ffffff;
+  --ipc-color-status-warning-border: #fde68a;
+  --ipc-color-status-warning-foreground: #b45309;
 
   /* Semantic Status Tokens */
   --status-neutral-fg: var(--ipc-slate-700);
@@ -325,9 +325,17 @@
   /* Row height tokens according to 3 density levels (Rule T8) */
   --table-row-height-compact: 40px;
   --table-row-height-standard: 48px;
-  --table-row-height-relaxed: 56px;
+  --table-row-height-comfortable: 56px;
+  --table-row-height-relaxed: var(--table-row-height-comfortable);
   --table-row-h: var(--table-row-height-standard);
   --rows-hint: 6; /* 6 * 48px = 288px <= 324px (45% of 720p viewport) */
+
+  /* Layer Z-Index Scale (Rule S4) */
+  --z-drawer: 40;
+  --z-dialog: 50;
+  --z-popover: 60;
+  --z-toast: 100;
+  --z-tooltip: 110;
 
   /* Button min-width tokens */
   --button-min-w-sm: 4rem;

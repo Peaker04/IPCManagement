@@ -2,16 +2,20 @@
 
 Status: IDLE
 
-## Last closed task
-Implementation of 4 Universal Operational Workspaces for `/weekly-menu` and sidebar navigation consolidation:
-1. Workspace 1: Weekly Schedule Matrix (`ImportedLayoutMatrix.tsx` & `WeeklyScheduleWorkspace.tsx`) maintained as dedicated independent workspace, displaying only clean dish names per cell with 48px header and readiness strip.
-2. Workspace 2: Kitchen Production Plan (`ProductionPlanSection.tsx`) standardized with 4-column operational grid (`Ca`, `Mã KHSX`, `Món ăn`, `Số suất` tabular-nums) and TableSkeleton.
-3. Workspace 3: Material Handover (`PurchaseSummarySection.tsx`) streamlined to 5 columns (`Ngày`, `Nguyên liệu/nguồn`, `Cần`, `Bàn giao kho`, `Trạng thái`), completely removing the cross-role `nextAction` column to preserve RBAC and prevent out-of-scope actions.
-4. Workspace 4: Cost & Recipe BOM (`MenuCostSection.tsx`) upgraded to Master-Detail Split View, displaying daily dish cost list on the left with interactive BOM breakdown and Food Cost % on the right.
-5. Sidebar Navigation: `routeRegistry.ts`, `navigationPreferences.ts`, and `WeeklyMenuPage.tsx` consolidated from 6 leaves to EXACTLY 4 leaves (`schedule`, `demand`, `production-plan`, `cost`), with legacy deep-link aliasing (`purchase-summary` ➔ `demand`, `dish-materials` ➔ `cost`).
-6. Verification:
+## Phase 1 Closed Task: Foundation & Design Tokens
+1. Clean Workspace: Removed untracked `frontend.zip` at root, verified pristine git status.
+2. F9 Warning Token Convergence: Unified `--ipc-warning: #b45309` (Amber-700), `--ipc-warning-soft: #fffbeb`, border `#fde68a`, foreground `#b45309` across `index.css` and `shell.css`.
+3. F2 Table Density Name Drift Resolution: Synchronized `--table-row-height-compact: 40px`, `--table-row-height-standard: 48px`, `--table-row-height-comfortable: 56px`, and alias `--table-row-height-relaxed: var(--table-row-height-comfortable)` across `index.css` and `tables.css`.
+4. S4 Z-Index Scale: Formalized layer scale tokens `--z-drawer: 40`, `--z-dialog: 50`, `--z-popover: 60`, `--z-toast: 100`, `--z-tooltip: 110`.
+5. D6 Vietnamese Typography: Eliminated uppercase text-transform clipping on Vietnamese text in `ProductionPlanSection.tsx`; `src/vietnameseTypography.test.ts` passes 100% (8/8 tests).
+6. NEW-6 Component Primitive Governance: Completely eliminated `.ipc-status-pill` in `.tsx` files (`MainLayout.tsx` migrated to `<StatusBadge>`). Preserved legacy CSS `.ipc-button` rules as a backward-compatibility bridge for older pages while routing new work to `<Button>`.
+7. Phase 1 Verification Gates:
+   - `node --test scripts/check-ignore-policy.test.mjs`: PASS (2/2 tests)
+   - `node --test scripts/check-architecture-growth.test.mjs`: PASS (6/6 tests)
+   - Vitest contract suites (`colorBridge.test.ts` & `vietnameseTypography.test.ts`): PASS (8/8 tests)
    - `npm run lint:fe`: PASS (0 errors, 1 warning)
-   - `npm run build:fe`: PASS
-   - `npm run depcruise:fe`: PASS
-   - Vitest unit & contract suites: 46 test files, 222 tests PASS 100%
-   - Playwright visual pagination tests across 4 viewports (`s-390`, `m-768`, `l-1280`, `xl-1440`): 4/4 PASS
+   - `npm run build:fe`: PASS (Vite production client built cleanly)
+
+## Next Phase: Phase 2 — AppShell & Unified Workspace Container
+- Clean up `MainLayout.tsx`: standardize 248px sidebar, 48px header, breadcrumbs, zero double-headers across all remaining routes.
+- Align page-level `OperationalFrame` and commands across remaining features.
