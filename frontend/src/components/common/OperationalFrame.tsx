@@ -47,11 +47,11 @@ export function OperationalFrame({
       {(eyebrow || title || description || command || context) && (
         <div className="ipc-operational-head">
           {(eyebrow || title || description) && (
-            <div className="ipc-operational-title-group">
+            <header className="ipc-operational-title-group">
               {eyebrow && <div className="ipc-operational-eyebrow">{eyebrow}</div>}
               {title && <h2 className="ipc-operational-title">{title}</h2>}
               {description && <p className="ipc-operational-description">{description}</p>}
-            </div>
+            </header>
           )}
           {command}
           {context}
