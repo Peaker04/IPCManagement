@@ -37,10 +37,10 @@ describe('Auth Feature (FR-AUTH)', () => {
   it('LoginPage: quick login helper auto-populates credentials', async () => {
     renderWithProviders(<LoginPage />);
 
-    const chefBtn = screen.getByRole('button', { name: 'chef' });
-    await userEvent.click(chefBtn);
+    const beptruongBtn = screen.getByRole('button', { name: /beptruong/i });
+    await userEvent.click(beptruongBtn);
 
-    expect(screen.getByLabelText('Tên đăng nhập')).toHaveValue('chef');
+    expect(screen.getByLabelText('Tên đăng nhập')).toHaveValue('beptruong');
     expect(screen.getByLabelText('Mật khẩu')).toHaveValue('Admin@123456');
   });
 

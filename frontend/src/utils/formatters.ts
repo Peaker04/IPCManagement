@@ -9,10 +9,11 @@ export function formatNumber(
 
   switch (format) {
     case 'currency': {
+      const rounded = Math.round(num);
       const formatted = new Intl.NumberFormat('vi-VN', {
         maximumFractionDigits: decimals ?? 0,
         minimumFractionDigits: decimals ?? 0,
-      }).format(num);
+      }).format(rounded);
       return `${formatted} ₫`;
     }
     case 'quantity': {

@@ -27,8 +27,8 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     renderAppShell();
 
     // Check logo and branding
-    expect(screen.getByText('IPC MANAGEMENT')).toBeInTheDocument();
-    expect(screen.getByText('v3.0 · Workbench')).toBeInTheDocument();
+    expect(screen.getByText('IPC System')).toBeInTheDocument();
+    expect(screen.getByText('Điều hành bếp ăn')).toBeInTheDocument();
 
     // Check hamburger toggle
     expect(screen.getByRole('button', { name: /Thu gọn sidebar/i })).toBeInTheDocument();
@@ -87,7 +87,7 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
 
     // Toggle back to expanded
     await userEvent.click(screen.getByRole('button', { name: /Mở rộng sidebar/i }));
-    expect(screen.getByText('IPC MANAGEMENT')).toBeInTheDocument();
+    expect(screen.getByText('IPC System')).toBeInTheDocument();
   });
 
   it('toggles operational mode between DEFAULT and MATERIAL_RECONCILIATION (DOM-MODE-1)', async () => {

@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChefHat } from 'lucide-react';
 import { useAuth } from '../../store/useAuth';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+
+const SAMPLE_DB_ACCOUNTS = [
+  { username: 'admin', label: 'Admin User', role: 'Quản trị viên' },
+  { username: 'quanly', label: 'Quản lý', role: 'Quản lý vận hành' },
+  { username: 'dieuphoi', label: 'Điều phối', role: 'Điều phối suất ăn' },
+  { username: 'beptruong', label: 'Bếp trưởng', role: 'Bếp trưởng sản xuất' },
+  { username: 'thukho', label: 'Thủ kho', role: 'Thủ kho nguyên liệu' },
+  { username: 'thumua', label: 'Thu mua', role: 'Nhân viên thu mua' },
+];
 
 export function LoginPage() {
   const [username, setUsername] = useState('admin');
@@ -28,24 +38,24 @@ export function LoginPage() {
     }
   };
 
-  const handleQuickLogin = (user: string) => {
-    setUsername(user);
+  const handleQuickLogin = (uname: string) => {
+    setUsername(uname);
     setPassword('Admin@123456');
   };
 
   return (
     <div className="flex min-h-dvh w-screen items-center justify-center bg-slate-100/70 p-4">
-      <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-7 shadow-sm">
         {/* Header */}
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-2 flex h-9 w-9 items-center justify-center rounded bg-slate-900 text-white font-black text-sm">
-            IPC
+          <div className="mb-2.5 flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white shadow-2xs">
+            <ChefHat size={24} />
           </div>
-          <h1 className="text-base font-bold text-slate-900 tracking-tight">
+          <h1 className="text-lg font-bold text-slate-900 tracking-tight">
             IPC MANAGEMENT
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Hệ thống điều hành bếp ăn công nghiệp
+            Hệ thống điều hành bếp ăn công nghiệp v3.0
           </p>
         </div>
 
@@ -53,7 +63,7 @@ export function LoginPage() {
         {error && (
           <div
             role="alert"
-            className="mb-4 rounded border border-red-200 bg-red-50 p-2.5 text-xs text-red-700"
+            className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-700"
           >
             {error}
           </div>
@@ -61,10 +71,10 @@ export function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label
               htmlFor="username"
-              className="block text-xs font-medium text-slate-700"
+              className="block text-xs font-semibold text-slate-700"
             >
               Tên đăng nhập
             </label>
@@ -72,16 +82,17 @@ export function LoginPage() {
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Nhập tên đăng nhập"
+              placeholder="Nhập tên tài khoản"
               required
               autoFocus
+              className="h-10 text-sm"
             />
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label
               htmlFor="password"
-              className="block text-xs font-medium text-slate-700"
+              className="block text-xs font-semibold text-slate-700"
             >
               Mật khẩu
             </label>
@@ -92,6 +103,7 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              className="h-10 text-sm"
             />
           </div>
 
@@ -99,39 +111,29 @@ export function LoginPage() {
             type="submit"
             variant="default"
             disabled={isSubmitting}
-            className="w-full h-9 font-medium"
+            className="w-full h-10 font-semibold text-sm shadow-2xs mt-2"
           >
             {isSubmitting ? 'Đang xác thực...' : 'Đăng nhập vào hệ thống'}
           </Button>
         </form>
 
-        {/* Quick account helper */}
-        <div className="mt-6 pt-4 border-t border-slate-100">
-          <p className="text-[11px] text-slate-400 mb-2 text-center">
-            Tài khoản mẫu kiểm thử nhanh:
+        {/* Real Database Accounts Helper */}
+        <div className="mt-6 pt-5 border-t border-slate-100">
+          <p className="text-xs text-slate-500 mb-2.5 text-center font-medium">
+            Tài khoản mẫu từ Database hệ thống (Mật khẩu: <span className="font-mono text-slate-800 font-semibold">Admin@123456</span>):
           </p>
-          <div className="flex justify-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin')}
-              className="text-[11px] font-mono text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded cursor-pointer transition-colors"
-            >
-              admin
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('chef')}
-              className="text-[11px] font-mono text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded cursor-pointer transition-colors"
-            >
-              chef
-            </button>
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('manager')}
-              className="text-[11px] font-mono text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded cursor-pointer transition-colors"
-            >
-              manager
-            </button>
+          <div className="grid grid-cols-3 gap-2">
+            {SAMPLE_DB_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.username}
+                type="button"
+                onClick={() => handleQuickLogin(acc.username)}
+                className="flex flex-col items-center justify-center p-2 rounded-md border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer text-center"
+              >
+                <span className="text-xs font-mono font-bold text-slate-900">{acc.username}</span>
+                <span className="text-[11px] text-slate-500">{acc.role}</span>
+              </button>
+            ))}
           </div>
         </div>
       </div>
