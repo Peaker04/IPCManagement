@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test'
+import { defineConfig } from '@playwright/test';
 
 export const headedGeometryConfig = (outputDir: string) => defineConfig({
   testDir: '..',
@@ -15,4 +15,4 @@ export const headedGeometryConfig = (outputDir: string) => defineConfig({
     screenshot: 'only-on-failure',
   },
   outputDir,
-})
+});

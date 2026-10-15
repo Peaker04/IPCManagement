@@ -1,39 +1,30 @@
-import type { ReactNode } from 'react'
-import { Navigate, useLocation } from 'react-router-dom'
-import { useAppSelector } from '../app/hooks'
-import { canAccessRole } from '@/lib/auth/roleUtils'
-import { ROUTES } from '@/lib/routeConfig'
-import { useSystemOperation } from '@/lib/systemOperationContext'
-import { routeMetadataForPath } from './routeRegistry'
+import type { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../store/useAuth';
 
-interface RoleGuardProps {
-  requiredPermissions: readonly string[]
-  children: ReactNode
+export interface RoleGuardProps {
+  roles?: string[];
+  permissions?: string[];
+  children: ReactNode;
 }
 
-export const RoleGuard = ({ requiredPermissions, children }: RoleGuardProps) => {
-  const user = useAppSelector((state) => state.auth.user)
-  const location = useLocation()
-  const systemOperation = useSystemOperation()
+export function RoleGuard({ roles, permissions, children }: RoleGuardProps) {
+  const { user, hasRole, hasPermission } = useAuth();
 
   if (!user) {
-    return null
+    return <Navigate to="/login" replace />;
   }
 
-  const isAdmin = user.isAdminFullAccess || user.role === 'admin' || user.permissions?.includes('*')
-  const hasPermission =
-    isAdmin ||
-    requiredPermissions.length === 0 ||
-    requiredPermissions.some((perm) => user.permissions?.includes(perm))
-  const routeMeta = routeMetadataForPath(location.pathname)
-  const hasReconciliationRole =
-    systemOperation?.mode !== 'MATERIAL_RECONCILIATION' ||
-    !routeMeta?.reconciliationRoles ||
-    canAccessRole(user, [...routeMeta.reconciliationRoles])
-
-  if (!hasPermission || !hasReconciliationRole) {
-    return <Navigate to={ROUTES.FORBIDDEN} replace />
+  if (roles && roles.length > 0 && !hasRole(roles)) {
+    return <Navigate to="/forbidden" replace />;
   }
 
-  return <>{children}</>
+  if (permissions && permissions.length > 0) {
+    const isAllowed = permissions.some((perm) => hasPermission(perm));
+    if (!isAllowed) {
+      return <Navigate to="/forbidden" replace />;
+    }
+  }
+
+  return <>{children}</>;
 }

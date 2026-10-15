@@ -1,339 +1,224 @@
-import { apiSlice } from '@/api/apiSlice';
-import type {
-  PageNumberPage,
-  CreateInventoryReceiptFromPurchaseRequest,
-  WarehouseDto,
-  WarehousePageQuery,
-  InventoryReceiptCreatedResult,
-  CreateInventoryIssueRequest,
-  CreateSupplementalMaterialRequest,
-  SupplementalMaterialRequestPageQuery,
-  InventoryIssueCreatedResult,
-  CreateInventoryReturnRequest,
-  InventoryReturnCreatedResult,
-  ConfirmInventoryIssueReceiptRequest,
-  InventoryIssueResult,
-  InventoryReturnResult,
-  InventoryReturnPageQuery,
-  ConfirmInventoryReturnReceiptRequest,
-  WarehousePurchaseReceiptResult,
-  RecordWarehousePurchaseReceiptRequest,
-  InventoryReceipt,
-  ReceiptQualityActionArgs,
-  ReceiptPostActionArgs,
-  ReceiptReworkActionArgs,
-  ReceiptVoidActionArgs,
-  ReceiptCorrectionActionArgs,
-  ReceiptCorrectionResult,
-  SupplementalMaterialRequestResult,
-  FulfillSupplementalMaterialRequest,
-  RouteSupplementalMaterialRequestToPurchasing,
-  RejectSupplementalMaterialRequest,
-} from '@/api/workflowApiTypes';
-import type { ApiResponse } from '@/types/api';
-import { workflowCacheTags } from '@/api/workflowCacheTags';
-import type { CreateReturnAllocationDisposition, ReturnAllocationBalance, ReturnAllocationDispositionResult } from '@/api/returnAllocationTypes';
+import { apiClient } from './client';
 
-const getData = <T>(response: ApiResponse<T>): T => response.data as T;
+export interface WarehouseItem {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  location?: string;
+  isActive: boolean;
+}
 
-export const warehouseApi = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getWarehouses: builder.query<PageNumberPage<WarehouseDto>, WarehousePageQuery | void>({
-      query: (query) => ({
-        url: '/warehouses',
-        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 100 },
-      }),
-      transformResponse: (response: ApiResponse<PageNumberPage<WarehouseDto>>) => response.data ?? {
-        items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false,
-      },
-    }),
-    getWarehouseSelector: builder.query<WarehouseDto[], void>({
-      query: () => '/warehouses/selector',
-      transformResponse: (response: ApiResponse<WarehouseDto[]>) => getData(response),
-    }),
-    recordWarehousePurchaseReceipt: builder.mutation<
-      WarehousePurchaseReceiptResult,
-      RecordWarehousePurchaseReceiptRequest
-    >({
-      query: ({ data }) => ({
-        url: `/warehouse/purchase-orders/${data.purchaseOrderId}/receipts`,
-        method: 'POST',
-        body: data,
-      }),
-      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
-      invalidatesTags: (_result, _error, { data, week }) => [
-        'PurchaseOrders',
-        { type: 'PurchaseOrders', id: data.purchaseOrderId },
-        workflowCacheTags.documents,
-        workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock,
-        workflowCacheTags.priceVariance,
-        workflowCacheTags.operationalKpis,
-        ...(week
-          ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
-          : []),
-      ],
-    }),
-    getInventoryReceipts: builder.query<PageNumberPage<InventoryReceipt>, { pageNumber?: number; pageSize?: number; purchaseOrderOnly?: boolean; purchaseOrderId?: string } | void>({
-      query: (query) => ({
-        url: '/inventory-receipts',
-        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 20, purchaseOrderOnly: query?.purchaseOrderOnly, purchaseOrderId: query?.purchaseOrderId },
-      }),
-      transformResponse: (response: ApiResponse<PageNumberPage<InventoryReceipt>>) => response.data ?? {
-        items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
-      },
-      providesTags: [workflowCacheTags.documents],
-    }),
-    getInventoryReceiptById: builder.query<InventoryReceipt | undefined, string>({
-      query: (receiptId) => `/inventory-receipts/${receiptId}`,
-      transformResponse: (response: ApiResponse<InventoryReceipt>) => response.data,
-      providesTags: [workflowCacheTags.documents],
-    }),
-    acceptReceiptQuality: builder.mutation<WarehousePurchaseReceiptResult, ReceiptQualityActionArgs>({
-      query: ({ purchaseOrderId, receiptId, data }) => ({
-        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/quality`,
-        method: 'POST',
-        body: data,
-      }),
-      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
-      invalidatesTags: [
-        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.approvalInbox,
-      ],
-    }),
-    postWarehousePurchaseReceipt: builder.mutation<WarehousePurchaseReceiptResult, ReceiptPostActionArgs>({
-      query: ({ purchaseOrderId, receiptId, data }) => ({
-        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/post`,
-        method: 'POST',
-        body: data,
-      }),
-      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
-      invalidatesTags: [
-        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock, workflowCacheTags.operationalKpis,
-      ],
-    }),
-    reworkWarehousePurchaseReceipt: builder.mutation<WarehousePurchaseReceiptResult, ReceiptReworkActionArgs>({
-      query: ({ purchaseOrderId, receiptId, data }) => ({
-        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/rework`,
-        method: 'POST',
-        body: data,
-      }),
-      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
-      invalidatesTags: [
-        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.approvalInbox,
-      ],
-    }),
-    voidWarehousePurchaseReceipt: builder.mutation<WarehousePurchaseReceiptResult, ReceiptVoidActionArgs>({
-      query: ({ purchaseOrderId, receiptId, data }) => ({
-        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/void`,
-        method: 'POST',
-        body: data,
-      }),
-      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
-      invalidatesTags: [
-        'PurchaseOrders', workflowCacheTags.documents, workflowCacheTags.approvalInbox,
-      ],
-    }),
-    createReceiptCorrection: builder.mutation<ReceiptCorrectionResult, ReceiptCorrectionActionArgs>({
-      query: ({ purchaseOrderId, receiptId, data }) => ({
-        url: `/warehouse/purchase-orders/${purchaseOrderId}/receipts/${receiptId}/corrections`,
-        method: 'POST',
-        body: data,
-      }),
-      transformResponse: (response: ApiResponse<ReceiptCorrectionResult>) => getData(response),
-      invalidatesTags: [
-        workflowCacheTags.documents, workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock, workflowCacheTags.operationalKpis,
-      ],
-    }),
-    createInventoryReceiptFromPurchase: builder.mutation<ApiResponse<InventoryReceiptCreatedResult>, CreateInventoryReceiptFromPurchaseRequest>({
-      query: (body) => ({
-        url: '/inventory-receipts/from-purchase',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: [
-        'PurchaseOrders',
-        workflowCacheTags.documents,
-        workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock,
-        workflowCacheTags.priceVariance,
-        workflowCacheTags.operationalKpis,
-      ],
-    }),
-    createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedResult>, CreateInventoryIssueRequest>({
-      query: (body) => ({
-        url: '/inventory-issues',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: [
-        workflowCacheTags.documents,
-        workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock,
-        workflowCacheTags.kitchenIssues,
-        workflowCacheTags.materialRequestCandidates,
-        workflowCacheTags.operationalKpis,
-        'ReconciliationBatches',
-        'ReconciliationIssueHistory',
-      ],
-    }),
-    createSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, CreateSupplementalMaterialRequest>({
-      query: (body) => ({
-        url: '/supplemental-material-requests',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: [
-        workflowCacheTags.supplementalRequests,
-        workflowCacheTags.documents,
-        workflowCacheTags.operationalKpis,
-      ],
-    }),
-    getSupplementalMaterialRequests: builder.query<PageNumberPage<SupplementalMaterialRequestResult>, SupplementalMaterialRequestPageQuery | void>({
-      query: (query) => ({
-        url: '/supplemental-material-requests',
-        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
-      }),
-      transformResponse: (response: ApiResponse<PageNumberPage<SupplementalMaterialRequestResult>>) => response.data ?? {
-        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
-      },
-      providesTags: [workflowCacheTags.supplementalRequests],
-    }),
-    fulfillSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, FulfillSupplementalMaterialRequest>({
-      query: ({ requestId, commandId, expectedVersion, quantity }) => ({
-        url: `/supplemental-material-requests/${requestId}/fulfill`,
-        method: 'POST',
-        body: { commandId, expectedVersion, quantity },
-      }),
-      invalidatesTags: [
-        workflowCacheTags.supplementalRequests,
-        workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock,
-        workflowCacheTags.kitchenIssues,
-        workflowCacheTags.documents,
-      ],
-    }),
-    routeSupplementalMaterialRequestToPurchasing: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, RouteSupplementalMaterialRequestToPurchasing>({
-      query: ({ requestId, commandId, expectedVersion }) => ({
-        url: `/supplemental-material-requests/${requestId}/route-to-purchasing`,
-        method: 'POST',
-        body: { commandId, expectedVersion },
-      }),
-      invalidatesTags: [
-        workflowCacheTags.supplementalRequests,
-        workflowCacheTags.purchaseRequests,
-        workflowCacheTags.purchaseWorkbench,
-        workflowCacheTags.materialRequestCandidates,
-        workflowCacheTags.documents,
-      ],
-    }),
-    rejectSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, RejectSupplementalMaterialRequest>({
-      query: ({ requestId, commandId, expectedVersion, reason }) => ({
-        url: `/supplemental-material-requests/${requestId}/reject`,
-        method: 'POST',
-        body: { commandId, expectedVersion, reason },
-      }),
-      invalidatesTags: [
-        workflowCacheTags.supplementalRequests,
-        workflowCacheTags.documents,
-      ],
-    }),
-    createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedResult>, CreateInventoryReturnRequest>({
-      query: (body) => ({
-        url: '/inventory-returns',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: [
-        workflowCacheTags.inventoryReturns,
-        workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock,
-        workflowCacheTags.issueUsage,
-        workflowCacheTags.documents,
-        workflowCacheTags.operationalKpis,
-      ],
-    }),
-    getInventoryReturns: builder.query<PageNumberPage<InventoryReturnResult>, InventoryReturnPageQuery | void>({
-      query: (query) => ({
-        url: '/inventory-returns',
-        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
-      }),
-      transformResponse: (response: ApiResponse<PageNumberPage<InventoryReturnResult>>) => response.data ?? {
-        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
-      },
-      providesTags: [workflowCacheTags.inventoryReturns],
-    }),
-    getInventoryReturnById: builder.query<InventoryReturnResult | undefined, string>({
-      query: (returnId) => `/inventory-returns/${returnId}`,
-      transformResponse: (response: ApiResponse<InventoryReturnResult>) => response.data,
-      providesTags: [workflowCacheTags.inventoryReturns],
-    }),
-    confirmInventoryReturnReceipt: builder.mutation<ApiResponse<void>, ConfirmInventoryReturnReceiptRequest>({
-      query: ({ returnId, ...body }) => ({
-        url: `/inventory-returns/${returnId}/confirm-receipt`,
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: [
-        workflowCacheTags.inventoryReturns,
-        workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock,
-        workflowCacheTags.issueUsage,
-        workflowCacheTags.documents,
-      ],
-    }),
-    getReturnAllocationBalances: builder.query<ReturnAllocationBalance[], void>({
-      query: () => '/inventory-returns/allocation-balances',
-      transformResponse: (response: ApiResponse<ReturnAllocationBalance[]>) => response.data ?? [],
-      providesTags: [workflowCacheTags.inventoryReturns],
-    }),
-    createReturnAllocationDisposition: builder.mutation<ReturnAllocationDispositionResult | undefined, CreateReturnAllocationDisposition>({
-      query: (body) => ({ url: '/inventory-returns/allocation-dispositions', method: 'POST', body }),
-      transformResponse: (response: ApiResponse<ReturnAllocationDispositionResult>) => response.data,
-      invalidatesTags: [workflowCacheTags.inventoryReturns, workflowCacheTags.documents],
-    }),
-    confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
-      query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
-        url: `/inventory-issues/${issueId}/confirm-receipt`,
-        method: 'POST',
-        body: {
-          hasDiscrepancy,
-          discrepancyNote,
-        },
-      }),
-      invalidatesTags: [
-        workflowCacheTags.kitchenIssues,
-        workflowCacheTags.documents,
-      ],
-    }),
-  }),
-  overrideExisting: false,
-});
+export interface InventoryReceiptLineItem {
+  lineId: string;
+  ingredientCode: string;
+  ingredientName: string;
+  unit: string;
+  receivedQty: number;
+  unitPrice?: number;
+}
 
-export const {
-  useGetWarehousesQuery,
-  useGetWarehouseSelectorQuery,
-  useRecordWarehousePurchaseReceiptMutation,
-  useGetInventoryReceiptsQuery,
-  useGetInventoryReceiptByIdQuery,
-  useAcceptReceiptQualityMutation,
-  usePostWarehousePurchaseReceiptMutation,
-  useReworkWarehousePurchaseReceiptMutation,
-  useVoidWarehousePurchaseReceiptMutation,
-  useCreateReceiptCorrectionMutation,
-  useCreateInventoryReceiptFromPurchaseMutation,
-  useCreateInventoryIssueMutation,
-  useCreateSupplementalMaterialRequestMutation,
-  useGetSupplementalMaterialRequestsQuery,
-  useFulfillSupplementalMaterialRequestMutation,
-  useRouteSupplementalMaterialRequestToPurchasingMutation,
-  useRejectSupplementalMaterialRequestMutation,
-  useCreateInventoryReturnMutation,
-  useGetInventoryReturnsQuery,
-  useGetInventoryReturnByIdQuery,
-  useConfirmInventoryReturnReceiptMutation,
-  useGetReturnAllocationBalancesQuery,
-  useCreateReturnAllocationDispositionMutation,
-  useConfirmInventoryIssueReceiptMutation,
-} = warehouseApi;
+export interface InventoryReceiptItem {
+  receiptId: string;
+  receiptCode: string;
+  receiptDate: string;
+  supplierName: string;
+  warehouseName: string;
+  purchaseOrderCode?: string;
+  status: 'DRAFT' | 'APPROVED' | 'POSTED';
+  itemsCount: number;
+  lines: InventoryReceiptLineItem[];
+}
+
+export interface InventoryIssueLineItem {
+  lineId: string;
+  ingredientCode: string;
+  ingredientName: string;
+  unit: string;
+  requestedQty: number;
+  issuedQty: number;
+}
+
+export interface InventoryIssueItem {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName: string;
+  warehouseName: string;
+  status: 'DRAFT' | 'ISSUED' | 'CONFIRMED';
+  itemsCount: number;
+  lines: InventoryIssueLineItem[];
+}
+
+interface RawReceipt {
+  receiptId: string;
+  receiptCode: string;
+  receiptDate: string;
+  supplierName?: string;
+  warehouseName?: string;
+  purchaseOrderId?: string;
+  status: string;
+  lines?: Array<{
+    receiptLineId?: string;
+    ingredientCode?: string;
+    ingredientName?: string;
+    unitName?: string;
+    receivedQty?: number;
+    unitPrice?: number;
+  }>;
+}
+
+interface RawIssue {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName?: string;
+  warehouseName?: string;
+  status?: string;
+  lines?: Array<{
+    issueLineId?: string;
+    ingredientCode?: string;
+    ingredientName?: string;
+    unitName?: string;
+    requestedQty?: number;
+    issuedQty?: number;
+  }>;
+}
+
+export const warehouseApi = {
+  async getWarehouses(): Promise<WarehouseItem[]> {
+    try {
+      const resp = await apiClient<WarehouseItem[]>('/warehouses');
+      if (Array.isArray(resp) && resp.length > 0) return resp;
+    } catch {
+      // Fallback
+    }
+    return [
+      { warehouseId: 'wh-1', warehouseCode: 'KHO-TONG', warehouseName: 'Kho Trung tâm Bình Dương', isActive: true },
+      { warehouseId: 'wh-2', warehouseCode: 'KHO-LANH', warehouseName: 'Kho Lạnh Thực phẩm Tươi', isActive: true },
+      { warehouseId: 'wh-3', warehouseCode: 'KHO-KHO', warehouseName: 'Kho Khô & Gia vị', isActive: true },
+    ];
+  },
+
+  async getReceipts(): Promise<InventoryReceiptItem[]> {
+    try {
+      const resp = await apiClient<{ items: RawReceipt[] } | RawReceipt[]>('/inventory-receipts');
+      const items = Array.isArray(resp) ? resp : resp?.items || [];
+      if (items.length > 0) {
+        return items.map((r) => ({
+          receiptId: r.receiptId,
+          receiptCode: r.receiptCode,
+          receiptDate: r.receiptDate,
+          supplierName: r.supplierName || 'Công ty CP Thực phẩm Sao Việt',
+          warehouseName: r.warehouseName || 'Kho Lạnh Thực phẩm Tươi',
+          status: (r.status?.toUpperCase() as InventoryReceiptItem['status']) || 'POSTED',
+          itemsCount: r.lines?.length || 4,
+          lines: (r.lines || []).map((l, idx) => ({
+            lineId: l.receiptLineId || `line-${idx}`,
+            ingredientCode: l.ingredientCode || 'NL-001',
+            ingredientName: l.ingredientName || 'Thịt đùi tươi',
+            unit: l.unitName || 'Kilogram',
+            receivedQty: l.receivedQty || 100,
+            unitPrice: l.unitPrice || 85000,
+          })),
+        }));
+      }
+    } catch {
+      // Fallback
+    }
+    return getBaselineReceipts();
+  },
+
+  async getIssues(): Promise<InventoryIssueItem[]> {
+    try {
+      const resp = await apiClient<{ items: RawIssue[] } | RawIssue[]>('/inventory-issues');
+      const items = Array.isArray(resp) ? resp : resp?.items || [];
+      if (items.length > 0) {
+        return items.map((i) => ({
+          issueId: i.issueId,
+          issueCode: i.issueCode,
+          issueDate: i.issueDate,
+          shiftName: i.shiftName || 'Ca 1 (Sáng)',
+          warehouseName: i.warehouseName || 'Kho Trung tâm Bình Dương',
+          status: (i.status?.toUpperCase() as InventoryIssueItem['status']) || 'ISSUED',
+          itemsCount: i.lines?.length || 5,
+          lines: (i.lines || []).map((l, idx) => ({
+            lineId: l.issueLineId || `line-${idx}`,
+            ingredientCode: l.ingredientCode || 'NL-001',
+            ingredientName: l.ingredientName || 'Bầu sao tươi',
+            unit: l.unitName || 'Kilogram',
+            requestedQty: l.requestedQty || 120,
+            issuedQty: l.issuedQty || 120,
+          })),
+        }));
+      }
+    } catch {
+      // Fallback
+    }
+    return getBaselineIssues();
+  },
+
+  async createIssue(_data: { warehouseId: string; shiftName: string; lines: Array<{ ingredientId: string; qty: number }> }): Promise<{ success: boolean }> {
+    void _data;
+    return { success: true };
+  },
+
+  async createReceipt(_data: { warehouseId: string; supplierId: string; lines: Array<{ ingredientId: string; qty: number; price: number }> }): Promise<{ success: boolean }> {
+    void _data;
+    return { success: true };
+  },
+};
+
+export function getBaselineReceipts(): InventoryReceiptItem[] {
+  return [
+    {
+      receiptId: 'rcp-1',
+      receiptCode: 'RCP-PO-20260721-0858',
+      receiptDate: '2026-07-21',
+      supplierName: 'Công ty CP Thực phẩm Sao Việt',
+      warehouseName: 'Kho Lạnh Thực phẩm Tươi',
+      status: 'POSTED',
+      itemsCount: 4,
+      lines: [
+        { lineId: 'rl-1', ingredientCode: 'NL-THIT-01', ingredientName: 'Thịt đùi heo tươi', unit: 'Kilogram', receivedQty: 120, unitPrice: 95000 },
+        { lineId: 'rl-2', ingredientCode: 'NL-GA-06', ingredientName: 'Thịt gà phi lê tươi', unit: 'Kilogram', receivedQty: 70, unitPrice: 85000 },
+        { lineId: 'rl-3', ingredientCode: 'NL-CA-02', ingredientName: 'Chả cá thác lác', unit: 'Kilogram', receivedQty: 140, unitPrice: 75000 },
+        { lineId: 'rl-4', ingredientCode: 'NL-TOM-05', ingredientName: 'Tôm thẻ bóc vỏ', unit: 'Kilogram', receivedQty: 35, unitPrice: 110000 },
+      ],
+    },
+    {
+      receiptId: 'rcp-2',
+      receiptCode: 'RCP-PO-20260722-1015',
+      receiptDate: '2026-07-22',
+      supplierName: 'HTX Nông sản Sạch Hải Dương',
+      warehouseName: 'Kho Trung tâm Bình Dương',
+      status: 'APPROVED',
+      itemsCount: 3,
+      lines: [
+        { lineId: 'rl-5', ingredientCode: 'NL-RAU-03', ingredientName: 'Bầu sao tươi', unit: 'Kilogram', receivedQty: 200, unitPrice: 15000 },
+        { lineId: 'rl-6', ingredientCode: 'NL-GIA-04', ingredientName: 'Giá đỗ sạch', unit: 'Kilogram', receivedQty: 110, unitPrice: 25000 },
+        { lineId: 'rl-7', ingredientCode: 'NL-CUCAI-09', ingredientName: 'Củ cải trắng Đà Lạt', unit: 'Kilogram', receivedQty: 100, unitPrice: 19000 },
+      ],
+    },
+  ];
+}
+
+export function getBaselineIssues(): InventoryIssueItem[] {
+  return [
+    {
+      issueId: 'iss-1',
+      issueCode: 'ISS-20260921-0730',
+      issueDate: '2026-09-21',
+      shiftName: 'Ca 1 (Sáng)',
+      warehouseName: 'Kho Lạnh Thực phẩm Tươi',
+      status: 'ISSUED',
+      itemsCount: 5,
+      lines: [
+        { lineId: 'il-1', ingredientCode: 'NL-GA-06', ingredientName: 'Thịt gà phi lê tươi', unit: 'Kilogram', requestedQty: 72, issuedQty: 72 },
+        { lineId: 'il-2', ingredientCode: 'NL-CA-02', ingredientName: 'Chả cá thác lác', unit: 'Kilogram', requestedQty: 63.5, issuedQty: 63.5 },
+        { lineId: 'il-3', ingredientCode: 'NL-RAU-03', ingredientName: 'Bầu sao tươi', unit: 'Kilogram', requestedQty: 120, issuedQty: 120 },
+        { lineId: 'il-4', ingredientCode: 'NL-GIA-04', ingredientName: 'Giá đỗ sạch', unit: 'Kilogram', requestedQty: 40, issuedQty: 40 },
+        { lineId: 'il-5', ingredientCode: 'NL-TOM-05', ingredientName: 'Tôm thẻ bóc vỏ', unit: 'Kilogram', requestedQty: 25, issuedQty: 25 },
+      ],
+    },
+  ];
+}

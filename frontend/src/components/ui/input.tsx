@@ -1,23 +1,31 @@
-import { Input as InputPrimitive } from "@base-ui/react/input"
+import React from 'react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
-import { cn } from "@/lib/utils"
-import { VietnameseDateInput, type InputProps } from "./VietnameseDateInput"
-
-const inputClassName = "h-8 w-full min-w-0 rounded-sm border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-input-compact file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-input-compact dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
-
-function Input({ className, type, weekStartOnly, ...props }: InputProps) {
-  if (type === "date") {
-    return <VietnameseDateInput className={className} weekStartOnly={weekStartOnly} {...props} />
-  }
-
-  return (
-    <InputPrimitive
-      type={type}
-      data-slot="input"
-      className={cn(inputClassName, className)}
-      {...props}
-    />
-  )
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean;
 }
 
-export { Input }
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type = 'text', error, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        ref={ref}
+        className={twMerge(
+          clsx(
+            'flex h-9 w-full rounded border bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400',
+            'transition-colors focus-visible:outline-none focus-visible:ring-1',
+            error
+              ? 'border-red-500 focus-visible:ring-red-400'
+              : 'border-slate-300 focus-visible:border-slate-400 focus-visible:ring-slate-400',
+            'disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500',
+            className
+          )
+        )}
+        {...props}
+      />
+    );
+  }
+);
+Input.displayName = 'Input';

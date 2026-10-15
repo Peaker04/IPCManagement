@@ -7,7 +7,7 @@ description: Review IPCManagement UI and accessibility against current design co
 
 Advisory capability under [AGENTS](../../../AGENTS.md); [WORK](../../../.planning/WORK.md) remains the only task-state owner. This skill grants no execution or delegation authority.
 
-Read the applicable sections of [DESIGN](../../../docs/DESIGN.md), actual shared primitives and the bounded feature contract. Use [ENGINEERING](../../../docs/ENGINEERING.md) for browser/measurement conventions. Historical specimens, external style catalogs and generated design systems do not define product policy.
+Read the applicable sections of [DESIGN](../../../docs/DESIGN.md), [UI-KIT](../../../docs/UI-KIT.md) (3-Zone Flat Workbench: AppShell, WorkspaceHeader, TelemetrySubbar, DataGrid, SplitView; 10 UI Primitives), actual shared primitives and the bounded feature contract. Use [ENGINEERING](../../../docs/ENGINEERING.md) for browser/measurement conventions. Historical specimens, external style catalogs and generated design systems do not define product policy.
 
 ## Bound the review
 

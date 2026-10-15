@@ -12,26 +12,6 @@
   },
   "findings": [
     {
-      "id": "frontend:frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx",
-      "kind": "frontend",
-      "name": "frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx",
-      "files": [
-        "frontend/src/features/warehouse/pages/ReconciliationWarehousePage.tsx"
-      ],
-      "lines": 1313,
-      "level": "WARNING"
-    },
-    {
-      "id": "frontend:frontend/src/api/reportsApi.ts",
-      "kind": "frontend",
-      "name": "frontend/src/api/reportsApi.ts",
-      "files": [
-        "frontend/src/api/reportsApi.ts"
-      ],
-      "lines": 604,
-      "level": "WARNING"
-    },
-    {
       "id": "service:MaterialDemandService",
       "kind": "service",
       "name": "MaterialDemandService",

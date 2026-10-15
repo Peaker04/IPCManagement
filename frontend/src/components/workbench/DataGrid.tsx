@@ -1,0 +1,104 @@
+import type { ReactNode } from 'react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export interface ColumnDef<T> {
+  id: string;
+  header: ReactNode;
+  width?: string;
+  align?: 'left' | 'center' | 'right';
+  cell: (row: T, index: number) => ReactNode;
+}
+
+export interface DataGridProps<T = unknown> {
+  data: T[];
+  columns: ColumnDef<T>[];
+  keyExtractor: (row: T, index: number) => string;
+  onRowClick?: (row: T) => void;
+  selectedKey?: string;
+  emptyState?: ReactNode;
+  className?: string;
+}
+
+/**
+ * Zone 3: DataGrid (Occupies 85% Viewport — calc(100dvh - 100px))
+ * Rule T7: Sticky top-0 z-10 thead, single vertical scrollbar.
+ * Rule T8: Compact operational density (rows h-10 / 40px, text-sm).
+ */
+export function DataGrid<T>({
+  data,
+  columns,
+  keyExtractor,
+  onRowClick,
+  selectedKey,
+  emptyState,
+  className,
+}: DataGridProps<T>) {
+  if (data.length === 0 && emptyState) {
+    return <div className="flex-1 min-h-0 flex flex-col">{emptyState}</div>;
+  }
+
+  return (
+    <div
+      className={twMerge(
+        clsx(
+          'flex-1 min-h-0 w-full overflow-auto bg-white select-text relative',
+          className
+        )
+      )}
+    >
+      <table className="w-full text-left text-sm text-slate-800 border-collapse table-fixed">
+        <thead className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-xs border-b border-slate-200">
+          <tr>
+            {columns.map((col) => (
+              <th
+                key={col.id}
+                style={{ width: col.width }}
+                className={clsx(
+                  'h-10 px-4 text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap',
+                  col.align === 'right' && 'text-right',
+                  col.align === 'center' && 'text-center'
+                )}
+              >
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {data.map((row, index) => {
+            const key = keyExtractor(row, index);
+            const isSelected = selectedKey === key;
+            return (
+              <tr
+                key={key}
+                onClick={() => onRowClick && onRowClick(row)}
+                className={clsx(
+                  'h-10 transition-colors',
+                  onRowClick && 'cursor-pointer',
+                  isSelected
+                    ? 'bg-blue-50/70 hover:bg-blue-50'
+                    : 'hover:bg-slate-50/80',
+                  index % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'
+                )}
+              >
+                {columns.map((col) => (
+                  <td
+                    key={col.id}
+                    className={clsx(
+                      'px-4 py-2 truncate text-sm',
+                      col.align === 'right' && 'text-right',
+                      col.align === 'center' && 'text-center'
+                    )}
+                  >
+                    {col.cell(row, index)}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

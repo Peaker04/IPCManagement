@@ -1,0 +1,438 @@
+import { useState, useEffect, useMemo } from 'react';
+import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
+import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
+import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
+import { SplitView } from '../../components/workbench/SplitView';
+import { StateBoundary } from '../../components/workbench/StateBoundary';
+import { Select } from '../../components/ui/select';
+import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { Num } from '../../components/ui/num';
+import { IdentifierText } from '../../components/ui/identifier-text';
+import { Tabs } from '../../components/ui/tabs';
+import { Modal } from '../../components/ui/modal';
+import { Input } from '../../components/ui/input';
+import {
+  purchasingApi,
+  type PurchaseOrderItem,
+  type PurchaseOrderLineItem,
+  type SupplierItem,
+} from '../../api/purchasingApi';
+import { formatVietnameseDate } from '../../utils/dates';
+
+export function PurchasingPage() {
+  const [orders, setOrders] = useState<PurchaseOrderItem[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierItem[]>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState('ALL');
+  const [orderDate, setOrderDate] = useState('2026-07-21');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // New PO Modal
+  const [isNewPoOpen, setIsNewPoOpen] = useState(false);
+  const [newSupplierId, setNewSupplierId] = useState('');
+  const [newIngredientName, setNewIngredientName] = useState('');
+  const [newQty, setNewQty] = useState(50);
+  const [newPrice, setNewPrice] = useState(50000);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [pos, sups] = await Promise.all([
+        purchasingApi.getPurchaseOrders(),
+        purchasingApi.getSuppliers(),
+      ]);
+      setOrders(pos);
+      setSuppliers(sups);
+      if (pos.length > 0 && !selectedPoId) {
+        setSelectedPoId(pos[0].id);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Không thể tải danh sách đơn mua hàng PO.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let ignore = false;
+    async function fetchData() {
+      try {
+        const [pos, sups] = await Promise.all([
+          purchasingApi.getPurchaseOrders(),
+          purchasingApi.getSuppliers(),
+        ]);
+        if (!ignore) {
+          setOrders(pos);
+          setSuppliers(sups);
+          if (pos.length > 0) setSelectedPoId(pos[0].id);
+          setIsLoading(false);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : 'Không thể tải danh sách đơn mua hàng PO.');
+          setIsLoading(false);
+        }
+      }
+    }
+
+    fetchData();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const handleCreatePo = async () => {
+    if (!newSupplierId) {
+      alert('Vui lòng chọn nhà cung cấp');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await purchasingApi.createPurchaseOrder({
+        supplierId: newSupplierId,
+        orderDate,
+        lines: [{ ingredientId: 'ing-custom', quantity: newQty, unitPrice: newPrice }],
+      });
+      setIsNewPoOpen(false);
+      await loadData();
+      alert('Đã tạo đơn mua hàng PO thành công!');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Tạo PO thất bại');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const filteredOrders = useMemo(() => {
+    return orders.filter((po) => {
+      if (selectedSupplierId !== 'ALL' && po.supplierId !== selectedSupplierId) return false;
+      if (statusFilter !== 'ALL' && po.status !== statusFilter) return false;
+      return true;
+    });
+  }, [orders, selectedSupplierId, statusFilter]);
+
+  const selectedPo = orders.find((p) => p.id === selectedPoId) || filteredOrders[0] || null;
+
+  const totalAmount = useMemo(() => {
+    return filteredOrders.reduce((sum, po) => sum + po.totalAmount, 0);
+  }, [filteredOrders]);
+
+  const supplierOptions = [
+    { value: 'ALL', label: 'Tất cả nhà cung cấp (35 đối tác)' },
+    ...suppliers.map((s) => ({ value: s.supplierId, label: `${s.supplierCode} - ${s.supplierName}` })),
+  ];
+
+  const STATUS_TABS = [
+    { id: 'ALL', label: 'Tất cả đơn PO', count: orders.length },
+    { id: 'DRAFT', label: 'Dự thảo', count: orders.filter((o) => o.status === 'DRAFT').length },
+    { id: 'APPROVED', label: 'Đã duyệt', count: orders.filter((o) => o.status === 'APPROVED').length },
+    { id: 'RECEIVED', label: 'Đã nhận hàng', count: orders.filter((o) => o.status === 'RECEIVED').length },
+  ];
+
+  const columns: ColumnDef<PurchaseOrderItem>[] = [
+    {
+      id: 'code',
+      header: 'Mã đơn PO',
+      width: '20%',
+      cell: (row) => <IdentifierText value={row.code} />,
+    },
+    {
+      id: 'supplier',
+      header: 'Nhà cung cấp',
+      width: '32%',
+      cell: (row) => (
+        <span className="font-semibold text-slate-900 text-sm truncate block">
+          {row.supplierName}
+        </span>
+      ),
+    },
+    {
+      id: 'date',
+      header: 'Ngày đặt',
+      width: '14%',
+      cell: (row) => (
+        <span className="font-mono text-xs text-slate-700">
+          {formatVietnameseDate(row.orderDate)}
+        </span>
+      ),
+    },
+    {
+      id: 'items',
+      header: 'Mặt hàng',
+      width: '10%',
+      align: 'center',
+      cell: (row) => <span className="font-mono text-xs">{row.linesCount} dòng</span>,
+    },
+    {
+      id: 'amount',
+      header: 'Tổng tiền',
+      width: '14%',
+      align: 'right',
+      cell: (row) => (
+        <Num value={row.totalAmount} format="currency" className="font-bold text-slate-900 text-sm" />
+      ),
+    },
+    {
+      id: 'status',
+      header: 'Trạng thái',
+      width: '12%',
+      align: 'center',
+      cell: (row) => (
+        <Badge
+          variant={
+            row.status === 'RECEIVED'
+              ? 'success'
+              : row.status === 'APPROVED'
+              ? 'info'
+              : row.status === 'DRAFT'
+              ? 'neutral'
+              : 'warning'
+          }
+          size="sm"
+        >
+          {row.status === 'RECEIVED'
+            ? 'Đã nhận kho'
+            : row.status === 'APPROVED'
+            ? 'Đã duyệt PO'
+            : row.status === 'DRAFT'
+            ? 'Dự thảo'
+            : row.status}
+        </Badge>
+      ),
+    },
+  ];
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
+      {/* Zone 1: WorkspaceHeader (56px / h-14) */}
+      <WorkspaceHeader
+        title="Thu mua & Đề xuất PO"
+        contextSelectors={
+          <>
+            <Select
+              options={supplierOptions}
+              value={selectedSupplierId}
+              onChange={(e) => setSelectedSupplierId(e.target.value)}
+              className="h-9 w-72 font-medium text-sm"
+            />
+            <VietnameseDateInput
+              value={orderDate}
+              onChange={(d) => setOrderDate(d)}
+              className="h-9 w-40 font-mono text-sm"
+            />
+            <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-mono flex items-center">
+              PO đang xử lý
+            </Badge>
+          </>
+        }
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="default"
+              onClick={loadData}
+              className="h-9 text-sm font-medium"
+            >
+              Làm mới
+            </Button>
+            {/* Rule D7: Single primary button */}
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => setIsNewPoOpen(true)}
+              className="h-9 text-sm font-medium"
+            >
+              Tạo đơn mua hàng PO
+            </Button>
+          </>
+        }
+      />
+
+      {/* Zone 2: TelemetrySubbar (44px / h-11) */}
+      <TelemetrySubbar
+        leftControls={
+          <Tabs
+            items={STATUS_TABS}
+            activeId={statusFilter}
+            onChange={(id) => setStatusFilter(id)}
+            size="default"
+          />
+        }
+        telemetryPills={
+          <>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-slate-500">Tổng PO:</span>
+              <strong className="text-slate-900 font-mono font-bold">{filteredOrders.length} đơn</strong>
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-slate-500">Tổng giá trị:</span>
+              <strong className="text-emerald-700 font-mono font-bold">
+                {totalAmount.toLocaleString('vi-VN')} ₫
+              </strong>
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-slate-500">Đối tác:</span>
+              <strong className="text-slate-900 font-semibold">{suppliers.length} NCC</strong>
+            </span>
+          </>
+        }
+      />
+
+      {/* Zone 3: SplitView (Master 7 cols PO list | Detail 5 cols PO lines) */}
+      <StateBoundary
+        isLoading={isLoading}
+        error={error}
+        onRetry={loadData}
+        isEmpty={filteredOrders.length === 0}
+        emptyTitle="Không tìm thấy đơn mua hàng"
+        emptyDescription="Không có đơn PO nào khớp với điều kiện tìm kiếm hoặc trạng thái đã chọn."
+        actionLabel="Tạo PO mới"
+        onAction={() => setIsNewPoOpen(true)}
+      >
+        <SplitView
+          masterWidthClass="w-7/12"
+          master={
+            <DataGrid<PurchaseOrderItem>
+              data={filteredOrders}
+              columns={columns}
+              keyExtractor={(row) => row.id}
+              selectedKey={selectedPo?.id}
+              onRowClick={(row) => setSelectedPoId(row.id)}
+            />
+          }
+          detail={
+            selectedPo ? (
+              <div className="flex-1 min-h-0 flex flex-col bg-white">
+                <div className="h-10 px-4 border-b border-slate-200 bg-slate-100 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+                      Chi tiết PO: {selectedPo.code}
+                    </span>
+                    <Badge variant="neutral" size="sm">
+                      {selectedPo.lines.length} mặt hàng
+                    </Badge>
+                  </div>
+                  <span className="font-mono text-xs text-slate-500">
+                    NCC: {selectedPo.supplierName}
+                  </span>
+                </div>
+
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <table className="w-full text-left text-sm border-collapse table-fixed">
+                    <thead className="sticky top-0 z-10 bg-slate-100/95 border-b border-slate-200 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                      <tr>
+                        <th className="h-10 px-4 w-[40%]">Nguyên liệu</th>
+                        <th className="h-10 px-3 w-[16%] text-center">ĐVT</th>
+                        <th className="h-10 px-3 w-[20%] text-right">Số lượng</th>
+                        <th className="h-10 px-4 w-[24%] text-right">Thành tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-800">
+                      {selectedPo.lines.map((line: PurchaseOrderLineItem) => (
+                        <tr key={line.lineId} className="h-10 hover:bg-slate-50">
+                          <td className="px-4 py-2 truncate">
+                            <span className="font-medium text-slate-900 text-sm">{line.ingredientName}</span>
+                          </td>
+                          <td className="px-3 py-2 text-center whitespace-nowrap text-slate-600 font-mono text-xs">
+                            {line.unit}
+                          </td>
+                          <td className="px-3 py-2 text-right font-mono text-sm">
+                            <Num value={line.orderedQuantity} format="quantity" />
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            <Num value={line.lineTotal} format="currency" className="font-semibold text-slate-900" />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="h-11 px-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 font-medium text-sm">
+                  <span className="text-slate-600">Tổng cộng đơn PO:</span>
+                  <strong className="text-emerald-700 font-mono font-bold text-base">
+                    {selectedPo.totalAmount.toLocaleString('vi-VN')} ₫
+                  </strong>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center p-8 text-center text-slate-400 text-sm">
+                Chọn một đơn PO bên trái để xem phân rã chi tiết
+              </div>
+            )
+          }
+        />
+      </StateBoundary>
+
+      {/* New PO Modal */}
+      <Modal
+        isOpen={isNewPoOpen}
+        onClose={() => setIsNewPoOpen(false)}
+        title="Tạo đơn mua hàng mới (PO)"
+        description="Lập đơn mua nguyên liệu bổ sung cho bếp ăn công nghiệp"
+        footer={
+          <>
+            <Button variant="outline" size="sm" onClick={() => setIsNewPoOpen(false)}>
+              Hủy bỏ
+            </Button>
+            <Button variant="default" size="sm" disabled={isSubmitting} onClick={handleCreatePo}>
+              {isSubmitting ? 'Đang tạo...' : 'Xác nhận tạo đơn PO'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4 text-sm text-slate-700">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-slate-700">Nhà cung cấp đối tác</label>
+            <Select
+              options={suppliers.map((s) => ({ value: s.supplierId, label: s.supplierName }))}
+              value={newSupplierId}
+              onChange={(e) => setNewSupplierId(e.target.value)}
+              className="h-9 w-full"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-slate-700">Tên nguyên liệu cần mua</label>
+            <Input
+              placeholder="Ví dụ: Thịt gà phi lê tươi"
+              value={newIngredientName}
+              onChange={(e) => setNewIngredientName(e.target.value)}
+              className="h-9"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-slate-700">Số lượng (kg/lít)</label>
+              <Input
+                type="number"
+                value={newQty}
+                onChange={(e) => setNewQty(parseFloat(e.target.value) || 0)}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-slate-700">Đơn giá dự kiến (₫)</label>
+              <Input
+                type="number"
+                value={newPrice}
+                onChange={(e) => setNewPrice(parseFloat(e.target.value) || 0)}
+                className="h-9"
+              />
+            </div>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}

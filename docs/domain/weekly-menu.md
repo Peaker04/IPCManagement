@@ -23,7 +23,7 @@ Daily demand reading never narrows weekly calculation command scope. `Tính nhu 
 
 ## Demand work-object and source ordering
 
-Demand view reads one selected service day. Day selector, approval, handoff counters, warnings and document rails stay day-scoped. With generated material rows, lead with ledger and closed/openable KHSX source disclosure. Without rows/incomplete shifts, lead with shift editor and useful empty explanation, completion controls above source rows. Without rows/completed shifts, lead with compact calculate state and collapsed source. No universal ordering regardless of readiness.
+Demand view reads one selected service day. Day selector, approval, handoff counters, warnings and document rails stay day-scoped. With generated material rows, display the 3 segmented workbench views: Material Demand, Source KHSX, and Handoff Vouchers via clean inline tabs without nested disclosures. Without rows/incomplete shifts, lead with shift editor and useful empty explanation, completion controls above source rows. Without rows/completed shifts, lead with compact calculate state and segmented source view. No universal ordering regardless of readiness.
 
 Material requirements are read-only multi-actor facts; generic cross-role CTA columns do not invent warehouse/purchasing commands. Existing role workbenches own them. Document rail has one Day/Week scope; draft KHSX stays day-only, weekly lists finalized backend documents.
 
