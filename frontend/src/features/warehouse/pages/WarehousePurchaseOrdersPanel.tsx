@@ -67,11 +67,11 @@ export function WarehousePurchaseOrdersPanel({
     <table className="ipc-data-table min-w-[900px] table-fixed w-full">
       <thead>
         <tr>
-          <th scope="col" className="w-[30%]">Đơn mua / Nhà cung cấp</th>
-          <th scope="col" className="w-[22%]">Đề xuất nguồn</th>
-          <th scope="col" className="w-[18%]">Tiến độ nhập</th>
-          <th scope="col" className="w-[16%]">Trạng thái</th>
-          <th scope="col" className="w-[14%] text-right">Thao tác</th>
+          <th scope="col" className="sticky top-0 z-10 w-[30%] whitespace-nowrap text-left">Đơn mua / Nhà cung cấp</th>
+          <th scope="col" className="sticky top-0 z-10 w-[22%] whitespace-nowrap text-left">Đề xuất nguồn</th>
+          <th scope="col" className="sticky top-0 z-10 w-[18%] whitespace-nowrap text-left">Tiến độ nhập</th>
+          <th scope="col" className="sticky top-0 z-10 w-[16%] whitespace-nowrap text-left">Trạng thái</th>
+          <th scope="col" className="sticky top-0 z-10 w-[14%] whitespace-nowrap text-right">Thao tác</th>
         </tr>
       </thead>
       <tbody>
@@ -133,18 +133,18 @@ export function WarehousePurchaseOrdersPanel({
       role="region"
       aria-label={`Chi tiết ${selectedPurchaseOrder.purchaseOrderCode}`}
       tabIndex={-1}
-      className="mt-4 rounded-sm border border-slate-300 bg-slate-50 p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      className="mt-4 rounded-lg border border-slate-200 bg-slate-50/80 p-3.5 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shadow-2xs"
     >
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 pb-2.5">
         <div>
-          <h3 id="warehouse-purchase-order-detail-title" className="flex min-w-0 items-center gap-1 text-sm font-semibold text-slate-950">
-            <span className="shrink-0">Chi tiết</span>
+          <h3 id="warehouse-purchase-order-detail-title" className="flex min-w-0 items-center gap-1.5 text-sm font-semibold text-slate-950">
+            <span className="shrink-0 text-slate-500 font-medium">Chi tiết</span>
             <IdentifierText value={selectedPurchaseOrder.purchaseOrderCode} />
           </h3>
-          <p className="mt-1 text-xs text-slate-600">Số lượng và đơn giá thực nhận được xác nhận riêng cho từng dòng.</p>
+          <p className="mt-0.5 text-xs text-slate-600">Số lượng và đơn giá thực nhận được xác nhận riêng cho từng dòng.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-medium text-slate-600">{selectedPurchaseOrder.orderDate}</span>
+          <span className="text-xs font-semibold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded shadow-2xs">{selectedPurchaseOrder.orderDate}</span>
           {canReceivePurchases && selectedPurchaseOrder.lines.some((line) => line.receivedQty < line.orderedQty) && (
             <Button type="button" size="sm" onClick={onOpenBatchReceipt}>
               Nhận toàn bộ dòng còn lại

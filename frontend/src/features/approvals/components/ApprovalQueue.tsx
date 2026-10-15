@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   EmptyState,
   IdentifierText,
@@ -114,9 +115,11 @@ function ApprovalMaterials({ record }: { record: ApprovalRecord }) {
         ))}
       </ul>
       {remainingCount > 0 && (
-        <button
+        <Button
           type="button"
-          className="mt-1 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
+          variant="link"
+          size="sm"
+          className="mt-1 h-auto p-0 text-xs font-semibold text-blue-700 underline underline-offset-2 hover:text-blue-900"
           aria-expanded={expanded}
           aria-controls={materialListId}
           onClick={() => setExpanded((current) => !current)}
@@ -124,7 +127,7 @@ function ApprovalMaterials({ record }: { record: ApprovalRecord }) {
           {expanded
             ? "Thu gọn danh sách nguyên liệu"
             : `Xem thêm ${remainingCount} nguyên liệu`}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -336,15 +339,17 @@ export function ApprovalQueue({
                       </div>
                     )}
                     {hasDetail && (
-                      <button
+                      <Button
                         type="button"
-                        className="mt-1 text-xs font-semibold text-blue-700 hover:text-blue-900"
+                        variant="link"
+                        size="sm"
+                        className="mt-1 h-auto p-0 text-xs font-semibold text-blue-700 hover:text-blue-900"
                         aria-expanded={isDetailExpanded}
                         aria-controls={`approval-detail-${record.id}`}
                         onClick={() => toggleRecordDetail(record.id)}
                       >
                         {isDetailExpanded ? "Ẩn chi tiết" : "Xem chi tiết"}
-                      </button>
+                      </Button>
                     )}
                   </td>
                   <td>

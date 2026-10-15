@@ -12,8 +12,6 @@ const production = readProductionSources()
 
 const commandBarExceptionLocations = [
   'src/features/admin/pages/ApprovalRulesPage.tsx:242',
-  'src/features/reports/pages/ReportsPage.tsx:86',
-  'src/features/reports/pages/ReportsPage.tsx:96',
   'src/features/warehouse/pages/WarehousePageHeader.tsx:21',
 ]
 
@@ -37,8 +35,6 @@ const adapterExceptionLocations = [
   'src/features/admin/components/AdvancedDisplaySettings.tsx:161',
   'src/features/admin/components/AdvancedDisplaySettings.tsx:222',
   'src/features/admin/components/AdvancedDisplaySettings.tsx:246',
-  'src/features/approvals/components/ApprovalQueue.tsx:117',
-  'src/features/approvals/components/ApprovalQueue.tsx:339',
   'src/features/planning/cost/CostScreen.tsx:28',
   'src/features/planning/demand/DemandPlanningScreen.tsx:149',
   'src/features/planning/demand/DemandPlanningScreen.tsx:150',
@@ -52,7 +48,6 @@ const adapterExceptionLocations = [
   'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:942',
   'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:943',
   'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:1274',
-  'src/features/warehouse/pages/WarehouseMovementPanel.tsx:164',
   'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:343',
   'src/features/warehouse/WarehouseExceptionsWorkbench.tsx:416',
 ]

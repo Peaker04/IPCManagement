@@ -87,10 +87,10 @@ export function PurchaseServiceDateWorkbench({
               variant="outline"
               size="sm"
               textWrap="wrap"
-              className={`min-h-11 w-full flex-col items-stretch justify-start rounded-[3px] px-2.5 py-1.5 text-left text-body leading-normal transition-colors motion-reduce:transition-none ${
+              className={`min-h-11 w-full flex-col items-stretch justify-start rounded-md px-3 py-2 text-left text-body leading-normal transition-colors motion-reduce:transition-none shadow-2xs ${
                 active
-                  ? 'border-[var(--ipc-primary)] bg-blue-50 text-blue-950'
-                  : 'border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100'
+                  ? 'border-primary bg-blue-50/80 text-blue-950 font-medium'
+                  : 'border-slate-300 bg-slate-50/70 text-slate-800 hover:bg-slate-100'
               }`}
               aria-expanded={active}
               aria-controls={`purchase-service-date-${serviceDate.serviceDate}`}
@@ -100,7 +100,7 @@ export function PurchaseServiceDateWorkbench({
                 <span>{formatDateOnly(serviceDate.serviceDate)}</span>
                 {progressLabel ? <StatusBadge variant={active ? 'warning' : 'neutral'}>{progressLabel}</StatusBadge> : null}
               </span>
-              <span className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5 text-caption leading-[1.3] text-slate-600">
+              <span className="mt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs leading-tight text-slate-600">
                 <span>Thiếu: {serviceDate.shortageLineCount} dòng</span>
                 <span>NCC: {serviceDate.supplierReadyLineCount}/{supplierLineCount}</span>
                 <span>Ngoại lệ: {serviceDate.blockingExceptionCount}</span>
@@ -132,7 +132,7 @@ export function PurchaseServiceDateWorkbench({
                 caption="Bảng có cuộn ngang cục bộ."
               >
                 <table className="ipc-data-table min-w-[900px] table-fixed">
-                  <thead><tr><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Số lượng mua</th><th scope="col">Nhà cung cấp</th><th scope="col">Bằng chứng hiện tại</th><th scope="col" className="text-right">Giá đề xuất</th><th scope="col">Ngày giao</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
+                  <thead><tr><th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th><th scope="col" className="sticky top-0 z-10 text-right whitespace-nowrap">Số lượng mua</th><th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap">Nhà cung cấp</th><th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap">Bằng chứng hiện tại</th><th scope="col" className="sticky top-0 z-10 text-right whitespace-nowrap">Giá đề xuất</th><th scope="col" className="sticky top-0 z-10 text-center whitespace-nowrap">Ngày giao</th><th scope="col" className="sticky top-0 z-10 text-right whitespace-nowrap">Thao tác</th></tr></thead>
                   <tbody>{Array.from({ length: 8 }, (_, index) => <tr key={`purchase-line-skeleton-${index}`} aria-hidden="true">{Array.from({ length: 7 }, (_, cellIndex) => <td key={cellIndex}><div className="h-5 animate-pulse rounded-[2px] bg-slate-200 motion-reduce:animate-none" /></td>)}</tr>)}</tbody>
                 </table>
               </TableViewport>
@@ -144,7 +144,7 @@ export function PurchaseServiceDateWorkbench({
                 caption="Trạng thái trống của ngày phục vụ đang chọn."
               >
                 <table className="ipc-data-table min-w-[900px] table-fixed">
-                  <thead><tr><th scope="col">Nguyên liệu</th><th scope="col" className="text-right">Số lượng mua</th><th scope="col">Nhà cung cấp</th><th scope="col">Bằng chứng hiện tại</th><th scope="col" className="text-right">Giá đề xuất</th><th scope="col">Ngày giao</th><th scope="col" className="text-right">Thao tác</th></tr></thead>
+                  <thead><tr><th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap">Nguyên liệu</th><th scope="col" className="sticky top-0 z-10 text-right whitespace-nowrap">Số lượng mua</th><th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap">Nhà cung cấp</th><th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap">Bằng chứng hiện tại</th><th scope="col" className="sticky top-0 z-10 text-right whitespace-nowrap">Giá đề xuất</th><th scope="col" className="sticky top-0 z-10 text-center whitespace-nowrap">Ngày giao</th><th scope="col" className="sticky top-0 z-10 text-right whitespace-nowrap">Thao tác</th></tr></thead>
                   <tbody><tr><td colSpan={7} className="py-10 text-center text-slate-600">{serviceDates.length === 0 ? 'Chưa có nhu cầu đã duyệt trong tuần này.' : 'Chưa có dòng nguyên liệu cho giai đoạn đang xem.'}</td></tr></tbody>
                 </table>
               </TableViewport>

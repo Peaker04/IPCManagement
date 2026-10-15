@@ -193,13 +193,13 @@ export default function PurchasingPage() {
         >
           {activeView === 'workflow' ? (
             <>
-              <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Tuần mua hàng: {formatWeekRange(routeState.week)}</span>
-              <span className="ipc-command-meta" title="Phạm vi kỹ thuật: FULLDAY"><CalendarDays size={16} aria-hidden="true" />Cả ngày</span>
+              <span className="ipc-command-meta inline-flex items-center gap-1.5"><ShoppingCart size={16} aria-hidden="true" /><span>Tuần mua hàng: <strong>{formatWeekRange(routeState.week)}</strong></span></span>
+              <span className="ipc-command-meta inline-flex items-center gap-1.5" title="Phạm vi kỹ thuật: FULLDAY"><CalendarDays size={16} aria-hidden="true" /><span>Cả ngày</span></span>
             </>
           ) : activeView === 'supplemental' ? (
-            <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Yêu cầu mua bổ sung từ bếp</span>
+            <span className="ipc-command-meta inline-flex items-center gap-1.5"><ShoppingCart size={16} aria-hidden="true" /><span>Yêu cầu mua bổ sung từ bếp</span></span>
           ) : (
-            <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Danh mục báo giá nhà cung cấp</span>
+            <span className="ipc-command-meta inline-flex items-center gap-1.5"><ShoppingCart size={16} aria-hidden="true" /><span>Danh mục báo giá nhà cung cấp</span></span>
           )}
         </CommandBar>
       }
@@ -212,9 +212,9 @@ export default function PurchasingPage() {
       ) : undefined}
     >
       <div className="min-w-0 space-y-4 overflow-x-clip">
-        <div className="flex min-h-[48px] flex-wrap items-center justify-between gap-3 rounded-[var(--ipc-radius-md,3px)] border border-[var(--ipc-color-border-muted,#d8e2ef)] bg-white px-4 py-2">
+        <div className="flex min-h-[48px] flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-2.5 shadow-2xs">
           <div className="flex items-center gap-2">
-            <ShoppingCart size={18} aria-hidden="true" className="shrink-0 text-[var(--ipc-primary,#1a56a8)]" />
+            <ShoppingCart size={18} aria-hidden="true" className="shrink-0 text-primary" />
             <h2 className="text-[20px] font-bold text-slate-900 leading-[1.2]">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : activeView === 'supplemental' ? 'Mua bổ sung cho bếp' : 'Quản lý báo giá nhà cung cấp'}</h2>
             {activeView !== 'workflow' ? (
               <span

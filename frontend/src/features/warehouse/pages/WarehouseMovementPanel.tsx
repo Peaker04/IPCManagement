@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ClipboardList, Warehouse } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
+import { Button } from '@/components/ui/button';
 import {
   RefreshStatus,
   DocumentRail,
@@ -147,10 +148,10 @@ export function WarehouseMovementPanel({
               <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
                 <thead>
                   <tr>
-                    <th scope="col" className="text-left">Kho</th>
-                    <th scope="col" className="text-left">Nguyên liệu</th>
-                    <th scope="col" className="text-right">Số lượng</th>
-                    <th scope="col" className="text-center">Cập nhật</th>
+                    <th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap w-[25%]">Kho</th>
+                    <th scope="col" className="sticky top-0 z-10 text-left whitespace-nowrap w-[35%]">Nguyên liệu</th>
+                    <th scope="col" className="sticky top-0 z-10 text-right whitespace-nowrap w-[20%]">Số lượng</th>
+                    <th scope="col" className="sticky top-0 z-10 text-center whitespace-nowrap w-[20%]">Cập nhật</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -161,7 +162,7 @@ export function WarehouseMovementPanel({
                       </tr>
                     ))
                   ) : currentStockRows.length === 0 ? (
-                    <tr><td colSpan={4} className="py-6 text-center text-slate-500">{currentStockSearch.trim() ? <>Không tìm thấy snapshot tồn kho khớp “{currentStockSearch.trim()}”. <button type="button" className="font-medium text-blue-700 underline" onClick={() => onCurrentStockSearchChange('')}>Xóa tìm kiếm</button></> : 'Chưa có snapshot tồn kho hiện tại.'}</td></tr>
+                    <tr><td colSpan={4} className="py-6 text-center text-slate-500">{currentStockSearch.trim() ? <>Không tìm thấy snapshot tồn kho khớp “{currentStockSearch.trim()}”. <Button type="button" variant="link" size="sm" className="h-auto p-0 font-medium text-primary underline" onClick={() => onCurrentStockSearchChange('')}>Xóa tìm kiếm</Button></> : 'Chưa có snapshot tồn kho hiện tại.'}</td></tr>
                   ) : currentStockRows.map((row) => (
                     <tr key={row.id}>
                       <td className="text-slate-700">{row.warehouse}</td>

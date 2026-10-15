@@ -83,24 +83,28 @@ const ReportsPage = () => {
           actions={
             <>
               {exportConfig && (
-                <button
+                <Button
                   type="button"
-                  className="ipc-button ipc-button-primary"
+                  variant="default"
+                  size="sm"
+                  className="gap-1.5"
                   disabled={!canExportActiveReport}
                   onClick={handleExportActiveReport}
                 >
                   <Download size={16} />
-                  Xuất dữ liệu trang hiện tại
-                </button>
+                  <span>Xuất dữ liệu trang hiện tại</span>
+                </Button>
               )}
-              <button
+              <Button
                 type="button"
-                className="ipc-button ipc-button-secondary"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
                 onClick={resetReportPagesAndUrl}
               >
                 <RotateCcw size={16} />
-                Đặt lại bộ lọc
-              </button>
+                <span>Đặt lại bộ lọc</span>
+              </Button>
             </>
           }
         >

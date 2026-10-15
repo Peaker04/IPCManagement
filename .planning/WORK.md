@@ -1,40 +1,32 @@
 # Active work
 
-Status: IDLE (Wave 2 Deep UI Refactor Complete — Ready for Wave 3: /purchasing, /warehouse, /approvals)
+Status: IN_PROGRESS (Wave 3: Deep UI Refactor — Supply Chain & Approvals: /purchasing, /warehouse, /approvals)
 
-### Completed: Wave 2 Deep UI Refactor (`/weekly-menu`, `/meal-orders`, `/chef`)
-- **Routes Refactored**:
-  1. `/weekly-menu` (`FR-MENU`):
-     - `WeeklyScheduleCommandBar.tsx` & `WeeklyMenuCommandBar.tsx`: Chuẩn hóa 100% sang `<Button variant="secondary"|"default" size="sm">` primitive (loại bỏ toàn bộ native `<button>` tự chế).
-     - `MenuCostSection.tsx`: Chuẩn hóa 100% số lượng, đơn giá, thành tiền và tỷ lệ Food Cost sang `<Num tabular-nums>` và `<Num type="currency">` (cột số học căn phải chuẩn `T1, T2, T8`).
-     - `MaterialDemandSection.tsx`: Chuẩn hóa checkpoint số suất và dòng KHSX, bọc mã chứng từ vào `<IdentifierText>`, số suất vào `<Num>`, đảm bảo duy nhất 1 primary button trên command bar (`Rule D7`).
-     - `ProductionPlanSection.tsx`: Bọc mã KHSX vào `<IdentifierText>`, số suất món vào `<Num tabular-nums>`.
-     - `PurchaseSummarySection.tsx`: Chuẩn hóa tổng tiền BOM và số lượng nguyên liệu sang `<Num>`.
-     - `DishMaterialsSection.tsx`: Chuẩn hóa định lượng BOM và thành tiền suất ăn sang `<Num>`.
-  2. `/meal-orders` (`FR-COORD`):
-     - `header-info.tsx`: Thay thế `<Input type="date">` thô bằng `<VietnameseDateInput type="date">` chuẩn giao diện `dd/MM/yyyy`.
-     - `order-table.tsx`: Bọc mã khách hàng vào `<IdentifierText>`, bọc số lượng chênh lệch/tăng giảm vào `<Num tabular-nums>`.
-  3. `/chef` (`FR-CHEF`):
-     - `ChefShiftControls.tsx`: Thay thế `<Input type="date">` thô bằng `<VietnameseDateInput>`.
-     - `ChefProductionSection.tsx`: Bọc mã kế hoạch vào `<IdentifierText>`, số suất và lượng mua dự kiến vào `<Num tabular-nums>`.
-     - `material-checklist.tsx`: Bọc mã phiếu xuất vào `<IdentifierText>`, số lượng nhận/tổng hợp vào `<Num tabular-nums>`, giữ chuẩn `typography.code`.
-     - `ServiceRunSection.tsx`: Bọc mã kế hoạch vào `<IdentifierText>`, số suất kế hoạch/thực tế/chờ nhận vào `<Num tabular-nums>`.
-     - `DemandPlanningScreen.tsx` & `CostScreen.tsx`: Chuẩn hóa toàn bộ ô số lượng và giá vốn sang `<Num tabular-nums>` với độ chính xác số thập phân cao (`maximumFractionDigits={6}`).
-- **Eliminated 2 Skipped Tests (Rule TA-3)**:
-  - Tái cấu trúc `frontend/tests/warehouseDataWorkspaceContract.test.ts` loại bỏ `it.skipIf`, cung cấp schema fixture kiểm thử hợp đồng `validateWarehouseAiReviewInput` và `validateWarehouseAiFinding`. Số lượng skipped tests giảm từ 2 xuống **0**!
-- **100% Verification Pipeline Passed (`npm run verify`)**:
-  - `test:ignore-policy`: 2/2 PASS
-  - `test:frontend-test-taxonomy`: 1/1 PASS
-  - `test:frontend-unit-launcher`: 2/2 PASS
-  - `test:phase05-fixture-determinism`: 1/1 PASS
-  - `test:architecture-growth`: 6/6 PASS
-  - `check:architecture-growth`: PASS (strict production baseline exact, 0 test debt)
-  - `build:be`: PASS (0 warnings, 0 errors)
-  - `test:be:ci`: 1311/1311 Api.Tests PASS, 49/49 Application.Tests PASS
-  - `lint:fe`: PASS (0 errors)
-  - `depcruise:fe`: PASS (356 modules cruised, 0 violations)
-  - `build:fe`: PASS (built in 0.93s)
-  - `test:fe:unit`: 300/300 test files PASS (**1730 tests passed, 0 failed, 0 skipped**)
+### Completed: Wave 2A Structural UI/UX Rebuild (Dashboard & Weekly Menu)
+- **Rebuilt `/` (DefaultDashboardPage.tsx)**:
+  - Rebuilt "Việc cần xử lý trước" task item layout using explicit Tailwind grid (`grid-cols-[minmax(0,1fr)_auto_auto] gap-4`) with separated labels for `Phụ trách:` and `Thời hạn:` to eliminate text running together.
+  - Rebuilt "Tiến độ 4 công đoạn" to fix badge and text overlap (badge number `shrink-0`, title/desc in flex column `flex-1 min-w-0`, and action/status badge `shrink-0`).
+  - Added clean empty state handling for filtered queue items vs ca-wide clear states.
+- **Rebuilt `/weekly-menu` Shell & Views**:
+  - `WeeklyMenuPricingContext.tsx`: Replaced tight inline labels with `inline-flex items-center gap-1.5` containing explicit separators (`Định mức:`, dot separator) to eliminate text running together.
+  - `WeeklyScheduleWorkspace.tsx`: Cleaned up empty states with standard `EmptyState` without duplicate button action owners.
+  - `MaterialDemandSection.tsx`: Eliminated left vertical collapse; converted 3 KPI checkpoints into a responsive grid with distinct cards, proper icons, `<dt>` and `<dd>` semantics preserved; enforced Rule D7 with single primary action (Mở phê duyệt / Mở thu mua / Tính lại nhu cầu); upgraded native `<details>` disclosures into styled interactive panels; converted action buttons to UI Kit `Button` primitives and removed button exceptions.
+  - `ProductionPlanSection.tsx`: Eliminated date and servings concatenation (`Ngày phục vụ`, `KHSX`); constrained 'Phạm vi' select dropdown width to `w-44`; enhanced plan cards with consistent headers and typography.
+  - `MenuCostSection.tsx`: Eliminated day navigation label concatenation (`Ngày đang tính`); added `whitespace-nowrap` and column widths to BOM aside breakdown table to prevent unit/number overlap; upgraded ingredient summary disclosure into styled panel.
+  - `DishMaterialsSection.tsx`: Modernized command bar and object layout.
+  - `PurchaseSummarySection.tsx`: Converted native `<button>` to UI Kit primitive `<Button>`.
+- **Tests & Quality Verification**:
+  - Updated contract fixtures (`pcActionCompletenessFixture.ts`, `operationalStateActionRegistry.test.ts`, `weekly-menu-lifecycle-pa2b-fixture.ts`, `buttonPrimitiveConvergence.test.ts`).
+  - 100% verification pipeline passed (`npm run verify`: 1311 BE tests, 300 FE test files / 1730 tests passed, 0 skipped, 0 failed).
+  - Committed to `cleanup/revert-sidebar-v2` (`4e98515b`).
+
+---
+
+### In Progress: Wave 3 — Deep UI Refactor: Supply Chain & Approvals
+- **Target Surfaces**:
+  1. `/purchasing` (`FR-PUR`): `PurchasingPage.tsx`, `PurchaseDecisionPanel.tsx`, `PurchaseServiceDateWorkbench.tsx`, `PurchaseLineGroups.tsx`, `SupplementalPurchasingWorkbench.tsx`, `SupplierQuotationSection.tsx`.
+  2. `/warehouse` (`FR-WH`): `WarehousePage.tsx`, `WarehouseMovementPanel.tsx`, `WarehousePurchaseOrdersPanel.tsx`, `WarehouseReceiptLifecyclePanel.tsx`, `WarehouseExceptionsWorkbench.tsx`, `WarehouseDemandPanel.tsx`, `ReconciliationWarehousePage.tsx`.
+  3. `/approvals` (`FR-APPR`): `ApprovalPage.tsx`, `ApprovalQueue.tsx`, `ApprovalHistoryTab.tsx`, `ApprovalDecisionDialog.tsx`, `MenuAmendmentInbox.tsx`, `MenuAmendmentReconciliation.tsx`.
 
 ---
 
