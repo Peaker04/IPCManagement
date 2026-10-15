@@ -6,7 +6,6 @@ import type { WeeklyMenuView } from '../model/types';
 type Props = { mode: SystemOperationMode; views: WeeklyMenuView[]; activeView: WeeklyMenuView; onViewChange: (view: WeeklyMenuView) => void };
 type Group = { id: string; label: string; views: Array<[WeeklyMenuView, string]> };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const groups: Group[] = [
   { id: 'authoring', label: 'Soạn kế hoạch', views: [['schedule', 'Kế hoạch tuần']] },
   { id: 'execution', label: 'Thực thi tuần', views: [['demand', 'Nhu cầu'], ['production-plan', 'Kế hoạch sản xuất'], ['purchase-summary', 'Tổng quan bàn giao cả tuần']] },

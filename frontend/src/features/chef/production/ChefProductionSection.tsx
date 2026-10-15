@@ -1,6 +1,5 @@
 import { ClipboardList } from 'lucide-react';
-import { SectionPanel, StatusBadge, TableViewport } from '@/components/common';
-import { formatQuantityWithUnit } from '@/lib/formatters';
+import { IdentifierText, Num, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { getChefReadiness } from '../chefReadiness';
 import { formatShiftName } from '@/lib/workflowConfig';
 import type { DailyPlanLine } from './chefProductionModel';
@@ -65,11 +64,20 @@ export function ChefProductionSection({ lines, isLoading, isError, totalPlans, s
                 const readiness = getChefReadiness(line);
                 return (
                   <tr key={`${line.planCode}-${line.planLineId}`}>
-                    <td className="text-left"><span className="block font-semibold text-slate-900">{line.planCode}</span><span className="block text-xs text-slate-500">{line.customerName ?? 'Chưa có tên khách hàng'}</span></td>
+                    <td className="text-left">
+                      <span className="block font-semibold text-slate-900">
+                        <IdentifierText value={line.planCode} />
+                      </span>
+                      <span className="block text-xs text-slate-500">{line.customerName ?? 'Chưa có tên khách hàng'}</span>
+                    </td>
                     <td className="text-left"><span className="block font-medium text-slate-900">{line.dishName ?? 'Chưa có tên món'}</span><span className="block text-xs text-slate-500">{formatShiftName(line.shiftName ?? undefined)}</span></td>
-                    <td className="text-right tabular-nums font-semibold text-slate-900" data-cell-role="numeric">{line.totalServings}</td>
+                    <td className="text-right font-semibold text-slate-900" data-cell-role="numeric">
+                      <Num value={line.totalServings} type="number" />
+                    </td>
                     <td className="text-left text-slate-700">{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
-                    <td className="text-right tabular-nums text-slate-700" data-cell-role="numeric">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
+                    <td className="text-right text-slate-700" data-cell-role="numeric">
+                      <Num value={line.suggestedPurchaseQty} type="quantity" fallback="—" />
+                    </td>
                     <td className="text-center">
                       <StatusBadge variant={readiness.variant}>{readiness.label}</StatusBadge>
                     </td>

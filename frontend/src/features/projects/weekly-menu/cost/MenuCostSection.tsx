@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Calculator, CalendarDays, CheckCircle2, ChevronDown, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, InlineAlert, SectionPanel, TableViewport } from '@/components/common'
+import { ContextStrip, InlineAlert, Num, SectionPanel, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
-import { formatCurrency, formatNumber, formatPercent, formatQuantity } from '@/lib/formatters'
+import { formatPercent } from '@/lib/formatters'
 import { formatMaterialDishSource } from '../model/formatters'
 import type { MenuCostWorkflow } from './useMenuCost'
 
@@ -44,8 +44,8 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
           { label: 'Nguồn tính', value: presentation.sourceLabel, tone: 'neutral' },
           { label: 'BOM áp dụng', value: `${rowsWithBom.length}/${rows.length} dòng`, tone: rowsMissingBom.length > 0 ? 'warning' : 'neutral' },
           { label: 'Chưa có BOM', value: rowsMissingBom.length.toString(), tone: rowsMissingBom.length > 0 ? 'danger' : 'neutral' },
-          { label: 'Đơn giá bán/suất', value: formatCurrency(scope.menuPrice), tone: 'neutral' },
-          { label: 'Tổng giá vốn ngày', value: formatCurrency(presentation.total), tone: presentation.total > 0 ? 'info' : 'neutral' },
+          { label: 'Đơn giá bán/suất', value: <Num value={scope.menuPrice} type="currency" />, tone: 'neutral' },
+          { label: 'Tổng giá vốn ngày', value: <Num value={presentation.total} type="currency" />, tone: presentation.total > 0 ? 'info' : 'neutral' },
         ]} />
 
         {foodCostPercent > 85 && activeRow && (
@@ -78,9 +78,15 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
                       <td className="text-left text-slate-600">{row.shiftLabel}</td>
                       <td className="text-left text-slate-600">{row.slotLabel}</td>
                       <td className="text-left font-medium text-slate-900">{row.dishName}</td>
-                      <td data-cell-role="numeric" className="text-right tabular-nums font-medium">{formatNumber(row.portions)}</td>
-                      <td data-cell-role="numeric" className="text-right tabular-nums">{row.hasCatalogBom ? formatCurrency(row.unitCost) : '—'}</td>
-                      <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{row.hasCatalogBom ? formatCurrency(row.unitCost * row.portions) : '—'}</td>
+                      <td data-cell-role="numeric" className="text-right font-medium">
+                        <Num value={row.portions} type="number" />
+                      </td>
+                      <td data-cell-role="numeric" className="text-right">
+                        {row.hasCatalogBom ? <Num value={row.unitCost} type="currency" /> : '—'}
+                      </td>
+                      <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
+                        {row.hasCatalogBom ? <Num value={row.unitCost * row.portions} type="currency" /> : '—'}
+                      </td>
                       {showBomStatus && <td className="text-center">{row.hasCatalogBom
                         ? <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-700"><CheckCircle2 size={14} aria-hidden="true" />Đã có BOM</span>
                         : <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700"><TriangleAlert size={14} aria-hidden="true" />Chưa có BOM</span>}
@@ -105,9 +111,9 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
                 </span>
               </div>
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-white p-2 rounded border border-[var(--ipc-color-border-subtle,#e2eaf4)]">
-                <span>Đơn giá vốn: <strong className="text-slate-900">{formatCurrency(activeRow.unitCost)}</strong></span>
-                {scope.menuPrice > 0 && <span>Giá bán: <strong className="text-slate-900">{formatCurrency(scope.menuPrice)}</strong></span>}
-                {scope.menuPrice > 0 && <span>LN gộp: <strong className={grossProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}>{formatCurrency(grossProfit)}</strong></span>}
+                <span>Đơn giá vốn: <strong className="text-slate-900"><Num value={activeRow.unitCost} type="currency" /></strong></span>
+                {scope.menuPrice > 0 && <span>Giá bán: <strong className="text-slate-900"><Num value={scope.menuPrice} type="currency" /></strong></span>}
+                {scope.menuPrice > 0 && <span>LN gộp: <strong className={grossProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}><Num value={grossProfit} type="currency" /></strong></span>}
               </div>
               {activeRow.ingredients && activeRow.ingredients.length > 0 ? (
                 <TableViewport caption={`Thành phần nguyên liệu định mức cho món ${activeRow.dishName}`} ariaLabel={`Bảng nguyên liệu định mức món ${activeRow.dishName}`} className="ipc-cost-table-shell max-h-64">
@@ -126,9 +132,15 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
                         <tr key={`ing-${ing.ingredientId}`}>
                           <td className="text-left font-medium text-slate-900">{ing.name}</td>
                           <td className="text-center text-slate-600">{ing.unit}</td>
-                          <td className="text-right tabular-nums">{formatQuantity(ing.grossQtyPerServing, { maximumFractionDigits: 6 })}</td>
-                          <td className="text-right tabular-nums">{formatCurrency(ing.referencePrice)}</td>
-                          <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(Math.round(ing.grossQtyPerServing * ing.referencePrice))}</td>
+                          <td data-cell-role="numeric" className="text-right">
+                            <Num value={ing.grossQtyPerServing} type="quantity" maximumFractionDigits={6} />
+                          </td>
+                          <td data-cell-role="numeric" className="text-right">
+                            <Num value={ing.referencePrice} type="currency" />
+                          </td>
+                          <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
+                            <Num value={Math.round(ing.grossQtyPerServing * ing.referencePrice)} type="currency" />
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -144,7 +156,7 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
         <details className="ipc-fiori-disclosure">
           <summary>
             <span><strong>Nguyên liệu cấu thành trong ngày</strong><small>Chi tiết định lượng theo các món đang hiển thị</small></span>
-            <span>{materialCount} nguyên liệu · {formatCurrency(presentation.materialTotal)} <ChevronDown size={16} aria-hidden="true" /></span>
+            <span>{materialCount} nguyên liệu · <Num value={presentation.materialTotal} type="currency" /> <ChevronDown size={16} aria-hidden="true" /></span>
           </summary>
           <TableViewport caption="Nguyên liệu theo ngày, đơn vị và các món trong kế hoạch" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
             <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
@@ -163,11 +175,19 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
                   return <tr key={`day-material-${identityKey}`}>
                     <td className="text-left font-medium text-slate-900">{data.ingredientName}</td>
                     <td className="text-center text-slate-600">{data.unit}</td>
-                    <td data-cell-role="numeric" className="text-right tabular-nums">{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
-                    <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-blue-700">{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
+                    <td data-cell-role="numeric" className="text-right">
+                      <Num value={data.theory} type="quantity" maximumFractionDigits={2} />
+                    </td>
+                    <td data-cell-role="numeric" className="text-right font-semibold text-blue-700">
+                      <Num value={data.actual} type="quantity" maximumFractionDigits={2} />
+                    </td>
                     <td className="text-left text-slate-700" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
-                    <td data-cell-role="numeric" className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
-                    <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
+                    <td data-cell-role="numeric" className="text-right">
+                      <Num value={data.referencePrice} type="currency" />
+                    </td>
+                    <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
+                      <Num value={data.actual * data.referencePrice} type="currency" />
+                    </td>
                   </tr>
                 })}
                 {materialCount === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho ngày này. Kiểm tra định lượng nguyên liệu của các món.</td></tr>}

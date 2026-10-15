@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, ShieldAlert } from 'lucide-react';
 import { useHasRole } from '@/lib/useHasRole';
 import { Button } from '@/components/ui/button';
-import { IdentifierText, InlineAlert, PaginationBar, QueryErrorAlert, TableViewport } from '@/components/common';
+import { IdentifierText, InlineAlert, Num, PaginationBar, QueryErrorAlert, TableViewport } from '@/components/common';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatReceiptLifecycleStatus } from '@/lib/workflowConfig';
 import { typography } from '@/lib/typography';
@@ -316,7 +316,7 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
           <div className="rounded-sm border border-slate-200 bg-white" aria-label="Dòng phiếu nhập">
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-3 py-2 text-xs">
               <span className="font-semibold text-slate-800">Nguyên liệu trong phiếu</span>
-              <span className="whitespace-nowrap text-slate-500">{receipt.lines.length} dòng nguồn</span>
+              <span className="whitespace-nowrap text-slate-500"><Num value={receipt.lines.length} type="number" /> dòng nguồn</span>
             </div>
             <ul className="grid max-h-72 gap-1 overflow-y-auto p-2 text-xs text-slate-700" aria-label="Danh sách dòng nguyên liệu">
               {receipt.lines.map((line) => <li key={line.receiptLineId} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-sm border border-slate-200 px-3 py-2">
@@ -325,8 +325,8 @@ export function WarehouseReceiptLifecyclePanel({ purchaseOrderId, selectedReceip
                   {line.qualityReason && <span className="mt-0.5 block text-amber-800" title={line.qualityReason}>Lý do: {line.qualityReason}</span>}
                 </div>
                 <div className="text-right leading-5 tabular-nums">
-                  <span className="block font-medium text-slate-800" title={`Số lượng chính xác: ${formatQuantityWithUnit(line.quantity, line.unitName ?? '', { maximumFractionDigits: 6 })}`}>{formatQuantityWithUnit(line.quantity, line.unitName ?? '')}</span>
-                  {(line.acceptedQuantity != null || line.rejectedQuantity != null) && <span className="block text-slate-500" title={`Đạt chính xác ${formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}; không đạt chính xác ${formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}`}>Đạt {formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '')} · Không đạt {formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '')}</span>}
+                  <span className="block font-medium text-slate-800" title={`Số lượng chính xác: ${formatQuantityWithUnit(line.quantity, line.unitName ?? '', { maximumFractionDigits: 6 })}`}><Num value={line.quantity} type="quantity" /> {line.unitName ?? ''}</span>
+                  {(line.acceptedQuantity != null || line.rejectedQuantity != null) && <span className="block text-slate-500" title={`Đạt chính xác ${formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}; không đạt chính xác ${formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '', { maximumFractionDigits: 6 })}`}>Đạt <Num value={line.acceptedQuantity ?? 0} type="quantity" /> {line.unitName ?? ''} · Không đạt <Num value={line.rejectedQuantity ?? 0} type="quantity" /> {line.unitName ?? ''}</span>}
                 </div>
               </li>)}
             </ul>

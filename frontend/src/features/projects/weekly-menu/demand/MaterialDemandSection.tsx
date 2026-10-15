@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { CalendarDays, CheckCircle2, ClipboardList, PackageSearch, Calculator, ShoppingCart, TriangleAlert, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatNumber } from '@/lib/formatters'
-import { ConfirmDialog, DocumentRail, EmptyState, InlineAlert, PaginationBar, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
+import { ConfirmDialog, DocumentRail, EmptyState, IdentifierText, InlineAlert, Num, PaginationBar, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
 import { InfoNote } from '@/components/common/InfoNote'
 import { DemandSummary } from '@/features/planning/components/DemandSummary'
 import { ActionGuard } from '@/components/common/ActionGuard'
@@ -128,7 +128,7 @@ export function MaterialDemandSection({
                     <td className="text-left font-medium text-slate-900">{row.dishName}</td>
                     <td data-cell-role="numeric" className="text-center" title={row.servingsStatusLabel}>
                       {row.servingsStatus === 'missing' ? <span className="font-semibold text-amber-700">Chưa chốt</span> : (
-                        <span className="inline-flex flex-col items-center gap-0.5"><span className="tabular-nums">{formatNumber(row.portions)}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
+                        <span className="inline-flex flex-col items-center gap-0.5"><Num value={row.portions} type="number" />{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
                       )}
                     </td>
                     <td className={cn('text-center font-medium', row.hasCatalogBom ? 'text-slate-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa có'}</td>
@@ -165,7 +165,10 @@ export function MaterialDemandSection({
             <span className="text-xs font-medium text-slate-500">Phê duyệt nhu cầu:</span>
             <StatusBadge variant={presentation.demandApprovalStatus.tone}>{presentation.demandApprovalStatus.label}</StatusBadge>
             {presentation.demandApprovalStatus.documentCode && (
-              <span className={cn(typography.code, 'max-w-[220px] truncate text-xs font-semibold text-slate-600')} title={presentation.demandApprovalStatus.documentCode}>{presentation.demandApprovalStatus.documentCode}</span>
+              <IdentifierText
+                value={presentation.demandApprovalStatus.documentCode}
+                className={cn(typography.code, 'max-w-[220px] truncate text-xs font-semibold text-slate-600')}
+              />
             )}
           </header>
         <section className="ipc-demand-day-command" aria-label="Điều hướng và trạng thái ngày đang xem">

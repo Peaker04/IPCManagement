@@ -7,7 +7,7 @@ import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/lib/reduxHooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
 import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '@/api/coordinationApi'
-import { EmptyState, InlineAlert, PaginationBar, SearchField, TableViewport } from '@/components/common'
+import { EmptyState, IdentifierText, InlineAlert, Num, PaginationBar, SearchField, TableViewport } from '@/components/common'
 import { useLocalPagination } from '@/lib/useLocalPagination'
 import { ClipboardList, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -273,7 +273,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
           placeholder="Nhập mã khách hàng hoặc tên món"
           inputClassName="bg-white"
         />
-        {search.trim() && <span className="pb-2 text-xs text-slate-500">{totalItems} kết quả</span>}
+        {search.trim() && <span className="pb-2 text-xs text-slate-500"><Num value={totalItems} /> kết quả</span>}
       </div>
       <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Đơn phục vụ theo khách hàng, thực đơn, món ăn và số suất trong ca">
         <table className="ipc-data-table ipc-order-table">
@@ -314,7 +314,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
             <tr key={order.id} className="border-b border-slate-200/80 bg-white transition-colors hover:bg-blue-50/40">
               <td className="border-r border-slate-200">
                 <div className="font-medium text-slate-800 leading-5">{order.customerName}</div>
-                <div className={`${typography.code} mt-0.5 text-xs text-slate-600`}>{order.customerCode}</div>
+                <div className={`${typography.code} mt-0.5 text-xs text-slate-600`}><IdentifierText value={order.customerCode} /></div>
               </td>
 
               <td className="border-r border-slate-200 text-slate-600">
@@ -421,7 +421,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                 <div className="flex justify-end">
                   <div className="flex flex-col items-end gap-1">
                     <span
-                      className={`inline-flex items-center gap-1 min-w-14 justify-center rounded-md border px-2 py-1 text-xs tabular-nums font-bold ${
+                      className={`inline-flex items-center gap-1 min-w-14 justify-center rounded-md border px-2 py-1 text-xs font-bold ${
                         variance === 0
                           ? 'border-teal-200 bg-teal-50 text-teal-800'
                           : variance < 0
@@ -429,13 +429,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                             : 'border-amber-200 bg-amber-50 text-amber-800'
                       }`}
                     >
-                      {variance < 0 ? (
-                        <span>{variance}</span>
-                      ) : variance > 0 ? (
-                        <span>+{variance}</span>
-                      ) : (
-                        <span>0</span>
-                      )}
+                      <Num value={variance} type="number" prefix={variance > 0 ? '+' : ''} />
                     </span>
                     {useFinalServings && variance !== 0 && <span className="text-xs font-medium text-amber-800">Cần tính lại nguyên liệu</span>}
                   </div>

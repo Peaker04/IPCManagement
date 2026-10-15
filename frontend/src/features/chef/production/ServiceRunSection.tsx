@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { CheckCircle2, Play, ShieldCheck } from 'lucide-react'
 import type { ProductionPlan, ServiceRunLifecycleProjectionDto } from '@/api/workflowApiTypes'
-import { StatusBadge } from '@/components/common'
+import { IdentifierText, Num, StatusBadge } from '@/components/common'
 import { InfoNote } from '@/components/common/InfoNote'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -148,13 +148,21 @@ function ServiceRunCard({ plan, shiftName, scope }: { plan: ProductionPlan; shif
   const fieldError = (id: string) => validationError?.fieldId === id ? <span id={`${id}-error`} className="text-xs font-normal text-red-700">{validationError.message}</span> : null
 
   return <article className="rounded-sm border border-slate-200 bg-white p-3" aria-busy={isMutating || activeQuery.isFetching}>
-    <div className="flex flex-wrap items-start justify-between gap-2"><div><span className="text-sm font-medium text-slate-800">{plan.planCode}</span>{scopeLabel && <p className="mt-0.5 text-xs text-slate-600">{scopeLabel}</p>}</div>{run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? 'Trạng thái chưa xác định'}</StatusBadge>}</div>
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        <span className="text-sm font-medium text-slate-800">
+          <IdentifierText value={plan.planCode} />
+        </span>
+        {scopeLabel && <p className="mt-0.5 text-xs text-slate-600">{scopeLabel}</p>}
+      </div>
+      {run && <StatusBadge variant={tone(run.status)}>{statusLabel[run.status] ?? 'Trạng thái chưa xác định'}</StatusBadge>}
+    </div>
     {activeQuery.isFetching && !run && <p className="mt-2 text-xs text-slate-500" role="status">Đang tải trạng thái Ca phục vụ…</p>}
     {activeQuery.isError && !localRun ? <div className="mt-3 flex flex-wrap items-center gap-2" role="alert"><p className="text-xs text-red-700">Không tải được trạng thái Ca phục vụ. Hãy tải lại trước khi mở ca.</p><Button type="button" size="sm" variant="outline" onClick={() => void activeQuery.refetch()}>Tải lại</Button></div> : !run && !activeQuery.isFetching ? scope?.allCustomers ? <p className="mt-3 text-xs text-slate-600">Tổng hợp không có thao tác. Mở một phạm vi khách hàng cụ thể để tiếp tục.</p> : !plan.sentToKitchenAt ? <p className="mt-3 text-xs text-amber-800" role="status">Kế hoạch chưa gửi Bếp. Hoàn tất bước gửi kế hoạch trước khi mở Ca phục vụ.</p> : scope && isExactServiceRunScope(scope) ? <Button size="sm" className="mt-3" disabled={openState.isLoading} onClick={() => void act(() => open({ planId: plan.planId, shiftName, customerId: scope.customerId, priceTierAmount: scope.priceTierAmount }).unwrap())}>Mở Ca phục vụ</Button> : <p className="mt-3 text-xs text-amber-800" role="status">Chọn khách hàng và tier giá chính xác trước khi mở Ca phục vụ.</p> : run && <>
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-slate-600 sm:grid-cols-4">
-        <div><dt className="text-slate-500">Kế hoạch</dt><dd className="font-medium text-slate-800 tabular-nums">{run.plannedServings} suất</dd></div>
-        <div><dt className="text-slate-500">Thực tế</dt><dd className="font-medium text-slate-800 tabular-nums">{run.actualServings ?? '—'} suất</dd></div>
-        <div><dt className="text-slate-500">Chờ nhận</dt><dd className="font-medium text-slate-800 tabular-nums">{run.unreceivedIssueCount}</dd></div>
+        <div><dt className="text-slate-500">Kế hoạch</dt><dd className="font-medium text-slate-800"><Num value={run.plannedServings} type="number" /> suất</dd></div>
+        <div><dt className="text-slate-500">Thực tế</dt><dd className="font-medium text-slate-800"><Num value={run.actualServings} type="number" fallback="—" /> suất</dd></div>
+        <div><dt className="text-slate-500">Chờ nhận</dt><dd className="font-medium text-slate-800"><Num value={run.unreceivedIssueCount} type="number" /></dd></div>
         <div><dt className="text-slate-500">Giao suất</dt><dd className="font-medium text-slate-800">{outcomeLabel[run.serviceConfirmationOutcome] ?? run.serviceConfirmationOutcome}</dd></div>
       </dl>
       <details className="mt-3 rounded border border-slate-200 bg-slate-50 text-xs">

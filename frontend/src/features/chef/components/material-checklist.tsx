@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { IdentifierText, Num, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { ChefMaterial } from '../chefDashboardTypes'
 import { Button } from '@/components/ui/button'
@@ -114,7 +114,9 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                         <TableCell className="font-medium text-slate-800">{material.name}</TableCell>
                         <TableCell className="text-slate-500">{material.issueCode ?? 'Theo kế hoạch'}</TableCell>
                         <TableCell className="text-slate-500 text-right">{formatUnit(material.unit)}</TableCell>
-                        <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
+                        <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>
+                          <Num value={material.quantity} type="quantity" />
+                        </TableCell>
                         <TableCell><StatusBadge tone={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
                       </TableRow>
                     )]
@@ -127,7 +129,9 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                       <TableCell><span className="block font-semibold text-slate-900">{group.name}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></TableCell>
                       <TableCell className="text-slate-500">{issueCount} phiếu xuất</TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(group.unit)}</TableCell>
-                      <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-900')}>{formatQuantity(group.quantity)}</TableCell>
+                      <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-900')}>
+                        <Num value={group.quantity} type="quantity" />
+                      </TableCell>
                       <TableCell><StatusBadge tone={signedLines === group.lines.length ? 'success' : 'warning'}>{signedLines === group.lines.length ? 'Đã nhận đủ' : `Đã nhận ${signedLines}/${group.lines.length}`}</StatusBadge></TableCell>
                     </TableRow>
                   )
@@ -137,9 +141,13 @@ export function MaterialChecklist({ materials, onMaterialSignoff, pageLabel, tot
                     <TableRow key={`detail:${group.key}:${material.id}`} className={cn('border-slate-200 bg-white', material.signed && 'bg-emerald-50/20')}>
                       <TableCell>{material.signed ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><Check className="size-3.5" />Đã nhận</span> : <Button type="button" size="xs" variant="outline" aria-label={`Nhận ${material.name} từ ${material.issueCode ?? material.id}`} onClick={() => setPendingMaterialId(material.id)}>Nhận</Button>}</TableCell>
                       <TableCell className="pl-6 text-xs font-medium text-slate-700"><span className="inline-flex items-center gap-1"><span aria-hidden="true">↳</span><span>Dòng xuất nguồn</span></span></TableCell>
-                      <TableCell className={cn(typography.code, 'text-xs text-slate-600')}>{material.issueCode ?? material.issueId ?? material.id}</TableCell>
+                      <TableCell className={cn(typography.code, 'text-xs text-slate-600')}>
+                        <IdentifierText value={material.issueCode ?? material.issueId ?? material.id} />
+                      </TableCell>
                       <TableCell className="text-right text-slate-500">{formatUnit(material.unit)}</TableCell>
-                      <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>{formatQuantity(material.quantity)}</TableCell>
+                      <TableCell data-cell-role="numeric" className={cn(typography.numeric, 'text-right font-semibold text-slate-800')}>
+                        <Num value={material.quantity} type="quantity" />
+                      </TableCell>
                       <TableCell><StatusBadge tone={material.signed ? 'success' : 'warning'}>{material.signed ? 'Đã nhận' : 'Chờ nhận'}</StatusBadge></TableCell>
                     </TableRow>
                   ))]

@@ -8,6 +8,7 @@ import {
   EmptyState,
   InlineAlert,
   KeepAliveTabPanel,
+  Num,
   PaginationBar,
   QueryErrorAlert,
   SearchField,
@@ -18,7 +19,7 @@ import {
 } from '@/components/common';
 import { SplitWorkbench } from '@/components/common/SplitWorkbench';
 import { StockMovementTable } from '../components/StockMovementTable';
-import { formatDateTime, formatQuantityWithUnit } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/formatters';
 import type { CurrentStockRow } from '@/api/workflowApiTypes';
 import type { StockMovement, WorkflowDocument } from '@/types/workflow';
 
@@ -165,7 +166,9 @@ export function WarehouseMovementPanel({
                     <tr key={row.id}>
                       <td className="text-slate-700">{row.warehouse}</td>
                       <td className="font-medium text-slate-900">{row.ingredient}</td>
-                      <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
+                      <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
+                        <Num value={row.currentQty} type="quantity" /> {row.unit}
+                      </td>
                       <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
                     </tr>
                   ))}

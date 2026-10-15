@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { ChefHat } from 'lucide-react';
-import { EmptyState, IdentifierText, InlineAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
+import { EmptyState, IdentifierText, InlineAlert, Num, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
-import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { useGetPurchaseOrdersQuery, useGetPurchaseRequestsQuery } from '@/api/purchasingApi';
@@ -189,7 +188,9 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
                 <tr key={item.requestId} className={selected ? 'bg-blue-50/60' : undefined}>
                   <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
                   <td>{item.ingredientName}</td>
-                  <td className="text-right tabular-nums font-semibold text-slate-900" data-cell-role="numeric">{formatQuantityWithUnit(item.remainingQty, item.unitName)}</td>
+                  <td className="text-right font-semibold text-slate-900" data-cell-role="numeric">
+                    <Num value={item.remainingQty} type="quantity" /> {item.unitName}
+                  </td>
                   <td>{item.purchaseRequestCode || 'Đang tạo liên kết'}</td>
                   <td><StatusBadge variant={purchase?.status === 'DRAFT' ? 'warning' : 'neutral'}>{formatWorkflowStatus(purchase?.status || item.status)}</StatusBadge></td>
                   <td className="text-right"><Button type="button" size="sm" variant={selected ? 'default' : 'outline'} aria-pressed={selected} onClick={() => setSelectedRequestId(item.requestId)}>{selected ? 'Đang xử lý' : 'Mở xử lý'}</Button></td>

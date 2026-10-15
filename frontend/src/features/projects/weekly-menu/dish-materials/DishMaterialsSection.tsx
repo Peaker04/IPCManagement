@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Utensils } from 'lucide-react'
-import { ContextStrip, InlineAlert, SearchField, SectionPanel, TableViewport } from '@/components/common'
-import { formatCurrency, formatDateOnly, formatPercent, formatQuantity } from '@/lib/formatters'
+import { ContextStrip, InlineAlert, Num, SearchField, SectionPanel, TableViewport } from '@/components/common'
+import { formatDateOnly, formatPercent } from '@/lib/formatters'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { DishMaterialsWorkflow } from './useDishMaterials'
 
@@ -87,10 +87,10 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
       </section>
       <ContextStrip items={[
         { label: 'Nguồn tính', value: presentation.sourceLabel, tone: 'neutral' },
-        { label: 'Đơn giá bán/suất', value: formatCurrency(presentation.menuPrice), tone: 'neutral' },
-        { label: 'Giá vốn / khay', value: formatCurrency(Math.round(totalTrayCost)), tone: 'info' },
+        { label: 'Đơn giá bán/suất', value: <Num value={presentation.menuPrice} type="currency" />, tone: 'neutral' },
+        { label: 'Giá vốn / khay', value: <Num value={Math.round(totalTrayCost)} type="currency" />, tone: 'info' },
         { label: 'Tỷ lệ giá vốn (Food Cost %)', value: formatPercent(foodCostPercent, 1), tone: foodCostPercent > 85 ? 'danger' : foodCostPercent > 70 ? 'warning' : 'neutral' },
-        { label: 'Lợi nhuận gộp dự kiến', value: formatCurrency(Math.round(grossProfit)), tone: grossProfit >= 0 ? 'neutral' : 'danger' },
+        { label: 'Lợi nhuận gộp dự kiến', value: <Num value={Math.round(grossProfit)} type="currency" />, tone: grossProfit >= 0 ? 'neutral' : 'danger' },
       ]} />
       <TableViewport caption="Định lượng và giá vốn nguyên liệu theo suất của món đang phân tích" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng giá vốn nguyên liệu một khay">
         <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
@@ -106,9 +106,15 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
               <tr key={ingredient.key}>
                 <td className="text-left font-medium text-slate-900">{ingredient.name}</td>
                 <td className="text-center text-slate-600">{ingredient.unit}</td>
-                <td data-cell-role="numeric" className="text-right tabular-nums">{formatQuantity(ingredient.actualQty, { maximumFractionDigits: 6 })}</td>
-                <td data-cell-role="numeric" className="text-right tabular-nums">{formatCurrency(ingredient.supplierPrice)}</td>
-                <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(Math.round(ingredient.cost))}</td>
+                <td data-cell-role="numeric" className="text-right">
+                  <Num value={ingredient.actualQty} type="quantity" maximumFractionDigits={6} />
+                </td>
+                <td data-cell-role="numeric" className="text-right">
+                  <Num value={ingredient.supplierPrice} type="currency" />
+                </td>
+                <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
+                  <Num value={Math.round(ingredient.cost)} type="currency" />
+                </td>
               </tr>
             ))}
             {ingredients.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có BOM phù hợp khách hàng, định mức và ngày áp dụng cho món đang chọn.</td></tr>}

@@ -2,7 +2,7 @@
 
 import { CalendarClock, Sun, Sunset } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { VietnameseDateInput } from '@/components/ui/VietnameseDateInput'
 import type { ShiftType } from '../types'
 import { SHIFT_LABELS } from '@/lib/constants'
 import { useAppDispatch } from '@/lib/reduxHooks'
@@ -38,12 +38,12 @@ export function HeaderInfo({ status }: HeaderInfoProps) {
         <div className="flex flex-wrap items-end gap-4">
           <label className="grid gap-1 text-xs font-semibold text-slate-600">
             <span>Ngày phục vụ</span>
-            <Input
+            <VietnameseDateInput
               aria-label="Ngày phục vụ"
               type="date"
               value={currentServiceDate}
               onChange={(event) => handleDateChange(event.target.value)}
-              className="h-9 min-w-32 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="h-9 min-w-36 rounded-md border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-800"
             />
           </label>
 

@@ -1,16 +1,18 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { PaginationBar } from "@/components/common";
-import { EmptyState } from "@/components/common";
-import { TableViewport } from "@/components/common";
+import {
+  EmptyState,
+  IdentifierText,
+  Num,
+  PaginationBar,
+  StatusBadge,
+  TableViewport,
+} from "@/components/common";
 import { useLocalPagination } from "@/lib/useLocalPagination";
-import { StatusBadge } from "@/components/common";
-import { IdentifierText } from "@/components/common";
 import {
   formatCurrency,
   formatDateOnly,
   formatPercent,
-  formatQuantityWithUnit,
 } from "@/lib/formatters";
 import type { ApprovalRecord } from "@/types/workflow";
 import { formatWorkflowStatus } from "@/lib/workflowConfig";
@@ -106,7 +108,7 @@ function ApprovalMaterials({ record }: { record: ApprovalRecord }) {
               {material.name}
             </span>
             <strong className={cn(typography.numeric, "whitespace-nowrap tabular-nums text-blue-700")}>
-              {formatQuantityWithUnit(material.quantity, material.unit)}
+              <Num value={material.quantity} type="quantity" /> {material.unit}
             </strong>
           </li>
         ))}
@@ -160,7 +162,7 @@ function ApprovalDetail({ record }: { record: ApprovalRecord }) {
             <div className="sm:col-span-2">
               <dt className="text-slate-500">Thiếu hụt</dt>
               <dd className="font-semibold text-slate-900">
-                {record.lineCount ?? record.materials.length} dòng thiếu
+                <Num value={record.lineCount ?? record.materials.length} type="number" /> dòng thiếu
               </dd>
             </div>
           </>

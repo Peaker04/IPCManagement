@@ -281,7 +281,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:94-116',
       'frontend/src/features/projects/pages/WeeklyMenuPage.tsx:440-460',
-      'frontend/src/features/projects/weekly-menu/schedule/WeeklyScheduleCommandBar.tsx:35-50',
+      'frontend/src/features/projects/weekly-menu/schedule/WeeklyScheduleCommandBar.tsx:60-75',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs:13,51-68',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
     ],

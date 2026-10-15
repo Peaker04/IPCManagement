@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { formatCurrency, formatDateOnly, formatDateTime, formatPercent, formatQuantityWithUnit } from '@/lib/formatters'
+import { IdentifierText, Num } from '@/components/common'
+import { formatDateOnly, formatDateTime } from '@/lib/formatters'
 import type { ApprovalRecord } from '@/types/workflow'
 import { formatWorkflowStatus } from '@/lib/workflowConfig'
 import type { InventoryReceipt } from '@/api/workflowApiTypes'
@@ -93,7 +94,9 @@ export function ApprovalDecisionDialog({ open, record, status, reason, error, is
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-slate-950">{record.title}</p>
-                  <p className="text-xs text-slate-600">{record.targetCode || record.source}</p>
+                  <p className="text-xs text-slate-600">
+                    <IdentifierText value={record.targetCode || record.source} />
+                  </p>
                 </div>
                 <span className="rounded-sm border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-900">{formatWorkflowStatus(record.status)}</span>
               </div>
@@ -102,19 +105,19 @@ export function ApprovalDecisionDialog({ open, record, status, reason, error, is
                 <div><dt className="text-slate-600">Hạn xử lý</dt><dd className="font-medium text-slate-900">{record.deadline}</dd></div>
                 {record.serviceDate && <div><dt className="text-slate-600">Ngày phục vụ</dt><dd className="font-medium text-slate-900">{formatDateOnly(record.serviceDate)}</dd></div>}
                 {record.supplierName && <div><dt className="text-slate-600">Nhà cung cấp</dt><dd className="font-medium text-slate-900">{record.supplierName}</dd></div>}
-                {record.totalValue != null && <div><dt className="text-slate-600">Giá trị</dt><dd className="font-medium tabular-nums text-slate-900">{formatCurrency(record.totalValue)}</dd></div>}
-                {record.lineCount != null && <div><dt className="text-slate-600">Số dòng</dt><dd className="font-medium tabular-nums text-slate-900">{record.lineCount}</dd></div>}
+                {record.totalValue != null && <div><dt className="text-slate-600">Giá trị</dt><dd className="font-medium text-slate-900"><Num value={record.totalValue} type="currency" /></dd></div>}
+                {record.lineCount != null && <div><dt className="text-slate-600">Số dòng</dt><dd className="font-medium text-slate-900"><Num value={record.lineCount} type="number" /></dd></div>}
                 {record.reason && <div className="sm:col-span-2"><dt className="text-slate-600">Lý do / ngữ cảnh</dt><dd className="text-slate-900">{record.reason}</dd></div>}
               </dl>
               {record.targetType === 'purchase-price-exception' && <dl className="grid gap-2 border-t border-slate-200 pt-2 text-xs sm:grid-cols-3">
-                {record.referencePrice != null && <div><dt className="text-slate-600">Giá tham chiếu</dt><dd className="font-semibold tabular-nums">{formatCurrency(record.referencePrice)}</dd></div>}
-                {record.proposedPrice != null && <div><dt className="text-slate-600">Giá đề xuất</dt><dd className="font-semibold tabular-nums">{formatCurrency(record.proposedPrice)}</dd></div>}
-                {record.variancePercent != null && <div><dt className="text-slate-600">Chênh lệch</dt><dd className="font-semibold tabular-nums">{formatPercent(record.variancePercent, 2)}</dd></div>}
+                {record.referencePrice != null && <div><dt className="text-slate-600">Giá tham chiếu</dt><dd className="font-semibold"><Num value={record.referencePrice} type="currency" /></dd></div>}
+                {record.proposedPrice != null && <div><dt className="text-slate-600">Giá đề xuất</dt><dd className="font-semibold"><Num value={record.proposedPrice} type="currency" /></dd></div>}
+                {record.variancePercent != null && <div><dt className="text-slate-600">Chênh lệch</dt><dd className="font-semibold"><Num value={record.variancePercent} type="percent" maximumFractionDigits={2} /></dd></div>}
               </dl>}
               {record.materials.length > 0 && <details className="text-xs">
-                <summary className="cursor-pointer font-semibold text-blue-800">Bằng chứng nguyên liệu · {record.materials.length} dòng</summary>
+                <summary className="cursor-pointer font-semibold text-blue-800">Bằng chứng nguyên liệu · <Num value={record.materials.length} type="number" /> dòng</summary>
                 <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto">
-                  {record.materials.map((item, index) => <li key={`${item.name}-${index}`} className="flex justify-between gap-3 border-b border-slate-200 py-1"><span>{item.name}</span><span className="shrink-0 tabular-nums">{formatQuantityWithUnit(item.quantity, item.unit)}</span></li>)}
+                  {record.materials.map((item, index) => <li key={`${item.name}-${index}`} className="flex justify-between gap-3 border-b border-slate-200 py-1"><span>{item.name}</span><span className="shrink-0"><Num value={item.quantity} type="quantity" /> {item.unit}</span></li>)}
                 </ul>
               </details>}
             </section>
@@ -124,11 +127,11 @@ export function ApprovalDecisionDialog({ open, record, status, reason, error, is
                 {isReceiptLoading ? <p className="mt-1 text-sm text-slate-600">Đang tải số lượng đạt, không đạt và lý do…</p>
                   : isReceiptError ? <p role="alert" className="mt-1 text-sm text-red-800">Không tải được chi tiết kiểm tra; quyết định đang bị chặn.</p>
                   : receipt && <>
-                    <p className="mt-1 text-xs text-slate-600">{receipt.receiptCode} · kiểm tra lúc {receipt.qualityCheckedAt ? formatDateTime(receipt.qualityCheckedAt) : 'chưa xác định'}</p>
+                    <p className="mt-1 text-xs text-slate-600"><IdentifierText value={receipt.receiptCode} /> · kiểm tra lúc {receipt.qualityCheckedAt ? formatDateTime(receipt.qualityCheckedAt) : 'chưa xác định'}</p>
                     <ul className="mt-2 grid max-h-48 gap-2 overflow-y-auto text-sm">
                       {receipt.lines.map((line) => <li key={line.receiptLineId} className="rounded border border-slate-200 bg-white p-2">
                         <strong>{line.ingredientName ?? 'Chưa có tên nguyên liệu'}</strong>
-                        <span className="mt-1 block text-slate-700">Đạt {formatQuantityWithUnit(line.acceptedQuantity ?? 0, line.unitName ?? '')} · Không đạt {formatQuantityWithUnit(line.rejectedQuantity ?? 0, line.unitName ?? '')}</span>
+                        <span className="mt-1 block text-slate-700">Đạt <Num value={line.acceptedQuantity ?? 0} type="quantity" /> {line.unitName ?? ''} · Không đạt <Num value={line.rejectedQuantity ?? 0} type="quantity" /> {line.unitName ?? ''}</span>
                         {(line.rejectedQuantity ?? 0) > 0 && <span className="block text-amber-800">Lý do: {line.qualityReason || 'Chưa có lý do'}</span>}
                       </li>)}
                     </ul>

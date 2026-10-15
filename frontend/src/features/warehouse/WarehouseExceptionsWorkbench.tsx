@@ -60,7 +60,7 @@ const mutationError = (error: unknown, fallback: string) => {
 };
 
 function CompactQuantity({ value, unit }: { value: number; unit: string }) {
-  return <span>{formatQuantityWithUnit(value, unit, { maximumFractionDigits: 6 })}</span>
+  return <span className="tabular-nums">{formatQuantityWithUnit(value, unit, { maximumFractionDigits: 6 })}</span>;
 }
 
 type ExceptionTask = 'supplemental' | 'allocation' | 'returns';

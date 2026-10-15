@@ -1,7 +1,7 @@
 import { Clock, ArrowRight, ClipboardCheck } from 'lucide-react'
 import { useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
 import { Button } from '@/components/ui/button'
-import { EmptyState, InlineAlert, QueryErrorAlert, RefreshStatus, SectionPanel, StatusBadge } from '@/components/common'
+import { EmptyState, IdentifierText, InlineAlert, Num, QueryErrorAlert, RefreshStatus, SectionPanel, StatusBadge } from '@/components/common'
 import { PaginationBar } from '@/components/common/PaginationBar'
 import { SplitWorkbench } from '@/components/common/SplitWorkbench'
 import type { ApprovalHistoryItem, PageNumberPage, PurchaseRequestResult } from '@/api/workflowApiTypes'
@@ -113,8 +113,16 @@ export default function ApprovalHistoryTab({
                     selectedRequestButtonRef.current = event.currentTarget
                     setSelectedPrId(request.purchaseRequestId)
                   }} variant="outline" textWrap="wrap" className={`w-full items-stretch justify-start p-3 text-left transition-colors flex flex-col gap-1 ${selectedPrId === request.purchaseRequestId ? 'bg-blue-50/50' : ''}`}>
-                    <div className="flex items-center justify-between"><span className="font-semibold text-slate-800 text-sm">{request.purchaseRequestCode}</span><StatusBadge status={request.status} domain="purchase" /></div>
-                    <div className="flex items-center justify-between text-xs text-slate-700"><span>Ngày mua: {request.purchaseForDate} {request.shiftName ? `(${request.shiftName})` : ''}</span><span>{request.lines?.length ?? 0} dòng</span></div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-800 text-sm">
+                        <IdentifierText value={request.purchaseRequestCode} />
+                      </span>
+                      <StatusBadge status={request.status} domain="purchase" />
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-slate-700">
+                      <span>Ngày mua: {request.purchaseForDate} {request.shiftName ? `(${request.shiftName})` : ''}</span>
+                      <span><Num value={request.lines?.length ?? 0} type="number" /> dòng</span>
+                    </div>
                   </Button>
                 ))}
               </div>

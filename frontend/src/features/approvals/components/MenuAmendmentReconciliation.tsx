@@ -4,11 +4,11 @@ import {
   useGetCoordinationCustomersQuery,
   useGetMenuAmendmentDecisionPageQuery,
 } from '@/api/coordinationApi'
-import { EmptyState, QueryErrorAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
+import { EmptyState, Num, QueryErrorAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { formatCurrency, formatDateOnly, formatDateTime } from '@/lib/formatters'
+import { formatDateOnly, formatDateTime } from '@/lib/formatters'
 import { formatShiftName } from '@/lib/workflowConfig'
 import { amendmentDecisionStatus, type MenuAmendmentDecisionItem } from '@/types/menuAmendmentDecision'
 
@@ -115,8 +115,8 @@ export function MenuAmendmentReconciliation() {
             <tbody>{items.map((item) => {
               const presentation = amendmentDecisionStatus(item.status)
               return <tr key={item.decisionItemId}>
-                <td className="text-left"><strong>{item.customerName}</strong><br /><span className="text-xs text-slate-500">{formatDateOnly(item.serviceDate)} · {formatShiftName(item.shiftName)} · {item.priceTierAmount == null ? 'Chưa xác định mức giá' : formatCurrency(item.priceTierAmount)}</span></td>
-                <td className="text-left" data-cell-role="numeric">{item.documentIds.length ? `${item.documentIds.length} chứng từ` : 'Chưa có chứng từ'}<br /><span className="text-xs text-slate-500">{item.sourceLineIds.length} dòng chứng từ</span></td>
+                <td className="text-left"><strong>{item.customerName}</strong><br /><span className="text-xs text-slate-500">{formatDateOnly(item.serviceDate)} · {formatShiftName(item.shiftName)} · {item.priceTierAmount == null ? 'Chưa xác định mức giá' : <Num value={item.priceTierAmount} type="currency" />}</span></td>
+                <td className="text-left" data-cell-role="numeric">{item.documentIds.length ? `${item.documentIds.length} chứng từ` : 'Chưa có chứng từ'}<br /><span className="text-xs text-slate-500 tabular-nums">{item.sourceLineIds.length} dòng chứng từ</span></td>
                 <td className="text-left text-slate-700">{item.reason}</td>
                 <td className="text-left text-slate-700">{item.accountableRole}</td>
                 <td className="text-center whitespace-nowrap text-slate-600">{formatDateTime(item.dueAt)}</td>

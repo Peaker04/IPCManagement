@@ -1,5 +1,5 @@
 import { Calendar } from 'lucide-react'
-import { Input } from '@/components/ui/input'
+import { VietnameseDateInput } from '@/components/ui/VietnameseDateInput'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { SHIFTS } from '@/lib/constants'
 import type { ShiftType } from '@/types/coordination'
@@ -18,9 +18,8 @@ export function ChefShiftControls({ serviceDate, activeShift, onDateChange, onSh
     <div className={cn(typography.body, 'flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4')}>
       <div className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="size-4 text-blue-600" /><span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span></div>
       <div className="flex items-center gap-2">
-        <Input
+        <VietnameseDateInput
           aria-label="Chọn ngày sản xuất"
-          type="date"
           value={serviceDate}
           onChange={(event) => onDateChange(event.target.value)}
           className="h-8 w-36 border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700"

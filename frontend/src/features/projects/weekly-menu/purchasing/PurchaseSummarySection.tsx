@@ -1,8 +1,8 @@
 import { AlertCircle, Check, Clock, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, PaginationBar, SearchField, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { ContextStrip, Num, PaginationBar, SearchField, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
-import { formatCurrency, formatDateOnly, formatQuantity, formatQuantityWithUnit } from '@/lib/formatters'
+import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
 import type { PurchaseSummaryWorkflow } from './usePurchaseSummary'
@@ -59,7 +59,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
           { label: presentation.usesDemand ? 'Dòng ngày - nguyên liệu' : 'Nguyên liệu tổng tuần', value: (presentation.usesDemand ? presentation.totalItems : presentation.materialCount).toString(), tone: 'neutral' },
           { label: 'Dòng chưa xuất', value: presentation.usesDemand ? `${presentation.shortageCount} dòng` : 'BOM dự kiến', tone: presentation.shortageCount > 0 ? 'danger' : 'neutral' },
           { label: 'Dòng chờ Bếp nhận', value: presentation.usesDemand ? `${presentation.pendingKitchenCount} dòng` : '—', tone: presentation.pendingKitchenCount > 0 ? 'warning' : 'neutral' },
-          { label: 'Giá trị BOM dự kiến', value: formatCurrency(presentation.totalCost), tone: 'info' },
+          { label: 'Giá trị BOM dự kiến', value: <Num value={presentation.totalCost} type="currency" />, tone: 'info' },
         ]} />
       </div>
       <TableViewport
@@ -106,11 +106,19 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
             {presentation.materialRows.map(([identityKey, data]) => <tr key={identityKey}>
               <td className="text-left font-medium text-slate-900">{data.ingredientName}</td>
               <td className="text-center text-slate-600">{data.unit}</td>
-              <td data-cell-role="numeric" className="text-right tabular-nums">{formatQuantity(data.theory, { maximumFractionDigits: 2 })}</td>
-              <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-blue-700">{formatQuantity(data.actual, { maximumFractionDigits: 2 })}</td>
+              <td data-cell-role="numeric" className="text-right">
+                <Num value={data.theory} type="quantity" maximumFractionDigits={2} />
+              </td>
+              <td data-cell-role="numeric" className="text-right font-semibold text-blue-700">
+                <Num value={data.actual} type="quantity" maximumFractionDigits={2} />
+              </td>
               <td className="text-left text-slate-700" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
-              <td data-cell-role="numeric" className="text-right tabular-nums">{formatCurrency(data.referencePrice)}</td>
-              <td data-cell-role="numeric" className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(data.actual * data.referencePrice)}</td>
+              <td data-cell-role="numeric" className="text-right">
+                <Num value={data.referencePrice} type="currency" />
+              </td>
+              <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
+                <Num value={data.actual * data.referencePrice} type="currency" />
+              </td>
             </tr>)}
             {presentation.totalItems === 0 && (
               <tr>

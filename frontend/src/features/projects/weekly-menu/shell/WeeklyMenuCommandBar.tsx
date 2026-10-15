@@ -1,4 +1,5 @@
 import { CommandBar, FieldRow } from '@/components/common'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { CoordinationCustomerOption } from '@/api/coordinationApi'
 
@@ -25,9 +26,15 @@ export const WeeklyMenuCommandBar = ({
 }: CommandProps) => (
   /* Publish command ('Xuất bản tuần') is owned by WeeklyScheduleCommandBar on the schedule view. */
   <CommandBar actions={onExport && (
-    <button type="button" onClick={onExport} className="ipc-button ipc-button-secondary min-h-8 h-8 px-3 text-xs font-semibold inline-flex items-center gap-1.5 rounded-[var(--ipc-radius-sm,2px)]">
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      onClick={onExport}
+      className="min-h-8 h-8 px-3 text-xs font-semibold gap-1.5"
+    >
       <span>Xuất báo cáo gửi kho</span>
-    </button>
+    </Button>
   )}>
     <FieldRow label="Khách hàng">
       <select

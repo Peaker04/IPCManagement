@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
-import { SearchField, TableViewport } from '@/components/common';
+import { Num, SearchField, TableViewport } from '@/components/common';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 
 type PurchaseLine = PurchaseWorkbenchServiceDate['purchaseLines'][number];
@@ -105,7 +105,7 @@ export function PurchaseLineGroups({
                 <td><span className="block font-semibold text-slate-900">{group.ingredientName}</span><span className="text-xs text-slate-500">{group.lines.length} dòng nguồn</span></td>
                 <td className="text-right tabular-nums" data-cell-role="numeric">{formatQuantityWithUnit(group.purchaseQty, group.unitName, { maximumFractionDigits: 3 })}</td>
                 <td>{uniqueText(group.lines.map((line) => line.supplierName), 'Chưa chọn nhà cung cấp')}</td>
-                <td data-cell-role="numeric">{readyCount}/{group.lines.length} dòng đã xác nhận</td>
+                <td data-cell-role="numeric"><Num value={readyCount} type="number" />/<Num value={group.lines.length} type="number" /> dòng đã xác nhận</td>
                 <td className="text-right tabular-nums" data-cell-role="numeric">{priceLabel}</td>
                 <td>{uniqueText(group.lines.map((line) => line.currentSupplierDecision?.proposedDeliveryDate ? formatDateOnly(line.currentSupplierDecision.proposedDeliveryDate) : null), 'Chưa có')}</td>
                 <td className="text-right">

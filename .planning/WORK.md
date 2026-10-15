@@ -1,6 +1,40 @@
 # Active work
 
-Status: IDLE (Phase 2 Completed — All Waves 1, 2, 3 Verified Green; Ready for PR Review)
+Status: IDLE (Wave 2 Deep UI Refactor Complete — Ready for Wave 3: /purchasing, /warehouse, /approvals)
+
+### Completed: Wave 2 Deep UI Refactor (`/weekly-menu`, `/meal-orders`, `/chef`)
+- **Routes Refactored**:
+  1. `/weekly-menu` (`FR-MENU`):
+     - `WeeklyScheduleCommandBar.tsx` & `WeeklyMenuCommandBar.tsx`: Chuẩn hóa 100% sang `<Button variant="secondary"|"default" size="sm">` primitive (loại bỏ toàn bộ native `<button>` tự chế).
+     - `MenuCostSection.tsx`: Chuẩn hóa 100% số lượng, đơn giá, thành tiền và tỷ lệ Food Cost sang `<Num tabular-nums>` và `<Num type="currency">` (cột số học căn phải chuẩn `T1, T2, T8`).
+     - `MaterialDemandSection.tsx`: Chuẩn hóa checkpoint số suất và dòng KHSX, bọc mã chứng từ vào `<IdentifierText>`, số suất vào `<Num>`, đảm bảo duy nhất 1 primary button trên command bar (`Rule D7`).
+     - `ProductionPlanSection.tsx`: Bọc mã KHSX vào `<IdentifierText>`, số suất món vào `<Num tabular-nums>`.
+     - `PurchaseSummarySection.tsx`: Chuẩn hóa tổng tiền BOM và số lượng nguyên liệu sang `<Num>`.
+     - `DishMaterialsSection.tsx`: Chuẩn hóa định lượng BOM và thành tiền suất ăn sang `<Num>`.
+  2. `/meal-orders` (`FR-COORD`):
+     - `header-info.tsx`: Thay thế `<Input type="date">` thô bằng `<VietnameseDateInput type="date">` chuẩn giao diện `dd/MM/yyyy`.
+     - `order-table.tsx`: Bọc mã khách hàng vào `<IdentifierText>`, bọc số lượng chênh lệch/tăng giảm vào `<Num tabular-nums>`.
+  3. `/chef` (`FR-CHEF`):
+     - `ChefShiftControls.tsx`: Thay thế `<Input type="date">` thô bằng `<VietnameseDateInput>`.
+     - `ChefProductionSection.tsx`: Bọc mã kế hoạch vào `<IdentifierText>`, số suất và lượng mua dự kiến vào `<Num tabular-nums>`.
+     - `material-checklist.tsx`: Bọc mã phiếu xuất vào `<IdentifierText>`, số lượng nhận/tổng hợp vào `<Num tabular-nums>`, giữ chuẩn `typography.code`.
+     - `ServiceRunSection.tsx`: Bọc mã kế hoạch vào `<IdentifierText>`, số suất kế hoạch/thực tế/chờ nhận vào `<Num tabular-nums>`.
+     - `DemandPlanningScreen.tsx` & `CostScreen.tsx`: Chuẩn hóa toàn bộ ô số lượng và giá vốn sang `<Num tabular-nums>` với độ chính xác số thập phân cao (`maximumFractionDigits={6}`).
+- **Eliminated 2 Skipped Tests (Rule TA-3)**:
+  - Tái cấu trúc `frontend/tests/warehouseDataWorkspaceContract.test.ts` loại bỏ `it.skipIf`, cung cấp schema fixture kiểm thử hợp đồng `validateWarehouseAiReviewInput` và `validateWarehouseAiFinding`. Số lượng skipped tests giảm từ 2 xuống **0**!
+- **100% Verification Pipeline Passed (`npm run verify`)**:
+  - `test:ignore-policy`: 2/2 PASS
+  - `test:frontend-test-taxonomy`: 1/1 PASS
+  - `test:frontend-unit-launcher`: 2/2 PASS
+  - `test:phase05-fixture-determinism`: 1/1 PASS
+  - `test:architecture-growth`: 6/6 PASS
+  - `check:architecture-growth`: PASS (strict production baseline exact, 0 test debt)
+  - `build:be`: PASS (0 warnings, 0 errors)
+  - `test:be:ci`: 1311/1311 Api.Tests PASS, 49/49 Application.Tests PASS
+  - `lint:fe`: PASS (0 errors)
+  - `depcruise:fe`: PASS (356 modules cruised, 0 violations)
+  - `build:fe`: PASS (built in 0.93s)
+  - `test:fe:unit`: 300/300 test files PASS (**1730 tests passed, 0 failed, 0 skipped**)
 
 ---
 
@@ -22,41 +56,12 @@ Status: IDLE (Phase 2 Completed — All Waves 1, 2, 3 Verified Green; Ready for 
 - Cleaned `ipc-redesign-shell` from `MainLayout.tsx` and standardized group chevrons to accessible `button[type="button"]` with `aria-expanded`.
 - 100% tests passed (41 test files, 258 tests).
 
-### Step 3: Wave 2 — Test Audit + Planning, Coordination & Chef Reconstruction
-- Scoped Pre-Code UI Gate Block verified for `/weekly-menu`, `/meal-orders`, `/chef`.
-- Cleaned `DemandPlanningScreen.css` (100% semantic CSS tokens, 0 custom hex colors).
-- Rewrote `MenuCostSection.presentation.test.tsx` & `action-toolbar.send-plan.test.tsx` into DOM behavioral tests (TA-2 eliminated).
-- 100% tests passed (76 test files, 395 tests).
+### Step 3: Wave 2 — Deep UI Refactor: Planning, Coordination & Chef
+- Hoàn thành kiểm toán UI Gap và tái cấu trúc sâu giao diện `.tsx`/`.css` cho 3 routes `/weekly-menu`, `/meal-orders`, `/chef`.
+- Đạt 100% chuẩn UI-Kit primitives (`Button`, `Num`, `IdentifierText`, `VietnameseDateInput`).
+- 0 tests skipped, 0 tests failed.
 
-### Step 3: Wave 3 — Test Audit + Supply Chain & Operational Execution Reconstruction
-- Scoped Pre-Code UI Gate Block verified for `/approvals`, `/purchasing`, `/warehouse`, `/reconciliation`, `/reports`.
-- Rewrote all 7 TA-2 tests into real DOM behavioral `.tsx` tests:
-  1. `approvals/components/menuAmendmentStatus.test.tsx` (1/1 PASS)
-  2. `coordination/components/action-toolbar.send-plan.test.tsx` (5/5 PASS)
-  3. `purchasing/pages/PurchasingPage.geometry.test.tsx` (2/2 PASS)
-  4. `purchasing/PurchaseDecisionPanel.copy.test.tsx` (1/1 PASS)
-  5. `warehouse/pages/warehouse-permission.test.tsx` (3/3 PASS)
-  6. `warehouse/pages/WarehousePage.presentation.test.tsx` (4/4 PASS)
-  7. `warehouse/WarehouseReceiptLifecyclePanel.test.tsx` (4/4 PASS)
-  8. `reports/pages/ReportsPage.model-ownership.test.tsx` (4/4 PASS)
-- Resolved architecture debt: condensed `WeeklyMenuPage.tsx` from 750 to 517 lines (<= 600 line threshold), eliminating debt finding.
-- Fixed EF Core InMemory reference comparison bug in `ReconciliationBatchService.cs:196`.
-- Synchronized `scripts/architecture-growth-baseline.json` with strict shrink (1313 lines for `ReconciliationWarehousePage.tsx`, 766 lines for `ReconciliationBatchService.cs`, 0 debt additions).
-- Updated `presentationSurfaceInventory.test.ts` (6/6 PASS), `typographyContract.test.ts` (11/11 PASS), `sectionPanelHeadingContract.test.ts` (2/2 PASS), `uiFloorplanScopeContract.test.ts` (12/12 PASS), `buttonPrimitiveConvergence.test.ts` (2/2 PASS), `formPrimitiveConvergence.test.ts` (2/2 PASS).
-- 100% passed on full verification pipeline (`npm run verify`):
-  - `test:ignore-policy`: 2/2 PASS
-  - `test:frontend-test-taxonomy`: 1/1 PASS
-  - `test:frontend-unit-launcher`: 2/2 PASS
-  - `test:phase05-fixture-determinism`: 1/1 PASS
-  - `test:architecture-growth`: 6/6 PASS
-  - `check:architecture-growth`: PASS (strict production baseline exact, 0 test debt)
-  - `build:be`: PASS (0 warnings, 0 errors)
-  - `test:be:ci`: 1311/1311 PASS in `IPCManagement.Api.Tests`, 49/49 PASS in `IPCManagement.Application.Tests`
-  - `lint:fe`: PASS (0 errors)
-  - `depcruise:fe`: PASS (356 modules cruised, 0 violations)
-  - `build:fe`: PASS (built in <1s)
-  - `test:fe:unit`: 300/300 test files PASS (1728 tests passed, 2 skipped)
+## Next Phase: Wave 3 — Deep UI Refactor: Supply Chain & Approvals
+- Chờ lệnh kích hoạt Wave 3: `/purchasing` (`FR-PUR`), `/warehouse` (`FR-WH`), `/approvals` (`FR-APPR`), `/reconciliation` (`FR-RECON`), `/reports` (`FR-REP`).
 
-## Next Phase: Phase 3 — Remaining View Migration & PR Readiness
-- Complete PR review and merge of `cleanup/revert-sidebar-v2` into `main`.
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, PackageCheck, ReceiptText, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { EmptyState, InlineAlert, SectionPanel, StatusBadge } from '@/components/common';
+import { EmptyState, InlineAlert, Num, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -93,7 +93,7 @@ export function SupplierEvidenceList({
               {selected ? <StatusBadge tone="warning">Đang chọn</StatusBadge> : null}
             </span>
             <span className="mt-1 block text-caption leading-[1.4] text-slate-600">
-              {evidenceLabel(candidate)}. {formatCurrency(candidate.unitPrice)}/{formatUnit(candidate.unitName)}
+              {evidenceLabel(candidate)}. <Num value={candidate.unitPrice} type="currency" />/{formatUnit(candidate.unitName)}
             </span>
           </Button>
         );

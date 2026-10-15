@@ -1,5 +1,5 @@
 import { CalendarDays, ClipboardList } from 'lucide-react'
-import { EmptyState, IdentifierText, InlineAlert, SectionPanel, StatusBadge, TableViewport, TableSkeleton, RefreshStatus } from '@/components/common';
+import { EmptyState, IdentifierText, InlineAlert, Num, SectionPanel, StatusBadge, TableViewport, TableSkeleton, RefreshStatus } from '@/components/common';
 import { PageStepper } from '@/components/common/PageStepper'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
@@ -99,8 +99,8 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                     <dl className="ipc-fiori-meta flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-slate-600">
                       <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Ngày phục vụ:</dt><dd className="font-medium text-slate-800">{formatDateOnly(plan.planDate)}</dd></div>
                       <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Khách hàng:</dt><dd className="font-medium text-slate-800" title={`${plan.customerName} (${plan.customerCode})`}>{plan.customerName} ({plan.customerCode})</dd></div>
-                      <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Số dòng món:</dt><dd className="font-semibold text-slate-800 tabular-nums">{plan.lines.length}</dd></div>
-                      <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Tổng số suất:</dt><dd className="font-bold text-[var(--ipc-primary,#1a56a8)] tabular-nums">{formatNumber(totalServings)} suất</dd></div>
+                      <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Số dòng món:</dt><dd className="font-semibold text-slate-800"><Num value={plan.lines.length} type="number" /></dd></div>
+                      <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Tổng số suất:</dt><dd className="font-bold text-[var(--ipc-primary,#1a56a8)]"><Num value={totalServings} type="number" /> suất</dd></div>
                     </dl>
                   </div>
                   <TableViewport

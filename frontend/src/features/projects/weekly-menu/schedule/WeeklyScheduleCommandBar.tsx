@@ -1,5 +1,6 @@
 import { Edit, Send, Upload } from 'lucide-react'
 import { CommandBar, FieldRow } from '@/components/common'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { CoordinationCustomerOption } from '@/api/coordinationApi'
 
@@ -36,18 +37,41 @@ export function WeeklyScheduleCommandBar({
 }: Props) {
   return (
     <CommandBar actions={<>
-      <button type="button" onClick={onImport} disabled={isImporting} className="ipc-button ipc-button-secondary min-h-8 h-8 px-2.5 text-xs font-semibold inline-flex items-center gap-1.5 rounded-[var(--ipc-radius-sm,2px)]">
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onImport}
+        disabled={isImporting}
+        className="min-h-8 h-8 px-2.5 text-xs font-semibold gap-1.5"
+      >
         <Upload size={14} aria-hidden="true" />
         <span>{isImporting ? 'Đang nhập...' : 'Nhập Excel'}</span>
-      </button>
-      <button type="button" onClick={onEdit} disabled={!weekStartDate} className="ipc-button ipc-button-secondary min-h-8 h-8 px-2.5 text-xs font-semibold inline-flex items-center gap-1.5 rounded-[var(--ipc-radius-sm,2px)]">
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onEdit}
+        disabled={!weekStartDate}
+        className="min-h-8 h-8 px-2.5 text-xs font-semibold gap-1.5"
+      >
         <Edit size={14} aria-hidden="true" />
         <span>Chỉnh sửa lịch tuần</span>
-      </button>
-      {canPublish && <button type="button" onClick={onPublish} disabled={isPublishing} className="ipc-button ipc-button-primary min-h-8 h-8 px-3 text-xs font-semibold inline-flex items-center gap-1.5 rounded-[var(--ipc-radius-sm,2px)]">
-        <Send size={14} aria-hidden="true" />
-        <span>{isPublishing ? 'Đang xuất bản...' : 'Xuất bản tuần'}</span>
-      </button>}
+      </Button>
+      {canPublish && (
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          onClick={onPublish}
+          disabled={isPublishing}
+          className="min-h-8 h-8 px-3 text-xs font-semibold gap-1.5"
+        >
+          <Send size={14} aria-hidden="true" />
+          <span>{isPublishing ? 'Đang xuất bản...' : 'Xuất bản tuần'}</span>
+        </Button>
+      )}
     </>}>
       <FieldRow label="Khách hàng">
         <select
