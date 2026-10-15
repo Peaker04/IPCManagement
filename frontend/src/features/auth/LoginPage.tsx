@@ -131,7 +131,7 @@ export function LoginPage() {
                 className="flex flex-col items-center justify-center p-2 rounded-md border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer text-center"
               >
                 <span className="text-xs font-mono font-bold text-slate-900">{acc.username}</span>
-                <span className="text-[11px] text-slate-500">{acc.role}</span>
+                <span className="text-xs text-slate-500">{acc.role}</span>
               </button>
             ))}
           </div>

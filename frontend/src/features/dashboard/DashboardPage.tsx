@@ -117,7 +117,7 @@ export function DashboardPage() {
                   {metric.label}
                 </span>
                 {metric.unit && (
-                  <span className="text-[11px] text-slate-400 font-mono">
+                  <span className="text-xs text-slate-400 font-mono">
                     {metric.unit}
                   </span>
                 )}
@@ -226,7 +226,7 @@ export function DashboardPage() {
                             <span>{task.assignee}</span>
                           </td>
                           <td className="px-3 py-2 font-mono text-xs text-slate-600 truncate">
-                            <span className="text-[11px] text-slate-400 mr-1">Hạn:</span>
+                            <span className="text-xs text-slate-400 mr-1">Hạn:</span>
                             <span>{task.deadline}</span>
                           </td>
                           <td className="px-4 py-2 text-right whitespace-nowrap">

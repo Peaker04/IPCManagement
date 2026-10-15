@@ -64,7 +64,7 @@ export function Tabs({
             onKeyDown={(e) => handleKeyDown(e, idx)}
             className={clsx(
               'inline-flex items-center justify-center gap-1.5 rounded px-2.5 font-medium text-xs transition-all cursor-pointer',
-              size === 'sm' ? 'h-6 text-[11px]' : 'h-7 text-xs',
+              size === 'sm' ? 'h-6 text-xs' : 'h-7 text-xs',
               isActive
                 ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50',
@@ -75,7 +75,7 @@ export function Tabs({
             {tab.count !== undefined && (
               <span
                 className={clsx(
-                  'rounded-full px-1.5 py-0.25 text-[10px] tabular-nums',
+                  'rounded-full px-1.5 py-0.25 text-xs tabular-nums',
                   isActive
                     ? 'bg-slate-100 text-slate-800 font-semibold'
                     : 'bg-slate-200/80 text-slate-600'

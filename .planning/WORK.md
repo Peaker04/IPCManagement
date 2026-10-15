@@ -1,42 +1,56 @@
 # Active work
 
-Status: IDLE (Sprint 1.1 Complete: Zero Fake API Guard, Real Endpoints, Rule D7 & Full Test Audit — 100% Verified)
+Status: IDLE (Sprint 1.2 Complete: Hardened Governance, Rule D6/D7 Enforced, NFR-UI-05 Reduced Motion, Route Code Splitting — 100% Verified)
 
 ### Summary of System Delivery
 Toàn bộ hệ thống quản lý bếp ăn công nghiệp IPCManagement đã hoàn tất khóa sổ toàn diện trên nhánh `feature/greenfield-fe-3zone-workbench`:
-- Xóa sổ 100% dữ liệu giả và các khối `try/catch` nuốt lỗi trong toàn bộ 11 file `frontend/src/api/*.ts`.
-- Thiết lập cổng canh gác tự động `ZeroFakeApiAndTestAuditGuard.test.ts` (Rule TA-5) đảm bảo vĩnh viễn không còn dummy seed nào tồn tại trong tầng API.
-- Nối trực tiếp 100% API endpoints thật từ C# Backend Kestrel (`http://localhost:5262`).
-- Chuẩn hóa giao diện 3-Zone Flat Workbench: `html font-size: 16px`, `VietnameseDateInput` hiển thị cứng `dd/MM/yyyy`, `Rule D7` đồng bộ nút Primary động theo view, `ActionGuard` kiểm soát quyền RBAC, bảng BOM loại bỏ lặp dòng.
+- **Đặc tả & Kiểm toán Kỹ thuật**: `docs/SPEC-HARDENED-GOVERNANCE.md` và `docs/superpowers/plans/2026-10-15-hardened-governance-plan.md`.
+- **Khóa Sàn Typography (Rule D6)**: Xóa sổ 100% các class `text-[11px]` và `text-[10px]` trên toàn bộ 9 vị trí giao diện; toàn bộ text >= `12px` (`text-xs`).
+- **Chuẩn hóa Single Primary Action (Rule D7)**: Trang `/approvals` chỉ giữ duy nhất 1 nút Primary màu đậm (`bg-slate-900`) trên `WorkspaceHeader`; nút trong detail panel chuyển sang `variant="outline"`.
+- **Trợ năng Chuyển động (NFR-UI-05)**: Tích hợp `@media (prefers-reduced-motion: reduce)` trong `index.css`; toàn bộ transition chuyển động chuẩn hóa thời lượng <= `150ms`.
+- **Tối ưu hóa Hiệu năng & Bundle (NFR-PERF-01)**: Áp dụng `React.lazy()` và `<Suspense>` cho 12 routes vận hành; hạ kích thước entry bundle từ `540.85 kB` xuống `288.26 kB` (gzip: `92.05 kB`), loại bỏ hoàn toàn cảnh báo Vite chunk warning.
+- **Log Kiểm thử Sạch sẽ (Test Hygiene)**: Mock `window.alert` trong `src/test/setup.ts`, triệt tiêu 100% cảnh báo JSDOM trong khi 16/16 test files pass 87/87 tests.
+- **Toàn vẹn Dữ liệu Backend (Rule TA-5)**: 100% kết nối ASP.NET Core Kestrel thật, 0 dữ liệu mock giả.
 
 ---
 
-### Sprint 1.1: Visual & Real Data Hardening (Rule N6, D7, TA-1..TA-5) [COMPLETED]
-1. **Khóa chặt Cổng Canh Gác `ZeroFakeApiAndTestAuditGuard.test.ts` (Rule TA-5)**:
-   - Quét toàn bộ 11 file trong `frontend/src/api/*.ts`: cấm triệt để `getBaseline`, `BASELINE_`, `mock`, `fallback`, các chuỗi seed giả (`NL-THIT-01`, `BG-260921-01`, `Trần Văn B`, `Nguyễn Văn A`, `wh-1`, `sup-1`).
-   - Cấm khối `catch` nuốt lỗi trả về fallback dummy data: lỗi mạng bắt buộc phải ném ra (throw) để `<StateBoundary>` render đúng trạng thái `error` / `prerequisite-blocked`.
-   - Bắt buộc 100% hàm export trong `src/api/*.ts` phải gọi network thật qua `apiClient`.
+### Sprint 1.2: Hardened Governance & Performance Optimization [COMPLETED]
+1. **Rule D6 Typography Floor Enforcement**:
+   - `WeeklyScheduleView.tsx`: `text-[11px]` -> `text-xs font-mono`.
+   - `DashboardPage.tsx`: `text-[11px]` -> `text-xs`.
+   - `LoginPage.tsx`: `text-[11px]` -> `text-xs`.
+   - `AppShell.tsx`: `text-[11px]` -> `text-xs font-mono`.
+   - `badge.tsx`: size `sm` nâng lên `text-xs`.
+   - `identifier-text.tsx`: icon/tooltip copy nâng lên `text-xs`.
+   - `tabs.tsx`: tab size `sm` và badge đếm nâng lên `text-xs`.
+   - Quét kiểm tra tĩnh: `rg "text-\[1[01]px\]|text-\[9px\]|text-\[8px\]" frontend/src/` đạt **0 kết quả**.
 
-2. **Đồng bộ 100% API Endpoints Thật từ Backend C# (`http://localhost:5262`)**:
-   - `weeklyMenuApi.ts`: Nối `GET /api/coordination/customers`, `GET /api/coordination/weekly-menu`, `GET /api/production-plans/filter`, `GET /api/dishes/{id}/bom`, `POST /api/material-demand/generate`, `POST /api/material-demand/{id}/approve`.
-   - `dashboardApi.ts`: Nối `GET /api/workflow-reports/operational-kpis` và `GET /api/production-plans/filter`.
-   - `coordinationApi.ts`: Nối `GET /api/coordination/orders`, `POST /api/coordination/orders/lock`, `PATCH /api/coordination/orders/{id}/servings`.
-   - `chefApi.ts`: Nối `GET /api/production-plans/filter`, `POST /api/production-plans/daily/send-to-kitchen`.
-   - `purchasingApi.ts`: Nối `GET /api/purchase-orders`, `GET /api/suppliers`, `POST /api/purchase-orders`, `POST /api/purchase-orders/{id}/approve`.
-   - `warehouseApi.ts`: Nối `GET /api/warehouses`, `GET /api/inventory-receipts`, `GET /api/inventory-issues`, `POST /api/inventory-issues`, `POST /api/inventory-receipts`.
-   - `approvalsApi.ts`: Nối `GET /api/approvals/inbox`, `POST /api/approvals/{targetType}/{id}`.
-   - `reconciliationApi.ts`: Nối `GET /api/reconciliation/batches`, `POST /api/reconciliation/batches/{id}/transfer-to-warehouse`, `POST /api/reconciliation/batches/{id}/complete`.
-   - `reportsApi.ts`: Nối `GET /api/workflow-reports/current-stock`, `GET /api/workflow-reports/receipt-price-variance`, `GET /api/workflow-reports/ingredient-demand`.
-   - `adminApi.ts`: Nối `GET /api/ingredients`, `GET /api/dishes`, `GET /api/approval-rules`, `POST /api/ingredients`, `POST /api/approval-rules`.
-   - `systemApi.ts`: Nối `GET /api/system-operation-mode`, `PUT /api/system-operation-mode`.
+2. **Rule D7 Single Primary Action on `/approvals`**:
+   - `ApprovalPage.tsx`: Chuyển nút `Phê duyệt hồ sơ` ở cột chi tiết sang `variant="outline"`, duy trì duy nhất 1 nút Primary `Phê duyệt yêu cầu đang chọn` ở `WorkspaceHeader`.
 
-3. **Khắc phục 5 Lỗi Giao Diện & Nghiệp Vụ**:
-   - `VietnameseDateInput`: Hiển thị văn bản CỨNG dạng `dd/MM/yyyy` (ví dụ `21/09/2026`) trên mọi trình duyệt (`NFR-I18N-01`), kết hợp popover/picker và input số hỗ trợ gõ trực tiếp.
-   - `/weekly-menu` (Rule D7): Nút Primary trên Header đổi linh hoạt theo view (`schedule` -> `[Duyệt kế hoạch tuần]`, `demand` -> `[Mở hàng đợi duyệt]`, `production-plan` -> `[In lệnh sản xuất]`, `cost` -> `[Xuất bảng chi phí]`).
-   - `MenuCostView`: Bảng trái chỉ hiển thị các món ăn thực tế có trong thực đơn ngày đang chọn; Bảng phải Tab 1 gộp duy nhất theo `ingredientId` (loại bỏ lặp 3 dòng `Đậu bắp`, `Măng vàng`), hiển thị đủ 5 cột gồm `Đơn giá`; Bảng phải Tab 2 tính tổng hợp nguyên liệu thực tế từ các món ăn trong ngày.
-   - `ActionGuard`: Bọc kiểm soát quyền RBAC quanh các nút mutation (chốt đơn, duyệt, tạo PO, xuất kho, chốt ca).
-   - `BR-GLOBAL-03` & `UXR-05`: Bắt buộc nhập lý do (`reason`/`notes`) trước khi điều chỉnh số suất, từ chối duyệt, xuất kho hay chốt đối soát.
-   - `StateBoundary`: Hiển thị đúng các trạng thái `empty` / `prerequisite-blocked` / `error + retry`.
+3. **NFR-UI-05 Motion & Reduced Motion**:
+   - `index.css`: Bổ sung `@media (prefers-reduced-motion: reduce)` tắt toàn bộ animation/transition khi người dùng kích hoạt reduced motion trên OS.
+   - `AppShell.tsx`: Chuẩn hóa thời gian thu gọn/mở rộng sidebar sang `duration-150 ease-out`.
+
+4. **NFR-PERF-01 Bundle Splitting & Lazy Loading**:
+   - `App.tsx`: Chuyển đổi 12 routes vận hành sang `React.lazy()` bọc trong `<Suspense fallback={<WorkbenchLoadingFallback />}>`.
+   - Tách bundle thành các chunk chuyên biệt: `WeeklyMenuPage`, `PurchasingPage`, `WarehousePage`, `ApprovalPage`...
+
+5. **Test Hygiene & Cleanliness**:
+   - `setup.ts`: Thiết lập `window.alert = vi.fn()` loại bỏ 100% thông báo `Not implemented: Window's alert() method`.
+
+6. **Kết quả Verification 11 Cổng Kiểm tra (`npm run verify`)**:
+   - `test:ignore-policy`: 2/2 PASS
+   - `test:frontend-test-taxonomy`: 1/1 PASS
+   - `test:frontend-unit-launcher`: 2/2 PASS
+   - `test:architecture-growth`: 6/6 PASS
+   - `check:architecture-growth`: PASS (0 debt)
+   - `build:be`: PASS (C# .NET 9 Web API)
+   - `test:be:ci`: 1.360/1.360 PASS (49 App Tests + 1.311 API Tests)
+   - `lint:fe`: 0 errors, 0 warnings
+   - `depcruise:fe`: 0 violations across 63 modules
+   - `build:fe`: PASS (Production build không cảnh báo chunk)
+   - `test:fe:unit`: 16/16 test files PASS (87/87 tests passed, 0 warnings)
 
 4. **Bộ Test Chuẩn Hóa & Kết Quả Verification**:
    - 16 test files (87 tests) bao phủ DOM behavioral tests, mock tại network boundary với DTO backend C#, không tautological.

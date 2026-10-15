@@ -61,7 +61,7 @@ export function WeeklyScheduleView({ data }: WeeklyScheduleViewProps) {
                 >
                   <div className="flex items-center justify-between">
                     <span>{day.dayName}</span>
-                    <span className="font-mono text-[11px] text-slate-400 font-normal">
+                    <span className="font-mono text-xs text-slate-400 font-normal">
                       {day.dateStr}
                     </span>
                   </div>

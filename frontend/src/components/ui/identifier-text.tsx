@@ -47,7 +47,7 @@ export function IdentifierText({
       {copyable && (
         <span
           className={clsx(
-            'text-[10px] text-slate-400 group-hover:text-slate-700 transition-opacity',
+            'text-xs text-slate-400 group-hover:text-slate-700 transition-opacity',
             copied ? 'text-emerald-600 font-semibold' : 'opacity-0 group-hover:opacity-100'
           )}
         >

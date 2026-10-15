@@ -103,7 +103,7 @@ export function AppShell({ children }: AppShellProps) {
       {/* Left Sidebar (w-60 / 240px shrink-0 or collapsed w-16) */}
       <aside
         className={clsx(
-          'shrink-0 border-r border-slate-200 bg-white flex flex-col h-dvh select-none z-30 transition-all duration-200',
+          'shrink-0 border-r border-slate-200 bg-white flex flex-col h-dvh select-none z-30 transition-all duration-150 ease-out',
           isSidebarCollapsed ? 'w-16' : 'w-60'
         )}
         aria-label="Thanh điều hướng chính"
@@ -270,7 +270,7 @@ export function AppShell({ children }: AppShellProps) {
                   <p className="text-xs font-semibold text-slate-900 truncate">
                     {user?.fullName || 'Người vận hành'}
                   </p>
-                  <p className="text-[11px] font-mono text-slate-400 uppercase truncate">
+                  <p className="text-xs font-mono text-slate-400 uppercase truncate">
                     {user?.roleCode || 'GUEST'}
                   </p>
                 </div>

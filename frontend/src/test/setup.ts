@@ -35,6 +35,9 @@ afterEach(() => {
 
 // Mock window.matchMedia if not implemented in JSDOM
 if (typeof window !== 'undefined') {
+  // Mock window.alert to eliminate JSDOM 'Not implemented: Window's alert() method' warnings
+  window.alert = vi.fn();
+
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     value: vi.fn().mockImplementation((query) => ({

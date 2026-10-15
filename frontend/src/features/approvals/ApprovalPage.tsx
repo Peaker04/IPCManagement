@@ -356,10 +356,11 @@ export function ApprovalPage() {
                   </ActionGuard>
                   <ActionGuard roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="sm"
                       disabled={isSubmitting}
                       onClick={() => handleDecision('APPROVE')}
+                      className="font-semibold text-xs border-slate-300 hover:bg-slate-100"
                     >
                       {isSubmitting ? 'Đang duyệt...' : 'Phê duyệt hồ sơ'}
                     </Button>
