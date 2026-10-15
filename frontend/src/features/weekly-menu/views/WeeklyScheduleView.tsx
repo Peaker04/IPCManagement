@@ -39,8 +39,8 @@ export function WeeklyScheduleView({ data }: WeeklyScheduleViewProps) {
               <strong className="text-slate-900 font-mono font-semibold">25.000 ₫</strong>
             </span>
             <span className="text-slate-300">·</span>
-            <Badge variant="success" size="sm">
-              Trạng thái: Đã duyệt tuần
+            <Badge variant="neutral" size="sm">
+              Trạng thái: Kế hoạch tuần
             </Badge>
           </>
         }

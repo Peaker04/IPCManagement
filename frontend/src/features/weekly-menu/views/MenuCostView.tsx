@@ -45,9 +45,12 @@ export function MenuCostView({ data }: MenuCostViewProps) {
         seenNames.add(dishName);
 
         // Find matching dish from data.dishCosts
-        const matchingDish = data.dishCosts.find((d) => d.dishName === dishName) || data.dishCosts[0];
+        const matchingDish = data.dishCosts.find((d) => d.dishName === dishName);
         const isMorning = r.sectionTitle.includes('SÁNG') || r.sectionTitle.includes('MORNING');
-        const servings = dishName.includes('chay') || dishName.includes('Chay') ? 15 : 844;
+        const matchingPlan = data.productionPlans.find(
+          (p) => p.dishName === dishName || (matchingDish && p.dishId === matchingDish.dishId)
+        );
+        const servings = matchingPlan?.plannedServings || (data.productionPlans[0]?.plannedServings || 500);
         const calculatedCost = matchingDish ? matchingDish.calculatedCost : 11450;
         const costRatioPercent = matchingDish ? matchingDish.costRatioPercent : 45.8;
 
@@ -87,7 +90,7 @@ export function MenuCostView({ data }: MenuCostViewProps) {
     }
 
     return list;
-  }, [data.matrixRows, data.dishCosts, dayIndex]);
+  }, [data.matrixRows, data.dishCosts, data.productionPlans, dayIndex]);
 
   const [selectedDishId, setSelectedDishId] = useState<string>(
     dailyDishes[0]?.dishId || data.dishCosts[0]?.dishId || 'd1'

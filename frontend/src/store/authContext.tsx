@@ -39,25 +39,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(USER_KEY, JSON.stringify(resp.user));
       setToken(resp.accessToken);
       setUser(resp.user);
-    } catch (err) {
-      if (import.meta.env.DEV && (username === 'admin' || username === 'manager' || username === 'chef')) {
-        const mockUser: UserInfo = {
-          userId: 'u-1',
-          username,
-          fullName: username === 'admin' ? 'Quản trị viên Hệ thống' : username === 'chef' ? 'Bếp trưởng Nguyễn Văn A' : 'Điều hành sản xuất',
-          roleCode: username.toUpperCase(),
-          roleName: username.toUpperCase(),
-          isActive: true,
-          isAdminFullAccess: username === 'admin',
-          permissions: ['*'],
-        };
-        localStorage.setItem(TOKEN_KEY, 'mock-jwt-token-v3');
-        localStorage.setItem(USER_KEY, JSON.stringify(mockUser));
-        setToken('mock-jwt-token-v3');
-        setUser(mockUser);
-        return;
-      }
-      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -88,8 +69,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = useCallback((roleCode: string | string[]): boolean => {
     if (!user) return false;
     if (user.isAdminFullAccess) return true;
-    const allowed = Array.isArray(roleCode) ? roleCode : [roleCode];
-    return allowed.includes(user.roleCode);
+    const allowed = (Array.isArray(roleCode) ? roleCode : [roleCode]).map((r) => r.toUpperCase());
+    const userRoleCode = user.roleCode?.toUpperCase() || '';
+    const userRoleName = user.roleName?.toUpperCase() || '';
+    return allowed.includes(userRoleCode) || allowed.includes(userRoleName);
   }, [user]);
 
   return (

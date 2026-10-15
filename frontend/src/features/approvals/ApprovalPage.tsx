@@ -12,6 +12,7 @@ import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Input } from '../../components/ui/input';
+import { Modal } from '../../components/ui/modal';
 import { ActionGuard } from '../../components/ui/action-guard';
 import {
   approvalsApi,
@@ -27,6 +28,9 @@ export function ApprovalPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'APPROVE' | 'REJECT' | null>(null);
+  const [actionBanner, setActionBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const loadData = async (type = selectedType) => {
     setIsLoading(true);
@@ -69,20 +73,37 @@ export function ApprovalPage() {
     };
   }, [selectedType]);
 
-  const handleDecision = async (decision: 'APPROVE' | 'REJECT') => {
-    if (!selectedItem) return;
-    if (decision === 'REJECT' && !decisionReason.trim()) {
-      alert('Vui lòng nhập lý do từ chối hồ sơ (BR-GLOBAL-03)');
+  const openConfirmModal = (decision: 'APPROVE' | 'REJECT') => {
+    setValidationError(null);
+    setConfirmAction(decision);
+  };
+
+  const handleExecuteDecision = async () => {
+    if (!selectedItem || !confirmAction) return;
+    if (confirmAction === 'REJECT' && !decisionReason.trim()) {
+      setValidationError('Vui lòng nhập lý do từ chối hồ sơ (bắt buộc theo BR-GLOBAL-03)');
       return;
     }
     setIsSubmitting(true);
+    setValidationError(null);
     try {
-      await approvalsApi.decide(selectedItem.targetType, selectedItem.targetId, decision, decisionReason);
+      await approvalsApi.decide(selectedItem.targetType, selectedItem.targetId, confirmAction, decisionReason);
+      const actionName = confirmAction === 'APPROVE' ? 'phê duyệt' : 'từ chối';
+      const targetCode = selectedItem.targetCode;
       setDecisionReason('');
+      setConfirmAction(null);
       await loadData();
-      alert(`Đã ${decision === 'APPROVE' ? 'phê duyệt' : 'từ chối'} yêu cầu ${selectedItem.targetCode} thành công!`);
+      setActionBanner({
+        type: 'success',
+        text: `Đã ${actionName} yêu cầu ${targetCode} thành công!`,
+      });
+      setTimeout(() => setActionBanner(null), 5000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Thao tác phê duyệt thất bại');
+      setActionBanner({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Thao tác phê duyệt thất bại',
+      });
+      setConfirmAction(null);
     } finally {
       setIsSubmitting(false);
     }
@@ -207,7 +228,7 @@ export function ApprovalPage() {
                 variant="default"
                 size="default"
                 disabled={!selectedItem || isSubmitting}
-                onClick={() => handleDecision('APPROVE')}
+                onClick={() => openConfirmModal('APPROVE')}
                 className="h-9 text-sm font-medium"
               >
                 Phê duyệt yêu cầu đang chọn
@@ -245,6 +266,25 @@ export function ApprovalPage() {
           </>
         }
       />
+
+      {actionBanner && (
+        <div
+          className={`px-4 py-2 text-sm font-medium border-b flex items-center justify-between shrink-0 ${
+            actionBanner.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}
+        >
+          <span>{actionBanner.text}</span>
+          <button
+            type="button"
+            onClick={() => setActionBanner(null)}
+            className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
 
       {/* Zone 3: SplitView (Master 7 cols Queue | Detail 5 cols Decision Drawer) */}
       <StateBoundary
@@ -348,7 +388,7 @@ export function ApprovalPage() {
                       variant="outline"
                       size="sm"
                       disabled={isSubmitting}
-                      onClick={() => handleDecision('REJECT')}
+                      onClick={() => openConfirmModal('REJECT')}
                       className="text-red-600 hover:bg-red-50 border-red-200"
                     >
                       Từ chối hồ sơ
@@ -359,7 +399,7 @@ export function ApprovalPage() {
                       variant="outline"
                       size="sm"
                       disabled={isSubmitting}
-                      onClick={() => handleDecision('APPROVE')}
+                      onClick={() => openConfirmModal('APPROVE')}
                       className="font-semibold text-xs border-slate-300 hover:bg-slate-100"
                     >
                       {isSubmitting ? 'Đang duyệt...' : 'Phê duyệt hồ sơ'}
@@ -375,6 +415,78 @@ export function ApprovalPage() {
           }
         />
       </StateBoundary>
+
+      <Modal
+        isOpen={confirmAction !== null}
+        onClose={() => {
+          if (!isSubmitting) {
+            setConfirmAction(null);
+            setValidationError(null);
+          }
+        }}
+        isDirty={decisionReason.trim().length > 0}
+        title={confirmAction === 'APPROVE' ? 'Xác nhận phê duyệt yêu cầu' : 'Xác nhận từ chối yêu cầu'}
+        description={selectedItem ? `${selectedItem.targetCode} · ${selectedItem.title}` : undefined}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isSubmitting}
+              onClick={() => {
+                setConfirmAction(null);
+                setValidationError(null);
+              }}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              disabled={isSubmitting}
+              onClick={handleExecuteDecision}
+              className={confirmAction === 'REJECT' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}
+            >
+              {isSubmitting
+                ? 'Đang xử lý...'
+                : confirmAction === 'APPROVE'
+                ? 'Xác nhận phê duyệt'
+                : 'Xác nhận từ chối'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm text-slate-700">
+          {confirmAction === 'APPROVE' ? (
+            <p>
+              Bạn có chắc chắn muốn phê duyệt hồ sơ{' '}
+              <strong className="text-slate-900 font-mono">{selectedItem?.targetCode}</strong> không? Hành động này sẽ
+              cập nhật trạng thái hồ sơ sang <strong className="text-emerald-700">Đã duyệt (APPROVED)</strong> và cho phép
+              các bước tiếp theo trong quy trình vận hành.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-slate-600">
+                Theo quy chuẩn <strong className="text-slate-900">BR-GLOBAL-03</strong>, việc từ chối yêu cầu bắt buộc phải
+                ghi rõ căn cứ / lý do:
+              </p>
+              <Input
+                placeholder="Nhập lý do từ chối hồ sơ (bắt buộc)..."
+                value={decisionReason}
+                onChange={(e) => {
+                  setDecisionReason(e.target.value);
+                  if (validationError) setValidationError(null);
+                }}
+                className={`h-9 ${validationError ? 'border-red-500' : ''}`}
+                autoFocus
+              />
+              {validationError && (
+                <p className="text-xs text-red-600 font-medium">{validationError}</p>
+              )}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

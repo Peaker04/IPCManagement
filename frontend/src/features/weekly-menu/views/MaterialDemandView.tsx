@@ -28,28 +28,7 @@ interface HandoffVoucher {
   status: 'signed' | 'pending';
 }
 
-const SAMPLE_VOUCHERS: HandoffVoucher[] = [
-  {
-    voucherId: 'v-1',
-    voucherCode: 'BG-260921-01',
-    shiftName: 'Ca 1 (Sáng)',
-    itemCount: 26,
-    totalQuantity: '1.240,5 kg',
-    createdBy: 'Thủ kho Trần Văn B',
-    createdAt: '08:30 21/09/2026',
-    status: 'signed',
-  },
-  {
-    voucherId: 'v-2',
-    voucherCode: 'BG-260921-02',
-    shiftName: 'Ca 2 (Chiều)',
-    itemCount: 3,
-    totalQuantity: '35,0 kg',
-    createdBy: 'Thủ kho Trần Văn B',
-    createdAt: '10:15 21/09/2026',
-    status: 'pending',
-  },
-];
+
 
 export function MaterialDemandView({
   data,
@@ -66,10 +45,23 @@ export function MaterialDemandView({
 
   const currentDay = data.scheduleDays[dayIndex] || data.scheduleDays[0];
 
+  const dynamicVouchers: HandoffVoucher[] = data.productionPlans.length > 0
+    ? data.productionPlans.map((plan, idx) => ({
+        voucherId: plan.planId || `voucher-${idx}`,
+        voucherCode: plan.planCode ? `BG-${plan.planCode}` : `BG-${data.customerCode}-${idx + 1}`,
+        shiftName: plan.shiftName || 'Ca chính',
+        itemCount: data.demandRows.length,
+        totalQuantity: `${data.demandRows.reduce((acc, r) => acc + (r.requiredQuantity || 0), 0).toLocaleString('vi-VN')} kg`,
+        createdBy: 'Hệ thống tự động',
+        createdAt: data.weekStartDate || 'Hôm nay',
+        status: 'signed' as const,
+      }))
+    : [];
+
   const SEGMENT_TABS = [
     { id: 'demand', label: 'Nhu cầu nguyên liệu', count: data.demandRows.length },
     { id: 'source-khsx', label: 'KHSX nguồn', count: data.productionPlans.length },
-    { id: 'vouchers', label: 'Chứng từ bàn giao', count: SAMPLE_VOUCHERS.length },
+    { id: 'vouchers', label: 'Chứng từ bàn giao', count: dynamicVouchers.length },
   ];
 
   const demandColumns: ColumnDef<MaterialDemandItem>[] = [
@@ -282,9 +274,13 @@ export function MaterialDemandView({
               <strong className="text-slate-900 font-semibold">{data.demandRows.length}</strong>
             </span>
             <span className="text-slate-300">·</span>
-            <span className="text-amber-700 font-semibold">Chờ xuất: 3</span>
+            <span className="text-amber-700 font-semibold">
+              Chờ xuất: {data.demandRows.filter((r) => r.status === 'cho_xuat' || r.status === 'thieu_hut').length}
+            </span>
             <span className="text-slate-300">·</span>
-            <span className="text-emerald-700 font-semibold">Đã xuất: 26</span>
+            <span className="text-emerald-700 font-semibold">
+              Đã xuất: {data.demandRows.filter((r) => r.status === 'da_xuat_du').length}
+            </span>
           </>
         }
         rightActions={
@@ -329,7 +325,7 @@ export function MaterialDemandView({
 
       {activeSegmentTab === 'vouchers' && (
         <DataGrid<HandoffVoucher>
-          data={SAMPLE_VOUCHERS}
+          data={dynamicVouchers}
           columns={voucherColumns}
           keyExtractor={(row) => row.voucherId}
         />
@@ -351,30 +347,28 @@ export function MaterialDemandView({
               size="sm"
               onClick={() => {
                 setModalOpen(false);
-                alert('Đã phê duyệt lệnh xuất kho nguyên liệu thành công!');
+                alert(`Đã phê duyệt lệnh xuất kho nguyên liệu (${data.demandRows.length} dòng)!`);
               }}
             >
-              Xác nhận duyệt xuất kho (29 dòng)
+              Xác nhận duyệt xuất kho ({data.demandRows.length} dòng)
             </Button>
           </>
         }
       >
         <div className="space-y-3">
           <p className="text-sm text-slate-600 leading-relaxed">
-            Hệ thống đã kiểm tra định mức BOM của các món ăn trong ca ngày và tính toán tổng số lượng cho 29 nguyên liệu.
+            Hệ thống đã kiểm tra định mức BOM của các món ăn trong ca ngày và tính toán tổng số lượng cho {data.demandRows.length} nguyên liệu.
           </p>
           <div className="rounded border border-slate-200 bg-slate-50 p-3 space-y-2 font-mono text-xs">
             <div className="flex justify-between">
               <span className="text-slate-500">Số lượng nguyên liệu:</span>
-              <strong className="text-slate-900">29 mặt hàng</strong>
+              <strong className="text-slate-900">{data.demandRows.length} mặt hàng</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500">Khối lượng tổng cộng:</span>
-              <strong className="text-slate-900">1.275,5 kg</strong>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Tổng giá trị dự kiến:</span>
-              <strong className="text-slate-900">37.445.061 ₫</strong>
+              <strong className="text-slate-900">
+                {data.demandRows.reduce((acc, r) => acc + (r.requiredQuantity || 0), 0).toLocaleString('vi-VN')} kg
+              </strong>
             </div>
           </div>
         </div>

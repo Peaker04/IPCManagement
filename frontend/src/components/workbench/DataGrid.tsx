@@ -50,12 +50,13 @@ export function DataGrid<T>({
       <table className="w-full text-left text-sm text-slate-800 border-collapse table-fixed">
         <thead className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-xs border-b border-slate-200">
           <tr>
-            {columns.map((col) => (
+            {columns.map((col, colIdx) => (
               <th
                 key={col.id}
                 style={{ width: col.width }}
                 className={clsx(
                   'h-10 px-4 text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap',
+                  colIdx === 0 && 'sticky left-0 z-20 bg-slate-100',
                   col.align === 'right' && 'text-right',
                   col.align === 'center' && 'text-center'
                 )}
@@ -82,11 +83,12 @@ export function DataGrid<T>({
                   index % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'
                 )}
               >
-                {columns.map((col) => (
+                {columns.map((col, colIdx) => (
                   <td
                     key={col.id}
                     className={clsx(
                       'px-4 py-2 truncate text-sm',
+                      colIdx === 0 && 'sticky left-0 z-10 bg-inherit backdrop-blur-xs',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center'
                     )}

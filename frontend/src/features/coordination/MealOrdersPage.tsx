@@ -37,7 +37,10 @@ export function MealOrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<CoordinationOrderItem | null>(null);
   const [adjustedServings, setAdjustedServings] = useState<number>(0);
   const [adjustmentReason, setAdjustmentReason] = useState('');
+  const [adjustError, setAdjustError] = useState<string | null>(null);
   const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [actionNotification, setActionNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -90,10 +93,19 @@ export function MealOrdersPage() {
     setIsLoading(true);
     try {
       await coordinationApi.lockOrders(serviceDate, shiftName);
+      setIsLockModalOpen(false);
       await loadOrders();
-      alert('Đã chốt số lượng suất ăn ca thành công làm căn cứ phát lệnh KHSX!');
+      setActionNotification({
+        type: 'success',
+        message: 'Đã chốt số lượng suất ăn ca thành công làm căn cứ phát lệnh KHSX!',
+      });
+      setTimeout(() => setActionNotification(null), 5000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Chốt đơn ăn thất bại');
+      setIsLockModalOpen(false);
+      setActionNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Chốt đơn ăn thất bại',
+      });
       setIsLoading(false);
     }
   };
@@ -102,21 +114,33 @@ export function MealOrdersPage() {
     setSelectedOrder(order);
     setAdjustedServings(order.finalServings);
     setAdjustmentReason('');
+    setAdjustError(null);
   };
 
   const handleSaveAdjustment = async () => {
     if (!selectedOrder) return;
     if (!adjustmentReason.trim()) {
-      alert('Vui lòng nhập lý do điều chỉnh số suất ăn (BR-GLOBAL-03)');
+      setAdjustError('Vui lòng nhập lý do điều chỉnh số suất ăn (BR-GLOBAL-03)');
       return;
     }
     setIsAdjusting(true);
+    setAdjustError(null);
     try {
       await coordinationApi.adjustServings(selectedOrder.id, adjustedServings, adjustmentReason);
+      const dish = selectedOrder.dishName;
+      const targetServings = adjustedServings;
       setSelectedOrder(null);
       await loadOrders();
+      setActionNotification({
+        type: 'success',
+        message: `Đã cập nhật suất ăn món ${dish} thành ${targetServings} suất.`,
+      });
+      setTimeout(() => setActionNotification(null), 5000);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Điều chỉnh số suất thất bại');
+      setActionNotification({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Điều chỉnh số suất thất bại',
+      });
     } finally {
       setIsAdjusting(false);
     }
@@ -236,7 +260,14 @@ export function MealOrdersPage() {
             <Button
               variant="outline"
               size="default"
-              onClick={() => alert('Xuất báo cáo điều phối thành công!')}
+              onClick={() => {
+                window.print();
+                setActionNotification({
+                  type: 'success',
+                  message: 'Đã sẵn sàng in báo cáo điều phối ca phục vụ.',
+                });
+                setTimeout(() => setActionNotification(null), 4000);
+              }}
               className="h-9 text-sm font-medium"
             >
               Xuất báo cáo ca
@@ -246,7 +277,7 @@ export function MealOrdersPage() {
               <Button
                 variant="default"
                 size="default"
-                onClick={handleLockOrders}
+                onClick={() => setIsLockModalOpen(true)}
                 className="h-9 text-sm font-medium"
               >
                 Chốt số lượng suất ăn
@@ -255,6 +286,25 @@ export function MealOrdersPage() {
           </>
         }
       />
+
+      {actionNotification && (
+        <div
+          className={`px-4 py-2 text-sm font-medium border-b flex items-center justify-between shrink-0 ${
+            actionNotification.type === 'success'
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              : 'bg-rose-50 text-rose-800 border-rose-200'
+          }`}
+        >
+          <span>{actionNotification.message}</span>
+          <button
+            type="button"
+            onClick={() => setActionNotification(null)}
+            className="text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+          >
+            Đóng
+          </button>
+        </div>
+      )}
 
       {/* Zone 2: TelemetrySubbar (44px / h-11) */}
       <TelemetrySubbar
@@ -319,12 +369,30 @@ export function MealOrdersPage() {
       {/* Adjustment Modal */}
       <Modal
         isOpen={!!selectedOrder}
-        onClose={() => setSelectedOrder(null)}
+        onClose={() => {
+          if (!isAdjusting) {
+            setSelectedOrder(null);
+            setAdjustError(null);
+          }
+        }}
+        isDirty={
+          selectedOrder
+            ? adjustmentReason.trim().length > 0 || adjustedServings !== selectedOrder.finalServings
+            : false
+        }
         title="Điều chỉnh số suất ăn sau chốt"
         description={selectedOrder ? `${selectedOrder.mealType} - ${selectedOrder.customerName}` : undefined}
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setSelectedOrder(null)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isAdjusting}
+              onClick={() => {
+                setSelectedOrder(null);
+                setAdjustError(null);
+              }}
+            >
               Hủy bỏ
             </Button>
             <Button
@@ -362,12 +430,52 @@ export function MealOrdersPage() {
               <Input
                 placeholder="Ví dụ: Khách hàng báo tăng ca đột xuất +20 người"
                 value={adjustmentReason}
-                onChange={(e) => setAdjustmentReason(e.target.value)}
-                className="h-9"
+                onChange={(e) => {
+                  setAdjustmentReason(e.target.value);
+                  if (adjustError) setAdjustError(null);
+                }}
+                className={`h-9 ${adjustError ? 'border-red-500' : ''}`}
               />
+              {adjustError && (
+                <p className="text-xs text-red-600 font-medium">{adjustError}</p>
+              )}
             </div>
           </div>
         )}
+      </Modal>
+
+      {/* Lock Orders Confirmation Modal */}
+      <Modal
+        isOpen={isLockModalOpen}
+        onClose={() => {
+          if (!isLoading) setIsLockModalOpen(false);
+        }}
+        title="Xác nhận chốt số lượng suất ăn ca"
+        description={`${customerCode} · Ngày ${serviceDate} · ${shiftName === 'MORNING' ? 'Ca sáng' : 'Ca chiều'}`}
+        footer={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isLoading}
+              onClick={() => setIsLockModalOpen(false)}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              disabled={isLoading}
+              onClick={handleLockOrders}
+            >
+              {isLoading ? 'Đang chốt...' : 'Xác nhận chốt đơn'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-700">
+          Hành động này sẽ khóa số liệu đơn ăn của ca phục vụ, dùng làm căn cứ chính thức để phát lệnh KHSX và bóc tách định mức vật tư. Bạn có chắc chắn muốn chốt số lượng này không?
+        </p>
       </Modal>
     </div>
   );

@@ -31,16 +31,7 @@ interface StockCardRow {
   closingStock: number;
 }
 
-const SAMPLE_STOCK_CARDS: StockCardRow[] = [
-  { materialCode: 'NL-THIT-01', materialName: 'Thịt đùi heo tươi', unit: 'Kilogram', openingStock: 250, inQty: 120, outQty: 185.5, closingStock: 184.5 },
-  { materialCode: 'NL-GA-06', materialName: 'Thịt gà phi lê tươi', unit: 'Kilogram', openingStock: 180, inQty: 70, outQty: 160.0, closingStock: 90.0 },
-  { materialCode: 'NL-CA-02', materialName: 'Chả cá thác lác', unit: 'Kilogram', openingStock: 150, inQty: 140, outQty: 142.0, closingStock: 148.0 },
-  { materialCode: 'NL-RAU-03', materialName: 'Bầu sao tươi', unit: 'Kilogram', openingStock: 300, inQty: 200, outQty: 220.0, closingStock: 280.0 },
-  { materialCode: 'NL-GIA-04', materialName: 'Giá đỗ sạch', unit: 'Kilogram', openingStock: 120, inQty: 110, outQty: 95.0, closingStock: 135.0 },
-  { materialCode: 'NL-TOM-05', materialName: 'Tôm thẻ bóc vỏ', unit: 'Kilogram', openingStock: 80, inQty: 35, outQty: 45.0, closingStock: 70.0 },
-  { materialCode: 'NL-DAUAN-09', materialName: 'Dầu ăn thực vật Cái Lân', unit: 'Lít', openingStock: 90, inQty: 40, outQty: 40.0, closingStock: 90.0 },
-  { materialCode: 'NL-NUOCMAM-10', materialName: 'Nước mắm cá cơm 30 độ', unit: 'Lít', openingStock: 60, inQty: 25, outQty: 25.0, closingStock: 60.0 },
-];
+
 
 export function WarehousePage() {
   const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
@@ -107,19 +98,71 @@ export function WarehousePage() {
     };
   }, []);
 
+  const stockCards: StockCardRow[] = useMemo(() => {
+    const map = new Map<string, StockCardRow>();
+    receipts.forEach((r) => {
+      r.lines.forEach((l) => {
+        const existing = map.get(l.ingredientCode) || {
+          materialCode: l.ingredientCode,
+          materialName: l.ingredientName,
+          unit: l.unit,
+          openingStock: 0,
+          inQty: 0,
+          outQty: 0,
+          closingStock: 0,
+        };
+        existing.inQty += l.receivedQty;
+        existing.closingStock = existing.openingStock + existing.inQty - existing.outQty;
+        map.set(l.ingredientCode, existing);
+      });
+    });
+    issues.forEach((i) => {
+      i.lines.forEach((l) => {
+        const existing = map.get(l.ingredientCode) || {
+          materialCode: l.ingredientCode,
+          materialName: l.ingredientName,
+          unit: l.unit,
+          openingStock: 0,
+          inQty: 0,
+          outQty: 0,
+          closingStock: 0,
+        };
+        existing.outQty += l.issuedQty;
+        existing.closingStock = existing.openingStock + existing.inQty - existing.outQty;
+        map.set(l.ingredientCode, existing);
+      });
+    });
+    return Array.from(map.values());
+  }, [receipts, issues]);
+
   const handleCreateIssue = async () => {
     if (!issueNotes.trim()) {
       alert('Vui lòng nhập ghi chú / lý do xuất kho (BR-GLOBAL-03)');
       return;
     }
+    const targetWh = selectedWarehouseId === 'ALL' ? warehouses[0]?.warehouseId : selectedWarehouseId;
+    if (!targetWh) {
+      alert('Vui lòng chọn một kho lưu trữ hợp lệ.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await warehouseApi.createIssue({
-        warehouseId: selectedWarehouseId === 'ALL' ? 'wh-1' : selectedWarehouseId,
+        warehouseId: targetWh,
+        issueDate: movementDate,
         shiftName: issueShift,
-        lines: [{ ingredientId: 'ing-1', qty: 50 }],
+        lines: [
+          {
+            ingredientId: 'ing-auto',
+            requestedQty: 10,
+            issuedQty: 10,
+            unitId: 'KG',
+            varianceReason: issueNotes.trim(),
+          },
+        ],
       });
       setIsNewIssueOpen(false);
+      setIssueNotes('');
       await loadData();
       alert('Đã tạo phiếu xuất kho nguyên liệu ca thành công!');
     } catch (err) {
@@ -139,7 +182,7 @@ export function WarehousePage() {
   const TAB_ITEMS = [
     { id: 'issues', label: 'Phiếu xuất kho ca', count: issues.length },
     { id: 'receipts', label: 'Phiếu nhập kho từ PO', count: receipts.length },
-    { id: 'stock', label: 'Thẻ kho & Tồn hiện tại', count: SAMPLE_STOCK_CARDS.length },
+    { id: 'stock', label: 'Thẻ kho & Tồn hiện tại', count: stockCards.length },
   ];
 
   // Tab 1: Issues Columns
@@ -421,7 +464,7 @@ export function WarehousePage() {
 
         {activeTab === 'stock' && (
           <DataGrid<StockCardRow>
-            data={SAMPLE_STOCK_CARDS}
+            data={stockCards}
             columns={stockColumns}
             keyExtractor={(row) => row.materialCode}
           />

@@ -84,6 +84,20 @@ export interface RawIssue {
   }>;
 }
 
+export interface CreateInventoryIssuePayload {
+  commandId?: string;
+  issueDate: string;
+  shiftName?: string;
+  warehouseId?: string;
+  lines: Array<{
+    ingredientId: string;
+    requestedQty: number;
+    issuedQty: number;
+    unitId: string;
+    varianceReason?: string;
+  }>;
+}
+
 export const warehouseApi = {
   async getWarehouses(): Promise<WarehouseItem[]> {
     return apiClient<WarehouseItem[]>('/warehouses');
@@ -135,25 +149,23 @@ export const warehouseApi = {
     }));
   },
 
-  async createIssue(data: {
-    warehouseId: string;
-    shiftName: string;
-    lines: Array<{ ingredientId: string; qty: number }>;
-  }): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/inventory-issues', {
+  async createIssue(data: CreateInventoryIssuePayload): Promise<{ issueId?: string; success: boolean }> {
+    const payload = {
+      commandId: data.commandId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cmd-${Date.now()}`),
+      issueDate: data.issueDate,
+      shiftName: data.shiftName,
+      warehouseId: data.warehouseId,
+      lines: data.lines.map((l) => ({
+        ingredientId: l.ingredientId,
+        requestedQty: l.requestedQty,
+        issuedQty: l.issuedQty,
+        unitId: l.unitId,
+        varianceReason: l.varianceReason,
+      })),
+    };
+    return apiClient<{ issueId?: string; success: boolean }>('/inventory-issues', {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async createReceipt(data: {
-    warehouseId: string;
-    supplierId: string;
-    lines: Array<{ ingredientId: string; qty: number; price: number }>;
-  }): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/inventory-receipts', {
-      method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
   },
 };

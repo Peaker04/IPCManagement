@@ -12,6 +12,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
 import { ActionGuard } from '../../components/ui/action-guard';
+import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import {
   chefApi,
   type ChefDashboardData,
@@ -21,11 +22,13 @@ import {
 } from '../../api/chefApi';
 
 const SHIFT_OPTIONS = [
-  { value: 'MORNING', label: 'Ca 1 (Sáng) — 21/09/2026' },
-  { value: 'AFTERNOON', label: 'Ca 2 (Chiều) — 21/09/2026' },
+  { value: 'MORNING', label: 'Ca 1 (Sáng)' },
+  { value: 'AFTERNOON', label: 'Ca 2 (Chiều)' },
 ];
 
 export function ChefDashboardPage() {
+  const [serviceDate, setServiceDate] = useState('2026-09-21');
+  const customerCode = 'DAV';
   const [shiftName, setShiftName] = useState<'MORNING' | 'AFTERNOON'>('MORNING');
   const [activeTab, setActiveTab] = useState<'dishes' | 'materials' | 'excess'>('dishes');
   const [data, setData] = useState<ChefDashboardData | null>(null);
@@ -36,11 +39,11 @@ export function ChefDashboardPage() {
   // Local checklist state for interactive quality check
   const [checklist, setChecklist] = useState<ChefMaterialChecklistItem[]>([]);
 
-  const loadData = async (shift = shiftName) => {
+  const loadData = async (date = serviceDate, shift = shiftName, cust = customerCode) => {
     setIsLoading(true);
     setError(null);
     try {
-      const resp = await chefApi.getChefDashboardData('2026-09-21', shift, 'DAV');
+      const resp = await chefApi.getChefDashboardData(date, shift, cust);
       setData(resp);
       setChecklist(resp.checklist);
     } catch (err: unknown) {
@@ -54,7 +57,7 @@ export function ChefDashboardPage() {
     let ignore = false;
     async function fetchChefData() {
       try {
-        const resp = await chefApi.getChefDashboardData('2026-09-21', shiftName, 'DAV');
+        const resp = await chefApi.getChefDashboardData(serviceDate, shiftName, customerCode);
         if (!ignore) {
           setData(resp);
           setChecklist(resp.checklist);
@@ -73,7 +76,7 @@ export function ChefDashboardPage() {
     return () => {
       ignore = true;
     };
-  }, [shiftName]);
+  }, [serviceDate, shiftName, customerCode]);
 
   const handleToggleQuality = (materialId: string) => {
     setChecklist((prev) =>
@@ -252,13 +255,18 @@ export function ChefDashboardPage() {
         title="Bếp trưởng & Ca nấu"
         contextSelectors={
           <>
+            <VietnameseDateInput
+              value={serviceDate}
+              onChange={(d) => setServiceDate(d)}
+              className="h-9 w-36 font-mono text-sm"
+            />
             <Select
               options={SHIFT_OPTIONS}
               value={shiftName}
               onChange={(e) => setShiftName(e.target.value as 'MORNING' | 'AFTERNOON')}
-              className="h-9 w-64 font-medium text-sm"
+              className="h-9 w-36 font-medium text-sm"
             />
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-xs font-medium text-slate-700 hidden lg:inline">
               Phụ trách: {data?.headChefName || 'Bếp trưởng Nguyễn Văn A'}
             </span>
             <Badge variant="info" size="default" className="h-9 px-3 text-sm font-medium flex items-center">

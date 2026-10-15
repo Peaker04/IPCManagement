@@ -6,8 +6,16 @@ export type EmptyScenario = 'true-empty' | 'prerequisite-blocked' | 'partial-dat
 
 export interface StateBoundaryProps {
   isLoading?: boolean;
+  loadingVariant?: 'table' | 'cards' | 'matrix' | 'form';
+  customSkeleton?: ReactNode;
   error?: Error | string | null;
   onRetry?: () => void;
+  isForbidden?: boolean;
+  isConflict?: boolean;
+  conflictDetails?: string;
+  onResolveConflict?: () => void;
+  isPartial?: boolean;
+  partialMessage?: string;
   isEmpty?: boolean;
   emptyScenario?: EmptyScenario;
   emptyTitle?: string;
@@ -55,8 +63,16 @@ function resolveEmptyContent(
 
 export function StateBoundary({
   isLoading,
+  loadingVariant = 'table',
+  customSkeleton,
   error,
   onRetry,
+  isForbidden,
+  isConflict,
+  conflictDetails,
+  onResolveConflict,
+  isPartial,
+  partialMessage,
   isEmpty,
   emptyScenario = 'true-empty',
   emptyTitle,
@@ -66,8 +82,25 @@ export function StateBoundary({
   children,
   className,
 }: StateBoundaryProps) {
-  // 1. Loading State (Geometric Compact Table Skeleton)
+  // 1. Loading State (Geometric Compact Table or Custom Skeleton)
   if (isLoading) {
+    if (customSkeleton) {
+      return <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>{customSkeleton}</div>;
+    }
+
+    if (loadingVariant === 'cards') {
+      return (
+        <div className={clsx('flex-1 min-h-0 w-full p-4 grid grid-cols-4 gap-3 bg-white', className)}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 bg-slate-50 border border-slate-100 rounded p-3 animate-pulse space-y-2">
+              <div className="h-3 w-1/2 bg-slate-200 rounded" />
+              <div className="h-6 w-3/4 bg-slate-200 rounded" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return (
       <div className={clsx('flex-1 min-h-0 w-full flex flex-col p-4 space-y-2 bg-white', className)}>
         <div className="h-8 w-full bg-slate-100 rounded animate-pulse" />
@@ -87,7 +120,45 @@ export function StateBoundary({
     );
   }
 
-  // 2. Error State
+  // 2. Permission-Denied State (403)
+  if (isForbidden) {
+    return (
+      <div className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
+        <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-3">
+          403
+        </div>
+        <h3 className="text-sm font-semibold text-slate-900 mb-1">Truy cập bị hạn chế</h3>
+        <p className="text-xs text-slate-500 max-w-md mb-4">Bạn không có quyền xem hoặc thực hiện thao tác trên phân hệ này.</p>
+        {onRetry && (
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            Thử lại
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // 3. Write-Reconciliation Conflict State (409)
+  if (isConflict) {
+    return (
+      <div className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
+        <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-sm mb-3">
+          409
+        </div>
+        <h3 className="text-sm font-semibold text-slate-900 mb-1">Xung đột dữ liệu đồng thời</h3>
+        <p className="text-xs text-slate-500 max-w-md mb-4">
+          {conflictDetails || 'Bản ghi đã bị thay đổi bởi người dùng khác. Vui lòng làm mới để lấy dữ liệu mới nhất.'}
+        </p>
+        {onResolveConflict && (
+          <Button variant="outline" size="sm" onClick={onResolveConflict}>
+            Tải lại dữ liệu mới nhất
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  // 4. Error State
   if (error) {
     const message = typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.';
     return (
@@ -106,7 +177,7 @@ export function StateBoundary({
     );
   }
 
-  // 3. 4 Empty State Scenarios
+  // 5. Empty State Scenarios
   if (isEmpty) {
     const content = resolveEmptyContent(emptyScenario, emptyTitle, emptyDescription, actionLabel);
 
@@ -126,5 +197,15 @@ export function StateBoundary({
     );
   }
 
-  return <>{children}</>;
+  // 6. Partial State Banner & Content
+  return (
+    <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>
+      {isPartial && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between">
+          <span>{partialMessage || 'Dữ liệu hiển thị một phần do các ca sản xuất đang diễn ra.'}</span>
+        </div>
+      )}
+      {children}
+    </div>
+  );
 }

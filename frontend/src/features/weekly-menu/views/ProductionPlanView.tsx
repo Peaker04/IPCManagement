@@ -26,13 +26,20 @@ export function ProductionPlanView({ data }: ProductionPlanViewProps) {
     { value: 'shift_2', label: 'Chỉ Ca 2 (Chiều)' },
   ];
 
-  const filteredPlans = data.productionPlans.filter((p) => {
+  const dayPlans = data.productionPlans.filter((p) => {
+    if (!currentDay || !p.serviceDate) return true;
+    return p.serviceDate === currentDay.dateStr || formatVietnameseDate(p.serviceDate) === currentDay.dateStr;
+  });
+  const activePlansPool = dayPlans.length > 0 ? dayPlans : data.productionPlans;
+
+  const filteredPlans = activePlansPool.filter((p) => {
     if (scope === 'shift_1') return p.shiftName.includes('Ca 1') || p.shiftName.includes('Sáng');
     if (scope === 'shift_2') return p.shiftName.includes('Ca 2') || p.shiftName.includes('Chiều');
     return true;
   });
 
   const totalServings = filteredPlans.reduce((sum, p) => sum + p.plannedServings, 0);
+  const activePlanCode = filteredPlans[0]?.planCode || (currentDay ? `KHSX-${data.customerCode}-${currentDay.dateStr.replace(/[^0-9]/g, '')}` : `KHSX-${data.customerCode}`);
 
   const columns: ColumnDef<ProductionPlanItem>[] = [
     {
@@ -141,7 +148,7 @@ export function ProductionPlanView({ data }: ProductionPlanViewProps) {
           <>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Mã lệnh:</span>
-              <strong className="text-slate-900 font-mono">KHSX-DAV-20260921</strong>
+              <strong className="text-slate-900 font-mono">{activePlanCode}</strong>
             </span>
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
@@ -158,7 +165,12 @@ export function ProductionPlanView({ data }: ProductionPlanViewProps) {
           </>
         }
         rightActions={
-          <Button variant="outline" size="sm" className="text-xs font-medium">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            className="text-xs font-medium"
+          >
             In lệnh sản xuất
           </Button>
         }

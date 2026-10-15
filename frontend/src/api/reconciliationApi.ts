@@ -73,19 +73,25 @@ export const reconciliationApi = {
       throw new Error(`Chưa có lô đối soát cho ngày ${serviceDate} của khách hàng ${customerCode}.`);
     }
 
-    const lines: ReconciliationLineItem[] = (matched.lines || []).map((l, idx) => ({
-      id: l.id || `rl-${idx + 1}`,
-      materialCode: l.materialCode || `NL-00${idx + 1}`,
-      materialName: l.materialName || 'Nguyên liệu',
-      unit: l.unit || 'Kilogram',
-      bomTargetQty: l.bomTargetQty || 50,
-      actualIssuedQty: l.actualIssuedQty || 50,
-      kitchenUsedQty: l.kitchenUsedQty || 50,
-      varianceQty: l.varianceQty || 0,
-      wastePercent: l.wastePercent || 0,
-      evaluation: (l.evaluation as ReconciliationLineItem['evaluation']) || 'normal',
-      notes: l.notes,
-    }));
+    const lines: ReconciliationLineItem[] = (matched.lines || []).map((l, idx) => {
+      const bom = l.bomTargetQty !== undefined ? l.bomTargetQty : 50;
+      const actual = l.kitchenUsedQty !== undefined ? l.kitchenUsedQty : (l.actualIssuedQty !== undefined ? l.actualIssuedQty : 50);
+      const variance = l.varianceQty !== undefined ? l.varianceQty : (bom - actual);
+      const waste = bom > 0 ? Math.round(((actual - bom) / bom) * 1000) / 10 : 0;
+      return {
+        id: l.id || `rl-${idx + 1}`,
+        materialCode: l.materialCode || `NL-00${idx + 1}`,
+        materialName: l.materialName || 'Nguyên liệu',
+        unit: l.unit || 'Kilogram',
+        bomTargetQty: bom,
+        actualIssuedQty: l.actualIssuedQty !== undefined ? l.actualIssuedQty : 50,
+        kitchenUsedQty: actual,
+        varianceQty: variance,
+        wastePercent: l.wastePercent !== undefined ? l.wastePercent : waste,
+        evaluation: (l.evaluation as ReconciliationLineItem['evaluation']) || (variance < 0 ? 'critical' : 'normal'),
+        notes: l.notes,
+      };
+    });
 
     return {
       batchId: matched.batchId,

@@ -172,9 +172,9 @@ export function ReconciliationPage() {
           prefix={row.varianceQty > 0 ? '+' : ''}
           className={
             row.varianceQty > 0
-              ? 'text-rose-700 font-bold'
+              ? 'text-emerald-700 font-bold'
               : row.varianceQty < 0
-              ? 'text-amber-700 font-bold'
+              ? 'text-rose-700 font-bold'
               : 'text-slate-400'
           }
         />

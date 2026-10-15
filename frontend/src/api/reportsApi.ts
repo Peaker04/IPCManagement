@@ -66,8 +66,9 @@ export interface RawIngredientDemandItem {
 }
 
 export const reportsApi = {
-  async getCurrentStock(): Promise<CurrentStockReportItem[]> {
-    const resp = await apiClient<{ items: RawStockItem[] } | RawStockItem[]>('/workflow-reports/current-stock');
+  async getCurrentStock(warehouseId?: string): Promise<CurrentStockReportItem[]> {
+    const query = warehouseId && warehouseId !== 'ALL' ? `?warehouseId=${encodeURIComponent(warehouseId)}` : '';
+    const resp = await apiClient<{ items: RawStockItem[] } | RawStockItem[]>(`/workflow-reports/current-stock${query}`);
     const items = Array.isArray(resp) ? resp : resp?.items || [];
     return items.map((s) => ({
       warehouseName: s.warehouseName || 'Kho trung tâm',
@@ -78,9 +79,14 @@ export const reportsApi = {
     }));
   },
 
-  async getPriceVarianceReports(): Promise<PriceVarianceReportItem[]> {
+  async getPriceVarianceReports(period?: string, customerCode?: string): Promise<PriceVarianceReportItem[]> {
+    const params = new URLSearchParams();
+    if (period) params.append('period', period);
+    if (customerCode && customerCode !== 'ALL') params.append('customerCode', customerCode);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
     const resp = await apiClient<{ items: RawPriceVarianceItem[] } | RawPriceVarianceItem[]>(
-      '/workflow-reports/receipt-price-variance'
+      `/workflow-reports/receipt-price-variance${query}`
     );
     const items = Array.isArray(resp) ? resp : resp?.items || [];
     return items.slice(0, 50).map((pv, idx) => ({
@@ -94,9 +100,14 @@ export const reportsApi = {
     }));
   },
 
-  async getMealCostReports(): Promise<MealCostReportItem[]> {
+  async getMealCostReports(period?: string, customerCode?: string): Promise<MealCostReportItem[]> {
+    const params = new URLSearchParams();
+    if (period) params.append('period', period);
+    if (customerCode && customerCode !== 'ALL') params.append('customerCode', customerCode);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
     const resp = await apiClient<{ items: RawIngredientDemandItem[] } | RawIngredientDemandItem[]>(
-      '/workflow-reports/ingredient-demand'
+      `/workflow-reports/ingredient-demand${query}`
     );
     const items = Array.isArray(resp) ? resp : resp?.items || [];
     return items.slice(0, 20).map((d, idx) => ({

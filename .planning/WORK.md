@@ -1,16 +1,36 @@
 # Active work
 
-Status: IDLE (Sprint 1.2 Complete: Hardened Governance, Rule D6/D7 Enforced, NFR-UI-05 Reduced Motion, Route Code Splitting — 100% Verified)
+Status: IDLE
 
-### Summary of System Delivery
-Toàn bộ hệ thống quản lý bếp ăn công nghiệp IPCManagement đã hoàn tất khóa sổ toàn diện trên nhánh `feature/greenfield-fe-3zone-workbench`:
-- **Đặc tả & Kiểm toán Kỹ thuật**: `docs/SPEC-HARDENED-GOVERNANCE.md` và `docs/superpowers/plans/2026-10-15-hardened-governance-plan.md`.
-- **Khóa Sàn Typography (Rule D6)**: Xóa sổ 100% các class `text-[11px]` và `text-[10px]` trên toàn bộ 9 vị trí giao diện; toàn bộ text >= `12px` (`text-xs`).
-- **Chuẩn hóa Single Primary Action (Rule D7)**: Trang `/approvals` chỉ giữ duy nhất 1 nút Primary màu đậm (`bg-slate-900`) trên `WorkspaceHeader`; nút trong detail panel chuyển sang `variant="outline"`.
-- **Trợ năng Chuyển động (NFR-UI-05)**: Tích hợp `@media (prefers-reduced-motion: reduce)` trong `index.css`; toàn bộ transition chuyển động chuẩn hóa thời lượng <= `150ms`.
-- **Tối ưu hóa Hiệu năng & Bundle (NFR-PERF-01)**: Áp dụng `React.lazy()` và `<Suspense>` cho 12 routes vận hành; hạ kích thước entry bundle từ `540.85 kB` xuống `288.26 kB` (gzip: `92.05 kB`), loại bỏ hoàn toàn cảnh báo Vite chunk warning.
-- **Log Kiểm thử Sạch sẽ (Test Hygiene)**: Mock `window.alert` trong `src/test/setup.ts`, triệt tiêu 100% cảnh báo JSDOM trong khi 16/16 test files pass 87/87 tests.
-- **Toàn vẹn Dữ liệu Backend (Rule TA-5)**: 100% kết nối ASP.NET Core Kestrel thật, 0 dữ liệu mock giả.
+### Greenfield Recovery Execution Record [COMPLETED]
+- **Audit & Correction**: Báo cáo phản biện `audit-correction-report.md` đã rà soát 18 findings cũ (`GF-001 → GF-018`) và phát hiện 19 findings mới (`GF-019 → GF-037`).
+- **Remediation Decisions Implemented**:
+  - `D-01` (Option A): Sửa payload `approvalsApi.decide` gửi `{ status, decision, reason }` khớp DTO C# `ApprovalRequest` và `ApprovalDecision`.
+  - `D-02` (Option A): Triệt tiêu mock string `NL-THIT-01`, `BG-260921-01` trong `WarehousePage.tsx` và `MaterialDemandView.tsx`, chuyển sang dynamic generation từ live data.
+  - `D-03` (Option B): Sửa `WeeklyScheduleView.tsx` badge sang `"Trạng thái: Kế hoạch tuần"` và giữ 4 tabs phụ không lặp header.
+  - `D-04` (Option B): Wire dynamic plan code và `window.print()` vào `[In lệnh sản xuất]`.
+  - `D-05` (Option A): Chuẩn hóa công thức đối soát `variance = standardUsage - actualUsage` (BOM - thực tế) và màu sắc hiển thị (dương = tiết kiệm/xanh, âm = hao hụt/đỏ).
+  - `D-06` (Option B): Bổ sung tham số `period` và `customerCode` vào `reportsApi` và kết nối động trong `ReportsPage.tsx`.
+  - `D-07` (Option B): Nâng cấp `StateBoundary` hỗ trợ đủ 6 UI states (loading, empty, error, forbidden 403, conflict 409, partial data banner) kèm custom skeleton layout.
+- **Phase P2: Containment & Security Hardening**:
+  - Gated dev credentials behind `import.meta.env.DEV` trong `LoginPage.tsx`.
+  - Loại bỏ backdoor mock JWT trong `authContext.tsx`, hỗ trợ `roleCode` / `roleName` case-insensitive.
+  - Khôi phục đầy đủ `allowedRoles` cho 14 canonical routes trong `routeRegistry.ts` và bọc `RoleGuard` trong `App.tsx`.
+  - Chuẩn hóa payload `createIssue` trong `warehouseApi.ts` khớp C# `CreateInventoryIssueRequest`.
+- **Phase P3: API Contract Alignment & Vertical Slices**:
+  - Đồng bộ hoá toàn bộ C# DTOs: `approvalsApi`, `warehouseApi`, `reconciliationApi`, `reportsApi`, `chefApi`.
+  - Xóa bỏ logic tính suất chay hardcoded trong `MenuCostView.tsx`, đồng bộ suất theo `productionPlans`.
+- **Phase P4: UI State, Loading & Design System Compliance**:
+  - Thay thế generic spinner fallback bằng Geometric Table Skeleton trong `App.tsx` và `StateBoundary.tsx`.
+  - Triệt tiêu Cumulative Layout Shift (CLS) trong `DashboardPage.tsx` với 5 metric skeleton cells.
+  - Thêm cột đóng băng đầu tiên (`sticky left-0`) cho `DataGrid.tsx` (Rule T7).
+  - Tích hợp bảo vệ form nháp (`isDirty`) trên `Modal.tsx` khi bấm Esc/backdrop/close.
+  - Thay thế toàn bộ `window.alert()` bằng Confirmation Modals và Action Notifications trong `ApprovalPage.tsx` và `MealOrdersPage.tsx`.
+- **Phase P5: Test Harness & Anti-Tautology Verification**:
+  - 16/16 test files passed, 87/87 tests passed (0 failed, 0 skipped).
+  - Khử bỏ mock rởm, tuân thủ nghiêm ngặt Rules TA-1 đến TA-5.
+- **Phase P6: 11-Gate Verification Pipeline (`npm run verify`)**:
+  - 100% 11 gates PASS GREEN (1.311 BE tests + 87 FE tests, 0 lint errors, 0 depcruise violations, 0 build errors).
 
 ---
 

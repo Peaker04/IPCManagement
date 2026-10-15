@@ -51,9 +51,10 @@ export const approvalsApi = {
     if (!reason || !reason.trim()) {
       throw new Error('Lý do phê duyệt / từ chối là bắt buộc (BR-GLOBAL-03).');
     }
+    const status = decision === 'APPROVE' ? 'Approve' : 'Reject';
     return apiClient<{ success: boolean }>(`/approvals/${encodeURIComponent(targetType)}/${encodeURIComponent(id)}`, {
       method: 'POST',
-      body: JSON.stringify({ decision, reason }),
+      body: JSON.stringify({ status, decision: status, reason }),
     });
   },
 };

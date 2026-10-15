@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Button } from './button';
@@ -6,6 +6,8 @@ import { Button } from './button';
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
+  isDirty?: boolean;
+  confirmCloseMessage?: string;
   title: React.ReactNode;
   description?: React.ReactNode;
   children: React.ReactNode;
@@ -17,6 +19,8 @@ export interface ModalProps {
 export function Modal({
   isOpen,
   onClose,
+  isDirty = false,
+  confirmCloseMessage,
   title,
   description,
   children,
@@ -26,12 +30,22 @@ export function Modal({
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
+  const handleSafeClose = useCallback(() => {
+    if (isDirty) {
+      const confirmDiscard = window.confirm(
+        confirmCloseMessage || 'Bạn có các thay đổi chưa được lưu. Bạn có chắc chắn muốn đóng và hủy bỏ các thay đổi này?'
+      );
+      if (!confirmDiscard) return;
+    }
+    onClose();
+  }, [isDirty, confirmCloseMessage, onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        handleSafeClose();
       }
     };
 
@@ -44,7 +58,7 @@ export function Modal({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = originalOverflow;
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, handleSafeClose]);
 
   if (!isOpen) return null;
 
@@ -55,7 +69,7 @@ export function Modal({
       aria-labelledby="modal-title"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleSafeClose();
       }}
     >
       <div
@@ -81,7 +95,7 @@ export function Modal({
           <Button
             variant="ghost"
             size="icon"
-            onClick={onClose}
+            onClick={handleSafeClose}
             aria-label="Đóng hộp thoại"
             className="h-7 w-7 text-slate-400 hover:text-slate-700"
           >

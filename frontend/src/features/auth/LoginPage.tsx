@@ -117,25 +117,27 @@ export function LoginPage() {
           </Button>
         </form>
 
-        {/* Real Database Accounts Helper */}
-        <div className="mt-6 pt-5 border-t border-slate-100">
-          <p className="text-xs text-slate-500 mb-2.5 text-center font-medium">
-            Tài khoản mẫu từ Database hệ thống (Mật khẩu: <span className="font-mono text-slate-800 font-semibold">Admin@123456</span>):
-          </p>
-          <div className="grid grid-cols-3 gap-2">
-            {SAMPLE_DB_ACCOUNTS.map((acc) => (
-              <button
-                key={acc.username}
-                type="button"
-                onClick={() => handleQuickLogin(acc.username)}
-                className="flex flex-col items-center justify-center p-2 rounded-md border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer text-center"
-              >
-                <span className="text-xs font-mono font-bold text-slate-900">{acc.username}</span>
-                <span className="text-xs text-slate-500">{acc.role}</span>
-              </button>
-            ))}
+        {/* Real Database Accounts Helper - DEV only */}
+        {import.meta.env.DEV && (
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <p className="text-xs text-slate-500 mb-2.5 text-center font-medium">
+              Tài khoản mẫu từ Database hệ thống (Mật khẩu: <span className="font-mono text-slate-800 font-semibold">Admin@123456</span>):
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {SAMPLE_DB_ACCOUNTS.map((acc) => (
+                <button
+                  key={acc.username}
+                  type="button"
+                  onClick={() => handleQuickLogin(acc.username)}
+                  className="flex flex-col items-center justify-center p-2 rounded-md border border-slate-200/80 bg-slate-50/60 hover:bg-slate-100 hover:border-slate-300 transition-colors cursor-pointer text-center"
+                >
+                  <span className="text-xs font-mono font-bold text-slate-900">{acc.username}</span>
+                  <span className="text-xs text-slate-500">{acc.role}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

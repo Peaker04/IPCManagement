@@ -7,6 +7,8 @@ import { LoginPage } from './features/auth/LoginPage';
 import { ForbiddenPage } from './features/auth/ForbiddenPage';
 import { CANONICAL_ROUTES } from './routes/routeRegistry';
 
+import { RoleGuard } from './routes/RoleGuard';
+
 // Route-level code splitting for production bundle optimization (NFR-PERF-01)
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const WeeklyMenuPage = lazy(() => import('./features/weekly-menu/WeeklyMenuPage').then((m) => ({ default: m.WeeklyMenuPage })));
@@ -23,17 +25,27 @@ const AdvancedSettingsPage = lazy(() => import('./features/admin/AdvancedSetting
 
 function WorkbenchLoadingFallback() {
   return (
-    <div className="flex-1 flex items-center justify-center bg-slate-50 p-6">
-      <div className="flex flex-col items-center gap-2.5 text-slate-500">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-300 border-t-slate-800" />
-        <span className="text-xs font-medium text-slate-600">Đang tải phân hệ...</span>
+    <div className="flex-1 min-h-0 w-full flex flex-col p-4 space-y-2 bg-white">
+      <div className="h-8 w-full bg-slate-100 rounded animate-pulse" />
+      <div className="space-y-1.5 flex-1">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-9 w-full bg-slate-50 border border-slate-100 rounded flex items-center px-4 space-x-4 animate-pulse"
+          >
+            <div className="h-3 w-1/4 bg-slate-200 rounded" />
+            <div className="h-3 w-1/3 bg-slate-200 rounded" />
+            <div className="h-3 w-1/6 bg-slate-200 rounded ml-auto" />
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
+const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
+
 export function App() {
-  void CANONICAL_ROUTES;
   return (
     <AuthProvider>
       <BrowserRouter>
@@ -42,21 +54,129 @@ export function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/forbidden" element={<ForbiddenPage />} />
 
-          {/* Protected routes wrapped in AppShell — 100% Real Canonical Routes */}
+          {/* Protected routes wrapped in AppShell with RoleGuard — 100% Real Canonical Routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
-              <Route path="/" element={<Suspense fallback={<WorkbenchLoadingFallback />}><DashboardPage /></Suspense>} />
-              <Route path="/weekly-menu" element={<Suspense fallback={<WorkbenchLoadingFallback />}><WeeklyMenuPage /></Suspense>} />
-              <Route path="/meal-orders" element={<Suspense fallback={<WorkbenchLoadingFallback />}><MealOrdersPage /></Suspense>} />
-              <Route path="/chef" element={<Suspense fallback={<WorkbenchLoadingFallback />}><ChefDashboardPage /></Suspense>} />
-              <Route path="/purchasing" element={<Suspense fallback={<WorkbenchLoadingFallback />}><PurchasingPage /></Suspense>} />
-              <Route path="/warehouse" element={<Suspense fallback={<WorkbenchLoadingFallback />}><WarehousePage /></Suspense>} />
-              <Route path="/approvals" element={<Suspense fallback={<WorkbenchLoadingFallback />}><ApprovalPage /></Suspense>} />
-              <Route path="/reconciliation" element={<Suspense fallback={<WorkbenchLoadingFallback />}><ReconciliationPage /></Suspense>} />
-              <Route path="/reports" element={<Suspense fallback={<WorkbenchLoadingFallback />}><ReportsPage /></Suspense>} />
-              <Route path="/admin-data" element={<Suspense fallback={<WorkbenchLoadingFallback />}><AdminDataPage /></Suspense>} />
-              <Route path="/settings/approval-rules" element={<Suspense fallback={<WorkbenchLoadingFallback />}><ApprovalRulesPage /></Suspense>} />
-              <Route path="/settings/advanced" element={<Suspense fallback={<WorkbenchLoadingFallback />}><AdvancedSettingsPage /></Suspense>} />
+              <Route
+                path="/"
+                element={
+                  <RoleGuard roles={getRouteRoles('/')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <DashboardPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/weekly-menu"
+                element={
+                  <RoleGuard roles={getRouteRoles('/weekly-menu')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <WeeklyMenuPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/meal-orders"
+                element={
+                  <RoleGuard roles={getRouteRoles('/meal-orders')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <MealOrdersPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/chef"
+                element={
+                  <RoleGuard roles={getRouteRoles('/chef')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <ChefDashboardPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/purchasing"
+                element={
+                  <RoleGuard roles={getRouteRoles('/purchasing')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <PurchasingPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/warehouse"
+                element={
+                  <RoleGuard roles={getRouteRoles('/warehouse')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <WarehousePage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/approvals"
+                element={
+                  <RoleGuard roles={getRouteRoles('/approvals')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <ApprovalPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/reconciliation"
+                element={
+                  <RoleGuard roles={getRouteRoles('/reconciliation')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <ReconciliationPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <RoleGuard roles={getRouteRoles('/reports')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <ReportsPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/admin-data"
+                element={
+                  <RoleGuard roles={getRouteRoles('/admin-data')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <AdminDataPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/settings/approval-rules"
+                element={
+                  <RoleGuard roles={getRouteRoles('/settings/approval-rules')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <ApprovalRulesPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
+              <Route
+                path="/settings/advanced"
+                element={
+                  <RoleGuard roles={getRouteRoles('/settings/advanced')}>
+                    <Suspense fallback={<WorkbenchLoadingFallback />}>
+                      <AdvancedSettingsPage />
+                    </Suspense>
+                  </RoleGuard>
+                }
+              />
             </Route>
           </Route>
 

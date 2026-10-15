@@ -31,8 +31,8 @@ export function ReportsPage() {
     setError(null);
     try {
       const [mc, pv, st] = await Promise.all([
-        reportsApi.getMealCostReports(),
-        reportsApi.getPriceVarianceReports(),
+        reportsApi.getMealCostReports(period, customer),
+        reportsApi.getPriceVarianceReports(period, customer),
         reportsApi.getCurrentStock(),
       ]);
       setMealCosts(mc);
@@ -50,8 +50,8 @@ export function ReportsPage() {
     async function fetchData() {
       try {
         const [mc, pv, st] = await Promise.all([
-          reportsApi.getMealCostReports(),
-          reportsApi.getPriceVarianceReports(),
+          reportsApi.getMealCostReports(period, customer),
+          reportsApi.getPriceVarianceReports(period, customer),
           reportsApi.getCurrentStock(),
         ]);
         if (!ignore) {

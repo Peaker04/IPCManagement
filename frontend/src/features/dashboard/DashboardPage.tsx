@@ -98,20 +98,27 @@ export function DashboardPage() {
 
       {/* Dải 5 ô chỉ số phẳng (56px / h-14) */}
       <div className="h-14 shrink-0 border-b border-slate-200 bg-white grid grid-cols-5 divide-x divide-slate-200 text-sm select-none">
-        {data?.metrics.map((metric) => {
-          const isSelected = selectedMetricId === metric.id;
-          return (
-            <button
-              key={metric.id}
-              type="button"
-              onClick={() =>
-                setSelectedMetricId(selectedMetricId === metric.id ? null : metric.id)
-              }
-              className={clsx(
-                'flex flex-col justify-center px-4 transition-colors text-left cursor-pointer group',
-                isSelected ? 'bg-blue-50/80 ring-1 ring-inset ring-blue-500' : 'hover:bg-slate-50'
-              )}
-            >
+        {isLoading
+          ? Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex flex-col justify-center px-4 space-y-1.5 animate-pulse">
+                <div className="h-3 w-1/2 bg-slate-200 rounded" />
+                <div className="h-4 w-3/4 bg-slate-200 rounded" />
+              </div>
+            ))
+          : data?.metrics.map((metric) => {
+              const isSelected = selectedMetricId === metric.id;
+              return (
+                <button
+                  key={metric.id}
+                  type="button"
+                  onClick={() =>
+                    setSelectedMetricId(selectedMetricId === metric.id ? null : metric.id)
+                  }
+                  className={clsx(
+                    'flex flex-col justify-center px-4 transition-colors text-left cursor-pointer group',
+                    isSelected ? 'bg-blue-50/80 ring-1 ring-inset ring-blue-500' : 'hover:bg-slate-50'
+                  )}
+                >
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500 font-medium truncate">
                   {metric.label}

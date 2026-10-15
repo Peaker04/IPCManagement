@@ -99,7 +99,15 @@ export function PurchasingPage() {
       await purchasingApi.createPurchaseOrder({
         supplierId: newSupplierId,
         orderDate,
-        lines: [{ ingredientId: 'ing-custom', quantity: newQty, unitPrice: newPrice }],
+        lines: [
+          {
+            ingredientId: newIngredientName.trim()
+              ? `ing-${newIngredientName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+              : 'ing-custom',
+            quantity: newQty,
+            unitPrice: newPrice,
+          },
+        ],
       });
       setIsNewPoOpen(false);
       await loadData();

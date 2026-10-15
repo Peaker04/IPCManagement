@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
@@ -156,6 +156,47 @@ export function WeeklyMenuPage() {
     }
   };
 
+  const isViewEmpty = useMemo(() => {
+    if (!data) return true;
+    switch (activeView) {
+      case 'demand':
+        return data.demandRows.length === 0;
+      case 'production-plan':
+        return data.productionPlans.length === 0;
+      case 'cost':
+        return data.dishCosts.length === 0;
+      case 'schedule':
+      default:
+        return data.matrixRows.length === 0;
+    }
+  }, [data, activeView]);
+
+  const emptyContext = useMemo(() => {
+    switch (activeView) {
+      case 'demand':
+        return {
+          title: 'Chưa có nhu cầu vật tư cho tuần này',
+          desc: 'Chưa phát sinh dữ liệu bàn giao nguyên liệu từ KHSX.',
+        };
+      case 'production-plan':
+        return {
+          title: 'Chưa có kế hoạch sản xuất ca',
+          desc: 'Chưa có lệnh sản xuất nào được phát cho ca tuần này.',
+        };
+      case 'cost':
+        return {
+          title: 'Chưa có số liệu phân rã chi phí BOM',
+          desc: 'Chưa có định mức chi phí cho các món ăn trong tuần.',
+        };
+      case 'schedule':
+      default:
+        return {
+          title: 'Chưa có thực đơn cho tuần này',
+          desc: 'Khách hàng chưa đăng ký thực đơn cho khoảng thời gian đã chọn. Bấm nút bên dưới để tạo mới.',
+        };
+    }
+  }, [activeView]);
+
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       {/* Zone 1: Shared WorkspaceHeader (Cao 56px / h-14) */}
@@ -199,9 +240,9 @@ export function WeeklyMenuPage() {
         isLoading={isLoading}
         error={error}
         onRetry={handleRefresh}
-        isEmpty={!data || data.matrixRows.length === 0}
-        emptyTitle="Chưa có thực đơn cho tuần này"
-        emptyDescription="Khách hàng chưa đăng ký thực đơn cho khoảng thời gian đã chọn. Bấm nút bên dưới để tạo mới."
+        isEmpty={isViewEmpty}
+        emptyTitle={emptyContext.title}
+        emptyDescription={emptyContext.desc}
         actionLabel="Khởi tạo thực đơn tuần"
         onAction={handleRefresh}
       >
