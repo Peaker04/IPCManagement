@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { PurchasingPage } from '../features/purchasing/PurchasingPage';
 import { AuthProvider } from '../store/authContext';
-import { purchasingApi, getBaselinePurchaseOrders } from '../api/purchasingApi';
+import { purchasingApi } from '../api/purchasingApi';
+import { MOCK_PURCHASE_ORDERS, MOCK_SUPPLIERS } from '../test/fixtures';
 
 function renderPurchasing(initialEntry = '/purchasing') {
   return render(
@@ -19,6 +20,11 @@ function renderPurchasing(initialEntry = '/purchasing') {
 }
 
 describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
+  beforeEach(() => {
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue(MOCK_PURCHASE_ORDERS);
+    vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValue(MOCK_SUPPLIERS);
+  });
+
   it('renders Zone 1 WorkspaceHeader (56px) with supplier select, date, and single primary button (Rule D7)', async () => {
     renderPurchasing();
 
@@ -26,7 +32,7 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
 
     // Select supplier and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('2026-07-21')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('21/07/2026')).toBeInTheDocument();
     expect(screen.getByText('PO đang xử lý')).toBeInTheDocument();
 
     // Rule D7: Exactly 1 primary button + 1 outline
@@ -102,7 +108,8 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
     expect(screen.getByText('Lỗi máy chủ thu mua')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValueOnce(getBaselinePurchaseOrders());
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValueOnce(MOCK_PURCHASE_ORDERS);
+    vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValueOnce(MOCK_SUPPLIERS);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

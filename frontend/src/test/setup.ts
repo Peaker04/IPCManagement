@@ -1,8 +1,32 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach, vi } from 'vitest';
+import { beforeEach, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
-// Automatically cleanup after each test
+const DEFAULT_TEST_USER = {
+  userId: '10000000-0000-0000-0000-000000000001',
+  username: 'admin',
+  fullName: 'Admin User',
+  roleCode: 'ADMIN',
+  roleName: 'Admin',
+  isActive: true,
+  isAdminFullAccess: true,
+  permissions: ['*'],
+};
+
+beforeEach(() => {
+  localStorage.setItem('ipc_v3_token', 'test-jwt-token');
+  localStorage.setItem('ipc_v3_user', JSON.stringify(DEFAULT_TEST_USER));
+  localStorage.setItem('ipc_v3_mode', 'DEFAULT');
+
+  // Default fetch mock so background queries in tests resolve safely without ECONNREFUSED
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+    return new Response(JSON.stringify({ success: true, data: [] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  });
+});
+
 afterEach(() => {
   cleanup();
   localStorage.clear();

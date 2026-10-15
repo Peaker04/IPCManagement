@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ApprovalPage } from '../features/approvals/ApprovalPage';
 import { AuthProvider } from '../store/authContext';
-import { approvalsApi, getBaselineApprovals } from '../api/approvalsApi';
+import { approvalsApi } from '../api/approvalsApi';
+import { MOCK_APPROVALS } from '../test/fixtures';
 
 function renderApprovals(initialEntry = '/approvals') {
   return render(
@@ -19,6 +20,10 @@ function renderApprovals(initialEntry = '/approvals') {
 }
 
 describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
+  beforeEach(() => {
+    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValue(MOCK_APPROVALS);
+  });
+
   it('renders Zone 1 WorkspaceHeader (56px) with type select, date, and single primary button (Rule D7)', async () => {
     renderApprovals();
 
@@ -26,7 +31,7 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
 
     // Select type and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('2026-09-21')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
     expect(screen.getAllByText(/chờ xử lý/i).length).toBeGreaterThan(0);
 
     // Rule D7: Exactly 1 primary button + 1 outline
@@ -72,9 +77,9 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
   it('approves selected item and updates decision', async () => {
     renderApprovals();
 
-    const approveBtn = await screen.findByRole('button', { name: 'Phê duyệt hồ sơ' });
-    expect(approveBtn).toBeInTheDocument();
-    await userEvent.click(approveBtn);
+    const approveBtns = await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' });
+    expect(approveBtns.length).toBeGreaterThan(0);
+    await userEvent.click(approveBtns[0]);
   });
 
   it('handles error state and provides retry action', async () => {
@@ -88,7 +93,7 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     expect(screen.getByText('Lỗi máy chủ phê duyệt')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValueOnce(getBaselineApprovals());
+    vi.spyOn(approvalsApi, 'getInbox').mockResolvedValueOnce(MOCK_APPROVALS);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

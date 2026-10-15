@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AdvancedSettingsPage } from '../features/admin/AdvancedSettingsPage';
 import { AuthProvider } from '../store/authContext';
+import { systemApi } from '../api/systemApi';
 
 function renderAdvancedSettings(initialEntry = '/settings/advanced') {
   return render(
@@ -18,6 +19,10 @@ function renderAdvancedSettings(initialEntry = '/settings/advanced') {
 }
 
 describe('Advanced Settings Feature (FR-SYS — Thiết lập nâng cao & Vận hành)', () => {
+  beforeEach(() => {
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', version: 1 });
+    vi.spyOn(systemApi, 'setOperationalMode').mockImplementation(async (mode) => ({ mode, version: 1 }));
+  });
   it('renders Zone 1 WorkspaceHeader (56px) with mode badge and single primary button (Rule D7)', async () => {
     renderAdvancedSettings();
 

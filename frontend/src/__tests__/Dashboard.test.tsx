@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage } from '../features/dashboard/DashboardPage';
 import { AuthProvider } from '../store/authContext';
-import { dashboardApi, getBaselineDashboardData } from '../api/dashboardApi';
+import { dashboardApi } from '../api/dashboardApi';
+import { MOCK_DASHBOARD_DATA } from '../test/fixtures';
 
 function renderDashboard() {
   return render(
@@ -17,6 +18,9 @@ function renderDashboard() {
 }
 
 describe('Dashboard Feature (FR-DASH — Bàn điều hành hôm nay)', () => {
+  beforeEach(() => {
+    vi.spyOn(dashboardApi, 'getDashboardData').mockResolvedValue(MOCK_DASHBOARD_DATA);
+  });
   it('renders Zone 1 WorkspaceHeader (56px) with date, badges, and single primary button (Rule D7)', async () => {
     renderDashboard();
 
@@ -82,7 +86,7 @@ describe('Dashboard Feature (FR-DASH — Bàn điều hành hôm nay)', () => {
     expect(screen.getByText('Mạng bị gián đoạn')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(dashboardApi, 'getDashboardData').mockResolvedValueOnce(getBaselineDashboardData());
+    vi.spyOn(dashboardApi, 'getDashboardData').mockResolvedValueOnce(MOCK_DASHBOARD_DATA);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

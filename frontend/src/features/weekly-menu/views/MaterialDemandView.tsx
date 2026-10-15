@@ -13,7 +13,8 @@ import type { MaterialDemandItem, ProductionPlanItem } from '../../../types';
 export interface MaterialDemandViewProps {
   data: WeeklyMenuData;
   onRecalculate?: () => void;
-  onOpenApprovalQueue?: () => void;
+  isApprovalModalOpen?: boolean;
+  setIsApprovalModalOpen?: (open: boolean) => void;
 }
 
 interface HandoffVoucher {
@@ -53,11 +54,15 @@ const SAMPLE_VOUCHERS: HandoffVoucher[] = [
 export function MaterialDemandView({
   data,
   onRecalculate,
-  onOpenApprovalQueue,
+  isApprovalModalOpen: externalModalOpen,
+  setIsApprovalModalOpen: externalSetModalOpen,
 }: MaterialDemandViewProps) {
   const [activeSegmentTab, setActiveSegmentTab] = useState<'demand' | 'source-khsx' | 'vouchers'>('demand');
   const [dayIndex, setDayIndex] = useState(0);
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
+  const [internalModalOpen, setInternalModalOpen] = useState(false);
+
+  const isModalOpen = externalModalOpen !== undefined ? externalModalOpen : internalModalOpen;
+  const setModalOpen = externalSetModalOpen || setInternalModalOpen;
 
   const currentDay = data.scheduleDays[dayIndex] || data.scheduleDays[0];
 
@@ -292,14 +297,11 @@ export function MaterialDemandView({
             >
               Tính lại nhu cầu
             </Button>
-            {/* Rule D7: variant="outline" here so WorkspaceHeader owns the single primary action */}
+            {/* Rule D7: variant="outline" in subbar, Header holds the primary action */}
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                if (onOpenApprovalQueue) onOpenApprovalQueue();
-                else setIsApprovalModalOpen(true);
-              }}
+              onClick={() => setModalOpen(true)}
               className="text-xs font-medium border-slate-300 text-slate-700 hover:bg-slate-100"
             >
               Mở hàng đợi duyệt
@@ -335,20 +337,20 @@ export function MaterialDemandView({
 
       {/* Modal hàng đợi duyệt */}
       <Modal
-        isOpen={isApprovalModalOpen}
-        onClose={() => setIsApprovalModalOpen(false)}
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
         title="Hàng đợi phê duyệt nhu cầu bàn giao vật tư"
         description={`Kế hoạch bàn giao nguyên liệu ngày ${currentDay.dayName}, ${currentDay.dateStr}`}
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setIsApprovalModalOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setModalOpen(false)}>
               Đóng
             </Button>
             <Button
               variant="default"
               size="sm"
               onClick={() => {
-                setIsApprovalModalOpen(false);
+                setModalOpen(false);
                 alert('Đã phê duyệt lệnh xuất kho nguyên liệu thành công!');
               }}
             >

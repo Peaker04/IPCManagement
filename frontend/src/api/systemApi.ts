@@ -1,25 +1,32 @@
 import { apiClient } from './client';
 import type { OperationalMode } from '../types';
 
+export interface SystemOperationModeDto {
+  mode: OperationalMode;
+  version: number;
+  reason?: string;
+  updatedAt?: string;
+}
+
 export const systemApi = {
-  async getOperationalMode(): Promise<{ mode: OperationalMode }> {
-    try {
-      return await apiClient<{ mode: OperationalMode }>('/systemoperationmode');
-    } catch {
-      const local = (localStorage.getItem('ipc_v3_mode') as OperationalMode) || 'DEFAULT';
-      return { mode: local };
-    }
+  async getOperationalMode(): Promise<SystemOperationModeDto> {
+    return apiClient<SystemOperationModeDto>('/system-operation-mode');
   },
 
-  async setOperationalMode(mode: OperationalMode): Promise<void> {
+  async setOperationalMode(
+    mode: OperationalMode,
+    expectedVersion = 1,
+    reason?: string
+  ): Promise<SystemOperationModeDto> {
     localStorage.setItem('ipc_v3_mode', mode);
-    try {
-      await apiClient('/systemoperationmode', {
-        method: 'POST',
-        body: JSON.stringify({ mode }),
-      });
-    } catch {
-      // Offline fallback
-    }
+    return apiClient<SystemOperationModeDto>('/system-operation-mode', {
+      method: 'PUT',
+      body: JSON.stringify({
+        mode,
+        expectedVersion,
+        confirmed: true,
+        reason: reason || 'Chuyển đổi chế độ vận hành từ giao diện người dùng',
+      }),
+    });
   },
 };

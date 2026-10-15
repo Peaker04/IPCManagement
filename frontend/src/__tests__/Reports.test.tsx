@@ -1,10 +1,22 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { AuthProvider } from '../store/authContext';
-import { reportsApi } from '../api/reportsApi';
+import { reportsApi, type MealCostReportItem, type PriceVarianceReportItem, type CurrentStockReportItem } from '../api/reportsApi';
+
+const MOCK_MEAL_COSTS: MealCostReportItem[] = [
+  { dishCode: 'MON-01', dishName: 'Khô gà lá chanh', plannedServings: 844, targetPrice: 25000, calculatedCost: 11450, costRatioPercent: 45.8, varianceAmount: -200, status: 'optimal' },
+];
+
+const MOCK_PRICE_VARIANCES: PriceVarianceReportItem[] = [
+  { ingredientCode: 'NL-001', ingredientName: 'Thịt đùi heo tươi', unit: 'Kilogram', plannedPrice: 92000, actualPrice: 95000, varianceAmount: 3000, variancePercent: 3.2 },
+];
+
+const MOCK_STOCKS: CurrentStockReportItem[] = [
+  { warehouseName: 'Kho Trung tâm Bình Dương', ingredientName: 'Thịt đùi heo tươi', unitName: 'Kilogram', currentQty: 184.5 },
+];
 
 function renderReports(initialEntry = '/reports') {
   return render(
@@ -19,6 +31,12 @@ function renderReports(initialEntry = '/reports') {
 }
 
 describe('Reports Feature (FR-REP — Báo cáo chi phí & Hao hụt)', () => {
+  beforeEach(() => {
+    vi.spyOn(reportsApi, 'getMealCostReports').mockResolvedValue(MOCK_MEAL_COSTS);
+    vi.spyOn(reportsApi, 'getPriceVarianceReports').mockResolvedValue(MOCK_PRICE_VARIANCES);
+    vi.spyOn(reportsApi, 'getCurrentStock').mockResolvedValue(MOCK_STOCKS);
+  });
+
   it('renders Zone 1 WorkspaceHeader (56px) with period select, customer select, and single primary button (Rule D7)', async () => {
     renderReports();
 
@@ -109,6 +127,7 @@ describe('Reports Feature (FR-REP — Báo cáo chi phí & Hao hụt)', () => {
     expect(screen.getByText('Lỗi máy chủ báo cáo')).toBeInTheDocument();
 
     // Click retry
+    vi.spyOn(reportsApi, 'getMealCostReports').mockResolvedValueOnce(MOCK_MEAL_COSTS);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

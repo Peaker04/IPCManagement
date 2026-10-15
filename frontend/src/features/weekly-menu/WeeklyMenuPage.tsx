@@ -6,6 +6,7 @@ import { Select } from '../../components/ui/select';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { ActionGuard } from '../../components/ui/action-guard';
 import { weeklyMenuApi, type WeeklyMenuData } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
 import { WeeklyScheduleView } from './views/WeeklyScheduleView';
@@ -26,6 +27,9 @@ export function WeeklyMenuPage() {
   const [data, setData] = useState<WeeklyMenuData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Demand approval queue modal trigger
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
 
   // Fetch customer options on mount
   useEffect(() => {
@@ -84,6 +88,7 @@ export function WeeklyMenuPage() {
       await weeklyMenuApi.recalculateDemand(customerCode, weekStartDate);
       const resp = await weeklyMenuApi.getWeeklyMenuData(customerCode, weekStartDate);
       setData(resp);
+      alert('Đã tính lại nhu cầu nguyên liệu thành công từ kế hoạch suất ăn!');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Tính lại nhu cầu thất bại');
     } finally {
@@ -95,6 +100,61 @@ export function WeeklyMenuPage() {
     value: c.customerCode,
     label: `${c.customerCode} - ${c.customerName}`,
   }));
+
+  // Rule D7: Single Primary Button on WorkspaceHeader adapts dynamically to activeView
+  const renderHeaderPrimaryAction = () => {
+    switch (activeView) {
+      case 'demand':
+        return (
+          <ActionGuard roles={['ADMIN', 'MANAGER', 'DIEUPHOI', 'CHEF']}>
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => setIsApprovalModalOpen(true)}
+              className="h-9 text-sm font-medium"
+            >
+              Mở hàng đợi duyệt
+            </Button>
+          </ActionGuard>
+        );
+      case 'production-plan':
+        return (
+          <Button
+            variant="default"
+            size="default"
+            onClick={() => alert('Đang in lệnh sản xuất cho ca nấu...')}
+            className="h-9 text-sm font-medium"
+          >
+            In lệnh sản xuất
+          </Button>
+        );
+      case 'cost':
+        return (
+          <Button
+            variant="default"
+            size="default"
+            onClick={() => alert('Xuất bảng phân rã chi phí giá vốn BOM thành công!')}
+            className="h-9 text-sm font-medium"
+          >
+            Xuất bảng chi phí
+          </Button>
+        );
+      case 'schedule':
+      default:
+        return (
+          <ActionGuard roles={['ADMIN', 'MANAGER', 'DIEUPHOI']}>
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => alert('Đã gửi phê duyệt toàn bộ kế hoạch tuần')}
+              className="h-9 text-sm font-medium"
+            >
+              Duyệt kế hoạch tuần
+            </Button>
+          </ActionGuard>
+        );
+    }
+  };
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
@@ -129,25 +189,17 @@ export function WeeklyMenuPage() {
             >
               Làm mới
             </Button>
-            {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => alert('Đã gửi phê duyệt toàn bộ kế hoạch tuần')}
-              className="h-9 text-sm font-medium"
-            >
-              Duyệt kế hoạch tuần
-            </Button>
+            {renderHeaderPrimaryAction()}
           </>
         }
       />
 
-      {/* State Boundary & Active View Render (NO duplicate tab bar!) */}
+      {/* State Boundary & Active View Render (NO duplicate tab bar in page!) */}
       <StateBoundary
         isLoading={isLoading}
         error={error}
         onRetry={handleRefresh}
-        isEmpty={!data}
+        isEmpty={!data || data.matrixRows.length === 0}
         emptyTitle="Chưa có thực đơn cho tuần này"
         emptyDescription="Khách hàng chưa đăng ký thực đơn cho khoảng thời gian đã chọn. Bấm nút bên dưới để tạo mới."
         actionLabel="Khởi tạo thực đơn tuần"
@@ -163,6 +215,8 @@ export function WeeklyMenuPage() {
               <MaterialDemandView
                 data={data}
                 onRecalculate={handleRecalculate}
+                isApprovalModalOpen={isApprovalModalOpen}
+                setIsApprovalModalOpen={setIsApprovalModalOpen}
               />
             )}
 

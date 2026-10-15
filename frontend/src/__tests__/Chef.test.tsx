@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ChefDashboardPage } from '../features/chef/ChefDashboardPage';
 import { AuthProvider } from '../store/authContext';
-import { chefApi, getBaselineChefData } from '../api/chefApi';
+import { chefApi } from '../api/chefApi';
+import { MOCK_CHEF_DATA } from '../test/fixtures';
 
 function renderChef(initialEntry = '/chef') {
   return render(
@@ -19,6 +20,9 @@ function renderChef(initialEntry = '/chef') {
 }
 
 describe('Chef Feature (FR-CHEF — Bếp trưởng & Ca nấu)', () => {
+  beforeEach(() => {
+    vi.spyOn(chefApi, 'getChefDashboardData').mockResolvedValue(MOCK_CHEF_DATA);
+  });
   it('renders Zone 1 WorkspaceHeader (56px) with shift select, chef name, and single primary button (Rule D7)', async () => {
     renderChef();
 
@@ -129,7 +133,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & Ca nấu)', () => {
     expect(screen.getByText('Lỗi đồng bộ dữ liệu bếp')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(chefApi, 'getChefDashboardData').mockResolvedValueOnce(getBaselineChefData());
+    vi.spyOn(chefApi, 'getChefDashboardData').mockResolvedValueOnce(MOCK_CHEF_DATA);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

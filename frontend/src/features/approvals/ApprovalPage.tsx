@@ -12,6 +12,7 @@ import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Input } from '../../components/ui/input';
+import { ActionGuard } from '../../components/ui/action-guard';
 import {
   approvalsApi,
   type ApprovalInboxItem,
@@ -70,6 +71,10 @@ export function ApprovalPage() {
 
   const handleDecision = async (decision: 'APPROVE' | 'REJECT') => {
     if (!selectedItem) return;
+    if (decision === 'REJECT' && !decisionReason.trim()) {
+      alert('Vui lòng nhập lý do từ chối hồ sơ (BR-GLOBAL-03)');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await approvalsApi.decide(selectedItem.targetType, selectedItem.targetId, decision, decisionReason);
@@ -197,15 +202,17 @@ export function ApprovalPage() {
               Làm mới
             </Button>
             {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              disabled={!selectedItem || isSubmitting}
-              onClick={() => handleDecision('APPROVE')}
-              className="h-9 text-sm font-medium"
-            >
-              Phê duyệt yêu cầu đang chọn
-            </Button>
+            <ActionGuard roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
+              <Button
+                variant="default"
+                size="default"
+                disabled={!selectedItem || isSubmitting}
+                onClick={() => handleDecision('APPROVE')}
+                className="h-9 text-sm font-medium"
+              >
+                Phê duyệt yêu cầu đang chọn
+              </Button>
+            </ActionGuard>
           </>
         }
       />
@@ -336,23 +343,27 @@ export function ApprovalPage() {
                 </div>
 
                 <div className="h-12 px-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2.5 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={isSubmitting}
-                    onClick={() => handleDecision('REJECT')}
-                    className="text-red-600 hover:bg-red-50 border-red-200"
-                  >
-                    Từ chối hồ sơ
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    disabled={isSubmitting}
-                    onClick={() => handleDecision('APPROVE')}
-                  >
-                    {isSubmitting ? 'Đang duyệt...' : 'Phê duyệt hồ sơ'}
-                  </Button>
+                  <ActionGuard roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={isSubmitting}
+                      onClick={() => handleDecision('REJECT')}
+                      className="text-red-600 hover:bg-red-50 border-red-200"
+                    >
+                      Từ chối hồ sơ
+                    </Button>
+                  </ActionGuard>
+                  <ActionGuard roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      disabled={isSubmitting}
+                      onClick={() => handleDecision('APPROVE')}
+                    >
+                      {isSubmitting ? 'Đang duyệt...' : 'Phê duyệt hồ sơ'}
+                    </Button>
+                  </ActionGuard>
                 </div>
               </div>
             ) : (

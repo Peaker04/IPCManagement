@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { WarehousePage } from '../features/warehouse/WarehousePage';
 import { AuthProvider } from '../store/authContext';
-import { warehouseApi, getBaselineIssues, getBaselineReceipts } from '../api/warehouseApi';
+import { warehouseApi } from '../api/warehouseApi';
+import { MOCK_WAREHOUSES, MOCK_ISSUES, MOCK_RECEIPTS } from '../test/fixtures';
 
 function renderWarehouse(initialEntry = '/warehouse') {
   return render(
@@ -19,6 +20,12 @@ function renderWarehouse(initialEntry = '/warehouse') {
 }
 
 describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () => {
+  beforeEach(() => {
+    vi.spyOn(warehouseApi, 'getWarehouses').mockResolvedValue(MOCK_WAREHOUSES);
+    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue(MOCK_ISSUES);
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(MOCK_RECEIPTS);
+  });
+
   it('renders Zone 1 WorkspaceHeader (56px) with warehouse select, date, and single primary button (Rule D7)', async () => {
     renderWarehouse();
 
@@ -26,7 +33,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
 
     // Select warehouse and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('2026-09-21')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
     expect(screen.getByText('Kho đang hoạt động')).toBeInTheDocument();
 
     // Rule D7: Exactly 1 primary button + 1 outline
@@ -110,6 +117,9 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Tạo phiếu xuất kho nguyên liệu ca nấu' })).toBeInTheDocument();
 
+    const notesInput = screen.getByPlaceholderText(/Xuất nguyên liệu ca trưa/i);
+    await userEvent.type(notesInput, 'Xuất ca 1 theo KHSX');
+
     const submitBtn = screen.getByRole('button', { name: 'Xác nhận xuất kho' });
     await userEvent.click(submitBtn);
   });
@@ -125,8 +135,8 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByText('Lỗi máy chủ kho')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValueOnce(getBaselineIssues());
-    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValueOnce(getBaselineReceipts());
+    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValueOnce(MOCK_ISSUES);
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValueOnce(MOCK_RECEIPTS);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

@@ -1,7 +1,5 @@
 import type { ApiResponse } from '../types';
 
-const BASE_URL = '/api';
-
 export class ApiError extends Error {
   status: number;
   errors?: string[];
@@ -14,12 +12,19 @@ export class ApiError extends Error {
   }
 }
 
+function resolveBaseUrl(): string {
+  if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null') {
+    return `${window.location.origin}/api`;
+  }
+  return 'http://localhost:5262/api';
+}
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('ipc_v3_token');
-  const mode = localStorage.getItem('ipc_v3_mode') || 'DEFAULT';
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_token') : null;
+  const mode = (typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_mode') : null) || 'DEFAULT';
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -31,7 +36,10 @@ export async function apiClient<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  const url = endpoint.startsWith('http') ? endpoint : `${BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+  const baseUrl = resolveBaseUrl();
+  const url = endpoint.startsWith('http')
+    ? endpoint
+    : `${baseUrl}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
 
   const response = await fetch(url, {
     ...options,
@@ -39,9 +47,11 @@ export async function apiClient<T>(
   });
 
   if (response.status === 401) {
-    localStorage.removeItem('ipc_v3_token');
-    localStorage.removeItem('ipc_v3_user');
-    if (!window.location.pathname.includes('/login')) {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('ipc_v3_token');
+      localStorage.removeItem('ipc_v3_user');
+    }
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
       window.location.href = '/login';
     }
     throw new ApiError(401, 'Phiên đăng nhập đã hết hạn.');

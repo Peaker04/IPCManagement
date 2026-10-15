@@ -1,10 +1,33 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ApprovalRulesPage } from '../features/admin/ApprovalRulesPage';
 import { AuthProvider } from '../store/authContext';
-import { adminApi } from '../api/adminApi';
+import { adminApi, type ApprovalRuleItem } from '../api/adminApi';
+
+const MOCK_RULES: ApprovalRuleItem[] = [
+  {
+    ruleId: 'r-1',
+    ruleCode: 'RULE-PO-HIGH',
+    ruleName: 'Duyệt đơn mua hàng giá trị cao (>20 triệu)',
+    targetType: 'purchase-order',
+    thresholdAmount: 20000000,
+    approverRole: 'GiamDocDieuHanh',
+    slaHours: 4,
+    isActive: true,
+  },
+  {
+    ruleId: 'r-2',
+    ruleCode: 'RULE-DEMAND-CA',
+    ruleName: 'Duyệt xuất kho nhu cầu nguyên liệu ca',
+    targetType: 'material-demand',
+    thresholdAmount: 50000000,
+    approverRole: 'QuanLySanXuat',
+    slaHours: 2,
+    isActive: true,
+  },
+];
 
 function renderApprovalRules(initialEntry = '/settings/approval-rules') {
   return render(
@@ -19,6 +42,10 @@ function renderApprovalRules(initialEntry = '/settings/approval-rules') {
 }
 
 describe('Approval Rules Feature (FR-ADMIN — Thiết lập quy trình duyệt)', () => {
+  beforeEach(() => {
+    vi.spyOn(adminApi, 'getApprovalRules').mockResolvedValue(MOCK_RULES);
+  });
+
   it('renders Zone 1 WorkspaceHeader (56px) with rules count badge and single primary button (Rule D7)', async () => {
     renderApprovalRules();
 
@@ -96,6 +123,7 @@ describe('Approval Rules Feature (FR-ADMIN — Thiết lập quy trình duyệt)
     expect(screen.getByText('Lỗi máy chủ quy tắc duyệt')).toBeInTheDocument();
 
     // Click retry
+    vi.spyOn(adminApi, 'getApprovalRules').mockResolvedValueOnce(MOCK_RULES);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

@@ -13,6 +13,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
+import { ActionGuard } from '../../components/ui/action-guard';
 import {
   purchasingApi,
   type PurchaseOrderItem,
@@ -243,14 +244,16 @@ export function PurchasingPage() {
               Làm mới
             </Button>
             {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setIsNewPoOpen(true)}
-              className="h-9 text-sm font-medium"
-            >
-              Tạo đơn mua hàng PO
-            </Button>
+            <ActionGuard roles={['ADMIN', 'MANAGER', 'THUMUA', 'PURCHASER']}>
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => setIsNewPoOpen(true)}
+                className="h-9 text-sm font-medium"
+              >
+                Tạo đơn mua hàng PO
+              </Button>
+            </ActionGuard>
           </>
         }
       />

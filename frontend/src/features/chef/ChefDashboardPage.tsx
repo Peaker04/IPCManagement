@@ -11,6 +11,7 @@ import { Checkbox } from '../../components/ui/checkbox';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
+import { ActionGuard } from '../../components/ui/action-guard';
 import {
   chefApi,
   type ChefDashboardData,
@@ -276,14 +277,16 @@ export function ChefDashboardPage() {
               Làm mới
             </Button>
             {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setIsCompleteModalOpen(true)}
-              className="h-9 text-sm font-medium"
-            >
-              Xác nhận hoàn tất ca nấu
-            </Button>
+            <ActionGuard roles={['ADMIN', 'CHEF']}>
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => setIsCompleteModalOpen(true)}
+                className="h-9 text-sm font-medium"
+              >
+                Xác nhận hoàn tất ca nấu
+              </Button>
+            </ActionGuard>
           </>
         }
       />

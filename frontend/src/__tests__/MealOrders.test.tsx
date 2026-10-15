@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { MealOrdersPage } from '../features/coordination/MealOrdersPage';
 import { AuthProvider } from '../store/authContext';
-import { coordinationApi, getBaselineCoordinationData } from '../api/coordinationApi';
+import { coordinationApi } from '../api/coordinationApi';
+import { MOCK_COORDINATION_DATA } from '../test/fixtures';
 
 function renderMealOrders(initialEntry = '/meal-orders') {
   return render(
@@ -19,6 +20,9 @@ function renderMealOrders(initialEntry = '/meal-orders') {
 }
 
 describe('Meal Orders Feature (FR-COORD — Điều phối đơn ăn)', () => {
+  beforeEach(() => {
+    vi.spyOn(coordinationApi, 'getOrders').mockResolvedValue(MOCK_COORDINATION_DATA);
+  });
   it('renders Zone 1 WorkspaceHeader (56px) with customer select, date, and single primary button (Rule D7)', async () => {
     renderMealOrders();
 
@@ -26,7 +30,7 @@ describe('Meal Orders Feature (FR-COORD — Điều phối đơn ăn)', () => {
 
     // Select customer and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('2026-09-21')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
     expect(screen.getByText(/Trạng thái: Đã chốt ca/i)).toBeInTheDocument();
 
     // Rule D7: Exactly 1 primary button + 1 outline
@@ -98,7 +102,7 @@ describe('Meal Orders Feature (FR-COORD — Điều phối đơn ăn)', () => {
     expect(screen.getByText('Lỗi kết nối máy chủ điều phối')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(coordinationApi, 'getOrders').mockResolvedValueOnce(getBaselineCoordinationData());
+    vi.spyOn(coordinationApi, 'getOrders').mockResolvedValueOnce(MOCK_COORDINATION_DATA);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

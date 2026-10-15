@@ -8,3 +8,4 @@ export * from './identifier-text';
 export * from './vietnamese-date-input';
 export * from './modal';
 export * from './tabs';
+export * from './action-guard';

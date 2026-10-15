@@ -1,10 +1,11 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReconciliationPage } from '../features/reconciliation/ReconciliationPage';
 import { AuthProvider } from '../store/authContext';
-import { reconciliationApi, getBaselineReconciliationData } from '../api/reconciliationApi';
+import { reconciliationApi } from '../api/reconciliationApi';
+import { MOCK_RECONCILIATION } from '../test/fixtures';
 
 function renderReconciliation(initialEntry = '/reconciliation') {
   return render(
@@ -19,6 +20,9 @@ function renderReconciliation(initialEntry = '/reconciliation') {
 }
 
 describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', () => {
+  beforeEach(() => {
+    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue(MOCK_RECONCILIATION);
+  });
   it('renders Zone 1 WorkspaceHeader (56px) with customer select, date, and single primary button (Rule D7)', async () => {
     renderReconciliation();
 
@@ -26,7 +30,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     // Customer select and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('2026-09-21')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
     expect(screen.getByText('Ca 1 đã hoàn tất')).toBeInTheDocument();
 
     // Rule D7: Exactly 1 primary button + 1 outline
@@ -95,7 +99,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(screen.getByText('Lỗi máy chủ đối soát')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValueOnce(getBaselineReconciliationData());
+    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValueOnce(MOCK_RECONCILIATION);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

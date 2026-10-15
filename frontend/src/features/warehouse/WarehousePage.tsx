@@ -12,6 +12,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
+import { ActionGuard } from '../../components/ui/action-guard';
 import {
   warehouseApi,
   type WarehouseItem,
@@ -107,6 +108,10 @@ export function WarehousePage() {
   }, []);
 
   const handleCreateIssue = async () => {
+    if (!issueNotes.trim()) {
+      alert('Vui lòng nhập ghi chú / lý do xuất kho (BR-GLOBAL-03)');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await warehouseApi.createIssue({
@@ -348,14 +353,16 @@ export function WarehousePage() {
               Làm mới
             </Button>
             {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setIsNewIssueOpen(true)}
-              className="h-9 text-sm font-medium"
-            >
-              Tạo phiếu xuất kho
-            </Button>
+            <ActionGuard roles={['ADMIN', 'THUKHO', 'WAREHOUSE']}>
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => setIsNewIssueOpen(true)}
+                className="h-9 text-sm font-medium"
+              >
+                Tạo phiếu xuất kho
+              </Button>
+            </ActionGuard>
           </>
         }
       />

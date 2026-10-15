@@ -12,6 +12,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
+import { ActionGuard } from '../../components/ui/action-guard';
 import {
   reconciliationApi,
   type ReconciliationBatchSummary,
@@ -86,6 +87,10 @@ export function ReconciliationPage() {
 
   const handleCompleteRecon = async () => {
     if (!data) return;
+    if (!reconNotes.trim()) {
+      alert('Vui lòng nhập ghi chú / lý do chốt sổ đối soát ca (BR-GLOBAL-03)');
+      return;
+    }
     setIsSubmitting(true);
     try {
       await reconciliationApi.completeReconciliation(data.batchId, reconNotes);
@@ -239,14 +244,16 @@ export function ReconciliationPage() {
               Xuất biên bản đối soát
             </Button>
             {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setIsCompleteOpen(true)}
-              className="h-9 text-sm font-medium"
-            >
-              Chốt đối soát ca
-            </Button>
+            <ActionGuard roles={['ADMIN', 'MANAGER']}>
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => setIsCompleteOpen(true)}
+                className="h-9 text-sm font-medium"
+              >
+                Chốt đối soát ca
+              </Button>
+            </ActionGuard>
           </>
         }
       />

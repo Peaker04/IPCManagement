@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AppShell } from '../components/workbench/AppShell';
 import { AuthProvider } from '../store/authContext';
+import { systemApi } from '../api/systemApi';
 
 function renderAppShell(initialEntry = '/') {
   return render(
@@ -18,6 +19,10 @@ function renderAppShell(initialEntry = '/') {
 }
 
 describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', () => {
+  beforeEach(() => {
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', version: 1 });
+    vi.spyOn(systemApi, 'setOperationalMode').mockImplementation(async (mode) => ({ mode, version: 1 }));
+  });
   it('renders branding, hamburger toggle, and canonical system routes', () => {
     renderAppShell();
 

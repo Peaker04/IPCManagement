@@ -1,10 +1,18 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AdminDataPage } from '../features/admin/AdminDataPage';
 import { AuthProvider } from '../store/authContext';
-import { adminApi } from '../api/adminApi';
+import { adminApi, type IngredientItem, type DishItem } from '../api/adminApi';
+
+const MOCK_INGREDIENTS: IngredientItem[] = [
+  { ingredientId: 'i-1', ingredientCode: 'NL-THIT-01', ingredientName: 'Thịt đùi heo tươi', categoryName: 'Thịt & Gia súc', unitName: 'Kilogram', referencePrice: 95000, isActive: true },
+];
+
+const MOCK_DISHES: DishItem[] = [
+  { dishId: 'd-1', dishCode: 'DISH-KHO-GA', dishName: 'Khô gà lá chanh', dishGroup: 'Món mặn chính', isActive: true },
+];
 
 function renderAdminData(initialEntry = '/admin-data') {
   return render(
@@ -19,6 +27,11 @@ function renderAdminData(initialEntry = '/admin-data') {
 }
 
 describe('Admin Data Feature (FR-CAT — Quản trị dữ liệu & Danh mục)', () => {
+  beforeEach(() => {
+    vi.spyOn(adminApi, 'getIngredients').mockResolvedValue(MOCK_INGREDIENTS);
+    vi.spyOn(adminApi, 'getDishes').mockResolvedValue(MOCK_DISHES);
+  });
+
   it('renders Zone 1 WorkspaceHeader (56px) with counts badge and single primary button (Rule D7)', async () => {
     renderAdminData();
 
@@ -106,6 +119,7 @@ describe('Admin Data Feature (FR-CAT — Quản trị dữ liệu & Danh mục)'
     expect(screen.getByText('Lỗi máy chủ danh mục')).toBeInTheDocument();
 
     // Click retry
+    vi.spyOn(adminApi, 'getIngredients').mockResolvedValueOnce(MOCK_INGREDIENTS);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 

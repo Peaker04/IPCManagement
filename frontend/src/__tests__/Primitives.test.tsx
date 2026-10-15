@@ -112,13 +112,18 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('KHSX-260921-01');
   });
 
-  it('VietnameseDateInput: formats date with dd/MM/yyyy and triggers change', () => {
+  it('VietnameseDateInput: formats date with dd/MM/yyyy and triggers change on commit', () => {
     const handleChange = vi.fn();
     render(<VietnameseDateInput value="2026-09-21" onChange={handleChange} />);
-    const input = screen.getByDisplayValue('2026-09-21');
+
+    // Invariant: Display text MUST be formatted as dd/MM/yyyy (21/09/2026), never 09/21/2026!
+    const input = screen.getByDisplayValue('21/09/2026');
     expect(input).toBeInTheDocument();
     expect(input).toHaveClass('h-9', 'w-40');
-    fireEvent.change(input, { target: { value: '2026-09-22' } });
+
+    // Simulate typing a new date and committing with blur/Enter
+    fireEvent.change(input, { target: { value: '22/09/2026' } });
+    fireEvent.blur(input);
     expect(handleChange).toHaveBeenCalledWith('2026-09-22');
 
     // Unit test for Vietnamese date conversion utilities

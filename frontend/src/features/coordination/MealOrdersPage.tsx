@@ -11,6 +11,7 @@ import { Num } from '../../components/ui/num';
 import { Modal } from '../../components/ui/modal';
 import { Input } from '../../components/ui/input';
 import { Tabs } from '../../components/ui/tabs';
+import { ActionGuard } from '../../components/ui/action-guard';
 import { coordinationApi, type CoordinationOrderItem, type CoordinationShiftSummary } from '../../api/coordinationApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
@@ -105,6 +106,10 @@ export function MealOrdersPage() {
 
   const handleSaveAdjustment = async () => {
     if (!selectedOrder) return;
+    if (!adjustmentReason.trim()) {
+      alert('Vui lòng nhập lý do điều chỉnh số suất ăn (BR-GLOBAL-03)');
+      return;
+    }
     setIsAdjusting(true);
     try {
       await coordinationApi.adjustServings(selectedOrder.id, adjustedServings, adjustmentReason);
@@ -237,14 +242,16 @@ export function MealOrdersPage() {
               Xuất báo cáo ca
             </Button>
             {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={handleLockOrders}
-              className="h-9 text-sm font-medium"
-            >
-              Chốt số lượng suất ăn
-            </Button>
+            <ActionGuard roles={['ADMIN', 'MANAGER', 'DIEUPHOI']}>
+              <Button
+                variant="default"
+                size="default"
+                onClick={handleLockOrders}
+                className="h-9 text-sm font-medium"
+              >
+                Chốt số lượng suất ăn
+              </Button>
+            </ActionGuard>
           </>
         }
       />
