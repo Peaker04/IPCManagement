@@ -1,6 +1,36 @@
 # Active work
 
-Status: IN_PROGRESS (Wave 3: Deep UI Refactor — Supply Chain & Approvals: /purchasing, /warehouse, /approvals)
+Status: IDLE (Wave 2 & Wave 3 Deep UI Refactor Complete — System 100% Verified)
+
+### Completed: Wave 3 Deep UI Refactor (Supply Chain, Approvals & Reporting)
+- **Routes Refactored**:
+  1. `/purchasing` (`FR-PUR`):
+     - `PurchasingPage.tsx`: Standardized CommandBar metadata badges (`inline-flex items-center gap-1.5`) eliminating text/icon collisions; modernized header card with `rounded-lg border border-slate-200 bg-white px-4 py-2.5 shadow-2xs`.
+     - `PurchaseServiceDateWorkbench.tsx`: Standardized date selection button cards (`rounded-md border p-3 shadow-2xs`) with clear typography and numeric presentation (`<Num>`); added frozen table headers (`sticky top-0 z-10`).
+     - `PurchaseLineGroups.tsx`: Added frozen table headers (`sticky top-0 z-10 whitespace-nowrap`), `whitespace-nowrap` on numeric/code cells, clean hover states.
+     - `PurchaseDecisionPanel.tsx`: Verified decision flow, dialogs, and single primary action per stage (`Rule D7`).
+     - `SupplementalPurchasingWorkbench.tsx`: Standardized table layout and column alignments with `<IdentifierText>` and `<Num>` primitives.
+     - `SupplierQuotationSection.tsx`: Preserved canonical `formatCurrency` as required by currency formatting convergence tests.
+  2. `/warehouse` (`FR-WH`):
+     - `WarehousePurchaseOrdersPanel.tsx`: Added frozen sticky table headers (`sticky top-0 z-10 whitespace-nowrap`); modernized detail panel card header (`rounded-lg border border-slate-200 bg-slate-50/80 p-3.5 shadow-2xs`); preserved exact progress string for contract test assertions.
+     - `WarehouseMovementPanel.tsx`: Added frozen sticky table headers (`sticky top-0 z-10 whitespace-nowrap`); converted search clear native `<button>` to `<Button variant="link">` primitive; removed adapter exception from `buttonPrimitiveConvergence.test.ts`.
+     - `WarehouseReceiptLifecyclePanel.tsx`: Standardized action buttons, quality inspection drawer, and post dialogs.
+     - `WarehouseExceptionsWorkbench.tsx`: Standardized table layouts with `<IdentifierText>` and `<Num>`.
+     - `WarehouseDemandPanel.tsx`: Verified demand table layout and role inbox.
+  3. `/approvals` (`FR-APPR`):
+     - `ApprovalQueue.tsx`: Converted native disclosure `<button>` tags (`Xem thêm...`, `Xem chi tiết`) to `<Button variant="link">` primitives; removed 2 adapter exceptions from `buttonPrimitiveConvergence.test.ts`.
+     - `ApprovalPage.tsx`, `ApprovalHistoryTab.tsx`, `ApprovalDecisionDialog.tsx`: Verified dialog focus retention and single primary action per modal.
+  4. `/reports` (`FR-REP`):
+     - `ReportsPage.tsx`: Converted CommandBar native export and filter reset `<button>` tags to `<Button>` primitives (`Button variant="default"` and `Button variant="outline"`); removed 2 command bar exceptions from `buttonPrimitiveConvergence.test.ts`; aligned operational manifest range.
+  5. `/reconciliation` (`FR-RECON`):
+     - `ReconciliationPage.tsx`: Verified lifecycle strip, comparison table, and modal dialogs.
+- **Tests & Quality Verification**:
+  - Removed 5 native button exceptions from `buttonPrimitiveConvergence.test.ts`.
+  - Updated operational registry family manifest.
+  - 100% verification pipeline passed (`npm run verify`: 1311 BE tests, 300 FE test files / 1730 tests passed, 0 skipped, 0 failed).
+  - Committed to `cleanup/revert-sidebar-v2` (`878f3a8e`).
+
+---
 
 ### Completed: Wave 2A Structural UI/UX Rebuild (Dashboard & Weekly Menu)
 - **Rebuilt `/` (DefaultDashboardPage.tsx)**:
