@@ -284,31 +284,40 @@ export default function DefaultDashboardPage() {
                   </div>
                 ))
               ) : visibleQueue.length === 0 ? (
-                <EmptyState
-                  title="Không có việc cần xử lý trong ca này."
-                  className="ipc-dashboard-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left [&_p]:!text-slate-800"
-                />
+                activeQueueFilter !== 'all' ? (
+                  <EmptyState
+                    title="Không có việc phù hợp trong nhóm này."
+                    description="Thử chọn nhóm công việc khác để xem danh sách việc cần xử lý."
+                    className="ipc-dashboard-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left [&_p]:!text-slate-800"
+                  />
+                ) : (
+                  <EmptyState
+                    title="Không có việc cần xử lý trong ca này."
+                    description="Tất cả công đoạn trong ca đang vận hành bình thường."
+                    className="ipc-dashboard-empty !min-h-0 !items-stretch !justify-start !p-3 !text-left [&_p]:!text-slate-800"
+                  />
+                )
               ) : (
                 visibleQueue.map((item, index) => (
                   <Link
                     key={`${item.category}-${item.id}-${index}`}
                     to={item.route}
-                    className={`ipc-dashboard-task${index === 0 ? ' is-recommended' : ''}`}
+                    className={`grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-4 border-b border-slate-200 bg-white p-3.5 transition-colors hover:bg-slate-50 last:border-b-0${index === 0 ? ' is-recommended' : ''}`}
                   >
-                    <span className="ipc-dashboard-task-copy">
-                      <strong>{item.title}</strong>
-                      <small className={index === 0 ? 'ipc-dashboard-task-recommended' : undefined} title={index === 0 ? item.nextAction : item.description}>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <strong className="truncate text-sm font-semibold text-slate-900">{item.title}</strong>
+                      <small className={`truncate text-xs text-slate-500 ${index === 0 ? 'font-medium text-blue-700' : ''}`} title={index === 0 ? item.nextAction : item.description}>
                         {index === 0 ? item.nextAction : item.description}
                       </small>
-                    </span>
-                    <span className="ipc-dashboard-task-field ipc-dashboard-task-owner">
-                      <small>Phụ trách</small>
-                      <strong>{item.owner}</strong>
-                    </span>
-                    <span className="ipc-dashboard-task-field ipc-dashboard-task-due">
-                      <small>Thời hạn</small>
-                      <strong>{item.due}</strong>
-                    </span>
+                    </div>
+                    <div className="flex min-w-[120px] flex-col gap-0.5 text-xs">
+                      <span className="text-slate-500">Phụ trách:</span>
+                      <strong className="truncate font-semibold text-slate-800">{item.owner}</strong>
+                    </div>
+                    <div className="flex min-w-[90px] flex-col items-end gap-0.5 text-xs text-right">
+                      <span className="text-slate-500">Thời hạn:</span>
+                      <strong className="font-semibold text-slate-800">{item.due}</strong>
+                    </div>
                   </Link>
                 ))
               )}
@@ -324,16 +333,16 @@ export default function DefaultDashboardPage() {
                 Xem KHSX
               </Link>
             </div>
-            <div className="ipc-dashboard-gate-list">
+            <div className="flex min-w-0 flex-col">
               {isDashboardLoading ? (
                 Array.from({ length: 4 }, (_, index) => (
-                  <div key={`dashboard-gate-skeleton-${index}`} className="ipc-dashboard-gate ipc-dashboard-gate-skeleton" aria-hidden="true">
-                    <span className="ipc-dashboard-gate-order">{String(index + 1).padStart(2, '0')}</span>
-                    <span className="ipc-dashboard-skeleton-copy">
+                  <div key={`dashboard-gate-skeleton-${index}`} className="flex items-center justify-between gap-3 border-b border-slate-200 p-3.5 last:border-b-0" aria-hidden="true">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-xs font-bold text-slate-400">{String(index + 1).padStart(2, '0')}</span>
+                    <span className="ipc-dashboard-skeleton-copy flex-1">
                       <span />
                       <span />
                     </span>
-                    <span className="ipc-dashboard-skeleton-action" />
+                    <span className="ipc-dashboard-skeleton-action shrink-0" />
                   </div>
                 ))
               ) : workflowSteps.map((gate) => {
@@ -346,19 +355,19 @@ export default function DefaultDashboardPage() {
                 const statusTone: 'neutral' | 'success' | 'warning' = rawAction === 'CANCELLED' ? 'neutral' : rawAction === 'COMPLETED' ? 'success' : 'warning';
 
                 return (
-                  <Link key={gate.key} to={gate.route} className="ipc-dashboard-gate">
-                    <span className="ipc-dashboard-gate-order">{gate.order}</span>
-                    <span className="ipc-dashboard-gate-copy">
-                      <strong>{gate.title}</strong>
-                      <small>{gate.description}</small>
-                    </span>
-                    <span className="ipc-dashboard-gate-next">
+                  <Link key={gate.key} to={gate.route} className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white p-3.5 transition-colors hover:bg-blue-50/50 last:border-b-0">
+                    <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-blue-50 text-xs font-bold text-blue-700">{gate.order}</span>
+                    <div className="flex flex-1 min-w-0 flex-col gap-0.5">
+                      <strong className="truncate text-sm font-semibold text-slate-900">{gate.title}</strong>
+                      <small className="text-xs text-slate-500">{gate.description}</small>
+                    </div>
+                    <div className="shrink-0 text-right">
                       {isStatus ? (
                         <StatusBadge variant={statusTone} className="min-w-[96px] justify-center">{displayAction}</StatusBadge>
                       ) : (
-                        <span>{displayAction}</span>
+                        <span className="text-xs font-semibold text-slate-700">{displayAction}</span>
                       )}
-                    </span>
+                    </div>
                   </Link>
                 );
               })}

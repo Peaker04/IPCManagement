@@ -147,13 +147,13 @@ export function WeeklyScheduleWorkspace({
               </div>
             </header>
             {layoutRows.length === 0 ? (
-              <div className="p-4">
+              <div className="p-8">
                 <EmptyState
                   variant="uncreated"
                   title="Chưa có thực đơn cho tuần đã chọn"
                   description={hasCommittedWeek
-                    ? 'Chưa có dòng thực đơn trong phiên bản tuần này.'
-                    : 'Nhập Excel hoặc chỉnh sửa lịch tuần để bắt đầu.'}
+                    ? 'Chưa có dòng thực đơn trong phiên bản tuần này. Sử dụng nút chỉnh sửa hoặc nhập file Excel ở thanh công cụ phía trên để bắt đầu.'
+                    : 'Khách hàng và tuần đang chọn chưa có lịch thực đơn. Sử dụng nút chỉnh sửa lịch tuần hoặc nhập tệp Excel ở thanh công cụ phía trên để bắt đầu.'}
                 />
               </div>
             ) : (

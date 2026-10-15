@@ -46,8 +46,6 @@ const adapterExceptionLocations = [
   'src/features/planning/handoff/HandoffScreen.tsx:42',
   'src/features/planning/PlanningPreviewShell.tsx:42',
   'src/features/planning/production-plan/ProductionPlanScreen.tsx:24',
-  'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:314',
-  'src/features/projects/weekly-menu/purchasing/PurchaseSummarySection.tsx:129',
   'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx:154',
   'src/features/reports/pages/ReportsPricePanel.tsx:178',
   'src/features/warehouse/pages/ReconciliationWarehousePage.tsx:941',

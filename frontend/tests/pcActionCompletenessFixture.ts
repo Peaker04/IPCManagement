@@ -247,14 +247,14 @@ const materialRows: PcProjectedRegistryRow[] = [
     : {
         role: operation === 'approval' || operation === 'purchasing' ? 'link' : 'button',
         name: name as string,
-        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-220',
+        source: 'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-265',
         route: weeklyMenuRoute,
         tab: 'Nhu cầu',
       },
   source: [
     'frontend/tests/operationalStateActionRegistry.test.ts:315-356',
     'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-220',
+    'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-265',
     'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
   ],
   disposition: operation === 'none' ? 'Terminal state intentionally has no business action.' : 'Actor set resolved from route and ActionGuard evidence.',

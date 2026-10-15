@@ -353,7 +353,7 @@ const materialDemandRegistry = materialDemandScenarios.map(({ scenarioId, backen
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-220',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-265',
       'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
       'backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs:61-69',
     ],

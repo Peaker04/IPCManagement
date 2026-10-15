@@ -76,7 +76,7 @@ describe('Admin source-change route-primary heading states', () => {
     renderPanel()
 
     await user.click(screen.getByRole('combobox', { name: 'Lọc theo trạng thái' }))
-    await user.click(screen.getByRole('option', { name: 'Đã hoàn tất' }))
+    await user.click(await screen.findByRole('option', { name: 'Đã hoàn tất' }))
 
     expect(screen.getByRole('heading', { level: 2, name: 'Không có lô phù hợp với bộ lọc' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { level: 3, name: 'Không có lô phù hợp với bộ lọc' })).not.toBeInTheDocument()

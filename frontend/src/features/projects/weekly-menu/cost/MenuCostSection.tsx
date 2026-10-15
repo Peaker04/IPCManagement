@@ -25,16 +25,18 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
       description="Tính toán giá vốn chi tiết dựa trên định mức BOM của từng món ăn và đơn giá nguyên liệu hiện hành."
     >
       <div className="flex flex-col gap-3">
-        <section className="ipc-fiori-command" aria-label="Điều hướng ngày tính giá vốn">
-          <div className="ipc-fiori-object">
-            <CalendarDays size={18} aria-hidden="true" />
-            <div>
-              <span>Ngày đang tính</span>
-              <strong>{activeDay ? `${activeDay.label} ${activeDay.date}` : 'Chưa có ngày'}</strong>
-              <small>{dayPages.length > 0 ? `Ngày ${dayIndex + 1}/${dayPages.length} · ${rows.length} dòng món` : 'Chưa có kế hoạch để tính giá vốn'}</small>
+        <section className="ipc-fiori-command flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3.5 sm:flex-row sm:items-center sm:justify-between" aria-label="Điều hướng ngày tính giá vốn">
+          <div className="ipc-fiori-object flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-2xs">
+              <CalendarDays size={18} aria-hidden="true" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium text-slate-500 leading-tight">Ngày đang tính</span>
+              <strong className="text-sm font-semibold text-slate-900 leading-tight">{activeDay ? `${activeDay.label} ${activeDay.date}` : 'Chưa có ngày'}</strong>
+              <small className="text-xs text-slate-500 leading-tight">{dayPages.length > 0 ? `Ngày ${dayIndex + 1}/${dayPages.length} · ${rows.length} dòng món` : 'Chưa có kế hoạch để tính giá vốn'}</small>
             </div>
           </div>
-          <nav className="ipc-fiori-segmented" aria-label="Chuyển ngày tính giá vốn">
+          <nav className="ipc-fiori-segmented flex items-center gap-1.5" aria-label="Chuyển ngày tính giá vốn">
             <Button type="button" variant="outline" size="sm" disabled={dayIndex <= 0} onClick={() => actions.selectDay(dayPages[Math.max(0, dayIndex - 1)]?.key ?? null)}>Ngày trước</Button>
             <Button type="button" variant="outline" size="sm" disabled={dayIndex >= dayPages.length - 1} onClick={() => actions.selectDay(dayPages[Math.min(dayPages.length - 1, dayIndex + 1)]?.key ?? null)}>Ngày sau</Button>
           </nav>
@@ -100,46 +102,46 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
           </div>
 
           {activeRow && (
-            <aside className="lg:col-span-5 rounded border border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-[var(--ipc-slate-50,#f8fafc)] p-3 flex flex-col gap-2.5" aria-label={`Bóc tách định mức BOM của ${activeRow.dishName}`}>
-              <div className="flex items-center justify-between border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] pb-2">
+            <aside className="lg:col-span-5 rounded-lg border border-slate-200 bg-slate-50/60 p-3.5 flex flex-col gap-3 shadow-2xs" aria-label={`Bóc tách định mức BOM của ${activeRow.dishName}`}>
+              <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Định mức BOM: {activeRow.dishName}</h3>
-                  <p className="text-xs text-slate-500">Ca: {activeRow.shiftLabel} · Dòng: {activeRow.slotLabel} · {activeRow.portions} suất</p>
+                  <p className="text-xs text-slate-500">Ca: {activeRow.shiftLabel} · Dòng: {activeRow.slotLabel} · <Num value={activeRow.portions} type="number" /> suất</p>
                 </div>
                 <span className={cn('text-xs font-semibold px-2 py-0.5 rounded', foodCostPercent > 85 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700')}>
                   {scope.menuPrice > 0 ? `Food Cost: ${formatPercent(foodCostPercent, 1)}` : 'Đã duyệt BOM'}
                 </span>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-white p-2 rounded border border-[var(--ipc-color-border-subtle,#e2eaf4)]">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
                 <span>Đơn giá vốn: <strong className="text-slate-900"><Num value={activeRow.unitCost} type="currency" /></strong></span>
                 {scope.menuPrice > 0 && <span>Giá bán: <strong className="text-slate-900"><Num value={scope.menuPrice} type="currency" /></strong></span>}
                 {scope.menuPrice > 0 && <span>LN gộp: <strong className={grossProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}><Num value={grossProfit} type="currency" /></strong></span>}
               </div>
               {activeRow.ingredients && activeRow.ingredients.length > 0 ? (
-                <TableViewport caption={`Thành phần nguyên liệu định mức cho món ${activeRow.dishName}`} ariaLabel={`Bảng nguyên liệu định mức món ${activeRow.dishName}`} className="ipc-cost-table-shell max-h-64">
+                <TableViewport caption={`Thành phần nguyên liệu định mức cho món ${activeRow.dishName}`} ariaLabel={`Bảng nguyên liệu định mức món ${activeRow.dishName}`} className="ipc-cost-table-shell max-h-72">
                   <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
                     <thead>
                       <tr>
-                        <th className="text-left">Nguyên liệu</th>
-                        <th className="text-center w-14">ĐVT</th>
-                        <th className="text-right w-20">Định lượng</th>
-                        <th className="text-right w-20">Đơn giá</th>
-                        <th className="text-right w-24">Thành tiền</th>
+                        <th scope="col" className="text-left whitespace-nowrap min-w-[120px]">Nguyên liệu</th>
+                        <th scope="col" className="text-center w-16 whitespace-nowrap">ĐVT</th>
+                        <th scope="col" className="text-right w-24 whitespace-nowrap">Định lượng</th>
+                        <th scope="col" className="text-right w-24 whitespace-nowrap">Đơn giá</th>
+                        <th scope="col" className="text-right w-28 whitespace-nowrap">Thành tiền</th>
                       </tr>
                     </thead>
                     <tbody>
                       {activeRow.ingredients.map((ing) => (
                         <tr key={`ing-${ing.ingredientId}`}>
                           <td className="text-left font-medium text-slate-900">{ing.name}</td>
-                          <td className="text-center text-slate-600">{ing.unit}</td>
-                          <td data-cell-role="numeric" className="text-right">
+                          <td className="text-center text-slate-600 whitespace-nowrap">{ing.unit}</td>
+                          <td data-cell-role="numeric" className="text-right whitespace-nowrap">
                             <Num value={ing.grossQtyPerServing} type="quantity" maximumFractionDigits={6} />
                           </td>
-                          <td data-cell-role="numeric" className="text-right">
-                            <Num value={ing.referencePrice} type="currency" />
+                          <td data-cell-role="numeric" className="text-right whitespace-nowrap">
+                            <Num value={ing.referencePrice ?? 0} type="currency" />
                           </td>
-                          <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
-                            <Num value={Math.round(ing.grossQtyPerServing * ing.referencePrice)} type="currency" />
+                          <td data-cell-role="numeric" className="text-right font-semibold text-slate-900 whitespace-nowrap">
+                            <Num value={Math.round(ing.grossQtyPerServing * (ing.referencePrice ?? 0))} type="currency" />
                           </td>
                         </tr>
                       ))}
@@ -153,47 +155,55 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
           )}
         </div>
 
-        <details className="ipc-fiori-disclosure">
-          <summary>
-            <span><strong>Nguyên liệu cấu thành trong ngày</strong><small>Chi tiết định lượng theo các món đang hiển thị</small></span>
-            <span>{materialCount} nguyên liệu · <Num value={presentation.materialTotal} type="currency" /> <ChevronDown size={16} aria-hidden="true" /></span>
+        <details className="ipc-fiori-disclosure group rounded-lg border border-slate-200 bg-white shadow-2xs overflow-hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between border-b border-transparent bg-slate-50/80 px-4 py-3 text-sm font-medium transition hover:bg-slate-100/70 group-open:border-slate-200 [&::-webkit-details-marker]:hidden">
+            <span className="flex flex-col gap-0.5">
+              <strong className="text-sm font-semibold text-slate-900 leading-tight">Nguyên liệu cấu thành trong ngày</strong>
+              <small className="text-xs text-slate-500 leading-tight">Chi tiết định lượng theo các món đang hiển thị</small>
+            </span>
+            <span className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <span>{materialCount} nguyên liệu · <Num value={presentation.materialTotal} type="currency" /></span>
+              <ChevronDown size={16} className="text-slate-400 transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+            </span>
           </summary>
-          <TableViewport caption="Nguyên liệu theo ngày, đơn vị và các món trong kế hoạch" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
-            <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
-              <thead><tr>
-                <th scope="col" className="sticky top-0 z-10 text-left">Nguyên liệu</th>
-                <th scope="col" className="sticky top-0 z-10 text-center">ĐVT</th>
-                <th scope="col" className="sticky top-0 z-10 text-right">LT ngày</th>
-                <th scope="col" className="sticky top-0 z-10 text-right">TT ngày</th>
-                <th scope="col" className="sticky top-0 z-10 text-left">Món trong kế hoạch</th>
-                <th scope="col" className="sticky top-0 z-10 text-right">Đơn giá</th>
-                <th scope="col" className="sticky top-0 z-10 text-right">Thành tiền ngày</th>
-              </tr></thead>
-              <tbody>
-                {Object.entries(materialSummary).map(([identityKey, data]) => {
-                  if (data.theory === 0) return null
-                  return <tr key={`day-material-${identityKey}`}>
-                    <td className="text-left font-medium text-slate-900">{data.ingredientName}</td>
-                    <td className="text-center text-slate-600">{data.unit}</td>
-                    <td data-cell-role="numeric" className="text-right">
-                      <Num value={data.theory} type="quantity" maximumFractionDigits={2} />
-                    </td>
-                    <td data-cell-role="numeric" className="text-right font-semibold text-blue-700">
-                      <Num value={data.actual} type="quantity" maximumFractionDigits={2} />
-                    </td>
-                    <td className="text-left text-slate-700" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
-                    <td data-cell-role="numeric" className="text-right">
-                      <Num value={data.referencePrice} type="currency" />
-                    </td>
-                    <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
-                      <Num value={data.actual * data.referencePrice} type="currency" />
-                    </td>
-                  </tr>
-                })}
-                {materialCount === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho ngày này. Kiểm tra định lượng nguyên liệu của các món.</td></tr>}
-              </tbody>
-            </table>
-          </TableViewport>
+          <div className="p-3">
+            <TableViewport caption="Nguyên liệu theo ngày, đơn vị và các món trong kế hoạch" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
+              <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
+                <thead><tr>
+                  <th scope="col" className="sticky top-0 z-10 text-left">Nguyên liệu</th>
+                  <th scope="col" className="sticky top-0 z-10 text-center">ĐVT</th>
+                  <th scope="col" className="sticky top-0 z-10 text-right">LT ngày</th>
+                  <th scope="col" className="sticky top-0 z-10 text-right">TT ngày</th>
+                  <th scope="col" className="sticky top-0 z-10 text-left">Món trong kế hoạch</th>
+                  <th scope="col" className="sticky top-0 z-10 text-right">Đơn giá</th>
+                  <th scope="col" className="sticky top-0 z-10 text-right">Thành tiền ngày</th>
+                </tr></thead>
+                <tbody>
+                  {Object.entries(materialSummary).map(([identityKey, data]) => {
+                    if (data.theory === 0) return null
+                    return <tr key={`day-material-${identityKey}`}>
+                      <td className="text-left font-medium text-slate-900">{data.ingredientName}</td>
+                      <td className="text-center text-slate-600">{data.unit}</td>
+                      <td data-cell-role="numeric" className="text-right">
+                        <Num value={data.theory} type="quantity" maximumFractionDigits={2} />
+                      </td>
+                      <td data-cell-role="numeric" className="text-right font-semibold text-blue-700">
+                        <Num value={data.actual} type="quantity" maximumFractionDigits={2} />
+                      </td>
+                      <td className="text-left text-slate-700" title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
+                      <td data-cell-role="numeric" className="text-right">
+                        <Num value={data.referencePrice} type="currency" />
+                      </td>
+                      <td data-cell-role="numeric" className="text-right font-semibold text-slate-900">
+                        <Num value={data.actual * data.referencePrice} type="currency" />
+                      </td>
+                    </tr>
+                  })}
+                  {materialCount === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho ngày này. Kiểm tra định lượng nguyên liệu của các món.</td></tr>}
+                </tbody>
+              </table>
+            </TableViewport>
+          </div>
         </details>
       </div>
     </SectionPanel>

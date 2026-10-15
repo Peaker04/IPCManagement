@@ -26,25 +26,29 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
         {status.isRefreshing && (
           <RefreshStatus>Đang cập nhật kế hoạch sản xuất</RefreshStatus>
         )}
-        {!status.isForbidden && <section className="ipc-fiori-command" aria-label="Phạm vi kế hoạch sản xuất đang xem">
-          <div className="ipc-fiori-object">
-            <CalendarDays size={18} aria-hidden="true" />
-            <div>
-              <span>Ngày phục vụ</span>
-              <strong>{activePage ? `${activePage.label} ${activePage.dateLabel}` : 'Chưa có kế hoạch'}</strong>
-              <small>{activePage ? `${activePage.plans.length} KHSX · ${activePage.totalLines} dòng · ${formatNumber(activePage.totalServings)} suất` : scope.customerId && scope.weekStartDate ? 'Chưa có KHSX trong phạm vi tuần đã chọn' : 'Chọn khách hàng và tuần để xem dữ liệu'}</small>
+        {!status.isForbidden && <section className="ipc-fiori-command flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3.5 sm:flex-row sm:items-center sm:justify-between" aria-label="Phạm vi kế hoạch sản xuất đang xem">
+          <div className="ipc-fiori-object flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-2xs">
+              <CalendarDays size={18} aria-hidden="true" />
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs font-medium text-slate-500 leading-tight">Ngày phục vụ</span>
+              <strong className="text-sm font-semibold text-slate-900 leading-tight">{activePage ? `${activePage.label} ${activePage.dateLabel}` : 'Chưa có kế hoạch'}</strong>
+              <small className="text-xs text-slate-500 leading-tight">{activePage ? `${activePage.plans.length} KHSX · ${activePage.totalLines} dòng · ${formatNumber(activePage.totalServings)} suất` : scope.customerId && scope.weekStartDate ? 'Chưa có KHSX trong phạm vi tuần đã chọn' : 'Chọn khách hàng và tuần để xem dữ liệu'}</small>
             </div>
           </div>
-          <div className="ipc-fiori-command-actions">
-            <label className="ipc-fiori-field">
-              <span>Phạm vi</span>
-              <Select value={state.selectedDayKey || ALL_DAYS_VALUE} onValueChange={(value) => actions.selectDay(value === ALL_DAYS_VALUE || value === null ? null : value)}>
-                <SelectTrigger className="w-full"><SelectValue>{selectedDayLabel}</SelectValue></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ALL_DAYS_VALUE}>Cả tuần</SelectItem>
-                  {scope.displayDays.map((day) => <SelectItem key={day.key} value={day.key}>{day.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+          <div className="ipc-fiori-command-actions flex flex-wrap items-center gap-3">
+            <label className="ipc-fiori-field flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Phạm vi:</span>
+              <div className="w-44">
+                <Select value={state.selectedDayKey || ALL_DAYS_VALUE} onValueChange={(value) => actions.selectDay(value === ALL_DAYS_VALUE || value === null ? null : value)}>
+                  <SelectTrigger className="w-full"><SelectValue>{selectedDayLabel}</SelectValue></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_DAYS_VALUE}>Cả tuần</SelectItem>
+                    {scope.displayDays.map((day) => <SelectItem key={day.key} value={day.key}>{day.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </label>
             {presentation.pages.length > 0 && <PageStepper page={state.pageIndex + 1} totalPages={presentation.pages.length} label="Nhóm KHSX" ariaLabel="Điều hướng kế hoạch sản xuất" onPageChange={actions.setPage} />}
           </div>
@@ -87,8 +91,8 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
               const planStatus = getWorkflowStatusPresentation(plan.status ?? undefined)
               const totalServings = plan.lines.reduce((total, line) => total + line.totalServings, 0)
               return (
-                <article key={plan.planId} className="ipc-fiori-object-card mt-0 rounded-none border-0 shadow-none">
-                  <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-3 border-b border-[var(--ipc-color-border-subtle,#e2eaf4)] bg-[var(--ipc-slate-50,#f8fafc)] px-4 py-2">
+                <article key={plan.planId} className="ipc-fiori-object-card mt-0 rounded-lg border border-slate-200 bg-white shadow-2xs overflow-hidden">
+                  <div className="flex min-h-[44px] flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-2.5">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold tracking-wider text-slate-500">Mã KHSX:</span>
                       <h3 className="text-sm font-bold text-slate-900">
@@ -100,7 +104,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                       <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Ngày phục vụ:</dt><dd className="font-medium text-slate-800">{formatDateOnly(plan.planDate)}</dd></div>
                       <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Khách hàng:</dt><dd className="font-medium text-slate-800" title={`${plan.customerName} (${plan.customerCode})`}>{plan.customerName} ({plan.customerCode})</dd></div>
                       <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Số dòng món:</dt><dd className="font-semibold text-slate-800"><Num value={plan.lines.length} type="number" /></dd></div>
-                      <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Tổng số suất:</dt><dd className="font-bold text-[var(--ipc-primary,#1a56a8)]"><Num value={totalServings} type="number" /> suất</dd></div>
+                      <div className="flex items-baseline gap-1.5"><dt className="text-slate-500">Tổng số suất:</dt><dd className="font-bold text-primary"><Num value={totalServings} type="number" /> suất</dd></div>
                     </dl>
                   </div>
                   <TableViewport

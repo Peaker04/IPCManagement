@@ -1,6 +1,7 @@
 import { AlertCircle, Check, Clock, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ContextStrip, Num, PaginationBar, SearchField, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { Button } from '@/components/ui/button'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
@@ -126,13 +127,15 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
                   {state.search.trim().length > 0 ? (
                     <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
                       <span>Không tìm thấy nguyên liệu nào phù hợp với từ khóa &ldquo;{state.search}&rdquo;.</span>
-                      <button
+                      <Button
                         type="button"
+                        variant="link"
+                        size="sm"
                         onClick={() => actions.setSearch('')}
-                        className="font-medium text-blue-600 hover:text-blue-800 underline focus-visible:outline-2 focus-visible:outline-blue-600 rounded px-1"
+                        className="h-auto p-0 font-medium text-primary underline focus-visible:outline-2 focus-visible:outline-primary rounded"
                       >
                         Xóa tìm kiếm
-                      </button>
+                      </Button>
                     </span>
                   ) : presentation.usesDemand ? (
                     'Chưa có dòng nhu cầu đã phát sinh trong tuần này. Giá trị BOM dự kiến không phải lượng đã bàn giao.'

@@ -33,7 +33,7 @@ describe('shared select closed-value contract', () => {
     expect(trigger).toHaveAttribute('title', longLabel);
 
     await user.click(trigger);
-    expect(screen.getByRole('option', { name: longLabel })).toBeInTheDocument();
+    expect(await screen.findByRole('option', { name: longLabel })).toBeInTheDocument();
   });
 
   it('keeps rapid switching between adjacent selectors non-modal and immediately interactive', async () => {

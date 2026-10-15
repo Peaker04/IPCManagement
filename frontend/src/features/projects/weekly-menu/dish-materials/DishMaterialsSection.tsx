@@ -43,37 +43,41 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
       description="Xem định mức nguyên liệu theo BOM và phân tích chi phí món ăn."
     >
       <div className="flex flex-col gap-3">
-      <section className="ipc-fiori-command" aria-label="Món đang phân tích">
-        <div className="ipc-fiori-object">
-          <Utensils size={18} aria-hidden="true" />
-          <div>
-            <span>Món phân tích</span>
-            <strong>{analyzedDish?.name ?? 'Chưa chọn món'}</strong>
-            <small>Áp dụng BOM ngày {formatDateOnly(presentation.serviceDate)} · {ingredients.length} nguyên liệu</small>
+      <section className="ipc-fiori-command flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3.5 sm:flex-row sm:items-center sm:justify-between" aria-label="Món đang phân tích">
+        <div className="ipc-fiori-object flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-2xs">
+            <Utensils size={18} aria-hidden="true" />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium text-slate-500 leading-tight">Món phân tích</span>
+            <strong className="text-sm font-semibold text-slate-900 leading-tight">{analyzedDish?.name ?? 'Chưa chọn món'}</strong>
+            <small className="text-xs text-slate-500 leading-tight">Áp dụng BOM ngày {formatDateOnly(presentation.serviceDate)} · {ingredients.length} nguyên liệu</small>
           </div>
         </div>
-        <div className="ipc-fiori-command-actions">
-          <label className="ipc-fiori-field is-wide">
-            <span>Chọn món</span>
-            <Select
-              value={analyzedDish?.id ?? EMPTY_DISH_VALUE}
-              onValueChange={(value) => actions.selectDish(value === EMPTY_DISH_VALUE || value === null ? '' : value)}
-              disabled={presentation.isCatalogEmpty}
-            >
-              <SelectTrigger className="w-full"><SelectValue>{analyzedDishLabel}</SelectValue></SelectTrigger>
-              <SelectContent>
-                {filteredDishesByShift.morning.length > 0 && <SelectGroup>
-                  <SelectLabel>Ca Sáng</SelectLabel>
-                  {filteredDishesByShift.morning.map((dish, index) => <SelectItem key={`morning-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</SelectItem>)}
-                </SelectGroup>}
-                {filteredDishesByShift.afternoon.length > 0 && <SelectGroup>
-                  <SelectLabel>Ca Chiều</SelectLabel>
-                  {filteredDishesByShift.afternoon.map((dish, index) => <SelectItem key={`afternoon-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</SelectItem>)}
-                </SelectGroup>}
-                {!presentation.isCatalogEmpty && !hasSearchResults && <SelectItem value="__no-search-result__" disabled>Không tìm thấy món phù hợp</SelectItem>}
-                {presentation.isCatalogEmpty && <SelectItem value={EMPTY_DISH_VALUE}>Chưa có ngân hàng món ăn</SelectItem>}
-              </SelectContent>
-            </Select>
+        <div className="ipc-fiori-command-actions flex flex-wrap items-center gap-3">
+          <label className="ipc-fiori-field is-wide flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">Chọn món:</span>
+            <div className="w-56">
+              <Select
+                value={analyzedDish?.id ?? EMPTY_DISH_VALUE}
+                onValueChange={(value) => actions.selectDish(value === EMPTY_DISH_VALUE || value === null ? '' : value)}
+                disabled={presentation.isCatalogEmpty}
+              >
+                <SelectTrigger className="w-full"><SelectValue>{analyzedDishLabel}</SelectValue></SelectTrigger>
+                <SelectContent>
+                  {filteredDishesByShift.morning.length > 0 && <SelectGroup>
+                    <SelectLabel>Ca Sáng</SelectLabel>
+                    {filteredDishesByShift.morning.map((dish, index) => <SelectItem key={`morning-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</SelectItem>)}
+                  </SelectGroup>}
+                  {filteredDishesByShift.afternoon.length > 0 && <SelectGroup>
+                    <SelectLabel>Ca Chiều</SelectLabel>
+                    {filteredDishesByShift.afternoon.map((dish, index) => <SelectItem key={`afternoon-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</SelectItem>)}
+                  </SelectGroup>}
+                  {!presentation.isCatalogEmpty && !hasSearchResults && <SelectItem value="__no-search-result__" disabled>Không tìm thấy món phù hợp</SelectItem>}
+                  {presentation.isCatalogEmpty && <SelectItem value={EMPTY_DISH_VALUE}>Chưa có ngân hàng món ăn</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
           </label>
           <SearchField
             label="Tìm món ăn"
