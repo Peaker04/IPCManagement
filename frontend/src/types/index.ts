@@ -102,7 +102,6 @@ export interface DishCostSummaryItem {
   dishId: string;
   dishCode: string;
   dishName: string;
-  categoryName?: string;
   dishType?: string;
   dishGroup?: string;
   servingTargetPrice: number;
