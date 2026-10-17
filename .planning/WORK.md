@@ -305,6 +305,33 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
 - BLOCKED: Kitchen completion and variance waiver mutations remain guarded pending live authority.
 
+### GF-R38 — Reconciliation capability conformance and operation-grain completion authority
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-reconciliation-mrx-conformance-plan.md` and spec `docs/superpowers/specs/2026-10-18-reconciliation-mrx-conformance-design.md`; lifecycle returned to `IDLE`.
+- Capability disaggregation: Disaggregated 11 bundled Reconciliation actions into operation-grain capabilities (`RECON.BATCH.CREATE`, `RECON.BATCH.PREVIEW_IMPORT`, `RECON.BATCH.COMMIT_IMPORT`, `RECON.BATCH.READY`, `RECON.BATCH.TRANSFER_WAREHOUSE`, `RECON.BATCH.COMPLETE`, `RECON.DISPOSITION.READ`, `RECON.ACTUALS.PURCHASED`, `RECON.ACTUALS.ISSUED`, `RECON.ACTUALS.DISPOSITION`, `RECON.DAILY_LINES.DISPOSITION`).
+- Concurrency & surface authority: `RECON.BATCH.COMPLETE` verified `READY` with optimistic concurrency token (`ExpectedVersion`); aligned `ReconciliationPage.tsx` and surface `reconciliation.batch` action `complete-batch` to `RECON.BATCH.COMPLETE`.
+- Strict mode isolation (`DOM-MODE-1`): Verified completion action disabled when in `DEFAULT` mode.
+- 100% existing UI kit reuse: Used standard primitives (`WorkspaceHeader`, `TelemetrySubbar`, `DataGrid`, `StateBoundary`, `Select`, `VietnameseDateInput`, `Button`, `Badge`, `Num`, `IdentifierText`, `Modal`, `ActionGuard`). Zero custom primitives or ad-hoc styles written.
+- TDD RED→GREEN evidence:
+  - `check-conformance-contracts.test.mjs`: RED on missing operation-grain owners → GREEN (27/27 PASS).
+  - `Reconciliation.test.tsx`: 7/7 PASS covering full 4-scenario Rule TA-4.
+- Verification:
+  - Conformance checker & tests: 27/27 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 112 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Reconciliation contract and component regression; verified operation-grain ActionGuard parity, conflict recovery, and mode isolation; yes; low noise; proved Rule TA-4 and DOM-MODE-1 compliance`.
+  - `ipc-ui-review; 3-Zone OperationalFrame layout review; verified D6 font size >= 12px, D7 single primary button on Header, T7 frozen header, T8 compact density (36-40px), M1.2 single modal; yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; disaggregated 11 capabilities, aligned ActionGuard capabilityId, and protected DOM-MODE-1; yes; low noise; kept write surfaces guarded`.
+- PASS: Operation-grain disaggregation, ActionGuard precision, DOM-MODE-1 strict isolation, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
+- BLOCKED: Quantity import and warehouse transfer mutations remain guarded pending live authority.
+
+
 
 
 
