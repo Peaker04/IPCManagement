@@ -41,6 +41,30 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(screen.queryByRole('button', { name: 'Duyệt kế hoạch tuần' })).not.toBeInTheDocument();
   });
 
+  it('renders dynamic mealTargetPrice in WeeklyScheduleView and avoids hardcoded 25.000 ₫', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue({
+      ...MOCK_WEEKLY_MENU_DATA,
+      mealTargetPrice: 32000,
+    });
+
+    renderWeeklyMenu('/weekly-menu');
+
+    expect(await screen.findByText('32.000 ₫')).toBeInTheDocument();
+    expect(screen.queryByText('25.000 ₫')).not.toBeInTheDocument();
+  });
+
+  it('renders "Theo ca / Chưa chốt" when mealTargetPrice is 0', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue({
+      ...MOCK_WEEKLY_MENU_DATA,
+      mealTargetPrice: 0,
+    });
+
+    renderWeeklyMenu('/weekly-menu');
+
+    expect(await screen.findByText('Theo ca / Chưa chốt')).toBeInTheDocument();
+    expect(screen.queryByText('25.000 ₫')).not.toBeInTheDocument();
+  });
+
   it('View 1 (Kế hoạch tuần): renders Mon-Sat matrix without duplicate subbar tabs or repetitive cell text', async () => {
     vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
 

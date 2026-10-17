@@ -20,7 +20,7 @@ export function MenuCostView({ data }: MenuCostViewProps) {
       id: 'category',
       header: 'Phân loại',
       width: '18%',
-      cell: (row) => <span className="text-slate-700">{row.categoryName}</span>,
+      cell: (row) => <span className="text-slate-700">{row.dishType || row.dishGroup || row.categoryName || '—'}</span>,
     },
     {
       id: 'bom-lines',

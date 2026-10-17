@@ -1,6 +1,7 @@
 import React from 'react';
 import { TelemetrySubbar } from '../../../components/workbench/TelemetrySubbar';
 import { Badge } from '../../../components/ui/badge';
+import { Num } from '../../../components/ui/num';
 import type { WeeklyMenuData } from '../../../api/weeklyMenuApi';
 import { clsx } from 'clsx';
 
@@ -36,7 +37,15 @@ export function WeeklyScheduleView({ data }: WeeklyScheduleViewProps) {
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Định mức:</span>
-              <strong className="text-slate-900 font-mono font-semibold">25.000 ₫</strong>
+              {data.mealTargetPrice > 0 ? (
+                <Num
+                  value={data.mealTargetPrice}
+                  format="currency"
+                  className="text-slate-900 font-mono font-semibold"
+                />
+              ) : (
+                <span className="text-slate-500 font-medium">Theo ca / Chưa chốt</span>
+              )}
             </span>
             <span className="text-slate-300">·</span>
             <Badge variant="neutral" size="sm">
