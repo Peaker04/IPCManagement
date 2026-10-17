@@ -235,7 +235,7 @@ export function ReconciliationPage() {
             </Button>
             {canComplete && (
               <ActionGuard
-                capabilityId="RECON.BATCH.LIFECYCLE"
+                capabilityId="RECON.BATCH.COMPLETE"
                 roles={['ADMIN', 'MANAGER', 'Quản lý']}
                 permissions="ReconciliationWriteAccess"
                 allowedModes={['MATERIAL_RECONCILIATION']}

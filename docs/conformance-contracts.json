@@ -11,10 +11,13 @@
         "SYS.MODE.INITIALIZE",
         "SYS.MODE.CHANGE",
         "RECON.BATCH.READ",
-        "RECON.BATCH.LIFECYCLE",
-        "RECON.ACTUALS",
         "RECON.KITCHEN_REPORT.READ",
-        "RECON.CONFIG.INIT"
+        "RECON.CONFIG.INIT",
+        "RECON.BATCH.COMPLETE",
+        "RECON.DISPOSITION.READ",
+        "RECON.ACTUALS.PURCHASED",
+        "RECON.ACTUALS.ISSUED",
+        "RECON.ACTUALS.DISPOSITION"
       ],
       "evidenceRequired": [
         "contract",
@@ -33,7 +36,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "CAT.BOM.READ",
-        "RECON.ACTUALS",
         "CAT.BOM.LINE.ADD",
         "CAT.BOM.LINE.UPDATE",
         "CAT.BOM.LINE.CLOSE",
@@ -54,7 +56,9 @@
         "WH.LEGACY_LINEAGE.READ",
         "WH.LEGACY_LINEAGE.CREATE",
         "WH.LEGACY_LINEAGE.REVIEW",
-        "WH.LEGACY_LINEAGE.APPLY"
+        "WH.LEGACY_LINEAGE.APPLY",
+        "RECON.ACTUALS.PURCHASED",
+        "RECON.ACTUALS.ISSUED"
       ],
       "evidenceRequired": [
         "contract",
@@ -72,7 +76,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "APPR.DECISION",
-        "RECON.BATCH.LIFECYCLE",
         "REP.DATA_QUALITY.WRITE",
         "COORD.ORDER.ADJUST_AFTER_LOCK",
         "COORD.ORDER.ADJUST_SERVINGS",
@@ -120,7 +123,8 @@
         "WH.STOCKTAKE.UPDATE_ACTUAL",
         "WH.STOCKTAKE.SUBMIT",
         "WH.STOCKTAKE.APPROVE",
-        "WH.STOCKTAKE.REJECT"
+        "WH.STOCKTAKE.REJECT",
+        "RECON.BATCH.COMPLETE"
       ],
       "evidenceRequired": [
         "contract",
@@ -526,10 +530,19 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "RECON.BATCH.READ",
-        "RECON.BATCH.LIFECYCLE",
-        "RECON.ACTUALS",
         "RECON.KITCHEN_REPORT.READ",
-        "RECON.CONFIG.INIT"
+        "RECON.CONFIG.INIT",
+        "RECON.BATCH.CREATE",
+        "RECON.BATCH.PREVIEW_IMPORT",
+        "RECON.BATCH.COMMIT_IMPORT",
+        "RECON.BATCH.READY",
+        "RECON.BATCH.TRANSFER_WAREHOUSE",
+        "RECON.BATCH.COMPLETE",
+        "RECON.DISPOSITION.READ",
+        "RECON.ACTUALS.PURCHASED",
+        "RECON.ACTUALS.ISSUED",
+        "RECON.ACTUALS.DISPOSITION",
+        "RECON.DAILY_LINES.DISPOSITION"
       ],
       "evidenceRequired": [
         "contract",
@@ -1970,105 +1983,6 @@
         "reconciliation.batch"
       ],
       "gaps": []
-    },
-    {
-      "id": "RECON.BATCH.LIFECYCLE",
-      "frCode": "FR-RECON",
-      "name": "Create ready transfer and complete reconciliation batch",
-      "operation": "terminal",
-      "mode": "MATERIAL_RECONCILIATION",
-      "actors": [
-        "ReconciliationManager"
-      ],
-      "permissionTokens": [
-        "ReconciliationWriteAccess"
-      ],
-      "grain": "MRX batch",
-      "prerequisites": [
-        "MRX mode",
-        "eligible batch and expected version"
-      ],
-      "sourceLineage": [
-        "quantity import to batch to warehouse transfer to completion"
-      ],
-      "actionIds": [
-        "ReconciliationBatches.Create",
-        "ReconciliationBatches.PreviewQuantityImport",
-        "ReconciliationBatches.CommitQuantityImport",
-        "ReconciliationBatches.Ready",
-        "ReconciliationBatches.TransferToWarehouse",
-        "ReconciliationBatches.Complete"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationCompletionService.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-RECON",
-        "BR-GLOBAL-01",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [
-        "reconciliation.batch"
-      ],
-      "gaps": [
-        "Split preview create ready transfer complete.",
-        "Per-command policy and concurrency remain unresolved."
-      ]
-    },
-    {
-      "id": "RECON.ACTUALS",
-      "frCode": "FR-RECON",
-      "name": "Record purchased issued and disposition actuals",
-      "operation": "update",
-      "mode": "MATERIAL_RECONCILIATION",
-      "actors": [
-        "ReconciliationOperator",
-        "WarehouseStaff",
-        "PurchasingStaff"
-      ],
-      "permissionTokens": [
-        "ReconciliationDispositionAccess"
-      ],
-      "grain": "MRX line actual or disposition",
-      "prerequisites": [
-        "MRX line and authorized source"
-      ],
-      "sourceLineage": [
-        "MRX daily line to actual and disposition evidence"
-      ],
-      "actionIds": [
-        "ReconciliationActuals.DispositionCategories",
-        "ReconciliationActuals.Purchased",
-        "ReconciliationActuals.Issued",
-        "ReconciliationActuals.Disposition",
-        "ReconciliationDailyLines.Disposition"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationActualService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-RECON",
-        "BR-GLOBAL-01",
-        "BR-GLOBAL-02"
-      ],
-      "surfaceIds": [
-        "reconciliation.batch"
-      ],
-      "gaps": [
-        "Split read and three actor-specific mutations.",
-        "Concurrency and line review surfaces unresolved."
-      ]
     },
     {
       "id": "RECON.KITCHEN_REPORT.READ",
@@ -6756,6 +6670,426 @@
       "gaps": [
         "Legacy lineage apply UI action unresolved."
       ]
+    },
+    {
+      "id": "RECON.BATCH.CREATE",
+      "frCode": "FR-RECON",
+      "name": "Create draft reconciliation batch",
+      "operation": "create",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation batch",
+      "prerequisites": [
+        "customer and service week range"
+      ],
+      "sourceLineage": [
+        "reconciliation batch initialization"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Batch creation UI action unresolved."
+      ]
+    },
+    {
+      "id": "RECON.BATCH.PREVIEW_IMPORT",
+      "frCode": "FR-RECON",
+      "name": "Preview quantity import for reconciliation batch",
+      "operation": "create",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "quantity import preview",
+      "prerequisites": [
+        "reconciliation batch",
+        "quantity workbook"
+      ],
+      "sourceLineage": [
+        "quantity workbook to preview ticket"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.PreviewQuantityImport"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Quantity import preview UI surface unresolved."
+      ]
+    },
+    {
+      "id": "RECON.BATCH.COMMIT_IMPORT",
+      "frCode": "FR-RECON",
+      "name": "Commit previewed quantity import",
+      "operation": "terminal",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "quantity import commit",
+      "prerequisites": [
+        "previewed import ticket"
+      ],
+      "sourceLineage": [
+        "preview ticket to committed quantities"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.CommitQuantityImport"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Quantity import commit UI surface unresolved."
+      ]
+    },
+    {
+      "id": "RECON.BATCH.READY",
+      "frCode": "FR-RECON",
+      "name": "Mark reconciliation batch ready for warehouse transfer",
+      "operation": "terminal",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation batch ready state",
+      "prerequisites": [
+        "reconciliation batch with complete quantities"
+      ],
+      "sourceLineage": [
+        "batch ready transition"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.Ready"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Batch ready transition UI surface unresolved."
+      ]
+    },
+    {
+      "id": "RECON.BATCH.TRANSFER_WAREHOUSE",
+      "frCode": "FR-RECON",
+      "name": "Transfer reconciliation batch to warehouse lock",
+      "operation": "terminal",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation batch warehouse transfer",
+      "prerequisites": [
+        "ready batch"
+      ],
+      "sourceLineage": [
+        "batch warehouse lock transition"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.TransferToWarehouse"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Warehouse transfer UI action unresolved."
+      ]
+    },
+    {
+      "id": "RECON.BATCH.COMPLETE",
+      "frCode": "FR-RECON",
+      "name": "Complete and lock reconciliation batch with version check",
+      "operation": "terminal",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager",
+        "Quản lý"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation batch completion",
+      "prerequisites": [
+        "in progress batch with resolved week status"
+      ],
+      "sourceLineage": [
+        "reconciliation daily review to weekly batch completion"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.Complete"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs",
+        "concurrency": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "reconciliation.batch"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "RECON.DISPOSITION.READ",
+      "frCode": "FR-RECON",
+      "name": "Read reconciliation disposition categories",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager",
+        "Quản lý"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "disposition categories list",
+      "prerequisites": [
+        "authenticated manager"
+      ],
+      "sourceLineage": [
+        "disposition categories query"
+      ],
+      "actionIds": [
+        "ReconciliationActuals.DispositionCategories"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": []
+    },
+    {
+      "id": "RECON.ACTUALS.PURCHASED",
+      "frCode": "FR-RECON",
+      "name": "Record actual purchased quantity for reconciliation line",
+      "operation": "update",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation line purchased quantity",
+      "prerequisites": [
+        "active batch line",
+        "verified purchase invoice"
+      ],
+      "sourceLineage": [
+        "actual purchased record"
+      ],
+      "actionIds": [
+        "ReconciliationActuals.Purchased"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Purchased actual entry UI surface unresolved."
+      ]
+    },
+    {
+      "id": "RECON.ACTUALS.ISSUED",
+      "frCode": "FR-RECON",
+      "name": "Record actual issued quantity for reconciliation line",
+      "operation": "update",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation line issued quantity",
+      "prerequisites": [
+        "active batch line",
+        "warehouse issue voucher"
+      ],
+      "sourceLineage": [
+        "actual issued record"
+      ],
+      "actionIds": [
+        "ReconciliationActuals.Issued"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Issued actual entry UI surface unresolved."
+      ]
+    },
+    {
+      "id": "RECON.ACTUALS.DISPOSITION",
+      "frCode": "FR-RECON",
+      "name": "Record disposition for batch line variance",
+      "operation": "update",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation batch line disposition",
+      "prerequisites": [
+        "unresolved variance line",
+        "disposition category and reason"
+      ],
+      "sourceLineage": [
+        "variance disposition record"
+      ],
+      "actionIds": [
+        "ReconciliationActuals.Disposition"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Line disposition entry UI surface unresolved."
+      ]
+    },
+    {
+      "id": "RECON.DAILY_LINES.DISPOSITION",
+      "frCode": "FR-RECON",
+      "name": "Record disposition for daily review line variance",
+      "operation": "update",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "reconciliation daily line disposition",
+      "prerequisites": [
+        "daily line variance",
+        "disposition category and reason"
+      ],
+      "sourceLineage": [
+        "daily variance disposition record"
+      ],
+      "actionIds": [
+        "ReconciliationDailyLines.Disposition"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationDailyLinesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Daily line disposition entry UI surface unresolved."
+      ]
     }
   ],
   "surfaces": [
@@ -7302,14 +7636,13 @@
       "workObject": "OperationalFrame",
       "capabilityIds": [
         "RECON.BATCH.READ",
-        "RECON.BATCH.LIFECYCLE",
-        "RECON.ACTUALS"
+        "RECON.BATCH.COMPLETE"
       ],
       "actions": [
         {
           "id": "complete-batch",
           "label": "Hoàn tất lô đối soát",
-          "capabilityId": "RECON.BATCH.LIFECYCLE"
+          "capabilityId": "RECON.BATCH.COMPLETE"
         }
       ],
       "states": [

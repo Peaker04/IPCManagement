@@ -362,6 +362,33 @@ test('verifies FR-CHEF capabilities are all operation-grain', () => {
   }
 });
 
+test('splits Reconciliation capabilities at their actual operation grain', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+  const expectedOwners = new Map([
+    ['ReconciliationBatches.Create', 'RECON.BATCH.CREATE'],
+    ['ReconciliationBatches.PreviewQuantityImport', 'RECON.BATCH.PREVIEW_IMPORT'],
+    ['ReconciliationBatches.CommitQuantityImport', 'RECON.BATCH.COMMIT_IMPORT'],
+    ['ReconciliationBatches.Ready', 'RECON.BATCH.READY'],
+    ['ReconciliationBatches.TransferToWarehouse', 'RECON.BATCH.TRANSFER_WAREHOUSE'],
+    ['ReconciliationBatches.Complete', 'RECON.BATCH.COMPLETE'],
+    ['ReconciliationActuals.DispositionCategories', 'RECON.DISPOSITION.READ'],
+    ['ReconciliationActuals.Purchased', 'RECON.ACTUALS.PURCHASED'],
+    ['ReconciliationActuals.Issued', 'RECON.ACTUALS.ISSUED'],
+    ['ReconciliationActuals.Disposition', 'RECON.ACTUALS.DISPOSITION'],
+    ['ReconciliationDailyLines.Disposition', 'RECON.DAILY_LINES.DISPOSITION'],
+  ]);
+
+  for (const [actionId, capabilityId] of expectedOwners) {
+    const owners = contract.capabilities.filter((capability) => capability.actionIds && capability.actionIds.includes(actionId));
+    assert.deepEqual(owners.map((owner) => owner.id), [capabilityId], `${actionId} must be owned by ${capabilityId}`);
+  }
+
+  const completeCap = contract.capabilities.find((c) => c.id === 'RECON.BATCH.COMPLETE');
+  assert.ok(completeCap, 'RECON.BATCH.COMPLETE must exist');
+  assert.equal(completeCap.deliveryClass, 'READY');
+});
+
 test('maps every rendered Backend mutation to one guarded writable surface action', () => {
   const repoRoot = join(import.meta.dirname, '..');
   const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
