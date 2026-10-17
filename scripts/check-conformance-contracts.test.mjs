@@ -347,6 +347,21 @@ test('splits Warehouse and Inventory capabilities at their actual operation grai
   }
 });
 
+test('verifies FR-CHEF capabilities are all operation-grain', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+  const chefReq = contract.requirements.find((r) => r.id === 'FR-CHEF');
+  assert.ok(chefReq, 'FR-CHEF must exist');
+  assert.equal(chefReq.capabilityIds.length, 25);
+
+  const chefCaps = contract.capabilities.filter((c) => chefReq.capabilityIds.includes(c.id));
+  assert.equal(chefCaps.length, 25);
+  for (const cap of chefCaps) {
+    assert.ok(cap.actionIds.length > 0, `${cap.id} must have mapped actionIds`);
+    assert.ok(['read', 'create', 'update', 'terminal'].includes(cap.operation), `${cap.id} has valid operation`);
+  }
+});
+
 test('maps every rendered Backend mutation to one guarded writable surface action', () => {
   const repoRoot = join(import.meta.dirname, '..');
   const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
