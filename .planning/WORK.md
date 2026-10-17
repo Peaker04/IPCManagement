@@ -254,5 +254,31 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
 - BLOCKED: Direct PO creation remains prohibited (PO must originate from approved PR); warehouse receipt and supplemental request mutations remain guarded.
 
+### GF-R36 — Warehouse capability conformance and empty-state resiliency
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-warehouse-inventory-conformance-plan.md` and spec `docs/superpowers/specs/2026-10-18-warehouse-inventory-conformance-design.md`; lifecycle returned to `IDLE`.
+- Capability disaggregation: Disaggregated 26 bundled Warehouse and Inventory actions into operation-grain capabilities (`WH.ISSUE.READ`, `WH.ISSUE.CREATE`, `WH.ISSUE.CONFIRM`, `WH.RECEIPT.READ`, `WH.RECEIPT.CREATE`, `WH.RECEIPT.CREATE_FROM_PURCHASE`, `WH.RETURN.*` [4 capabilities], `WH.STOCKTAKE.*` [6 capabilities], `WH.LEGACY_LINEAGE.*` [4 capabilities]).
+- Empty state resiliency: `WarehousePage.tsx` repaired from non-resilient `isEmpty={false}` to dynamic empty state handling with domain-accurate `emptyTitle` and `emptyDescription` for both issues and receipts views.
+- 100% existing UI kit reuse: Used standard primitives (`WorkspaceHeader`, `TelemetrySubbar`, `DataGrid`, `StateBoundary`, `Select`, `Button`, `Badge`, `IdentifierText`). Zero custom components or ad-hoc styles written.
+- TDD RED→GREEN evidence:
+  - `check-conformance-contracts.test.mjs`: RED on missing operation-grain owners → GREEN (25/25 PASS).
+  - `Warehouse.test.tsx`: RED on empty state handling → GREEN (9/9 PASS covering full 4-scenario Rule TA-4).
+- Verification:
+  - Conformance checker & tests: 25/25 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 111 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Warehouse contract and component regression; previous tests lacked empty state resiliency assertions; added empty issues and receipts assertions; yes; low noise; proved empty state accessibility and Rule TA-4 compliance`.
+  - `ipc-ui-review; 3-Zone OperationalFrame layout review; verified D6 font size >= 12px, D7 zero primary buttons, T7 frozen header, T8 compact density (36-40px), N6 URL-leaf navigation; yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; disaggregated 26 capabilities, repaired isEmpty logic, and protected DOM-MODE-1; yes; low noise; kept write surfaces guarded`.
+- PASS: Operation-grain disaggregation, empty state resiliency, refusal to fabricate stock, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
+- BLOCKED: Direct source-less issue creation remains prohibited; return and stocktake mutations remain guarded pending live authority.
+
+
 
 
