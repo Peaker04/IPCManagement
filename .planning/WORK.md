@@ -227,4 +227,32 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
 - BLOCKED: Order locking and service run lifecycle mutations remain guarded pending live concurrency/permission authorization; dish cost report remains a `BACKEND_CAPABILITY_GAP`.
 
+### GF-R35 — Purchasing and Approvals capability conformance and supplier telemetry authority
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-purchasing-approvals-conformance-plan.md` and spec `docs/superpowers/specs/2026-10-18-purchasing-approvals-conformance-design.md`; lifecycle returned to `IDLE`.
+- Capability disaggregation: Disaggregated 23 bundled Purchasing and Approvals actions into operation-grain capabilities (`APPR.INBOX.READ`, `APPR.HISTORY.READ`, `PUR.WORKFLOW.GENERATE`, `PUR.WORKFLOW.CONFIRM_SUPPLIER`, `PUR.WORKFLOW.SUBMIT`, `PUR.ORDER.CREATE_FROM_REQUEST`, `PUR.ORDER.CANCEL`, `PUR.QUOTATION.CREATE`, `PUR.QUOTATION.UPDATE`, `PUR.QUOTATION.DEACTIVATE`, `PUR.RECEIPT.*` [6 capabilities], `WH.SUPPLEMENTAL.*` [6 capabilities]).
+- Telemetry & contract authority: `PurchasingPage.tsx` now computes dynamic supplier partner counts (`suppliers.length` instead of hardcoded `(35 đối tác)`).
+- Approvals single primary action hierarchy (`D7`), decision conflict recovery (409 reload), and mandatory rejection reason validation (`BR-GLOBAL-03`).
+- 100% existing UI kit reuse: Used standard primitives (`WorkspaceHeader`, `TelemetrySubbar`, `SplitView`, `DataGrid`, `StateBoundary`, `Select`, `Tabs`, `Button`, `Badge`, `Num`, `IdentifierText`, `Modal`, `ActionGuard`). Zero custom components or ad-hoc styles written.
+- TDD RED→GREEN evidence:
+  - `check-conformance-contracts.test.mjs`: RED on missing operation-grain owners → GREEN (24/24 PASS).
+  - `Purchasing.test.tsx`: RED on hardcoded `35 đối tác` → GREEN (7/7 PASS).
+  - `Approvals.test.tsx`: RED on rejection reason missing validation → GREEN (8/8 PASS).
+- Verification:
+  - Conformance checker & tests: 24/24 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 109 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Purchasing and Approvals contract regression; previous tests lacked dynamic partner count and rejection reason assertions; added dynamic assertions and 4-scenario testing; yes; low noise; proved supplier telemetry authority and BR-GLOBAL-03 compliance`.
+  - `ipc-ui-review; 3-Zone SplitWorkbench layout review; verified 60/40 split, D6 font size >= 12px, D7 single primary on approvals header (0 on purchasing), T7 frozen header, T8 compact density (36-40px); yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; disaggregated 23 capabilities, cleaned up partner count, and protected DOM-MODE-1; yes; low noise; kept write surfaces guarded`.
+- PASS: Operation-grain disaggregation, dynamic supplier telemetry, BR-GLOBAL-03 rejection reason enforcement, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
+- BLOCKED: Direct PO creation remains prohibited (PO must originate from approved PR); warehouse receipt and supplemental request mutations remain guarded.
+
+
 
