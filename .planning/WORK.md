@@ -382,6 +382,34 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Live execution against running backend in authorized multi-user staging.
 - BLOCKED: Backend gaps (`UnitsController` missing, dish-cost report missing) remain fail-closed.
 
+### GF-R41 — Live web runtime conformance audit and architectural evaluation report
+- Status: **CLOSED / PASS at contract, component, and live browser boundaries** under `docs/superpowers/plans/2026-10-18-live-web-conformance-audit-plan.md` and spec `docs/superpowers/specs/2026-10-18-live-web-conformance-audit-design.md`; lifecycle returned to `IDLE`.
+- Live Auth & Handshake: Proved live HTTP handshake with running Kestrel .NET Core API (`http://127.0.0.1:5262`) and MySQL (`port 3306`), verifying real login with admin credentials returning authentic JWT access token.
+- Physical pixel measurements: Measured `WorkspaceHeader` ($56px \pm 1px$), `TelemetrySubbar` ($44px \pm 1px$), and `DataGrid` sticky headers on real Chromium.
+- Live Mode Isolation: Proved `DOM-MODE-1` live enforcement (reconciliation completion disabled in `DEFAULT` mode).
+- Live Popstate Trap: Intercepted browser history back navigation when draft is dirty.
+- Live Navigation: Proved all primary work objects reside on Sidebar v2 N6 tree with unique URLs.
+- TDD RED→GREEN evidence:
+  - `live-conformance-audit.spec.ts`: 5/5 PASS on real Chromium.
+- Verification:
+  - Conformance checker & tests: 28/28 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 114 tests PASS.
+  - Playwright browser suites: 21 tests PASS (16 conformance-runtime + 5 live-conformance-audit).
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Live web runtime E2E audit; executed directly against running Kestrel backend and MySQL database; verified live auth, pixel heights, mode switching, popstate; yes; low noise; proved genuine architecture without cosmetic patching`.
+  - `ipc-ui-review; Physical pixel layout & zoom review; verified D6 font size >= 12px, D7 single primary, T7 frozen header, T8 compact density; yes; low noise; 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; verified live network integration and protected DOM-MODE-1; yes; low noise; kept write surfaces safely guarded`.
+- PASS: Live authentication, 5-pillar browser audit, pixel-exact geometry, zero fake data, full suite green.
+- NEEDS_EVIDENCE: Live multi-user concurrency testing under real load.
+- BLOCKED: Backend gaps (`UnitsController` missing, dish-cost report missing) remain fail-closed.
+
+
 
 
 
