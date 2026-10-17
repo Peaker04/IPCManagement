@@ -75,4 +75,21 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(await screen.findByText('Không thể tải dữ liệu')).toBeInTheDocument();
     expect(screen.getByText('Lỗi đồng bộ dữ liệu bếp')).toBeInTheDocument();
   });
+
+  it('renders clean empty state when no production plans exist for the selected scope', async () => {
+    vi.spyOn(chefApi, 'getChefDashboardData').mockResolvedValue({
+      ...MOCK_CHEF_DATA,
+      plans: [],
+      issues: [],
+      totalPlans: 0,
+      sentPlans: 0,
+      totalServings: 0,
+      issuePage: { totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false },
+    });
+
+    renderChef('/chef?view=plans');
+
+    expect(await screen.findByText('Chưa có kế hoạch sản xuất')).toBeInTheDocument();
+    expect(screen.getByText('Điều phối chưa có KHSX persisted cho ngày, ca và khách hàng đã chọn.')).toBeInTheDocument();
+  });
 });
