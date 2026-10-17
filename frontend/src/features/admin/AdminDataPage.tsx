@@ -1,5 +1,5 @@
 import { useSearchParams } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -16,94 +16,131 @@ import {
 
 export function AdminDataPage() {
   const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get('view') === 'dishes' ? 'dishes' : 'ingredients';
+  const activeView = searchParams.get('view') === 'dishes' ? 'dishes' : 'ingredients';
+  const [pageNumber, setPageNumber] = useState(1);
+  const [prevView, setPrevView] = useState(activeView);
+
+  // Synchronize pageNumber on view change without effect cascading render
+  if (prevView !== activeView) {
+    setPrevView(activeView);
+    setPageNumber(1);
+  }
+
+  const [pageInfo, setPageInfo] = useState({
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 25,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  });
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
   const [dishes, setDishes] = useState<DishItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [ings, dshs] = await Promise.all([
-        adminApi.getIngredients(),
-        adminApi.getDishes(),
-      ]);
-      setIngredients(ings);
-      setDishes(dshs);
+      if (activeView === 'ingredients') {
+        const result = await adminApi.getIngredients({ pageNumber, pageSize: 25 });
+        setIngredients(result.items);
+        setPageInfo(result);
+      } else {
+        const result = await adminApi.getDishes({ pageNumber, pageSize: 25 });
+        setDishes(result.items);
+        setPageInfo(result);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err : new Error('Không thể tải danh mục dữ liệu nền.'));
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeView, pageNumber]);
 
   useEffect(() => {
     let ignore = false;
-    async function fetchData() {
-      try {
-        const [ings, dshs] = await Promise.all([
-          adminApi.getIngredients(),
-          adminApi.getDishes(),
-        ]);
-        if (!ignore) {
-          setIngredients(ings);
-          setDishes(dshs);
-          setIsLoading(false);
+
+    const request = activeView === 'ingredients'
+      ? adminApi.getIngredients({ pageNumber, pageSize: 25 })
+      : adminApi.getDishes({ pageNumber, pageSize: 25 });
+
+    request
+      .then((result) => {
+        if (ignore) return;
+        if (activeView === 'ingredients') {
+          setIngredients(result.items as IngredientItem[]);
+        } else {
+          setDishes(result.items as DishItem[]);
         }
-      } catch (err: unknown) {
+        setPageInfo(result);
+        setError(null);
+      })
+      .catch((err: unknown) => {
         if (!ignore) {
           setError(err instanceof Error ? err : new Error('Không thể tải danh mục dữ liệu nền.'));
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
           setIsLoading(false);
         }
-      }
-    }
-
-    fetchData();
+      });
 
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [activeView, pageNumber]);
 
   const ingredientColumns: ColumnDef<IngredientItem>[] = [
     {
       id: 'code',
       header: 'Mã nguyên liệu',
-      width: '18%',
+      width: '16%',
       cell: (row) => <IdentifierText value={row.ingredientCode} />,
     },
     {
       id: 'name',
       header: 'Tên nguyên liệu thực phẩm',
-      width: '32%',
+      width: '26%',
       cell: (row) => <span className="font-semibold text-slate-900 text-sm">{row.ingredientName}</span>,
-    },
-    {
-      id: 'category',
-      header: 'Nhóm thực phẩm',
-      width: '18%',
-      cell: (row) => <span className="text-slate-600 text-sm">{row.categoryName}</span>,
     },
     {
       id: 'unit',
       header: 'ĐVT',
-      width: '12%',
+      width: '10%',
       align: 'center',
-      cell: (row) => <span className="font-mono text-xs text-slate-600">{row.unitName}</span>,
+      cell: (row) => <span className="font-mono text-xs text-slate-600">{row.unitName || '—'}</span>,
+    },
+    {
+      id: 'warehouse',
+      header: 'Kho quản lý',
+      width: '16%',
+      cell: (row) => <span className="text-slate-600 text-sm">{row.warehouseName || '—'}</span>,
     },
     {
       id: 'price',
       header: 'Đơn giá tham chiếu',
-      width: '18%',
+      width: '14%',
       align: 'right',
       cell: (row) => <Num value={row.referencePrice} format="currency" className="font-bold text-slate-900 text-sm" />,
     },
     {
+      id: 'fresh',
+      header: 'Loại hàng',
+      width: '9%',
+      align: 'center',
+      cell: (row) => (
+        <Badge variant="neutral" size="sm">
+          {row.isFreshDaily ? 'Tươi sống' : 'Tiêu chuẩn'}
+        </Badge>
+      ),
+    },
+    {
       id: 'status',
       header: 'Trạng thái',
-      width: '12%',
+      width: '9%',
       align: 'center',
       cell: (row) => (
         <Badge variant={row.isActive ? 'success' : 'neutral'} size="sm">
@@ -117,25 +154,31 @@ export function AdminDataPage() {
     {
       id: 'code',
       header: 'Mã món',
-      width: '20%',
+      width: '18%',
       cell: (row) => <IdentifierText value={row.dishCode} />,
     },
     {
       id: 'name',
       header: 'Tên món ăn tiêu chuẩn',
-      width: '40%',
+      width: '38%',
       cell: (row) => <span className="font-semibold text-slate-900 text-sm">{row.dishName}</span>,
+    },
+    {
+      id: 'type',
+      header: 'Phân loại',
+      width: '18%',
+      cell: (row) => <span className="text-slate-600 text-sm">{row.dishType || '—'}</span>,
     },
     {
       id: 'group',
       header: 'Nhóm phân loại',
-      width: '24%',
-      cell: (row) => <span className="text-slate-600 text-sm">{row.dishGroup}</span>,
+      width: '14%',
+      cell: (row) => <span className="text-slate-600 text-sm">{row.dishGroup || '—'}</span>,
     },
     {
       id: 'status',
       header: 'Trạng thái',
-      width: '16%',
+      width: '12%',
       align: 'center',
       cell: (row) => (
         <Badge variant={row.isActive ? 'success' : 'neutral'} size="sm">
@@ -152,7 +195,7 @@ export function AdminDataPage() {
         title="Quản trị dữ liệu & Danh mục"
         contextSelectors={
           <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
-            {ingredients.length} nguyên liệu · {dishes.length} món ăn
+            {pageInfo.totalCount} {activeView === 'ingredients' ? 'nguyên liệu' : 'món ăn'} persisted
           </Badge>
         }
         actions={
@@ -166,18 +209,16 @@ export function AdminDataPage() {
       <TelemetrySubbar
         leftControls={
           <span className="text-xs font-semibold text-slate-700">
-            Đang xem: {activeTab === 'ingredients' ? 'Danh mục nguyên liệu' : 'Danh mục món ăn'}
+            Đang xem: {activeView === 'ingredients' ? 'Danh mục nguyên liệu thực phẩm' : 'Danh mục món ăn tiêu chuẩn'}
           </span>
         }
         telemetryPills={
-          <>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Tổng danh mục:</span>
-              <strong className="text-slate-900 font-mono font-bold">
-                {activeTab === 'ingredients' ? ingredients.length : dishes.length} mặt hàng
-              </strong>
-            </span>
-          </>
+          <span className="inline-flex items-center gap-1">
+            <span className="text-slate-500">Tổng danh mục:</span>
+            <strong className="text-slate-900 font-mono font-bold">
+              {pageInfo.totalCount} mặt hàng authoritative
+            </strong>
+          </span>
         }
       />
 
@@ -186,9 +227,11 @@ export function AdminDataPage() {
         isLoading={isLoading}
         error={error}
         onRetry={loadData}
-        isEmpty={activeTab === 'ingredients' ? ingredients.length === 0 : dishes.length === 0}
+        isEmpty={!isLoading && !error && (activeView === 'ingredients' ? ingredients.length === 0 : dishes.length === 0)}
+        emptyTitle={activeView === 'ingredients' ? 'Chưa có danh mục nguyên liệu' : 'Chưa có danh mục món ăn'}
+        emptyDescription="Backend chưa có dữ liệu persisted cho danh mục này."
       >
-        {activeTab === 'ingredients' ? (
+        {activeView === 'ingredients' ? (
           <DataGrid<IngredientItem>
             data={ingredients}
             columns={ingredientColumns}
@@ -203,6 +246,38 @@ export function AdminDataPage() {
         )}
       </StateBoundary>
 
+      {/* Server Pagination Navigation */}
+      {pageInfo.totalPages > 1 && (
+        <nav aria-label="Phân trang danh mục" className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-2">
+          <span className="text-xs text-slate-500">
+            Trang {pageInfo.pageNumber}/{pageInfo.totalPages} ({pageInfo.totalCount} mục)
+          </span>
+          <Button
+            variant="outline"
+            size="xs"
+            disabled={!pageInfo.hasPrev || isLoading}
+            onClick={() => {
+              setIsLoading(true);
+              setError(null);
+              setPageNumber((p) => p - 1);
+            }}
+          >
+            Trang trước
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            disabled={!pageInfo.hasNext || isLoading}
+            onClick={() => {
+              setIsLoading(true);
+              setError(null);
+              setPageNumber((p) => p + 1);
+            }}
+          >
+            Trang sau
+          </Button>
+        </nav>
+      )}
     </div>
   );
 }

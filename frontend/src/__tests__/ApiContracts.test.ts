@@ -255,7 +255,7 @@ describe('Frontend API contracts against backend DTOs', () => {
       isFreshDaily: true,
       isActive: true,
     });
-    expect((result.items[0] as Record<string, unknown>).categoryName).toBeUndefined();
+    expect((result.items[0] as unknown as Record<string, unknown>).categoryName).toBeUndefined();
   });
 
   it('retrieves dishes with server pagination metadata and exact DTO mapping', async () => {
