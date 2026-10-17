@@ -174,3 +174,29 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: real login/cookie rotation/logout, browser focus/autofill, Admin actor mode transition, concurrent 409 and persistence/reload on authorized isolated runtime.
 - BLOCKED: refresh rotation/replay concurrency and initialization concurrency remain `PARTIAL`; no database or live credential authorization.
 - Next dependency-safe slice: **Catalog/Admin contract completion**; it requires a separate bounded plan before any create/edit surface or Backend semantic change.
+
+### GF-R33 — Catalog/Admin capability conformance and view-isolated pagination
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-catalog-admin-conformance-plan.md` and spec `docs/superpowers/specs/2026-10-18-catalog-admin-conformance-design.md`; lifecycle returned to `IDLE`.
+- Capability disaggregation: Grouped capabilities (`CAT.INGREDIENT.WRITE`, `CAT.DISH.WRITE`, `CAT.BOM.WRITE`, `ADMIN.EMPLOYEE.WRITE`, `ADMIN.OUTBOX`, `APPR.RULES`) disaggregated into 18 operation-grain capabilities. `CAT.INGREDIENT.CREATE` is explicitly classified as `BLOCKED` due to missing `UnitsController` lookup authority in Backend; soft-delete and update capabilities remain `PARTIAL`; `APPR.RULES.READ` is verified `READY` mapped to `admin.approval-rules`.
+- Ground truth DTO alignment: `adminApi.ts` now preserves C# `PagedResponseDto<T>` metadata (`totalCount`, `pageNumber`, `pageSize`, `totalPages`, `hasPrev`, `hasNext`), passes query parameters (`pageNumber`, `pageSize`, `searchKeyword`), and completely removes the fabricated `categoryName` property from `IngredientItem`.
+- 3-Zone Workbench UI & View Isolation: `AdminDataPage.tsx` refactored to execute queries isolated to the active URL view (`?view=ingredients` loads only ingredients; `?view=dishes` loads only dishes) with cancellation guard `ignore` against stale in-flight responses. Implements accessible server pagination navigation (`<nav aria-label="Phân trang danh mục">`) using standard `<Button variant="outline" size="xs">` primitives. 100% existing UI Kit components used (`WorkspaceHeader`, `TelemetrySubbar`, `StateBoundary`, `DataGrid`, `Num`, `IdentifierText`, `Badge`, `Button`); zero custom primitives or ad-hoc styles. Write surface remains strictly closed (`READ_ONLY_BY_CONTRACT`).
+- TDD RED→GREEN evidence:
+  - `check-conformance-contracts.test.mjs`: RED on missing operation-grain owners → GREEN (22/22 PASS).
+  - `ApiContracts.test.ts`: RED on missing query parameters and metadata → GREEN (2/2 new tests PASS).
+  - `AdminData.test.tsx`: RED on array-only contract and missing view-isolation → GREEN (5/5 tests PASS covering full 4-scenario Rule TA-4).
+- Verification:
+  - Conformance checker & tests: 22/22 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 102 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (zero warnings, zero errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 258 dependencies, zero violations).
+  - Git diff check: PASS (clean).
+- Review gate: `ipc-test-audit; Catalog/Admin contract and component regression; old tests used short IDs, lacked pagination boundaries and view isolation; added full 4-scenario testing with exact C# DTO fixtures, real DOM execution, and zero allowlist padding; yes; low noise; proved C# DTO truth and eliminated synthetic categoryName`.
+- Review gate: `ipc-ui-review; 3-Zone Workbench & Server Pagination Review; previous page called both APIs and lacked pagination; enforced view isolation, semantic pagination nav, D6 typography, D7 single primary hierarchy (0 primary, 1 outline), T7 frozen header, and T8 compact density (36-40px); yes; low noise; conformed to 3-Zone Workbench without duplicate primitives`.
+- Review gate: `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; adminApi stripped metadata; added PagedResult<T> mapping with C# PagedResponseDto parity, strict TypeScript types without categoryName, zero new dependencies, and clean ESLint compliance; yes; low noise; kept write surfaces safely locked`.
+- PASS: Operation-grain disaggregation, C# DTO truth on DOM, server pagination navigation, view-isolated queries, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
+- BLOCKED: `CAT.INGREDIENT.CREATE` remains BLOCKED pending Backend `UnitsController` endpoint; Catalog and Employee mutations lack optimistic concurrency tokens.
+
