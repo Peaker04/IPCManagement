@@ -314,6 +314,39 @@ test('splits Purchasing and Approvals capabilities at their actual operation gra
   }
 });
 
+test('splits Warehouse and Inventory capabilities at their actual operation grain', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+  const expectedOwners = new Map([
+    ['InventoryIssues.GetAll', 'WH.ISSUE.READ'],
+    ['InventoryIssues.GetById', 'WH.ISSUE.READ'],
+    ['InventoryIssues.Create', 'WH.ISSUE.CREATE'],
+    ['InventoryIssues.ConfirmReceipt', 'WH.ISSUE.CONFIRM'],
+    ['InventoryReceipts.GetAll', 'WH.RECEIPT.READ'],
+    ['InventoryReceipts.GetById', 'WH.RECEIPT.READ'],
+    ['InventoryReceipts.Create', 'WH.RECEIPT.CREATE'],
+    ['InventoryReceipts.CreateFromPurchase', 'WH.RECEIPT.CREATE_FROM_PURCHASE'],
+    ['InventoryReturns.GetAll', 'WH.RETURN.READ'],
+    ['InventoryReturns.Create', 'WH.RETURN.CREATE'],
+    ['InventoryReturns.ConfirmReceipt', 'WH.RETURN.CONFIRM'],
+    ['InventoryReturns.CreateAllocationDisposition', 'WH.RETURN.DISPOSITION'],
+    ['Stocktakes.GetPaged', 'WH.STOCKTAKE.READ'],
+    ['Stocktakes.Create', 'WH.STOCKTAKE.CREATE'],
+    ['Stocktakes.Submit', 'WH.STOCKTAKE.SUBMIT'],
+    ['Stocktakes.Approve', 'WH.STOCKTAKE.APPROVE'],
+    ['Stocktakes.Reject', 'WH.STOCKTAKE.REJECT'],
+    ['LegacyLineageDispositions.Get', 'WH.LEGACY_LINEAGE.READ'],
+    ['LegacyLineageDispositions.Create', 'WH.LEGACY_LINEAGE.CREATE'],
+    ['LegacyLineageDispositions.Review', 'WH.LEGACY_LINEAGE.REVIEW'],
+    ['LegacyLineageDispositions.Apply', 'WH.LEGACY_LINEAGE.APPLY'],
+  ]);
+
+  for (const [actionId, capabilityId] of expectedOwners) {
+    const owners = contract.capabilities.filter((capability) => capability.actionIds && capability.actionIds.includes(actionId));
+    assert.deepEqual(owners.map((owner) => owner.id), [capabilityId], `${actionId} must be owned by ${capabilityId}`);
+  }
+});
+
 test('maps every rendered Backend mutation to one guarded writable surface action', () => {
   const repoRoot = join(import.meta.dirname, '..');
   const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));

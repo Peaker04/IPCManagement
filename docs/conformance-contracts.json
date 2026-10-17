@@ -33,18 +33,28 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "CAT.BOM.READ",
-        "WH.ISSUE",
-        "WH.RECEIPT",
-        "WH.RETURN",
         "RECON.ACTUALS",
-        "WH.LEGACY_LINEAGE",
         "CAT.BOM.LINE.ADD",
         "CAT.BOM.LINE.UPDATE",
         "CAT.BOM.LINE.CLOSE",
         "PLAN.DEMAND.GENERATE",
         "PLAN.DEMAND.APPROVE",
         "PLAN.DEMAND.STALENESS.READ",
-        "PUR.WORKFLOW.GENERATE"
+        "PUR.WORKFLOW.GENERATE",
+        "WH.ISSUE.READ",
+        "WH.ISSUE.CREATE",
+        "WH.ISSUE.CONFIRM",
+        "WH.RECEIPT.READ",
+        "WH.RECEIPT.CREATE",
+        "WH.RECEIPT.CREATE_FROM_PURCHASE",
+        "WH.RETURN.READ",
+        "WH.RETURN.CREATE",
+        "WH.RETURN.CONFIRM",
+        "WH.RETURN.DISPOSITION",
+        "WH.LEGACY_LINEAGE.READ",
+        "WH.LEGACY_LINEAGE.CREATE",
+        "WH.LEGACY_LINEAGE.REVIEW",
+        "WH.LEGACY_LINEAGE.APPLY"
       ],
       "evidenceRequired": [
         "contract",
@@ -62,7 +72,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "APPR.DECISION",
-        "WH.STOCKTAKE",
         "RECON.BATCH.LIFECYCLE",
         "REP.DATA_QUALITY.WRITE",
         "COORD.ORDER.ADJUST_AFTER_LOCK",
@@ -105,7 +114,13 @@
         "PUR.RECEIPT.POST",
         "PUR.RECEIPT.CORRECTION",
         "PUR.RECEIPT.REWORK",
-        "PUR.RECEIPT.VOID"
+        "PUR.RECEIPT.VOID",
+        "WH.STOCKTAKE.READ",
+        "WH.STOCKTAKE.CREATE",
+        "WH.STOCKTAKE.UPDATE_ACTUAL",
+        "WH.STOCKTAKE.SUBMIT",
+        "WH.STOCKTAKE.APPROVE",
+        "WH.STOCKTAKE.REJECT"
       ],
       "evidenceRequired": [
         "contract",
@@ -354,8 +369,6 @@
         "PLAN.PRODUCTION.READ",
         "PLAN.PRODUCTION.SEND",
         "PLAN.SERVICE_RUN.READ",
-        "WH.ISSUE",
-        "WH.RETURN",
         "PLAN.SERVICE_RUN.OPEN",
         "PLAN.SERVICE_RUN.START",
         "PLAN.SERVICE_RUN.RECORD_ACTUALS",
@@ -372,7 +385,12 @@
         "WH.SUPPLEMENTAL.CREATE",
         "WH.SUPPLEMENTAL.FULFILL",
         "WH.SUPPLEMENTAL.REJECT",
-        "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING"
+        "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING",
+        "WH.ISSUE.READ",
+        "WH.ISSUE.CONFIRM",
+        "WH.RETURN.READ",
+        "WH.RETURN.CREATE",
+        "WH.RETURN.CONFIRM"
       ],
       "evidenceRequired": [
         "contract",
@@ -456,11 +474,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "WH.CATALOG.READ",
-        "WH.ISSUE",
-        "WH.RECEIPT",
-        "WH.RETURN",
-        "WH.STOCKTAKE",
-        "WH.LEGACY_LINEAGE",
         "REP.INVENTORY.READ",
         "REP.STOCK_SNAPSHOT.GENERATE",
         "PUR.RECEIPT.RECORD",
@@ -474,7 +487,27 @@
         "WH.SUPPLEMENTAL.CREATE",
         "WH.SUPPLEMENTAL.FULFILL",
         "WH.SUPPLEMENTAL.REJECT",
-        "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING"
+        "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING",
+        "WH.ISSUE.READ",
+        "WH.ISSUE.CREATE",
+        "WH.ISSUE.CONFIRM",
+        "WH.RECEIPT.READ",
+        "WH.RECEIPT.CREATE",
+        "WH.RECEIPT.CREATE_FROM_PURCHASE",
+        "WH.RETURN.READ",
+        "WH.RETURN.CREATE",
+        "WH.RETURN.CONFIRM",
+        "WH.RETURN.DISPOSITION",
+        "WH.STOCKTAKE.READ",
+        "WH.STOCKTAKE.CREATE",
+        "WH.STOCKTAKE.UPDATE_ACTUAL",
+        "WH.STOCKTAKE.SUBMIT",
+        "WH.STOCKTAKE.APPROVE",
+        "WH.STOCKTAKE.REJECT",
+        "WH.LEGACY_LINEAGE.READ",
+        "WH.LEGACY_LINEAGE.CREATE",
+        "WH.LEGACY_LINEAGE.REVIEW",
+        "WH.LEGACY_LINEAGE.APPLY"
       ],
       "evidenceRequired": [
         "contract",
@@ -1893,200 +1926,6 @@
       "gaps": []
     },
     {
-      "id": "WH.ISSUE",
-      "frCode": "FR-WH",
-      "name": "Read create and confirm inventory issues",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "WarehouseStaff",
-        "Chef"
-      ],
-      "permissionTokens": [
-        "InventoryIssueAccess"
-      ],
-      "grain": "source-backed inventory issue",
-      "prerequisites": [
-        "material request or authorized source lineage"
-      ],
-      "sourceLineage": [
-        "source request lines to stock ledger issue"
-      ],
-      "actionIds": [
-        "InventoryIssues.GetAll",
-        "InventoryIssues.GetById",
-        "InventoryIssues.Create",
-        "InventoryIssues.ConfirmReceipt"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
-        "validator": "backend/src/IPCManagement.Api/Features/Inventory/Validators/InventoryIssueStockValidator.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryIssueService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-WH",
-        "FR-CHEF",
-        "BR-GLOBAL-02"
-      ],
-      "surfaceIds": [
-        "warehouse.issues",
-        "chef.issues"
-      ],
-      "gaps": [
-        "Split read create confirm.",
-        "Source families concurrency and mode-specific lineage unresolved."
-      ]
-    },
-    {
-      "id": "WH.RECEIPT",
-      "frCode": "FR-WH",
-      "name": "Read and create inventory receipts",
-      "operation": "create",
-      "mode": "DEFAULT",
-      "actors": [
-        "WarehouseStaff"
-      ],
-      "permissionTokens": [
-        "InventoryAccess",
-        "InventoryReceiptReadAccess"
-      ],
-      "grain": "inventory receipt",
-      "prerequisites": [
-        "authorized purchase or receipt source"
-      ],
-      "sourceLineage": [
-        "purchase source to receipt and stock ledger"
-      ],
-      "actionIds": [
-        "InventoryReceipts.GetAll",
-        "InventoryReceipts.GetById",
-        "InventoryReceipts.Create",
-        "InventoryReceipts.CreateFromPurchase"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
-        "validator": "backend/src/IPCManagement.Api/Features/Inventory/Validators/InventoryValidators.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReceiptService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-WH",
-        "BR-GLOBAL-02"
-      ],
-      "surfaceIds": [
-        "warehouse.receipts"
-      ],
-      "gaps": [
-        "Split read generic create and purchase create.",
-        "Posting concurrency and exact source contract unresolved."
-      ]
-    },
-    {
-      "id": "WH.RETURN",
-      "frCode": "FR-WH",
-      "name": "Read create and confirm inventory returns",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Chef",
-        "WarehouseStaff",
-        "Admin"
-      ],
-      "permissionTokens": [
-        "ProductionAccess",
-        "InventoryAccess"
-      ],
-      "grain": "source allocation return",
-      "prerequisites": [
-        "issued allocation balance"
-      ],
-      "sourceLineage": [
-        "issue allocation to return and stock ledger"
-      ],
-      "actionIds": [
-        "InventoryReturns.GetAll",
-        "InventoryReturns.GetById",
-        "InventoryReturns.GetAllocationBalances",
-        "InventoryReturns.Create",
-        "InventoryReturns.ConfirmReceipt",
-        "InventoryReturns.CreateAllocationDisposition"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReturnRules.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReturnService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-WH",
-        "FR-CHEF",
-        "BR-GLOBAL-02"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split read create confirm disposition.",
-        "Concurrency and Frontend review flow unresolved."
-      ]
-    },
-    {
-      "id": "WH.STOCKTAKE",
-      "frCode": "FR-WH",
-      "name": "Read draft submit approve or reject stocktake",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "WarehouseStaff",
-        "InventoryApprover"
-      ],
-      "permissionTokens": [
-        "InventoryAccess",
-        "InventoryApproveAccess"
-      ],
-      "grain": "stocktake document",
-      "prerequisites": [
-        "warehouse snapshot and count"
-      ],
-      "sourceLineage": [
-        "stock snapshot to counted variance and ledger adjustment"
-      ],
-      "actionIds": [
-        "Stocktakes.GetById",
-        "Stocktakes.GetPaged",
-        "Stocktakes.Create",
-        "Stocktakes.UpdateActualQty",
-        "Stocktakes.Submit",
-        "Stocktakes.Approve",
-        "Stocktakes.Reject"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/StocktakeDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/StocktakeDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/StocktakeService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-WH",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split draft count submit decision transitions.",
-        "Concurrency and adjustment posting evidence unresolved."
-      ]
-    },
-    {
       "id": "RECON.BATCH.READ",
       "frCode": "FR-RECON",
       "name": "Read reconciliation batches sources and warehouse projection",
@@ -2310,52 +2149,6 @@
       "gaps": [
         "Database seed execution is not authorized.",
         "Environment guard and cleanup contract require review."
-      ]
-    },
-    {
-      "id": "WH.LEGACY_LINEAGE",
-      "frCode": "FR-WH",
-      "name": "Review and disposition legacy inventory lineage",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Admin",
-        "InventoryApprover"
-      ],
-      "permissionTokens": [
-        "AdminAccess",
-        "InventoryApproveAccess"
-      ],
-      "grain": "legacy lineage case",
-      "prerequisites": [
-        "legacy candidate evidence"
-      ],
-      "sourceLineage": [
-        "legacy movement to reviewed disposition"
-      ],
-      "actionIds": [
-        "LegacyLineageDispositions.Get",
-        "LegacyLineageDispositions.GetCandidates",
-        "LegacyLineageDispositions.Create",
-        "LegacyLineageDispositions.Review",
-        "LegacyLineageDispositions.Apply"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/LegacyLineageDispositionDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/LegacyLineageDispositionDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/LegacyLineageDispositionService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-WH",
-        "BR-GLOBAL-02"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split query create review apply.",
-        "Concurrency and evidence UI unresolved."
       ]
     },
     {
@@ -6209,6 +6002,760 @@
       "gaps": [
         "Routing to purchasing UI action unresolved."
       ]
+    },
+    {
+      "id": "WH.ISSUE.READ",
+      "frCode": "FR-WH",
+      "name": "Read inventory issue documents and lines",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess",
+        "ProductionAccess"
+      ],
+      "grain": "inventory issue document",
+      "prerequisites": [
+        "warehouse access"
+      ],
+      "sourceLineage": [
+        "inventory issue query"
+      ],
+      "actionIds": [
+        "InventoryIssues.GetAll",
+        "InventoryIssues.GetById"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "warehouse.issues",
+        "chef.issues"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "WH.ISSUE.CREATE",
+      "frCode": "FR-WH",
+      "name": "Create inventory issue from approved material request",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "inventory issue document",
+      "prerequisites": [
+        "approved material request",
+        "available stock"
+      ],
+      "sourceLineage": [
+        "material request to inventory issue"
+      ],
+      "actionIds": [
+        "InventoryIssues.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Issue creation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "WH.ISSUE.CONFIRM",
+      "frCode": "FR-WH",
+      "name": "Confirm receipt of issued materials in kitchen",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "inventory issue confirmation",
+      "prerequisites": [
+        "issued inventory issue document"
+      ],
+      "sourceLineage": [
+        "kitchen physical handover confirmation"
+      ],
+      "actionIds": [
+        "InventoryIssues.ConfirmReceipt"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Issue receipt confirmation UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.RECEIPT.READ",
+      "frCode": "FR-WH",
+      "name": "Read inventory receipts and details",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "inventory receipt document",
+      "prerequisites": [
+        "warehouse access"
+      ],
+      "sourceLineage": [
+        "inventory receipt query"
+      ],
+      "actionIds": [
+        "InventoryReceipts.GetAll",
+        "InventoryReceipts.GetById"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "WH.RECEIPT.CREATE",
+      "frCode": "FR-WH",
+      "name": "Create inventory receipt document",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "inventory receipt document",
+      "prerequisites": [
+        "valid supplier",
+        "valid warehouse"
+      ],
+      "sourceLineage": [
+        "direct receipt entry"
+      ],
+      "actionIds": [
+        "InventoryReceipts.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Direct receipt entry UI surface unresolved."
+      ]
+    },
+    {
+      "id": "WH.RECEIPT.CREATE_FROM_PURCHASE",
+      "frCode": "FR-WH",
+      "name": "Create inventory receipt from approved purchase order",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "purchase receipt document",
+      "prerequisites": [
+        "approved purchase order"
+      ],
+      "sourceLineage": [
+        "purchase order to inventory receipt"
+      ],
+      "actionIds": [
+        "InventoryReceipts.CreateFromPurchase"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Purchase order receipt creation UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.RETURN.READ",
+      "frCode": "FR-WH",
+      "name": "Read inventory returns and allocation balances",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess",
+        "ProductionAccess"
+      ],
+      "grain": "inventory return document",
+      "prerequisites": [
+        "warehouse access"
+      ],
+      "sourceLineage": [
+        "inventory return queries"
+      ],
+      "actionIds": [
+        "InventoryReturns.GetAll",
+        "InventoryReturns.GetById",
+        "InventoryReturns.GetAllocationBalances"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Inventory returns read UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "WH.RETURN.CREATE",
+      "frCode": "FR-WH",
+      "name": "Create inventory return for leftover materials",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef",
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "inventory return document",
+      "prerequisites": [
+        "completed shift run",
+        "leftover materials"
+      ],
+      "sourceLineage": [
+        "shift run leftover declaration to return voucher"
+      ],
+      "actionIds": [
+        "InventoryReturns.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Return creation UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.RETURN.CONFIRM",
+      "frCode": "FR-WH",
+      "name": "Confirm receipt of returned inventory in warehouse",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "return voucher confirmation",
+      "prerequisites": [
+        "pending return voucher",
+        "physical inspection"
+      ],
+      "sourceLineage": [
+        "warehouse return confirmation to stock card restitution"
+      ],
+      "actionIds": [
+        "InventoryReturns.ConfirmReceipt"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Return confirmation UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.RETURN.DISPOSITION",
+      "frCode": "FR-WH",
+      "name": "Create allocation disposition for returned inventory",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "allocation disposition",
+      "prerequisites": [
+        "confirmed return voucher"
+      ],
+      "sourceLineage": [
+        "return disposition to reconciliation evidence"
+      ],
+      "actionIds": [
+        "InventoryReturns.CreateAllocationDisposition"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Allocation disposition UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.STOCKTAKE.READ",
+      "frCode": "FR-WH",
+      "name": "Read stocktake orders and variance lines",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "stocktake document",
+      "prerequisites": [
+        "warehouse access"
+      ],
+      "sourceLineage": [
+        "stocktake queries"
+      ],
+      "actionIds": [
+        "Stocktakes.GetById",
+        "Stocktakes.GetPaged"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/StocktakeDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Stocktake read UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "WH.STOCKTAKE.CREATE",
+      "frCode": "FR-WH",
+      "name": "Create draft stocktake order",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "stocktake document",
+      "prerequisites": [
+        "operational warehouse",
+        "inventory count schedule"
+      ],
+      "sourceLineage": [
+        "stocktake snapshot initialization"
+      ],
+      "actionIds": [
+        "Stocktakes.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Stocktake creation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "WH.STOCKTAKE.UPDATE_ACTUAL",
+      "frCode": "FR-WH",
+      "name": "Update counted actual quantity on stocktake lines",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "stocktake actual count",
+      "prerequisites": [
+        "draft stocktake order"
+      ],
+      "sourceLineage": [
+        "physical count entry"
+      ],
+      "actionIds": [
+        "Stocktakes.UpdateActualQty"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Count entry UI surface unresolved."
+      ]
+    },
+    {
+      "id": "WH.STOCKTAKE.SUBMIT",
+      "frCode": "FR-WH",
+      "name": "Submit stocktake order for approval",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "stocktake document",
+      "prerequisites": [
+        "complete stocktake count"
+      ],
+      "sourceLineage": [
+        "stocktake submission to manager"
+      ],
+      "actionIds": [
+        "Stocktakes.Submit"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Stocktake submission UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.STOCKTAKE.APPROVE",
+      "frCode": "FR-WH",
+      "name": "Approve stocktake order and apply inventory adjustment",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "stocktake document",
+      "prerequisites": [
+        "submitted stocktake order"
+      ],
+      "sourceLineage": [
+        "stocktake approval to stock adjustment ledger"
+      ],
+      "actionIds": [
+        "Stocktakes.Approve"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Stocktake approval UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.STOCKTAKE.REJECT",
+      "frCode": "FR-WH",
+      "name": "Reject stocktake order",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "stocktake document",
+      "prerequisites": [
+        "submitted stocktake order",
+        "rejection reason"
+      ],
+      "sourceLineage": [
+        "stocktake rejection record"
+      ],
+      "actionIds": [
+        "Stocktakes.Reject"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Stocktake rejection UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.LEGACY_LINEAGE.READ",
+      "frCode": "FR-WH",
+      "name": "Read legacy inventory lineage candidates and records",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "legacy lineage record",
+      "prerequisites": [
+        "authenticated manager"
+      ],
+      "sourceLineage": [
+        "legacy lineage queries"
+      ],
+      "actionIds": [
+        "LegacyLineageDispositions.Get",
+        "LegacyLineageDispositions.GetCandidates"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Legacy lineage read UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "WH.LEGACY_LINEAGE.CREATE",
+      "frCode": "FR-WH",
+      "name": "Create legacy inventory lineage disposition",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "legacy lineage disposition",
+      "prerequisites": [
+        "legacy lineage candidate",
+        "disposition reason"
+      ],
+      "sourceLineage": [
+        "legacy lineage disposition entry"
+      ],
+      "actionIds": [
+        "LegacyLineageDispositions.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Legacy lineage disposition create UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.LEGACY_LINEAGE.REVIEW",
+      "frCode": "FR-WH",
+      "name": "Review legacy inventory lineage disposition",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "legacy lineage review",
+      "prerequisites": [
+        "pending legacy lineage disposition"
+      ],
+      "sourceLineage": [
+        "legacy lineage review record"
+      ],
+      "actionIds": [
+        "LegacyLineageDispositions.Review"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Legacy lineage review UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.LEGACY_LINEAGE.APPLY",
+      "frCode": "FR-WH",
+      "name": "Apply legacy inventory lineage disposition",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "legacy lineage application",
+      "prerequisites": [
+        "approved legacy lineage disposition"
+      ],
+      "sourceLineage": [
+        "legacy lineage application to reconciliation"
+      ],
+      "actionIds": [
+        "LegacyLineageDispositions.Apply"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Legacy lineage apply UI action unresolved."
+      ]
     }
   ],
   "surfaces": [
@@ -6551,7 +7098,7 @@
       "workObject": "OperationalFrame",
       "capabilityIds": [
         "WH.CATALOG.READ",
-        "WH.ISSUE"
+        "WH.ISSUE.READ"
       ],
       "actions": [],
       "states": [
@@ -6591,13 +7138,13 @@
       "workObject": "OperationalFrame",
       "capabilityIds": [
         "WH.CATALOG.READ",
-        "WH.RECEIPT",
         "PUR.RECEIPT.RECORD",
         "PUR.RECEIPT.ACCEPT_QUALITY",
         "PUR.RECEIPT.POST",
         "PUR.RECEIPT.CORRECTION",
         "PUR.RECEIPT.REWORK",
-        "PUR.RECEIPT.VOID"
+        "PUR.RECEIPT.VOID",
+        "WH.RECEIPT.READ"
       ],
       "actions": [],
       "states": [
@@ -6716,7 +7263,7 @@
       "view": "issues",
       "workObject": "OperationalFrame",
       "capabilityIds": [
-        "WH.ISSUE"
+        "WH.ISSUE.READ"
       ],
       "actions": [],
       "states": [
