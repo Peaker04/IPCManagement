@@ -76,7 +76,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "APPR.DECISION",
-        "REP.DATA_QUALITY.WRITE",
         "COORD.ORDER.ADJUST_AFTER_LOCK",
         "COORD.ORDER.ADJUST_SERVINGS",
         "COORD.ORDER.LOCK",
@@ -124,7 +123,12 @@
         "WH.STOCKTAKE.SUBMIT",
         "WH.STOCKTAKE.APPROVE",
         "WH.STOCKTAKE.REJECT",
-        "RECON.BATCH.COMPLETE"
+        "RECON.BATCH.COMPLETE",
+        "REP.DATA_QUALITY.READ",
+        "REP.DATA_QUALITY.CREATE",
+        "REP.DATA_QUALITY.REVIEW",
+        "REP.DATA_QUALITY.APPLY",
+        "REP.UNIT_NORMALIZATION.DECIDE"
       ],
       "evidenceRequired": [
         "contract",
@@ -568,8 +572,14 @@
         "REP.PRICE.READ",
         "REP.PURCHASING.READ",
         "REP.KPI.READ",
-        "REP.DATA_QUALITY.WRITE",
-        "REP.STOCK_SNAPSHOT.GENERATE"
+        "REP.STOCK_SNAPSHOT.GENERATE",
+        "REP.DATA_QUALITY.READ",
+        "REP.DATA_QUALITY.CREATE",
+        "REP.DATA_QUALITY.REVIEW",
+        "REP.DATA_QUALITY.APPLY",
+        "REP.DATA_QUALITY.CLEANUP",
+        "REP.DATA_QUALITY.REMEDIATE",
+        "REP.UNIT_NORMALIZATION.DECIDE"
       ],
       "evidenceRequired": [
         "contract",
@@ -591,9 +601,14 @@
         "SAMPLE.DATA.IMPORT",
         "ADMIN.SAMPLE_USERS.SEED",
         "RECON.CONFIG.INIT",
-        "REP.DATA_QUALITY.WRITE",
         "ADMIN.OUTBOX.READ",
-        "ADMIN.OUTBOX.REPLAY"
+        "ADMIN.OUTBOX.REPLAY",
+        "REP.DATA_QUALITY.READ",
+        "REP.DATA_QUALITY.CREATE",
+        "REP.DATA_QUALITY.REVIEW",
+        "REP.DATA_QUALITY.APPLY",
+        "REP.DATA_QUALITY.CLEANUP",
+        "REP.DATA_QUALITY.REMEDIATE"
       ],
       "evidenceRequired": [
         "contract",
@@ -2408,55 +2423,6 @@
         "admin.diagnostics"
       ],
       "gaps": []
-    },
-    {
-      "id": "REP.DATA_QUALITY.WRITE",
-      "frCode": "FR-REP",
-      "name": "Create review apply remediate or clean data-quality findings",
-      "operation": "terminal",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "Admin",
-        "DataQualityReviewer"
-      ],
-      "permissionTokens": [
-        "AdminAccess"
-      ],
-      "grain": "data-quality disposition or normalization review",
-      "prerequisites": [
-        "persisted quality finding and evidence"
-      ],
-      "sourceLineage": [
-        "quality finding to reviewed disposition and remediation"
-      ],
-      "actionIds": [
-        "DataQualityDispositions.Apply",
-        "DataQualityDispositions.Create",
-        "DataQualityDispositions.Get",
-        "DataQualityDispositions.Review",
-        "UnitNormalizationReviews.Decide",
-        "WorkflowReports.CleanupDataQuality",
-        "WorkflowReports.UpdateDataQualityIssueRemediation"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/DataQualityDispositionDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/DataQualityDispositionDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Reports/Services/DataQualityDispositionPolicy.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Reports/Services/DataQualityDispositionService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-REP",
-        "FR-SYS",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split read create review apply remediation cleanup.",
-        "Concurrency and authorized evidence UI unresolved."
-      ]
     },
     {
       "id": "REP.STOCK_SNAPSHOT.GENERATE",
@@ -7089,6 +7055,266 @@
       "surfaceIds": [],
       "gaps": [
         "Daily line disposition entry UI surface unresolved."
+      ]
+    },
+    {
+      "id": "REP.DATA_QUALITY.READ",
+      "frCode": "FR-REP",
+      "name": "Read data quality dispositions list",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin",
+        "DataQualityReviewer"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "data-quality dispositions",
+      "prerequisites": [
+        "admin or quality reviewer"
+      ],
+      "sourceLineage": [
+        "data quality query"
+      ],
+      "actionIds": [
+        "DataQualityDispositions.Get"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/DataQualityDispositionDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-REP",
+        "FR-SYS",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": []
+    },
+    {
+      "id": "REP.DATA_QUALITY.CREATE",
+      "frCode": "FR-REP",
+      "name": "Create data quality disposition proposal",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin",
+        "DataQualityReviewer"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "data-quality disposition",
+      "prerequisites": [
+        "persisted quality finding"
+      ],
+      "sourceLineage": [
+        "quality finding to disposition proposal"
+      ],
+      "actionIds": [
+        "DataQualityDispositions.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "FR-SYS",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Data quality disposition creation UI action unresolved."
+      ]
+    },
+    {
+      "id": "REP.DATA_QUALITY.REVIEW",
+      "frCode": "FR-REP",
+      "name": "Review proposed data quality disposition",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "data-quality disposition review",
+      "prerequisites": [
+        "pending disposition proposal"
+      ],
+      "sourceLineage": [
+        "disposition review decision"
+      ],
+      "actionIds": [
+        "DataQualityDispositions.Review"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "FR-SYS",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Disposition review UI action unresolved."
+      ]
+    },
+    {
+      "id": "REP.DATA_QUALITY.APPLY",
+      "frCode": "FR-REP",
+      "name": "Apply reviewed data quality disposition",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "data-quality disposition application",
+      "prerequisites": [
+        "reviewed disposition"
+      ],
+      "sourceLineage": [
+        "disposition application record"
+      ],
+      "actionIds": [
+        "DataQualityDispositions.Apply"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "FR-SYS",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Disposition apply UI action unresolved."
+      ]
+    },
+    {
+      "id": "REP.DATA_QUALITY.CLEANUP",
+      "frCode": "FR-REP",
+      "name": "Cleanup stale data quality findings",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "data quality cleanup",
+      "prerequisites": [
+        "admin authorization"
+      ],
+      "sourceLineage": [
+        "stale quality findings cleanup"
+      ],
+      "actionIds": [
+        "WorkflowReports.CleanupDataQuality"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "FR-SYS"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Cleanup action confirmation UI unresolved."
+      ]
+    },
+    {
+      "id": "REP.DATA_QUALITY.REMEDIATE",
+      "frCode": "FR-REP",
+      "name": "Update remediation status of data quality issue",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin",
+        "DataQualityReviewer"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "quality issue remediation",
+      "prerequisites": [
+        "identified quality issue"
+      ],
+      "sourceLineage": [
+        "quality issue remediation status update"
+      ],
+      "actionIds": [
+        "WorkflowReports.UpdateDataQualityIssueRemediation"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "FR-SYS"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Remediation update UI surface unresolved."
+      ]
+    },
+    {
+      "id": "REP.UNIT_NORMALIZATION.DECIDE",
+      "frCode": "FR-REP",
+      "name": "Decide unit normalization review discrepancy",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin",
+        "DataQualityReviewer"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "unit normalization review decision",
+      "prerequisites": [
+        "pending unit normalization review discrepancy"
+      ],
+      "sourceLineage": [
+        "unit normalization review decision to canonical mapping"
+      ],
+      "actionIds": [
+        "UnitNormalizationReviews.Decide"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/UnitNormalizationReviewsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/UnitNormalizationReviewDecisionDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Unit normalization decision UI surface unresolved."
       ]
     }
   ],

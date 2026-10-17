@@ -389,6 +389,25 @@ test('splits Reconciliation capabilities at their actual operation grain', () =>
   assert.equal(completeCap.deliveryClass, 'READY');
 });
 
+test('splits Data Quality capabilities at their actual operation grain', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+  const expectedOwners = new Map([
+    ['DataQualityDispositions.Get', 'REP.DATA_QUALITY.READ'],
+    ['DataQualityDispositions.Create', 'REP.DATA_QUALITY.CREATE'],
+    ['DataQualityDispositions.Review', 'REP.DATA_QUALITY.REVIEW'],
+    ['DataQualityDispositions.Apply', 'REP.DATA_QUALITY.APPLY'],
+    ['WorkflowReports.CleanupDataQuality', 'REP.DATA_QUALITY.CLEANUP'],
+    ['WorkflowReports.UpdateDataQualityIssueRemediation', 'REP.DATA_QUALITY.REMEDIATE'],
+    ['UnitNormalizationReviews.Decide', 'REP.UNIT_NORMALIZATION.DECIDE'],
+  ]);
+
+  for (const [actionId, capabilityId] of expectedOwners) {
+    const owners = contract.capabilities.filter((capability) => capability.actionIds && capability.actionIds.includes(actionId));
+    assert.deepEqual(owners.map((owner) => owner.id), [capabilityId], `${actionId} must be owned by ${capabilityId}`);
+  }
+});
+
 test('maps every rendered Backend mutation to one guarded writable surface action', () => {
   const repoRoot = join(import.meta.dirname, '..');
   const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
