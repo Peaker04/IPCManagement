@@ -331,6 +331,34 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
 - BLOCKED: Quantity import and warehouse transfer mutations remain guarded pending live authority.
 
+### GF-R39 — Reports and Dashboard capability conformance and date authority
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-reports-dashboard-conformance-plan.md` and spec `docs/superpowers/specs/2026-10-18-reports-dashboard-conformance-design.md`; lifecycle returned to `IDLE`.
+- Capability disaggregation: Disaggregated 7 bundled Data Quality actions into operation-grain capabilities (`REP.DATA_QUALITY.READ`, `REP.DATA_QUALITY.CREATE`, `REP.DATA_QUALITY.REVIEW`, `REP.DATA_QUALITY.APPLY`, `REP.DATA_QUALITY.CLEANUP`, `REP.DATA_QUALITY.REMEDIATE`, `REP.UNIT_NORMALIZATION.DECIDE`).
+- Telemetry & date authority: `DashboardPage.tsx` now dynamically computes the current Vietnamese business date (`todayInVietnamese`) in the header; eliminated the static string `Thứ Hai, 21/09/2026`.
+- Reports error recovery: Added standard "Làm mới" outline action button in `WorkspaceHeader` of `ReportsPage.tsx` and connected `onRetry={reload}` handler to `StateBoundary`.
+- 100% existing UI kit reuse: Used standard primitives (`WorkspaceHeader`, `TelemetrySubbar`, `SplitView`, `DataGrid`, `StateBoundary`, `Select`, `Button`, `Badge`, `Num`, `IdentifierText`). Zero custom primitives or ad-hoc styles written.
+- TDD RED→GREEN evidence:
+  - `check-conformance-contracts.test.mjs`: RED on missing operation-grain owners → GREEN (28/28 PASS).
+  - `Dashboard.test.tsx`: RED on static date string → GREEN (4/4 PASS).
+  - `Reports.test.tsx`: RED on missing reload/retry button → GREEN (4/4 PASS).
+- Verification:
+  - Conformance checker & tests: 28/28 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 113 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Reports and Dashboard contract regression; previous tests lacked dynamic date assertions and error retry verification; added dynamic date assertions and 4-scenario testing; yes; low noise; proved date authority and Rule TA-4 compliance`.
+  - `ipc-ui-review; 3-Zone OperationalFrame layout review; verified D6 font size >= 12px, D7 single primary on dashboard (0 on reports), T7 frozen header, T8 compact density (36-40px), N6 URL-leaf navigation; yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; disaggregated 7 capabilities, eliminated hardcoded date string, and protected DOM-MODE-1; yes; low noise; kept write surfaces guarded`.
+- PASS: Operation-grain capability disaggregation, dynamic date authority, error retry recovery, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
+- BLOCKED: Data quality remediation and unit normalization decisions remain guarded pending live authority; dish cost report remains a `BACKEND_CAPABILITY_GAP`.
+
+
 
 
 
