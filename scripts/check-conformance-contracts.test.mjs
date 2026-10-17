@@ -207,6 +207,45 @@ test('splits Auth and System writes at their actual operation grain', () => {
   assert.match(concurrencyOwner, /ExpectedVersion[\s\S]*OriginalValue[\s\S]*DbUpdateConcurrencyException[\s\S]*verifySucceeded/i);
 });
 
+test('splits Catalog and Admin capabilities at their actual operation grain', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+  const expectedOwners = new Map([
+    ['Ingredients.Create', 'CAT.INGREDIENT.CREATE'],
+    ['Ingredients.Update', 'CAT.INGREDIENT.UPDATE'],
+    ['Ingredients.Delete', 'CAT.INGREDIENT.CLOSE'],
+    ['Dishes.Create', 'CAT.DISH.CREATE'],
+    ['Dishes.Update', 'CAT.DISH.UPDATE'],
+    ['Dishes.Delete', 'CAT.DISH.CLOSE'],
+    ['DishBom.AddBomLine', 'CAT.BOM.LINE.ADD'],
+    ['DishBom.UpdateBomLine', 'CAT.BOM.LINE.UPDATE'],
+    ['DishBom.CloseBomLine', 'CAT.BOM.LINE.CLOSE'],
+    ['AdminEmployees.Create', 'ADMIN.EMPLOYEE.CREATE'],
+    ['AdminEmployees.Update', 'ADMIN.EMPLOYEE.UPDATE'],
+    ['AdminEmployees.UpdateStatus', 'ADMIN.EMPLOYEE.STATUS'],
+    ['LifecycleOutbox.Get', 'ADMIN.OUTBOX.READ'],
+    ['LifecycleOutbox.Replay', 'ADMIN.OUTBOX.REPLAY'],
+    ['ApprovalRules.GetRules', 'APPR.RULES.READ'],
+    ['ApprovalRules.GetRuleById', 'APPR.RULES.READ'],
+    ['ApprovalRules.CreateRule', 'APPR.RULES.CREATE'],
+    ['ApprovalRules.UpdateRule', 'APPR.RULES.UPDATE'],
+    ['ApprovalRules.DeleteRule', 'APPR.RULES.DELETE'],
+  ]);
+
+  for (const [actionId, capabilityId] of expectedOwners) {
+    const owners = contract.capabilities.filter((capability) => capability.actionIds && capability.actionIds.includes(actionId));
+    assert.deepEqual(owners.map((owner) => owner.id), [capabilityId], `${actionId} must be owned by ${capabilityId}`);
+  }
+
+  const ingredientCreate = contract.capabilities.find((c) => c.id === 'CAT.INGREDIENT.CREATE');
+  assert.ok(ingredientCreate, 'CAT.INGREDIENT.CREATE must exist');
+  assert.equal(ingredientCreate.deliveryClass, 'BLOCKED');
+  assert.ok(
+    ingredientCreate.gaps.some((g) => g.includes('UnitsController') || g.includes('UnitId')),
+    'CAT.INGREDIENT.CREATE must explicitly document missing UnitsController lookup authority'
+  );
+});
+
 test('maps every rendered Backend mutation to one guarded writable surface action', () => {
   const repoRoot = join(import.meta.dirname, '..');
   const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));

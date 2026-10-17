@@ -33,14 +33,16 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "CAT.BOM.READ",
-        "CAT.BOM.WRITE",
         "PLAN.DEMAND",
         "PUR.REQUEST.WORKFLOW",
         "WH.ISSUE",
         "WH.RECEIPT",
         "WH.RETURN",
         "RECON.ACTUALS",
-        "WH.LEGACY_LINEAGE"
+        "WH.LEGACY_LINEAGE",
+        "CAT.BOM.LINE.ADD",
+        "CAT.BOM.LINE.UPDATE",
+        "CAT.BOM.LINE.CLOSE"
       ],
       "evidenceRequired": [
         "contract",
@@ -151,12 +153,18 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "CAT.INGREDIENT.READ",
-        "CAT.INGREDIENT.WRITE",
         "CAT.DISH.READ",
-        "CAT.DISH.WRITE",
         "CAT.BOM.READ",
-        "CAT.BOM.WRITE",
-        "SAMPLE.DATA.IMPORT"
+        "SAMPLE.DATA.IMPORT",
+        "CAT.INGREDIENT.CREATE",
+        "CAT.INGREDIENT.UPDATE",
+        "CAT.INGREDIENT.CLOSE",
+        "CAT.DISH.CREATE",
+        "CAT.DISH.UPDATE",
+        "CAT.DISH.CLOSE",
+        "CAT.BOM.LINE.ADD",
+        "CAT.BOM.LINE.UPDATE",
+        "CAT.BOM.LINE.CLOSE"
       ],
       "evidenceRequired": [
         "contract",
@@ -175,11 +183,16 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "ADMIN.EMPLOYEE.READ",
-        "ADMIN.EMPLOYEE.WRITE",
-        "APPR.RULES",
         "ADMIN.SAMPLE_USERS.SEED",
         "COORD.CUSTOMER_CONTRACT",
-        "COORD.PORTION_RULE"
+        "COORD.PORTION_RULE",
+        "ADMIN.EMPLOYEE.CREATE",
+        "ADMIN.EMPLOYEE.UPDATE",
+        "ADMIN.EMPLOYEE.STATUS",
+        "APPR.RULES.READ",
+        "APPR.RULES.CREATE",
+        "APPR.RULES.UPDATE",
+        "APPR.RULES.DELETE"
       ],
       "evidenceRequired": [
         "contract",
@@ -276,7 +289,7 @@
       "capabilityIds": [
         "APPR.INBOX.READ",
         "APPR.DECISION",
-        "APPR.RULES"
+        "APPR.RULES.READ"
       ],
       "evidenceRequired": [
         "contract",
@@ -403,9 +416,10 @@
         "SYS.MODE.CHANGE",
         "SAMPLE.DATA.IMPORT",
         "ADMIN.SAMPLE_USERS.SEED",
-        "ADMIN.OUTBOX",
         "RECON.CONFIG.INIT",
-        "REP.DATA_QUALITY.WRITE"
+        "REP.DATA_QUALITY.WRITE",
+        "ADMIN.OUTBOX.READ",
+        "ADMIN.OUTBOX.REPLAY"
       ],
       "evidenceRequired": [
         "contract",
@@ -457,11 +471,13 @@
         "AUTH.REVOKE",
         "AUTH.PROFILE.READ",
         "ADMIN.EMPLOYEE.READ",
-        "ADMIN.EMPLOYEE.WRITE",
         "SYS.MODE.INITIALIZE",
         "SYS.MODE.CHANGE",
         "APPR.DECISION",
-        "REP.AUDIT.READ"
+        "REP.AUDIT.READ",
+        "ADMIN.EMPLOYEE.CREATE",
+        "ADMIN.EMPLOYEE.UPDATE",
+        "ADMIN.EMPLOYEE.STATUS"
       ],
       "evidenceRequired": [
         "contract",
@@ -478,7 +494,8 @@
       "source": "docs/DOMAIN.md",
       "assessment": "PARTIAL",
       "capabilityIds": [
-        "ADMIN.OUTBOX"
+        "ADMIN.OUTBOX.READ",
+        "ADMIN.OUTBOX.REPLAY"
       ],
       "evidenceRequired": [
         "backend-test",
@@ -1019,50 +1036,6 @@
       "gaps": []
     },
     {
-      "id": "ADMIN.EMPLOYEE.WRITE",
-      "frCode": "FR-ADMIN",
-      "name": "Create update or activate employee",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "Admin"
-      ],
-      "permissionTokens": [
-        "AdminAccess"
-      ],
-      "grain": "one employee",
-      "prerequisites": [
-        "admin access",
-        "valid role"
-      ],
-      "sourceLineage": [
-        "employee and role master data"
-      ],
-      "actionIds": [
-        "AdminEmployees.Create",
-        "AdminEmployees.Update",
-        "AdminEmployees.UpdateStatus"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
-        "validator": "backend/src/IPCManagement.Api/Features/Admin/Validators/EmployeeManagementValidators.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Admin/Services/AdminEmployeeService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-ADMIN",
-        "NFR-SEC-01"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split create update and status operations.",
-        "Concurrency and Frontend surfaces are not reconciled."
-      ]
-    },
-    {
       "id": "SYS.MODE.READ",
       "frCode": "FR-SYS",
       "name": "Read operational mode",
@@ -1132,48 +1105,6 @@
       "gaps": []
     },
     {
-      "id": "CAT.INGREDIENT.WRITE",
-      "frCode": "FR-CAT",
-      "name": "Create update or close ingredient",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "CatalogManager"
-      ],
-      "permissionTokens": [
-        "CatalogAccess"
-      ],
-      "grain": "ingredient record",
-      "prerequisites": [
-        "authoritative unit identifier"
-      ],
-      "sourceLineage": [
-        "ingredient and unit master data"
-      ],
-      "actionIds": [
-        "Ingredients.Create",
-        "Ingredients.Update",
-        "Ingredients.Delete"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
-        "validator": "backend/src/IPCManagement.Api/Features/Catalog/Validators/IngredientValidators.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/IngredientService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-CAT"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split create update and close operations.",
-        "Concurrency and Frontend unit selection are not reconciled."
-      ]
-    },
-    {
       "id": "CAT.DISH.READ",
       "frCode": "FR-CAT",
       "name": "Read dish catalog",
@@ -1208,45 +1139,6 @@
         "admin.dishes"
       ],
       "gaps": []
-    },
-    {
-      "id": "CAT.DISH.WRITE",
-      "frCode": "FR-CAT",
-      "name": "Create update or close dish",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "CatalogManager"
-      ],
-      "permissionTokens": [
-        "CatalogAccess"
-      ],
-      "grain": "dish record",
-      "prerequisites": [],
-      "sourceLineage": [
-        "dish master data"
-      ],
-      "actionIds": [
-        "Dishes.Create",
-        "Dishes.Update",
-        "Dishes.Delete"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishCatalogService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-CAT"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split create update and close operations.",
-        "Validation and concurrency are not reconciled."
-      ]
     },
     {
       "id": "CAT.BOM.READ",
@@ -1290,47 +1182,6 @@
         "admin.dishes"
       ],
       "gaps": []
-    },
-    {
-      "id": "CAT.BOM.WRITE",
-      "frCode": "FR-CAT",
-      "name": "Create update or close dish BOM line",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "CatalogManager"
-      ],
-      "permissionTokens": [
-        "CatalogAccess"
-      ],
-      "grain": "dish BOM line",
-      "prerequisites": [
-        "dish ingredient and unit exist"
-      ],
-      "sourceLineage": [
-        "dish to ingredient BOM"
-      ],
-      "actionIds": [
-        "DishBom.AddBomLine",
-        "DishBom.UpdateBomLine",
-        "DishBom.CloseBomLine"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishBomService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-CAT",
-        "BR-GLOBAL-02"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Mutation validation concurrency and Frontend surface are not reconciled."
-      ]
     },
     {
       "id": "SAMPLE.DATA.IMPORT",
@@ -1950,52 +1801,6 @@
       ],
       "gaps": [
         "Target-specific policy and expected-version contract unresolved."
-      ]
-    },
-    {
-      "id": "APPR.RULES",
-      "frCode": "FR-ADMIN",
-      "name": "Read and maintain approval rules",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "Admin"
-      ],
-      "permissionTokens": [
-        "AdminAccess"
-      ],
-      "grain": "approval rule",
-      "prerequisites": [
-        "admin access"
-      ],
-      "sourceLineage": [
-        "approval policy configuration"
-      ],
-      "actionIds": [
-        "ApprovalRules.GetRules",
-        "ApprovalRules.GetRuleById",
-        "ApprovalRules.CreateRule",
-        "ApprovalRules.UpdateRule",
-        "ApprovalRules.DeleteRule"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Approvals/Persistence/ApprovalEntityConfigurations.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-ADMIN",
-        "FR-APPR"
-      ],
-      "surfaceIds": [
-        "admin.approval-rules"
-      ],
-      "gaps": [
-        "Split read create update delete.",
-        "Validation concurrency and write surface unresolved."
       ]
     },
     {
@@ -2811,45 +2616,6 @@
       "gaps": [
         "Database seed execution is not authorized.",
         "Environment guard and cleanup contract require review."
-      ]
-    },
-    {
-      "id": "ADMIN.OUTBOX",
-      "frCode": "FR-SYS",
-      "name": "Inspect or replay lifecycle outbox",
-      "operation": "terminal",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "Admin"
-      ],
-      "permissionTokens": [
-        "AdminAccess"
-      ],
-      "grain": "lifecycle outbox event",
-      "prerequisites": [
-        "admin access",
-        "failed outbox event"
-      ],
-      "sourceLineage": [
-        "persisted lifecycle event to relay replay"
-      ],
-      "actionIds": [
-        "LifecycleOutbox.Get",
-        "LifecycleOutbox.Replay"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-SYS",
-        "NFR-REL-01"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Read and replay must be split.",
-        "Response DTO concurrency and runtime relay semantics unresolved."
       ]
     },
     {
@@ -3699,6 +3465,704 @@
         "admin.mode"
       ],
       "gaps": []
+    },
+    {
+      "id": "CAT.INGREDIENT.CREATE",
+      "frCode": "FR-CAT",
+      "name": "Create ingredient record",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "ingredient record",
+      "prerequisites": [
+        "authoritative unit identifier"
+      ],
+      "sourceLineage": [
+        "ingredient and unit master data"
+      ],
+      "actionIds": [
+        "Ingredients.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Catalog/Validators/IngredientValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/IngredientService.cs"
+      },
+      "deliveryClass": "BLOCKED",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "UnitsController lookup authority missing; Frontend cannot supply authoritative UnitId.",
+        "Ingredient entity lacks optimistic concurrency token."
+      ]
+    },
+    {
+      "id": "CAT.INGREDIENT.UPDATE",
+      "frCode": "FR-CAT",
+      "name": "Update ingredient record",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "ingredient record",
+      "prerequisites": [
+        "existing ingredient"
+      ],
+      "sourceLineage": [
+        "ingredient and unit master data"
+      ],
+      "actionIds": [
+        "Ingredients.Update"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Catalog/Validators/IngredientValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/IngredientService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Unit selection authority missing for updates.",
+        "Ingredient entity lacks optimistic concurrency token."
+      ]
+    },
+    {
+      "id": "CAT.INGREDIENT.CLOSE",
+      "frCode": "FR-CAT",
+      "name": "Soft-delete or deactivate ingredient",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "ingredient record",
+      "prerequisites": [
+        "existing ingredient"
+      ],
+      "sourceLineage": [
+        "ingredient master data"
+      ],
+      "actionIds": [
+        "Ingredients.Delete"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/IngredientService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Soft-delete does not verify concurrent modification."
+      ]
+    },
+    {
+      "id": "CAT.DISH.CREATE",
+      "frCode": "FR-CAT",
+      "name": "Create dish record",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish record",
+      "prerequisites": [
+        "unique dish code"
+      ],
+      "sourceLineage": [
+        "dish master data"
+      ],
+      "actionIds": [
+        "Dishes.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishCatalogService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Dish entity lacks optimistic concurrency token."
+      ]
+    },
+    {
+      "id": "CAT.DISH.UPDATE",
+      "frCode": "FR-CAT",
+      "name": "Update dish record",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish record",
+      "prerequisites": [
+        "existing dish"
+      ],
+      "sourceLineage": [
+        "dish master data"
+      ],
+      "actionIds": [
+        "Dishes.Update"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishCatalogService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Dish entity lacks optimistic concurrency token."
+      ]
+    },
+    {
+      "id": "CAT.DISH.CLOSE",
+      "frCode": "FR-CAT",
+      "name": "Soft-delete or deactivate dish",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish record",
+      "prerequisites": [
+        "existing dish"
+      ],
+      "sourceLineage": [
+        "dish master data"
+      ],
+      "actionIds": [
+        "Dishes.Delete"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishCatalogService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Soft-delete does not verify concurrent modification."
+      ]
+    },
+    {
+      "id": "CAT.BOM.LINE.ADD",
+      "frCode": "FR-CAT",
+      "name": "Add dish BOM line",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish BOM line",
+      "prerequisites": [
+        "dish ingredient and unit exist"
+      ],
+      "sourceLineage": [
+        "dish to ingredient BOM"
+      ],
+      "actionIds": [
+        "DishBom.AddBomLine"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishBomService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "BOM mutation concurrency and frontend surface are not reconciled."
+      ]
+    },
+    {
+      "id": "CAT.BOM.LINE.UPDATE",
+      "frCode": "FR-CAT",
+      "name": "Update dish BOM line",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish BOM line",
+      "prerequisites": [
+        "dish BOM line exists"
+      ],
+      "sourceLineage": [
+        "dish to ingredient BOM"
+      ],
+      "actionIds": [
+        "DishBom.UpdateBomLine"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishBomService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "BOM line update concurrency is not verified."
+      ]
+    },
+    {
+      "id": "CAT.BOM.LINE.CLOSE",
+      "frCode": "FR-CAT",
+      "name": "Close dish BOM line",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish BOM line",
+      "prerequisites": [
+        "dish BOM line exists"
+      ],
+      "sourceLineage": [
+        "dish to ingredient BOM"
+      ],
+      "actionIds": [
+        "DishBom.CloseBomLine"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishBomService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Soft-close without concurrency token."
+      ]
+    },
+    {
+      "id": "ADMIN.EMPLOYEE.CREATE",
+      "frCode": "FR-ADMIN",
+      "name": "Create employee account",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "employee record",
+      "prerequisites": [
+        "admin access",
+        "valid role"
+      ],
+      "sourceLineage": [
+        "employee and role master data"
+      ],
+      "actionIds": [
+        "AdminEmployees.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Admin/Validators/EmployeeManagementValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Admin/Services/AdminEmployeeService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Employee creation UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "ADMIN.EMPLOYEE.UPDATE",
+      "frCode": "FR-ADMIN",
+      "name": "Update employee profile",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "employee record",
+      "prerequisites": [
+        "admin access",
+        "existing employee"
+      ],
+      "sourceLineage": [
+        "employee master data"
+      ],
+      "actionIds": [
+        "AdminEmployees.Update"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Admin/Validators/EmployeeManagementValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Admin/Services/AdminEmployeeService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Employee update concurrency is unresolved."
+      ]
+    },
+    {
+      "id": "ADMIN.EMPLOYEE.STATUS",
+      "frCode": "FR-ADMIN",
+      "name": "Update employee active status",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "employee record",
+      "prerequisites": [
+        "admin access",
+        "existing employee"
+      ],
+      "sourceLineage": [
+        "employee master data"
+      ],
+      "actionIds": [
+        "AdminEmployees.UpdateStatus"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Admin/Validators/EmployeeManagementValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Admin/Services/AdminEmployeeService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Employee status toggle UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "ADMIN.OUTBOX.READ",
+      "frCode": "FR-SYS",
+      "name": "Read lifecycle outbox events",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "lifecycle outbox event",
+      "prerequisites": [
+        "admin access"
+      ],
+      "sourceLineage": [
+        "persisted lifecycle outbox table"
+      ],
+      "actionIds": [
+        "LifecycleOutbox.Get"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-SYS",
+        "NFR-REL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Outbox monitor UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "ADMIN.OUTBOX.REPLAY",
+      "frCode": "FR-SYS",
+      "name": "Replay failed lifecycle outbox event",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "lifecycle outbox event",
+      "prerequisites": [
+        "admin access",
+        "failed outbox event"
+      ],
+      "sourceLineage": [
+        "persisted lifecycle event to relay replay"
+      ],
+      "actionIds": [
+        "LifecycleOutbox.Replay"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-SYS",
+        "NFR-REL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Outbox replay UI action and concurrency semantics unresolved."
+      ]
+    },
+    {
+      "id": "APPR.RULES.READ",
+      "frCode": "FR-ADMIN",
+      "name": "Read approval rules",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "approval rule",
+      "prerequisites": [
+        "admin access"
+      ],
+      "sourceLineage": [
+        "approval policy configuration"
+      ],
+      "actionIds": [
+        "ApprovalRules.GetRules",
+        "ApprovalRules.GetRuleById"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-ADMIN",
+        "FR-APPR"
+      ],
+      "surfaceIds": [
+        "admin.approval-rules"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "APPR.RULES.CREATE",
+      "frCode": "FR-ADMIN",
+      "name": "Create approval rule",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "approval rule",
+      "prerequisites": [
+        "admin access",
+        "valid rule payload"
+      ],
+      "sourceLineage": [
+        "approval policy configuration"
+      ],
+      "actionIds": [
+        "ApprovalRules.CreateRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Approvals/Persistence/ApprovalEntityConfigurations.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Approval rule create UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "APPR.RULES.UPDATE",
+      "frCode": "FR-ADMIN",
+      "name": "Update approval rule",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "approval rule",
+      "prerequisites": [
+        "admin access",
+        "existing rule"
+      ],
+      "sourceLineage": [
+        "approval policy configuration"
+      ],
+      "actionIds": [
+        "ApprovalRules.UpdateRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Approvals/Persistence/ApprovalEntityConfigurations.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Approval rule update concurrency is unresolved."
+      ]
+    },
+    {
+      "id": "APPR.RULES.DELETE",
+      "frCode": "FR-ADMIN",
+      "name": "Delete approval rule",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "approval rule",
+      "prerequisites": [
+        "admin access",
+        "existing rule"
+      ],
+      "sourceLineage": [
+        "approval policy configuration"
+      ],
+      "actionIds": [
+        "ApprovalRules.DeleteRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Approvals/Persistence/ApprovalEntityConfigurations.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Approval rule deletion UI surface not yet mapped."
+      ]
     }
   ],
   "surfaces": [
@@ -4480,7 +4944,7 @@
       "route": "/settings/approval-rules",
       "workObject": "OperationalFrame",
       "capabilityIds": [
-        "APPR.RULES"
+        "APPR.RULES.READ"
       ],
       "actions": [],
       "states": [
