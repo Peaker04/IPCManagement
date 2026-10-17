@@ -74,6 +74,28 @@ export function ReportsPage() {
     });
   }, [activeView, period, customerId, pageNumber]);
 
+  const reload = () => {
+    setIsLoading(true);
+    setError(null);
+    const sequence = ++requestSequence.current;
+    const request = activeView === 'demand'
+      ? reportsApi.getDemand(period, customerId, pageNumber, PAGE_SIZE)
+      : activeView === 'prices'
+        ? reportsApi.getPriceVariance(period, pageNumber, PAGE_SIZE)
+        : reportsApi.getCurrentStock(undefined, pageNumber, PAGE_SIZE);
+    request.then((page) => {
+      if (sequence !== requestSequence.current) return;
+      setPageInfo(page);
+      if (activeView === 'demand') setDemand(page.items as DemandReportItem[]);
+      else if (activeView === 'prices') setPrices(page.items as PriceVarianceReportItem[]);
+      else setStocks(page.items as CurrentStockReportItem[]);
+    }).catch((cause: unknown) => {
+      if (sequence === requestSequence.current) setError(cause instanceof Error ? cause : new Error('Không thể tải báo cáo.'));
+    }).finally(() => {
+      if (sequence === requestSequence.current) setIsLoading(false);
+    });
+  };
+
   const demandColumns: ColumnDef<DemandReportItem>[] = [
     { id: 'ingredient', header: 'Nguyên liệu', width: '28%', cell: (r) => <span className="font-semibold">{r.ingredientName}</span> },
     { id: 'required', header: 'Tổng nhu cầu', width: '16%', align: 'right', cell: (r) => <Num value={r.totalRequiredQty} format="quantity" suffix={` ${r.unitName}`} /> },
@@ -99,12 +121,16 @@ export function ReportsPage() {
   const rows = activeView === 'demand' ? demand : activeView === 'prices' ? prices : stocks;
 
   return <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-    <WorkspaceHeader title="Báo cáo vận hành" contextSelectors={<>
-      {activeView !== 'stock' && <input type="month" value={period} onChange={(e) => { setIsLoading(true); setError(null); setPageNumber(1); setPeriod(e.target.value); }} className="h-9 rounded border border-slate-300 px-3 text-sm" aria-label="Kỳ báo cáo" />}
-      {activeView === 'demand' && <Select aria-label="Chọn khách hàng báo cáo" options={customers.map((c) => ({ value: c.customerId, label: `${c.customerCode} - ${c.customerName}` }))} value={customerId} onChange={(e) => { setIsLoading(true); setError(null); setPageNumber(1); setCustomerId(e.target.value); }} disabled={!customers.length} className="h-9 w-60" />}
-    </>} />
+    <WorkspaceHeader
+      title="Báo cáo vận hành"
+      contextSelectors={<>
+        {activeView !== 'stock' && <input type="month" value={period} onChange={(e) => { setIsLoading(true); setError(null); setPageNumber(1); setPeriod(e.target.value); }} className="h-9 rounded border border-slate-300 px-3 text-sm" aria-label="Kỳ báo cáo" />}
+        {activeView === 'demand' && <Select aria-label="Chọn khách hàng báo cáo" options={customers.map((c) => ({ value: c.customerId, label: `${c.customerCode} - ${c.customerName}` }))} value={customerId} onChange={(e) => { setIsLoading(true); setError(null); setPageNumber(1); setCustomerId(e.target.value); }} disabled={!customers.length} className="h-9 w-60" />}
+      </>}
+      actions={<Button variant="outline" size="default" onClick={reload} className="h-9 text-sm font-medium">Làm mới</Button>}
+    />
     <TelemetrySubbar leftControls={<span className="text-xs font-semibold">{activeView === 'demand' ? 'Nhu cầu nguyên liệu' : activeView === 'prices' ? 'Biến động giá nhập' : 'Tồn kho hiện tại'}</span>} telemetryPills={<span className="text-slate-500">{pageInfo.totalCount} dòng authoritative</span>} />
-    <StateBoundary isLoading={isLoading} error={error} isEmpty={!isLoading && !error && rows.length === 0} emptyScenario="prerequisite-blocked" emptyTitle="Chưa có dữ liệu báo cáo" emptyDescription="Không có dữ liệu persisted cho phạm vi đã chọn.">
+    <StateBoundary isLoading={isLoading} error={error} onRetry={reload} isEmpty={!isLoading && !error && rows.length === 0} emptyScenario="prerequisite-blocked" emptyTitle="Chưa có dữ liệu báo cáo" emptyDescription="Không có dữ liệu persisted cho phạm vi đã chọn.">
       {activeView === 'demand' && <DataGrid data={demand} columns={demandColumns} keyExtractor={(r) => `${r.requestDate}-${r.ingredientId}-${r.unitId}`} />}
       {activeView === 'prices' && <DataGrid data={prices} columns={priceColumns} keyExtractor={(r) => r.receiptLineId} />}
       {activeView === 'stock' && <DataGrid data={stocks} columns={stockColumns} keyExtractor={(r) => `${r.warehouseId}-${r.ingredientId}-${r.unitId}`} />}

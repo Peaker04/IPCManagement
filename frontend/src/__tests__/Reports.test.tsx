@@ -41,4 +41,26 @@ describe('Reports', () => {
     expect(await screen.findByRole('columnheader', { name: 'Phiếu nhập' })).toBeInTheDocument();
     expect(screen.getByText('PN-1')).toBeInTheDocument();
   });
+
+  it('allows manual refresh via header action and provides error retry', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const refreshBtn = await screen.findByRole('button', { name: 'Làm mới' });
+    await user.click(refreshBtn);
+
+    expect(reportsApi.getDemand).toHaveBeenCalledTimes(2);
+
+    // Error retry
+    vi.spyOn(reportsApi, 'getDemand').mockRejectedValueOnce(new Error('Lỗi máy chủ báo cáo'));
+    await user.click(refreshBtn);
+
+    expect(await screen.findByText('Không thể tải dữ liệu')).toBeInTheDocument();
+    expect(screen.getByText('Lỗi máy chủ báo cáo')).toBeInTheDocument();
+
+    const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
+    await user.click(retryBtn);
+
+    expect(await screen.findByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
+  });
 });

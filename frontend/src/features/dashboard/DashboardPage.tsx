@@ -9,6 +9,13 @@ import { dashboardApi, type DashboardData } from '../../api/dashboardApi';
 import type { DashboardTask } from '../../types';
 import { clsx } from 'clsx';
 
+function todayInVietnamese(): string {
+  const now = new Date();
+  const dayName = new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long' }).format(now);
+  const dateStr = new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }).format(now);
+  return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${dateStr}`;
+}
+
 export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,7 +77,7 @@ export function DashboardPage() {
         contextSelectors={
           <>
             <span className="text-sm text-slate-700 font-medium">
-              Thứ Hai, 21/09/2026
+              {todayInVietnamese()}
             </span>
             <span className="text-slate-300">·</span>
             <Badge variant="info" size="default" className="text-xs px-2.5 py-1">
