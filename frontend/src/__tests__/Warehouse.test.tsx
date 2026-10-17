@@ -110,4 +110,22 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
 
     expect(await screen.findByText('Kho nguyên liệu & Nhập xuất')).toBeInTheDocument();
   });
+
+  it('renders clean empty state when no issues exist', async () => {
+    vi.spyOn(warehouseApi, 'getIssues').mockResolvedValue([]);
+
+    renderWarehouse('/warehouse?view=issues');
+
+    expect(await screen.findByText('Chưa có phiếu xuất kho')).toBeInTheDocument();
+    expect(screen.getByText('Không có phiếu xuất kho nào phù hợp với bộ lọc.')).toBeInTheDocument();
+  });
+
+  it('renders clean empty state when no receipts exist', async () => {
+    vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue([]);
+
+    renderWarehouse('/warehouse?view=receipts');
+
+    expect(await screen.findByText('Chưa có phiếu nhập kho')).toBeInTheDocument();
+    expect(screen.getByText('Không có phiếu nhập kho nào phù hợp với bộ lọc.')).toBeInTheDocument();
+  });
 });

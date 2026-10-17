@@ -259,7 +259,18 @@ export function WarehousePage() {
         isLoading={isLoading}
         error={error}
         onRetry={loadData}
-        isEmpty={false}
+        isEmpty={
+          !isLoading &&
+          !error &&
+          ((activeView === 'issues' && issues.length === 0) ||
+            (activeView === 'receipts' && receipts.length === 0))
+        }
+        emptyTitle={activeView === 'issues' ? 'Chưa có phiếu xuất kho' : 'Chưa có phiếu nhập kho'}
+        emptyDescription={
+          activeView === 'issues'
+            ? 'Không có phiếu xuất kho nào phù hợp với bộ lọc.'
+            : 'Không có phiếu nhập kho nào phù hợp với bộ lọc.'
+        }
       >
         {activeView === 'issues' && (
           <DataGrid<InventoryIssueItem>
