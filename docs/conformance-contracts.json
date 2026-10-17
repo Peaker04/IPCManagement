@@ -33,7 +33,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "CAT.BOM.READ",
-        "PLAN.DEMAND",
         "PUR.REQUEST.WORKFLOW",
         "WH.ISSUE",
         "WH.RECEIPT",
@@ -42,7 +41,10 @@
         "WH.LEGACY_LINEAGE",
         "CAT.BOM.LINE.ADD",
         "CAT.BOM.LINE.UPDATE",
-        "CAT.BOM.LINE.CLOSE"
+        "CAT.BOM.LINE.CLOSE",
+        "PLAN.DEMAND.GENERATE",
+        "PLAN.DEMAND.APPROVE",
+        "PLAN.DEMAND.STALENESS.READ"
       ],
       "evidenceRequired": [
         "contract",
@@ -59,17 +61,43 @@
       "source": "docs/DOMAIN.md",
       "assessment": "PARTIAL",
       "capabilityIds": [
-        "COORD.ORDER.LIFECYCLE",
-        "COORD.MENU_SCHEDULE.WRITE",
-        "PLAN.SERVICE_RUN.LIFECYCLE",
         "APPR.DECISION",
         "PUR.REQUEST.WORKFLOW",
         "PUR.ORDER.LIFECYCLE",
         "PUR.RECEIPT.LIFECYCLE",
         "WH.STOCKTAKE",
         "RECON.BATCH.LIFECYCLE",
-        "MENU.IMPORT.WRITE",
-        "REP.DATA_QUALITY.WRITE"
+        "REP.DATA_QUALITY.WRITE",
+        "COORD.ORDER.ADJUST_AFTER_LOCK",
+        "COORD.ORDER.ADJUST_SERVINGS",
+        "COORD.ORDER.LOCK",
+        "COORD.ORDER.SIGNOFF",
+        "COORD.ORDER.SIGNOFF_SCOPE",
+        "COORD.ORDER.UNLOCK",
+        "COORD.ORDER.UNLOCK_SCOPE",
+        "COORD.ORDER.UPDATE_FORECAST",
+        "COORD.MENU_SCHEDULE.RULES",
+        "COORD.MENU_SCHEDULE.VERSION",
+        "COORD.MENU_SCHEDULE.ROLLBACK",
+        "PLAN.SERVICE_RUN.OPEN",
+        "PLAN.SERVICE_RUN.START",
+        "PLAN.SERVICE_RUN.RECORD_ACTUALS",
+        "PLAN.SERVICE_RUN.CONFIRM",
+        "PLAN.SERVICE_RUN.WAIVE_CONFIRM",
+        "PLAN.SERVICE_RUN.CREATE_ADJUSTMENT",
+        "PLAN.SERVICE_RUN.CLOSE",
+        "MENU.IMPORT.BATCH_COMMIT",
+        "MENU.IMPORT.FILE_IMPORT",
+        "MENU.IMPORT.PREVIEW",
+        "MENU.IMPORT.COMMIT",
+        "MENU.IMPORT.ROLLBACK",
+        "MENU.IMPORT.BULK_UPDATE",
+        "MENU.AMENDMENT.CREATE",
+        "MENU.AMENDMENT.REVIEW",
+        "MENU.AMENDMENT.EXECUTE",
+        "MENU.AMENDMENT.BREAK_GLASS",
+        "MENU.AMENDMENT.EXECUTE_DECISION",
+        "MENU.AMENDMENT.REMEDIATE_FAN"
       ],
       "evidenceRequired": [
         "contract",
@@ -86,7 +114,10 @@
       "source": "docs/DOMAIN.md",
       "assessment": "PARTIAL",
       "capabilityIds": [
-        "PLAN.SERVICE_RUN.LIFECYCLE"
+        "PLAN.SERVICE_RUN.RESOLVE_VARIANCE",
+        "PLAN.SERVICE_RUN.RESOLVE_SERVING_VARIANCE",
+        "PLAN.SERVICE_RUN.DECLARE_VARIANCE",
+        "PLAN.SERVICE_RUN.APPROVE_WAIVER"
       ],
       "evidenceRequired": [
         "contract",
@@ -184,15 +215,20 @@
       "capabilityIds": [
         "ADMIN.EMPLOYEE.READ",
         "ADMIN.SAMPLE_USERS.SEED",
-        "COORD.CUSTOMER_CONTRACT",
-        "COORD.PORTION_RULE",
         "ADMIN.EMPLOYEE.CREATE",
         "ADMIN.EMPLOYEE.UPDATE",
         "ADMIN.EMPLOYEE.STATUS",
         "APPR.RULES.READ",
         "APPR.RULES.CREATE",
         "APPR.RULES.UPDATE",
-        "APPR.RULES.DELETE"
+        "APPR.RULES.DELETE",
+        "COORD.CUSTOMER_CONTRACT.READ",
+        "COORD.CUSTOMER_CONTRACT.CREATE",
+        "COORD.CUSTOMER_CONTRACT.UPDATE",
+        "COORD.PORTION_RULE.READ",
+        "COORD.PORTION_RULE.RESOLVE",
+        "COORD.PORTION_RULE.CREATE",
+        "COORD.PORTION_RULE.UPDATE"
       ],
       "evidenceRequired": [
         "contract",
@@ -213,12 +249,28 @@
       "capabilityIds": [
         "COORD.MEAL_PLAN.READ",
         "COORD.MENU_SCHEDULE.READ",
-        "COORD.MENU_SCHEDULE.WRITE",
-        "PLAN.DEMAND",
         "PLAN.PRODUCTION.READ",
         "PLAN.PRODUCTION.SEND",
         "MENU.IMPORT.READ",
-        "MENU.IMPORT.WRITE"
+        "COORD.MENU_SCHEDULE.RULES",
+        "COORD.MENU_SCHEDULE.VERSION",
+        "COORD.MENU_SCHEDULE.ROLLBACK",
+        "PLAN.DEMAND.GENERATE",
+        "PLAN.DEMAND.APPROVE",
+        "PLAN.DEMAND.STALENESS.READ",
+        "MENU.IMPORT.BATCH_COMMIT",
+        "MENU.IMPORT.FILE_IMPORT",
+        "MENU.IMPORT.PREVIEW",
+        "MENU.IMPORT.COMMIT",
+        "MENU.IMPORT.ROLLBACK",
+        "MENU.IMPORT.BULK_UPDATE",
+        "MENU.IMPORT.SAVE_MAPPING",
+        "MENU.AMENDMENT.CREATE",
+        "MENU.AMENDMENT.REVIEW",
+        "MENU.AMENDMENT.EXECUTE",
+        "MENU.AMENDMENT.BREAK_GLASS",
+        "MENU.AMENDMENT.EXECUTE_DECISION",
+        "MENU.AMENDMENT.REMEDIATE_FAN"
       ],
       "evidenceRequired": [
         "contract",
@@ -237,15 +289,43 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "COORD.ORDER.READ",
-        "COORD.ORDER.LIFECYCLE",
         "COORD.MEAL_PLAN.READ",
         "COORD.MEAL_PLAN.UPSERT",
         "PLAN.SERVICE_RUN.READ",
-        "PLAN.SERVICE_RUN.LIFECYCLE",
-        "COORD.CUSTOMER_CONTRACT",
-        "COORD.PORTION_RULE",
         "MENU.IMPORT.READ",
-        "MENU.IMPORT.WRITE"
+        "COORD.ORDER.ADJUST_AFTER_LOCK",
+        "COORD.ORDER.ADJUST_SERVINGS",
+        "COORD.ORDER.LOCK",
+        "COORD.ORDER.SIGNOFF",
+        "COORD.ORDER.SIGNOFF_SCOPE",
+        "COORD.ORDER.UNLOCK",
+        "COORD.ORDER.UNLOCK_SCOPE",
+        "COORD.ORDER.UPDATE_FORECAST",
+        "COORD.CUSTOMER_CONTRACT.READ",
+        "COORD.CUSTOMER_CONTRACT.CREATE",
+        "COORD.CUSTOMER_CONTRACT.UPDATE",
+        "COORD.PORTION_RULE.READ",
+        "COORD.PORTION_RULE.RESOLVE",
+        "COORD.PORTION_RULE.CREATE",
+        "COORD.PORTION_RULE.UPDATE",
+        "PLAN.SERVICE_RUN.OPEN",
+        "PLAN.SERVICE_RUN.START",
+        "PLAN.SERVICE_RUN.RECORD_ACTUALS",
+        "PLAN.SERVICE_RUN.CONFIRM",
+        "PLAN.SERVICE_RUN.WAIVE_CONFIRM",
+        "PLAN.SERVICE_RUN.RESOLVE_VARIANCE",
+        "PLAN.SERVICE_RUN.RESOLVE_SERVING_VARIANCE",
+        "PLAN.SERVICE_RUN.CREATE_ADJUSTMENT",
+        "PLAN.SERVICE_RUN.CLOSE",
+        "PLAN.SERVICE_RUN.DECLARE_VARIANCE",
+        "PLAN.SERVICE_RUN.APPROVE_WAIVER",
+        "MENU.IMPORT.SAVE_MAPPING",
+        "MENU.AMENDMENT.CREATE",
+        "MENU.AMENDMENT.REVIEW",
+        "MENU.AMENDMENT.EXECUTE",
+        "MENU.AMENDMENT.BREAK_GLASS",
+        "MENU.AMENDMENT.EXECUTE_DECISION",
+        "MENU.AMENDMENT.REMEDIATE_FAN"
       ],
       "evidenceRequired": [
         "contract",
@@ -266,10 +346,20 @@
         "PLAN.PRODUCTION.READ",
         "PLAN.PRODUCTION.SEND",
         "PLAN.SERVICE_RUN.READ",
-        "PLAN.SERVICE_RUN.LIFECYCLE",
         "WH.ISSUE",
         "WH.RETURN",
-        "WH.SUPPLEMENTAL_REQUEST"
+        "WH.SUPPLEMENTAL_REQUEST",
+        "PLAN.SERVICE_RUN.OPEN",
+        "PLAN.SERVICE_RUN.START",
+        "PLAN.SERVICE_RUN.RECORD_ACTUALS",
+        "PLAN.SERVICE_RUN.CONFIRM",
+        "PLAN.SERVICE_RUN.WAIVE_CONFIRM",
+        "PLAN.SERVICE_RUN.RESOLVE_VARIANCE",
+        "PLAN.SERVICE_RUN.RESOLVE_SERVING_VARIANCE",
+        "PLAN.SERVICE_RUN.CREATE_ADJUSTMENT",
+        "PLAN.SERVICE_RUN.CLOSE",
+        "PLAN.SERVICE_RUN.DECLARE_VARIANCE",
+        "PLAN.SERVICE_RUN.APPROVE_WAIVER"
       ],
       "evidenceRequired": [
         "contract",
@@ -308,7 +398,6 @@
       "source": "docs/DOMAIN.md",
       "assessment": "PARTIAL",
       "capabilityIds": [
-        "PLAN.DEMAND",
         "PUR.REQUEST.READ",
         "PUR.REQUEST.WORKFLOW",
         "PUR.ORDER.READ",
@@ -319,7 +408,9 @@
         "WH.SUPPLEMENTAL_REQUEST",
         "REP.DEMAND.READ",
         "REP.PRICE.READ",
-        "REP.PURCHASING.READ"
+        "REP.PURCHASING.READ",
+        "PLAN.DEMAND.GENERATE",
+        "PLAN.DEMAND.APPROVE"
       ],
       "evidenceRequired": [
         "contract",
@@ -1269,57 +1360,6 @@
       "gaps": []
     },
     {
-      "id": "COORD.ORDER.LIFECYCLE",
-      "frCode": "FR-COORD",
-      "name": "Adjust lock unlock and sign off orders",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Coordinator",
-        "Manager"
-      ],
-      "permissionTokens": [
-        "CoordinationAccess"
-      ],
-      "grain": "order or exact scope",
-      "prerequisites": [
-        "persisted order",
-        "eligible state"
-      ],
-      "sourceLineage": [
-        "order lifecycle and reason-bearing adjustment"
-      ],
-      "actionIds": [
-        "CoordinationOrders.AdjustOrderAfterLock",
-        "CoordinationOrders.AdjustServings",
-        "CoordinationOrders.LockOrderPlan",
-        "CoordinationOrders.SignoffOrder",
-        "CoordinationOrders.SignoffOrderScope",
-        "CoordinationOrders.UnlockOrderPlan",
-        "CoordinationOrders.UnlockOrderPlanScope",
-        "CoordinationOrders.UpdateForecastServings"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/AdjustServingsDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/SignoffDto.cs",
-        "validator": "backend/src/IPCManagement.Api/Features/Coordination/Validators/CoordinationValidators.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Coordination/Services/OrderLifecyclePolicy.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-COORD",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split each transition.",
-        "Concurrency idempotency and surfaces unresolved."
-      ]
-    },
-    {
       "id": "COORD.MEAL_PLAN.READ",
       "frCode": "FR-COORD",
       "name": "Read meal quantity plans",
@@ -1439,99 +1479,6 @@
         "weekly.schedule"
       ],
       "gaps": []
-    },
-    {
-      "id": "COORD.MENU_SCHEDULE.WRITE",
-      "frCode": "FR-MENU",
-      "name": "Update schedule or rollback menu version",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Coordinator",
-        "Manager"
-      ],
-      "permissionTokens": [
-        "CoordinationAccess"
-      ],
-      "grain": "schedule or menu version",
-      "prerequisites": [
-        "persisted eligible schedule"
-      ],
-      "sourceLineage": [
-        "menu version schedule rollback lineage"
-      ],
-      "actionIds": [
-        "MenuSchedules.UpdateMenuScheduleRules",
-        "MenuSchedules.UpdateMenuScheduleVersion",
-        "MenuSchedules.RollbackMenuVersion"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MenuScheduleDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MenuScheduleDto.cs",
-        "validator": "backend/src/IPCManagement.Api/Features/Coordination/Validators/CoordinationValidators.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Coordination/Services/MenuSchedulePolicy.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-MENU",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split update and rollback.",
-        "Concurrency and confirmation unresolved."
-      ]
-    },
-    {
-      "id": "PLAN.DEMAND",
-      "frCode": "FR-MENU",
-      "name": "Generate approve and inspect material demand",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Manager",
-        "Coordinator"
-      ],
-      "permissionTokens": [
-        "DemandGenerateAccess"
-      ],
-      "grain": "customer service-date demand scope",
-      "prerequisites": [
-        "menu schedule",
-        "servings",
-        "valid BOM"
-      ],
-      "sourceLineage": [
-        "schedule and servings through BOM to demand"
-      ],
-      "actionIds": [
-        "MaterialDemand.Generate",
-        "MaterialDemand.Approve",
-        "MaterialDemand.GetStaleness"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/MaterialDemandDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/MaterialDemandDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-MENU",
-        "FR-PUR",
-        "BR-GLOBAL-02"
-      ],
-      "surfaceIds": [
-        "weekly.demand"
-      ],
-      "gaps": [
-        "Split read generate approve.",
-        "Lifecycle concurrency idempotency unresolved."
-      ]
     },
     {
       "id": "PLAN.PRODUCTION.READ",
@@ -1666,62 +1613,6 @@
         "chef.plans"
       ],
       "gaps": []
-    },
-    {
-      "id": "PLAN.SERVICE_RUN.LIFECYCLE",
-      "frCode": "FR-COORD",
-      "name": "Open start reconcile and close service run",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Coordinator",
-        "Manager",
-        "Chef"
-      ],
-      "permissionTokens": [
-        "ProductionAccess",
-        "CoordinationAccess"
-      ],
-      "grain": "one service run",
-      "prerequisites": [
-        "eligible plan and state"
-      ],
-      "sourceLineage": [
-        "production plan through execution and variance"
-      ],
-      "actionIds": [
-        "ServiceRuns.Open",
-        "ServiceRuns.Start",
-        "ServiceRuns.RecordActualServings",
-        "ServiceRuns.ConfirmService",
-        "ServiceRuns.WaiveServiceConfirmation",
-        "ServiceRuns.ResolveVariance",
-        "ServiceRuns.ResolveServingVariance",
-        "ServiceRuns.CreateAdjustment",
-        "ServiceRuns.Close",
-        "ServiceRunVarianceDeclarations.DeclareVariance",
-        "ServiceRunVarianceDeclarations.ApproveVarianceWaiver"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ServiceRunDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ServiceRunDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunLifecycle.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-COORD",
-        "FR-CHEF",
-        "BR-GLOBAL-03",
-        "BR-GLOBAL-04"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split lifecycle commands.",
-        "Concurrency variance approval and recovery unresolved."
-      ]
     },
     {
       "id": "APPR.INBOX.READ",
@@ -2619,92 +2510,6 @@
       ]
     },
     {
-      "id": "COORD.CUSTOMER_CONTRACT",
-      "frCode": "FR-COORD",
-      "name": "Read and maintain customer contracts",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "Coordinator",
-        "Manager"
-      ],
-      "permissionTokens": [
-        "CoordinationAccess"
-      ],
-      "grain": "customer contract",
-      "prerequisites": [
-        "customer master data"
-      ],
-      "sourceLineage": [
-        "customer to service contract"
-      ],
-      "actionIds": [
-        "CustomerContracts.GetCustomerContracts",
-        "CustomerContracts.CreateCustomerContract",
-        "CustomerContracts.UpdateCustomerContract"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/CoordinationDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/CustomerContractService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-COORD",
-        "FR-ADMIN"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split read create update.",
-        "Validation concurrency and surface unresolved."
-      ]
-    },
-    {
-      "id": "COORD.PORTION_RULE",
-      "frCode": "FR-COORD",
-      "name": "Read resolve and maintain portion rules",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "Coordinator",
-        "Manager"
-      ],
-      "permissionTokens": [
-        "CoordinationAccess"
-      ],
-      "grain": "portion rule",
-      "prerequisites": [
-        "customer or default scope"
-      ],
-      "sourceLineage": [
-        "portion rule to resolved servings policy"
-      ],
-      "actionIds": [
-        "PortionRules.GetPortionRules",
-        "PortionRules.ResolvePortionRule",
-        "PortionRules.CreatePortionRule",
-        "PortionRules.UpdatePortionRule"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/PortionRuleDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Coordination/Services/PortionRulePolicy.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/PortionRuleService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-COORD",
-        "FR-ADMIN"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split read resolve create update.",
-        "Concurrency and surface unresolved."
-      ]
-    },
-    {
       "id": "WH.LEGACY_LINEAGE",
       "frCode": "FR-WH",
       "name": "Review and disposition legacy inventory lineage",
@@ -2831,61 +2636,6 @@
         "weekly.schedule"
       ],
       "gaps": []
-    },
-    {
-      "id": "MENU.IMPORT.WRITE",
-      "frCode": "FR-MENU",
-      "name": "Preview commit amend rollback or bulk update weekly menu",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Coordinator",
-        "Manager",
-        "Admin"
-      ],
-      "permissionTokens": [
-        "CoordinationAccess"
-      ],
-      "grain": "menu import batch version or amendment",
-      "prerequisites": [
-        "authorized workbook or persisted menu version"
-      ],
-      "sourceLineage": [
-        "workbook preview ticket to menu version and amendment decisions"
-      ],
-      "actionIds": [
-        "WeeklyMenuBatchImports.Commit",
-        "WeeklyMenuImports.BreakGlassExecuteMenuAmendment",
-        "WeeklyMenuImports.BulkUpdateWeeklyMenu",
-        "WeeklyMenuImports.CommitWeeklyMenuImport",
-        "WeeklyMenuImports.CreateMenuAmendment",
-        "WeeklyMenuImports.ExecuteMenuAmendment",
-        "WeeklyMenuImports.ExecuteMenuAmendmentDecision",
-        "WeeklyMenuImports.ImportWeeklyMenu",
-        "WeeklyMenuImports.PreviewWeeklyMenuImport",
-        "WeeklyMenuImports.RemediateMenuAmendmentDecisionFan",
-        "WeeklyMenuImports.ReviewMenuAmendment",
-        "WeeklyMenuImports.RollbackWeeklyMenuImport",
-        "WeeklyMenuImports.SaveCustomerImportMapping"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/SampleData/Contracts/MenuAmendmentDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/SampleData/Contracts/MenuAmendmentDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/SampleData/Services/WeeklyMenuImportService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-MENU",
-        "FR-COORD",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split import preview commit mapping amendment decision rollback.",
-        "Concurrency ticket expiry and confirmation surfaces unresolved."
-      ]
     },
     {
       "id": "REP.AUDIT.READ",
@@ -4163,6 +3913,1699 @@
       "gaps": [
         "Approval rule deletion UI surface not yet mapped."
       ]
+    },
+    {
+      "id": "COORD.ORDER.ADJUST_AFTER_LOCK",
+      "frCode": "FR-COORD",
+      "name": "Adjust order after lock with reason",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "order record",
+      "prerequisites": [
+        "persisted locked order",
+        "valid reason"
+      ],
+      "sourceLineage": [
+        "reason-bearing order adjustment"
+      ],
+      "actionIds": [
+        "CoordinationOrders.AdjustOrderAfterLock"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/AdjustServingsDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/SignoffDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Adjustment mutation concurrency and UI surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.ADJUST_SERVINGS",
+      "frCode": "FR-COORD",
+      "name": "Adjust order servings",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "order servings",
+      "prerequisites": [
+        "persisted order"
+      ],
+      "sourceLineage": [
+        "order servings update"
+      ],
+      "actionIds": [
+        "CoordinationOrders.AdjustServings"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/AdjustServingsDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/SignoffDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Serving adjustment UI surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.LOCK",
+      "frCode": "FR-COORD",
+      "name": "Lock order plan for production cutoff",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "order scope",
+      "prerequisites": [
+        "persisted order in draft state"
+      ],
+      "sourceLineage": [
+        "order cutoff lock lineage"
+      ],
+      "actionIds": [
+        "CoordinationOrders.LockOrderPlan"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Lock mutation confirmation surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.SIGNOFF",
+      "frCode": "FR-COORD",
+      "name": "Sign off individual order",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "order record",
+      "prerequisites": [
+        "persisted order"
+      ],
+      "sourceLineage": [
+        "order signoff record"
+      ],
+      "actionIds": [
+        "CoordinationOrders.SignoffOrder"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Signoff UI action unresolved."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.SIGNOFF_SCOPE",
+      "frCode": "FR-COORD",
+      "name": "Sign off customer shift orders scope",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "orders scope",
+      "prerequisites": [
+        "eligible customer shift orders"
+      ],
+      "sourceLineage": [
+        "orders scope signoff record"
+      ],
+      "actionIds": [
+        "CoordinationOrders.SignoffOrderScope"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Scope signoff UI action unresolved."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.UNLOCK",
+      "frCode": "FR-COORD",
+      "name": "Unlock individual order plan",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "order record",
+      "prerequisites": [
+        "persisted locked order"
+      ],
+      "sourceLineage": [
+        "order unlock lineage"
+      ],
+      "actionIds": [
+        "CoordinationOrders.UnlockOrderPlan"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Unlock UI action unresolved."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.UNLOCK_SCOPE",
+      "frCode": "FR-COORD",
+      "name": "Unlock orders scope",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "orders scope",
+      "prerequisites": [
+        "locked orders scope"
+      ],
+      "sourceLineage": [
+        "orders scope unlock lineage"
+      ],
+      "actionIds": [
+        "CoordinationOrders.UnlockOrderPlanScope"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Scope unlock UI action unresolved."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.UPDATE_FORECAST",
+      "frCode": "FR-COORD",
+      "name": "Update order forecast servings",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "order forecast servings",
+      "prerequisites": [
+        "persisted draft order"
+      ],
+      "sourceLineage": [
+        "order forecast revision"
+      ],
+      "actionIds": [
+        "CoordinationOrders.UpdateForecastServings"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Forecast update UI action unresolved."
+      ]
+    },
+    {
+      "id": "COORD.MENU_SCHEDULE.RULES",
+      "frCode": "FR-MENU",
+      "name": "Update menu schedule rules",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "menu schedule rules",
+      "prerequisites": [
+        "persisted menu schedule"
+      ],
+      "sourceLineage": [
+        "menu schedule configuration"
+      ],
+      "actionIds": [
+        "MenuSchedules.UpdateMenuScheduleRules"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Schedule rule update UI surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.MENU_SCHEDULE.VERSION",
+      "frCode": "FR-MENU",
+      "name": "Update menu schedule version",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "menu schedule version",
+      "prerequisites": [
+        "persisted menu schedule"
+      ],
+      "sourceLineage": [
+        "menu schedule version update"
+      ],
+      "actionIds": [
+        "MenuSchedules.UpdateMenuScheduleVersion"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Schedule version update UI surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.MENU_SCHEDULE.ROLLBACK",
+      "frCode": "FR-MENU",
+      "name": "Rollback menu schedule version",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "menu schedule version",
+      "prerequisites": [
+        "persisted menu schedule with history"
+      ],
+      "sourceLineage": [
+        "menu version rollback lineage"
+      ],
+      "actionIds": [
+        "MenuSchedules.RollbackMenuVersion"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Rollback confirmation surface unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.DEMAND.GENERATE",
+      "frCode": "FR-MENU",
+      "name": "Generate material demand from schedule and BOM",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "DemandGenerateAccess"
+      ],
+      "grain": "customer service-date demand scope",
+      "prerequisites": [
+        "menu schedule",
+        "servings",
+        "valid BOM"
+      ],
+      "sourceLineage": [
+        "schedule and servings through BOM to demand"
+      ],
+      "actionIds": [
+        "MaterialDemand.Generate"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-PUR",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "weekly.demand"
+      ],
+      "gaps": [
+        "Demand generation confirmation and progress surfaces unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.DEMAND.APPROVE",
+      "frCode": "FR-MENU",
+      "name": "Approve material demand queue",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "DemandGenerateAccess"
+      ],
+      "grain": "material demand queue",
+      "prerequisites": [
+        "persisted generated demand"
+      ],
+      "sourceLineage": [
+        "demand approval to warehouse staging"
+      ],
+      "actionIds": [
+        "MaterialDemand.Approve"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-PUR",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Demand approval workflow surface unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.DEMAND.STALENESS.READ",
+      "frCode": "FR-MENU",
+      "name": "Read material demand staleness",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "DemandGenerateAccess"
+      ],
+      "grain": "demand staleness indicator",
+      "prerequisites": [
+        "scope customer service date"
+      ],
+      "sourceLineage": [
+        "demand staleness query"
+      ],
+      "actionIds": [
+        "MaterialDemand.GetStaleness"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "weekly.demand"
+      ],
+      "gaps": [
+        "Staleness indicator surface integration pending."
+      ]
+    },
+    {
+      "id": "COORD.CUSTOMER_CONTRACT.READ",
+      "frCode": "FR-COORD",
+      "name": "Read customer contracts",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer contract",
+      "prerequisites": [
+        "customer master data"
+      ],
+      "sourceLineage": [
+        "customer to service contract"
+      ],
+      "actionIds": [
+        "CustomerContracts.GetCustomerContracts"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Customer contracts read UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "COORD.CUSTOMER_CONTRACT.CREATE",
+      "frCode": "FR-COORD",
+      "name": "Create customer contract",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer contract",
+      "prerequisites": [
+        "customer master data",
+        "valid contract terms"
+      ],
+      "sourceLineage": [
+        "customer contract creation"
+      ],
+      "actionIds": [
+        "CustomerContracts.CreateCustomerContract"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Customer contract create UI surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.CUSTOMER_CONTRACT.UPDATE",
+      "frCode": "FR-COORD",
+      "name": "Update customer contract",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer contract",
+      "prerequisites": [
+        "existing contract"
+      ],
+      "sourceLineage": [
+        "customer contract update"
+      ],
+      "actionIds": [
+        "CustomerContracts.UpdateCustomerContract"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Customer contract update concurrency and UI surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.PORTION_RULE.READ",
+      "frCode": "FR-COORD",
+      "name": "Read portion rules",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "portion rules list",
+      "prerequisites": [
+        "portion rules master data"
+      ],
+      "sourceLineage": [
+        "portion rule configuration"
+      ],
+      "actionIds": [
+        "PortionRules.GetPortionRules"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Portion rules read surface not yet mapped."
+      ]
+    },
+    {
+      "id": "COORD.PORTION_RULE.RESOLVE",
+      "frCode": "FR-COORD",
+      "name": "Resolve portion rule for customer context",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "resolved portion rule",
+      "prerequisites": [
+        "customer context"
+      ],
+      "sourceLineage": [
+        "portion rule policy resolution"
+      ],
+      "actionIds": [
+        "PortionRules.ResolvePortionRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Portion rule resolution integration pending."
+      ]
+    },
+    {
+      "id": "COORD.PORTION_RULE.CREATE",
+      "frCode": "FR-COORD",
+      "name": "Create portion rule",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "portion rule",
+      "prerequisites": [
+        "valid rule definition"
+      ],
+      "sourceLineage": [
+        "portion rule creation"
+      ],
+      "actionIds": [
+        "PortionRules.CreatePortionRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Portion rule creation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.PORTION_RULE.UPDATE",
+      "frCode": "FR-COORD",
+      "name": "Update portion rule",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "portion rule",
+      "prerequisites": [
+        "existing rule"
+      ],
+      "sourceLineage": [
+        "portion rule update"
+      ],
+      "actionIds": [
+        "PortionRules.UpdatePortionRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Portion rule update concurrency unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.OPEN",
+      "frCode": "FR-COORD",
+      "name": "Open service run",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "service run",
+      "prerequisites": [
+        "production plan line"
+      ],
+      "sourceLineage": [
+        "service run opening"
+      ],
+      "actionIds": [
+        "ServiceRuns.Open"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Service run open UI action unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.START",
+      "frCode": "FR-COORD",
+      "name": "Start service run",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "service run",
+      "prerequisites": [
+        "opened service run"
+      ],
+      "sourceLineage": [
+        "service run execution start"
+      ],
+      "actionIds": [
+        "ServiceRuns.Start"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Service run start UI action unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.RECORD_ACTUALS",
+      "frCode": "FR-COORD",
+      "name": "Record actual servings for service run",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "service run servings",
+      "prerequisites": [
+        "active service run"
+      ],
+      "sourceLineage": [
+        "actual servings record"
+      ],
+      "actionIds": [
+        "ServiceRuns.RecordActualServings"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Actual servings recording UI action unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.CONFIRM",
+      "frCode": "FR-COORD",
+      "name": "Confirm service completion",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Customer"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "service confirmation",
+      "prerequisites": [
+        "completed service run"
+      ],
+      "sourceLineage": [
+        "customer service confirmation"
+      ],
+      "actionIds": [
+        "ServiceRuns.ConfirmService"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Service confirmation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.WAIVE_CONFIRM",
+      "frCode": "FR-COORD",
+      "name": "Waive service confirmation with reason",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "service waiver",
+      "prerequisites": [
+        "unconfirmed service run",
+        "valid reason"
+      ],
+      "sourceLineage": [
+        "service confirmation waiver"
+      ],
+      "actionIds": [
+        "ServiceRuns.WaiveServiceConfirmation"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Service confirmation waiver UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.RESOLVE_VARIANCE",
+      "frCode": "FR-COORD",
+      "name": "Resolve service run operational variance",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "variance resolution",
+      "prerequisites": [
+        "declared variance"
+      ],
+      "sourceLineage": [
+        "variance resolution disposition"
+      ],
+      "actionIds": [
+        "ServiceRuns.ResolveVariance"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-04"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Operational variance resolution UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.RESOLVE_SERVING_VARIANCE",
+      "frCode": "FR-COORD",
+      "name": "Resolve service run serving count variance",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "serving variance resolution",
+      "prerequisites": [
+        "serving count variance"
+      ],
+      "sourceLineage": [
+        "serving variance resolution disposition"
+      ],
+      "actionIds": [
+        "ServiceRuns.ResolveServingVariance"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-04"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Serving variance resolution UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.CREATE_ADJUSTMENT",
+      "frCode": "FR-COORD",
+      "name": "Create service run adjustment",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "service run adjustment",
+      "prerequisites": [
+        "persisted service run"
+      ],
+      "sourceLineage": [
+        "service run adjustment record"
+      ],
+      "actionIds": [
+        "ServiceRuns.CreateAdjustment"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.Adjustments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Service run adjustment UI action unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.CLOSE",
+      "frCode": "FR-COORD",
+      "name": "Close service run",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "service run",
+      "prerequisites": [
+        "confirmed and resolved service run"
+      ],
+      "sourceLineage": [
+        "service run close record"
+      ],
+      "actionIds": [
+        "ServiceRuns.Close"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Service run close UI action unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.DECLARE_VARIANCE",
+      "frCode": "FR-COORD",
+      "name": "Declare service run variance",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "variance declaration",
+      "prerequisites": [
+        "active service run",
+        "observed discrepancy"
+      ],
+      "sourceLineage": [
+        "variance declaration record"
+      ],
+      "actionIds": [
+        "ServiceRunVarianceDeclarations.DeclareVariance"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunVarianceDeclarationsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-04"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Variance declaration UI action unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.APPROVE_WAIVER",
+      "frCode": "FR-COORD",
+      "name": "Approve variance waiver",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "variance waiver approval",
+      "prerequisites": [
+        "declared variance waiver request"
+      ],
+      "sourceLineage": [
+        "variance waiver approval record"
+      ],
+      "actionIds": [
+        "ServiceRunVarianceDeclarations.ApproveVarianceWaiver"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunVarianceDeclarationsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-04"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Variance waiver approval UI action unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.BATCH_COMMIT",
+      "frCode": "FR-MENU",
+      "name": "Commit weekly menu batch import",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "batch menu import",
+      "prerequisites": [
+        "authorized batch workbook files"
+      ],
+      "sourceLineage": [
+        "workbook files to committed menu versions"
+      ],
+      "actionIds": [
+        "WeeklyMenuBatchImports.Commit"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuBatchImportsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Batch import commit UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.FILE_IMPORT",
+      "frCode": "FR-MENU",
+      "name": "Import weekly menu file directly",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "single workbook import",
+      "prerequisites": [
+        "valid workbook file"
+      ],
+      "sourceLineage": [
+        "workbook file to menu schedule"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.ImportWeeklyMenu"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Direct file import UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.PREVIEW",
+      "frCode": "FR-MENU",
+      "name": "Preview weekly menu import ticket",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "import preview ticket",
+      "prerequisites": [
+        "valid workbook file"
+      ],
+      "sourceLineage": [
+        "workbook to preview ticket"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.PreviewWeeklyMenuImport"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Preview UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.COMMIT",
+      "frCode": "FR-MENU",
+      "name": "Commit previewed weekly menu import",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "preview ticket commit",
+      "prerequisites": [
+        "valid unexpired preview ticket"
+      ],
+      "sourceLineage": [
+        "preview ticket to committed menu schedule"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.CommitWeeklyMenuImport"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Commit preview ticket UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.ROLLBACK",
+      "frCode": "FR-MENU",
+      "name": "Rollback imported weekly menu version",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "menu version rollback",
+      "prerequisites": [
+        "persisted rollback-eligible menu version"
+      ],
+      "sourceLineage": [
+        "menu version rollback record"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.RollbackWeeklyMenuImport"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Rollback confirmation UI action unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.BULK_UPDATE",
+      "frCode": "FR-MENU",
+      "name": "Bulk update weekly menu items",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "weekly menu items batch",
+      "prerequisites": [
+        "persisted weekly menu"
+      ],
+      "sourceLineage": [
+        "bulk menu items update"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.BulkUpdateWeeklyMenu"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Bulk update UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.SAVE_MAPPING",
+      "frCode": "FR-MENU",
+      "name": "Save customer import mapping template",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer import mapping",
+      "prerequisites": [
+        "customer master data"
+      ],
+      "sourceLineage": [
+        "customer column mapping configuration"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.SaveCustomerImportMapping"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Customer import mapping UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.AMENDMENT.CREATE",
+      "frCode": "FR-MENU",
+      "name": "Create menu amendment proposal",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "menu amendment",
+      "prerequisites": [
+        "persisted menu version",
+        "amendment reason"
+      ],
+      "sourceLineage": [
+        "menu amendment proposal"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.CreateMenuAmendment"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Menu amendment creation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.AMENDMENT.REVIEW",
+      "frCode": "FR-MENU",
+      "name": "Review menu amendment proposal",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "menu amendment review",
+      "prerequisites": [
+        "pending menu amendment"
+      ],
+      "sourceLineage": [
+        "menu amendment review decision"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.ReviewMenuAmendment"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Amendment review UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.AMENDMENT.EXECUTE",
+      "frCode": "FR-MENU",
+      "name": "Execute approved menu amendment",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "approved amendment",
+      "prerequisites": [
+        "approved menu amendment"
+      ],
+      "sourceLineage": [
+        "menu amendment execution"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.ExecuteMenuAmendment"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Amendment execution UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.AMENDMENT.BREAK_GLASS",
+      "frCode": "FR-MENU",
+      "name": "Break-glass emergency execute menu amendment",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "emergency amendment execution",
+      "prerequisites": [
+        "emergency escalation reason"
+      ],
+      "sourceLineage": [
+        "break glass amendment execution"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.BreakGlassExecuteMenuAmendment"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Break glass emergency amendment UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.AMENDMENT.EXECUTE_DECISION",
+      "frCode": "FR-MENU",
+      "name": "Execute menu amendment decision item",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "amendment decision item",
+      "prerequisites": [
+        "decision item"
+      ],
+      "sourceLineage": [
+        "amendment decision execution"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.ExecuteMenuAmendmentDecision"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Decision execution UI surface unresolved."
+      ]
+    },
+    {
+      "id": "MENU.AMENDMENT.REMEDIATE_FAN",
+      "frCode": "FR-MENU",
+      "name": "Remediate menu amendment decision fan",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Admin"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "reconciliation decision fan",
+      "prerequisites": [
+        "reconciliation case decision fan"
+      ],
+      "sourceLineage": [
+        "decision fan remediation"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.RemediateMenuAmendmentDecisionFan"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Decision fan remediation UI surface unresolved."
+      ]
     }
   ],
   "surfaces": [
@@ -4259,7 +5702,8 @@
       "view": "demand",
       "workObject": "OperationalFrame",
       "capabilityIds": [
-        "PLAN.DEMAND",
+        "PLAN.DEMAND.GENERATE",
+        "PLAN.DEMAND.STALENESS.READ",
         "PLAN.PRODUCTION.READ"
       ],
       "actions": [],

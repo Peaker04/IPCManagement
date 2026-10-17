@@ -246,6 +246,45 @@ test('splits Catalog and Admin capabilities at their actual operation grain', ()
   );
 });
 
+test('splits Coordination and Planning capabilities at their actual operation grain', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+  const expectedOwners = new Map([
+    ['CoordinationOrders.LockOrderPlan', 'COORD.ORDER.LOCK'],
+    ['CoordinationOrders.UnlockOrderPlan', 'COORD.ORDER.UNLOCK'],
+    ['CoordinationOrders.AdjustServings', 'COORD.ORDER.ADJUST_SERVINGS'],
+    ['CoordinationOrders.SignoffOrder', 'COORD.ORDER.SIGNOFF'],
+    ['MenuSchedules.UpdateMenuScheduleRules', 'COORD.MENU_SCHEDULE.RULES'],
+    ['MenuSchedules.UpdateMenuScheduleVersion', 'COORD.MENU_SCHEDULE.VERSION'],
+    ['MenuSchedules.RollbackMenuVersion', 'COORD.MENU_SCHEDULE.ROLLBACK'],
+    ['MaterialDemand.Generate', 'PLAN.DEMAND.GENERATE'],
+    ['MaterialDemand.Approve', 'PLAN.DEMAND.APPROVE'],
+    ['MaterialDemand.GetStaleness', 'PLAN.DEMAND.STALENESS.READ'],
+    ['CustomerContracts.GetCustomerContracts', 'COORD.CUSTOMER_CONTRACT.READ'],
+    ['CustomerContracts.CreateCustomerContract', 'COORD.CUSTOMER_CONTRACT.CREATE'],
+    ['CustomerContracts.UpdateCustomerContract', 'COORD.CUSTOMER_CONTRACT.UPDATE'],
+    ['PortionRules.GetPortionRules', 'COORD.PORTION_RULE.READ'],
+    ['PortionRules.ResolvePortionRule', 'COORD.PORTION_RULE.RESOLVE'],
+    ['PortionRules.CreatePortionRule', 'COORD.PORTION_RULE.CREATE'],
+    ['PortionRules.UpdatePortionRule', 'COORD.PORTION_RULE.UPDATE'],
+    ['ServiceRuns.Open', 'PLAN.SERVICE_RUN.OPEN'],
+    ['ServiceRuns.Start', 'PLAN.SERVICE_RUN.START'],
+    ['ServiceRuns.Close', 'PLAN.SERVICE_RUN.CLOSE'],
+    ['WeeklyMenuImports.ImportWeeklyMenu', 'MENU.IMPORT.FILE_IMPORT'],
+    ['WeeklyMenuImports.PreviewWeeklyMenuImport', 'MENU.IMPORT.PREVIEW'],
+    ['WeeklyMenuImports.CommitWeeklyMenuImport', 'MENU.IMPORT.COMMIT'],
+    ['WeeklyMenuImports.RollbackWeeklyMenuImport', 'MENU.IMPORT.ROLLBACK'],
+    ['WeeklyMenuImports.CreateMenuAmendment', 'MENU.AMENDMENT.CREATE'],
+    ['WeeklyMenuImports.ReviewMenuAmendment', 'MENU.AMENDMENT.REVIEW'],
+    ['WeeklyMenuImports.ExecuteMenuAmendment', 'MENU.AMENDMENT.EXECUTE'],
+  ]);
+
+  for (const [actionId, capabilityId] of expectedOwners) {
+    const owners = contract.capabilities.filter((capability) => capability.actionIds && capability.actionIds.includes(actionId));
+    assert.deepEqual(owners.map((owner) => owner.id), [capabilityId], `${actionId} must be owned by ${capabilityId}`);
+  }
+});
+
 test('maps every rendered Backend mutation to one guarded writable surface action', () => {
   const repoRoot = join(import.meta.dirname, '..');
   const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
