@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { Button } from '../ui/button';
+import { WorkbenchSkeleton, type SkeletonGeometry } from './WorkbenchSkeleton';
 
 export type EmptyScenario = 'true-empty' | 'prerequisite-blocked' | 'partial-data' | 'filter-empty';
 
 export interface StateBoundaryProps {
   isLoading?: boolean;
   loadingVariant?: 'table' | 'cards' | 'matrix' | 'form';
+  loadingGeometry?: SkeletonGeometry;
   customSkeleton?: ReactNode;
   error?: Error | string | null;
   onRetry?: () => void;
@@ -64,6 +66,7 @@ function resolveEmptyContent(
 export function StateBoundary({
   isLoading,
   loadingVariant = 'table',
+  loadingGeometry,
   customSkeleton,
   error,
   onRetry,
@@ -82,51 +85,25 @@ export function StateBoundary({
   children,
   className,
 }: StateBoundaryProps) {
+  const errorStatus = error && typeof error === 'object' && 'status' in error
+    ? Number((error as { status?: unknown }).status)
+    : undefined;
+  const showForbidden = isForbidden || errorStatus === 403;
+  const showConflict = isConflict || errorStatus === 409;
+
   // 1. Loading State (Geometric Compact Table or Custom Skeleton)
   if (isLoading) {
     if (customSkeleton) {
       return <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>{customSkeleton}</div>;
     }
 
-    if (loadingVariant === 'cards') {
-      return (
-        <div className={clsx('flex-1 min-h-0 w-full p-4 grid grid-cols-4 gap-3 bg-white', className)}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 bg-slate-50 border border-slate-100 rounded p-3 animate-pulse space-y-2">
-              <div className="h-3 w-1/2 bg-slate-200 rounded" />
-              <div className="h-6 w-3/4 bg-slate-200 rounded" />
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <div className={clsx('flex-1 min-h-0 w-full flex flex-col p-4 space-y-2 bg-white', className)}>
-        <div className="h-8 w-full bg-slate-100 rounded animate-pulse" />
-        <div className="space-y-1.5 flex-1">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-9 w-full bg-slate-50 border border-slate-100 rounded flex items-center px-4 space-x-4 animate-pulse"
-            >
-              <div className="h-3 w-1/4 bg-slate-200 rounded" />
-              <div className="h-3 w-1/3 bg-slate-200 rounded" />
-              <div className="h-3 w-1/6 bg-slate-200 rounded ml-auto" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <WorkbenchSkeleton geometry={loadingGeometry ?? { kind: loadingVariant === 'cards' ? 'table' : loadingVariant, columns: loadingVariant === 'matrix' ? 7 : 4, rows: loadingVariant === 'form' ? 4 : 8, toolbar: true }} className={className} />;
   }
 
   // 2. Permission-Denied State (403)
-  if (isForbidden) {
+  if (showForbidden) {
     return (
-      <div className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
-        <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-3">
-          403
-        </div>
+      <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Truy cập bị hạn chế</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">Bạn không có quyền xem hoặc thực hiện thao tác trên phân hệ này.</p>
         {onRetry && (
@@ -139,15 +116,15 @@ export function StateBoundary({
   }
 
   // 3. Write-Reconciliation Conflict State (409)
-  if (isConflict) {
+  if (showConflict) {
     return (
-      <div className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
+      <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
         <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-sm mb-3">
           409
         </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Xung đột dữ liệu đồng thời</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">
-          {conflictDetails || 'Bản ghi đã bị thay đổi bởi người dùng khác. Vui lòng làm mới để lấy dữ liệu mới nhất.'}
+          {conflictDetails || (error instanceof Error ? error.message : null) || 'Bản ghi đã bị thay đổi bởi người dùng khác. Vui lòng làm mới để lấy dữ liệu mới nhất.'}
         </p>
         {onResolveConflict && (
           <Button variant="outline" size="sm" onClick={onResolveConflict}>
@@ -159,13 +136,10 @@ export function StateBoundary({
   }
 
   // 4. Error State
-  if (error) {
+  if (error && errorStatus !== 403 && errorStatus !== 409) {
     const message = typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.';
     return (
-      <div className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
-        <div className="w-10 h-10 rounded-full bg-red-50 text-red-600 flex items-center justify-center font-bold text-lg mb-3">
-          !
-        </div>
+      <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Không thể tải dữ liệu</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">{message}</p>
         {onRetry && (
@@ -183,9 +157,7 @@ export function StateBoundary({
 
     return (
       <div className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
-        <div className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-200 text-slate-400 flex items-center justify-center text-xl mb-3">
-          ∅
-        </div>
+        <div aria-hidden="true" className="w-12 h-12 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center mb-3" />
         <h3 className="text-sm font-semibold text-slate-900 mb-1">{content.title}</h3>
         <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">{content.desc}</p>
         {content.action && onAction && (
@@ -201,7 +173,7 @@ export function StateBoundary({
   return (
     <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>
       {isPartial && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between">
+        <div role="status" aria-live="polite" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between">
           <span>{partialMessage || 'Dữ liệu hiển thị một phần do các ca sản xuất đang diễn ra.'}</span>
         </div>
       )}

@@ -1,18 +1,16 @@
-import { useState, type ReactNode } from 'react';
-import { NavLink, useLocation, Outlet } from 'react-router-dom';
+import { useState, type MouseEvent, type ReactNode } from 'react';
+import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   CalendarDays,
   ChefHat,
   ChevronDown,
   ClipboardCheck,
-  Database,
   LayoutDashboard,
   LogOut,
   Menu,
   Scale,
   Settings,
   ShoppingCart,
-  SlidersHorizontal,
   TrendingUp,
   Utensils,
   Warehouse,
@@ -23,6 +21,7 @@ import { clsx } from 'clsx';
 import { useAuth } from '../../store/useAuth';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
+import { useDirtyNavigation } from './dirty-navigation-context';
 
 interface NavLeafItem {
   to: string;
@@ -51,17 +50,58 @@ const NAVIGATION_MENU: NavigationEntry[] = [
   { type: 'link', to: '/meal-orders', label: 'Điều phối đơn', icon: Utensils },
   { type: 'link', to: '/approvals', label: 'Duyệt vận hành', icon: ClipboardCheck },
   { type: 'link', to: '/purchasing', label: 'Thu mua', icon: ShoppingCart },
-  { type: 'link', to: '/warehouse', label: 'Kho nguyên liệu', icon: Warehouse },
-  { type: 'link', to: '/chef', label: 'Bếp trưởng', icon: ChefHat },
+  {
+    type: 'parent',
+    id: 'warehouse',
+    label: 'Kho nguyên liệu',
+    icon: Warehouse,
+    children: [
+      { to: '/warehouse?view=issues', label: 'Phiếu xuất kho' },
+      { to: '/warehouse?view=receipts', label: 'Phiếu nhập kho' },
+      { to: '/warehouse?view=stock', label: 'Tồn kho hiện tại' },
+    ],
+  },
+  {
+    type: 'parent',
+    id: 'chef',
+    label: 'Bếp trưởng',
+    icon: ChefHat,
+    children: [
+      { to: '/chef?view=plans', label: 'Kế hoạch sản xuất' },
+      { to: '/chef?view=issues', label: 'Phiếu xuất bàn giao' },
+    ],
+  },
   { type: 'link', to: '/reconciliation', label: 'Đối soát nguyên liệu', icon: Scale },
-  { type: 'link', to: '/reports', label: 'Báo cáo vận hành', icon: TrendingUp },
-  { type: 'link', to: '/admin-data', label: 'Quản trị dữ liệu', icon: Database },
-  { type: 'link', to: '/settings/approval-rules', label: 'Thiết lập quy trình duyệt', icon: Settings },
-  { type: 'link', to: '/settings/advanced', label: 'Thiết lập nâng cao', icon: SlidersHorizontal },
+  {
+    type: 'parent',
+    id: 'reports',
+    label: 'Báo cáo vận hành',
+    icon: TrendingUp,
+    children: [
+      { to: '/reports?view=demand', label: 'Nhu cầu nguyên liệu' },
+      { to: '/reports?view=prices', label: 'Biến động giá nhập' },
+      { to: '/reports?view=stock', label: 'Tồn kho hiện tại' },
+    ],
+  },
+  {
+    type: 'parent',
+    id: 'administration',
+    label: 'Quản trị hệ thống',
+    icon: Settings,
+    children: [
+      { to: '/admin-data?view=ingredients', label: 'Danh mục nguyên liệu' },
+      { to: '/admin-data?view=dishes', label: 'Danh mục món ăn' },
+      { to: '/settings/approval-rules', label: 'Quy trình phê duyệt' },
+      { to: '/settings/advanced?view=mode', label: 'Chế độ vận hành' },
+      { to: '/settings/advanced?view=cache', label: 'Bộ nhớ phiên' },
+      { to: '/settings/advanced?view=diagnostics', label: 'Chẩn đoán kết nối' },
+    ],
+  },
 ];
 
 export interface AppShellProps {
   children?: ReactNode;
+  getAllowedRoles?: (path: string) => string[] | undefined;
 }
 
 /**
@@ -69,13 +109,19 @@ export interface AppShellProps {
  * Left Sidebar: w-60 (240px) with hamburger toggle, real Lucide icons, nested tree with vertical guide line
  * Right Frame: flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40
  */
-export function AppShell({ children }: AppShellProps) {
-  const { user, logout, operationalMode, setOperationalMode } = useAuth();
+export function AppShell({ children, getAllowedRoles = () => undefined }: AppShellProps) {
+  const { user, logout, operationalMode, hasRole } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { requestNavigation } = useDirtyNavigation();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({
-    'weekly-menu': true, // Default expanded per Rule N6
+    'weekly-menu': true,
+    warehouse: true,
+    chef: true,
+    reports: true,
+    administration: true,
   });
 
   const toggleParent = (parentId: string) => {
@@ -85,17 +131,27 @@ export function AppShell({ children }: AppShellProps) {
     }));
   };
 
-  const toggleMode = () => {
-    const nextMode = operationalMode === 'DEFAULT' ? 'MATERIAL_RECONCILIATION' : 'DEFAULT';
-    setOperationalMode(nextMode);
+  const canAccessPath = (url: string) => {
+    const path = url.split('?')[0];
+    const allowedRoles = getAllowedRoles(path);
+    return !allowedRoles?.length || hasRole(allowedRoles);
+  };
+  const visibleNavigation = NAVIGATION_MENU.flatMap((entry): NavigationEntry[] => {
+    if (entry.type === 'link') return canAccessPath(entry.to) ? [entry] : [];
+    const children = entry.children.filter((child) => canAccessPath(child.to));
+    return children.length > 0 ? [{ ...entry, children }] : [];
+  });
+
+  const handleNavigation = (event: MouseEvent<HTMLAnchorElement>, to: string) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (!requestNavigation(() => navigate(to))) event.preventDefault();
   };
 
-  const isCurrentWeeklySubview = (subviewUrl: string) => {
-    const currentUrl = `${location.pathname}${location.search}`;
-    if (subviewUrl === '/weekly-menu') {
-      return location.pathname === '/weekly-menu' && (!location.search || location.search === '?view=schedule');
-    }
-    return currentUrl === subviewUrl;
+  const isCurrentSubview = (subviewUrl: string) => {
+    const [path, query = ''] = subviewUrl.split('?');
+    if (location.pathname !== path) return false;
+    if (!query) return !location.search;
+    return location.search === `?${query}`;
   };
 
   return (
@@ -137,7 +193,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Navigation Items with Real Lucide Icons */}
         <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
-          {NAVIGATION_MENU.map((entry) => {
+          {visibleNavigation.map((entry) => {
             const Icon = entry.icon;
 
             if (entry.type === 'link') {
@@ -150,6 +206,7 @@ export function AppShell({ children }: AppShellProps) {
                   key={entry.to}
                   to={entry.to}
                   end={entry.exact}
+                  onClick={(event) => handleNavigation(event, entry.to)}
                   title={isSidebarCollapsed ? entry.label : undefined}
                   className={clsx(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
@@ -166,13 +223,15 @@ export function AppShell({ children }: AppShellProps) {
 
             // Parent with Nested Tree (Rule N6)
             const isParentExpanded = expandedParents[entry.id];
-            const isAnyChildActive = location.pathname.startsWith('/weekly-menu');
+            const parentPath = entry.children[0]?.to.split('?')[0] || '';
+            const isAnyChildActive = location.pathname === parentPath;
 
             if (isSidebarCollapsed) {
               return (
                 <NavLink
                   key={entry.id}
-                  to="/weekly-menu"
+                  to={entry.children[0]?.to || '/'}
+                  onClick={(event) => handleNavigation(event, entry.children[0]?.to || '/')}
                   title={entry.label}
                   className={clsx(
                     'flex items-center justify-center rounded-md py-2.5 text-sm font-medium transition-colors',
@@ -216,11 +275,12 @@ export function AppShell({ children }: AppShellProps) {
                 {isParentExpanded && (
                   <div className="border-l-2 border-slate-200 ml-5 pl-2.5 space-y-0.5 my-1">
                     {entry.children.map((child) => {
-                      const isActive = isCurrentWeeklySubview(child.to);
+                      const isActive = isCurrentSubview(child.to);
                       return (
                         <NavLink
                           key={child.to}
                           to={child.to}
+                          onClick={(event) => handleNavigation(event, child.to)}
                           className={clsx(
                             'block rounded px-2.5 py-1.5 text-xs font-medium transition-colors',
                             isActive
@@ -242,23 +302,25 @@ export function AppShell({ children }: AppShellProps) {
         {/* Footer: User Profile + Mode Badge + Logout */}
         {!isSidebarCollapsed && (
           <div className="border-t border-slate-200 p-3 bg-slate-50/70 shrink-0 space-y-2.5">
-            {/* Operational Mode Toggle (DOM-MODE-1) */}
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-medium">Chế độ:</span>
-              <button
-                type="button"
-                onClick={toggleMode}
-                title="Chuyển đổi chế độ vận hành (DOM-MODE-1)"
-                className="cursor-pointer"
-              >
-                <Badge
-                  variant={operationalMode === 'MATERIAL_RECONCILIATION' ? 'warning' : 'neutral'}
-                  size="sm"
+            {/* Operational mode is changed only in the guarded settings workflow. */}
+            {user && hasRole('Admin') && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500 font-medium">Chế độ:</span>
+                <NavLink
+                  to="/settings/advanced?view=mode"
+                  onClick={(event) => handleNavigation(event, '/settings/advanced?view=mode')}
+                  aria-label={`Chế độ vận hành hiện tại: ${operationalMode === 'MATERIAL_RECONCILIATION' ? 'Đối soát MRX' : 'Mặc định'}`}
+                  title="Mở thiết lập chế độ vận hành"
                 >
-                  {operationalMode === 'MATERIAL_RECONCILIATION' ? 'Đối soát MRX' : 'Mặc định'}
-                </Badge>
-              </button>
-            </div>
+                  <Badge
+                    variant={operationalMode === 'MATERIAL_RECONCILIATION' ? 'warning' : 'neutral'}
+                    size="sm"
+                  >
+                    {operationalMode === 'MATERIAL_RECONCILIATION' ? 'Đối soát MRX' : 'Mặc định'}
+                  </Badge>
+                </NavLink>
+              </div>
+            )}
 
             {/* User info card */}
             <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">

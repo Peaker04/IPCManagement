@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
@@ -7,9 +8,6 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
-import { Tabs } from '../../components/ui/tabs';
-import { Modal } from '../../components/ui/modal';
-import { Input } from '../../components/ui/input';
 import {
   adminApi,
   type IngredientItem,
@@ -17,19 +15,12 @@ import {
 } from '../../api/adminApi';
 
 export function AdminDataPage() {
-  const [activeTab, setActiveTab] = useState<'ingredients' | 'dishes'>('ingredients');
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('view') === 'dishes' ? 'dishes' : 'ingredients';
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
   const [dishes, setDishes] = useState<DishItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // New Ingredient Modal
-  const [isNewIngOpen, setIsNewIngOpen] = useState(false);
-  const [ingCode, setIngCode] = useState('');
-  const [ingName, setIngName] = useState('');
-  const [ingUnit, setIngUnit] = useState('Kilogram');
-  const [ingPrice, setIngPrice] = useState(45000);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -42,7 +33,7 @@ export function AdminDataPage() {
       setIngredients(ings);
       setDishes(dshs);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh mục dữ liệu nền.');
+      setError(err instanceof Error ? err : new Error('Không thể tải danh mục dữ liệu nền.'));
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +54,7 @@ export function AdminDataPage() {
         }
       } catch (err: unknown) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Không thể tải danh mục dữ liệu nền.');
+          setError(err instanceof Error ? err : new Error('Không thể tải danh mục dữ liệu nền.'));
           setIsLoading(false);
         }
       }
@@ -75,36 +66,6 @@ export function AdminDataPage() {
       ignore = true;
     };
   }, []);
-
-  const handleCreateIngredient = async () => {
-    if (!ingCode || !ingName) {
-      alert('Vui lòng nhập đầy đủ mã và tên nguyên liệu');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await adminApi.createIngredient({
-        ingredientCode: ingCode,
-        ingredientName: ingName,
-        unitName: ingUnit,
-        referencePrice: ingPrice,
-      });
-      setIsNewIngOpen(false);
-      setIngCode('');
-      setIngName('');
-      await loadData();
-      alert('Đã thêm nguyên liệu mới vào danh mục thành công!');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Thêm nguyên liệu thất bại');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const TAB_ITEMS = [
-    { id: 'ingredients', label: 'Danh mục nguyên liệu', count: ingredients.length },
-    { id: 'dishes', label: 'Danh mục món ăn tiêu chuẩn', count: dishes.length },
-  ];
 
   const ingredientColumns: ColumnDef<IngredientItem>[] = [
     {
@@ -195,37 +156,18 @@ export function AdminDataPage() {
           </Badge>
         }
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={loadData}
-              className="h-9 text-sm font-medium"
-            >
-              Làm mới
-            </Button>
-            {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setIsNewIngOpen(true)}
-              className="h-9 text-sm font-medium"
-            >
-              Thêm nguyên liệu mới
-            </Button>
-          </>
+          <Button variant="outline" size="default" onClick={loadData} className="h-9 text-sm font-medium">
+            Làm mới
+          </Button>
         }
       />
 
       {/* Zone 2: TelemetrySubbar (44px / h-11) */}
       <TelemetrySubbar
         leftControls={
-          <Tabs
-            items={TAB_ITEMS}
-            activeId={activeTab}
-            onChange={(id) => setActiveTab(id as 'ingredients' | 'dishes')}
-            size="default"
-          />
+          <span className="text-xs font-semibold text-slate-700">
+            Đang xem: {activeTab === 'ingredients' ? 'Danh mục nguyên liệu' : 'Danh mục món ăn'}
+          </span>
         }
         telemetryPills={
           <>
@@ -235,10 +177,6 @@ export function AdminDataPage() {
                 {activeTab === 'ingredients' ? ingredients.length : dishes.length} mặt hàng
               </strong>
             </span>
-            <span className="text-slate-300">·</span>
-            <Badge variant="success" size="sm">
-              Đạt chuẩn HACCP: 100%
-            </Badge>
           </>
         }
       />
@@ -265,65 +203,6 @@ export function AdminDataPage() {
         )}
       </StateBoundary>
 
-      {/* New Ingredient Modal */}
-      <Modal
-        isOpen={isNewIngOpen}
-        onClose={() => setIsNewIngOpen(false)}
-        title="Thêm nguyên liệu thực phẩm mới"
-        description="Đăng ký mặt hàng mới vào danh mục định mức của hệ thống"
-        footer={
-          <>
-            <Button variant="outline" size="sm" onClick={() => setIsNewIngOpen(false)}>
-              Hủy bỏ
-            </Button>
-            <Button variant="default" size="sm" disabled={isSubmitting} onClick={handleCreateIngredient}>
-              {isSubmitting ? 'Đang lưu...' : 'Xác nhận thêm'}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4 text-sm text-slate-700">
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-700">Mã nguyên liệu</label>
-            <Input
-              placeholder="Ví dụ: NL-THIT-99"
-              value={ingCode}
-              onChange={(e) => setIngCode(e.target.value)}
-              className="h-9 font-mono"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-700">Tên nguyên liệu thực phẩm</label>
-            <Input
-              placeholder="Ví dụ: Sườn non bò Úc đông lạnh"
-              value={ingName}
-              onChange={(e) => setIngName(e.target.value)}
-              className="h-9"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-700">Đơn vị tính (ĐVT)</label>
-              <Input
-                value={ingUnit}
-                onChange={(e) => setIngUnit(e.target.value)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-700">Đơn giá tham chiếu (₫)</label>
-              <Input
-                type="number"
-                value={ingPrice}
-                onChange={(e) => setIngPrice(parseFloat(e.target.value) || 0)}
-                className="h-9"
-              />
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

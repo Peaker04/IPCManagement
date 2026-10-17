@@ -7,9 +7,12 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   operationalMode: OperationalMode;
+  operationalModeVersion: number | null;
+  operationalModeReasonRequired: boolean;
+  reloadOperationalMode: () => Promise<void>;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  setOperationalMode: (mode: OperationalMode) => Promise<void>;
+  setOperationalMode: (mode: OperationalMode, reason?: string) => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasRole: (roleCode: string | string[]) => boolean;
 }

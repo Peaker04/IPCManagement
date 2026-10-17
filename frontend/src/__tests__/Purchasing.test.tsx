@@ -25,21 +25,16 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
     vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValue(MOCK_SUPPLIERS);
   });
 
-  it('renders Zone 1 WorkspaceHeader (56px) with supplier select, date, and single primary button (Rule D7)', async () => {
+  it('renders Zone 1 WorkspaceHeader without exposing an unsupported direct PO creation action', async () => {
     renderPurchasing();
 
     expect(await screen.findByRole('heading', { name: 'Thu mua & Đề xuất PO' })).toBeInTheDocument();
-
-    // Select supplier and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('21/07/2026')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('dd/MM/yyyy')).not.toBeInTheDocument();
     expect(screen.getByText('PO đang xử lý')).toBeInTheDocument();
-
-    // Rule D7: Exactly 1 primary button + 1 outline
     expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    const createBtn = screen.getByRole('button', { name: 'Tạo đơn mua hàng PO' });
-    expect(createBtn).toBeInTheDocument();
-    expect(createBtn).toHaveClass('bg-slate-900');
+    expect(screen.queryByRole('button', { name: 'Tạo đơn mua hàng PO' })).not.toBeInTheDocument();
+    expect(screen.getByText(/PO chỉ được tạo từ đề xuất mua hàng đã duyệt/i)).toBeInTheDocument();
   });
 
   it('renders Zone 2 TelemetrySubbar (44px) with status tabs and telemetry pills', async () => {
@@ -81,20 +76,13 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
     expect(container.querySelectorAll('details').length).toBe(0);
   });
 
-  it('opens new PO modal, fills form, and submits order', async () => {
+  it('does not expose the unsupported direct PO modal or fabricated ingredient submission path', async () => {
     renderPurchasing();
 
-    const createBtn = await screen.findByRole('button', { name: 'Tạo đơn mua hàng PO' });
-    await userEvent.click(createBtn);
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Tạo đơn mua hàng mới (PO)')).toBeInTheDocument();
-
-    const itemInput = screen.getByPlaceholderText(/Thịt gà phi lê tươi/i);
-    await userEvent.type(itemInput, 'Thịt bò tươi');
-
-    const submitBtn = screen.getByRole('button', { name: 'Xác nhận tạo đơn PO' });
-    await userEvent.click(submitBtn);
+    await screen.findByRole('heading', { name: 'Thu mua & Đề xuất PO' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/Thịt gà phi lê tươi/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xác nhận tạo đơn PO' })).not.toBeInTheDocument();
   });
 
   it('handles error state and provides retry action', async () => {

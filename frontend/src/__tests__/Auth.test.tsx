@@ -34,14 +34,13 @@ describe('Auth Feature (FR-AUTH)', () => {
     expect(submitBtn).toHaveClass('bg-slate-900'); // Single primary
   });
 
-  it('LoginPage: quick login helper auto-populates credentials', async () => {
+  it('LoginPage: starts empty and exposes no credential shortcuts', () => {
     renderWithProviders(<LoginPage />);
 
-    const beptruongBtn = screen.getByRole('button', { name: /beptruong/i });
-    await userEvent.click(beptruongBtn);
-
-    expect(screen.getByLabelText('Tên đăng nhập')).toHaveValue('beptruong');
-    expect(screen.getByLabelText('Mật khẩu')).toHaveValue('Admin@123456');
+    expect(screen.getByLabelText('Tên đăng nhập')).toHaveValue('');
+    expect(screen.getByLabelText('Mật khẩu')).toHaveValue('');
+    expect(screen.queryByText(/Tài khoản mẫu|Admin@123456|beptruong|quick login/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1);
   });
 
   it('LoginPage: successfully authenticates and redirects to dashboard', async () => {
@@ -63,6 +62,8 @@ describe('Auth Feature (FR-AUTH)', () => {
 
     renderWithProviders(<LoginPage />);
 
+    await userEvent.type(screen.getByLabelText('Tên đăng nhập'), 'admin');
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'password-from-test-only');
     const submitBtn = screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' });
     await userEvent.click(submitBtn);
 
@@ -79,6 +80,7 @@ describe('Auth Feature (FR-AUTH)', () => {
     const usernameInput = screen.getByLabelText('Tên đăng nhập');
     await userEvent.clear(usernameInput);
     await userEvent.type(usernameInput, 'wrong_user');
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'invalid-password');
 
     const submitBtn = screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' });
     await userEvent.click(submitBtn);

@@ -72,7 +72,7 @@ export interface MaterialDemandItem {
   requiredQuantity: number;
   issuedQuantity: number;
   remainingQuantity: number;
-  status: 'du_tru' | 'cho_xuat' | 'da_xuat_du' | 'thieu_hut';
+  status: 'missing' | 'in_progress' | 'fulfilled';
 }
 
 export interface ProductionPlanItem {
@@ -129,7 +129,6 @@ export interface ScheduleMatrixCell {
 export interface ScheduleDayColumn {
   dayName: string; // "Thứ Hai", "Thứ Ba"...
   dateStr: string; // "21/09/2026"
-  isReady: boolean;
   cells: ScheduleMatrixCell[];
 }
 

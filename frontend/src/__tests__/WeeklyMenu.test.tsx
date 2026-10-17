@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -20,6 +20,11 @@ function renderWeeklyMenu(initialEntry = '/weekly-menu') {
 }
 
 describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () => {
+  beforeEach(() => {
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
+      { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
+    ]);
+  });
   it('renders single 56px WorkspaceHeader with client selectors, dd/MM/yyyy date, and dynamic primary button (Rule D7)', async () => {
     vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
 
@@ -29,15 +34,11 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     // Client select, week date input, and pricing context pill
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    // Rule: VietnameseDateInput must display dd/MM/yyyy (21/09/2026), never MM/dd/yyyy!
-    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
-    expect(screen.getByText('Định mức: 25.000 ₫')).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveAttribute('data-date-locale', 'vi-VN');
+    expect(screen.queryByText('Định mức: 25.000 ₫')).not.toBeInTheDocument();
 
-    // Rule D7: 1 primary + 1 outline
     expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    const primaryBtn = screen.getByRole('button', { name: 'Duyệt kế hoạch tuần' });
-    expect(primaryBtn).toBeInTheDocument();
-    expect(primaryBtn).toHaveClass('bg-slate-900');
+    expect(screen.queryByRole('button', { name: 'Duyệt kế hoạch tuần' })).not.toBeInTheDocument();
   });
 
   it('View 1 (Kế hoạch tuần): renders Mon-Sat matrix without duplicate subbar tabs or repetitive cell text', async () => {
@@ -63,36 +64,28 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(container.querySelectorAll('details').length).toBe(0);
   });
 
-  it('View 2 (Bàn giao nguyên liệu — ?view=demand): Header adapts to [Mở hàng đợi duyệt] as primary (Rule D7), and ZERO <details>', async () => {
+  it('View 2 uses authoritative demand and production-plan facets without fabricating handoff vouchers', async () => {
     vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
 
     const { container } = renderWeeklyMenu('/weekly-menu?view=demand');
 
-    // Header primary button dynamically adapted to View 2
-    const headerPrimaryBtn = await screen.findByRole('button', { name: 'Mở hàng đợi duyệt' });
-    expect(headerPrimaryBtn).toBeInTheDocument();
-    expect(headerPrimaryBtn).toHaveClass('bg-slate-900');
+    expect(screen.queryByRole('button', { name: 'Mở hàng đợi duyệt' })).not.toBeInTheDocument();
 
     // Day navigator [<] Thứ Hai, 21/09/2026 [>]
-    expect(screen.getByText(/Thứ Hai, 21\/09\/2026/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Thứ Hai, 21\/09\/2026/i)).toBeInTheDocument();
 
     // Segmented tabs replace legacy bottom details!
     expect(screen.getByRole('tab', { name: /Nhu cầu nguyên liệu/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /KHSX nguồn/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Chứng từ bàn giao/i })).toBeInTheDocument();
-
-    // Subbar button is outline
-    const recalculateBtn = screen.getByRole('button', { name: 'Tính lại nhu cầu' });
-    expect(recalculateBtn).toBeInTheDocument();
-    expect(recalculateBtn).toHaveClass('border-slate-300');
+    expect(screen.queryByRole('tab', { name: /Chứng từ bàn giao/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Tính lại nhu cầu' })).not.toBeInTheDocument();
 
     // 6 Columns in Primary DataGrid
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Món sử dụng' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Cần' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Đã xuất' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Chưa xuất' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Nhu cầu đã tính' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Đã xuất vật lý' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Còn phải xuất' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Trạng thái bàn giao' })).toBeInTheDocument();
 
     // HARD INVARIANT: Zero <details> tags anywhere in the DOM!
     expect(container.querySelectorAll('details').length).toBe(0);
@@ -101,20 +94,16 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     await userEvent.click(screen.getByRole('tab', { name: /KHSX nguồn/i }));
     expect(screen.getByRole('columnheader', { name: 'Mã KHSX' })).toBeInTheDocument();
 
-    // Switch to "Chứng từ bàn giao" tab
-    await userEvent.click(screen.getByRole('tab', { name: /Chứng từ bàn giao/i }));
-    expect(screen.getByRole('columnheader', { name: 'Mã chứng từ' })).toBeInTheDocument();
+    // No production plan may be renamed into a signed handoff voucher.
+    expect(screen.queryByText(/Đã ký nhận/i)).not.toBeInTheDocument();
   });
 
-  it('View 3 (Kế hoạch sản xuất — ?view=production-plan): Header adapts to [In lệnh sản xuất] and dates are dd/MM/yyyy', async () => {
+  it('View 3 renders production-plan facts without a fake print action', async () => {
     vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
 
     renderWeeklyMenu('/weekly-menu?view=production-plan');
 
-    // Header primary button dynamically adapted to View 3
-    const headerPrimaryBtn = await screen.findByRole('button', { name: 'In lệnh sản xuất' });
-    expect(headerPrimaryBtn).toBeInTheDocument();
-    expect(headerPrimaryBtn).toHaveClass('bg-slate-900');
+    expect(screen.queryByRole('button', { name: 'In lệnh sản xuất' })).not.toBeInTheDocument();
 
     // KHSX lines rendered
     expect((await screen.findAllByText(/KHSX-DAV-20260921/i)).length).toBeGreaterThan(0);
@@ -130,40 +119,20 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(screen.getAllByText('21/09/2026').length).toBeGreaterThan(0);
   });
 
-  it('View 4 (Giá vốn & Định mức BOM — ?view=cost): Header adapts to [Xuất bảng chi phí], shows 5 BOM columns including Đơn giá, and ZERO <details>', async () => {
-    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
+  it('View 4 does not expose cost reports or exports without an authoritative backend cost contract', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue({
+      ...MOCK_WEEKLY_MENU_DATA,
+      dishCosts: [],
+      dailyMaterials: [],
+    });
 
-    const { container } = renderWeeklyMenu('/weekly-menu?view=cost');
+    renderWeeklyMenu('/weekly-menu?view=cost');
 
-    // Header primary button dynamically adapted to View 4
-    const headerPrimaryBtn = await screen.findByRole('button', { name: 'Xuất bảng chi phí' });
-    expect(headerPrimaryBtn).toBeInTheDocument();
-    expect(headerPrimaryBtn).toHaveClass('bg-slate-900');
+    expect(screen.queryByRole('button', { name: 'Xuất bảng chi phí' })).not.toBeInTheDocument();
+    expect(await screen.findByText('Chưa có số liệu phân rã chi phí BOM')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Đơn giá vốn' })).not.toBeInTheDocument();
 
-    // Master Left: Dishes table
-    expect(await screen.findByRole('columnheader', { name: 'Món ăn' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Đơn giá vốn' })).toBeInTheDocument();
 
-    // Detail Right: 2 Tabs
-    expect(screen.getByRole('tab', { name: /Định mức BOM món đang chọn/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Tổng nguyên liệu ngày/i })).toBeInTheDocument();
-
-    // Check BOM table has 5 columns: Nguyên liệu | ĐVT | Định mức/suất | Đơn giá | Thành tiền
-    expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'ĐVT' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Định mức/suất' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Đơn giá' })).toBeInTheDocument();
-    expect(screen.getAllByRole('columnheader', { name: 'Thành tiền' }).length).toBeGreaterThanOrEqual(1);
-
-    // Check Kilogram renders without overflow
-    expect(screen.getAllByText('Kilogram').length).toBeGreaterThan(0);
-
-    // HARD INVARIANT: Zero <details> tags anywhere in the DOM!
-    expect(container.querySelectorAll('details').length).toBe(0);
-
-    // Switch to Tab 2: Tổng nguyên liệu ngày
-    await userEvent.click(screen.getByRole('tab', { name: /Tổng nguyên liệu ngày/i }));
-    expect(screen.getByText(/Tổng hợp nguyên liệu ca ngày/i)).toBeInTheDocument();
   });
 
   it('handles empty state and calculation errors gracefully with StateBoundary', async () => {

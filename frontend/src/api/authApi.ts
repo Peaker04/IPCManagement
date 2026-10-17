@@ -10,14 +10,7 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    try {
-      await apiClient('/auth/revoke', { method: 'POST' });
-    } catch {
-      // Ignore network errors on logout
-    } finally {
-      localStorage.removeItem('ipc_v3_token');
-      localStorage.removeItem('ipc_v3_user');
-    }
+    await apiClient('/auth/revoke', { method: 'POST' });
   },
 
   async getProfile(): Promise<UserInfo> {

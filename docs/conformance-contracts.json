@@ -1,0 +1,4640 @@
+{
+  "version": 1,
+  "requirements": [
+    {
+      "id": "BR-GLOBAL-01",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "SYS.MODE.READ",
+        "SYS.MODE.INITIALIZE",
+        "SYS.MODE.CHANGE",
+        "RECON.BATCH.READ",
+        "RECON.BATCH.LIFECYCLE",
+        "RECON.ACTUALS",
+        "RECON.KITCHEN_REPORT.READ",
+        "RECON.CONFIG.INIT"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Mode Isolation",
+      "sourceAnchor": "BR-GLOBAL-01",
+      "statementDigest": "1298d35e6bdd1b35853a5f8fb3d61ee0fc6f9688642785692a610671caedf924"
+    },
+    {
+      "id": "BR-GLOBAL-02",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "CAT.BOM.READ",
+        "CAT.BOM.WRITE",
+        "PLAN.DEMAND",
+        "PUR.REQUEST.WORKFLOW",
+        "WH.ISSUE",
+        "WH.RECEIPT",
+        "WH.RETURN",
+        "RECON.ACTUALS",
+        "WH.LEGACY_LINEAGE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "persistence"
+      ],
+      "title": "Quantitative Traceability Chain",
+      "sourceAnchor": "BR-GLOBAL-02",
+      "statementDigest": "5dc423fd28b811894a358ab564e3170579e299b5465485439081ab531e2a3117"
+    },
+    {
+      "id": "BR-GLOBAL-03",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "COORD.ORDER.LIFECYCLE",
+        "COORD.MENU_SCHEDULE.WRITE",
+        "PLAN.SERVICE_RUN.LIFECYCLE",
+        "APPR.DECISION",
+        "PUR.REQUEST.WORKFLOW",
+        "PUR.ORDER.LIFECYCLE",
+        "PUR.RECEIPT.LIFECYCLE",
+        "WH.STOCKTAKE",
+        "RECON.BATCH.LIFECYCLE",
+        "MENU.IMPORT.WRITE",
+        "REP.DATA_QUALITY.WRITE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "persistence"
+      ],
+      "title": "Ledger Immutability",
+      "sourceAnchor": "BR-GLOBAL-03",
+      "statementDigest": "ebc1490f9758814bf5bc16b160bd73c8e2e47472144f3c52d3904256d0916d08"
+    },
+    {
+      "id": "BR-GLOBAL-04",
+      "kind": "BR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "PLAN.SERVICE_RUN.LIFECYCLE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Explicit Blocker Evidence",
+      "sourceAnchor": "BR-GLOBAL-04",
+      "statementDigest": "adcdef17c6d73ffc577bd6b7fe090d50ef69fba287176be494d56f561c595b2e"
+    },
+    {
+      "id": "FR-AUTH",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "AUTH.LOGIN",
+        "AUTH.REFRESH",
+        "AUTH.LOGOUT",
+        "AUTH.REVOKE",
+        "AUTH.PROFILE.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode"
+      ],
+      "title": "Xác thực và phân quyền",
+      "sourceAnchor": "FR-AUTH",
+      "statementDigest": "de647a17293690e7deab0b5251aa0b2ca6190f665567fded522083d04c85c099"
+    },
+    {
+      "id": "FR-DASH",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "COORD.ORDER.READ",
+        "COORD.MEAL_PLAN.READ",
+        "COORD.MENU_SCHEDULE.READ",
+        "PLAN.PRODUCTION.READ",
+        "PLAN.SERVICE_RUN.READ",
+        "APPR.INBOX.READ",
+        "PUR.REQUEST.READ",
+        "PUR.ORDER.READ",
+        "RECON.BATCH.READ",
+        "REP.DEMAND.READ",
+        "REP.INVENTORY.READ",
+        "REP.PURCHASING.READ",
+        "REP.KPI.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Bàn điều hành tổng quan",
+      "sourceAnchor": "FR-DASH",
+      "statementDigest": "b40708c919bd02062c4463c3cc74ed56f5da1f23bd20c06625441e160b8814a4"
+    },
+    {
+      "id": "FR-CAT",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "CAT.INGREDIENT.READ",
+        "CAT.INGREDIENT.WRITE",
+        "CAT.DISH.READ",
+        "CAT.DISH.WRITE",
+        "CAT.BOM.READ",
+        "CAT.BOM.WRITE",
+        "SAMPLE.DATA.IMPORT"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "title": "Quản trị danh mục và BOM gốc",
+      "sourceAnchor": "FR-CAT",
+      "statementDigest": "43696c74f9e790004a2763a898d27ed132b6b6f68fdb825951ce70229a7d9b91"
+    },
+    {
+      "id": "FR-ADMIN",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "ADMIN.EMPLOYEE.READ",
+        "ADMIN.EMPLOYEE.WRITE",
+        "APPR.RULES",
+        "ADMIN.SAMPLE_USERS.SEED",
+        "COORD.CUSTOMER_CONTRACT",
+        "COORD.PORTION_RULE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Quản trị hệ thống và quy tắc duyệt",
+      "sourceAnchor": "FR-ADMIN",
+      "statementDigest": "29ed91aa35ad0caab57edefca6d8f8f9981da9ac7b525ce49f4084e7cff20618"
+    },
+    {
+      "id": "FR-MENU",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "COORD.MEAL_PLAN.READ",
+        "COORD.MENU_SCHEDULE.READ",
+        "COORD.MENU_SCHEDULE.WRITE",
+        "PLAN.DEMAND",
+        "PLAN.PRODUCTION.READ",
+        "PLAN.PRODUCTION.SEND",
+        "MENU.IMPORT.READ",
+        "MENU.IMPORT.WRITE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "title": "Lập thực đơn và kế hoạch tuần",
+      "sourceAnchor": "FR-MENU",
+      "statementDigest": "c4d0e777948115c4f12ce39de653fb153e5d0d3f65df44092e56f21fe7c4c8e5"
+    },
+    {
+      "id": "FR-COORD",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "COORD.ORDER.READ",
+        "COORD.ORDER.LIFECYCLE",
+        "COORD.MEAL_PLAN.READ",
+        "COORD.MEAL_PLAN.UPSERT",
+        "PLAN.SERVICE_RUN.READ",
+        "PLAN.SERVICE_RUN.LIFECYCLE",
+        "COORD.CUSTOMER_CONTRACT",
+        "COORD.PORTION_RULE",
+        "MENU.IMPORT.READ",
+        "MENU.IMPORT.WRITE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "title": "Điều phối suất ăn khách hàng",
+      "sourceAnchor": "FR-COORD",
+      "statementDigest": "d395733a6f84aab7be3d2bdd35fe8676457780d7f602cc01364bf9d653a027d5"
+    },
+    {
+      "id": "FR-CHEF",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "PLAN.PRODUCTION.READ",
+        "PLAN.PRODUCTION.SEND",
+        "PLAN.SERVICE_RUN.READ",
+        "PLAN.SERVICE_RUN.LIFECYCLE",
+        "WH.ISSUE",
+        "WH.RETURN",
+        "WH.SUPPLEMENTAL_REQUEST"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "title": "Bếp sản xuất và bàn giao ca",
+      "sourceAnchor": "FR-CHEF",
+      "statementDigest": "65e373a2b06ca36d5826a995090b83f655737978f5ecce826598eeef295b589d"
+    },
+    {
+      "id": "FR-APPR",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "APPR.INBOX.READ",
+        "APPR.DECISION",
+        "APPR.RULES"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Phê duyệt vận hành",
+      "sourceAnchor": "FR-APPR",
+      "statementDigest": "bb27bc1ee5146e2a0139f39370f33c73ccbba393d9c39655c6a3c269e942563b"
+    },
+    {
+      "id": "FR-PUR",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "PLAN.DEMAND",
+        "PUR.REQUEST.READ",
+        "PUR.REQUEST.WORKFLOW",
+        "PUR.ORDER.READ",
+        "PUR.ORDER.LIFECYCLE",
+        "PUR.SUPPLIER.READ",
+        "PUR.QUOTATION.WRITE",
+        "PUR.RECEIPT.LIFECYCLE",
+        "WH.SUPPLEMENTAL_REQUEST",
+        "REP.DEMAND.READ",
+        "REP.PRICE.READ",
+        "REP.PURCHASING.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "title": "Thu mua và nhà cung cấp",
+      "sourceAnchor": "FR-PUR",
+      "statementDigest": "199400d7aaae3245dff557defa4146cbdfac4c4c937d4cc50723c00fcc035d6e"
+    },
+    {
+      "id": "FR-WH",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "PUR.RECEIPT.LIFECYCLE",
+        "WH.CATALOG.READ",
+        "WH.ISSUE",
+        "WH.RECEIPT",
+        "WH.RETURN",
+        "WH.STOCKTAKE",
+        "WH.SUPPLEMENTAL_REQUEST",
+        "WH.LEGACY_LINEAGE",
+        "REP.INVENTORY.READ",
+        "REP.STOCK_SNAPSHOT.GENERATE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "persistence"
+      ],
+      "title": "Quản lý kho và tồn trữ",
+      "sourceAnchor": "FR-WH",
+      "statementDigest": "a4249390a2e6cce4eb197f1eb799bc3d80ab8ea4485592e46e46ebe7517c326c"
+    },
+    {
+      "id": "FR-RECON",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.BATCH.READ",
+        "RECON.BATCH.LIFECYCLE",
+        "RECON.ACTUALS",
+        "RECON.KITCHEN_REPORT.READ",
+        "RECON.CONFIG.INIT"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Đối soát nguyên liệu MRX",
+      "sourceAnchor": "FR-RECON",
+      "statementDigest": "b4a6dda3aa957528603a17aa2f76e6c23e7c2b2f8e9063f85a640c49e54ce9f0"
+    },
+    {
+      "id": "FR-REP",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "RECON.KITCHEN_REPORT.READ",
+        "REP.AUDIT.READ",
+        "REP.DEMAND.READ",
+        "REP.INVENTORY.READ",
+        "REP.PRICE.READ",
+        "REP.PURCHASING.READ",
+        "REP.KPI.READ",
+        "REP.DATA_QUALITY.WRITE",
+        "REP.STOCK_SNAPSHOT.GENERATE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Báo cáo vận hành và chi phí",
+      "sourceAnchor": "FR-REP",
+      "statementDigest": "e119dd9997f23172f9be8cfe05dbdc216db9ec7cfbc6dea2bf39c17fa3584d15"
+    },
+    {
+      "id": "FR-SYS",
+      "kind": "FR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "SYS.MODE.READ",
+        "SYS.MODE.INITIALIZE",
+        "SYS.MODE.CHANGE",
+        "SAMPLE.DATA.IMPORT",
+        "ADMIN.SAMPLE_USERS.SEED",
+        "ADMIN.OUTBOX",
+        "RECON.CONFIG.INIT",
+        "REP.DATA_QUALITY.WRITE"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "browser",
+        "actor-mode",
+        "persistence"
+      ],
+      "title": "Vận hành và chẩn đoán hệ thống",
+      "sourceAnchor": "FR-SYS",
+      "statementDigest": "b4a116a2a8e9c8b82eaa954155e5d9194bb73aaed34d36b6bacdd6c3e7654e13"
+    },
+    {
+      "id": "NFR-PERF-01",
+      "kind": "NFR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "browser"
+      ],
+      "title": "Thời gian phản hồi",
+      "sourceAnchor": "NFR-PERF-01",
+      "statementDigest": "bddc311be652d568343bcf0f7b6ba158893a4b4ba68525f8bada935db490040d"
+    },
+    {
+      "id": "NFR-PERF-02",
+      "kind": "NFR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Khả năng mở rộng bảng dữ liệu",
+      "sourceAnchor": "NFR-PERF-02",
+      "statementDigest": "931a09ca45013b9f9c8e4beb10d7c5e7f87660f18fad6885c81cfe4c6da6651c"
+    },
+    {
+      "id": "NFR-SEC-01",
+      "kind": "NFR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "AUTH.LOGIN",
+        "AUTH.REFRESH",
+        "AUTH.LOGOUT",
+        "AUTH.REVOKE",
+        "AUTH.PROFILE.READ",
+        "ADMIN.EMPLOYEE.READ",
+        "ADMIN.EMPLOYEE.WRITE",
+        "SYS.MODE.INITIALIZE",
+        "SYS.MODE.CHANGE",
+        "APPR.DECISION",
+        "REP.AUDIT.READ"
+      ],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "actor-mode"
+      ],
+      "title": "Bảo mật phân quyền ba lớp",
+      "sourceAnchor": "NFR-SEC-01",
+      "statementDigest": "bda72da5189960e6fca7a615df4bb768f29bda40eafd4adbaaf748f0baa6f787"
+    },
+    {
+      "id": "NFR-REL-01",
+      "kind": "NFR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [
+        "ADMIN.OUTBOX"
+      ],
+      "evidenceRequired": [
+        "backend-test",
+        "persistence"
+      ],
+      "title": "Độ tin cậy và tính giao dịch",
+      "sourceAnchor": "NFR-REL-01",
+      "statementDigest": "dafa7f38e818a2656defa57e8cb6034d0a46630dbef445f707640c7a1fa2e2e1"
+    },
+    {
+      "id": "NFR-I18N-01",
+      "kind": "NFR",
+      "source": "docs/DOMAIN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Bản địa hóa và ngôn ngữ vận hành",
+      "sourceAnchor": "NFR-I18N-01",
+      "statementDigest": "895953097dcd2c28971321000e97520d83a29e5c93e6ad5550616a5368cd2d05"
+    },
+    {
+      "id": "UXR-01",
+      "kind": "UXR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Single Primary Work Object",
+      "sourceAnchor": "UXR-01",
+      "statementDigest": "1ade847dea1ba7de22d67a8002a819be40252c20270c5dbea216ace6a0f5d549"
+    },
+    {
+      "id": "UXR-02",
+      "kind": "UXR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Transparent Blocker Evidence",
+      "sourceAnchor": "UXR-02",
+      "statementDigest": "daf002365284ed76bbba06ef374d5f528a423722bfa6edda4a7953f3cfe4b15c"
+    },
+    {
+      "id": "UXR-03",
+      "kind": "UXR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Dirty Draft Protection",
+      "sourceAnchor": "UXR-03",
+      "statementDigest": "6d456478fd5e28d5d1a3fb65147b2b426a794d5185c86d7b1b7a3963a4169389"
+    },
+    {
+      "id": "UXR-04",
+      "kind": "UXR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Vietnamese Domain Microcopy",
+      "sourceAnchor": "UXR-04",
+      "statementDigest": "61d0a7c26d1ba2735f41386b53499eee459429e22d95cf3d30f785706765b7f8"
+    },
+    {
+      "id": "UXR-05",
+      "kind": "UXR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Destructive and Terminal Guards",
+      "sourceAnchor": "UXR-05",
+      "statementDigest": "e18d7b088500d1d54d536621ae65fc0996bf1b321a2bc3194e6e1758c56ce97f"
+    },
+    {
+      "id": "NFR-UI-01",
+      "kind": "NFR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Table Scalability and Viewport",
+      "sourceAnchor": "NFR-UI-01",
+      "statementDigest": "16f0edd69db0dbf11dbaf0b4b5cb3bc6ac9802d63fb1a80701b40fcf54c4fc2e"
+    },
+    {
+      "id": "NFR-UI-02",
+      "kind": "NFR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "backend-test",
+        "actor-mode"
+      ],
+      "title": "Triple-Layer RBAC Defense",
+      "sourceAnchor": "NFR-UI-02",
+      "statementDigest": "d49f9faabdd4bc2207f156919286bd3402e63e7dd44ef1a8c09da254d829694d"
+    },
+    {
+      "id": "NFR-UI-03",
+      "kind": "NFR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Strict Formatting Primitives",
+      "sourceAnchor": "NFR-UI-03",
+      "statementDigest": "9b69095df932269b65f63d5ea2df57c7f5c37528adce028076d46760fb74789c"
+    },
+    {
+      "id": "NFR-UI-04",
+      "kind": "NFR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Accessibility WCAG 2.2 AA",
+      "sourceAnchor": "NFR-UI-04",
+      "statementDigest": "4a4955a2e74a6f8554cb7fc003eee66dc500217f0dca9d822e8e9383848d0e4a"
+    },
+    {
+      "id": "NFR-UI-05",
+      "kind": "NFR",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Motion and Micro-Interactions",
+      "sourceAnchor": "NFR-UI-05",
+      "statementDigest": "e90c0cdfbca83b4734983b91c547f0bf5f844f3f3acd14a45f73bea126e43c91"
+    },
+    {
+      "id": "D1",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static",
+        "browser"
+      ],
+      "title": "Design System",
+      "sourceAnchor": "D1",
+      "statementDigest": "4b66d5835e19c6cfbdbef8da946345a3171ccee70d35dd890bf51a1b4f9a2f9a"
+    },
+    {
+      "id": "D2",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static",
+        "contract"
+      ],
+      "title": "Token Layers",
+      "sourceAnchor": "D2",
+      "statementDigest": "18bc05361100f0ff8d6b198b3f804ff420548438dd412edcdee0e0db707f3f1e"
+    },
+    {
+      "id": "D3",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static"
+      ],
+      "title": "Semantic Naming",
+      "sourceAnchor": "D3",
+      "statementDigest": "83807531ef057fc39ce38e74dbbef91c3b3fcbaf058baf92a1cb731ff595e7b4"
+    },
+    {
+      "id": "D4",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static"
+      ],
+      "title": "Color Linting",
+      "sourceAnchor": "D4",
+      "statementDigest": "590e6c6a84f42cfec96abb68a25376fb29e544e641c91c2001b787165c12bdf4"
+    },
+    {
+      "id": "D5",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static",
+        "browser"
+      ],
+      "title": "Functional Color",
+      "sourceAnchor": "D5",
+      "statementDigest": "75de2489aa913f7838fb74bb9aa7f77b3f1b5f811643b64c59ed0e0238b91284"
+    },
+    {
+      "id": "D6",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static",
+        "browser"
+      ],
+      "title": "Typography Scale",
+      "sourceAnchor": "D6",
+      "statementDigest": "11458cecfb7c2818acaef7944e2d3410bdd7adca3aa15fe35189da11d64bae23"
+    },
+    {
+      "id": "D7",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Action Hierarchy",
+      "sourceAnchor": "D7",
+      "statementDigest": "61684291aa5b82d9160492cfdbbc4eebd2b11d055a06a21822a7f70dee9c02a2"
+    },
+    {
+      "id": "D8",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static",
+        "browser"
+      ],
+      "title": "Neutral Baseline",
+      "sourceAnchor": "D8",
+      "statementDigest": "dd7a0e09df3e0a66bf275b2d63023d0b4cc09bdcc44e64454b9d1d0c43e0b409"
+    },
+    {
+      "id": "D9",
+      "kind": "D",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "static",
+        "browser"
+      ],
+      "title": "Icon Grammar",
+      "sourceAnchor": "D9",
+      "statementDigest": "370a31444b4cd202c8e95d312373608c30a72e292d279dc1e24496c93ad3da67"
+    },
+    {
+      "id": "T1",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "browser"
+      ],
+      "title": "Alignment",
+      "sourceAnchor": "T1",
+      "statementDigest": "3b955b98d36cf1e268c748320efb7e8c2a78986ae2263acc495cbc8faa259da3"
+    },
+    {
+      "id": "T2",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "browser"
+      ],
+      "title": "Header Sync",
+      "sourceAnchor": "T2",
+      "statementDigest": "6b971dd997af07354221742f662ebc374de0d0b9dd897a4f784d5552c86ff7c3"
+    },
+    {
+      "id": "T3",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Tabular Figures",
+      "sourceAnchor": "T3",
+      "statementDigest": "a92818f732596d7ea5eb867fe8470bdfc601c63b9dba2f262fdfc6a92709d1f2"
+    },
+    {
+      "id": "T4",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Header Units",
+      "sourceAnchor": "T4",
+      "statementDigest": "64de291eda88995e9a76ebcc8185271eb8b6f3f65388eb476a46d3e2844eb847"
+    },
+    {
+      "id": "T5",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "browser"
+      ],
+      "title": "Row Separator",
+      "sourceAnchor": "T5",
+      "statementDigest": "a11b723bb315598ddc5b4b9f0b0425326a3a088059cc0332a499b8e488850fa9"
+    },
+    {
+      "id": "T6",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "browser"
+      ],
+      "title": "Vertical Align",
+      "sourceAnchor": "T6",
+      "statementDigest": "f25ea1b25b7ec87a409b761d9ddd0bb6cefb97aa9eaaea7c20cdc97552235ff9"
+    },
+    {
+      "id": "T7",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Horizontal Freeze",
+      "sourceAnchor": "T7",
+      "statementDigest": "11458cecfb7c2818acaef7944e2d3410bdd7adca3aa15fe35189da11d64bae23"
+    },
+    {
+      "id": "T8",
+      "kind": "T",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Density Policy",
+      "sourceAnchor": "T8",
+      "statementDigest": "61684291aa5b82d9160492cfdbbc4eebd2b11d055a06a21822a7f70dee9c02a2"
+    },
+    {
+      "id": "M1.1",
+      "kind": "M",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Modal Purpose",
+      "sourceAnchor": "M1.1",
+      "statementDigest": "0217ba825685560ecdfd3c699049761d137c5c0a04d82193036a1063512b23c5"
+    },
+    {
+      "id": "M1.2",
+      "kind": "M",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Single Overlay",
+      "sourceAnchor": "M1.2",
+      "statementDigest": "61684291aa5b82d9160492cfdbbc4eebd2b11d055a06a21822a7f70dee9c02a2"
+    },
+    {
+      "id": "N6",
+      "kind": "N",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Nested Sidebar Authority",
+      "sourceAnchor": "N6",
+      "statementDigest": "61684291aa5b82d9160492cfdbbc4eebd2b11d055a06a21822a7f70dee9c02a2"
+    },
+    {
+      "id": "N7",
+      "kind": "N",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Disclosure Accessibility",
+      "sourceAnchor": "N7",
+      "statementDigest": "70f288eb0f1dea13bf94ecbda8335aaed6e8ca0fca763a4bb3102dff182239af"
+    },
+    {
+      "id": "N8",
+      "kind": "N",
+      "source": "docs/DESIGN.md",
+      "assessment": "PARTIAL",
+      "capabilityIds": [],
+      "evidenceRequired": [
+        "contract",
+        "browser"
+      ],
+      "title": "Unified Preference",
+      "sourceAnchor": "N8",
+      "statementDigest": "e8ac0d31f0b6e164770931e2b36f03055e46ed71e1bc27ec6883f730e4739eb9"
+    }
+  ],
+  "capabilities": [
+    {
+      "id": "AUTH.PROFILE.READ",
+      "frCode": "FR-AUTH",
+      "name": "Read current authenticated profile",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Authenticated"
+      ],
+      "permissionTokens": [],
+      "grain": "current user profile",
+      "prerequisites": [
+        "valid access token"
+      ],
+      "sourceLineage": [
+        "authenticated principal"
+      ],
+      "actionIds": [
+        "Auth.GetProfile",
+        "Auth.GetMe"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/UserDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-AUTH",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": []
+    },
+    {
+      "id": "ADMIN.EMPLOYEE.READ",
+      "frCode": "FR-ADMIN",
+      "name": "Read employees and roles",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "employee or role record",
+      "prerequisites": [
+        "admin access"
+      ],
+      "sourceLineage": [
+        "employee and role master data"
+      ],
+      "actionIds": [
+        "AdminEmployees.GetAll",
+        "AdminEmployees.GetById",
+        "AdminEmployees.GetRoles"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-ADMIN",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": []
+    },
+    {
+      "id": "ADMIN.EMPLOYEE.WRITE",
+      "frCode": "FR-ADMIN",
+      "name": "Create update or activate employee",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "one employee",
+      "prerequisites": [
+        "admin access",
+        "valid role"
+      ],
+      "sourceLineage": [
+        "employee and role master data"
+      ],
+      "actionIds": [
+        "AdminEmployees.Create",
+        "AdminEmployees.Update",
+        "AdminEmployees.UpdateStatus"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Admin/Validators/EmployeeManagementValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Admin/Services/AdminEmployeeService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split create update and status operations.",
+        "Concurrency and Frontend surfaces are not reconciled."
+      ]
+    },
+    {
+      "id": "SYS.MODE.READ",
+      "frCode": "FR-SYS",
+      "name": "Read operational mode",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Authenticated"
+      ],
+      "permissionTokens": [],
+      "grain": "system operation mode",
+      "prerequisites": [],
+      "sourceLineage": [
+        "persisted system operation mode"
+      ],
+      "actionIds": [
+        "SystemOperationMode.Get"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SystemOperation/Controllers/SystemOperationModeController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/SystemOperation/Contracts/SystemOperationModeContracts.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-SYS",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [
+        "admin.mode",
+        "admin.cache",
+        "admin.diagnostics"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "CAT.INGREDIENT.READ",
+      "frCode": "FR-CAT",
+      "name": "Read ingredient catalog",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogReader"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "ingredient record",
+      "prerequisites": [],
+      "sourceLineage": [
+        "ingredient and unit master data"
+      ],
+      "actionIds": [
+        "Ingredients.GetAll",
+        "Ingredients.GetById"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [
+        "admin.ingredients"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "CAT.INGREDIENT.WRITE",
+      "frCode": "FR-CAT",
+      "name": "Create update or close ingredient",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "ingredient record",
+      "prerequisites": [
+        "authoritative unit identifier"
+      ],
+      "sourceLineage": [
+        "ingredient and unit master data"
+      ],
+      "actionIds": [
+        "Ingredients.Create",
+        "Ingredients.Update",
+        "Ingredients.Delete"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Catalog/Validators/IngredientValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/IngredientService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split create update and close operations.",
+        "Concurrency and Frontend unit selection are not reconciled."
+      ]
+    },
+    {
+      "id": "CAT.DISH.READ",
+      "frCode": "FR-CAT",
+      "name": "Read dish catalog",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogReader"
+      ],
+      "permissionTokens": [
+        "CatalogReadAccess"
+      ],
+      "grain": "dish record",
+      "prerequisites": [],
+      "sourceLineage": [
+        "dish master data"
+      ],
+      "actionIds": [
+        "Dishes.GetCatalog",
+        "Dishes.GetAll",
+        "Dishes.GetById"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [
+        "admin.dishes"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "CAT.DISH.WRITE",
+      "frCode": "FR-CAT",
+      "name": "Create update or close dish",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish record",
+      "prerequisites": [],
+      "sourceLineage": [
+        "dish master data"
+      ],
+      "actionIds": [
+        "Dishes.Create",
+        "Dishes.Update",
+        "Dishes.Delete"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishCatalogService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split create update and close operations.",
+        "Validation and concurrency are not reconciled."
+      ]
+    },
+    {
+      "id": "CAT.BOM.READ",
+      "frCode": "FR-CAT",
+      "name": "Read dish BOM and diagnostics",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogReader"
+      ],
+      "permissionTokens": [
+        "CatalogReadAccess"
+      ],
+      "grain": "dish BOM line or diagnostic",
+      "prerequisites": [
+        "dish exists"
+      ],
+      "sourceLineage": [
+        "dish to ingredient BOM"
+      ],
+      "actionIds": [
+        "DishBom.GetBomLines",
+        "DishCatalogDiagnostics.GetBomCoverage",
+        "DishCatalogDiagnostics.GetBomValidation",
+        "DishBomImports.DownloadBomTemplate",
+        "DishCatalogDiagnostics.GetMenuImportHistory",
+        "DishCatalogDiagnostics.GetSampleImportStatus"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-CAT",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "weekly.cost",
+        "admin.dishes"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "CAT.BOM.WRITE",
+      "frCode": "FR-CAT",
+      "name": "Create update or close dish BOM line",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogManager"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "dish BOM line",
+      "prerequisites": [
+        "dish ingredient and unit exist"
+      ],
+      "sourceLineage": [
+        "dish to ingredient BOM"
+      ],
+      "actionIds": [
+        "DishBom.AddBomLine",
+        "DishBom.UpdateBomLine",
+        "DishBom.CloseBomLine"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/DishDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/DishBomService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CAT",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Mutation validation concurrency and Frontend surface are not reconciled."
+      ]
+    },
+    {
+      "id": "SAMPLE.DATA.IMPORT",
+      "frCode": "FR-SYS",
+      "name": "Preview or apply sample data imports",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Authorized development operator"
+      ],
+      "permissionTokens": [
+        "CatalogAccess"
+      ],
+      "grain": "import batch",
+      "prerequisites": [
+        "non-production environment",
+        "authorized source workbook"
+      ],
+      "sourceLineage": [
+        "external workbook to preview ticket to persisted import"
+      ],
+      "actionIds": [
+        "SampleData.Import",
+        "SampleData.PreviewPurchaseHistory",
+        "SampleData.ApplyPurchaseHistory",
+        "DishBomImports.PreviewBomImport",
+        "DishBomImports.CommitBomImport"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/SampleDataController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/SampleData/Contracts/SampleDataImportDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/SampleData/Contracts/SampleDataImportDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/SampleData/Services/SampleBomImportService.cs"
+      },
+      "deliveryClass": "BLOCKED",
+      "requirementIds": [
+        "FR-SYS",
+        "FR-CAT"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Import families require separate contracts and environment guard review.",
+        "No authorization exists to run imports or seeds against a database."
+      ]
+    },
+    {
+      "id": "COORD.ORDER.READ",
+      "frCode": "FR-COORD",
+      "name": "Read coordination orders",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer service-date shift order",
+      "prerequisites": [
+        "customer service scope"
+      ],
+      "sourceLineage": [
+        "meal plan and menu schedule to order"
+      ],
+      "actionIds": [
+        "CoordinationOrders.GetOrders",
+        "CoordinationOrders.ExportOrderReport"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/CoordinationDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "meal.orders"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "COORD.ORDER.LIFECYCLE",
+      "frCode": "FR-COORD",
+      "name": "Adjust lock unlock and sign off orders",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "order or exact scope",
+      "prerequisites": [
+        "persisted order",
+        "eligible state"
+      ],
+      "sourceLineage": [
+        "order lifecycle and reason-bearing adjustment"
+      ],
+      "actionIds": [
+        "CoordinationOrders.AdjustOrderAfterLock",
+        "CoordinationOrders.AdjustServings",
+        "CoordinationOrders.LockOrderPlan",
+        "CoordinationOrders.SignoffOrder",
+        "CoordinationOrders.SignoffOrderScope",
+        "CoordinationOrders.UnlockOrderPlan",
+        "CoordinationOrders.UnlockOrderPlanScope",
+        "CoordinationOrders.UpdateForecastServings"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/AdjustServingsDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/SignoffDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Coordination/Validators/CoordinationValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Coordination/Services/OrderLifecyclePolicy.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/OrderPlanService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split each transition.",
+        "Concurrency idempotency and surfaces unresolved."
+      ]
+    },
+    {
+      "id": "COORD.MEAL_PLAN.READ",
+      "frCode": "FR-COORD",
+      "name": "Read meal quantity plans",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer service-date meal plan",
+      "prerequisites": [
+        "customer scope"
+      ],
+      "sourceLineage": [
+        "forecast to meal quantity plan"
+      ],
+      "actionIds": [
+        "MealQuantityPlans.GetMealQuantityPlans"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MealQuantityPlanDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-MENU",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "weekly.schedule",
+        "meal.orders"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "COORD.MEAL_PLAN.UPSERT",
+      "frCode": "FR-COORD",
+      "name": "Quick upsert forecast servings",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer date shift servings",
+      "prerequisites": [
+        "customer scope",
+        "portion rule"
+      ],
+      "sourceLineage": [
+        "forecast to meal quantity plan"
+      ],
+      "actionIds": [
+        "MealQuantityPlans.UpsertQuickServings"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MealQuantityPlanDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MealQuantityPlanDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Shortcut semantics unresolved.",
+        "Concurrency and draft ownership unresolved."
+      ]
+    },
+    {
+      "id": "COORD.MENU_SCHEDULE.READ",
+      "frCode": "FR-MENU",
+      "name": "Read menu schedules",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer date menu schedule",
+      "prerequisites": [
+        "customer and menu version"
+      ],
+      "sourceLineage": [
+        "menu version to schedule"
+      ],
+      "actionIds": [
+        "MenuSchedules.GetMenuSchedules"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MenuScheduleDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "weekly.schedule"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "COORD.MENU_SCHEDULE.WRITE",
+      "frCode": "FR-MENU",
+      "name": "Update schedule or rollback menu version",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "schedule or menu version",
+      "prerequisites": [
+        "persisted eligible schedule"
+      ],
+      "sourceLineage": [
+        "menu version schedule rollback lineage"
+      ],
+      "actionIds": [
+        "MenuSchedules.UpdateMenuScheduleRules",
+        "MenuSchedules.UpdateMenuScheduleVersion",
+        "MenuSchedules.RollbackMenuVersion"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MenuScheduleDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/MenuScheduleDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Coordination/Validators/CoordinationValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Coordination/Services/MenuSchedulePolicy.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split update and rollback.",
+        "Concurrency and confirmation unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.DEMAND",
+      "frCode": "FR-MENU",
+      "name": "Generate approve and inspect material demand",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "DemandGenerateAccess"
+      ],
+      "grain": "customer service-date demand scope",
+      "prerequisites": [
+        "menu schedule",
+        "servings",
+        "valid BOM"
+      ],
+      "sourceLineage": [
+        "schedule and servings through BOM to demand"
+      ],
+      "actionIds": [
+        "MaterialDemand.Generate",
+        "MaterialDemand.Approve",
+        "MaterialDemand.GetStaleness"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/MaterialDemandDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/MaterialDemandDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-PUR",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "weekly.demand"
+      ],
+      "gaps": [
+        "Split read generate approve.",
+        "Lifecycle concurrency idempotency unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.PRODUCTION.READ",
+      "frCode": "FR-MENU",
+      "name": "Read production plans and daily projection",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "Coordinator",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "plan or daily customer shift projection",
+      "prerequisites": [
+        "persisted plan"
+      ],
+      "sourceLineage": [
+        "menu and servings to plan lines"
+      ],
+      "actionIds": [
+        "ProductionPlans.GetAll",
+        "ProductionPlans.GetById",
+        "ProductionPlans.GetDaily",
+        "ProductionPlans.GetFiltered"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ProductionPlanDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-CHEF",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "weekly.demand",
+        "weekly.production",
+        "chef.plans"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "PLAN.PRODUCTION.SEND",
+      "frCode": "FR-MENU",
+      "name": "Send daily plan to kitchen",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer date shift daily plan",
+      "prerequisites": [
+        "eligible production plans"
+      ],
+      "sourceLineage": [
+        "production plan to kitchen handoff"
+      ],
+      "actionIds": [
+        "ProductionPlans.SendDailyToKitchen"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ProductionPlanDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ProductionPlanDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Planning/Services/ProductionPlanService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-CHEF"
+      ],
+      "surfaceIds": [
+        "weekly.production"
+      ],
+      "gaps": [
+        "Concurrency idempotency eligible status and confirmation unresolved."
+      ]
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.READ",
+      "frCode": "FR-COORD",
+      "name": "Read service-run lifecycle and operational rows",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "service run or operational row",
+      "prerequisites": [
+        "production plan scope"
+      ],
+      "sourceLineage": [
+        "production plan to service run projection"
+      ],
+      "actionIds": [
+        "ServiceRuns.Get",
+        "ServiceRuns.GetByPlan",
+        "ServiceRuns.GetByScope",
+        "ServiceRuns.GetPage",
+        "ServiceRuns.GetAdjustments"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ServiceRunDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunLifecycle.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "chef.plans"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "PLAN.SERVICE_RUN.LIFECYCLE",
+      "frCode": "FR-COORD",
+      "name": "Open start reconcile and close service run",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ProductionAccess",
+        "CoordinationAccess"
+      ],
+      "grain": "one service run",
+      "prerequisites": [
+        "eligible plan and state"
+      ],
+      "sourceLineage": [
+        "production plan through execution and variance"
+      ],
+      "actionIds": [
+        "ServiceRuns.Open",
+        "ServiceRuns.Start",
+        "ServiceRuns.RecordActualServings",
+        "ServiceRuns.ConfirmService",
+        "ServiceRuns.WaiveServiceConfirmation",
+        "ServiceRuns.ResolveVariance",
+        "ServiceRuns.ResolveServingVariance",
+        "ServiceRuns.CreateAdjustment",
+        "ServiceRuns.Close",
+        "ServiceRunVarianceDeclarations.DeclareVariance",
+        "ServiceRunVarianceDeclarations.ApproveVarianceWaiver"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ServiceRunDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Planning/Contracts/ServiceRunDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunLifecycle.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-CHEF",
+        "BR-GLOBAL-03",
+        "BR-GLOBAL-04"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split lifecycle commands.",
+        "Concurrency variance approval and recovery unresolved."
+      ]
+    },
+    {
+      "id": "APPR.INBOX.READ",
+      "frCode": "FR-APPR",
+      "name": "Read approval inbox and history",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Authenticated approver"
+      ],
+      "permissionTokens": [],
+      "grain": "approval item or target history",
+      "prerequisites": [
+        "authenticated actor"
+      ],
+      "sourceLineage": [
+        "approval target to inbox and history"
+      ],
+      "actionIds": [
+        "Approvals.GetInbox",
+        "ApprovalHistory.GetHistory"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalWorkflowDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-APPR",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "approval.inbox"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "APPR.DECISION",
+      "frCode": "FR-APPR",
+      "name": "Execute approval decision",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Authorized approver"
+      ],
+      "permissionTokens": [],
+      "grain": "one approval target",
+      "prerequisites": [
+        "pending target",
+        "eligible actor"
+      ],
+      "sourceLineage": [
+        "target lifecycle to immutable approval history"
+      ],
+      "actionIds": [
+        "Approvals.Execute"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalWorkflowDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalWorkflowDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Approvals/Validators/ApprovalWorkflowValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-APPR",
+        "BR-GLOBAL-03",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [
+        "approval.inbox"
+      ],
+      "gaps": [
+        "Target-specific policy and expected-version contract unresolved."
+      ]
+    },
+    {
+      "id": "APPR.RULES",
+      "frCode": "FR-ADMIN",
+      "name": "Read and maintain approval rules",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "approval rule",
+      "prerequisites": [
+        "admin access"
+      ],
+      "sourceLineage": [
+        "approval policy configuration"
+      ],
+      "actionIds": [
+        "ApprovalRules.GetRules",
+        "ApprovalRules.GetRuleById",
+        "ApprovalRules.CreateRule",
+        "ApprovalRules.UpdateRule",
+        "ApprovalRules.DeleteRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalRuleDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Approvals/Persistence/ApprovalEntityConfigurations.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-ADMIN",
+        "FR-APPR"
+      ],
+      "surfaceIds": [
+        "admin.approval-rules"
+      ],
+      "gaps": [
+        "Split read create update delete.",
+        "Validation concurrency and write surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.REQUEST.READ",
+      "frCode": "FR-PUR",
+      "name": "Read purchase requests and workbench",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchaseAccess"
+      ],
+      "grain": "purchase request or weekly workbench row",
+      "prerequisites": [
+        "generated demand"
+      ],
+      "sourceLineage": [
+        "material demand to purchase request"
+      ],
+      "actionIds": [
+        "PurchaseRequests.GetPurchaseRequestById",
+        "PurchaseRequests.GetPurchaseRequests",
+        "PurchaseRequests.GetPurchaseRequestsPage",
+        "PurchaseWorkflow.GetWorkbenchWeek",
+        "PurchaseWorkflow.GetSupplierEvidence"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseRequestsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseRequestWorkflowDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "purchasing.orders"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "PUR.REQUEST.WORKFLOW",
+      "frCode": "FR-PUR",
+      "name": "Generate decide suppliers and submit purchase request",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchaseAccess",
+        "PurchaseGenerateAccess"
+      ],
+      "grain": "purchase request and line supplier decision",
+      "prerequisites": [
+        "authoritative shortage demand",
+        "eligible supplier evidence"
+      ],
+      "sourceLineage": [
+        "demand shortage to request lines to supplier decisions"
+      ],
+      "actionIds": [
+        "PurchaseWorkflow.GenerateFromDemand",
+        "PurchaseWorkflow.ConfirmLineSupplier",
+        "PurchaseWorkflow.Submit"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseRequestWorkflowDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseRequestWorkflowDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestSubmissionPolicy.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestSubmissionService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "BR-GLOBAL-02",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split generation supplier decision and submission.",
+        "Concurrency idempotency and Frontend workflow unresolved."
+      ]
+    },
+    {
+      "id": "PUR.ORDER.READ",
+      "frCode": "FR-PUR",
+      "name": "Read purchase orders",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "PurchasingStaff",
+        "Manager",
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "PurchaseOrderReadAccess"
+      ],
+      "grain": "purchase order or page row",
+      "prerequisites": [
+        "persisted purchase order"
+      ],
+      "sourceLineage": [
+        "approved purchase request to purchase order"
+      ],
+      "actionIds": [
+        "PurchaseOrders.GetById",
+        "PurchaseOrders.GetList",
+        "PurchaseOrders.GetPage"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseOrderDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "purchasing.orders"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "PUR.ORDER.LIFECYCLE",
+      "frCode": "FR-PUR",
+      "name": "Create purchase order from request or cancel order",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchaseAccess"
+      ],
+      "grain": "purchase order lineage",
+      "prerequisites": [
+        "approved purchase request or cancellable order"
+      ],
+      "sourceLineage": [
+        "approved purchase request to purchase order"
+      ],
+      "actionIds": [
+        "PurchaseOrders.CreateFromRequest",
+        "PurchaseOrders.Cancel"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseOrderDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseOrderDecisionValidator.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseOrderService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Create and cancel require separate contracts.",
+        "Route-source request identity concurrency and confirmation unresolved."
+      ]
+    },
+    {
+      "id": "PUR.SUPPLIER.READ",
+      "frCode": "FR-PUR",
+      "name": "Read suppliers and quotations",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchaseAccess"
+      ],
+      "grain": "supplier or ingredient quotation",
+      "prerequisites": [],
+      "sourceLineage": [
+        "supplier master data and quotation history"
+      ],
+      "actionIds": [
+        "Suppliers.GetSuppliers",
+        "SupplierQuotations.GetByIngredient",
+        "SupplierQuotations.GetByIngredientPage",
+        "SupplierQuotations.GetBySupplier"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SuppliersController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/SupplierDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-PUR"
+      ],
+      "surfaceIds": [
+        "purchasing.orders"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "PUR.QUOTATION.WRITE",
+      "frCode": "FR-PUR",
+      "name": "Create update or deactivate supplier quotation",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchaseAccess"
+      ],
+      "grain": "supplier ingredient quotation",
+      "prerequisites": [
+        "supplier and ingredient"
+      ],
+      "sourceLineage": [
+        "supplier quotation history"
+      ],
+      "actionIds": [
+        "SupplierQuotations.Create",
+        "SupplierQuotations.Update",
+        "SupplierQuotations.Deactivate"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/SupplierQuotationDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/SupplierQuotationDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Purchasing/Validators/SupplierQuotationValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/SupplierQuotationService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split create update deactivate.",
+        "Concurrency and Frontend surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.RECEIPT.LIFECYCLE",
+      "frCode": "FR-PUR",
+      "name": "Record inspect post correct rework or void purchase receipt",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Admin",
+        "Coordinator"
+      ],
+      "permissionTokens": [
+        "WarehousePurchaseReceive"
+      ],
+      "grain": "purchase order receipt",
+      "prerequisites": [
+        "purchase order",
+        "receipt lifecycle eligibility"
+      ],
+      "sourceLineage": [
+        "purchase order to warehouse receipt and stock posting"
+      ],
+      "actionIds": [
+        "WarehousePurchaseReceipts.Record",
+        "WarehousePurchaseReceipts.AcceptQuality",
+        "WarehousePurchaseReceipts.Post",
+        "WarehousePurchaseReceipts.CreateCorrection",
+        "WarehousePurchaseReceipts.Rework",
+        "WarehousePurchaseReceipts.Void"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/WarehousePurchaseReceiptDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/WarehousePurchaseReceiptDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Purchasing/Services/ReceiptLifecycleWorkflow.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseReceivingService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Split six lifecycle commands.",
+        "Policy differences concurrency and inventory posting evidence unresolved."
+      ]
+    },
+    {
+      "id": "WH.CATALOG.READ",
+      "frCode": "FR-WH",
+      "name": "Read warehouse catalog and selector",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Authenticated"
+      ],
+      "permissionTokens": [
+        "WarehouseCatalogAccess",
+        "WarehouseSelectorAccess"
+      ],
+      "grain": "warehouse record",
+      "prerequisites": [],
+      "sourceLineage": [
+        "warehouse master data"
+      ],
+      "actionIds": [
+        "Warehouses.GetAll",
+        "Warehouses.GetById",
+        "Warehouses.GetSelector"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/WarehousesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/WarehouseDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-WH"
+      ],
+      "surfaceIds": [
+        "warehouse.issues",
+        "warehouse.receipts",
+        "warehouse.stock"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "WH.ISSUE",
+      "frCode": "FR-WH",
+      "name": "Read create and confirm inventory issues",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "InventoryIssueAccess"
+      ],
+      "grain": "source-backed inventory issue",
+      "prerequisites": [
+        "material request or authorized source lineage"
+      ],
+      "sourceLineage": [
+        "source request lines to stock ledger issue"
+      ],
+      "actionIds": [
+        "InventoryIssues.GetAll",
+        "InventoryIssues.GetById",
+        "InventoryIssues.Create",
+        "InventoryIssues.ConfirmReceipt"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Inventory/Validators/InventoryIssueStockValidator.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryIssueService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "warehouse.issues",
+        "chef.issues"
+      ],
+      "gaps": [
+        "Split read create confirm.",
+        "Source families concurrency and mode-specific lineage unresolved."
+      ]
+    },
+    {
+      "id": "WH.RECEIPT",
+      "frCode": "FR-WH",
+      "name": "Read and create inventory receipts",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "InventoryAccess",
+        "InventoryReceiptReadAccess"
+      ],
+      "grain": "inventory receipt",
+      "prerequisites": [
+        "authorized purchase or receipt source"
+      ],
+      "sourceLineage": [
+        "purchase source to receipt and stock ledger"
+      ],
+      "actionIds": [
+        "InventoryReceipts.GetAll",
+        "InventoryReceipts.GetById",
+        "InventoryReceipts.Create",
+        "InventoryReceipts.CreateFromPurchase"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "validator": "backend/src/IPCManagement.Api/Features/Inventory/Validators/InventoryValidators.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReceiptService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Split read generic create and purchase create.",
+        "Posting concurrency and exact source contract unresolved."
+      ]
+    },
+    {
+      "id": "WH.RETURN",
+      "frCode": "FR-WH",
+      "name": "Read create and confirm inventory returns",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef",
+        "WarehouseStaff",
+        "Admin"
+      ],
+      "permissionTokens": [
+        "ProductionAccess",
+        "InventoryAccess"
+      ],
+      "grain": "source allocation return",
+      "prerequisites": [
+        "issued allocation balance"
+      ],
+      "sourceLineage": [
+        "issue allocation to return and stock ledger"
+      ],
+      "actionIds": [
+        "InventoryReturns.GetAll",
+        "InventoryReturns.GetById",
+        "InventoryReturns.GetAllocationBalances",
+        "InventoryReturns.Create",
+        "InventoryReturns.ConfirmReceipt",
+        "InventoryReturns.CreateAllocationDisposition"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/InventoryDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReturnRules.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReturnService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split read create confirm disposition.",
+        "Concurrency and Frontend review flow unresolved."
+      ]
+    },
+    {
+      "id": "WH.STOCKTAKE",
+      "frCode": "FR-WH",
+      "name": "Read draft submit approve or reject stocktake",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "InventoryApprover"
+      ],
+      "permissionTokens": [
+        "InventoryAccess",
+        "InventoryApproveAccess"
+      ],
+      "grain": "stocktake document",
+      "prerequisites": [
+        "warehouse snapshot and count"
+      ],
+      "sourceLineage": [
+        "stock snapshot to counted variance and ledger adjustment"
+      ],
+      "actionIds": [
+        "Stocktakes.GetById",
+        "Stocktakes.GetPaged",
+        "Stocktakes.Create",
+        "Stocktakes.UpdateActualQty",
+        "Stocktakes.Submit",
+        "Stocktakes.Approve",
+        "Stocktakes.Reject"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/StocktakeDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/StocktakeDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/StocktakeService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split draft count submit decision transitions.",
+        "Concurrency and adjustment posting evidence unresolved."
+      ]
+    },
+    {
+      "id": "WH.SUPPLEMENTAL_REQUEST",
+      "frCode": "FR-WH",
+      "name": "Read create fulfill reject or route supplemental request",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef",
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "InventoryIssueAccess",
+        "InventoryAccess"
+      ],
+      "grain": "supplemental material request",
+      "prerequisites": [
+        "service-run shortage source"
+      ],
+      "sourceLineage": [
+        "service shortage to warehouse fulfillment or purchasing route"
+      ],
+      "actionIds": [
+        "SupplementalMaterialRequests.GetAll",
+        "SupplementalMaterialRequests.GetById",
+        "SupplementalMaterialRequests.Create",
+        "SupplementalMaterialRequests.Fulfill",
+        "SupplementalMaterialRequests.Reject",
+        "SupplementalMaterialRequests.RouteToPurchasing"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/SupplementalMaterialRequestDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/SupplementalMaterialRequestDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Inventory/Services/SupplementalMaterialRequestRules.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/SupplementalMaterialRequestService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split query create and terminal routes.",
+        "Concurrency and source-scope UI unresolved."
+      ]
+    },
+    {
+      "id": "RECON.BATCH.READ",
+      "frCode": "FR-RECON",
+      "name": "Read reconciliation batches sources and warehouse projection",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "ReconciliationReader",
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "ReconciliationReadAccess"
+      ],
+      "grain": "MRX batch or batch projection",
+      "prerequisites": [
+        "MRX mode",
+        "persisted batch scope"
+      ],
+      "sourceLineage": [
+        "menu quantity import to MRX batch"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.List",
+        "ReconciliationBatches.Get",
+        "ReconciliationBatches.DraftSources",
+        "ReconciliationBatches.Dishes",
+        "ReconciliationBatches.SourceChanges",
+        "ReconciliationBatches.WarehouseDaily",
+        "ReconciliationWeeklyMenu.Get"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "reconciliation.batch"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "RECON.BATCH.LIFECYCLE",
+      "frCode": "FR-RECON",
+      "name": "Create ready transfer and complete reconciliation batch",
+      "operation": "terminal",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "ReconciliationManager"
+      ],
+      "permissionTokens": [
+        "ReconciliationWriteAccess"
+      ],
+      "grain": "MRX batch",
+      "prerequisites": [
+        "MRX mode",
+        "eligible batch and expected version"
+      ],
+      "sourceLineage": [
+        "quantity import to batch to warehouse transfer to completion"
+      ],
+      "actionIds": [
+        "ReconciliationBatches.Create",
+        "ReconciliationBatches.PreviewQuantityImport",
+        "ReconciliationBatches.CommitQuantityImport",
+        "ReconciliationBatches.Ready",
+        "ReconciliationBatches.TransferToWarehouse",
+        "ReconciliationBatches.Complete"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationCompletionService.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "reconciliation.batch"
+      ],
+      "gaps": [
+        "Split preview create ready transfer complete.",
+        "Per-command policy and concurrency remain unresolved."
+      ]
+    },
+    {
+      "id": "RECON.ACTUALS",
+      "frCode": "FR-RECON",
+      "name": "Record purchased issued and disposition actuals",
+      "operation": "update",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "ReconciliationOperator",
+        "WarehouseStaff",
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "ReconciliationDispositionAccess"
+      ],
+      "grain": "MRX line actual or disposition",
+      "prerequisites": [
+        "MRX line and authorized source"
+      ],
+      "sourceLineage": [
+        "MRX daily line to actual and disposition evidence"
+      ],
+      "actionIds": [
+        "ReconciliationActuals.DispositionCategories",
+        "ReconciliationActuals.Purchased",
+        "ReconciliationActuals.Issued",
+        "ReconciliationActuals.Disposition",
+        "ReconciliationDailyLines.Disposition"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationActualService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "BR-GLOBAL-01",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [
+        "reconciliation.batch"
+      ],
+      "gaps": [
+        "Split read and three actor-specific mutations.",
+        "Concurrency and line review surfaces unresolved."
+      ]
+    },
+    {
+      "id": "RECON.KITCHEN_REPORT.READ",
+      "frCode": "FR-RECON",
+      "name": "Read kitchen cooking and reconciliation reports",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "ReconciliationReader",
+        "KitchenReader"
+      ],
+      "permissionTokens": [
+        "ReconciliationKitchenAccess"
+      ],
+      "grain": "MRX kitchen export or batch report",
+      "prerequisites": [
+        "MRX batch"
+      ],
+      "sourceLineage": [
+        "MRX batch and kitchen actuals to report"
+      ],
+      "actionIds": [
+        "ReconciliationKitchenCooking.Get",
+        "ReconciliationKitchenCooking.Csv",
+        "ReconciliationKitchenCooking.Xlsx",
+        "ReconciliationReports.Get",
+        "ReconciliationReports.Export"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationKitchenCookingController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-RECON",
+        "FR-REP",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": []
+    },
+    {
+      "id": "ADMIN.SAMPLE_USERS.SEED",
+      "frCode": "FR-ADMIN",
+      "name": "Seed sample users",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin development operator"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "sample user set",
+      "prerequisites": [
+        "non-production environment",
+        "explicit database authorization"
+      ],
+      "sourceLineage": [
+        "development sample identities"
+      ],
+      "actionIds": [
+        "AdminEmployees.SeedSampleUsers"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Admin/Contracts/EmployeeManagementDtos.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Admin/Services/AdminEmployeeService.cs"
+      },
+      "deliveryClass": "BLOCKED",
+      "requirementIds": [
+        "FR-ADMIN",
+        "FR-SYS"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Database seed execution is not authorized.",
+        "Environment guard and cleanup contract require review."
+      ]
+    },
+    {
+      "id": "ADMIN.OUTBOX",
+      "frCode": "FR-SYS",
+      "name": "Inspect or replay lifecycle outbox",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "lifecycle outbox event",
+      "prerequisites": [
+        "admin access",
+        "failed outbox event"
+      ],
+      "sourceLineage": [
+        "persisted lifecycle event to relay replay"
+      ],
+      "actionIds": [
+        "LifecycleOutbox.Get",
+        "LifecycleOutbox.Replay"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-SYS",
+        "NFR-REL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Read and replay must be split.",
+        "Response DTO concurrency and runtime relay semantics unresolved."
+      ]
+    },
+    {
+      "id": "COORD.CUSTOMER_CONTRACT",
+      "frCode": "FR-COORD",
+      "name": "Read and maintain customer contracts",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer contract",
+      "prerequisites": [
+        "customer master data"
+      ],
+      "sourceLineage": [
+        "customer to service contract"
+      ],
+      "actionIds": [
+        "CustomerContracts.GetCustomerContracts",
+        "CustomerContracts.CreateCustomerContract",
+        "CustomerContracts.UpdateCustomerContract"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/CoordinationDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/CustomerContractService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split read create update.",
+        "Validation concurrency and surface unresolved."
+      ]
+    },
+    {
+      "id": "COORD.PORTION_RULE",
+      "frCode": "FR-COORD",
+      "name": "Read resolve and maintain portion rules",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "portion rule",
+      "prerequisites": [
+        "customer or default scope"
+      ],
+      "sourceLineage": [
+        "portion rule to resolved servings policy"
+      ],
+      "actionIds": [
+        "PortionRules.GetPortionRules",
+        "PortionRules.ResolvePortionRule",
+        "PortionRules.CreatePortionRule",
+        "PortionRules.UpdatePortionRule"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Coordination/Contracts/PortionRuleDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Coordination/Services/PortionRulePolicy.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Coordination/Services/PortionRuleService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-COORD",
+        "FR-ADMIN"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split read resolve create update.",
+        "Concurrency and surface unresolved."
+      ]
+    },
+    {
+      "id": "WH.LEGACY_LINEAGE",
+      "frCode": "FR-WH",
+      "name": "Review and disposition legacy inventory lineage",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Admin",
+        "InventoryApprover"
+      ],
+      "permissionTokens": [
+        "AdminAccess",
+        "InventoryApproveAccess"
+      ],
+      "grain": "legacy lineage case",
+      "prerequisites": [
+        "legacy candidate evidence"
+      ],
+      "sourceLineage": [
+        "legacy movement to reviewed disposition"
+      ],
+      "actionIds": [
+        "LegacyLineageDispositions.Get",
+        "LegacyLineageDispositions.GetCandidates",
+        "LegacyLineageDispositions.Create",
+        "LegacyLineageDispositions.Review",
+        "LegacyLineageDispositions.Apply"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/LegacyLineageDispositionDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/LegacyLineageDispositionDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/LegacyLineageDispositionService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "BR-GLOBAL-02"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split query create review apply.",
+        "Concurrency and evidence UI unresolved."
+      ]
+    },
+    {
+      "id": "RECON.CONFIG.INIT",
+      "frCode": "FR-RECON",
+      "name": "Initialize reconciliation defaults",
+      "operation": "create",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "Authorized system operator"
+      ],
+      "permissionTokens": [],
+      "grain": "MRX system configuration",
+      "prerequisites": [
+        "MRX configuration absent",
+        "explicit database authorization"
+      ],
+      "sourceLineage": [
+        "system default tolerance configuration"
+      ],
+      "actionIds": [
+        "ReconciliationConfiguration.InitializeSystemDefault"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationConfigurationController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reconciliation/Contracts/ReconciliationContracts.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationToleranceInitializer.cs"
+      },
+      "deliveryClass": "BLOCKED",
+      "requirementIds": [
+        "FR-RECON",
+        "FR-SYS",
+        "BR-GLOBAL-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Database initialization is not authorized.",
+        "Policy idempotency and migration ownership unresolved."
+      ]
+    },
+    {
+      "id": "MENU.IMPORT.READ",
+      "frCode": "FR-MENU",
+      "name": "Read weekly menu import support and amendments",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "customer mapping menu import or amendment",
+      "prerequisites": [
+        "customer scope"
+      ],
+      "sourceLineage": [
+        "customer workbook import to menu version"
+      ],
+      "actionIds": [
+        "WeeklyMenuImports.DownloadWeeklyMenuTemplate",
+        "WeeklyMenuImports.GetCustomerImportMapping",
+        "WeeklyMenuImports.GetCustomers",
+        "WeeklyMenuImports.GetMenuAmendmentDecisionPage",
+        "WeeklyMenuImports.GetMenuAmendments",
+        "WeeklyMenuImports.GetWeeklyMenu",
+        "WeeklyMenuImports.GetWeeklyMenuImportHistory"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/SampleData/Contracts/MenuAmendmentDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD"
+      ],
+      "surfaceIds": [
+        "weekly.schedule"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "MENU.IMPORT.WRITE",
+      "frCode": "FR-MENU",
+      "name": "Preview commit amend rollback or bulk update weekly menu",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "Coordinator",
+        "Manager",
+        "Admin"
+      ],
+      "permissionTokens": [
+        "CoordinationAccess"
+      ],
+      "grain": "menu import batch version or amendment",
+      "prerequisites": [
+        "authorized workbook or persisted menu version"
+      ],
+      "sourceLineage": [
+        "workbook preview ticket to menu version and amendment decisions"
+      ],
+      "actionIds": [
+        "WeeklyMenuBatchImports.Commit",
+        "WeeklyMenuImports.BreakGlassExecuteMenuAmendment",
+        "WeeklyMenuImports.BulkUpdateWeeklyMenu",
+        "WeeklyMenuImports.CommitWeeklyMenuImport",
+        "WeeklyMenuImports.CreateMenuAmendment",
+        "WeeklyMenuImports.ExecuteMenuAmendment",
+        "WeeklyMenuImports.ExecuteMenuAmendmentDecision",
+        "WeeklyMenuImports.ImportWeeklyMenu",
+        "WeeklyMenuImports.PreviewWeeklyMenuImport",
+        "WeeklyMenuImports.RemediateMenuAmendmentDecisionFan",
+        "WeeklyMenuImports.ReviewMenuAmendment",
+        "WeeklyMenuImports.RollbackWeeklyMenuImport",
+        "WeeklyMenuImports.SaveCustomerImportMapping"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/SampleData/Contracts/MenuAmendmentDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/SampleData/Contracts/MenuAmendmentDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/SampleData/Services/WeeklyMenuImportService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-MENU",
+        "FR-COORD",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split import preview commit mapping amendment decision rollback.",
+        "Concurrency ticket expiry and confirmation surfaces unresolved."
+      ]
+    },
+    {
+      "id": "REP.AUDIT.READ",
+      "frCode": "FR-REP",
+      "name": "Read and export audit changes",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "audit change row",
+      "prerequisites": [
+        "admin access"
+      ],
+      "sourceLineage": [
+        "persisted audit log to privacy projection"
+      ],
+      "actionIds": [
+        "AuditReports.ExportAuditChangesCsv",
+        "AuditReports.GetAuditChangePage",
+        "AuditReports.GetAuditChanges"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/AuditReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/WorkflowReportDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-REP",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": []
+    },
+    {
+      "id": "REP.DEMAND.READ",
+      "frCode": "FR-REP",
+      "name": "Read ingredient demand and material request candidates",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "ReportAccess"
+      ],
+      "grain": "demand aggregate or candidate row",
+      "prerequisites": [
+        "persisted demand"
+      ],
+      "sourceLineage": [
+        "material demand to report projection"
+      ],
+      "actionIds": [
+        "DemandReports.GetIngredientDemand",
+        "DemandReports.GetIngredientDemandAggregatePage",
+        "DemandReports.GetIngredientDemandPage",
+        "DemandReports.GetMaterialRequestCandidatePage"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DemandReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/IngredientDemandAggregatePageDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-REP",
+        "FR-PUR",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "reports.demand"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "REP.INVENTORY.READ",
+      "frCode": "FR-REP",
+      "name": "Read inventory operations ledger movement and stock reports",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "WarehouseStaff",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ReportAccess"
+      ],
+      "grain": "inventory report row",
+      "prerequisites": [
+        "persisted inventory movement"
+      ],
+      "sourceLineage": [
+        "inventory documents and ledger to report projections"
+      ],
+      "actionIds": [
+        "InventoryOperationsReports.GetIssueVsReturn",
+        "InventoryOperationsReports.GetIssueVsReturnPage",
+        "InventoryOperationsReports.GetKitchenIssues",
+        "InventoryOperationsReports.GetKitchenIssuesPage",
+        "InventoryOperationsReports.GetSupplyLineReconciliation",
+        "InventoryOperationsReports.GetWorkflowDocuments",
+        "StockLedgerReports.GetStockLedgerReconciliation",
+        "StockMovementReports.GetCurrentStock",
+        "StockMovementReports.GetCurrentStockAllocation",
+        "StockMovementReports.GetCurrentStockPage",
+        "StockMovementReports.GetStockMovementPage",
+        "StockMovementReports.GetStockMovements",
+        "StockSnapshotReports.GetStockSnapshots"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/WorkflowReportDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-REP",
+        "FR-WH",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "warehouse.stock",
+        "reports.stock"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "REP.PRICE.READ",
+      "frCode": "FR-REP",
+      "name": "Read price variance reports",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "ReportAccess"
+      ],
+      "grain": "price variance aggregate row",
+      "prerequisites": [
+        "persisted purchase receipt prices"
+      ],
+      "sourceLineage": [
+        "receipt prices to variance projection"
+      ],
+      "actionIds": [
+        "PriceVarianceReports.GetPriceVarianceByDishGroup",
+        "PriceVarianceReports.GetPriceVarianceByDishGroupPage",
+        "PriceVarianceReports.GetPriceVarianceByPeriod",
+        "PriceVarianceReports.GetPriceVarianceByPeriodPage",
+        "PriceVarianceReports.GetPriceVarianceBySupplier",
+        "PriceVarianceReports.GetPriceVarianceBySupplierPage",
+        "PriceVarianceReports.GetReceiptPriceVariance",
+        "PriceVarianceReports.GetReceiptPriceVariancePage"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/WorkflowReportDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-REP",
+        "FR-PUR"
+      ],
+      "surfaceIds": [
+        "reports.prices"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "REP.PURCHASING.READ",
+      "frCode": "FR-REP",
+      "name": "Read purchasing demand plan and order exports",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "Manager",
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "ReportAccess"
+      ],
+      "grain": "purchase plan or order report row",
+      "prerequisites": [
+        "persisted demand or purchase documents"
+      ],
+      "sourceLineage": [
+        "demand and purchase workflow to report projection"
+      ],
+      "actionIds": [
+        "PurchasingReports.GetOrderExport",
+        "PurchasingReports.GetPurchaseDemand",
+        "PurchasingReports.GetPurchasePlan",
+        "PurchasingReports.GetPurchasePlanPage"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PurchasingReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/WorkflowReportDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-REP",
+        "FR-PUR",
+        "FR-DASH"
+      ],
+      "surfaceIds": [
+        "dashboard.root"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "REP.KPI.READ",
+      "frCode": "FR-DASH",
+      "name": "Read operational KPIs and data quality",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Manager",
+        "Admin"
+      ],
+      "permissionTokens": [
+        "ReportAccess"
+      ],
+      "grain": "operational KPI or data-quality row",
+      "prerequisites": [
+        "authoritative source workflows"
+      ],
+      "sourceLineage": [
+        "workflow aggregates to KPI and quality projection"
+      ],
+      "actionIds": [
+        "WorkflowReports.GetDataQuality",
+        "WorkflowReports.GetDataQualityPage",
+        "WorkflowReports.GetOperationalKpis"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/WorkflowReportDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-DASH",
+        "FR-REP"
+      ],
+      "surfaceIds": [
+        "dashboard.root",
+        "admin.diagnostics"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "REP.DATA_QUALITY.WRITE",
+      "frCode": "FR-REP",
+      "name": "Create review apply remediate or clean data-quality findings",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin",
+        "DataQualityReviewer"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "data-quality disposition or normalization review",
+      "prerequisites": [
+        "persisted quality finding and evidence"
+      ],
+      "sourceLineage": [
+        "quality finding to reviewed disposition and remediation"
+      ],
+      "actionIds": [
+        "DataQualityDispositions.Apply",
+        "DataQualityDispositions.Create",
+        "DataQualityDispositions.Get",
+        "DataQualityDispositions.Review",
+        "UnitNormalizationReviews.Decide",
+        "WorkflowReports.CleanupDataQuality",
+        "WorkflowReports.UpdateDataQualityIssueRemediation"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/DataQualityDispositionDto.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/DataQualityDispositionDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "lifecycle": "backend/src/IPCManagement.Api/Features/Reports/Services/DataQualityDispositionPolicy.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Reports/Services/DataQualityDispositionService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "FR-SYS",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Split read create review apply remediation cleanup.",
+        "Concurrency and authorized evidence UI unresolved."
+      ]
+    },
+    {
+      "id": "REP.STOCK_SNAPSHOT.GENERATE",
+      "frCode": "FR-REP",
+      "name": "Generate stock snapshots",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Authorized report operator"
+      ],
+      "permissionTokens": [
+        "ReportAccess"
+      ],
+      "grain": "stock snapshot batch",
+      "prerequisites": [
+        "persisted stock ledger cutoff"
+      ],
+      "sourceLineage": [
+        "stock ledger to immutable snapshot"
+      ],
+      "actionIds": [
+        "StockSnapshotReports.GenerateStockSnapshots"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockSnapshotReportsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Reports/Contracts/WorkflowReportDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Reports/Services/StockSnapshotReportService.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-REP",
+        "FR-WH"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Idempotency cutoff concurrency and execution authorization unresolved."
+      ]
+    },
+    {
+      "id": "AUTH.LOGIN",
+      "name": "Establish authenticated session",
+      "operation": "create",
+      "actors": [
+        "Anonymous"
+      ],
+      "grain": "one login attempt",
+      "prerequisites": [
+        "valid credentials"
+      ],
+      "sourceLineage": [
+        "credentials to persisted refresh-token session"
+      ],
+      "actionIds": [
+        "Auth.Login"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginResponseDto.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginRequest.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "gaps": [
+        "Login attempt idempotency is not applicable; concurrent session cap behavior remains owned by AuthService tests."
+      ],
+      "frCode": "FR-AUTH",
+      "mode": "SHARED_MASTER_DATA",
+      "permissionTokens": [],
+      "requirementIds": [
+        "FR-AUTH",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": []
+    },
+    {
+      "id": "AUTH.REFRESH",
+      "name": "Rotate authenticated session token",
+      "operation": "update",
+      "actors": [
+        "Session holder"
+      ],
+      "grain": "one refresh-token rotation",
+      "prerequisites": [
+        "valid access token and refresh cookie/token"
+      ],
+      "sourceLineage": [
+        "persisted refresh token to rotated token session"
+      ],
+      "actionIds": [
+        "Auth.Refresh"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginResponseDto.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginResponseDto.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "gaps": [
+        "Rotation/replay concurrency requires exact AuthService and repository evidence."
+      ],
+      "frCode": "FR-AUTH",
+      "mode": "SHARED_MASTER_DATA",
+      "permissionTokens": [],
+      "requirementIds": [
+        "FR-AUTH",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": []
+    },
+    {
+      "id": "AUTH.LOGOUT",
+      "name": "End cookie-backed session",
+      "operation": "terminal",
+      "actors": [
+        "Session holder"
+      ],
+      "grain": "one refresh-token session",
+      "prerequisites": [
+        "refresh cookie or token"
+      ],
+      "sourceLineage": [
+        "refresh token to revoked or already-absent session"
+      ],
+      "actionIds": [
+        "Auth.Logout"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginResponseDto.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginResponseDto.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "gaps": [
+        "Public cookie-backed logout and network-failure UX require reconciliation."
+      ],
+      "frCode": "FR-AUTH",
+      "mode": "SHARED_MASTER_DATA",
+      "permissionTokens": [],
+      "requirementIds": [
+        "FR-AUTH",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": []
+    },
+    {
+      "id": "AUTH.REVOKE",
+      "name": "Revoke authenticated session token",
+      "operation": "terminal",
+      "actors": [
+        "Authenticated"
+      ],
+      "grain": "one refresh-token session",
+      "prerequisites": [
+        "valid access token",
+        "refresh cookie or token"
+      ],
+      "sourceLineage": [
+        "authenticated refresh token to revoked session"
+      ],
+      "actionIds": [
+        "Auth.Revoke"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginResponseDto.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Auth/Services/AuthService.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/Auth/Contracts/LoginResponseDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "gaps": [
+        "Alias compatibility and idempotency remain explicit Backend contracts."
+      ],
+      "frCode": "FR-AUTH",
+      "mode": "SHARED_MASTER_DATA",
+      "permissionTokens": [],
+      "requirementIds": [
+        "FR-AUTH",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": []
+    },
+    {
+      "id": "SYS.MODE.INITIALIZE",
+      "frCode": "FR-SYS",
+      "name": "Initialize operational mode authority",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "singleton system operation mode",
+      "prerequisites": [
+        "admin access",
+        "uninitialized valid environment"
+      ],
+      "sourceLineage": [
+        "environment eligibility to singleton persisted mode"
+      ],
+      "actionIds": [
+        "SystemOperationMode.Initialize"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SystemOperation/Controllers/SystemOperationModeController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/SystemOperation/Contracts/SystemOperationModeContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/SystemOperation/Services/SystemOperationModeInitializer.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-SYS",
+        "BR-GLOBAL-01",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Backend-only initialization has no Frontend surface and separate concurrency ownership is unresolved."
+      ]
+    },
+    {
+      "id": "SYS.MODE.CHANGE",
+      "frCode": "FR-SYS",
+      "name": "Change operational mode with optimistic concurrency",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin"
+      ],
+      "permissionTokens": [
+        "AdminAccess"
+      ],
+      "grain": "singleton system operation mode",
+      "prerequisites": [
+        "admin access",
+        "mode eligibility",
+        "latest persisted version",
+        "explicit confirmation"
+      ],
+      "sourceLineage": [
+        "persisted mode snapshot through eligibility and audit to new persisted mode"
+      ],
+      "actionIds": [
+        "SystemOperationMode.Change"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SystemOperation/Controllers/SystemOperationModeController.cs",
+        "requestDto": "backend/src/IPCManagement.Api/Features/SystemOperation/Contracts/SystemOperationModeContracts.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/SystemOperation/Contracts/SystemOperationModeContracts.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/SystemOperation/Services/SystemOperationModeService.cs",
+        "concurrency": "backend/src/IPCManagement.Api/Features/SystemOperation/Services/SystemOperationModeService.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-SYS",
+        "BR-GLOBAL-01",
+        "NFR-SEC-01"
+      ],
+      "surfaceIds": [
+        "admin.mode"
+      ],
+      "gaps": []
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "dashboard.root",
+      "route": "/",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "COORD.ORDER.READ",
+        "COORD.MEAL_PLAN.READ",
+        "COORD.MENU_SCHEDULE.READ",
+        "PLAN.PRODUCTION.READ",
+        "PLAN.SERVICE_RUN.READ",
+        "APPR.INBOX.READ",
+        "PUR.REQUEST.READ",
+        "PUR.ORDER.READ",
+        "REP.DEMAND.READ",
+        "REP.INVENTORY.READ",
+        "REP.PURCHASING.READ",
+        "REP.KPI.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 4,
+          "rows": 6,
+          "toolbar": true
+        }
+      },
+      "tableContractId": "dashboard-tasks",
+      "gaps": [],
+      "owner": "frontend/src/features/dashboard/DashboardPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "weekly.schedule",
+      "route": "/weekly-menu",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "MENU.IMPORT.READ",
+        "COORD.MENU_SCHEDULE.READ",
+        "COORD.MEAL_PLAN.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "matrix",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "matrix",
+          "columns": 7,
+          "rows": 6,
+          "toolbar": true
+        }
+      },
+      "tableContractId": "weekly-schedule",
+      "gaps": [],
+      "owner": "frontend/src/features/weekly-menu/WeeklyMenuPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "weekly.demand",
+      "route": "/weekly-menu",
+      "view": "demand",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "PLAN.DEMAND",
+        "PLAN.PRODUCTION.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "tableContractId": "weekly-demand",
+      "gaps": [],
+      "owner": "frontend/src/features/weekly-menu/WeeklyMenuPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "weekly.production",
+      "route": "/weekly-menu",
+      "view": "production-plan",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "PLAN.PRODUCTION.READ",
+        "PLAN.PRODUCTION.SEND"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "tableContractId": "weekly-production-plan",
+      "gaps": [],
+      "owner": "frontend/src/features/weekly-menu/WeeklyMenuPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "weekly.cost",
+      "route": "/weekly-menu",
+      "view": "cost",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "CAT.BOM.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "tableContractId": "weekly-cost",
+      "gaps": [
+        "BACKEND_CAPABILITY_GAP: authoritative dish-cost report is absent."
+      ],
+      "owner": "frontend/src/features/weekly-menu/WeeklyMenuPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "meal.orders",
+      "route": "/meal-orders",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "COORD.ORDER.READ",
+        "COORD.MEAL_PLAN.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/coordination/MealOrdersPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "approval.inbox",
+      "route": "/approvals",
+      "workObject": "SplitWorkbench",
+      "capabilityIds": [
+        "APPR.INBOX.READ",
+        "APPR.DECISION"
+      ],
+      "actions": [
+        {
+          "id": "approve-or-reject",
+          "label": "Phê duyệt hoặc từ chối",
+          "capabilityId": "APPR.DECISION"
+        }
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "split",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "split",
+          "columns": 5,
+          "rows": 8,
+          "splitRatio": "60/40",
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/approvals/ApprovalPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "purchasing.orders",
+      "route": "/purchasing",
+      "workObject": "SplitWorkbench",
+      "capabilityIds": [
+        "PUR.REQUEST.READ",
+        "PUR.ORDER.READ",
+        "PUR.SUPPLIER.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "split",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "split",
+          "columns": 6,
+          "rows": 8,
+          "splitRatio": "60/40",
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/purchasing/PurchasingPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "warehouse.issues",
+      "route": "/warehouse",
+      "view": "issues",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "WH.CATALOG.READ",
+        "WH.ISSUE"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/warehouse/WarehousePage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "warehouse.receipts",
+      "route": "/warehouse",
+      "view": "receipts",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "WH.CATALOG.READ",
+        "WH.RECEIPT",
+        "PUR.RECEIPT.LIFECYCLE"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/warehouse/WarehousePage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "warehouse.stock",
+      "route": "/warehouse",
+      "view": "stock",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "WH.CATALOG.READ",
+        "REP.INVENTORY.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/warehouse/WarehousePage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "chef.plans",
+      "route": "/chef",
+      "view": "plans",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "PLAN.PRODUCTION.READ",
+        "PLAN.SERVICE_RUN.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/chef/ChefDashboardPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "chef.issues",
+      "route": "/chef",
+      "view": "issues",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "WH.ISSUE"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/chef/ChefDashboardPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "reconciliation.batch",
+      "route": "/reconciliation",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "RECON.BATCH.READ",
+        "RECON.BATCH.LIFECYCLE",
+        "RECON.ACTUALS"
+      ],
+      "actions": [
+        {
+          "id": "complete-batch",
+          "label": "Hoàn tất lô đối soát",
+          "capabilityId": "RECON.BATCH.LIFECYCLE"
+        }
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 7,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/reconciliation/ReconciliationPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "reports.demand",
+      "route": "/reports",
+      "view": "demand",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "REP.DEMAND.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/reports/ReportsPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "reports.prices",
+      "route": "/reports",
+      "view": "prices",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "REP.PRICE.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/reports/ReportsPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "reports.stock",
+      "route": "/reports",
+      "view": "stock",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "REP.INVENTORY.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/reports/ReportsPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "admin.ingredients",
+      "route": "/admin-data",
+      "view": "ingredients",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "CAT.INGREDIENT.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/admin/AdminDataPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "admin.dishes",
+      "route": "/admin-data",
+      "view": "dishes",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "CAT.DISH.READ",
+        "CAT.BOM.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/admin/AdminDataPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "admin.approval-rules",
+      "route": "/settings/approval-rules",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "APPR.RULES"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 5,
+          "rows": 6,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/admin/ApprovalRulesPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "admin.mode",
+      "route": "/settings/advanced",
+      "view": "mode",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "SYS.MODE.READ",
+        "SYS.MODE.CHANGE"
+      ],
+      "actions": [
+        {
+          "id": "change-mode",
+          "label": "Chuyển chế độ vận hành",
+          "capabilityId": "SYS.MODE.CHANGE"
+        }
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "form",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "form",
+          "rows": 4,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/admin/AdvancedSettingsPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "admin.cache",
+      "route": "/settings/advanced",
+      "view": "cache",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "SYS.MODE.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "form",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "form",
+          "rows": 3,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/admin/AdvancedSettingsPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "admin.diagnostics",
+      "route": "/settings/advanced",
+      "view": "diagnostics",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "SYS.MODE.READ",
+        "REP.KPI.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "form",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "form",
+          "rows": 4,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/admin/AdvancedSettingsPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    }
+  ],
+  "conflicts": []
+}

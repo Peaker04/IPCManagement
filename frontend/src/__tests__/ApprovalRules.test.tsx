@@ -1,132 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ApprovalRulesPage } from '../features/admin/ApprovalRulesPage';
 import { AuthProvider } from '../store/authContext';
 import { adminApi, type ApprovalRuleItem } from '../api/adminApi';
 
-const MOCK_RULES: ApprovalRuleItem[] = [
-  {
-    ruleId: 'r-1',
-    ruleCode: 'RULE-PO-HIGH',
-    ruleName: 'Duyệt đơn mua hàng giá trị cao (>20 triệu)',
-    targetType: 'purchase-order',
-    thresholdAmount: 20000000,
-    approverRole: 'GiamDocDieuHanh',
-    slaHours: 4,
-    isActive: true,
-  },
-  {
-    ruleId: 'r-2',
-    ruleCode: 'RULE-DEMAND-CA',
-    ruleName: 'Duyệt xuất kho nhu cầu nguyên liệu ca',
-    targetType: 'material-demand',
-    thresholdAmount: 50000000,
-    approverRole: 'QuanLySanXuat',
-    slaHours: 2,
-    isActive: true,
-  },
-];
+const RULES: ApprovalRuleItem[] = [{ ruleId: 'r-1', ruleName: 'Duyệt đơn mua hàng giá trị cao', documentType: 'purchase-order', minAmount: 20000000, slaHours: 4, isActive: true }];
+function renderPage() { return render(<AuthProvider><MemoryRouter initialEntries={['/settings/approval-rules']}><Routes><Route path="/settings/approval-rules" element={<ApprovalRulesPage />} /></Routes></MemoryRouter></AuthProvider>); }
 
-function renderApprovalRules(initialEntry = '/settings/approval-rules') {
-  return render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/settings/approval-rules" element={<ApprovalRulesPage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
-}
-
-describe('Approval Rules Feature (FR-ADMIN — Thiết lập quy trình duyệt)', () => {
-  beforeEach(() => {
-    vi.spyOn(adminApi, 'getApprovalRules').mockResolvedValue(MOCK_RULES);
+describe('Approval Rules', () => {
+  beforeEach(() => { vi.spyOn(adminApi, 'getApprovalRules').mockResolvedValue(RULES); });
+  it('renders persisted backend rule fields without unsupported create action', async () => {
+    renderPage();
+    expect(await screen.findByRole('columnheader', { name: 'Tên quy tắc' })).toBeInTheDocument();
+    expect(screen.getByText('Duyệt đơn mua hàng giá trị cao')).toBeInTheDocument();
+    expect(screen.getAllByText('Đơn mua hàng PO').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('button', { name: /Thêm quy tắc/i })).not.toBeInTheDocument();
   });
-
-  it('renders Zone 1 WorkspaceHeader (56px) with rules count badge and single primary button (Rule D7)', async () => {
-    renderApprovalRules();
-
-    expect(await screen.findByRole('heading', { name: 'Thiết lập quy trình duyệt' })).toBeInTheDocument();
-    expect(screen.getByText(/quy tắc phân quyền tự động/i)).toBeInTheDocument();
-
-    // Rule D7: Exactly 1 primary button + 1 outline
-    expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    const createBtn = screen.getByRole('button', { name: 'Thêm quy tắc duyệt' });
-    expect(createBtn).toBeInTheDocument();
-    expect(createBtn).toHaveClass('bg-slate-900');
-  });
-
-  it('renders Zone 2 TelemetrySubbar (44px) with filter tabs and telemetry pills', async () => {
-    renderApprovalRules();
-
-    // Tabs
-    expect(await screen.findByRole('tab', { name: /Tất cả quy tắc/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Đơn mua hàng PO/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Nhu cầu vật tư/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Đổi thực đơn/i })).toBeInTheDocument();
-
-    // Telemetry pills
-    expect(screen.getByText(/Quy tắc hiệu lực:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ngưỡng tối đa:/i)).toBeInTheDocument();
-    expect(screen.getByText(/SLA nhanh nhất:/i)).toBeInTheDocument();
-  });
-
-  it('renders DataGrid with rule columns and zero <details> tags', async () => {
-    const { container } = renderApprovalRules();
-
-    // Columns
-    expect(await screen.findByRole('columnheader', { name: 'Mã quy tắc' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Tên quy tắc phê duyệt' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Phạm vi áp dụng' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Ngưỡng giá trị duyệt' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Vai trò thẩm định' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Thời hạn SLA' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
-
-    // Row item check
-    expect(screen.getByText('RULE-PO-HIGH')).toBeInTheDocument();
-
-    // Invariant: Zero <details> tags anywhere in DOM!
-    expect(container.querySelectorAll('details').length).toBe(0);
-  });
-
-  it('opens new rule modal, fills form, and submits', async () => {
-    renderApprovalRules();
-
-    const createBtn = await screen.findByRole('button', { name: 'Thêm quy tắc duyệt' });
-    await userEvent.click(createBtn);
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Thêm quy tắc phê duyệt mới' })).toBeInTheDocument();
-
-    const codeInput = screen.getByPlaceholderText(/RULE-PO-CRITICAL/i);
-    await userEvent.type(codeInput, 'RULE-DEMAND-URGENT');
-
-    const nameInput = screen.getByPlaceholderText(/Duyệt đơn PO vượt hạn mức/i);
-    await userEvent.type(nameInput, 'Duyệt xuất bù nguyên liệu khẩn cấp');
-
-    const submitBtn = screen.getByRole('button', { name: 'Xác nhận tạo' });
-    await userEvent.click(submitBtn);
-  });
-
-  it('handles error state and provides retry action', async () => {
-    vi.spyOn(adminApi, 'getApprovalRules').mockRejectedValueOnce(
-      new Error('Lỗi máy chủ quy tắc duyệt')
-    );
-
-    renderApprovalRules();
-
+  it('shows API failures', async () => {
+    vi.spyOn(adminApi, 'getApprovalRules').mockRejectedValueOnce(new Error('Lỗi tải quy tắc'));
+    renderPage();
     expect(await screen.findByText('Không thể tải dữ liệu')).toBeInTheDocument();
-    expect(screen.getByText('Lỗi máy chủ quy tắc duyệt')).toBeInTheDocument();
-
-    // Click retry
-    vi.spyOn(adminApi, 'getApprovalRules').mockResolvedValueOnce(MOCK_RULES);
-    const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
-    await userEvent.click(retryBtn);
-
-    expect(await screen.findByText('Thiết lập quy trình duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Lỗi tải quy tắc')).toBeInTheDocument();
   });
 });

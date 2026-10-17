@@ -73,10 +73,18 @@ export function DataGrid<T>({
             return (
               <tr
                 key={key}
-                onClick={() => onRowClick && onRowClick(row)}
+                onClick={() => onRowClick?.(row)}
+                onKeyDown={onRowClick ? (event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onRowClick(row);
+                  }
+                } : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                aria-selected={onRowClick ? isSelected : undefined}
                 className={clsx(
                   'h-10 transition-colors',
-                  onRowClick && 'cursor-pointer',
+                  onRowClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500',
                   isSelected
                     ? 'bg-blue-50/70 hover:bg-blue-50'
                     : 'hover:bg-slate-50/80',

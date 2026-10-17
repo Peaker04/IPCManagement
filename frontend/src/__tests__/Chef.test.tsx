@@ -1,13 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ChefDashboardPage } from '../features/chef/ChefDashboardPage';
 import { AuthProvider } from '../store/authContext';
 import { chefApi } from '../api/chefApi';
+import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { MOCK_CHEF_DATA } from '../test/fixtures';
 
-function renderChef(initialEntry = '/chef') {
+function renderChef(initialEntry = '/chef?view=plans') {
   return render(
     <AuthProvider>
       <MemoryRouter initialEntries={[initialEntry]}>
@@ -19,124 +20,59 @@ function renderChef(initialEntry = '/chef') {
   );
 }
 
-describe('Chef Feature (FR-CHEF — Bếp trưởng & Ca nấu)', () => {
+describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
   beforeEach(() => {
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
+      { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
+    ]);
     vi.spyOn(chefApi, 'getChefDashboardData').mockResolvedValue(MOCK_CHEF_DATA);
   });
-  it('renders Zone 1 WorkspaceHeader (56px) with shift select, chef name, and single primary button (Rule D7)', async () => {
-    renderChef();
 
-    expect(await screen.findByRole('heading', { name: 'Bếp trưởng & Ca nấu' })).toBeInTheDocument();
+  it('renders authoritative production-plan facts without fake chef, progress, or completion actions', async () => {
+    renderChef('/chef?view=plans');
 
-    // Select shift and chef info
-    expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByText(/Phụ trách: Bếp trưởng Nguyễn Văn A/i)).toBeInTheDocument();
-    expect(screen.getByText(/Ca đang nấu/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Bếp trưởng & Bàn giao ca' })).toBeInTheDocument();
+    expect(screen.getByText(/Đang xem: Kế hoạch sản xuất/i)).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Phụ trách:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tiến độ:/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /hoàn tất ca nấu/i })).not.toBeInTheDocument();
 
-    // Rule D7: 1 primary + 1 outline
-    expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    const completeBtn = screen.getByRole('button', { name: 'Xác nhận hoàn tất ca nấu' });
-    expect(completeBtn).toBeInTheDocument();
-    expect(completeBtn).toHaveClass('bg-slate-900');
-  });
-
-  it('renders Zone 2 TelemetrySubbar (44px) with 3 Segmented Tabs and telemetry pills', async () => {
-    renderChef();
-
-    // 3 Segmented Tabs
-    expect(await screen.findByRole('tab', { name: /Lệnh sản xuất ca/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Checklist nhận vật tư/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Đề xuất bổ sung \/ Trả thừa/i })).toBeInTheDocument();
-
-    // Inline pills
-    expect(screen.getByText(/Mã lệnh:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tổng suất:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Tiến độ:/i)).toBeInTheDocument();
-  });
-
-  it('Tab 1 (Lệnh sản xuất ca): renders dishes table and zero <details> tags', async () => {
-    const { container } = renderChef();
-
-    // Table columns
-    expect(await screen.findByRole('columnheader', { name: 'Mã món' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /Tên món ăn/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Phân loại' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Số suất cần nấu' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
-
-    // Data rows
+    expect(await screen.findByRole('columnheader', { name: 'Mã KHSX' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Tên món ăn' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Số suất kế hoạch' })).toBeInTheDocument();
     expect(screen.getByText('Khô gà lá chanh')).toBeInTheDocument();
-
-    // Invariant: Zero <details> tags in the DOM!
-    expect(container.querySelectorAll('details').length).toBe(0);
   });
 
-  it('Tab 2 (Checklist nhận vật tư): renders material checklist and supports checkbox toggle', async () => {
-    renderChef();
+  it('renders persisted DEFAULT inventory issues without a fabricated quality checklist', async () => {
+    renderChef('/chef?view=issues');
 
-    // Switch to Tab 2
-    const checklistTab = await screen.findByRole('tab', { name: /Checklist nhận vật tư/i });
-    await userEvent.click(checklistTab);
-
-    // Columns
-    expect(await screen.findByRole('columnheader', { name: 'Mã vật tư' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Tên nguyên liệu' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'ĐVT' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Số lượng giao' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Thực nhận' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Đạt chất lượng' })).toBeInTheDocument();
-
-    // Checkbox interaction
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes.length).toBeGreaterThan(0);
-    expect(checkboxes[0]).toBeChecked();
-    await userEvent.click(checkboxes[0]);
-    expect(checkboxes[0]).not.toBeChecked();
+    expect(await screen.findByText(/Đang xem: Phiếu xuất bàn giao/i)).toBeInTheDocument();
+    expect(await screen.findByRole('columnheader', { name: 'Mã phiếu xuất' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Kho xuất' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Bếp xác nhận' })).toBeInTheDocument();
+    expect(screen.getByText('ISS-20260921-01')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByText('Giá đỗ sạch')).not.toBeInTheDocument();
   });
 
-  it('Tab 3 (Đề xuất bổ sung / Trả thừa): renders excess material table', async () => {
-    renderChef();
+  it('pages persisted inventory issues through the backend contract', async () => {
+    vi.spyOn(chefApi, 'getChefDashboardData').mockResolvedValue({
+      ...MOCK_CHEF_DATA,
+      issuePage: { totalCount: 26, pageNumber: 1, pageSize: 25, totalPages: 2, hasPrev: false, hasNext: true },
+    });
+    renderChef('/chef?view=issues');
 
-    // Switch to Tab 3
-    const excessTab = await screen.findByRole('tab', { name: /Đề xuất bổ sung \/ Trả thừa/i });
-    await userEvent.click(excessTab);
+    await userEvent.click(await screen.findByRole('button', { name: 'Trang sau' }));
 
-    expect(await screen.findByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Phân loại đề xuất' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Số lượng' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Lý do ghi nhận' })).toBeInTheDocument();
-
-    expect(screen.getByText('Giá đỗ sạch')).toBeInTheDocument();
+    expect(chefApi.getChefDashboardData).toHaveBeenLastCalledWith(expect.any(String), 'MORNING', 'customer-1', 2, 25);
   });
 
-  it('opens complete shift modal and triggers completion', async () => {
-    renderChef();
-
-    const completeBtn = await screen.findByRole('button', { name: 'Xác nhận hoàn tất ca nấu' });
-    await userEvent.click(completeBtn);
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Xác nhận hoàn tất ca nấu' })).toBeInTheDocument();
-
-    const confirmModalBtn = screen.getByRole('button', { name: 'Xác nhận hoàn tất & Chốt ca' });
-    await userEvent.click(confirmModalBtn);
-  });
-
-  it('handles error state and provides retry mechanism', async () => {
-    vi.spyOn(chefApi, 'getChefDashboardData').mockRejectedValueOnce(
-      new Error('Lỗi đồng bộ dữ liệu bếp')
-    );
-
+  it('handles API errors and retries the current customer/date/shift scope', async () => {
+    vi.spyOn(chefApi, 'getChefDashboardData').mockRejectedValueOnce(new Error('Lỗi đồng bộ dữ liệu bếp'));
     renderChef();
 
     expect(await screen.findByText('Không thể tải dữ liệu')).toBeInTheDocument();
     expect(screen.getByText('Lỗi đồng bộ dữ liệu bếp')).toBeInTheDocument();
-
-    // Click retry
-    vi.spyOn(chefApi, 'getChefDashboardData').mockResolvedValueOnce(MOCK_CHEF_DATA);
-    const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
-    await userEvent.click(retryBtn);
-
-    expect(await screen.findByText('Bếp trưởng & Ca nấu')).toBeInTheDocument();
   });
 });

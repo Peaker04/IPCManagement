@@ -33,27 +33,27 @@ export interface SupplierItem {
 }
 
 export interface RawPoLine {
-  orderLineId?: string;
-  ingredientId?: string;
-  ingredientCode?: string;
-  ingredientName?: string;
-  unitName?: string;
-  unit?: string;
-  orderedQty?: number;
-  quantity?: number;
-  unitPrice?: number;
+  purchaseOrderLineId: string;
+  purchaseRequestLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  orderedQty: number;
+  receivedQty: number;
+  unitPrice: number;
 }
 
 export interface RawPo {
   purchaseOrderId: string;
-  purchaseOrderCode?: string;
-  orderCode?: string;
-  purchaseRequestCode?: string;
+  purchaseOrderCode: string;
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
   supplierId: string;
-  supplierName?: string;
+  supplierName: string;
   orderDate: string;
   status: string;
-  lines?: RawPoLine[];
+  lines: RawPoLine[];
 }
 
 export const purchasingApi = {
@@ -62,28 +62,26 @@ export const purchasingApi = {
     const items = Array.isArray(resp) ? resp : resp?.items || [];
 
     return items.map((po) => {
-      const lines: PurchaseOrderLineItem[] = (po.lines || []).map((l, idx) => ({
-        lineId: l.orderLineId || `line-${idx}`,
-        ingredientCode: l.ingredientCode || `NL-00${idx + 1}`,
-        ingredientName: l.ingredientName || 'Nguyên liệu thực phẩm',
-        unit: l.unitName || l.unit || 'Kilogram',
-        orderedQuantity: l.orderedQty || l.quantity || 50,
-        unitPrice: l.unitPrice || 45000,
-        lineTotal: (l.orderedQty || l.quantity || 50) * (l.unitPrice || 45000),
+      const lines: PurchaseOrderLineItem[] = po.lines.map((line) => ({
+        lineId: line.purchaseOrderLineId,
+        ingredientCode: line.ingredientId,
+        ingredientName: line.ingredientName,
+        unit: line.unitName,
+        orderedQuantity: line.orderedQty,
+        unitPrice: line.unitPrice,
+        lineTotal: line.orderedQty * line.unitPrice,
       }));
-
-      const total = lines.reduce((sum, l) => sum + l.lineTotal, 0);
 
       return {
         id: po.purchaseOrderId,
-        code: po.purchaseOrderCode || po.orderCode || `PO-${po.purchaseOrderId.slice(0, 8)}`,
-        purchaseRequestCode: po.purchaseRequestCode || 'PR-20260721-01',
+        code: po.purchaseOrderCode,
+        purchaseRequestCode: po.purchaseRequestCode,
         supplierId: po.supplierId,
-        supplierName: po.supplierName || 'Công ty CP Thực phẩm Sao Việt',
+        supplierName: po.supplierName,
         orderDate: po.orderDate,
-        status: (po.status?.toUpperCase() as PurchaseOrderItem['status']) || 'RECEIVED',
-        totalAmount: total || 15400000,
-        linesCount: lines.length || 3,
+        status: po.status.toUpperCase() as PurchaseOrderItem['status'],
+        totalAmount: lines.reduce((sum, line) => sum + line.lineTotal, 0),
+        linesCount: lines.length,
         lines,
       };
     });
@@ -93,20 +91,35 @@ export const purchasingApi = {
     return apiClient<SupplierItem[]>('/suppliers');
   },
 
-  async createPurchaseOrder(data: {
-    supplierId: string;
-    orderDate: string;
-    lines: Array<{ ingredientId: string; quantity: number; unitPrice: number }>;
-  }): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/purchase-orders', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+  async createPurchaseOrdersFromRequest(purchaseRequestId: string): Promise<PurchaseOrderItem[]> {
+    const orders = await apiClient<RawPo[]>(
+      `/purchase-orders/from-request/${encodeURIComponent(purchaseRequestId)}`,
+      { method: 'POST' }
+    );
 
-  async approvePurchaseOrder(id: string): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>(`/purchase-orders/${encodeURIComponent(id)}/approve`, {
-      method: 'POST',
+    return orders.map((po) => {
+      const lines = po.lines.map((line) => ({
+        lineId: line.purchaseOrderLineId,
+        ingredientCode: line.ingredientId,
+        ingredientName: line.ingredientName,
+        unit: line.unitName,
+        orderedQuantity: line.orderedQty,
+        unitPrice: line.unitPrice,
+        lineTotal: line.orderedQty * line.unitPrice,
+      }));
+
+      return {
+        id: po.purchaseOrderId,
+        code: po.purchaseOrderCode,
+        purchaseRequestCode: po.purchaseRequestCode,
+        supplierId: po.supplierId,
+        supplierName: po.supplierName,
+        orderDate: po.orderDate,
+        status: po.status.toUpperCase() as PurchaseOrderItem['status'],
+        totalAmount: lines.reduce((sum, line) => sum + line.lineTotal, 0),
+        linesCount: lines.length,
+        lines,
+      };
     });
   },
 };

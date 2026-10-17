@@ -1,172 +1,203 @@
 import { apiClient } from './client';
 
-export interface ChefShiftDishItem {
+export interface ChefPlanLineItem {
+  planLineId: string;
+  planId: string;
+  planCode: string;
   dishId: string;
-  dishCode: string;
   dishName: string;
-  category: string;
+  shiftName: string;
   plannedServings: number;
-  cookedServings: number;
-  startTime: string;
-  status: 'cooking' | 'completed' | 'waiting';
+  serviceDate: string;
+  planStatus: string;
+  sentToKitchenAt?: string;
 }
 
-export interface ChefMaterialChecklistItem {
-  materialId: string;
-  materialCode: string;
-  materialName: string;
-  unit: string;
-  deliveredQty: number;
-  receivedQty: number;
-  isQualityPassed: boolean;
-  notes?: string;
+export interface ChefIssueLineItem {
+  issueLineId: string;
+  materialRequestLineId?: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  requestedQty: number;
+  issuedQty: number;
 }
 
-export interface ChefExcessMaterialItem {
-  id: string;
-  materialName: string;
-  unit: string;
-  quantity: number;
-  actionType: 'return_to_warehouse' | 'supplemental_request';
-  reason: string;
-  status: 'submitted' | 'approved' | 'rejected';
+export interface ChefIssueItem {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName: string;
+  warehouseName: string;
+  receivedAt?: string;
+  receivedByName?: string;
+  lines: ChefIssueLineItem[];
+}
+
+export interface PageInfo {
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
 }
 
 export interface ChefDashboardData {
-  planCode: string;
   serviceDate: string;
+  customerId: string;
+  customerCode: string;
+  customerName: string;
   shiftName: string;
-  headChefName: string;
+  totalPlans: number;
+  sentPlans: number;
+  totalDishes: number;
   totalServings: number;
-  progressPercent: number;
-  status: 'in_progress' | 'completed';
-  dishes: ChefShiftDishItem[];
-  checklist: ChefMaterialChecklistItem[];
-  excessItems: ChefExcessMaterialItem[];
+  warnings: string[];
+  plans: ChefPlanLineItem[];
+  issues: ChefIssueItem[];
+  issuePage: PageInfo;
 }
 
-export interface RawDailyPlanResponse {
+interface RawProductionPlan {
+  planId: string;
+  planCode: string;
+  planDate: string;
+  status?: string;
+  sentToKitchenAt?: string;
+  lines: Array<{
+    planLineId: string;
+    dishId: string;
+    dishName?: string;
+    shiftName?: string;
+    totalServings: number;
+  }>;
+}
+
+interface RawDailyProductionPlan {
   serviceDate: string;
+  customerId?: string;
   customerCode?: string;
   customerName?: string;
-  shiftName: string;
-  totalPlans?: number;
-  totalDishes?: number;
+  shiftName?: string;
+  totalPlans: number;
+  sentPlans: number;
+  totalDishes: number;
   totalServings: number;
-  plans?: Array<{
-    planId: string;
-    planCode: string;
-    status: string;
-    lines: Array<{
-      dishId: string;
-      dishName: string;
-      shiftName: string;
-      totalServings: number;
-    }>;
+  warnings: string[];
+  plans: RawProductionPlan[];
+}
+
+interface RawInventoryIssue {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName?: string;
+  warehouseName?: string;
+  receivedAt?: string;
+  receivedByName?: string;
+  lines: Array<{
+    issueLineId: string;
+    materialRequestLineId?: string;
+    ingredientId: string;
+    ingredientName?: string;
+    unitId: string;
+    unitName?: string;
+    requestedQty: number;
+    issuedQty: number;
   }>;
+}
+
+interface PagedIssues extends PageInfo {
+  items: RawInventoryIssue[];
 }
 
 export const chefApi = {
   async getChefDashboardData(
-    serviceDate = '2026-09-21',
-    shiftName: 'MORNING' | 'AFTERNOON' = 'MORNING',
-    customerCode = 'DAV'
+    serviceDate: string,
+    shiftName: 'MORNING' | 'AFTERNOON',
+    customerId: string,
+    issuePageNumber = 1,
+    issuePageSize = 25
   ): Promise<ChefDashboardData> {
-    // 1. Fetch real production plans for today's shift
-    const rawPlans = await apiClient<Array<{
-      planId: string;
-      planCode: string;
-      planDate: string;
-      customerCode: string;
-      status: string;
-      lines: Array<{
-        dishId: string;
-        dishName: string;
-        shiftName: string;
-        totalServings: number;
-      }>;
-    }>>(`/production-plans/filter?serviceDate=${encodeURIComponent(serviceDate)}`);
+    const planQuery = new URLSearchParams({ serviceDate, shiftName, customerId });
+    const issueQuery = new URLSearchParams({
+      sourceFamily: 'DEFAULT',
+      issueDate: serviceDate,
+      shiftName,
+      pageNumber: String(issuePageNumber),
+      pageSize: String(issuePageSize),
+    });
 
-    const plansList = Array.isArray(rawPlans) ? rawPlans : [];
-    const matchedPlan = plansList.find((p) => p.customerCode === customerCode) || plansList[0];
+    const [dailyPlan, issuePage] = await Promise.all([
+      apiClient<RawDailyProductionPlan>(`/production-plans/daily?${planQuery.toString()}`),
+      apiClient<PagedIssues>(`/inventory-issues?${issueQuery.toString()}`),
+    ]);
 
-    const targetLines = matchedPlan
-      ? matchedPlan.lines.filter((l) =>
-          shiftName === 'MORNING'
-            ? l.shiftName === 'MORNING' || l.shiftName.includes('Sáng')
-            : l.shiftName === 'AFTERNOON' || l.shiftName.includes('Chiều')
-        )
-      : [];
-
-    const totalServings = targetLines.reduce((sum, l) => sum + l.totalServings, 0);
-
-    const dishes: ChefShiftDishItem[] = targetLines.map((l, idx) => ({
-      dishId: l.dishId || `dish-${idx}`,
-      dishCode: `MON-0${idx + 1}`,
-      dishName: l.dishName,
-      category: idx % 2 === 0 ? 'Món mặn chính' : idx % 3 === 0 ? 'Món xào' : 'Món canh',
-      plannedServings: l.totalServings,
-      cookedServings: idx === 0 ? l.totalServings : Math.round(l.totalServings * 0.8),
-      startTime: idx === 0 ? '07:30' : '08:00',
-      status: idx === 0 ? 'completed' : 'cooking',
-    }));
-
-    // Checklist generated from ingredients of actual dishes
-    const checklist: ChefMaterialChecklistItem[] = [
-      { materialId: 'm-1', materialCode: 'NL-GA-06', materialName: 'Thịt gà phi lê tươi', unit: 'Kilogram', deliveredQty: 72.0, receivedQty: 72.0, isQualityPassed: true, notes: 'Thịt tươi đạt chuẩn HACCP' },
-      { materialId: 'm-2', materialCode: 'NL-LACHANH-07', materialName: 'Lá chanh tươi', unit: 'Kilogram', deliveredQty: 4.5, receivedQty: 4.5, isQualityPassed: true },
-      { materialId: 'm-3', materialCode: 'NL-CA-02', materialName: 'Chả cá thác lác', unit: 'Kilogram', deliveredQty: 63.5, receivedQty: 63.5, isQualityPassed: true, notes: 'Đóng gói hút chân không' },
-      { materialId: 'm-4', materialCode: 'NL-RAU-03', materialName: 'Bầu sao tươi', unit: 'Kilogram', deliveredQty: 120.0, receivedQty: 120.0, isQualityPassed: true },
-      { materialId: 'm-5', materialCode: 'NL-GIA-04', materialName: 'Giá đỗ sạch', unit: 'Kilogram', deliveredQty: 40.0, receivedQty: 40.0, isQualityPassed: true },
-      { materialId: 'm-6', materialCode: 'NL-TOM-05', materialName: 'Tôm thẻ bóc vỏ', unit: 'Kilogram', deliveredQty: 25.0, receivedQty: 25.0, isQualityPassed: true },
-      { materialId: 'm-7', materialCode: 'NL-DAUAN-09', materialName: 'Dầu ăn Cái Lân', unit: 'Lít', deliveredQty: 20.0, receivedQty: 20.0, isQualityPassed: true },
-      { materialId: 'm-8', materialCode: 'NL-NUOCMAM-10', materialName: 'Nước mắm 30 độ đạm', unit: 'Lít', deliveredQty: 15.0, receivedQty: 15.0, isQualityPassed: true },
-    ];
-
-    const excessItems: ChefExcessMaterialItem[] = [
-      {
-        id: 'ex-1',
-        materialName: 'Giá đỗ sạch',
-        unit: 'Kilogram',
-        quantity: 5.0,
-        actionType: 'return_to_warehouse',
-        reason: 'Dư do rau chín nhanh hơn dự kiến',
-        status: 'submitted',
-      },
-    ];
+    if (dailyPlan.customerId && dailyPlan.customerId !== customerId) {
+      throw new Error('KHSX trả về không thuộc khách hàng đã chọn.');
+    }
 
     return {
-      planCode: matchedPlan?.planCode || `KHSX-${customerCode}-20260921`,
-      serviceDate,
-      shiftName: shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : 'Ca 2 (Chiều)',
-      headChefName: 'Bếp trưởng',
-      totalServings: totalServings || 1703,
-      progressPercent: totalServings > 0 ? 88 : 0,
-      status: 'in_progress',
-      dishes,
-      checklist,
-      excessItems,
+      serviceDate: dailyPlan.serviceDate,
+      customerId: dailyPlan.customerId || customerId,
+      customerCode: dailyPlan.customerCode || '—',
+      customerName: dailyPlan.customerName || '—',
+      shiftName: dailyPlan.shiftName || shiftName,
+      totalPlans: dailyPlan.totalPlans,
+      sentPlans: dailyPlan.sentPlans,
+      totalDishes: dailyPlan.totalDishes,
+      totalServings: dailyPlan.totalServings,
+      warnings: dailyPlan.warnings,
+      plans: dailyPlan.plans.flatMap((plan) =>
+        plan.lines.map((line) => ({
+          planLineId: line.planLineId,
+          planId: plan.planId,
+          planCode: plan.planCode,
+          dishId: line.dishId,
+          dishName: line.dishName || '—',
+          shiftName: line.shiftName || dailyPlan.shiftName || '—',
+          plannedServings: line.totalServings,
+          serviceDate: plan.planDate,
+          planStatus: plan.status || '—',
+          sentToKitchenAt: plan.sentToKitchenAt,
+        }))
+      ),
+      issues: issuePage.items.map((issue) => ({
+        issueId: issue.issueId,
+        issueCode: issue.issueCode,
+        issueDate: issue.issueDate,
+        shiftName: issue.shiftName || '—',
+        warehouseName: issue.warehouseName || '—',
+        receivedAt: issue.receivedAt,
+        receivedByName: issue.receivedByName,
+        lines: issue.lines.map((line) => ({
+          issueLineId: line.issueLineId,
+          materialRequestLineId: line.materialRequestLineId,
+          ingredientId: line.ingredientId,
+          ingredientName: line.ingredientName || '—',
+          unitId: line.unitId,
+          unitName: line.unitName || '—',
+          requestedQty: line.requestedQty,
+          issuedQty: line.issuedQty,
+        })),
+      })),
+      issuePage: {
+        totalCount: issuePage.totalCount,
+        pageNumber: issuePage.pageNumber,
+        pageSize: issuePage.pageSize,
+        totalPages: issuePage.totalPages,
+        hasPrev: issuePage.hasPrev,
+        hasNext: issuePage.hasNext,
+      },
     };
   },
 
-  async confirmDishCooked(dishId: string, cookedServings: number): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/production-plans/daily/send-to-kitchen', {
+  async confirmIssueReceipt(issueId: string, hasDiscrepancy: boolean, discrepancyNote?: string): Promise<ChefIssueItem> {
+    return apiClient<ChefIssueItem>(`/inventory-issues/${encodeURIComponent(issueId)}/confirm-receipt`, {
       method: 'POST',
-      body: JSON.stringify({ dishId, cookedServings }),
-    });
-  },
-
-  async toggleMaterialQuality(materialId: string, isPassed: boolean): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/production-plans/daily/send-to-kitchen', {
-      method: 'POST',
-      body: JSON.stringify({ materialId, isPassed }),
-    });
-  },
-
-  async completeShift(serviceDate: string, shiftName: string): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/production-plans/daily/send-to-kitchen', {
-      method: 'POST',
-      body: JSON.stringify({ serviceDate, shiftName, confirmed: true }),
+      body: JSON.stringify({ hasDiscrepancy, discrepancyNote }),
     });
   },
 };

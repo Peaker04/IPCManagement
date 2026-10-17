@@ -23,13 +23,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [operationalMode, setModeState] = useState<OperationalMode>(() => {
     return (localStorage.getItem(MODE_KEY) as OperationalMode) || 'DEFAULT';
   });
+  const [operationalModeVersion, setOperationalModeVersion] = useState<number | null>(null);
+  const [operationalModeReasonRequired, setOperationalModeReasonRequired] = useState(false);
+
+  const applyModeSnapshot = useCallback((snapshot: Awaited<ReturnType<typeof systemApi.getOperationalMode>>) => {
+    setModeState(snapshot.mode);
+    setOperationalModeVersion(snapshot.version);
+    setOperationalModeReasonRequired(snapshot.reasonRequired);
+    localStorage.setItem(MODE_KEY, snapshot.mode);
+  }, []);
+
+  const reloadOperationalMode = useCallback(async () => {
+    applyModeSnapshot(await systemApi.getOperationalMode());
+  }, [applyModeSnapshot]);
 
   useEffect(() => {
-    systemApi.getOperationalMode().then(({ mode }) => {
-      setModeState(mode);
-      localStorage.setItem(MODE_KEY, mode);
-    }).catch(() => {});
-  }, []);
+    systemApi.getOperationalMode().then(applyModeSnapshot).catch(() => {});
+  }, [applyModeSnapshot]);
 
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
@@ -55,10 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const setOperationalMode = useCallback(async (mode: OperationalMode) => {
-    setModeState(mode);
-    await systemApi.setOperationalMode(mode);
-  }, []);
+  const setOperationalMode = useCallback(async (mode: OperationalMode, reason?: string) => {
+    if (operationalModeVersion == null) throw new Error('Chưa tải được phiên bản chế độ vận hành mới nhất.');
+    applyModeSnapshot(await systemApi.setOperationalMode(mode, operationalModeVersion, reason));
+  }, [applyModeSnapshot, operationalModeVersion]);
 
   const hasPermission = useCallback((perm: string): boolean => {
     if (!user) return false;
@@ -83,6 +93,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!token && !!user,
         isLoading,
         operationalMode,
+        operationalModeVersion,
+        operationalModeReasonRequired,
+        reloadOperationalMode,
         login,
         logout,
         setOperationalMode,

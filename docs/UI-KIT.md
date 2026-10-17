@@ -69,7 +69,7 @@ Các primitives cơ bản đạt chuẩn WCAG 2.1 AA, quản lý tương tác v�
 
 ### Thành phần bổ trợ: `StateBoundary` (`components/workbench/StateBoundary.tsx`)
 Quản lý 6 trạng thái UI sắc nét:
-- `loading`: Skeleton phẳng đồng bộ hình học với bảng dữ liệu.
+- `loading`: Skeleton phẳng phải giữ route/work-object context và khớp `geometryContract` đã khai báo (toolbar, số cột, master-detail, vùng cuộn); skeleton không được chứa bản ghi giả, số liệu nghiệp vụ giả hoặc ngụ ý success.
 - `empty`: 4 kịch bản rõ ràng:
   1. *True Empty*: Chưa có bản ghi nào, có nút tạo mới.
   2. *Prerequisite Blocked*: Thiếu dữ liệu từ bước trước, có nút hướng dẫn chuyển sang bước trước.

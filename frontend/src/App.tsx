@@ -6,6 +6,8 @@ import { AppShell } from './components/workbench/AppShell';
 import { LoginPage } from './features/auth/LoginPage';
 import { ForbiddenPage } from './features/auth/ForbiddenPage';
 import { CANONICAL_ROUTES } from './routes/routeRegistry';
+import { DirtyNavigationProvider } from './components/workbench/DirtyNavigation';
+import { RouteWorkbenchLoadingFallback } from './routes/RouteWorkbenchLoadingFallback';
 
 import { RoleGuard } from './routes/RoleGuard';
 
@@ -24,23 +26,7 @@ const ApprovalRulesPage = lazy(() => import('./features/admin/ApprovalRulesPage'
 const AdvancedSettingsPage = lazy(() => import('./features/admin/AdvancedSettingsPage').then((m) => ({ default: m.AdvancedSettingsPage })));
 
 function WorkbenchLoadingFallback() {
-  return (
-    <div className="flex-1 min-h-0 w-full flex flex-col p-4 space-y-2 bg-white">
-      <div className="h-8 w-full bg-slate-100 rounded animate-pulse" />
-      <div className="space-y-1.5 flex-1">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-9 w-full bg-slate-50 border border-slate-100 rounded flex items-center px-4 space-x-4 animate-pulse"
-          >
-            <div className="h-3 w-1/4 bg-slate-200 rounded" />
-            <div className="h-3 w-1/3 bg-slate-200 rounded" />
-            <div className="h-3 w-1/6 bg-slate-200 rounded ml-auto" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+  return <RouteWorkbenchLoadingFallback />;
 }
 
 const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
@@ -49,6 +35,7 @@ export function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <DirtyNavigationProvider>
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />
@@ -56,7 +43,7 @@ export function App() {
 
           {/* Protected routes wrapped in AppShell with RoleGuard — 100% Real Canonical Routes */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppShell />}>
+            <Route element={<AppShell getAllowedRoles={getRouteRoles} />}>
               <Route
                 path="/"
                 element={
@@ -183,6 +170,7 @@ export function App() {
           {/* Catch-all redirect to Dashboard */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </DirtyNavigationProvider>
       </BrowserRouter>
     </AuthProvider>
   );

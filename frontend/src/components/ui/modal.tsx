@@ -1,7 +1,9 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useId, useState } from 'react';
+import { X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Button } from './button';
+import { useOptionalDirtyNavigation } from '../workbench/dirty-navigation-context';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -29,23 +31,39 @@ export function Modal({
   className,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const dirtyNavigation = useOptionalDirtyNavigation();
+  const registerDirty = dirtyNavigation?.registerDirty;
+  const dirtyKey = useId();
+  const [isDiscardConfirmOpen, setIsDiscardConfirmOpen] = useState(false);
 
   const handleSafeClose = useCallback(() => {
     if (isDirty) {
-      const confirmDiscard = window.confirm(
-        confirmCloseMessage || 'Bạn có các thay đổi chưa được lưu. Bạn có chắc chắn muốn đóng và hủy bỏ các thay đổi này?'
-      );
-      if (!confirmDiscard) return;
+      setIsDiscardConfirmOpen(true);
+      return;
     }
     onClose();
-  }, [isDirty, confirmCloseMessage, onClose]);
+  }, [isDirty, onClose]);
+
+  const discardAndClose = useCallback(() => {
+    setIsDiscardConfirmOpen(false);
+    onClose();
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!isOpen || !isDirty || !registerDirty) return;
+    return registerDirty(dirtyKey);
+  }, [dirtyKey, registerDirty, isDirty, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        handleSafeClose();
+        if (isDiscardConfirmOpen) {
+          setIsDiscardConfirmOpen(false);
+        } else {
+          handleSafeClose();
+        }
       }
     };
 
@@ -58,7 +76,7 @@ export function Modal({
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = originalOverflow;
     };
-  }, [isOpen, handleSafeClose]);
+  }, [isOpen, handleSafeClose, isDiscardConfirmOpen]);
 
   if (!isOpen) return null;
 
@@ -99,7 +117,7 @@ export function Modal({
             aria-label="Đóng hộp thoại"
             className="h-7 w-7 text-slate-400 hover:text-slate-700"
           >
-            ✕
+            <X size={16} aria-hidden="true" />
           </Button>
         </div>
 
@@ -112,6 +130,32 @@ export function Modal({
         {footer && (
           <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-2.5 bg-slate-50/50 shrink-0">
             {footer}
+          </div>
+        )}
+        {isDiscardConfirmOpen && (
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="discard-dialog-title"
+            aria-describedby="discard-dialog-description"
+            className="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 p-4"
+          >
+            <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-4 shadow-xl">
+              <h3 id="discard-dialog-title" className="text-sm font-semibold text-slate-900">
+                Hủy thay đổi chưa lưu?
+              </h3>
+              <p id="discard-dialog-description" className="mt-1 text-xs leading-relaxed text-slate-600">
+                {confirmCloseMessage || 'Các thay đổi trong biểu mẫu này chưa được lưu và sẽ bị mất nếu bạn đóng.'}
+              </p>
+              <div className="mt-4 flex justify-end gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsDiscardConfirmOpen(false)} autoFocus>
+                  Tiếp tục chỉnh sửa
+                </Button>
+                <Button variant="destructive" size="sm" onClick={discardAndClose}>
+                  Hủy thay đổi
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

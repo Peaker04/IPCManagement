@@ -20,6 +20,22 @@ export function toVietnameseDate(val: string): string {
   return val;
 }
 
+export function todayInBusinessTimezone(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);
+}
+
+export function formatVietnameseDateTime(val: string | Date | null | undefined): string {
+  if (!val) return '—';
+  const date = val instanceof Date ? val : new Date(val);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(date);
+}
+
 export function formatVietnameseDate(val: string | Date | null | undefined): string {
   if (!val) return '—';
   if (val instanceof Date) {

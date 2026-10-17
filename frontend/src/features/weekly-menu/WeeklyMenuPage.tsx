@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
@@ -6,7 +6,6 @@ import { Select } from '../../components/ui/select';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { ActionGuard } from '../../components/ui/action-guard';
 import { weeklyMenuApi, type WeeklyMenuData } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
 import { WeeklyScheduleView } from './views/WeeklyScheduleView';
@@ -14,262 +13,187 @@ import { MaterialDemandView } from './views/MaterialDemandView';
 import { ProductionPlanView } from './views/ProductionPlanView';
 import { MenuCostView } from './views/MenuCostView';
 
+function currentWeekStart(): string {
+  const now = new Date();
+  const businessDate = new Date(
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now) + 'T00:00:00Z'
+  );
+  const day = businessDate.getUTCDay();
+  businessDate.setUTCDate(businessDate.getUTCDate() - (day === 0 ? 6 : day - 1));
+  return businessDate.toISOString().slice(0, 10);
+}
+
 export function WeeklyMenuPage() {
   const [searchParams] = useSearchParams();
-  const activeView = searchParams.get('view') || 'schedule';
+  const requestedView = searchParams.get('view');
+  const activeView = requestedView === 'demand' || requestedView === 'production-plan' || requestedView === 'cost'
+    ? requestedView
+    : 'schedule';
 
-  const [customers, setCustomers] = useState<CustomerOption[]>([
-    { customerId: 'c6c0b2f4-1567-4c62-b687-e50d3e93f348', customerCode: 'DAV', customerName: 'Draxlmaier' },
-    { customerId: 'b1e40f3e-bda5-4c16-be27-ea7146e10d37', customerCode: 'ANV', customerName: 'AMANN' },
-  ]);
-  const [customerCode, setCustomerCode] = useState('DAV');
-  const [weekStartDate, setWeekStartDate] = useState('2026-09-21');
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [customerCode, setCustomerCode] = useState('');
+  const [weekStartDate, setWeekStartDate] = useState(currentWeekStart);
   const [data, setData] = useState<WeeklyMenuData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const requestSequence = useRef(0);
 
-  // Demand approval queue modal trigger
-  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
-
-  // Fetch customer options on mount
   useEffect(() => {
     let ignore = false;
-    weeklyMenuApi.getCustomers().then((list) => {
-      if (!ignore && list.length > 0) {
+    weeklyMenuApi
+      .getCustomers()
+      .then((list) => {
+        if (ignore) return;
         setCustomers(list);
-      }
-    }).catch(() => {});
+        setCustomerCode((current) => current || list[0]?.customerCode || '');
+        if (list.length === 0) setIsLoading(false);
+      })
+      .catch((cause: unknown) => {
+        if (!ignore) {
+          setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
+          setIsLoading(false);
+        }
+      });
     return () => {
       ignore = true;
     };
   }, []);
 
-  // Fetch weekly menu data when customer or week changes
   useEffect(() => {
-    let ignore = false;
-    async function fetchMenu() {
-      try {
-        const resp = await weeklyMenuApi.getWeeklyMenuData(customerCode, weekStartDate);
-        if (!ignore) {
-          setData(resp);
-          setIsLoading(false);
+    if (!customerCode) return;
+    const sequence = ++requestSequence.current;
+    weeklyMenuApi
+      .getWeeklyMenuData(customerCode, weekStartDate)
+      .then((response) => {
+        if (sequence === requestSequence.current) setData(response);
+      })
+      .catch((cause: unknown) => {
+        if (sequence === requestSequence.current) {
+          setData(null);
+          setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu thực đơn tuần.'));
         }
-      } catch (err: unknown) {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu thực đơn tuần.');
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchMenu();
-
-    return () => {
-      ignore = true;
-    };
+      })
+      .finally(() => {
+        if (sequence === requestSequence.current) setIsLoading(false);
+      });
   }, [customerCode, weekStartDate]);
 
   const handleRefresh = async () => {
+    if (!customerCode) return;
+    const sequence = ++requestSequence.current;
     setIsLoading(true);
     setError(null);
     try {
-      const resp = await weeklyMenuApi.getWeeklyMenuData(customerCode, weekStartDate);
-      setData(resp);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu thực đơn tuần.');
+      const response = await weeklyMenuApi.getWeeklyMenuData(customerCode, weekStartDate);
+      if (sequence === requestSequence.current) setData(response);
+    } catch (cause: unknown) {
+      if (sequence === requestSequence.current) {
+        setData(null);
+        setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu thực đơn tuần.'));
+      }
     } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleRecalculate = async () => {
-    setIsLoading(true);
-    try {
-      await weeklyMenuApi.recalculateDemand(customerCode, weekStartDate);
-      const resp = await weeklyMenuApi.getWeeklyMenuData(customerCode, weekStartDate);
-      setData(resp);
-      alert('Đã tính lại nhu cầu nguyên liệu thành công từ kế hoạch suất ăn!');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Tính lại nhu cầu thất bại');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const customerSelectOptions = customers.map((c) => ({
-    value: c.customerCode,
-    label: `${c.customerCode} - ${c.customerName}`,
-  }));
-
-  // Rule D7: Single Primary Button on WorkspaceHeader adapts dynamically to activeView
-  const renderHeaderPrimaryAction = () => {
-    switch (activeView) {
-      case 'demand':
-        return (
-          <ActionGuard roles={['ADMIN', 'MANAGER', 'DIEUPHOI', 'CHEF']}>
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setIsApprovalModalOpen(true)}
-              className="h-9 text-sm font-medium"
-            >
-              Mở hàng đợi duyệt
-            </Button>
-          </ActionGuard>
-        );
-      case 'production-plan':
-        return (
-          <Button
-            variant="default"
-            size="default"
-            onClick={() => alert('Đang in lệnh sản xuất cho ca nấu...')}
-            className="h-9 text-sm font-medium"
-          >
-            In lệnh sản xuất
-          </Button>
-        );
-      case 'cost':
-        return (
-          <Button
-            variant="default"
-            size="default"
-            onClick={() => alert('Xuất bảng phân rã chi phí giá vốn BOM thành công!')}
-            className="h-9 text-sm font-medium"
-          >
-            Xuất bảng chi phí
-          </Button>
-        );
-      case 'schedule':
-      default:
-        return (
-          <ActionGuard roles={['ADMIN', 'MANAGER', 'DIEUPHOI']}>
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => alert('Đã gửi phê duyệt toàn bộ kế hoạch tuần')}
-              className="h-9 text-sm font-medium"
-            >
-              Duyệt kế hoạch tuần
-            </Button>
-          </ActionGuard>
-        );
+      if (sequence === requestSequence.current) setIsLoading(false);
     }
   };
 
   const isViewEmpty = useMemo(() => {
     if (!data) return true;
-    switch (activeView) {
-      case 'demand':
-        return data.demandRows.length === 0;
-      case 'production-plan':
-        return data.productionPlans.length === 0;
-      case 'cost':
-        return data.dishCosts.length === 0;
-      case 'schedule':
-      default:
-        return data.matrixRows.length === 0;
-    }
+    if (activeView === 'demand') return data.demandRows.length === 0;
+    if (activeView === 'production-plan') return data.productionPlans.length === 0;
+    if (activeView === 'cost') return data.dishCosts.length === 0;
+    return data.matrixRows.length === 0;
   }, [data, activeView]);
 
   const emptyContext = useMemo(() => {
-    switch (activeView) {
-      case 'demand':
-        return {
-          title: 'Chưa có nhu cầu vật tư cho tuần này',
-          desc: 'Chưa phát sinh dữ liệu bàn giao nguyên liệu từ KHSX.',
-        };
-      case 'production-plan':
-        return {
-          title: 'Chưa có kế hoạch sản xuất ca',
-          desc: 'Chưa có lệnh sản xuất nào được phát cho ca tuần này.',
-        };
-      case 'cost':
-        return {
-          title: 'Chưa có số liệu phân rã chi phí BOM',
-          desc: 'Chưa có định mức chi phí cho các món ăn trong tuần.',
-        };
-      case 'schedule':
-      default:
-        return {
-          title: 'Chưa có thực đơn cho tuần này',
-          desc: 'Khách hàng chưa đăng ký thực đơn cho khoảng thời gian đã chọn. Bấm nút bên dưới để tạo mới.',
-        };
+    if (activeView === 'demand') {
+      return {
+        title: 'Chưa có nhu cầu nguyên liệu có thẩm quyền',
+        desc: 'Backend chưa trả demand aggregate cho khách hàng và tuần đã chọn. Không sử dụng BOM tự tính thay cho nhu cầu đã sinh.',
+      };
     }
+    if (activeView === 'production-plan') {
+      return {
+        title: 'Chưa có kế hoạch sản xuất',
+        desc: 'Không có KHSX persisted trong phạm vi khách hàng và tuần đã chọn.',
+      };
+    }
+    if (activeView === 'cost') {
+      return {
+        title: 'Chưa có số liệu phân rã chi phí BOM',
+        desc: 'Backend hiện chưa cung cấp báo cáo giá vốn món ăn đúng grain cho phạm vi này; frontend không tự suy diễn chi phí.',
+      };
+    }
+    return {
+      title: 'Chưa có thực đơn cho tuần này',
+      desc: 'Không có dòng thực đơn persisted cho khách hàng và tuần đã chọn.',
+    };
   }, [activeView]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-      {/* Zone 1: Shared WorkspaceHeader (Cao 56px / h-14) */}
       <WorkspaceHeader
         title="Thực đơn & KHSX tuần"
         contextSelectors={
           <>
             <Select
-              options={customerSelectOptions}
+              aria-label="Chọn khách hàng thực đơn"
+              options={customers.map((customer) => ({
+                value: customer.customerCode,
+                label: `${customer.customerCode} - ${customer.customerName}`,
+              }))}
               value={customerCode}
-              onChange={(e) => setCustomerCode(e.target.value)}
+              onChange={(event) => {
+                setIsLoading(true);
+                setError(null);
+                setData(null);
+                setCustomerCode(event.target.value);
+              }}
+              disabled={customers.length === 0}
               className="h-9 w-64 font-medium text-sm"
             />
             <VietnameseDateInput
+              aria-label="Tuần bắt đầu"
               value={weekStartDate}
-              onChange={(d) => setWeekStartDate(d)}
+              onChange={(date) => {
+                setIsLoading(true);
+                setError(null);
+                setData(null);
+                setWeekStartDate(date);
+              }}
               className="h-9 w-40 font-mono text-sm"
             />
-            <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-mono flex items-center">
-              Định mức: 25.000 ₫
-            </Badge>
+            {data && data.mealTargetPrice > 0 && (
+              <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-mono flex items-center">
+                Mức giá: {data.mealTargetPrice.toLocaleString('vi-VN')} ₫
+              </Badge>
+            )}
           </>
         }
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={handleRefresh}
-              className="h-9 text-sm font-medium"
-            >
-              Làm mới
-            </Button>
-            {renderHeaderPrimaryAction()}
-          </>
+          <Button variant="outline" size="default" onClick={handleRefresh} className="h-9 text-sm font-medium">
+            Làm mới
+          </Button>
         }
       />
 
-      {/* State Boundary & Active View Render (NO duplicate tab bar in page!) */}
       <StateBoundary
         isLoading={isLoading}
         error={error}
         onRetry={handleRefresh}
         isEmpty={isViewEmpty}
+        emptyScenario="prerequisite-blocked"
         emptyTitle={emptyContext.title}
         emptyDescription={emptyContext.desc}
-        actionLabel="Khởi tạo thực đơn tuần"
-        onAction={handleRefresh}
       >
-        {data && (
-          <>
-            {activeView === 'schedule' && (
-              <WeeklyScheduleView data={data} />
-            )}
-
-            {activeView === 'demand' && (
-              <MaterialDemandView
-                data={data}
-                onRecalculate={handleRecalculate}
-                isApprovalModalOpen={isApprovalModalOpen}
-                setIsApprovalModalOpen={setIsApprovalModalOpen}
-              />
-            )}
-
-            {activeView === 'production-plan' && (
-              <ProductionPlanView data={data} />
-            )}
-
-            {activeView === 'cost' && (
-              <MenuCostView data={data} />
-            )}
-          </>
-        )}
+        {data && activeView === 'schedule' && <WeeklyScheduleView data={data} />}
+        {data && activeView === 'demand' && <MaterialDemandView data={data} />}
+        {data && activeView === 'production-plan' && <ProductionPlanView data={data} />}
+        {data && activeView === 'cost' && <MenuCostView data={data} />}
       </StateBoundary>
     </div>
   );

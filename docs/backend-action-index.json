@@ -1,0 +1,3917 @@
+{
+  "version": 1,
+  "actions": [
+    {
+      "actionId": "AdminEmployees.Create",
+      "controller": "AdminEmployeesController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+      "httpMethod": "POST",
+      "route": "api/admin/employees",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "CreateEmployeeRequest"
+      ],
+      "responseTypes": [
+        "EmployeeDto"
+      ]
+    },
+    {
+      "actionId": "AdminEmployees.GetAll",
+      "controller": "AdminEmployeesController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+      "httpMethod": "GET",
+      "route": "api/admin/employees",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "EmployeeDto"
+      ]
+    },
+    {
+      "actionId": "AdminEmployees.GetById",
+      "controller": "AdminEmployeesController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+      "httpMethod": "GET",
+      "route": "api/admin/employees/{id}",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "EmployeeDto"
+      ]
+    },
+    {
+      "actionId": "AdminEmployees.GetRoles",
+      "controller": "AdminEmployeesController",
+      "sourceMethod": "GetRolesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+      "httpMethod": "GET",
+      "route": "api/admin/employees/roles",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "AdminRoleDto"
+      ]
+    },
+    {
+      "actionId": "AdminEmployees.SeedSampleUsers",
+      "controller": "AdminEmployeesController",
+      "sourceMethod": "SeedSampleUsersAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+      "httpMethod": "POST",
+      "route": "api/admin/employees/seed",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "AdminEmployees.Update",
+      "controller": "AdminEmployeesController",
+      "sourceMethod": "UpdateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+      "httpMethod": "PUT",
+      "route": "api/admin/employees/{id}",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "UpdateEmployeeRequest"
+      ],
+      "responseTypes": [
+        "EmployeeDto"
+      ]
+    },
+    {
+      "actionId": "AdminEmployees.UpdateStatus",
+      "controller": "AdminEmployeesController",
+      "sourceMethod": "UpdateStatusAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/AdminEmployeesController.cs",
+      "httpMethod": "PATCH",
+      "route": "api/admin/employees/{id}/status",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "UpdateEmployeeStatusRequest"
+      ],
+      "responseTypes": [
+        "EmployeeDto"
+      ]
+    },
+    {
+      "actionId": "ApprovalHistory.GetHistory",
+      "controller": "ApprovalHistoryController",
+      "sourceMethod": "GetHistoryAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalHistoryController.cs",
+      "httpMethod": "GET",
+      "route": "api/approval-history/{documentType}/{documentId}",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ApprovalHistoryItemDto"
+      ]
+    },
+    {
+      "actionId": "ApprovalRules.CreateRule",
+      "controller": "ApprovalRulesController",
+      "sourceMethod": "CreateRuleAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+      "httpMethod": "POST",
+      "route": "api/approval-rules",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ApprovalRuleRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ApprovalRules.DeleteRule",
+      "controller": "ApprovalRulesController",
+      "sourceMethod": "DeleteRuleAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+      "httpMethod": "DELETE",
+      "route": "api/approval-rules/{id}",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ApprovalRules.GetRuleById",
+      "controller": "ApprovalRulesController",
+      "sourceMethod": "GetRuleByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+      "httpMethod": "GET",
+      "route": "api/approval-rules/{id}",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ApprovalRules.GetRules",
+      "controller": "ApprovalRulesController",
+      "sourceMethod": "GetRulesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+      "httpMethod": "GET",
+      "route": "api/approval-rules",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ApprovalRules.UpdateRule",
+      "controller": "ApprovalRulesController",
+      "sourceMethod": "UpdateRuleAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs",
+      "httpMethod": "PUT",
+      "route": "api/approval-rules/{id}",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ApprovalRuleRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "Approvals.Execute",
+      "controller": "ApprovalsController",
+      "sourceMethod": "ExecuteAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalsController.cs",
+      "httpMethod": "POST",
+      "route": "api/approvals/{targetType}/{id}",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [
+        "ApprovalRequest"
+      ],
+      "responseTypes": [
+        "ApprovalResultDto"
+      ]
+    },
+    {
+      "actionId": "Approvals.GetInbox",
+      "controller": "ApprovalsController",
+      "sourceMethod": "GetInboxAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalsController.cs",
+      "httpMethod": "GET",
+      "route": "api/approvals/inbox",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ApprovalInboxPageDto"
+      ]
+    },
+    {
+      "actionId": "AuditReports.ExportAuditChangesCsv",
+      "controller": "AuditReportsController",
+      "sourceMethod": "ExportAuditChangesCsvAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/AuditReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/audit-changes/csv",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "AuditReports.GetAuditChangePage",
+      "controller": "AuditReportsController",
+      "sourceMethod": "GetAuditChangePageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/AuditReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/audit-changes/page",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CursorPageDto",
+        "AuditChangeReportDto"
+      ]
+    },
+    {
+      "actionId": "AuditReports.GetAuditChanges",
+      "controller": "AuditReportsController",
+      "sourceMethod": "GetAuditChangesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/AuditReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/audit-changes",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "AuditChangeReportDto"
+      ]
+    },
+    {
+      "actionId": "Auth.GetMe",
+      "controller": "AuthController",
+      "sourceMethod": "GetMeAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+      "httpMethod": "GET",
+      "route": "api/auth/me",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "UserProfileResponseDto"
+      ]
+    },
+    {
+      "actionId": "Auth.GetProfile",
+      "controller": "AuthController",
+      "sourceMethod": "GetProfileAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+      "httpMethod": "GET",
+      "route": "api/auth/profile",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "UserInfoDto"
+      ]
+    },
+    {
+      "actionId": "Auth.Login",
+      "controller": "AuthController",
+      "sourceMethod": "LoginAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+      "httpMethod": "POST",
+      "route": "api/auth/login",
+      "policies": [],
+      "requestTypes": [
+        "LoginRequest"
+      ],
+      "responseTypes": [
+        "LoginResponseDto"
+      ]
+    },
+    {
+      "actionId": "Auth.Logout",
+      "controller": "AuthController",
+      "sourceMethod": "LogoutAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+      "httpMethod": "POST",
+      "route": "api/auth/logout",
+      "policies": [],
+      "requestTypes": [
+        "RevokeTokenRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "Auth.Refresh",
+      "controller": "AuthController",
+      "sourceMethod": "RefreshAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+      "httpMethod": "POST",
+      "route": "api/auth/refresh",
+      "policies": [],
+      "requestTypes": [
+        "RefreshTokenRequest"
+      ],
+      "responseTypes": [
+        "LoginResponseDto"
+      ]
+    },
+    {
+      "actionId": "Auth.Revoke",
+      "controller": "AuthController",
+      "sourceMethod": "RevokeAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Auth/Controllers/AuthController.cs",
+      "httpMethod": "POST",
+      "route": "api/auth/revoke",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [
+        "RevokeTokenRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "CoordinationOrders.AdjustOrderAfterLock",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "AdjustOrderAfterLockAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/orders/adjust",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "AdjustOrderAfterLockRequest"
+      ],
+      "responseTypes": [
+        "AdjustOrderAfterLockResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.AdjustServings",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "AdjustServingsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "PATCH",
+      "route": "api/coordination/orders/{id}/servings",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "AdjustServingsRequest"
+      ],
+      "responseTypes": [
+        "AdjustServingsResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.ExportOrderReport",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "ExportOrderReportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/orders/export",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "ExportOrderReportRequest"
+      ],
+      "responseTypes": [
+        "ExportOrderReportResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.GetOrders",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "GetOrdersAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/orders",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CoordinationOrderDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.LockOrderPlan",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "LockOrderPlanAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/orders/lock",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "LockOrderPlanRequest"
+      ],
+      "responseTypes": [
+        "LockOrderPlanResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.SignoffOrder",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "SignoffOrderAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/orders/{id}/signoff",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "SignoffOrderRequest"
+      ],
+      "responseTypes": [
+        "SignoffOrderResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.SignoffOrderScope",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "SignoffOrderScopeAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/orders/signoff",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "CoordinationScopeActionRequest"
+      ],
+      "responseTypes": [
+        "CoordinationScopeActionResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.UnlockOrderPlan",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "UnlockOrderPlanAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/orders/{id}/unlock",
+      "policies": [
+        "CoordinationAccess",
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "LockOrderPlanResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.UnlockOrderPlanScope",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "UnlockOrderPlanScopeAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/orders/unlock",
+      "policies": [
+        "CoordinationAccess",
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "CoordinationScopeActionRequest"
+      ],
+      "responseTypes": [
+        "CoordinationScopeActionResultDto"
+      ]
+    },
+    {
+      "actionId": "CoordinationOrders.UpdateForecastServings",
+      "controller": "CoordinationOrdersController",
+      "sourceMethod": "UpdateForecastServingsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationOrdersController.cs",
+      "httpMethod": "PATCH",
+      "route": "api/coordination/orders/{id}/forecast",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "UpdateForecastServingsRequest"
+      ],
+      "responseTypes": [
+        "AdjustServingsResultDto"
+      ]
+    },
+    {
+      "actionId": "CustomerContracts.CreateCustomerContract",
+      "controller": "CustomerContractsController",
+      "sourceMethod": "CreateCustomerContractAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/customers/contract",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "CreateCustomerContractRequest"
+      ],
+      "responseTypes": [
+        "CustomerContractDto"
+      ]
+    },
+    {
+      "actionId": "CustomerContracts.GetCustomerContracts",
+      "controller": "CustomerContractsController",
+      "sourceMethod": "GetCustomerContractsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/customer-contracts",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CustomerContractDto"
+      ]
+    },
+    {
+      "actionId": "CustomerContracts.UpdateCustomerContract",
+      "controller": "CustomerContractsController",
+      "sourceMethod": "UpdateCustomerContractAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/CustomerContractsController.cs",
+      "httpMethod": "PUT",
+      "route": "api/coordination/customers/{id}/contract",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "UpdateCustomerContractRequest"
+      ],
+      "responseTypes": [
+        "CustomerContractDto"
+      ]
+    },
+    {
+      "actionId": "DataQualityDispositions.Apply",
+      "controller": "DataQualityDispositionsController",
+      "sourceMethod": "ApplyAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+      "httpMethod": "POST",
+      "route": "api/data-quality-dispositions/{id}/apply",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "DataQualityDispositions.Create",
+      "controller": "DataQualityDispositionsController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+      "httpMethod": "POST",
+      "route": "api/data-quality-dispositions",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "DataQualityDispositions.Get",
+      "controller": "DataQualityDispositionsController",
+      "sourceMethod": "GetAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+      "httpMethod": "GET",
+      "route": "api/data-quality-dispositions",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "DataQualityDispositions.Review",
+      "controller": "DataQualityDispositionsController",
+      "sourceMethod": "ReviewAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DataQualityDispositionsController.cs",
+      "httpMethod": "POST",
+      "route": "api/data-quality-dispositions/{id}/review",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "DemandReports.GetIngredientDemand",
+      "controller": "DemandReportsController",
+      "sourceMethod": "GetIngredientDemandAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DemandReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/ingredient-demand",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "IngredientDemandReportDto"
+      ]
+    },
+    {
+      "actionId": "DemandReports.GetIngredientDemandAggregatePage",
+      "controller": "DemandReportsController",
+      "sourceMethod": "GetIngredientDemandAggregatePageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DemandReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/ingredient-demand/aggregate/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "IngredientDemandAggregatePageDto"
+      ]
+    },
+    {
+      "actionId": "DemandReports.GetIngredientDemandPage",
+      "controller": "DemandReportsController",
+      "sourceMethod": "GetIngredientDemandPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DemandReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/ingredient-demand/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "IngredientDemandPageDto"
+      ]
+    },
+    {
+      "actionId": "DemandReports.GetMaterialRequestCandidatePage",
+      "controller": "DemandReportsController",
+      "sourceMethod": "GetMaterialRequestCandidatePageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/DemandReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/material-request-candidates/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MaterialRequestCandidatePageDto"
+      ]
+    },
+    {
+      "actionId": "DishBom.AddBomLine",
+      "controller": "DishBomController",
+      "sourceMethod": "AddBomLineAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+      "httpMethod": "POST",
+      "route": "api/Dishes/{id}/bom",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "CreateDishBomLineRequest"
+      ],
+      "responseTypes": [
+        "DishCatalogBomLineDto"
+      ]
+    },
+    {
+      "actionId": "DishBom.CloseBomLine",
+      "controller": "DishBomController",
+      "sourceMethod": "CloseBomLineAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+      "httpMethod": "DELETE",
+      "route": "api/Dishes/{id}/bom/{bomId}",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "DishBom.GetBomLines",
+      "controller": "DishBomController",
+      "sourceMethod": "GetBomLinesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/{id}/bom",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "DishCatalogBomLineDto"
+      ]
+    },
+    {
+      "actionId": "DishBom.UpdateBomLine",
+      "controller": "DishBomController",
+      "sourceMethod": "UpdateBomLineAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomController.cs",
+      "httpMethod": "PUT",
+      "route": "api/Dishes/{id}/bom/{bomId}",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "UpdateDishBomLineRequest"
+      ],
+      "responseTypes": [
+        "DishCatalogBomLineDto"
+      ]
+    },
+    {
+      "actionId": "DishBomImports.CommitBomImport",
+      "controller": "DishBomImportsController",
+      "sourceMethod": "CommitBomImportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomImportsController.cs",
+      "httpMethod": "POST",
+      "route": "api/Dishes/bom-import/commit",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "BomImportCommitResultDto"
+      ]
+    },
+    {
+      "actionId": "DishBomImports.DownloadBomTemplate",
+      "controller": "DishBomImportsController",
+      "sourceMethod": "DownloadBomTemplateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomImportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/bom-template",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "DishBomImports.PreviewBomImport",
+      "controller": "DishBomImportsController",
+      "sourceMethod": "PreviewBomImportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishBomImportsController.cs",
+      "httpMethod": "POST",
+      "route": "api/Dishes/bom-import/preview",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "BomImportPreviewDto"
+      ]
+    },
+    {
+      "actionId": "DishCatalogDiagnostics.GetBomCoverage",
+      "controller": "DishCatalogDiagnosticsController",
+      "sourceMethod": "GetBomCoverageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishCatalogDiagnosticsController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/bom-coverage",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "BomCoverageReportDto"
+      ]
+    },
+    {
+      "actionId": "DishCatalogDiagnostics.GetBomValidation",
+      "controller": "DishCatalogDiagnosticsController",
+      "sourceMethod": "GetBomValidationAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishCatalogDiagnosticsController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/bom-validation",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "BomValidationReportDto"
+      ]
+    },
+    {
+      "actionId": "DishCatalogDiagnostics.GetMenuImportHistory",
+      "controller": "DishCatalogDiagnosticsController",
+      "sourceMethod": "GetMenuImportHistoryAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishCatalogDiagnosticsController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/import-history",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MenuImportHistoryDto"
+      ]
+    },
+    {
+      "actionId": "DishCatalogDiagnostics.GetSampleImportStatus",
+      "controller": "DishCatalogDiagnosticsController",
+      "sourceMethod": "GetSampleImportStatusAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishCatalogDiagnosticsController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/sample-import-status",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SampleImportStatusDto"
+      ]
+    },
+    {
+      "actionId": "Dishes.Create",
+      "controller": "DishesController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+      "httpMethod": "POST",
+      "route": "api/Dishes",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "CreateDishRequest"
+      ],
+      "responseTypes": [
+        "DishDto"
+      ]
+    },
+    {
+      "actionId": "Dishes.Delete",
+      "controller": "DishesController",
+      "sourceMethod": "DeleteAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+      "httpMethod": "DELETE",
+      "route": "api/Dishes/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "Dishes.GetAll",
+      "controller": "DishesController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "DishDto"
+      ]
+    },
+    {
+      "actionId": "Dishes.GetById",
+      "controller": "DishesController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "DishDto"
+      ]
+    },
+    {
+      "actionId": "Dishes.GetCatalog",
+      "controller": "DishesController",
+      "sourceMethod": "GetCatalogAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+      "httpMethod": "GET",
+      "route": "api/Dishes/catalog",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "DishCatalogDto"
+      ]
+    },
+    {
+      "actionId": "Dishes.Update",
+      "controller": "DishesController",
+      "sourceMethod": "UpdateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs",
+      "httpMethod": "PUT",
+      "route": "api/Dishes/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "UpdateDishRequest"
+      ],
+      "responseTypes": [
+        "DishDto"
+      ]
+    },
+    {
+      "actionId": "Ingredients.Create",
+      "controller": "IngredientsController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+      "httpMethod": "POST",
+      "route": "api/ingredients",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "CreateIngredientRequest"
+      ],
+      "responseTypes": [
+        "IngredientDto"
+      ]
+    },
+    {
+      "actionId": "Ingredients.Delete",
+      "controller": "IngredientsController",
+      "sourceMethod": "DeleteAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+      "httpMethod": "DELETE",
+      "route": "api/ingredients/{id}",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "Ingredients.GetAll",
+      "controller": "IngredientsController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+      "httpMethod": "GET",
+      "route": "api/ingredients",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "IngredientDto"
+      ]
+    },
+    {
+      "actionId": "Ingredients.GetById",
+      "controller": "IngredientsController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+      "httpMethod": "GET",
+      "route": "api/ingredients/{id}",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "IngredientDto"
+      ]
+    },
+    {
+      "actionId": "Ingredients.Update",
+      "controller": "IngredientsController",
+      "sourceMethod": "UpdateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
+      "httpMethod": "PUT",
+      "route": "api/ingredients/{id}",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "UpdateIngredientRequest"
+      ],
+      "responseTypes": [
+        "IngredientDto"
+      ]
+    },
+    {
+      "actionId": "InventoryIssues.ConfirmReceipt",
+      "controller": "InventoryIssuesController",
+      "sourceMethod": "ConfirmReceiptAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+      "httpMethod": "POST",
+      "route": "api/inventory-issues/{id}/confirm-receipt",
+      "policies": [
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [
+        "ConfirmInventoryIssueReceiptRequest"
+      ],
+      "responseTypes": [
+        "InventoryIssueDto"
+      ]
+    },
+    {
+      "actionId": "InventoryIssues.Create",
+      "controller": "InventoryIssuesController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+      "httpMethod": "POST",
+      "route": "api/inventory-issues",
+      "policies": [
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [
+        "CreateInventoryIssueRequest"
+      ],
+      "responseTypes": [
+        "InventoryIssueCreatedDto"
+      ]
+    },
+    {
+      "actionId": "InventoryIssues.GetAll",
+      "controller": "InventoryIssuesController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+      "httpMethod": "GET",
+      "route": "api/inventory-issues",
+      "policies": [
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "InventoryIssueDto"
+      ]
+    },
+    {
+      "actionId": "InventoryIssues.GetById",
+      "controller": "InventoryIssuesController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs",
+      "httpMethod": "GET",
+      "route": "api/inventory-issues/{id}",
+      "policies": [
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "InventoryIssueDto"
+      ]
+    },
+    {
+      "actionId": "InventoryOperationsReports.GetIssueVsReturn",
+      "controller": "InventoryOperationsReportsController",
+      "sourceMethod": "GetIssueVsReturnAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/issue-vs-return",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "IssueVsReturnUsageReportDto"
+      ]
+    },
+    {
+      "actionId": "InventoryOperationsReports.GetIssueVsReturnPage",
+      "controller": "InventoryOperationsReportsController",
+      "sourceMethod": "GetIssueVsReturnPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/issue-vs-return/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "IssueVsReturnUsageReportDto"
+      ]
+    },
+    {
+      "actionId": "InventoryOperationsReports.GetKitchenIssues",
+      "controller": "InventoryOperationsReportsController",
+      "sourceMethod": "GetKitchenIssuesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/kitchen-issues",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "KitchenIssueReportDto"
+      ]
+    },
+    {
+      "actionId": "InventoryOperationsReports.GetKitchenIssuesPage",
+      "controller": "InventoryOperationsReportsController",
+      "sourceMethod": "GetKitchenIssuesPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/kitchen-issues/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "KitchenIssueReportDto"
+      ]
+    },
+    {
+      "actionId": "InventoryOperationsReports.GetSupplyLineReconciliation",
+      "controller": "InventoryOperationsReportsController",
+      "sourceMethod": "GetSupplyLineReconciliationAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/supply-line-reconciliation",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SupplyLineReconciliationDto"
+      ]
+    },
+    {
+      "actionId": "InventoryOperationsReports.GetWorkflowDocuments",
+      "controller": "InventoryOperationsReportsController",
+      "sourceMethod": "GetWorkflowDocumentsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/workflow-documents",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WorkflowDocumentDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReceipts.Create",
+      "controller": "InventoryReceiptsController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/inventory-receipts",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "CreateInventoryReceiptRequest"
+      ],
+      "responseTypes": [
+        "InventoryReceiptCreatedDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReceipts.CreateFromPurchase",
+      "controller": "InventoryReceiptsController",
+      "sourceMethod": "CreateFromPurchaseAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/inventory-receipts/from-purchase",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "CreateInventoryReceiptFromPurchaseRequest"
+      ],
+      "responseTypes": [
+        "InventoryReceiptCreatedDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReceipts.GetAll",
+      "controller": "InventoryReceiptsController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+      "httpMethod": "GET",
+      "route": "api/inventory-receipts",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryReceiptReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "InventoryReceiptDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReceipts.GetById",
+      "controller": "InventoryReceiptsController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReceiptsController.cs",
+      "httpMethod": "GET",
+      "route": "api/inventory-receipts/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryReceiptReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "InventoryReceiptDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReturns.ConfirmReceipt",
+      "controller": "InventoryReturnsController",
+      "sourceMethod": "ConfirmReceiptAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+      "httpMethod": "POST",
+      "route": "api/inventory-returns/{id}/confirm-receipt",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "ConfirmInventoryReturnReceiptRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "InventoryReturns.Create",
+      "controller": "InventoryReturnsController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+      "httpMethod": "POST",
+      "route": "api/inventory-returns",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [
+        "CreateInventoryReturnRequest"
+      ],
+      "responseTypes": [
+        "InventoryReturnCreatedDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReturns.CreateAllocationDisposition",
+      "controller": "InventoryReturnsController",
+      "sourceMethod": "CreateAllocationDispositionAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+      "httpMethod": "POST",
+      "route": "api/inventory-returns/allocation-dispositions",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "CreateInventoryAllocationDispositionRequest"
+      ],
+      "responseTypes": [
+        "InventoryAllocationDispositionDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReturns.GetAll",
+      "controller": "InventoryReturnsController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+      "httpMethod": "GET",
+      "route": "api/inventory-returns",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "InventoryReturnDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReturns.GetAllocationBalances",
+      "controller": "InventoryReturnsController",
+      "sourceMethod": "GetAllocationBalancesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+      "httpMethod": "GET",
+      "route": "api/inventory-returns/allocation-balances",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "InventoryReturnAllocationBalanceDto"
+      ]
+    },
+    {
+      "actionId": "InventoryReturns.GetById",
+      "controller": "InventoryReturnsController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryReturnsController.cs",
+      "httpMethod": "GET",
+      "route": "api/inventory-returns/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "InventoryReturnDto"
+      ]
+    },
+    {
+      "actionId": "LegacyLineageDispositions.Apply",
+      "controller": "LegacyLineageDispositionsController",
+      "sourceMethod": "ApplyAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+      "httpMethod": "POST",
+      "route": "api/legacy-lineage-dispositions/{id}/apply",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ApplyLegacyLineageDispositionRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "LegacyLineageDispositions.Create",
+      "controller": "LegacyLineageDispositionsController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+      "httpMethod": "POST",
+      "route": "api/legacy-lineage-dispositions",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "CreateLegacyLineageDispositionRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "LegacyLineageDispositions.Get",
+      "controller": "LegacyLineageDispositionsController",
+      "sourceMethod": "GetAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+      "httpMethod": "GET",
+      "route": "api/legacy-lineage-dispositions",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "LegacyLineageDispositions.GetCandidates",
+      "controller": "LegacyLineageDispositionsController",
+      "sourceMethod": "GetCandidatesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+      "httpMethod": "GET",
+      "route": "api/legacy-lineage-dispositions/candidates",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "LegacyLineageDispositions.Review",
+      "controller": "LegacyLineageDispositionsController",
+      "sourceMethod": "ReviewAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/LegacyLineageDispositionsController.cs",
+      "httpMethod": "POST",
+      "route": "api/legacy-lineage-dispositions/{id}/review",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [
+        "ReviewLegacyLineageDispositionRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "LifecycleOutbox.Get",
+      "controller": "LifecycleOutboxController",
+      "sourceMethod": "GetAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
+      "httpMethod": "GET",
+      "route": "api/admin/lifecycle-outbox",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "LifecycleOutbox.Replay",
+      "controller": "LifecycleOutboxController",
+      "sourceMethod": "ReplayAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Admin/Controllers/LifecycleOutboxController.cs",
+      "httpMethod": "POST",
+      "route": "api/admin/lifecycle-outbox/{messageId}/replay",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ReplayLifecycleOutboxRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "MaterialDemand.Approve",
+      "controller": "MaterialDemandController",
+      "sourceMethod": "ApproveAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
+      "httpMethod": "POST",
+      "route": "api/material-demand/{id}/approve",
+      "policies": [
+        "DemandGenerateAccess"
+      ],
+      "requestTypes": [
+        "MaterialDemandApproveRequest"
+      ],
+      "responseTypes": [
+        "MaterialDemandApprovalDto"
+      ]
+    },
+    {
+      "actionId": "MaterialDemand.Generate",
+      "controller": "MaterialDemandController",
+      "sourceMethod": "GenerateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
+      "httpMethod": "POST",
+      "route": "api/material-demand/generate",
+      "policies": [
+        "DemandGenerateAccess"
+      ],
+      "requestTypes": [
+        "GenerateMaterialDemandRequest"
+      ],
+      "responseTypes": [
+        "MaterialDemandResultDto"
+      ]
+    },
+    {
+      "actionId": "MaterialDemand.GetStaleness",
+      "controller": "MaterialDemandController",
+      "sourceMethod": "GetStalenessAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs",
+      "httpMethod": "GET",
+      "route": "api/material-demand/staleness",
+      "policies": [
+        "DemandGenerateAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MaterialDemandStalenessDto"
+      ]
+    },
+    {
+      "actionId": "MealQuantityPlans.GetMealQuantityPlans",
+      "controller": "MealQuantityPlansController",
+      "sourceMethod": "GetMealQuantityPlansAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/meal-quantity-plans",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MealQuantityPlanDto"
+      ]
+    },
+    {
+      "actionId": "MealQuantityPlans.UpsertQuickServings",
+      "controller": "MealQuantityPlansController",
+      "sourceMethod": "UpsertQuickServingsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/meal-quantity-plans/quick-servings",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "UpsertQuickServingsRequest"
+      ],
+      "responseTypes": [
+        "MealQuantityPlanDto"
+      ]
+    },
+    {
+      "actionId": "MenuSchedules.GetMenuSchedules",
+      "controller": "MenuSchedulesController",
+      "sourceMethod": "GetMenuSchedulesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/menu-schedules",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MenuScheduleDto"
+      ]
+    },
+    {
+      "actionId": "MenuSchedules.RollbackMenuVersion",
+      "controller": "MenuSchedulesController",
+      "sourceMethod": "RollbackMenuVersionAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/menu-versions/rollback",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "RollbackMenuVersionRequest"
+      ],
+      "responseTypes": [
+        "MenuVersionRollbackResultDto"
+      ]
+    },
+    {
+      "actionId": "MenuSchedules.UpdateMenuScheduleRules",
+      "controller": "MenuSchedulesController",
+      "sourceMethod": "UpdateMenuScheduleRulesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+      "httpMethod": "PATCH",
+      "route": "api/coordination/menu-schedules/{id}/rules",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "UpdateMenuScheduleRulesRequest"
+      ],
+      "responseTypes": [
+        "MenuScheduleDto"
+      ]
+    },
+    {
+      "actionId": "MenuSchedules.UpdateMenuScheduleVersion",
+      "controller": "MenuSchedulesController",
+      "sourceMethod": "UpdateMenuScheduleVersionAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/MenuSchedulesController.cs",
+      "httpMethod": "PATCH",
+      "route": "api/coordination/menu-schedules/{id}/version",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "UpdateMenuScheduleVersionRequest"
+      ],
+      "responseTypes": [
+        "MenuScheduleDto"
+      ]
+    },
+    {
+      "actionId": "PortionRules.CreatePortionRule",
+      "controller": "PortionRulesController",
+      "sourceMethod": "CreatePortionRuleAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/portion-rules",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "CreatePortionRuleRequest"
+      ],
+      "responseTypes": [
+        "PortionRuleDto"
+      ]
+    },
+    {
+      "actionId": "PortionRules.GetPortionRules",
+      "controller": "PortionRulesController",
+      "sourceMethod": "GetPortionRulesAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/portion-rules",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PortionRuleDto"
+      ]
+    },
+    {
+      "actionId": "PortionRules.ResolvePortionRule",
+      "controller": "PortionRulesController",
+      "sourceMethod": "ResolvePortionRuleAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/portion-rules/resolve",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "ResolvePortionRuleRequest"
+      ],
+      "responseTypes": [
+        "ResolvedPortionRuleDto"
+      ]
+    },
+    {
+      "actionId": "PortionRules.UpdatePortionRule",
+      "controller": "PortionRulesController",
+      "sourceMethod": "UpdatePortionRuleAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Coordination/Controllers/PortionRulesController.cs",
+      "httpMethod": "PUT",
+      "route": "api/coordination/portion-rules/{id}",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "UpdatePortionRuleRequest"
+      ],
+      "responseTypes": [
+        "PortionRuleDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetPriceVarianceByDishGroup",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetPriceVarianceByDishGroupAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/price-variance/by-dish-group",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PriceVarianceByDishGroupDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetPriceVarianceByDishGroupPage",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetPriceVarianceByDishGroupPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/price-variance/by-dish-group/page",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "PriceVarianceByDishGroupDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetPriceVarianceByPeriod",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetPriceVarianceByPeriodAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/price-variance/by-period",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PriceVarianceByPeriodDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetPriceVarianceByPeriodPage",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetPriceVarianceByPeriodPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/price-variance/by-period/page",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "PriceVarianceByPeriodDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetPriceVarianceBySupplier",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetPriceVarianceBySupplierAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/price-variance/by-supplier",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PriceVarianceBySupplierDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetPriceVarianceBySupplierPage",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetPriceVarianceBySupplierPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/price-variance/by-supplier/page",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "PriceVarianceBySupplierDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetReceiptPriceVariance",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetReceiptPriceVarianceAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/receipt-price-variance",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseOrderReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReceiptPriceVarianceReportDto"
+      ]
+    },
+    {
+      "actionId": "PriceVarianceReports.GetReceiptPriceVariancePage",
+      "controller": "PriceVarianceReportsController",
+      "sourceMethod": "GetReceiptPriceVariancePageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/receipt-price-variance/page",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseOrderReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "ReceiptPriceVarianceReportDto"
+      ]
+    },
+    {
+      "actionId": "ProductionPlans.GetAll",
+      "controller": "ProductionPlansController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs",
+      "httpMethod": "GET",
+      "route": "api/production-plans",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "ProductionPlanDto"
+      ]
+    },
+    {
+      "actionId": "ProductionPlans.GetById",
+      "controller": "ProductionPlansController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs",
+      "httpMethod": "GET",
+      "route": "api/production-plans/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ProductionPlanDto"
+      ]
+    },
+    {
+      "actionId": "ProductionPlans.GetDaily",
+      "controller": "ProductionPlansController",
+      "sourceMethod": "GetDailyAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs",
+      "httpMethod": "GET",
+      "route": "api/production-plans/daily",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "DailyProductionPlanDto"
+      ]
+    },
+    {
+      "actionId": "ProductionPlans.GetFiltered",
+      "controller": "ProductionPlansController",
+      "sourceMethod": "GetFilteredAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs",
+      "httpMethod": "GET",
+      "route": "api/production-plans/filter",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ProductionPlanDto"
+      ]
+    },
+    {
+      "actionId": "ProductionPlans.SendDailyToKitchen",
+      "controller": "ProductionPlansController",
+      "sourceMethod": "SendDailyToKitchenAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ProductionPlansController.cs",
+      "httpMethod": "POST",
+      "route": "api/production-plans/daily/send-to-kitchen",
+      "policies": [
+        "AUTHENTICATED",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "SendDailyProductionPlanRequest"
+      ],
+      "responseTypes": [
+        "DailyProductionPlanDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseOrders.Cancel",
+      "controller": "PurchaseOrdersController",
+      "sourceMethod": "CancelAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/purchase-orders/{id}/cancel",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseOrderDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseOrders.CreateFromRequest",
+      "controller": "PurchaseOrdersController",
+      "sourceMethod": "CreateFromRequestAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+      "httpMethod": "POST",
+      "route": "api/purchase-orders/from-request/{purchaseRequestId}",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseOrderDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseOrders.GetById",
+      "controller": "PurchaseOrdersController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-orders/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseOrderReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseOrderDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseOrders.GetList",
+      "controller": "PurchaseOrdersController",
+      "sourceMethod": "GetListAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-orders",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseOrderReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseOrderDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseOrders.GetPage",
+      "controller": "PurchaseOrdersController",
+      "sourceMethod": "GetPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-orders/page",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseOrderReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseOrderPageDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseRequests.GetPurchaseRequestById",
+      "controller": "PurchaseRequestsController",
+      "sourceMethod": "GetPurchaseRequestByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseRequestsController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-requests/{id}",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseRequestWorkflowResultDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseRequests.GetPurchaseRequests",
+      "controller": "PurchaseRequestsController",
+      "sourceMethod": "GetPurchaseRequestsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseRequestsController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-requests",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseRequestWorkflowResultDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseRequests.GetPurchaseRequestsPage",
+      "controller": "PurchaseRequestsController",
+      "sourceMethod": "GetPurchaseRequestsPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseRequestsController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-requests/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "PurchaseRequestWorkflowResultDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseWorkflow.ConfirmLineSupplier",
+      "controller": "PurchaseWorkflowController",
+      "sourceMethod": "ConfirmLineSupplierAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+      "httpMethod": "POST",
+      "route": "api/purchase-workflow/requests/{id}/lines/{lineId}/supplier-decision",
+      "policies": [
+        "PurchaseAccess",
+        "PurchaseGenerateAccess"
+      ],
+      "requestTypes": [
+        "ConfirmPurchaseLineSupplierRequest"
+      ],
+      "responseTypes": [
+        "PurchaseLineSupplierDecisionDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseWorkflow.GenerateFromDemand",
+      "controller": "PurchaseWorkflowController",
+      "sourceMethod": "GenerateFromDemandAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+      "httpMethod": "POST",
+      "route": "api/purchase-workflow/from-demand",
+      "policies": [
+        "PurchaseAccess",
+        "PurchaseGenerateAccess"
+      ],
+      "requestTypes": [
+        "GeneratePurchaseRequestFromDemandRequest"
+      ],
+      "responseTypes": [
+        "PurchaseRequestWorkflowResultDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseWorkflow.GetSupplierEvidence",
+      "controller": "PurchaseWorkflowController",
+      "sourceMethod": "GetSupplierEvidenceAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-workflow/requests/{id}/lines/{lineId}/supplier-evidence",
+      "policies": [
+        "PurchaseAccess",
+        "PurchaseGenerateAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SupplierEvidenceResultDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseWorkflow.GetWorkbenchWeek",
+      "controller": "PurchaseWorkflowController",
+      "sourceMethod": "GetWorkbenchWeekAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+      "httpMethod": "GET",
+      "route": "api/purchase-workflow/workbench",
+      "policies": [
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseWorkbenchWeekDto"
+      ]
+    },
+    {
+      "actionId": "PurchaseWorkflow.Submit",
+      "controller": "PurchaseWorkflowController",
+      "sourceMethod": "SubmitAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+      "httpMethod": "POST",
+      "route": "api/purchase-workflow/requests/{id}/submit",
+      "policies": [
+        "PurchaseAccess",
+        "PurchaseGenerateAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseRequestWorkflowResultDto"
+      ]
+    },
+    {
+      "actionId": "PurchasingReports.GetOrderExport",
+      "controller": "PurchasingReportsController",
+      "sourceMethod": "GetOrderExportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PurchasingReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/order-export",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "OrderExportReportRowDto"
+      ]
+    },
+    {
+      "actionId": "PurchasingReports.GetPurchaseDemand",
+      "controller": "PurchasingReportsController",
+      "sourceMethod": "GetPurchaseDemandAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PurchasingReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/purchase-demand",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchaseDemandReportDto"
+      ]
+    },
+    {
+      "actionId": "PurchasingReports.GetPurchasePlan",
+      "controller": "PurchasingReportsController",
+      "sourceMethod": "GetPurchasePlanAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PurchasingReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/purchase-plan",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchasePlanReportDto"
+      ]
+    },
+    {
+      "actionId": "PurchasingReports.GetPurchasePlanPage",
+      "controller": "PurchasingReportsController",
+      "sourceMethod": "GetPurchasePlanPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/PurchasingReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/purchase-plan/page",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PurchasePlanPageDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationActuals.Disposition",
+      "controller": "ReconciliationActualsController",
+      "sourceMethod": "Disposition",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+      "httpMethod": "PUT",
+      "route": "api/reconciliation/lines/{lineId}/disposition",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationDispositionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationActuals.DispositionCategories",
+      "controller": "ReconciliationActualsController",
+      "sourceMethod": "DispositionCategories",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/lines/disposition-categories",
+      "policies": [
+        "AUTHENTICATED",
+        "ReportAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationDispositionCategoryDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationActuals.Issued",
+      "controller": "ReconciliationActualsController",
+      "sourceMethod": "Issued",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+      "httpMethod": "PUT",
+      "route": "api/reconciliation/lines/{lineId}/issued",
+      "policies": [
+        "AUTHENTICATED",
+        "WarehouseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationActuals.Purchased",
+      "controller": "ReconciliationActualsController",
+      "sourceMethod": "Purchased",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationActualsController.cs",
+      "httpMethod": "PUT",
+      "route": "api/reconciliation/lines/{lineId}/purchased",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationBatches.CommitQuantityImport",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "CommitQuantityImport",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/batches/quantity-import/commit",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "QuantityImportCommitDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.Complete",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "Complete",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/batches/{id}/complete",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationCompleteAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationBatchDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.Create",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "Create",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/batches",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationBatchDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.Dishes",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "Dishes",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/{id}/dishes",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationBatchDishSummaryDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.DraftSources",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "DraftSources",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/draft-sources",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationDraftSourceDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.Get",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "Get",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationBatchDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.List",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "List",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationBatchDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.PreviewQuantityImport",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "PreviewQuantityImport",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/batches/quantity-import/preview",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "QuantityImportPreviewDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.Ready",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "Ready",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/batches/{id}/ready",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationBatchDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.SourceChanges",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "SourceChanges",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/{id}/source-changes",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationSourceChangeDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.TransferToWarehouse",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "TransferToWarehouse",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/batches/{id}/transfer-to-warehouse",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationWarehouseTransferDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationBatches.WarehouseDaily",
+      "controller": "ReconciliationBatchesController",
+      "sourceMethod": "WarehouseDaily",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/{id}/warehouse-daily",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationWarehouseDailyDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationConfiguration.InitializeSystemDefault",
+      "controller": "ReconciliationConfigurationController",
+      "sourceMethod": "InitializeSystemDefault",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationConfigurationController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/configuration/system-default/initialize",
+      "policies": [
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationDailyLines.Disposition",
+      "controller": "ReconciliationDailyLinesController",
+      "sourceMethod": "Disposition",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationDailyLinesController.cs",
+      "httpMethod": "PUT",
+      "route": "api/reconciliation/daily-lines/{dailyLineId}/disposition",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationDispositionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationKitchenCooking.Csv",
+      "controller": "ReconciliationKitchenCookingController",
+      "sourceMethod": "Csv",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationKitchenCookingController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/{id}/kitchen-cooking/csv",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationKitchenAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationKitchenCooking.Get",
+      "controller": "ReconciliationKitchenCookingController",
+      "sourceMethod": "Get",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationKitchenCookingController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/{id}/kitchen-cooking",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationKitchenAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationKitchenCookingExportDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationKitchenCooking.Xlsx",
+      "controller": "ReconciliationKitchenCookingController",
+      "sourceMethod": "Xlsx",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationKitchenCookingController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/batches/{id}/kitchen-cooking/xlsx",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationKitchenAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationReports.Export",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "Export",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/{id}/export",
+      "policies": [
+        "ReportAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationReports.Get",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "Get",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/{id}",
+      "policies": [
+        "ReportAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationBatchDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationWeeklyMenu.Get",
+      "controller": "ReconciliationWeeklyMenuController",
+      "sourceMethod": "GetAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationWeeklyMenuController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/weekly-menu",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WeeklyMenuImportResultDto"
+      ]
+    },
+    {
+      "actionId": "SampleData.ApplyPurchaseHistory",
+      "controller": "SampleDataController",
+      "sourceMethod": "ApplyPurchaseHistoryAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/SampleDataController.cs",
+      "httpMethod": "POST",
+      "route": "api/sample-data/purchase-history/apply",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "PurchaseHistoryApplyRequest"
+      ],
+      "responseTypes": [
+        "PurchaseHistoryApplyResultDto"
+      ]
+    },
+    {
+      "actionId": "SampleData.Import",
+      "controller": "SampleDataController",
+      "sourceMethod": "ImportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/SampleDataController.cs",
+      "httpMethod": "POST",
+      "route": "api/sample-data/import",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "SampleDataImportRequest"
+      ],
+      "responseTypes": [
+        "SampleDataImportResultDto"
+      ]
+    },
+    {
+      "actionId": "SampleData.PreviewPurchaseHistory",
+      "controller": "SampleDataController",
+      "sourceMethod": "PreviewPurchaseHistoryAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/SampleDataController.cs",
+      "httpMethod": "POST",
+      "route": "api/sample-data/purchase-history/preview",
+      "policies": [
+        "CatalogAccess"
+      ],
+      "requestTypes": [
+        "PurchaseHistoryPreviewRequest"
+      ],
+      "responseTypes": [
+        "PurchaseHistoryPreviewDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.Close",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "CloseAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/close",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.ConfirmService",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "ConfirmServiceAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/service-confirmation",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.CreateAdjustment",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "CreateAdjustmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.Adjustments.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/adjustments",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "CreateServiceRunAdjustmentRequest"
+      ],
+      "responseTypes": [
+        "ServiceRunAdjustmentDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.Get",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "GetAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "GET",
+      "route": "api/service-runs/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.GetAdjustments",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "GetAdjustmentsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.Adjustments.cs",
+      "httpMethod": "GET",
+      "route": "api/service-runs/{id}/adjustments",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ServiceRunAdjustmentDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.GetByPlan",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "GetByPlanAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "GET",
+      "route": "api/service-runs/by-plan",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.GetByScope",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "GetByScopeAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "GET",
+      "route": "api/service-runs/scope",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.GetPage",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "GetPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "GET",
+      "route": "api/service-runs/page",
+      "policies": [
+        "AUTHENTICATED",
+        "PurchaseOrderReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "ServiceRunOperationalRowDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.Open",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "OpenAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [
+        "OpenServiceRunRequest"
+      ],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.RecordActualServings",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "RecordActualServingsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/actual-servings",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [
+        "RecordActualServingsRequest"
+      ],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.ResolveServingVariance",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "ResolveServingVarianceAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/serving-variance/resolve",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "ReasonRequest"
+      ],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.ResolveVariance",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "ResolveVarianceAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/variance/resolve",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "ReasonRequest"
+      ],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.Start",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "StartAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/start",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRuns.WaiveServiceConfirmation",
+      "controller": "ServiceRunsController",
+      "sourceMethod": "WaiveServiceConfirmationAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/service-confirmation/waive",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "ReasonRequest"
+      ],
+      "responseTypes": [
+        "ServiceRunLifecycleProjectionDto"
+      ]
+    },
+    {
+      "actionId": "ServiceRunVarianceDeclarations.ApproveVarianceWaiver",
+      "controller": "ServiceRunVarianceDeclarationsController",
+      "sourceMethod": "ApproveVarianceWaiverAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunVarianceDeclarationsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/variance/declarations/{declarationId}/waive",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ApproveServiceRunVarianceWaiverRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ServiceRunVarianceDeclarations.DeclareVariance",
+      "controller": "ServiceRunVarianceDeclarationsController",
+      "sourceMethod": "DeclareVarianceAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Planning/Controllers/ServiceRunVarianceDeclarationsController.cs",
+      "httpMethod": "POST",
+      "route": "api/service-runs/{id}/variance/declarations",
+      "policies": [
+        "AUTHENTICATED",
+        "ProductionAccess"
+      ],
+      "requestTypes": [
+        "DeclareServiceRunVarianceRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "StockLedgerReports.GetStockLedgerReconciliation",
+      "controller": "StockLedgerReportsController",
+      "sourceMethod": "GetStockLedgerReconciliationAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockLedgerReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/stock-ledger-reconciliation",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "StockLedgerReconciliationDto"
+      ]
+    },
+    {
+      "actionId": "StockMovementReports.GetCurrentStock",
+      "controller": "StockMovementReportsController",
+      "sourceMethod": "GetCurrentStockAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockMovementReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/current-stock",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CurrentStockSummaryDto"
+      ]
+    },
+    {
+      "actionId": "StockMovementReports.GetCurrentStockAllocation",
+      "controller": "StockMovementReportsController",
+      "sourceMethod": "GetCurrentStockAllocationAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockMovementReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/current-stock/allocation",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CurrentStockSummaryDto"
+      ]
+    },
+    {
+      "actionId": "StockMovementReports.GetCurrentStockPage",
+      "controller": "StockMovementReportsController",
+      "sourceMethod": "GetCurrentStockPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockMovementReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/current-stock/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "CurrentStockSummaryDto"
+      ]
+    },
+    {
+      "actionId": "StockMovementReports.GetStockMovementPage",
+      "controller": "StockMovementReportsController",
+      "sourceMethod": "GetStockMovementPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockMovementReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/stock-movements/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CursorPageDto",
+        "StockMovementViewDto"
+      ]
+    },
+    {
+      "actionId": "StockMovementReports.GetStockMovements",
+      "controller": "StockMovementReportsController",
+      "sourceMethod": "GetStockMovementsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockMovementReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/stock-movements",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "StockMovementViewDto"
+      ]
+    },
+    {
+      "actionId": "StockSnapshotReports.GenerateStockSnapshots",
+      "controller": "StockSnapshotReportsController",
+      "sourceMethod": "GenerateStockSnapshotsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockSnapshotReportsController.cs",
+      "httpMethod": "POST",
+      "route": "api/workflow-reports/stock-snapshots/generate",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "StockSnapshotDto"
+      ]
+    },
+    {
+      "actionId": "StockSnapshotReports.GetStockSnapshots",
+      "controller": "StockSnapshotReportsController",
+      "sourceMethod": "GetStockSnapshotsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/StockSnapshotReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/stock-snapshots",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "StockSnapshotDto"
+      ]
+    },
+    {
+      "actionId": "Stocktakes.Approve",
+      "controller": "StocktakesController",
+      "sourceMethod": "ApproveAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+      "httpMethod": "POST",
+      "route": "api/stocktakes/{id}/approve",
+      "policies": [
+        "InventoryAccess",
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "StocktakeDto"
+      ]
+    },
+    {
+      "actionId": "Stocktakes.Create",
+      "controller": "StocktakesController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+      "httpMethod": "POST",
+      "route": "api/stocktakes",
+      "policies": [
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "CreateStocktakeRequest"
+      ],
+      "responseTypes": [
+        "StocktakeDto"
+      ]
+    },
+    {
+      "actionId": "Stocktakes.GetById",
+      "controller": "StocktakesController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+      "httpMethod": "GET",
+      "route": "api/stocktakes/{id}",
+      "policies": [
+        "InventoryAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "StocktakeDto"
+      ]
+    },
+    {
+      "actionId": "Stocktakes.GetPaged",
+      "controller": "StocktakesController",
+      "sourceMethod": "GetPagedAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+      "httpMethod": "GET",
+      "route": "api/stocktakes",
+      "policies": [
+        "InventoryAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "StocktakeDto"
+      ]
+    },
+    {
+      "actionId": "Stocktakes.Reject",
+      "controller": "StocktakesController",
+      "sourceMethod": "RejectAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+      "httpMethod": "POST",
+      "route": "api/stocktakes/{id}/reject",
+      "policies": [
+        "InventoryAccess",
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [
+        "RejectRequest"
+      ],
+      "responseTypes": [
+        "StocktakeDto"
+      ]
+    },
+    {
+      "actionId": "Stocktakes.Submit",
+      "controller": "StocktakesController",
+      "sourceMethod": "SubmitAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+      "httpMethod": "POST",
+      "route": "api/stocktakes/{id}/submit",
+      "policies": [
+        "InventoryAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "StocktakeDto"
+      ]
+    },
+    {
+      "actionId": "Stocktakes.UpdateActualQty",
+      "controller": "StocktakesController",
+      "sourceMethod": "UpdateActualQtyAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/StocktakesController.cs",
+      "httpMethod": "PUT",
+      "route": "api/stocktakes/{id}/actual-qty",
+      "policies": [
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "UpdateStocktakeLinesRequest"
+      ],
+      "responseTypes": [
+        "StocktakeDto"
+      ]
+    },
+    {
+      "actionId": "SupplementalMaterialRequests.Create",
+      "controller": "SupplementalMaterialRequestsController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+      "httpMethod": "POST",
+      "route": "api/supplemental-material-requests",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryIssueAccess"
+      ],
+      "requestTypes": [
+        "CreateSupplementalMaterialRequest"
+      ],
+      "responseTypes": [
+        "SupplementalMaterialRequestDto"
+      ]
+    },
+    {
+      "actionId": "SupplementalMaterialRequests.Fulfill",
+      "controller": "SupplementalMaterialRequestsController",
+      "sourceMethod": "FulfillAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+      "httpMethod": "POST",
+      "route": "api/supplemental-material-requests/{id}/fulfill",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "FulfillSupplementalMaterialRequest"
+      ],
+      "responseTypes": [
+        "SupplementalMaterialRequestDto"
+      ]
+    },
+    {
+      "actionId": "SupplementalMaterialRequests.GetAll",
+      "controller": "SupplementalMaterialRequestsController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+      "httpMethod": "GET",
+      "route": "api/supplemental-material-requests",
+      "policies": [
+        "AUTHENTICATED",
+        "SupplementalMaterialRequestReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "SupplementalMaterialRequestDto"
+      ]
+    },
+    {
+      "actionId": "SupplementalMaterialRequests.GetById",
+      "controller": "SupplementalMaterialRequestsController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+      "httpMethod": "GET",
+      "route": "api/supplemental-material-requests/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "SupplementalMaterialRequestReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SupplementalMaterialRequestDto"
+      ]
+    },
+    {
+      "actionId": "SupplementalMaterialRequests.Reject",
+      "controller": "SupplementalMaterialRequestsController",
+      "sourceMethod": "RejectAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+      "httpMethod": "POST",
+      "route": "api/supplemental-material-requests/{id}/reject",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "RejectSupplementalMaterialRequest"
+      ],
+      "responseTypes": [
+        "SupplementalMaterialRequestDto"
+      ]
+    },
+    {
+      "actionId": "SupplementalMaterialRequests.RouteToPurchasing",
+      "controller": "SupplementalMaterialRequestsController",
+      "sourceMethod": "RouteToPurchasingAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+      "httpMethod": "POST",
+      "route": "api/supplemental-material-requests/{id}/route-to-purchasing",
+      "policies": [
+        "AUTHENTICATED",
+        "InventoryAccess"
+      ],
+      "requestTypes": [
+        "RouteSupplementalMaterialRequestToPurchasing"
+      ],
+      "responseTypes": [
+        "SupplementalMaterialRequestDto"
+      ]
+    },
+    {
+      "actionId": "SupplierQuotations.Create",
+      "controller": "SupplierQuotationsController",
+      "sourceMethod": "CreateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+      "httpMethod": "POST",
+      "route": "api/supplier-quotations",
+      "policies": [
+        "PurchaseAccess"
+      ],
+      "requestTypes": [
+        "CreateSupplierQuotationRequest"
+      ],
+      "responseTypes": [
+        "SupplierQuotationDto"
+      ]
+    },
+    {
+      "actionId": "SupplierQuotations.Deactivate",
+      "controller": "SupplierQuotationsController",
+      "sourceMethod": "DeactivateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+      "httpMethod": "DELETE",
+      "route": "api/supplier-quotations/{id}",
+      "policies": [
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "SupplierQuotations.GetByIngredient",
+      "controller": "SupplierQuotationsController",
+      "sourceMethod": "GetByIngredientAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+      "httpMethod": "GET",
+      "route": "api/supplier-quotations/ingredient/{ingredientId}",
+      "policies": [
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SupplierQuotationDto"
+      ]
+    },
+    {
+      "actionId": "SupplierQuotations.GetByIngredientPage",
+      "controller": "SupplierQuotationsController",
+      "sourceMethod": "GetByIngredientPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+      "httpMethod": "GET",
+      "route": "api/supplier-quotations/ingredient/{ingredientId}/page",
+      "policies": [
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "SupplierQuotationDto"
+      ]
+    },
+    {
+      "actionId": "SupplierQuotations.GetBySupplier",
+      "controller": "SupplierQuotationsController",
+      "sourceMethod": "GetBySupplierAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+      "httpMethod": "GET",
+      "route": "api/supplier-quotations/supplier/{supplierId}",
+      "policies": [
+        "PurchaseAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SupplierQuotationDto"
+      ]
+    },
+    {
+      "actionId": "SupplierQuotations.Update",
+      "controller": "SupplierQuotationsController",
+      "sourceMethod": "UpdateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+      "httpMethod": "PUT",
+      "route": "api/supplier-quotations/{id}",
+      "policies": [
+        "PurchaseAccess"
+      ],
+      "requestTypes": [
+        "UpdateSupplierQuotationRequest"
+      ],
+      "responseTypes": [
+        "SupplierQuotationDto"
+      ]
+    },
+    {
+      "actionId": "Suppliers.GetSuppliers",
+      "controller": "SuppliersController",
+      "sourceMethod": "GetSuppliersAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SuppliersController.cs",
+      "httpMethod": "GET",
+      "route": "api/suppliers",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SupplierDto"
+      ]
+    },
+    {
+      "actionId": "SystemOperationMode.Change",
+      "controller": "SystemOperationModeController",
+      "sourceMethod": "ChangeAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SystemOperation/Controllers/SystemOperationModeController.cs",
+      "httpMethod": "PUT",
+      "route": "api/system-operation-mode",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SystemOperationModeDto"
+      ]
+    },
+    {
+      "actionId": "SystemOperationMode.Get",
+      "controller": "SystemOperationModeController",
+      "sourceMethod": "GetAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SystemOperation/Controllers/SystemOperationModeController.cs",
+      "httpMethod": "GET",
+      "route": "api/system-operation-mode",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "SystemOperationModeDto"
+      ]
+    },
+    {
+      "actionId": "SystemOperationMode.Initialize",
+      "controller": "SystemOperationModeController",
+      "sourceMethod": "InitializeAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SystemOperation/Controllers/SystemOperationModeController.cs",
+      "httpMethod": "POST",
+      "route": "api/system-operation-mode/initialize",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "UnitNormalizationReviews.Decide",
+      "controller": "UnitNormalizationReviewsController",
+      "sourceMethod": "DecideAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/UnitNormalizationReviewsController.cs",
+      "httpMethod": "POST",
+      "route": "api/unit-normalization-reviews/{reviewId}/decision",
+      "policies": [
+        "InventoryApproveAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WarehousePurchaseReceipts.AcceptQuality",
+      "controller": "WarehousePurchaseReceiptsController",
+      "sourceMethod": "AcceptQualityAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/quality",
+      "policies": [
+        "AUTHENTICATED",
+        "WarehousePurchaseReceive"
+      ],
+      "requestTypes": [
+        "ReceiptQualityDecisionRequest"
+      ],
+      "responseTypes": [
+        "WarehousePurchaseReceiptResultDto"
+      ]
+    },
+    {
+      "actionId": "WarehousePurchaseReceipts.CreateCorrection",
+      "controller": "WarehousePurchaseReceiptsController",
+      "sourceMethod": "CreateCorrectionAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/corrections",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "CreateReceiptCorrectionRequest"
+      ],
+      "responseTypes": [
+        "ReceiptCorrectionResultDto"
+      ]
+    },
+    {
+      "actionId": "WarehousePurchaseReceipts.Post",
+      "controller": "WarehousePurchaseReceiptsController",
+      "sourceMethod": "PostAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/post",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ReceiptPostRequest"
+      ],
+      "responseTypes": [
+        "WarehousePurchaseReceiptResultDto"
+      ]
+    },
+    {
+      "actionId": "WarehousePurchaseReceipts.Record",
+      "controller": "WarehousePurchaseReceiptsController",
+      "sourceMethod": "RecordAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/warehouse/purchase-orders/{purchaseOrderId}/receipts",
+      "policies": [
+        "AUTHENTICATED",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "RecordWarehousePurchaseReceiptRequest"
+      ],
+      "responseTypes": [
+        "WarehousePurchaseReceiptResultDto"
+      ]
+    },
+    {
+      "actionId": "WarehousePurchaseReceipts.Rework",
+      "controller": "WarehousePurchaseReceiptsController",
+      "sourceMethod": "ReworkAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/rework",
+      "policies": [
+        "AUTHENTICATED",
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "ReceiptReworkRequest"
+      ],
+      "responseTypes": [
+        "WarehousePurchaseReceiptResultDto"
+      ]
+    },
+    {
+      "actionId": "WarehousePurchaseReceipts.Void",
+      "controller": "WarehousePurchaseReceiptsController",
+      "sourceMethod": "VoidAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+      "httpMethod": "POST",
+      "route": "api/warehouse/purchase-orders/{purchaseOrderId}/receipts/{receiptId}/void",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ReceiptVoidRequest"
+      ],
+      "responseTypes": [
+        "WarehousePurchaseReceiptResultDto"
+      ]
+    },
+    {
+      "actionId": "Warehouses.GetAll",
+      "controller": "WarehousesController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/WarehousesController.cs",
+      "httpMethod": "GET",
+      "route": "api/warehouses",
+      "policies": [
+        "AUTHENTICATED",
+        "WarehouseCatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "WarehouseDto"
+      ]
+    },
+    {
+      "actionId": "Warehouses.GetById",
+      "controller": "WarehousesController",
+      "sourceMethod": "GetByIdAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/WarehousesController.cs",
+      "httpMethod": "GET",
+      "route": "api/warehouses/{id}",
+      "policies": [
+        "AUTHENTICATED",
+        "WarehouseCatalogAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WarehouseDto"
+      ]
+    },
+    {
+      "actionId": "Warehouses.GetSelector",
+      "controller": "WarehousesController",
+      "sourceMethod": "GetSelectorAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/WarehousesController.cs",
+      "httpMethod": "GET",
+      "route": "api/warehouses/selector",
+      "policies": [
+        "AUTHENTICATED",
+        "WarehouseSelectorAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WarehouseDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuBatchImports.Commit",
+      "controller": "WeeklyMenuBatchImportsController",
+      "sourceMethod": "CommitAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuBatchImportsController.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/import/commit-batch",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WeeklyMenuImportResultDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.BreakGlassExecuteMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "BreakGlassExecuteMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/{amendmentId}/break-glass-execute",
+      "policies": [
+        "CoordinationAccess",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "BreakGlassMenuAmendmentRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.BulkUpdateWeeklyMenu",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "BulkUpdateWeeklyMenuAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+      "httpMethod": "PUT",
+      "route": "api/coordination/weekly-menu/bulk-update",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "BulkUpdateWeeklyMenuRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.CommitWeeklyMenuImport",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "CommitWeeklyMenuImportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/import/commit",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WeeklyMenuImportResultDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.CreateMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "CreateMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "CreateMenuAmendmentRequest"
+      ],
+      "responseTypes": [
+        "MenuAmendmentResultDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.DownloadWeeklyMenuTemplate",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "DownloadWeeklyMenuTemplateAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/weekly-menu/template",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.ExecuteMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "ExecuteMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/{amendmentId}/execute",
+      "policies": [
+        "CoordinationAccess",
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.ExecuteMenuAmendmentDecision",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "ExecuteMenuAmendmentDecisionAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/decisions/{decisionItemId}/commands",
+      "policies": [
+        "CoordinationAccess",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "MenuAmendmentDecisionCommandRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.GetCustomerImportMapping",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "GetCustomerImportMappingAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/customers/{customerId}/import-mapping",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CustomerImportMappingDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.GetCustomers",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "GetCustomersAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/customers",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "CoordinationCustomerOptionDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.GetMenuAmendmentDecisionPage",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "GetMenuAmendmentDecisionPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/weekly-menu/amendments/decisions",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.GetMenuAmendments",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "GetMenuAmendmentsAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/weekly-menu/amendments",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.GetWeeklyMenu",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "GetWeeklyMenuAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/weekly-menu",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WeeklyMenuImportResultDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.GetWeeklyMenuImportHistory",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "GetWeeklyMenuImportHistoryAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/weekly-menu/import-history",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "WeeklyMenuImportHistoryItemDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.ImportWeeklyMenu",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "ImportWeeklyMenuAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/import",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.PreviewWeeklyMenuImport",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "PreviewWeeklyMenuImportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/import/preview",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "WeeklyMenuImportResultDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.RemediateMenuAmendmentDecisionFan",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "RemediateMenuAmendmentDecisionFanAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/reconciliation-cases/{reconciliationCaseId}/decision-fan-remediations",
+      "policies": [
+        "CoordinationAccess",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "RemediateMenuAmendmentDecisionFanRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.ReviewMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "ReviewMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/{amendmentId}/review",
+      "policies": [
+        "CoordinationAccess",
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [
+        "ReviewMenuAmendmentRequest"
+      ],
+      "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.RollbackWeeklyMenuImport",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "RollbackWeeklyMenuImportAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Imports.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/import/{menuVersionId}/rollback",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "RollbackWeeklyMenuImportResultDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.SaveCustomerImportMapping",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "SaveCustomerImportMappingAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Queries.cs",
+      "httpMethod": "PUT",
+      "route": "api/coordination/customers/{customerId}/import-mapping",
+      "policies": [
+        "CoordinationAccess"
+      ],
+      "requestTypes": [
+        "SaveCustomerImportMappingRequest"
+      ],
+      "responseTypes": [
+        "CustomerImportMappingDto"
+      ]
+    },
+    {
+      "actionId": "WorkflowReports.CleanupDataQuality",
+      "controller": "WorkflowReportsController",
+      "sourceMethod": "CleanupDataQualityAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+      "httpMethod": "POST",
+      "route": "api/workflow-reports/data-quality/cleanup",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "DataQualityCleanupRequest"
+      ],
+      "responseTypes": [
+        "DataQualityCleanupResultDto"
+      ]
+    },
+    {
+      "actionId": "WorkflowReports.GetDataQuality",
+      "controller": "WorkflowReportsController",
+      "sourceMethod": "GetDataQualityAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/data-quality",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "DataQualityReportDto"
+      ]
+    },
+    {
+      "actionId": "WorkflowReports.GetDataQualityPage",
+      "controller": "WorkflowReportsController",
+      "sourceMethod": "GetDataQualityPageAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/data-quality/page",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "DataQualityPageDto"
+      ]
+    },
+    {
+      "actionId": "WorkflowReports.GetOperationalKpis",
+      "controller": "WorkflowReportsController",
+      "sourceMethod": "GetOperationalKpisAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/workflow-reports/operational-kpis",
+      "policies": [
+        "AUTHENTICATED"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "OperationalKpiSummaryDto"
+      ]
+    },
+    {
+      "actionId": "WorkflowReports.UpdateDataQualityIssueRemediation",
+      "controller": "WorkflowReportsController",
+      "sourceMethod": "UpdateDataQualityIssueRemediationAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Reports/Controllers/WorkflowReportsController.cs",
+      "httpMethod": "POST",
+      "route": "api/workflow-reports/data-quality/issues/remediation",
+      "policies": [
+        "AUTHENTICATED",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "DataQualityIssueRemediationRequest"
+      ],
+      "responseTypes": [
+        "DataQualityIssueRemediationDto"
+      ]
+    }
+  ]
+}

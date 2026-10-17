@@ -5,7 +5,10 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReconciliationPage } from '../features/reconciliation/ReconciliationPage';
 import { AuthProvider } from '../store/authContext';
 import { reconciliationApi } from '../api/reconciliationApi';
+import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { MOCK_RECONCILIATION } from '../test/fixtures';
+import { ApiError } from '../api/client';
+import { systemApi } from '../api/systemApi';
 
 function renderReconciliation(initialEntry = '/reconciliation') {
   return render(
@@ -21,7 +24,17 @@ function renderReconciliation(initialEntry = '/reconciliation') {
 
 describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', () => {
   beforeEach(() => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 1, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
+      { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
+    ]);
     vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue(MOCK_RECONCILIATION);
+    vi.spyOn(reconciliationApi, 'completeReconciliation').mockResolvedValue({
+      ...MOCK_RECONCILIATION,
+      status: 'COMPLETED',
+      version: 8,
+    });
   });
   it('renders Zone 1 WorkspaceHeader (56px) with customer select, date, and single primary button (Rule D7)', async () => {
     renderReconciliation();
@@ -30,49 +43,56 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     // Customer select and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
-    expect(screen.getByText('Ca 1 đã hoàn tất')).toBeInTheDocument();
-
-    // Rule D7: Exactly 1 primary button + 1 outline
-    expect(screen.getByRole('button', { name: 'Xuất biên bản đối soát' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveAttribute('data-date-locale', 'vi-VN');
+    expect(await screen.findByText('Đang đối chiếu')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xuất biên bản đối soát' })).not.toBeInTheDocument();
     const completeBtn = screen.getByRole('button', { name: 'Chốt đối soát ca' });
     expect(completeBtn).toBeInTheDocument();
     expect(completeBtn).toHaveClass('bg-slate-900');
   });
 
-  it('renders Zone 2 TelemetrySubbar (44px) with segmented tabs and telemetry pills', async () => {
+  it('uses one MRX review surface without fabricated history tabs or financial telemetry', async () => {
     renderReconciliation();
 
-    // Segmented tabs
-    expect(await screen.findByRole('tab', { name: /Bảng sai lệch ca/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Lịch sử chốt sổ/i })).toBeInTheDocument();
-
-    // Telemetry pills
-    expect(screen.getByText(/Mã lô đối soát:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Suất chốt:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hao hụt chung:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Chênh lệch tiền:/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Phiên bản lô:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Trạng thái tuần:/i)).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Suất chốt:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Hao hụt chung:/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chênh lệch tiền:/i)).not.toBeInTheDocument();
   });
 
-  it('renders DataGrid with 9 columns and ZERO <details> tags', async () => {
+  it('renders backend MRX daily-line fields without fabricated kitchen-use or waste columns', async () => {
     const { container } = renderReconciliation();
 
     // Columns
     expect(await screen.findByRole('columnheader', { name: 'Mã nguyên liệu' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: /Tên nguyên liệu thực phẩm/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'ĐVT' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Định mức BOM' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Xuất kho thực tế' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Bếp sử dụng' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Sai lệch (+/-)' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Hao hụt (%)' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Đánh giá' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Nhu cầu đã khóa' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Đã xuất theo sổ' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Chênh lệch xuất' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Trạng thái dòng' })).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Bếp sử dụng' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Hao hụt (%)' })).not.toBeInTheDocument();
 
     // Row item check
     expect(screen.getByText('Thịt đùi heo tươi')).toBeInTheDocument();
 
     // Invariant: Zero <details> tags anywhere in DOM!
     expect(container.querySelectorAll('details').length).toBe(0);
+  });
+
+  it('blocks completion outside MATERIAL_RECONCILIATION without issuing a mutation', async () => {
+    localStorage.setItem('ipc_v3_mode', 'DEFAULT');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    renderReconciliation();
+
+    const completeBtn = await screen.findByRole('button', { name: 'Chốt đối soát ca' });
+    expect(completeBtn).toBeDisabled();
+    await userEvent.click(completeBtn);
+    expect(reconciliationApi.completeReconciliation).not.toHaveBeenCalled();
+    expect(screen.getByRole('group', { name: 'Chỉ khả dụng trong chế độ đối soát nguyên liệu.' })).toBeInTheDocument();
   });
 
   it('opens complete modal and submits reconciliation lock', async () => {
@@ -82,10 +102,28 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     await userEvent.click(completeBtn);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Xác nhận chốt sổ đối soát ca' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Xác nhận hoàn tất lô đối soát' })).toBeInTheDocument();
 
-    const confirmModalBtn = screen.getByRole('button', { name: 'Xác nhận chốt sổ & Khóa ca' });
+    const confirmModalBtn = screen.getByRole('button', { name: 'Xác nhận hoàn tất lô' });
     await userEvent.click(confirmModalBtn);
+
+    expect(reconciliationApi.completeReconciliation).toHaveBeenCalledWith(
+      'recon-batch-20260921-01',
+      7
+    );
+  });
+
+  it('keeps the loaded batch visible when completion conflicts with a newer version', async () => {
+    vi.spyOn(reconciliationApi, 'completeReconciliation').mockRejectedValueOnce(new ApiError(409, 'Phiên bản lô đã thay đổi'));
+    renderReconciliation();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Chốt đối soát ca' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận hoàn tất lô' }));
+
+    expect(await screen.findByText('Xung đột dữ liệu đồng thời')).toBeInTheDocument();
+    expect(screen.getByText('Phiên bản lô đã thay đổi')).toBeInTheDocument();
+    expect(screen.getByText('Thịt đùi heo tươi')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
   });
 
   it('handles error state and provides retry action', async () => {

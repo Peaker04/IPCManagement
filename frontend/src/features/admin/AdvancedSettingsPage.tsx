@@ -1,26 +1,39 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { SplitView } from '../../components/workbench/SplitView';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
-import { Tabs } from '../../components/ui/tabs';
+import { Modal } from '../../components/ui/modal';
+import { ActionGuard } from '../../components/ui/action-guard';
 import { useAuth } from '../../store/useAuth';
 import type { OperationalMode } from '../../types';
+import { ApiError } from '../../api/client';
 
 export function AdvancedSettingsPage() {
-  const { operationalMode, setOperationalMode } = useAuth();
-  const [activeTab, setActiveTab] = useState<'mode' | 'cache' | 'diagnostics'>('mode');
-  const [selectedMode, setSelectedMode] = useState<OperationalMode>(operationalMode);
+  const { operationalMode, operationalModeVersion, operationalModeReasonRequired, reloadOperationalMode, setOperationalMode } = useAuth();
+  const [searchParams] = useSearchParams();
+  const requestedView = searchParams.get('view');
+  const activeTab: 'mode' | 'cache' | 'diagnostics' = requestedView === 'cache' || requestedView === 'diagnostics' ? requestedView : 'mode';
+  const [selectedModeOverride, setSelectedModeOverride] = useState<OperationalMode | null>(null);
+  const setSelectedMode = setSelectedModeOverride;
+  const selectedMode = selectedModeOverride ?? operationalMode;
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<'mode' | 'cache' | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string; status?: number } | null>(null);
+  const [modeReason, setModeReason] = useState('');
 
   const handleSaveMode = async () => {
     setIsSaving(true);
     try {
-      await setOperationalMode(selectedMode);
-      alert(`Đã lưu cấu hình và chuyển đổi chế độ vận hành sang: ${selectedMode === 'DEFAULT' ? 'Mặc định (DEFAULT)' : 'Đối soát nguyên liệu (MATERIAL_RECONCILIATION)'}`);
+      await setOperationalMode(selectedMode, modeReason.trim() || undefined);
+      setFeedback({ type: 'success', message: `Đã chuyển chế độ vận hành sang ${selectedMode === 'DEFAULT' ? 'Mặc định' : 'Đối soát nguyên liệu'}.` });
+      setSelectedModeOverride(null);
+      setConfirmAction(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Chuyển đổi chế độ thất bại');
+      setFeedback({ type: 'error', message: err instanceof Error ? err.message : 'Chuyển đổi chế độ thất bại.', status: err instanceof ApiError ? err.status : undefined });
     } finally {
       setIsSaving(false);
     }
@@ -35,14 +48,9 @@ export function AdvancedSettingsPage() {
       }
     }
     keysToRemove.forEach((k) => localStorage.removeItem(k));
-    alert('Đã xóa sạch bộ nhớ tạm trình duyệt (localStorage cache) của phiên bản v3.0!');
+    setFeedback({ type: 'success', message: `Đã xóa ${keysToRemove.length} mục bộ nhớ đệm của phiên.` });
+    setConfirmAction(null);
   };
-
-  const TAB_ITEMS = [
-    { id: 'mode', label: 'Chế độ vận hành (DOM-MODE-1)' },
-    { id: 'cache', label: 'Bộ nhớ đệm & Phiên làm việc' },
-    { id: 'diagnostics', label: 'Chẩn đoán kết nối API' },
-  ];
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
@@ -58,7 +66,7 @@ export function AdvancedSettingsPage() {
             Chế độ hiện tại: {operationalMode === 'MATERIAL_RECONCILIATION' ? 'Đối soát MRX' : 'Mặc định (DEFAULT)'}
           </Badge>
         }
-        actions={
+        actions={activeTab === 'mode' ? (
           <>
             <Button
               variant="outline"
@@ -68,46 +76,39 @@ export function AdvancedSettingsPage() {
             >
               Khôi phục mặc định
             </Button>
-            {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              disabled={isSaving}
-              onClick={handleSaveMode}
-              className="h-9 text-sm font-medium"
-            >
-              {isSaving ? 'Đang lưu...' : 'Lưu cấu hình hệ thống'}
-            </Button>
+            <ActionGuard capabilityId="SYS.MODE.CHANGE" roles="ADMIN" permissions="AdminAccess">
+              <Button
+                variant="default"
+                size="default"
+                disabled={isSaving || selectedMode === operationalMode}
+                onClick={() => setConfirmAction('mode')}
+                className="h-9 text-sm font-medium"
+              >
+                {isSaving ? 'Đang lưu...' : 'Lưu cấu hình hệ thống'}
+              </Button>
+            </ActionGuard>
           </>
-        }
+        ) : undefined}
       />
+
+      {feedback && (
+        <div role={feedback.type === 'error' ? 'alert' : 'status'} aria-live="polite" className={`px-4 py-2 text-sm border-b ${feedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'} flex items-center justify-between gap-3`}>
+          <span>{feedback.message}</span>
+          {feedback.status === 409 && <Button variant="outline" size="xs" onClick={() => { setFeedback(null); reloadOperationalMode(); }}>Tải lại dữ liệu mới nhất</Button>}
+        </div>
+      )}
 
       {/* Zone 2: TelemetrySubbar (44px / h-11) */}
       <TelemetrySubbar
         leftControls={
-          <Tabs
-            items={TAB_ITEMS}
-            activeId={activeTab}
-            onChange={(id) => setActiveTab(id as 'mode' | 'cache' | 'diagnostics')}
-            size="default"
-          />
+          <span className="text-xs font-semibold text-slate-700">
+            Đang xem: {activeTab === 'mode' ? 'Chế độ vận hành' : activeTab === 'cache' ? 'Bộ nhớ phiên' : 'Chẩn đoán kết nối'}
+          </span>
         }
         telemetryPills={
-          <>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Kiến trúc:</span>
-              <strong className="text-slate-900 font-semibold">3-Zone Flat Workbench</strong>
-            </span>
-            <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Prefix:</span>
-              <strong className="text-slate-900 font-mono text-xs">ipc_v3_*</strong>
-            </span>
-            <span className="text-slate-300">·</span>
-            <Badge variant="success" size="sm">
-              Backend Kestrel .NET 9
-            </Badge>
-          </>
+          <span className="text-xs text-slate-500">
+            Các thông tin runtime chỉ được xác nhận từ health endpoint của môi trường đang chạy.
+          </span>
         }
       />
 
@@ -186,7 +187,7 @@ export function AdvancedSettingsPage() {
                       <span className="font-semibold text-sm text-slate-900 block">Dọn dẹp Cache v3</span>
                       <span className="text-xs text-slate-500 block mt-0.5">Xóa các khóa tiền tố ipc_v3_* (giữ lại phiên đăng nhập)</span>
                     </div>
-                    <Button variant="outline" size="sm" onClick={handleClearCache}>
+                    <Button variant="outline" size="sm" onClick={() => setConfirmAction('cache')}>
                       Dọn cache ngay
                     </Button>
                   </div>
@@ -203,19 +204,8 @@ export function AdvancedSettingsPage() {
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-slate-200 divide-y divide-slate-100 text-xs font-mono">
-                  <div className="flex justify-between p-3">
-                    <span className="text-slate-500">API Endpoint:</span>
-                    <strong className="text-slate-900">http://localhost:5262/api</strong>
-                  </div>
-                  <div className="flex justify-between p-3">
-                    <span className="text-slate-500">Proxy Vite:</span>
-                    <strong className="text-emerald-700">Đang hoạt động (proxy 5173 ➔ 5262)</strong>
-                  </div>
-                  <div className="flex justify-between p-3">
-                    <span className="text-slate-500">Cơ chế xác thực:</span>
-                    <strong className="text-slate-900">JWT Bearer Token + HttpOnly Cookie</strong>
-                  </div>
+                <div className="rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
+                  Chưa có phép đo health endpoint trong phiên này. Hãy dùng kiểm tra runtime được ủy quyền để xác nhận URL, proxy, xác thực và trạng thái Backend.
                 </div>
               </div>
             )}
@@ -259,6 +249,29 @@ export function AdvancedSettingsPage() {
           </div>
         }
       />
+
+      <Modal
+        isOpen={confirmAction !== null}
+        onClose={() => { if (!isSaving) setConfirmAction(null); }}
+        title={confirmAction === 'mode' ? 'Xác nhận chuyển chế độ vận hành' : 'Xác nhận dọn bộ nhớ phiên'}
+        description={confirmAction === 'mode' ? 'Thao tác ảnh hưởng phạm vi chức năng được phép trên toàn hệ thống.' : 'Chỉ các khóa cache ipc_v3_* không phải phiên đăng nhập sẽ bị xóa.'}
+        footer={
+          <>
+            <Button variant="outline" size="sm" disabled={isSaving} onClick={() => setConfirmAction(null)}>Tiếp tục kiểm tra</Button>
+            <Button variant={confirmAction === 'cache' ? 'destructive' : 'default'} size="sm" disabled={isSaving || (confirmAction === 'mode' && operationalModeReasonRequired && !modeReason.trim())} onClick={confirmAction === 'mode' ? handleSaveMode : handleClearCache}>
+              {isSaving ? 'Đang xử lý...' : confirmAction === 'mode' ? 'Xác nhận chuyển chế độ' : 'Xác nhận dọn cache'}
+            </Button>
+          </>
+        }
+      >
+        {confirmAction === 'mode' && operationalModeReasonRequired ? (
+          <div className="space-y-2">
+            <label htmlFor="mode-change-reason" className="text-sm font-medium text-slate-700">Lý do chuyển chế độ</label>
+            <Input id="mode-change-reason" value={modeReason} onChange={(event) => setModeReason(event.target.value)} />
+            <p className="text-xs text-slate-500">Bắt buộc vì Backend ghi nhận công việc chưa hoàn tất. Phiên bản hiện tại: {operationalModeVersion ?? 'chưa tải'}.</p>
+          </div>
+        ) : <p className="text-sm text-slate-700">Hãy kiểm tra lại phạm vi trước khi tiếp tục. Hành động sẽ được thực hiện ngay sau xác nhận.</p>}
+      </Modal>
     </div>
   );
 }

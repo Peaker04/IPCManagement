@@ -1,136 +1,44 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReportsPage } from '../features/reports/ReportsPage';
-import { AuthProvider } from '../store/authContext';
-import { reportsApi, type MealCostReportItem, type PriceVarianceReportItem, type CurrentStockReportItem } from '../api/reportsApi';
+import { reportsApi } from '../api/reportsApi';
+import { weeklyMenuApi } from '../api/weeklyMenuApi';
 
-const MOCK_MEAL_COSTS: MealCostReportItem[] = [
-  { dishCode: 'MON-01', dishName: 'Khô gà lá chanh', plannedServings: 844, targetPrice: 25000, calculatedCost: 11450, costRatioPercent: 45.8, varianceAmount: -200, status: 'optimal' },
-];
-
-const MOCK_PRICE_VARIANCES: PriceVarianceReportItem[] = [
-  { ingredientCode: 'NL-001', ingredientName: 'Thịt đùi heo tươi', unit: 'Kilogram', plannedPrice: 92000, actualPrice: 95000, varianceAmount: 3000, variancePercent: 3.2 },
-];
-
-const MOCK_STOCKS: CurrentStockReportItem[] = [
-  { warehouseName: 'Kho Trung tâm Bình Dương', ingredientName: 'Thịt đùi heo tươi', unitName: 'Kilogram', currentQty: 184.5 },
-];
-
-function renderReports(initialEntry = '/reports') {
-  return render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/reports" element={<ReportsPage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
+function renderPage(entry = '/reports?view=demand') {
+  return render(<MemoryRouter initialEntries={[entry]}><Routes><Route path="/reports" element={<ReportsPage />} /></Routes></MemoryRouter>);
 }
 
-describe('Reports Feature (FR-REP — Báo cáo chi phí & Hao hụt)', () => {
+describe('Reports', () => {
   beforeEach(() => {
-    vi.spyOn(reportsApi, 'getMealCostReports').mockResolvedValue(MOCK_MEAL_COSTS);
-    vi.spyOn(reportsApi, 'getPriceVarianceReports').mockResolvedValue(MOCK_PRICE_VARIANCES);
-    vi.spyOn(reportsApi, 'getCurrentStock').mockResolvedValue(MOCK_STOCKS);
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([{ customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' }]);
+    vi.spyOn(reportsApi, 'getDemand').mockResolvedValue({ items: [{ requestDate: '2026-10-01', customerCode: 'DAV', customerName: 'Draxlmaier', ingredientId: 'i1', ingredientName: 'Gạo', unitId: 'kg', unitName: 'kg', totalRequiredQty: 10, currentStockQty: 4, suggestedPurchaseQty: 6, issuedQty: 2, receivedByKitchenQty: 1, fulfillmentStatus: 'PARTIAL' }], totalCount: 26, pageNumber: 1, pageSize: 25, totalPages: 2, hasPrev: false, hasNext: true });
+    vi.spyOn(reportsApi, 'getPriceVariance').mockResolvedValue({ items: [{ receiptLineId: 'rl1', receiptCode: 'PN-1', receiptDate: '2026-10-01', ingredientId: 'i1', ingredientName: 'Gạo', unitName: 'kg', quantity: 10, unitPrice: 20000, referencePrice: 18000, variancePercent: 11.1, isWarning: true }], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false });
+    vi.spyOn(reportsApi, 'getCurrentStock').mockResolvedValue({ items: [{ warehouseId: 'w1', warehouseName: 'Kho A', ingredientId: 'i1', ingredientName: 'Gạo', unitId: 'kg', unitName: 'kg', currentQty: 4, lastUpdated: '2026-10-15T00:00:00Z' }], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false });
   });
 
-  it('renders Zone 1 WorkspaceHeader (56px) with period select, customer select, and single primary button (Rule D7)', async () => {
-    renderReports();
-
-    expect(await screen.findByRole('heading', { name: 'Báo cáo chi phí & Hao hụt' })).toBeInTheDocument();
-
-    // Select period and customer
-    const comboboxes = screen.getAllByRole('combobox');
-    expect(comboboxes.length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('Dữ liệu chốt sổ')).toBeInTheDocument();
-
-    // Rule D7: Exactly 1 primary button + 1 outline
-    expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    const exportBtn = screen.getByRole('button', { name: 'Xuất báo cáo Excel' });
-    expect(exportBtn).toBeInTheDocument();
-    expect(exportBtn).toHaveClass('bg-slate-900');
+  it('renders authoritative demand without fabricated meal-cost or export surfaces', async () => {
+    renderPage();
+    expect(await screen.findByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
+    expect(screen.getByText('Gạo')).toBeInTheDocument();
+    expect(screen.queryByText(/Tổng chi phí|Hao hụt TB|Đạt chuẩn/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Xuất báo cáo Excel/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
   });
 
-  it('renders Zone 2 TelemetrySubbar (44px) with report tabs and telemetry pills', async () => {
-    renderReports();
+  it('requests the next server page and reports the authoritative total', async () => {
+    renderPage();
+    expect(await screen.findByText('26 dòng authoritative')).toBeInTheDocument();
 
-    // Report tabs
-    expect(await screen.findByRole('tab', { name: /Báo cáo chi phí suất ăn/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Biến động giá mua/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Tồn kho hiện tại/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
 
-    // Telemetry pills
-    expect(screen.getByText(/Tổng chi phí:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hao hụt TB:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Định mức:/i)).toBeInTheDocument();
+    expect(reportsApi.getDemand).toHaveBeenLastCalledWith(expect.any(String), 'customer-1', 2, 25);
   });
 
-  it('Tab 1 (Chi phí suất ăn): renders meal cost table and zero <details> tags', async () => {
-    const { container } = renderReports();
-
-    // Columns
-    expect(await screen.findByRole('columnheader', { name: 'Mã món' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Tên món ăn phục vụ' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Số suất nấu' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Định mức bán' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Giá vốn thực tế' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Tỷ lệ chi phí' })).toBeInTheDocument();
-
-    // Row item check
-    expect(screen.getByText('Khô gà lá chanh')).toBeInTheDocument();
-
-    // Invariant: Zero <details> tags anywhere in DOM!
-    expect(container.querySelectorAll('details').length).toBe(0);
-  });
-
-  it('Tab 2 (Biến động giá mua): renders price variance table', async () => {
-    renderReports();
-
-    const priceTab = await screen.findByRole('tab', { name: /Biến động giá mua/i });
-    await userEvent.click(priceTab);
-
-    expect(await screen.findByRole('columnheader', { name: 'Mã nguyên liệu' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /Tên nguyên liệu thực phẩm/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'ĐVT' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Giá kế hoạch' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Giá mua thực tế' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Biến động (%)' })).toBeInTheDocument();
-
-    expect(screen.getByText('Thịt đùi heo tươi')).toBeInTheDocument();
-  });
-
-  it('Tab 3 (Tồn kho hiện tại): renders current stock table', async () => {
-    renderReports();
-
-    const stockTab = await screen.findByRole('tab', { name: /Tồn kho hiện tại/i });
-    await userEvent.click(stockTab);
-
-    expect(await screen.findByRole('columnheader', { name: 'Kho lưu trữ' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /Tên nguyên liệu thực phẩm/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Số lượng tồn kho' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Mức khả dụng' })).toBeInTheDocument();
-
-    expect(screen.getAllByText(/Thịt đùi heo tươi/i).length).toBeGreaterThan(0);
-  });
-
-  it('handles error state and provides retry action', async () => {
-    vi.spyOn(reportsApi, 'getMealCostReports').mockRejectedValueOnce(
-      new Error('Lỗi máy chủ báo cáo')
-    );
-
-    renderReports();
-
-    expect(await screen.findByText('Không thể tải dữ liệu')).toBeInTheDocument();
-    expect(screen.getByText('Lỗi máy chủ báo cáo')).toBeInTheDocument();
-
-    // Click retry
-    vi.spyOn(reportsApi, 'getMealCostReports').mockResolvedValueOnce(MOCK_MEAL_COSTS);
-    const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
-    await userEvent.click(retryBtn);
-
-    expect(await screen.findByText('Báo cáo chi phí & Hao hụt')).toBeInTheDocument();
+  it('uses URL-owned price report view', async () => {
+    renderPage('/reports?view=prices');
+    expect(await screen.findByRole('columnheader', { name: 'Phiếu nhập' })).toBeInTheDocument();
+    expect(screen.getByText('PN-1')).toBeInTheDocument();
   });
 });

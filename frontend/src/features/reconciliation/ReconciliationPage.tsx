@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -9,10 +9,9 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
-import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
-import { Input } from '../../components/ui/input';
 import { ActionGuard } from '../../components/ui/action-guard';
+import { ApiError } from '../../api/client';
 import {
   reconciliationApi,
   type ReconciliationBatchSummary,
@@ -21,100 +20,117 @@ import {
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
 
+function todayInBusinessTimezone(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: 'Đang chuẩn bị',
+  READY: 'Chờ Kho xuất',
+  TRANSFERRED: 'Đã khóa',
+  IN_PROGRESS: 'Đang đối chiếu',
+  COMPLETED: 'Hoàn tất',
+  WEEK_COMPLETE: 'Đủ điều kiện hoàn tất tuần',
+};
+
 export function ReconciliationPage() {
-  const [customers, setCustomers] = useState<CustomerOption[]>([
-    { customerId: 'c6c0b2f4-1567-4c62-b687-e50d3e93f348', customerCode: 'DAV', customerName: 'Draxlmaier' },
-    { customerId: 'b1e40f3e-bda5-4c16-be27-ea7146e10d37', customerCode: 'ANV', customerName: 'AMANN' },
-  ]);
-  const [customerCode, setCustomerCode] = useState('DAV');
-  const [serviceDate, setServiceDate] = useState('2026-09-21');
-  const [activeTab, setActiveTab] = useState<'variance' | 'history'>('variance');
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [customerCode, setCustomerCode] = useState('');
+  const [serviceDate, setServiceDate] = useState(todayInBusinessTimezone);
   const [data, setData] = useState<ReconciliationBatchSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Complete Reconciliation Modal
+  const [error, setError] = useState<Error | null>(null);
+  const [mutationError, setMutationError] = useState<Error | null>(null);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
-  const [reconNotes, setReconNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     let ignore = false;
-    weeklyMenuApi.getCustomers().then((list) => {
-      if (!ignore && list.length > 0) setCustomers(list);
-    }).catch(() => {});
+    weeklyMenuApi
+      .getCustomers()
+      .then((list) => {
+        if (ignore) return;
+        setCustomers(list);
+        setCustomerCode((current) => current || list[0]?.customerCode || '');
+      })
+      .catch((cause: unknown) => {
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
+      });
     return () => {
       ignore = true;
     };
   }, []);
 
-  const loadData = async (date = serviceDate, cust = customerCode) => {
+  const loadData = async (date = serviceDate, customer = customerCode) => {
+    if (!customer) {
+      setData(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     setError(null);
     try {
-      const resp = await reconciliationApi.getReconciliationSummary(date, 'Ca 1 (Sáng)', cust);
-      setData(resp);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải biên bản đối soát nguyên liệu ca.');
+      setData(await reconciliationApi.getReconciliationSummary(date, customer));
+    } catch (cause: unknown) {
+      setData(null);
+      setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    if (!customerCode) return;
     let ignore = false;
-    async function fetchData() {
-      try {
-        const resp = await reconciliationApi.getReconciliationSummary(serviceDate, 'Ca 1 (Sáng)', customerCode);
+    reconciliationApi
+      .getReconciliationSummary(serviceDate, customerCode)
+      .then((result) => {
+        if (!ignore) setData(result);
+      })
+      .catch((cause: unknown) => {
         if (!ignore) {
-          setData(resp);
-          setIsLoading(false);
+          setData(null);
+          setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
         }
-      } catch (err: unknown) {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Không thể tải biên bản đối soát nguyên liệu ca.');
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchData();
-
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
     return () => {
       ignore = true;
     };
   }, [serviceDate, customerCode]);
 
-  const handleCompleteRecon = async () => {
-    if (!data) return;
-    if (!reconNotes.trim()) {
-      alert('Vui lòng nhập ghi chú / lý do chốt sổ đối soát ca (BR-GLOBAL-03)');
-      return;
-    }
+  const canComplete = data?.status === 'IN_PROGRESS' && data.weeklyStatus === 'WEEK_COMPLETE';
+
+  const handleComplete = async () => {
+    if (!data || !canComplete) return;
     setIsSubmitting(true);
+    setMutationError(null);
     try {
-      await reconciliationApi.completeReconciliation(data.batchId, reconNotes);
+      const completed = await reconciliationApi.completeReconciliation(data.batchId, data.version);
+      setData(completed);
+      setMutationError(null);
       setIsCompleteOpen(false);
-      await loadData();
-      alert('Đã chốt sổ đối soát ca thành công và đồng bộ dữ liệu vào sổ cái kho!');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Chốt đối soát thất bại');
+    } catch (cause: unknown) {
+      setMutationError(cause instanceof Error ? cause : new Error('Không thể hoàn tất lô đối soát.'));
+      setIsCompleteOpen(false);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const customerSelectOptions = customers.map((c) => ({
-    value: c.customerCode,
-    label: `${c.customerCode} - ${c.customerName}`,
+  const customerOptions = customers.map((customer) => ({
+    value: customer.customerCode,
+    label: `${customer.customerCode} - ${customer.customerName}`,
   }));
 
-  const TAB_ITEMS = [
-    { id: 'variance', label: 'Bảng sai lệch ca', count: data?.lines.length },
-    { id: 'history', label: 'Lịch sử chốt sổ', count: 1 },
-  ];
-
-  const columns: ColumnDef<ReconciliationLineItem>[] = [
+  const columns = useMemo<ColumnDef<ReconciliationLineItem>[]>(() => [
     {
       id: 'code',
       header: 'Mã nguyên liệu',
@@ -124,13 +140,8 @@ export function ReconciliationPage() {
     {
       id: 'name',
       header: 'Tên nguyên liệu thực phẩm',
-      width: '26%',
-      cell: (row) => (
-        <div className="flex flex-col gap-0.5">
-          <span className="font-semibold text-slate-900 text-sm truncate">{row.materialName}</span>
-          {row.notes && <span className="text-xs text-slate-400 italic truncate">{row.notes}</span>}
-        </div>
-      ),
+      width: '28%',
+      cell: (row) => <span className="font-semibold text-slate-900 text-sm truncate">{row.materialName}</span>,
     },
     {
       id: 'unit',
@@ -140,228 +151,176 @@ export function ReconciliationPage() {
       cell: (row) => <span className="font-mono text-xs text-slate-600">{row.unit}</span>,
     },
     {
-      id: 'bom',
-      header: 'Định mức BOM',
-      width: '12%',
+      id: 'required',
+      header: 'Nhu cầu đã khóa',
+      width: '14%',
       align: 'right',
-      cell: (row) => <Num value={row.bomTargetQty} format="quantity" />,
+      cell: (row) => <Num value={row.requiredQuantity} format="quantity" />,
     },
     {
       id: 'issued',
-      header: 'Xuất kho thực tế',
-      width: '12%',
+      header: 'Đã xuất theo sổ',
+      width: '14%',
       align: 'right',
-      cell: (row) => <Num value={row.actualIssuedQty} format="quantity" />,
+      cell: (row) => row.issuedQuantity == null ? <span>—</span> : <Num value={row.issuedQuantity} format="quantity" />,
     },
     {
-      id: 'used',
-      header: 'Bếp sử dụng',
-      width: '12%',
+      id: 'difference',
+      header: 'Chênh lệch xuất',
+      width: '14%',
       align: 'right',
-      cell: (row) => <Num value={row.kitchenUsedQty} format="quantity" className="font-bold text-slate-900" />,
-    },
-    {
-      id: 'variance',
-      header: 'Sai lệch (+/-)',
-      width: '12%',
-      align: 'right',
-      cell: (row) => (
+      cell: (row) => row.issuedRequiredDifference == null ? <span>—</span> : (
         <Num
-          value={row.varianceQty}
+          value={row.issuedRequiredDifference}
           format="quantity"
-          prefix={row.varianceQty > 0 ? '+' : ''}
-          className={
-            row.varianceQty > 0
-              ? 'text-emerald-700 font-bold'
-              : row.varianceQty < 0
-              ? 'text-rose-700 font-bold'
-              : 'text-slate-400'
-          }
+          prefix={row.issuedRequiredDifference > 0 ? '+' : ''}
+          className={row.issuedRequiredDifference === 0 ? 'text-slate-600' : 'text-amber-700 font-semibold'}
         />
       ),
     },
     {
-      id: 'waste',
-      header: 'Hao hụt (%)',
-      width: '12%',
-      align: 'right',
-      cell: (row) => (
-        <Num
-          value={row.wastePercent}
-          format="percent"
-          decimals={1}
-          className={row.wastePercent > 2.0 ? 'text-rose-700 font-bold' : 'text-slate-700'}
-        />
-      ),
-    },
-    {
-      id: 'eval',
-      header: 'Đánh giá',
-      width: '12%',
+      id: 'status',
+      header: 'Trạng thái dòng',
+      width: '16%',
       align: 'center',
       cell: (row) => (
-        <Badge
-          variant={row.evaluation === 'normal' ? 'success' : row.evaluation === 'warning' ? 'warning' : 'danger'}
-          size="sm"
-        >
-          {row.evaluation === 'normal' ? 'Đạt chuẩn' : row.evaluation === 'warning' ? 'Cảnh báo' : 'Vượt mức'}
+        <Badge variant={row.disposition ? 'success' : row.triggers.length > 0 ? 'warning' : 'neutral'} size="sm">
+          {STATUS_LABELS[row.status] || row.status}
         </Badge>
       ),
     },
-  ];
+  ], []);
+
+  const isForbidden = error instanceof ApiError && error.status === 403;
+  const isConflict = error instanceof ApiError && error.status === 409;
+  const displayedError = isForbidden || isConflict ? null : error;
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-      {/* Zone 1: WorkspaceHeader (56px / h-14) */}
       <WorkspaceHeader
         title="Đối soát nguyên liệu"
         contextSelectors={
           <>
             <Select
-              options={customerSelectOptions}
+              aria-label="Chọn khách hàng đối soát"
+              options={customerOptions}
               value={customerCode}
-              onChange={(e) => setCustomerCode(e.target.value)}
+              onChange={(event) => {
+                setIsLoading(true);
+                setError(null);
+                setCustomerCode(event.target.value);
+              }}
               className="h-9 w-64 font-medium text-sm"
+              disabled={customers.length === 0}
             />
             <VietnameseDateInput
+              aria-label="Ngày đối soát"
               value={serviceDate}
-              onChange={(d) => setServiceDate(d)}
+              onChange={(date) => {
+                setIsLoading(true);
+                setError(null);
+                setServiceDate(date);
+              }}
               className="h-9 w-40 font-mono text-sm"
             />
-            <Badge variant="success" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
-              Ca 1 đã hoàn tất
+            <Badge variant={data?.status === 'COMPLETED' ? 'success' : 'info'} size="default" className="h-9 px-3 text-sm font-medium flex items-center">
+              {data ? STATUS_LABELS[data.status] || data.status : 'Chưa chọn lô'}
             </Badge>
           </>
         }
         actions={
           <>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => alert('Xuất biên bản đối soát ca thành công!')}
-              className="h-9 text-sm font-medium"
-            >
-              Xuất biên bản đối soát
+            <Button variant="outline" size="default" onClick={() => loadData()} className="h-9 text-sm font-medium">
+              Làm mới
             </Button>
-            {/* Rule D7: Single primary button */}
-            <ActionGuard roles={['ADMIN', 'MANAGER']}>
-              <Button
-                variant="default"
-                size="default"
-                onClick={() => setIsCompleteOpen(true)}
-                className="h-9 text-sm font-medium"
+            {canComplete && (
+              <ActionGuard
+                capabilityId="RECON.BATCH.LIFECYCLE"
+                roles={['ADMIN', 'MANAGER', 'Quản lý']}
+                permissions="ReconciliationWriteAccess"
+                allowedModes={['MATERIAL_RECONCILIATION']}
+                mode="disable"
+                reason="Chỉ khả dụng trong chế độ đối soát nguyên liệu."
               >
-                Chốt đối soát ca
-              </Button>
-            </ActionGuard>
+                <Button variant="default" size="default" onClick={() => setIsCompleteOpen(true)} className="h-9 text-sm font-medium">
+                  Chốt đối soát ca
+                </Button>
+              </ActionGuard>
+            )}
           </>
         }
       />
 
-      {/* Zone 2: TelemetrySubbar (44px / h-11) */}
       <TelemetrySubbar
-        leftControls={
-          <Tabs
-            items={TAB_ITEMS}
-            activeId={activeTab}
-            onChange={(id) => setActiveTab(id as 'variance' | 'history')}
-            size="default"
-          />
-        }
-        telemetryPills={
-          data ? (
-            <>
-              <span className="inline-flex items-center gap-1">
-                <span className="text-slate-500">Mã lô đối soát:</span>
-                <strong className="text-slate-900 font-mono text-xs">{data.batchCode}</strong>
-              </span>
-              <span className="text-slate-300">·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="text-slate-500">Suất chốt:</span>
-                <strong className="text-slate-900 font-mono font-bold">{data.totalServings}</strong>
-              </span>
-              <span className="text-slate-300">·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="text-slate-500">Hao hụt chung:</span>
-                <strong className="text-emerald-700 font-bold">{data.overallWastePercent}%</strong>
-              </span>
-              <span className="text-slate-300">·</span>
-              <span className="inline-flex items-center gap-1">
-                <span className="text-slate-500">Chênh lệch tiền:</span>
-                <span className="text-amber-700 font-mono font-bold">
-                  {data.totalVarianceAmount.toLocaleString('vi-VN')} ₫
-                </span>
-              </span>
-            </>
-          ) : null
-        }
+        leftControls={<span className="text-xs font-semibold text-slate-700">Rà soát dòng đối soát theo ngày</span>}
+        telemetryPills={data ? (
+          <>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-slate-500">Phiên bản lô:</span>
+              <strong className="text-slate-900 font-mono">{data.version}</strong>
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-slate-500">Trạng thái tuần:</span>
+              <strong className="text-slate-900">{STATUS_LABELS[data.weeklyStatus || ''] || data.weeklyStatus || '—'}</strong>
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <span className="text-slate-500">Dòng ngày:</span>
+              <strong className="text-slate-900 font-mono">{data.lines.length}</strong>
+            </span>
+          </>
+        ) : null}
       />
 
-      {/* Zone 3: DataGrid */}
+      {mutationError instanceof ApiError && (mutationError.status === 403 || mutationError.status === 409) && (
+        <div role="alert" className="px-4 py-2 text-sm border-b bg-rose-50 text-rose-800 border-rose-200 flex items-center justify-between gap-3 shrink-0">
+          <div>
+            <strong>{mutationError.status === 409 ? 'Xung đột dữ liệu đồng thời' : 'Không có quyền thực hiện thao tác'}</strong>
+            <span className="ml-2">{mutationError.message}</span>
+          </div>
+          {mutationError.status === 409 && <Button variant="outline" size="xs" onClick={() => { setMutationError(null); loadData(); }}>Tải lại dữ liệu mới nhất</Button>}
+        </div>
+      )}
+      {mutationError && (!(mutationError instanceof ApiError) || (mutationError.status !== 403 && mutationError.status !== 409)) && (
+        <div role="alert" className="px-4 py-2 text-sm border-b bg-rose-50 text-rose-800 border-rose-200 shrink-0">{mutationError.message}</div>
+      )}
+
       <StateBoundary
         isLoading={isLoading}
-        error={error}
+        error={displayedError}
+        isForbidden={isForbidden}
+        isConflict={isConflict}
+        conflictDetails={error?.message}
+        onResolveConflict={() => loadData()}
         onRetry={() => loadData()}
+        isPartial={Boolean(data && data.lines.length === 0 && data.status !== 'COMPLETED')}
+        partialMessage="Backend chỉ trả phạm vi vận hành hoặc chưa có daily review cho ngày đã chọn."
         isEmpty={!data || data.lines.length === 0}
-        emptyTitle="Chưa có dữ liệu đối soát ca này"
-        emptyDescription="Bếp trưởng chưa hoàn tất ca nấu hoặc chưa có phiếu xuất kho đối chiếu."
-        actionLabel="Làm mới đối soát"
-        onAction={() => loadData()}
+        emptyScenario="prerequisite-blocked"
+        emptyTitle="Chưa có dòng đối soát đúng phạm vi"
+        emptyDescription="Không có daily lineage cho khách hàng và ngày đã chọn, hoặc vai trò hiện tại chỉ được xem phạm vi vận hành."
       >
-        {data && (
-          <DataGrid<ReconciliationLineItem>
-            data={data.lines}
-            columns={columns}
-            keyExtractor={(row) => row.id}
-          />
-        )}
+        {data && <DataGrid data={data.lines} columns={columns} keyExtractor={(row) => row.dailyLineId || row.id} />}
       </StateBoundary>
 
-      {/* Complete Modal */}
       <Modal
         isOpen={isCompleteOpen}
         onClose={() => setIsCompleteOpen(false)}
-        title="Xác nhận chốt sổ đối soát ca"
-        description={`Lô đối soát ${data?.batchCode || ''} - Khách hàng ${data?.customerName || ''}`}
+        title="Xác nhận hoàn tất lô đối soát"
+        description={`Lô ${data?.batchId || ''} · phiên bản ${data?.version ?? '—'}`}
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setIsCompleteOpen(false)}>
-              Quay lại
-            </Button>
-            <Button variant="default" size="sm" disabled={isSubmitting} onClick={handleCompleteRecon}>
-              {isSubmitting ? 'Đang chốt sổ...' : 'Xác nhận chốt sổ & Khóa ca'}
+            <Button variant="outline" size="sm" onClick={() => setIsCompleteOpen(false)}>Quay lại</Button>
+            <Button variant="default" size="sm" disabled={isSubmitting} onClick={handleComplete}>
+              {isSubmitting ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất lô'}
             </Button>
           </>
         }
       >
-        <div className="space-y-3 text-sm text-slate-700">
-          <p>
-            Hệ thống sẽ khóa bất biến số liệu đối soát của ca ngày <strong>{serviceDate}</strong> và ghi nhận vào báo cáo tài chính suất ăn.
-          </p>
-          <div className="rounded border border-slate-200 bg-slate-50 p-3 space-y-2 font-mono text-xs">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Tổng suất chốt phục vụ:</span>
-              <strong className="text-slate-900">{data?.totalServings} suất</strong>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Tỷ lệ hao hụt trung bình:</span>
-              <strong className="text-emerald-700">{data?.overallWastePercent}%</strong>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Chênh lệch giá trị vật tư:</span>
-              <strong className="text-amber-700">{data?.totalVarianceAmount.toLocaleString('vi-VN')} ₫</strong>
-            </div>
-          </div>
-          <div className="space-y-1 pt-1">
-            <label className="block text-xs font-medium text-slate-700">Ghi chú đối soát</label>
-            <Input
-              placeholder="Nhập ghi chú chốt sổ đối soát ca..."
-              value={reconNotes}
-              onChange={(e) => setReconNotes(e.target.value)}
-              className="h-9"
-            />
-          </div>
-        </div>
+        <p className="text-sm leading-relaxed text-slate-700">
+          Backend sẽ kiểm tra lại trạng thái tuần và phiên bản hiện tại trước khi chuyển lô sang Hoàn tất. Thao tác không tự tạo bút toán kho hoặc số liệu tài chính.
+        </p>
       </Modal>
     </div>
   );

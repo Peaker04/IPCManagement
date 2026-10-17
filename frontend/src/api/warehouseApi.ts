@@ -57,13 +57,14 @@ export interface RawReceipt {
   warehouseName?: string;
   purchaseOrderId?: string;
   status: string;
-  lines?: Array<{
-    receiptLineId?: string;
-    ingredientCode?: string;
+  lines: Array<{
+    receiptLineId: string;
+    ingredientId: string;
     ingredientName?: string;
+    unitId: string;
     unitName?: string;
-    receivedQty?: number;
-    unitPrice?: number;
+    quantity: number;
+    unitPrice: number;
   }>;
 }
 
@@ -73,28 +74,15 @@ export interface RawIssue {
   issueDate: string;
   shiftName?: string;
   warehouseName?: string;
-  status?: string;
-  lines?: Array<{
-    issueLineId?: string;
-    ingredientCode?: string;
-    ingredientName?: string;
-    unitName?: string;
-    requestedQty?: number;
-    issuedQty?: number;
-  }>;
-}
-
-export interface CreateInventoryIssuePayload {
-  commandId?: string;
-  issueDate: string;
-  shiftName?: string;
-  warehouseId?: string;
+  receivedAt?: string;
   lines: Array<{
+    issueLineId: string;
     ingredientId: string;
+    ingredientName?: string;
+    unitId: string;
+    unitName?: string;
     requestedQty: number;
     issuedQty: number;
-    unitId: string;
-    varianceReason?: string;
   }>;
 }
 
@@ -111,17 +99,17 @@ export const warehouseApi = {
       receiptId: r.receiptId,
       receiptCode: r.receiptCode,
       receiptDate: r.receiptDate,
-      supplierName: r.supplierName || 'Nhà cung cấp',
-      warehouseName: r.warehouseName || 'Kho trung tâm',
-      status: (r.status?.toUpperCase() as InventoryReceiptItem['status']) || 'POSTED',
-      itemsCount: r.lines?.length || 0,
-      lines: (r.lines || []).map((l, idx) => ({
-        lineId: l.receiptLineId || `line-${idx}`,
-        ingredientCode: l.ingredientCode || 'NL-001',
-        ingredientName: l.ingredientName || 'Nguyên liệu',
-        unit: l.unitName || 'Kilogram',
-        receivedQty: l.receivedQty || 0,
-        unitPrice: l.unitPrice || 0,
+      supplierName: r.supplierName || '—',
+      warehouseName: r.warehouseName || '—',
+      status: r.status.toUpperCase() as InventoryReceiptItem['status'],
+      itemsCount: r.lines.length,
+      lines: r.lines.map((line) => ({
+        lineId: line.receiptLineId,
+        ingredientCode: line.ingredientId,
+        ingredientName: line.ingredientName || '—',
+        unit: line.unitName || '—',
+        receivedQty: line.quantity,
+        unitPrice: line.unitPrice,
       })),
     }));
   },
@@ -134,38 +122,18 @@ export const warehouseApi = {
       issueId: i.issueId,
       issueCode: i.issueCode,
       issueDate: i.issueDate,
-      shiftName: i.shiftName || 'Ca 1 (Sáng)',
-      warehouseName: i.warehouseName || 'Kho trung tâm',
-      status: (i.status?.toUpperCase() as InventoryIssueItem['status']) || 'ISSUED',
-      itemsCount: i.lines?.length || 0,
-      lines: (i.lines || []).map((l, idx) => ({
-        lineId: l.issueLineId || `line-${idx}`,
-        ingredientCode: l.ingredientCode || 'NL-001',
-        ingredientName: l.ingredientName || 'Nguyên liệu',
-        unit: l.unitName || 'Kilogram',
-        requestedQty: l.requestedQty || 0,
-        issuedQty: l.issuedQty || 0,
+      shiftName: i.shiftName || '—',
+      warehouseName: i.warehouseName || '—',
+      status: i.receivedAt ? 'CONFIRMED' : 'ISSUED',
+      itemsCount: i.lines.length,
+      lines: i.lines.map((line) => ({
+        lineId: line.issueLineId,
+        ingredientCode: line.ingredientId,
+        ingredientName: line.ingredientName || '—',
+        unit: line.unitName || '—',
+        requestedQty: line.requestedQty,
+        issuedQty: line.issuedQty,
       })),
     }));
-  },
-
-  async createIssue(data: CreateInventoryIssuePayload): Promise<{ issueId?: string; success: boolean }> {
-    const payload = {
-      commandId: data.commandId || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `cmd-${Date.now()}`),
-      issueDate: data.issueDate,
-      shiftName: data.shiftName,
-      warehouseId: data.warehouseId,
-      lines: data.lines.map((l) => ({
-        ingredientId: l.ingredientId,
-        requestedQty: l.requestedQty,
-        issuedQty: l.issuedQty,
-        unitId: l.unitId,
-        varianceReason: l.varianceReason,
-      })),
-    };
-    return apiClient<{ issueId?: string; success: boolean }>('/inventory-issues', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
   },
 };

@@ -1,340 +1,120 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
-import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Button } from '../../components/ui/button';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
-import { Tabs } from '../../components/ui/tabs';
-import {
-  reportsApi,
-  type MealCostReportItem,
-  type PriceVarianceReportItem,
-  type CurrentStockReportItem,
-} from '../../api/reportsApi';
+import { weeklyMenuApi } from '../../api/weeklyMenuApi';
+import { reportsApi, type ReportPage, type DemandReportItem, type PriceVarianceReportItem, type CurrentStockReportItem } from '../../api/reportsApi';
+import { formatVietnameseDateTime } from '../../utils/dates';
+import type { CustomerOption } from '../../types';
+
+function currentPeriod(): string {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
+  return `${parts.find((p) => p.type === 'year')?.value}-${parts.find((p) => p.type === 'month')?.value}`;
+}
+
+const PAGE_SIZE = 25;
 
 export function ReportsPage() {
-  const [activeTab, setActiveTab] = useState<'meal-cost' | 'price-variance' | 'stock'>('meal-cost');
-  const [period, setPeriod] = useState('2026-09');
-  const [customer, setCustomer] = useState('DAV');
-  const [mealCosts, setMealCosts] = useState<MealCostReportItem[]>([]);
-  const [priceVariances, setPriceVariances] = useState<PriceVarianceReportItem[]>([]);
+  const [searchParams] = useSearchParams();
+  const view = searchParams.get('view');
+  const activeView = view === 'prices' || view === 'stock' ? view : 'demand';
+  const [period, setPeriod] = useState(currentPeriod);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
+  const [customerId, setCustomerId] = useState('');
+  const [demand, setDemand] = useState<DemandReportItem[]>([]);
+  const [prices, setPrices] = useState<PriceVarianceReportItem[]>([]);
   const [stocks, setStocks] = useState<CurrentStockReportItem[]>([]);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageInfo, setPageInfo] = useState<Pick<ReportPage<unknown>, 'totalCount' | 'pageNumber' | 'totalPages' | 'hasPrev' | 'hasNext'>>({ totalCount: 0, pageNumber: 1, totalPages: 0, hasPrev: false, hasNext: false });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const [mc, pv, st] = await Promise.all([
-        reportsApi.getMealCostReports(period, customer),
-        reportsApi.getPriceVarianceReports(period, customer),
-        reportsApi.getCurrentStock(),
-      ]);
-      setMealCosts(mc);
-      setPriceVariances(pv);
-      setStocks(st);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu báo cáo vận hành.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const [error, setError] = useState<Error | null>(null);
+  const requestSequence = useRef(0);
 
   useEffect(() => {
     let ignore = false;
-    async function fetchData() {
-      try {
-        const [mc, pv, st] = await Promise.all([
-          reportsApi.getMealCostReports(period, customer),
-          reportsApi.getPriceVarianceReports(period, customer),
-          reportsApi.getCurrentStock(),
-        ]);
-        if (!ignore) {
-          setMealCosts(mc);
-          setPriceVariances(pv);
-          setStocks(st);
-          setIsLoading(false);
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu báo cáo vận hành.');
-          setIsLoading(false);
-        }
+    weeklyMenuApi.getCustomers().then((items) => {
+      if (ignore) return;
+      setCustomers(items);
+      setCustomerId(items[0]?.customerId || '');
+      if (items.length === 0 && activeView === 'demand') setIsLoading(false);
+    }).catch((cause: unknown) => {
+      if (!ignore && activeView === 'demand') {
+        setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
+        setIsLoading(false);
       }
-    }
+    });
+    return () => { ignore = true; };
+  }, [activeView]);
 
-    fetchData();
+  useEffect(() => {
+    if (activeView === 'demand' && !customerId) return;
+    const sequence = ++requestSequence.current;
+    const request = activeView === 'demand'
+      ? reportsApi.getDemand(period, customerId, pageNumber, PAGE_SIZE)
+      : activeView === 'prices'
+        ? reportsApi.getPriceVariance(period, pageNumber, PAGE_SIZE)
+        : reportsApi.getCurrentStock(undefined, pageNumber, PAGE_SIZE);
+    request.then((page) => {
+      if (sequence !== requestSequence.current) return;
+      setPageInfo(page);
+      if (activeView === 'demand') setDemand(page.items as DemandReportItem[]);
+      else if (activeView === 'prices') setPrices(page.items as PriceVarianceReportItem[]);
+      else setStocks(page.items as CurrentStockReportItem[]);
+    }).catch((cause: unknown) => {
+      if (sequence === requestSequence.current) setError(cause instanceof Error ? cause : new Error('Không thể tải báo cáo.'));
+    }).finally(() => {
+      if (sequence === requestSequence.current) setIsLoading(false);
+    });
+  }, [activeView, period, customerId, pageNumber]);
 
-    return () => {
-      ignore = true;
-    };
-  }, [period, customer]);
-
-  const TAB_ITEMS = [
-    { id: 'meal-cost', label: 'Báo cáo chi phí suất ăn', count: mealCosts.length },
-    { id: 'price-variance', label: 'Biến động giá mua', count: priceVariances.length },
-    { id: 'stock', label: 'Tồn kho hiện tại', count: stocks.length },
+  const demandColumns: ColumnDef<DemandReportItem>[] = [
+    { id: 'ingredient', header: 'Nguyên liệu', width: '28%', cell: (r) => <span className="font-semibold">{r.ingredientName}</span> },
+    { id: 'required', header: 'Tổng nhu cầu', width: '16%', align: 'right', cell: (r) => <Num value={r.totalRequiredQty} format="quantity" suffix={` ${r.unitName}`} /> },
+    { id: 'stock', header: 'Tồn hiện tại', width: '16%', align: 'right', cell: (r) => <Num value={r.currentStockQty} format="quantity" suffix={` ${r.unitName}`} /> },
+    { id: 'purchase', header: 'Đề xuất mua', width: '16%', align: 'right', cell: (r) => <Num value={r.suggestedPurchaseQty} format="quantity" suffix={` ${r.unitName}`} /> },
+    { id: 'issued', header: 'Đã xuất Bếp', width: '14%', align: 'right', cell: (r) => <Num value={r.issuedQty} format="quantity" suffix={` ${r.unitName}`} /> },
+    { id: 'status', header: 'Trạng thái', width: '14%', align: 'center', cell: (r) => <Badge variant="neutral" size="sm">{r.fulfillmentStatus}</Badge> },
   ];
-
-  // Tab 1: Meal Cost Columns
-  const mealCostColumns: ColumnDef<MealCostReportItem>[] = [
-    {
-      id: 'code',
-      header: 'Mã món',
-      width: '16%',
-      cell: (row) => <IdentifierText value={row.dishCode} />,
-    },
-    {
-      id: 'name',
-      header: 'Tên món ăn phục vụ',
-      width: '28%',
-      cell: (row) => <span className="font-semibold text-slate-900 text-sm truncate block">{row.dishName}</span>,
-    },
-    {
-      id: 'servings',
-      header: 'Số suất nấu',
-      width: '14%',
-      align: 'right',
-      cell: (row) => <Num value={row.plannedServings} format="quantity" suffix=" suất" />,
-    },
-    {
-      id: 'target',
-      header: 'Định mức bán',
-      width: '14%',
-      align: 'right',
-      cell: (row) => <Num value={row.targetPrice} format="currency" />,
-    },
-    {
-      id: 'cost',
-      header: 'Giá vốn thực tế',
-      width: '14%',
-      align: 'right',
-      cell: (row) => <Num value={row.calculatedCost} format="currency" className="font-bold text-slate-900 text-sm" />,
-    },
-    {
-      id: 'ratio',
-      header: 'Tỷ lệ chi phí',
-      width: '14%',
-      align: 'center',
-      cell: (row) => (
-        <Badge variant={row.costRatioPercent <= 45 ? 'success' : 'warning'} size="sm">
-          {row.costRatioPercent}%
-        </Badge>
-      ),
-    },
+  const priceColumns: ColumnDef<PriceVarianceReportItem>[] = [
+    { id: 'code', header: 'Phiếu nhập', width: '18%', cell: (r) => <IdentifierText value={r.receiptCode} /> },
+    { id: 'ingredient', header: 'Nguyên liệu', width: '26%', cell: (r) => <span className="font-semibold">{r.ingredientName}</span> },
+    { id: 'supplier', header: 'Nhà cung cấp', width: '22%', cell: (r) => <span>{r.supplierName || '—'}</span> },
+    { id: 'reference', header: 'Giá tham chiếu', width: '15%', align: 'right', cell: (r) => <Num value={r.referencePrice} format="currency" /> },
+    { id: 'actual', header: 'Giá nhập', width: '15%', align: 'right', cell: (r) => <Num value={r.unitPrice} format="currency" /> },
+    { id: 'variance', header: 'Biến động', width: '12%', align: 'center', cell: (r) => <Badge variant={r.isWarning ? 'danger' : 'neutral'} size="sm">{r.variancePercent}%</Badge> },
   ];
-
-  // Tab 2: Price Variance Columns
-  const priceVarianceColumns: ColumnDef<PriceVarianceReportItem>[] = [
-    {
-      id: 'code',
-      header: 'Mã nguyên liệu',
-      width: '18%',
-      cell: (row) => <IdentifierText value={row.ingredientCode} />,
-    },
-    {
-      id: 'name',
-      header: 'Tên nguyên liệu thực phẩm',
-      width: '32%',
-      cell: (row) => <span className="font-semibold text-slate-900 text-sm">{row.ingredientName}</span>,
-    },
-    {
-      id: 'unit',
-      header: 'ĐVT',
-      width: '12%',
-      align: 'center',
-      cell: (row) => <span className="font-mono text-xs text-slate-600">{row.unit}</span>,
-    },
-    {
-      id: 'planned',
-      header: 'Giá kế hoạch',
-      width: '14%',
-      align: 'right',
-      cell: (row) => <Num value={row.plannedPrice} format="currency" />,
-    },
-    {
-      id: 'actual',
-      header: 'Giá mua thực tế',
-      width: '14%',
-      align: 'right',
-      cell: (row) => <Num value={row.actualPrice} format="currency" className="font-bold text-slate-900" />,
-    },
-    {
-      id: 'variance',
-      header: 'Biến động (%)',
-      width: '10%',
-      align: 'center',
-      cell: (row) => (
-        <Badge
-          variant={row.variancePercent === 0 ? 'neutral' : row.variancePercent > 0 ? 'danger' : 'success'}
-          size="sm"
-        >
-          {row.variancePercent > 0 ? `+${row.variancePercent}%` : `${row.variancePercent}%`}
-        </Badge>
-      ),
-    },
-  ];
-
-  // Tab 3: Current Stock Columns
   const stockColumns: ColumnDef<CurrentStockReportItem>[] = [
-    {
-      id: 'warehouse',
-      header: 'Kho lưu trữ',
-      width: '30%',
-      cell: (row) => <span className="font-medium text-slate-800 text-sm">{row.warehouseName}</span>,
-    },
-    {
-      id: 'ingredient',
-      header: 'Tên nguyên liệu thực phẩm',
-      width: '36%',
-      cell: (row) => <span className="font-semibold text-slate-900 text-sm">{row.ingredientName}</span>,
-    },
-    {
-      id: 'qty',
-      header: 'Số lượng tồn kho',
-      width: '20%',
-      align: 'right',
-      cell: (row) => (
-        <Num
-          value={row.currentQty}
-          format="quantity"
-          suffix={` ${row.unitName}`}
-          className="font-bold text-slate-900 text-sm"
-        />
-      ),
-    },
-    {
-      id: 'status',
-      header: 'Mức khả dụng',
-      width: '14%',
-      align: 'center',
-      cell: () => (
-        <Badge variant="success" size="sm">
-          Đủ sản xuất
-        </Badge>
-      ),
-    },
+    { id: 'warehouse', header: 'Kho', width: '26%', cell: (r) => <span>{r.warehouseName}</span> },
+    { id: 'ingredient', header: 'Nguyên liệu', width: '34%', cell: (r) => <span className="font-semibold">{r.ingredientName}</span> },
+    { id: 'quantity', header: 'Tồn hiện tại', width: '22%', align: 'right', cell: (r) => <Num value={r.currentQty} format="quantity" suffix={` ${r.unitName}`} /> },
+    { id: 'updated', header: 'Cập nhật', width: '18%', cell: (r) => <span className="font-mono text-xs">{formatVietnameseDateTime(r.lastUpdated)}</span> },
   ];
+  const rows = activeView === 'demand' ? demand : activeView === 'prices' ? prices : stocks;
 
-  return (
-    <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-      {/* Zone 1: WorkspaceHeader (56px / h-14) */}
-      <WorkspaceHeader
-        title="Báo cáo chi phí & Hao hụt"
-        contextSelectors={
-          <>
-            <Select
-              options={[
-                { value: '2026-09', label: 'Kỳ tháng 09/2026 (Hiện tại)' },
-                { value: '2026-08', label: 'Kỳ tháng 08/2026' },
-                { value: '2026-07', label: 'Kỳ tháng 07/2026' },
-              ]}
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-              className="h-9 w-60 font-medium text-sm"
-            />
-            <Select
-              options={[
-                { value: 'DAV', label: 'Draxlmaier Automotive' },
-                { value: 'ANV', label: 'AMANN Sewing Thread' },
-              ]}
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              className="h-9 w-60 font-medium text-sm"
-            />
-            <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
-              Dữ liệu chốt sổ
-            </Badge>
-          </>
-        }
-        actions={
-          <>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={loadData}
-              className="h-9 text-sm font-medium"
-            >
-              Làm mới
-            </Button>
-            {/* Rule D7: Single primary button */}
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => alert('Xuất báo cáo tài chính suất ăn thành công!')}
-              className="h-9 text-sm font-medium"
-            >
-              Xuất báo cáo Excel
-            </Button>
-          </>
-        }
-      />
-
-      {/* Zone 2: TelemetrySubbar (44px / h-11) */}
-      <TelemetrySubbar
-        leftControls={
-          <Tabs
-            items={TAB_ITEMS}
-            activeId={activeTab}
-            onChange={(id) => setActiveTab(id as 'meal-cost' | 'price-variance' | 'stock')}
-            size="default"
-          />
-        }
-        telemetryPills={
-          <>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Tổng chi phí:</span>
-              <strong className="text-emerald-700 font-mono font-bold">37.445.061 ₫</strong>
-            </span>
-            <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Hao hụt TB:</span>
-              <strong className="text-slate-900 font-bold">1.2%</strong>
-            </span>
-            <span className="text-slate-300">·</span>
-            <Badge variant="success" size="sm">
-              Định mức: Đạt chuẩn
-            </Badge>
-          </>
-        }
-      />
-
-      {/* Zone 3: DataGrid */}
-      <StateBoundary
-        isLoading={isLoading}
-        error={error}
-        onRetry={loadData}
-        isEmpty={false}
-      >
-        {activeTab === 'meal-cost' && (
-          <DataGrid<MealCostReportItem>
-            data={mealCosts}
-            columns={mealCostColumns}
-            keyExtractor={(row) => row.dishCode}
-          />
-        )}
-
-        {activeTab === 'price-variance' && (
-          <DataGrid<PriceVarianceReportItem>
-            data={priceVariances}
-            columns={priceVarianceColumns}
-            keyExtractor={(row) => row.ingredientCode}
-          />
-        )}
-
-        {activeTab === 'stock' && (
-          <DataGrid<CurrentStockReportItem>
-            data={stocks}
-            columns={stockColumns}
-            keyExtractor={(row, idx) => `${row.warehouseName}-${row.ingredientName}-${idx}`}
-          />
-        )}
-      </StateBoundary>
-    </div>
-  );
+  return <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
+    <WorkspaceHeader title="Báo cáo vận hành" contextSelectors={<>
+      {activeView !== 'stock' && <input type="month" value={period} onChange={(e) => { setIsLoading(true); setError(null); setPageNumber(1); setPeriod(e.target.value); }} className="h-9 rounded border border-slate-300 px-3 text-sm" aria-label="Kỳ báo cáo" />}
+      {activeView === 'demand' && <Select aria-label="Chọn khách hàng báo cáo" options={customers.map((c) => ({ value: c.customerId, label: `${c.customerCode} - ${c.customerName}` }))} value={customerId} onChange={(e) => { setIsLoading(true); setError(null); setPageNumber(1); setCustomerId(e.target.value); }} disabled={!customers.length} className="h-9 w-60" />}
+    </>} />
+    <TelemetrySubbar leftControls={<span className="text-xs font-semibold">{activeView === 'demand' ? 'Nhu cầu nguyên liệu' : activeView === 'prices' ? 'Biến động giá nhập' : 'Tồn kho hiện tại'}</span>} telemetryPills={<span className="text-slate-500">{pageInfo.totalCount} dòng authoritative</span>} />
+    <StateBoundary isLoading={isLoading} error={error} isEmpty={!isLoading && !error && rows.length === 0} emptyScenario="prerequisite-blocked" emptyTitle="Chưa có dữ liệu báo cáo" emptyDescription="Không có dữ liệu persisted cho phạm vi đã chọn.">
+      {activeView === 'demand' && <DataGrid data={demand} columns={demandColumns} keyExtractor={(r) => `${r.requestDate}-${r.ingredientId}-${r.unitId}`} />}
+      {activeView === 'prices' && <DataGrid data={prices} columns={priceColumns} keyExtractor={(r) => r.receiptLineId} />}
+      {activeView === 'stock' && <DataGrid data={stocks} columns={stockColumns} keyExtractor={(r) => `${r.warehouseId}-${r.ingredientId}-${r.unitId}`} />}
+    </StateBoundary>
+    {pageInfo.totalPages > 1 && (
+      <nav aria-label="Phân trang báo cáo" className="flex items-center justify-end gap-2 border-t border-slate-200 px-4 py-2">
+        <span className="text-xs text-slate-500">Trang {pageInfo.pageNumber}/{pageInfo.totalPages}</span>
+        <Button variant="outline" size="xs" disabled={!pageInfo.hasPrev || isLoading} onClick={() => { setIsLoading(true); setError(null); setPageNumber((page) => page - 1); }}>Trang trước</Button>
+        <Button variant="outline" size="xs" disabled={!pageInfo.hasNext || isLoading} onClick={() => { setIsLoading(true); setError(null); setPageNumber((page) => page + 1); }}>Trang sau</Button>
+      </nav>
+    )}
+  </div>;
 }

@@ -12,7 +12,7 @@ import { clsx } from 'clsx';
 export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [selectedMetricId, setSelectedMetricId] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -23,7 +23,7 @@ export function DashboardPage() {
       const resp = await dashboardApi.getDashboardData();
       setData(resp);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu điều hành hôm nay.');
+      setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +40,7 @@ export function DashboardPage() {
         }
       } catch (err: unknown) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Không thể tải dữ liệu điều hành hôm nay.');
+          setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
           setIsLoading(false);
         }
       }

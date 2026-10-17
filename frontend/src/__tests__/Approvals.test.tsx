@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ApprovalPage } from '../features/approvals/ApprovalPage';
 import { AuthProvider } from '../store/authContext';
 import { approvalsApi } from '../api/approvalsApi';
+import { ApiError } from '../api/client';
 import { MOCK_APPROVALS } from '../test/fixtures';
 
 function renderApprovals(initialEntry = '/approvals') {
@@ -31,7 +32,7 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
 
     // Select type and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('dd/MM/yyyy')).not.toBeInTheDocument();
     expect(screen.getAllByText(/chờ xử lý/i).length).toBeGreaterThan(0);
 
     // Rule D7: Exactly 1 primary button + 1 outline
@@ -50,10 +51,9 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     expect(screen.getByRole('tab', { name: /Đơn mua hàng PO/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Phiếu nhập kho/i })).toBeInTheDocument();
 
-    // Telemetry pills
+    // Only telemetry derivable from the authoritative inbox is shown.
     expect(screen.getByText(/Chờ duyệt:/i)).toBeInTheDocument();
-    expect(screen.getByText(/SLA khẩn:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Đã duyệt hôm nay:/i)).toBeInTheDocument();
+    expect(screen.queryByText(/SLA khẩn:|Đã duyệt hôm nay:/i)).not.toBeInTheDocument();
   });
 
   it('renders SplitView with Master Queue (Left) and Detail Decision Drawer (Right) with ZERO <details> tags', async () => {
@@ -80,6 +80,28 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     const approveBtns = await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' });
     expect(approveBtns.length).toBeGreaterThan(0);
     await userEvent.click(approveBtns[0]);
+  });
+
+  it('keeps loaded inbox data visible when a decision conflicts with a newer version', async () => {
+    vi.spyOn(approvalsApi, 'decide').mockRejectedValueOnce(new ApiError(409, 'Hồ sơ đã được người khác xử lý'));
+    renderApprovals();
+
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' }))[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận phê duyệt' }));
+
+    expect(await screen.findByText('Xung đột dữ liệu đồng thời')).toBeInTheDocument();
+    expect(screen.getByText('Hồ sơ đã được người khác xử lý')).toBeInTheDocument();
+    expect(screen.getAllByText(MOCK_APPROVALS[0].targetCode).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
+  });
+
+  it('preserves HTTP 403 as a permission-denied state', async () => {
+    vi.spyOn(approvalsApi, 'getInbox').mockRejectedValueOnce(new ApiError(403, 'Không có quyền duyệt'));
+
+    renderApprovals();
+
+    expect(await screen.findByText('Truy cập bị hạn chế')).toBeInTheDocument();
+    expect(screen.queryByText('Không thể tải dữ liệu')).not.toBeInTheDocument();
   });
 
   it('handles error state and provides retry action', async () => {

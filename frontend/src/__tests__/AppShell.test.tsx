@@ -1,18 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { AppShell } from '../components/workbench/AppShell';
 import { AuthProvider } from '../store/authContext';
 import { systemApi } from '../api/systemApi';
+import { DirtyNavigationProvider } from '../components/workbench/DirtyNavigation';
+import { useDirtyNavigation } from '../components/workbench/dirty-navigation-context';
+import { CANONICAL_ROUTES } from '../routes/routeRegistry';
 
-function renderAppShell(initialEntry = '/') {
+function DirtyProbe() {
+  const { registerDirty } = useDirtyNavigation();
+  return <button type="button" onClick={() => registerDirty('draft-1')}>Tạo bản nháp</button>;
+}
+
+function renderAppShell(initialEntry = '/', children = <div data-testid="workbench-content">Nội dung bàn làm việc</div>) {
   return render(
     <AuthProvider>
       <MemoryRouter initialEntries={[initialEntry]}>
-        <AppShell>
-          <div data-testid="workbench-content">Nội dung bàn làm việc</div>
-        </AppShell>
+        <DirtyNavigationProvider>
+          <AppShell getAllowedRoles={(path) => CANONICAL_ROUTES.find((route) => route.path === path)?.allowedRoles}>{children}</AppShell>
+        </DirtyNavigationProvider>
       </MemoryRouter>
     </AuthProvider>
   );
@@ -20,8 +28,8 @@ function renderAppShell(initialEntry = '/') {
 
 describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', () => {
   beforeEach(() => {
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', version: 1 });
-    vi.spyOn(systemApi, 'setOperationalMode').mockImplementation(async (mode) => ({ mode, version: 1 }));
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.spyOn(systemApi, 'setOperationalMode').mockImplementation(async (mode) => ({ mode, label: mode, version: 2, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } }));
   });
   it('renders branding, hamburger toggle, and canonical system routes', () => {
     renderAppShell();
@@ -38,13 +46,14 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     expect(screen.getByRole('link', { name: 'Điều phối đơn' })).toHaveAttribute('href', '/meal-orders');
     expect(screen.getByRole('link', { name: 'Duyệt vận hành' })).toHaveAttribute('href', '/approvals');
     expect(screen.getByRole('link', { name: 'Thu mua' })).toHaveAttribute('href', '/purchasing');
-    expect(screen.getByRole('link', { name: 'Kho nguyên liệu' })).toHaveAttribute('href', '/warehouse');
-    expect(screen.getByRole('link', { name: 'Bếp trưởng' })).toHaveAttribute('href', '/chef');
+    expect(screen.getByRole('button', { name: 'Kho nguyên liệu' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Bếp trưởng' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: 'Đối soát nguyên liệu' })).toHaveAttribute('href', '/reconciliation');
-    expect(screen.getByRole('link', { name: 'Báo cáo vận hành' })).toHaveAttribute('href', '/reports');
-    expect(screen.getByRole('link', { name: 'Quản trị dữ liệu' })).toHaveAttribute('href', '/admin-data');
-    expect(screen.getByRole('link', { name: 'Thiết lập quy trình duyệt' })).toHaveAttribute('href', '/settings/approval-rules');
-    expect(screen.getByRole('link', { name: 'Thiết lập nâng cao' })).toHaveAttribute('href', '/settings/advanced');
+    expect(screen.getByRole('button', { name: 'Báo cáo vận hành' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Quản trị hệ thống' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Danh mục nguyên liệu' })).toHaveAttribute('href', '/admin-data?view=ingredients');
+    expect(screen.getByRole('link', { name: 'Quy trình phê duyệt' })).toHaveAttribute('href', '/settings/approval-rules');
+    expect(screen.getByRole('link', { name: 'Chế độ vận hành' })).toHaveAttribute('href', '/settings/advanced?view=mode');
 
     // Check workbench main content
     expect(screen.getByTestId('workbench-content')).toBeInTheDocument();
@@ -61,7 +70,7 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     // 4 nested child leaf routes (Rule N6)
     expect(screen.getByRole('link', { name: 'Kế hoạch tuần' })).toHaveAttribute('href', '/weekly-menu');
     expect(screen.getByRole('link', { name: 'Bàn giao nguyên liệu' })).toHaveAttribute('href', '/weekly-menu?view=demand');
-    expect(screen.getByRole('link', { name: 'Kế hoạch sản xuất' })).toHaveAttribute('href', '/weekly-menu?view=production-plan');
+    expect(screen.getByRole('link', { name: 'Kế hoạch sản xuất', current: 'page' })).toHaveAttribute('href', '/weekly-menu?view=production-plan');
     expect(screen.getByRole('link', { name: 'Giá vốn & Định mức BOM' })).toHaveAttribute('href', '/weekly-menu?view=cost');
 
     // Toggle parent collapse
@@ -73,6 +82,15 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     await userEvent.click(weeklyMenuParentBtn);
     expect(weeklyMenuParentBtn).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: 'Bàn giao nguyên liệu' })).toBeInTheDocument();
+  });
+
+  it('renders warehouse work views as nested sidebar leaves instead of page tabs', () => {
+    renderAppShell('/warehouse?view=receipts');
+
+    expect(screen.getByRole('button', { name: 'Kho nguyên liệu' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', { name: 'Phiếu xuất kho' })).toHaveAttribute('href', '/warehouse?view=issues');
+    expect(screen.getByRole('link', { name: 'Phiếu nhập kho' })).toHaveAttribute('href', '/warehouse?view=receipts');
+    expect(screen.getByRole('link', { name: 'Tồn kho hiện tại', current: 'page' })).toHaveAttribute('href', '/warehouse?view=stock');
   });
 
   it('toggles hamburger button to collapse and expand sidebar width', async () => {
@@ -90,19 +108,48 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     expect(screen.getByText('IPC System')).toBeInTheDocument();
   });
 
-  it('toggles operational mode between DEFAULT and MATERIAL_RECONCILIATION (DOM-MODE-1)', async () => {
+  it('hides navigation destinations that the current role cannot access', () => {
+    localStorage.setItem('ipc_v3_token', 'token');
+    localStorage.setItem('ipc_v3_user', JSON.stringify({
+      userId: 'u-1', fullName: 'Điều phối viên', username: 'coord', roleCode: 'Coordinator', roleName: 'Điều phối',
+      isActive: true, isAdminFullAccess: false, permissions: [],
+    }));
     renderAppShell();
 
-    const modeBtn = screen.getByTitle(/Chuyển đổi chế độ vận hành/i);
-    expect(modeBtn).toBeInTheDocument();
-    expect(screen.getByText('Mặc định')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Điều phối đơn' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Duyệt vận hành' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quản trị hệ thống' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Chế độ vận hành hiện tại: Mặc định' })).not.toBeInTheDocument();
+    localStorage.removeItem('ipc_v3_token');
+    localStorage.removeItem('ipc_v3_user');
+  });
 
-    // Click to switch mode
-    fireEvent.click(modeBtn);
-    expect(screen.getByText('Đối soát MRX')).toBeInTheDocument();
+  it('requires accessible confirmation before sidebar navigation discards a registered draft', async () => {
+    renderAppShell('/approvals', <DirtyProbe />);
+    await userEvent.click(screen.getByRole('button', { name: 'Tạo bản nháp' }));
+    await userEvent.click(screen.getByRole('link', { name: 'Tổng quan' }));
 
-    // Click again to toggle back
-    fireEvent.click(modeBtn);
-    expect(screen.getByText('Mặc định')).toBeInTheDocument();
+    expect(screen.getByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Duyệt vận hành' })).toHaveAttribute('aria-current', 'page');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+
+    const beforeUnload = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+
+    await userEvent.click(screen.getByRole('link', { name: 'Tổng quan' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy thay đổi' }));
+    expect(screen.getByRole('link', { name: 'Tổng quan' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('routes operational-mode changes to the guarded settings owner instead of mutating from the shell', async () => {
+    renderAppShell();
+
+    const modeLink = screen.getByRole('link', { name: /Chế độ vận hành hiện tại: Mặc định/i });
+    expect(modeLink).toHaveAttribute('href', '/settings/advanced?view=mode');
+    await userEvent.click(modeLink);
+    expect(systemApi.setOperationalMode).not.toHaveBeenCalled();
   });
 });

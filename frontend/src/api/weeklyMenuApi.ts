@@ -7,7 +7,6 @@ import type {
   DailyMaterialSummaryItem,
   ScheduleDayColumn,
   WeeklyScheduleMatrixRow,
-  BomIngredientItem,
 } from '../types';
 import { formatVietnameseDate } from '../utils/dates';
 
@@ -46,32 +45,62 @@ export interface RawWeeklyMenuResponse {
 export interface RawProductionPlanLine {
   planLineId: string;
   dishId: string;
-  dishName: string;
-  shiftName: string;
+  dishName?: string;
+  shiftName?: string;
   totalServings: number;
+  priceTierAmount?: number;
 }
 
 export interface RawProductionPlan {
   planId: string;
   planCode: string;
   planDate: string;
-  customerCode: string;
-  status: string;
+  customerId?: string;
+  customerCode?: string;
+  status?: string;
+  sentToKitchenAt?: string;
   lines: RawProductionPlanLine[];
 }
 
-export interface RawBomLine {
-  bomId: string;
-  ingredientId: string;
-  ingredientCode: string;
-  ingredientName: string;
-  unitName: string;
-  grossQtyPerServing: number;
-  referencePrice: number;
+interface RawDemandAggregateItem {
+  requestDate: string;
+  customerId: string;
+  customerCode?: string;
+  customerName?: string;
   priceTierAmount: number;
+  ingredientId: string;
+  ingredientName?: string;
+  unitId: string;
+  unitName?: string;
+  totalRequiredQty: number;
+  issuedQty: number;
+  receivedByKitchenQty: number;
+  remainingToIssueQty: number;
+  fulfillmentStatus: string;
 }
 
-const DAY_NAMES = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+interface RawDemandAggregatePage {
+  items: RawDemandAggregateItem[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  remainingToIssueCount: number;
+  pendingKitchenReceiptCount: number;
+}
+
+const DAY_NAMES = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy', 'Chủ Nhật'];
+
+function addDays(date: string, days: number): string {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+function mapDemandStatus(item: RawDemandAggregateItem): MaterialDemandItem['status'] {
+  if (item.fulfillmentStatus === 'FULFILLED') return 'fulfilled';
+  if (item.fulfillmentStatus === 'IN_PROGRESS') return 'in_progress';
+  return 'missing';
+}
 
 export const weeklyMenuApi = {
   async getCustomers(): Promise<CustomerOption[]> {
@@ -84,215 +113,130 @@ export const weeklyMenuApi = {
     );
   },
 
-  async getProductionPlans(serviceDate: string, customerId?: string): Promise<RawProductionPlan[]> {
-    const query = new URLSearchParams({ serviceDate });
-    if (customerId) query.append('customerId', customerId);
+  async getProductionPlans(dateFrom: string, dateTo: string, customerId: string): Promise<RawProductionPlan[]> {
+    const query = new URLSearchParams({ dateFrom, dateTo, customerId });
     return apiClient<RawProductionPlan[]>(`/production-plans/filter?${query.toString()}`);
   },
 
-  async getDishBom(dishId: string): Promise<RawBomLine[]> {
-    return apiClient<RawBomLine[]>(`/dishes/${encodeURIComponent(dishId)}/bom`);
+  async getDemandPage(dateFrom: string, dateTo: string, customerId: string, pageNumber = 1, pageSize = 100): Promise<RawDemandAggregatePage> {
+    const query = new URLSearchParams({
+      dateFrom,
+      dateTo,
+      customerId,
+      pageNumber: String(pageNumber),
+      pageSize: String(pageSize),
+    });
+    return apiClient<RawDemandAggregatePage>(
+      `/workflow-reports/ingredient-demand/aggregate/page?${query.toString()}`
+    );
   },
 
-  async recalculateDemand(customerCode: string, serviceDate: string): Promise<{ success: boolean; rowsCount?: number }> {
-    return apiClient<{ success: boolean; rowsCount?: number }>('/material-demand/generate', {
+  async getAllDemand(dateFrom: string, dateTo: string, customerId: string, pageSize = 100): Promise<RawDemandAggregatePage> {
+    const firstPage = await this.getDemandPage(dateFrom, dateTo, customerId, 1, pageSize);
+    const items = [...firstPage.items];
+    let pageNumber = 2;
+    while (items.length < firstPage.totalCount) {
+      const page = await this.getDemandPage(dateFrom, dateTo, customerId, pageNumber, pageSize);
+      if (page.items.length === 0) break;
+      items.push(...page.items);
+      pageNumber += 1;
+    }
+    return { ...firstPage, items };
+  },
+
+  async recalculateDemand(customerId: string, serviceDate: string) {
+    return apiClient('/material-demand/generate', {
       method: 'POST',
-      body: JSON.stringify({ customerCode, serviceDate }),
+      body: JSON.stringify({ customerId, serviceDate, scope: 'FULLDAY' }),
     });
   },
 
-  async approveDemandQueue(demandId: string, reason?: string): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>(`/material-demand/${encodeURIComponent(demandId)}/approve`, {
+  async approveDemandQueue(demandId: string, reason?: string) {
+    return apiClient(`/material-demand/${encodeURIComponent(demandId)}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ reason: reason || 'Phê duyệt bàn giao nguyên liệu sản xuất' }),
+      body: JSON.stringify({ reason }),
     });
   },
 
-  async getWeeklyMenuData(customerCode = 'DAV', weekStartDate = '2026-09-21'): Promise<WeeklyMenuData> {
-    // 1. Fetch real active customers
+  async getWeeklyMenuData(customerCode: string, weekStartDate: string): Promise<WeeklyMenuData> {
     const customers = await this.getCustomers();
-    const matchedCustomer = customers.find((c) => c.customerCode === customerCode) || customers[0];
+    const matchedCustomer = customers.find((customer) => customer.customerCode === customerCode);
     if (!matchedCustomer) {
-      throw new Error(`Không tìm thấy khách hàng với mã ${customerCode}`);
-    }
-    const customerId = matchedCustomer.customerId;
-
-    // 2. Fetch real committed weekly menu for selected customer & week
-    const menuResp = await this.getWeeklyMenu(customerId, weekStartDate);
-    const rows = menuResp?.rows || [];
-
-    // 3. Fetch real production plans
-    let productionPlans: ProductionPlanItem[] = [];
-    try {
-      const rawPlans = await this.getProductionPlans(weekStartDate, customerId);
-      if (Array.isArray(rawPlans)) {
-        productionPlans = rawPlans.flatMap((plan) =>
-          plan.lines.map((line, idx) => ({
-            planId: `${plan.planId}-${idx}`,
-            planCode: plan.planCode,
-            dishId: line.dishId,
-            dishName: line.dishName,
-            shiftName: line.shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : 'Ca 2 (Chiều)',
-            plannedServings: line.totalServings,
-            serviceDate: plan.planDate,
-            status: plan.status === 'COMPLETED' ? 'completed' : 'sent_to_kitchen',
-          }))
-        );
-      }
-    } catch {
-      // Allow empty if plans are not yet issued
-      productionPlans = [];
+      throw new Error(`Không tìm thấy khách hàng với mã ${customerCode}.`);
     }
 
-    // 4. Build schedule matrix from real menu rows
-    const dates = Array.from(new Set(rows.map((r) => r.serviceDate))).sort();
-    const scheduleDays: ScheduleDayColumn[] = dates.map((dStr, idx) => ({
-      dayName: DAY_NAMES[idx] || `Ngày ${idx + 1}`,
-      dateStr: formatVietnameseDate(dStr),
-      isReady: true,
+    const weekEndDate = addDays(weekStartDate, 6);
+    const [menuResponse, rawPlans, demandPage] = await Promise.all([
+      this.getWeeklyMenu(matchedCustomer.customerId, weekStartDate),
+      this.getProductionPlans(weekStartDate, weekEndDate, matchedCustomer.customerId),
+      this.getAllDemand(weekStartDate, weekEndDate, matchedCustomer.customerId),
+    ]);
+
+    const rows = menuResponse.rows || [];
+    const dates = Array.from(new Set(rows.map((row) => row.serviceDate))).sort();
+    const scheduleDays: ScheduleDayColumn[] = dates.map((date, index) => ({
+      dayName: DAY_NAMES[index] || `Ngày ${index + 1}`,
+      dateStr: formatVietnameseDate(date),
       cells: [],
     }));
 
     const matrixMap = new Map<string, WeeklyScheduleMatrixRow>();
-    for (const r of rows) {
-      const key = `${r.sourceSection} - ${r.slotLabel}`;
-      let rowObj = matrixMap.get(key);
-      if (!rowObj) {
-        rowObj = {
-          sectionTitle: r.sourceSection,
-          slotLabel: r.slotLabel,
-          days: {},
-        };
-        matrixMap.set(key, rowObj);
-      }
-      rowObj.days[r.serviceDate] = r.dishName;
-    }
-    const matrixRows = Array.from(matrixMap.values());
-
-    // 5. Build Dish Costs & BOM for dishes present in the menu (Rule: Filter by 25k tier & group uniquely by ingredientId)
-    const distinctMenuDishes = new Map<string, { dishId: string; dishName: string; categoryName: string }>();
-    for (const r of rows) {
-      if (r.dishId && !distinctMenuDishes.has(r.dishId)) {
-        distinctMenuDishes.set(r.dishId, {
-          dishId: r.dishId,
-          dishName: r.dishName,
-          categoryName: r.sourceSection.includes('MẶN') ? 'Món mặn chính' : r.sourceSection.includes('CHAY') ? 'Món chay' : 'Món phụ',
-        });
-      }
-    }
-
-    const dishCostsPromises = Array.from(distinctMenuDishes.values()).map(async (d) => {
-      let rawBom: RawBomLine[];
-      try {
-        rawBom = await this.getDishBom(d.dishId);
-      } catch {
-        rawBom = [];
-      }
-
-      // Filter by tier 25000 (contract standard) or default to first tier
-      const targetTier = 25000;
-      const tierFiltered = rawBom.some((b) => b.priceTierAmount === targetTier)
-        ? rawBom.filter((b) => b.priceTierAmount === targetTier)
-        : rawBom;
-
-      // Group uniquely by ingredientId to eliminate duplicate lines
-      const uniqueIngredientsMap = new Map<string, BomIngredientItem>();
-      for (const b of tierFiltered) {
-        if (!uniqueIngredientsMap.has(b.ingredientId)) {
-          const qty = b.grossQtyPerServing || 0.05;
-          const price = b.referencePrice || 45000;
-          uniqueIngredientsMap.set(b.ingredientId, {
-            ingredientId: b.ingredientId,
-            ingredientCode: b.ingredientCode,
-            ingredientName: b.ingredientName,
-            unit: b.unitName || 'Kilogram',
-            quantityPerServing: qty,
-            grossWeight: Math.round(qty * 1.1 * 1000) / 1000,
-            unitPrice: price,
-            lineCost: Math.round(qty * price),
-          });
-        }
-      }
-
-      const bomLines = Array.from(uniqueIngredientsMap.values());
-      const calculatedCost = bomLines.reduce((sum, b) => sum + b.lineCost, 0) || 11200;
-
-      return {
-        dishId: d.dishId,
-        dishCode: `DISH-${d.dishId.slice(0, 8).toUpperCase()}`,
-        dishName: d.dishName,
-        categoryName: d.categoryName,
-        servingTargetPrice: targetTier,
-        calculatedCost,
-        bomItemsCount: bomLines.length,
-        costRatioPercent: Math.round((calculatedCost / targetTier) * 1000) / 10,
-        bomLines,
+    for (const row of rows) {
+      const key = `${row.sourceSection} - ${row.slotLabel}`;
+      const matrixRow = matrixMap.get(key) || {
+        sectionTitle: row.sourceSection,
+        slotLabel: row.slotLabel,
+        days: {},
       };
-    });
-
-    const dishCosts = await Promise.all(dishCostsPromises);
-
-    // 6. Aggregate Daily Materials from the actual BOM components of the menu
-    const dailyMaterialsMap = new Map<string, DailyMaterialSummaryItem>();
-    const demandItemsMap = new Map<string, MaterialDemandItem>();
-
-    for (const dish of dishCosts) {
-      for (const line of dish.bomLines) {
-        const estQty = Math.round(line.quantityPerServing * 1700 * 10) / 10;
-        const estAmt = Math.round(estQty * line.unitPrice);
-
-        // Daily summary
-        const existing = dailyMaterialsMap.get(line.ingredientId);
-        if (existing) {
-          existing.totalQuantity = Math.round((existing.totalQuantity + estQty) * 10) / 10;
-          existing.estimatedAmount += estAmt;
-        } else {
-          dailyMaterialsMap.set(line.ingredientId, {
-            materialId: line.ingredientId,
-            materialCode: line.ingredientCode,
-            materialName: line.ingredientName,
-            unit: line.unit,
-            totalQuantity: estQty,
-            estimatedAmount: estAmt,
-          });
-        }
-
-        // Demand ledger
-        const existingDemand = demandItemsMap.get(line.ingredientId);
-        if (existingDemand) {
-          existingDemand.requiredQuantity = Math.round((existingDemand.requiredQuantity + estQty) * 10) / 10;
-          existingDemand.issuedQuantity = existingDemand.requiredQuantity;
-          if (!existingDemand.dishNames.includes(dish.dishName)) {
-            existingDemand.dishNames.push(dish.dishName);
-          }
-        } else {
-          demandItemsMap.set(line.ingredientId, {
-            materialId: line.ingredientId,
-            materialCode: line.ingredientCode,
-            materialName: line.ingredientName,
-            unit: line.unit,
-            dishNames: [dish.dishName],
-            requiredQuantity: estQty,
-            issuedQuantity: estQty,
-            remainingQuantity: 0,
-            status: 'da_xuat_du',
-          });
-        }
-      }
+      matrixRow.days[row.serviceDate] = row.dishName;
+      matrixMap.set(key, matrixRow);
     }
+
+    const productionPlans = rawPlans.flatMap((plan) =>
+      plan.lines.map((line): ProductionPlanItem => ({
+        planId: line.planLineId,
+        planCode: plan.planCode,
+        dishId: line.dishId,
+        dishName: line.dishName || '—',
+        shiftName: line.shiftName || '—',
+        plannedServings: line.totalServings,
+        serviceDate: plan.planDate,
+        status: plan.status === 'COMPLETED'
+          ? 'completed'
+          : plan.sentToKitchenAt
+            ? 'sent_to_kitchen'
+            : 'draft',
+      }))
+    );
+
+    const demandRows = demandPage.items.map((item): MaterialDemandItem => ({
+      materialId: `${item.requestDate}:${item.customerId}:${item.ingredientId}:${item.unitId}`,
+      materialCode: item.ingredientId,
+      materialName: item.ingredientName || '—',
+      unit: item.unitName || '—',
+      dishNames: [],
+      requiredQuantity: item.totalRequiredQty,
+      issuedQuantity: item.issuedQty,
+      remainingQuantity: item.remainingToIssueQty,
+      status: mapDemandStatus(item),
+    }));
+
+    const priceTiers = new Set(
+      rawPlans.flatMap((plan) => plan.lines.map((line) => line.priceTierAmount).filter((value): value is number => value != null))
+    );
 
     return {
-      customerId,
+      customerId: matchedCustomer.customerId,
       customerCode: matchedCustomer.customerCode,
       customerName: matchedCustomer.customerName,
       weekStartDate,
-      mealTargetPrice: 25000,
+      mealTargetPrice: priceTiers.size === 1 ? Array.from(priceTiers)[0] : 0,
       scheduleDays,
-      matrixRows,
-      demandRows: Array.from(demandItemsMap.values()),
+      matrixRows: Array.from(matrixMap.values()),
+      demandRows,
       productionPlans,
-      dishCosts,
-      dailyMaterials: Array.from(dailyMaterialsMap.values()),
+      dishCosts: [],
+      dailyMaterials: [],
     };
   },
 };

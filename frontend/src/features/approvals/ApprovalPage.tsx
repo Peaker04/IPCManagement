@@ -5,7 +5,6 @@ import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { SplitView } from '../../components/workbench/SplitView';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
-import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
@@ -19,17 +18,20 @@ import {
   type ApprovalInboxItem,
 } from '../../api/approvalsApi';
 
+import { formatVietnameseDateTime } from '../../utils/dates';
+import { ApiError } from '../../api/client';
+
 export function ApprovalPage() {
   const [items, setItems] = useState<ApprovalInboxItem[]>([]);
   const [selectedType, setSelectedType] = useState('ALL');
-  const [filterDate, setFilterDate] = useState('2026-09-21');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [decisionReason, setDecisionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const [confirmAction, setConfirmAction] = useState<'APPROVE' | 'REJECT' | null>(null);
   const [actionBanner, setActionBanner] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [mutationError, setMutationError] = useState<Error | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const loadData = async (type = selectedType) => {
@@ -42,7 +44,7 @@ export function ApprovalPage() {
         setSelectedItemId(resp[0].inboxItemId);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải hàng đợi phê duyệt.');
+      setError(err instanceof Error ? err : new Error('Không thể tải hàng đợi phê duyệt.'));
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +62,7 @@ export function ApprovalPage() {
         }
       } catch (err: unknown) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Không thể tải hàng đợi phê duyệt.');
+          setError(err instanceof Error ? err : new Error('Không thể tải hàng đợi phê duyệt.'));
           setIsLoading(false);
         }
       }
@@ -75,6 +77,7 @@ export function ApprovalPage() {
 
   const openConfirmModal = (decision: 'APPROVE' | 'REJECT') => {
     setValidationError(null);
+    setMutationError(null);
     setConfirmAction(decision);
   };
 
@@ -91,6 +94,7 @@ export function ApprovalPage() {
       const actionName = confirmAction === 'APPROVE' ? 'phê duyệt' : 'từ chối';
       const targetCode = selectedItem.targetCode;
       setDecisionReason('');
+      setMutationError(null);
       setConfirmAction(null);
       await loadData();
       setActionBanner({
@@ -99,10 +103,11 @@ export function ApprovalPage() {
       });
       setTimeout(() => setActionBanner(null), 5000);
     } catch (err) {
-      setActionBanner({
-        type: 'error',
-        text: err instanceof Error ? err.message : 'Thao tác phê duyệt thất bại',
-      });
+      const failure = err instanceof Error ? err : new Error('Thao tác phê duyệt thất bại');
+      setMutationError(failure);
+      if (!(failure instanceof ApiError) || (failure.status !== 403 && failure.status !== 409)) {
+        setActionBanner({ type: 'error', text: failure.message });
+      }
       setConfirmAction(null);
     } finally {
       setIsSubmitting(false);
@@ -117,10 +122,10 @@ export function ApprovalPage() {
   const selectedItem = items.find((i) => i.inboxItemId === selectedItemId) || filteredItems[0] || null;
 
   const TYPE_OPTIONS = [
-    { value: 'ALL', label: 'Tất cả loại yêu cầu (16 chờ xử lý)' },
-    { value: 'material-demand', label: 'Nhu cầu nguyên liệu (6)' },
-    { value: 'purchase-order', label: 'Đơn mua hàng PO (4)' },
-    { value: 'warehouse-receipt', label: 'Phiếu nhập kho (6)' },
+    { value: 'ALL', label: 'Tất cả loại yêu cầu' },
+    { value: 'material-demand', label: 'Nhu cầu nguyên liệu' },
+    { value: 'purchase-order', label: 'Đơn mua hàng PO' },
+    { value: 'warehouse-receipt', label: 'Phiếu nhập kho' },
   ];
 
   const TAB_ITEMS = [
@@ -158,7 +163,7 @@ export function ApprovalPage() {
       id: 'sla',
       header: 'Hạn SLA',
       width: '14%',
-      cell: (row) => <span className="font-mono text-xs text-slate-600">{row.slaDeadline}</span>,
+      cell: (row) => <span className="font-mono text-xs text-slate-600">{formatVietnameseDateTime(row.slaDeadline)}</span>,
     },
     {
       id: 'total',
@@ -166,10 +171,12 @@ export function ApprovalPage() {
       width: '16%',
       align: 'right',
       cell: (row) => (
-        row.totalValue ? (
+        row.totalValue != null ? (
           <Num value={row.totalValue} format="currency" className="font-bold text-slate-900 text-sm" />
+        ) : row.totalQuantity != null ? (
+          <Num value={row.totalQuantity} format="quantity" className="font-bold text-slate-900 text-sm" />
         ) : (
-          <Num value={row.totalQuantity || 1275.5} format="quantity" suffix=" kg" className="font-bold text-slate-900 text-sm" />
+          <span>—</span>
         )
       ),
     },
@@ -197,15 +204,11 @@ export function ApprovalPage() {
         contextSelectors={
           <>
             <Select
+              aria-label="Lọc loại yêu cầu phê duyệt"
               options={TYPE_OPTIONS}
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
               className="h-9 w-64 font-medium text-sm"
-            />
-            <VietnameseDateInput
-              value={filterDate}
-              onChange={(d) => setFilterDate(d)}
-              className="h-9 w-40 font-mono text-sm"
             />
             <Badge variant="warning" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
               {filteredItems.length} yêu cầu chờ xử lý
@@ -223,7 +226,7 @@ export function ApprovalPage() {
               Làm mới
             </Button>
             {/* Rule D7: Single primary button */}
-            <ActionGuard roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
+            <ActionGuard capabilityId="APPR.DECISION" roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
               <Button
                 variant="default"
                 size="default"
@@ -254,18 +257,19 @@ export function ApprovalPage() {
               <span className="text-slate-500">Chờ duyệt:</span>
               <strong className="text-slate-900 font-mono font-bold">{filteredItems.length} hồ sơ</strong>
             </span>
-            <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">SLA khẩn:</span>
-              <strong className="text-rose-700 font-bold">2 hồ sơ</strong>
-            </span>
-            <span className="text-slate-300">·</span>
-            <Badge variant="neutral" size="sm">
-              Đã duyệt hôm nay: 42
-            </Badge>
           </>
         }
       />
+
+      {mutationError instanceof ApiError && (mutationError.status === 403 || mutationError.status === 409) && (
+        <div role="alert" className="px-4 py-2 text-sm border-b bg-rose-50 text-rose-800 border-rose-200 flex items-center justify-between gap-3 shrink-0">
+          <div>
+            <strong>{mutationError.status === 409 ? 'Xung đột dữ liệu đồng thời' : 'Không có quyền thực hiện thao tác'}</strong>
+            <span className="ml-2">{mutationError.message}</span>
+          </div>
+          {mutationError.status === 409 && <Button variant="outline" size="xs" onClick={() => { setMutationError(null); loadData(); }}>Tải lại dữ liệu mới nhất</Button>}
+        </div>
+      )}
 
       {actionBanner && (
         <div
@@ -324,7 +328,7 @@ export function ApprovalPage() {
                   <div className="space-y-1">
                     <h3 className="text-base font-bold text-slate-900">{selectedItem.title}</h3>
                     <p className="text-xs text-slate-500">
-                      Nguồn: {selectedItem.source} · Người lập: {selectedItem.submittedBy} ({selectedItem.submittedAt})
+                      Nguồn: {selectedItem.source} · Người lập: {selectedItem.submittedBy} ({formatVietnameseDateTime(selectedItem.submittedAt)})
                     </p>
                   </div>
 
@@ -335,7 +339,7 @@ export function ApprovalPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Hạn xử lý (SLA):</span>
-                      <strong className="text-rose-700 font-bold">{selectedItem.slaDeadline}</strong>
+                      <strong className="text-rose-700 font-bold">{formatVietnameseDateTime(selectedItem.slaDeadline)}</strong>
                     </div>
                     {selectedItem.supplierName && (
                       <div className="flex justify-between">
@@ -346,7 +350,11 @@ export function ApprovalPage() {
                     <div className="flex justify-between border-t border-slate-200 pt-1.5 font-medium">
                       <span className="text-slate-600">Tổng quy mô:</span>
                       <strong className="text-slate-900 text-sm">
-                        {selectedItem.totalValue ? `${selectedItem.totalValue.toLocaleString('vi-VN')} ₫` : `${selectedItem.totalQuantity || 1275.5} kg`}
+                        {selectedItem.totalValue != null
+                          ? <Num value={selectedItem.totalValue} format="currency" />
+                          : selectedItem.totalQuantity != null
+                            ? <Num value={selectedItem.totalQuantity} format="quantity" />
+                            : '—'}
                       </strong>
                     </div>
                   </div>
@@ -383,7 +391,7 @@ export function ApprovalPage() {
                 </div>
 
                 <div className="h-12 px-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2.5 shrink-0">
-                  <ActionGuard roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
+                  <ActionGuard capabilityId="APPR.DECISION" roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
                     <Button
                       variant="outline"
                       size="sm"
@@ -394,7 +402,7 @@ export function ApprovalPage() {
                       Từ chối hồ sơ
                     </Button>
                   </ActionGuard>
-                  <ActionGuard roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
+                  <ActionGuard capabilityId="APPR.DECISION" roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
                     <Button
                       variant="outline"
                       size="sm"

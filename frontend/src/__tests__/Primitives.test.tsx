@@ -11,6 +11,13 @@ import { IdentifierText } from '../components/ui/identifier-text';
 import { VietnameseDateInput } from '../components/ui/vietnamese-date-input';
 import { Modal } from '../components/ui/modal';
 import { Tabs } from '../components/ui/tabs';
+import { DataGrid } from '../components/workbench/DataGrid';
+import { StateBoundary } from '../components/workbench/StateBoundary';
+import { WorkbenchSkeleton } from '../components/workbench/WorkbenchSkeleton';
+import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
+import { MemoryRouter } from 'react-router-dom';
+import { ActionGuard } from '../components/ui/action-guard';
+import { AuthContext, type AuthContextType } from '../store/useAuth';
 import { toVietnameseDate, formatVietnameseDate } from '../utils/dates';
 
 describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
@@ -151,6 +158,28 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
+  it('Modal: protects dirty drafts with an accessible discard decision instead of window.confirm', async () => {
+    const handleClose = vi.fn();
+    render(
+      <Modal isOpen onClose={handleClose} isDirty title="Điều chỉnh số suất">
+        <input aria-label="Số suất" defaultValue="120" />
+      </Modal>
+    );
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(handleClose).not.toHaveBeenCalled();
+    expect(screen.getByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(handleClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await userEvent.click(screen.getByRole('button', { name: 'Hủy thay đổi' }));
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
   it('Tabs: renders segmented control and navigates with arrow keys', async () => {
     const handleChange = vi.fn();
     const items = [
@@ -165,5 +194,104 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     const tab2 = screen.getByRole('tab', { name: /Tab Hai/ });
     await userEvent.click(tab2);
     expect(handleChange).toHaveBeenCalledWith('tab2');
+  });
+  it('WorkbenchSkeleton renders geometry only for table, matrix, and split work objects', () => {
+    const { rerender } = render(<WorkbenchSkeleton geometry={{ kind: 'table', columns: 6, rows: 4, toolbar: true }} />);
+    let skeleton = screen.getByRole('status', { name: 'Đang tải nội dung' });
+    expect(skeleton).toHaveAttribute('aria-busy', 'true');
+    expect(skeleton).toHaveAttribute('data-skeleton-kind', 'table');
+    expect(skeleton.querySelectorAll('[data-skeleton-row]')).toHaveLength(4);
+    expect(skeleton).not.toHaveTextContent(/kg|VNĐ|hoàn thành|đang chờ/i);
+
+    rerender(<WorkbenchSkeleton geometry={{ kind: 'matrix', columns: 7, rows: 6, toolbar: true }} />);
+    skeleton = screen.getByRole('status', { name: 'Đang tải nội dung' });
+    expect(skeleton).toHaveAttribute('data-skeleton-kind', 'matrix');
+    expect(skeleton.querySelectorAll('[data-skeleton-cell]')).toHaveLength(42);
+
+    rerender(<WorkbenchSkeleton geometry={{ kind: 'split', columns: 5, rows: 3, splitRatio: '60/40', toolbar: true }} />);
+    skeleton = screen.getByRole('status', { name: 'Đang tải nội dung' });
+    expect(skeleton).toHaveAttribute('data-skeleton-kind', 'split');
+    expect(skeleton.querySelectorAll('[data-skeleton-pane]')).toHaveLength(2);
+  });
+
+  it.each([
+    ['/weekly-menu?view=demand', 'table'],
+    ['/warehouse?view=receipts', 'table'],
+    ['/settings/advanced?view=mode', 'form'],
+    ['/settings/advanced?view=unknown', 'form'],
+  ])('RouteWorkbenchLoadingFallback preserves the resolved geometry for %s', (entry, kind) => {
+    render(<MemoryRouter initialEntries={[entry]}><RouteWorkbenchLoadingFallback /></MemoryRouter>);
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-skeleton-kind', kind);
+  });
+
+  it('ActionGuard blocks missing permission and wrong operational mode before child activation', async () => {
+    const onClick = vi.fn();
+    const auth: AuthContextType = {
+      user: { userId: 'u-1', username: 'manager', fullName: 'Quản lý', roleCode: 'MANAGER', roleName: 'Quản lý', isActive: true, isAdminFullAccess: false, permissions: [] },
+      token: 'token', isAuthenticated: true, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: 1, operationalModeReasonRequired: false, reloadOperationalMode: vi.fn(),
+      login: vi.fn(), logout: vi.fn(), setOperationalMode: vi.fn(), hasRole: () => true, hasPermission: () => false,
+    };
+    const { rerender } = render(
+      <AuthContext.Provider value={auth}>
+        <ActionGuard capabilityId="RECON.BATCH.LIFECYCLE" permissions="ReconciliationWriteAccess" allowedModes={['MATERIAL_RECONCILIATION']} mode="disable" reason="Chỉ khả dụng trong chế độ đối soát.">
+          <Button onClick={onClick}>Hoàn tất lô</Button>
+        </ActionGuard>
+      </AuthContext.Provider>
+    );
+    expect(screen.getByRole('button', { name: 'Hoàn tất lô' })).toBeDisabled();
+    expect(screen.getByRole('group', { name: 'Chỉ khả dụng trong chế độ đối soát.' })).toHaveAttribute('data-capability-id', 'RECON.BATCH.LIFECYCLE');
+    await userEvent.click(screen.getByRole('button', { name: 'Hoàn tất lô' }));
+    expect(onClick).not.toHaveBeenCalled();
+
+    rerender(
+      <AuthContext.Provider value={{ ...auth, operationalMode: 'MATERIAL_RECONCILIATION', hasPermission: () => true }}>
+        <ActionGuard capabilityId="RECON.BATCH.LIFECYCLE" permissions="ReconciliationWriteAccess" allowedModes={['MATERIAL_RECONCILIATION']} mode="disable">
+          <Button onClick={onClick}>Hoàn tất lô</Button>
+        </ActionGuard>
+      </AuthContext.Provider>
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Hoàn tất lô' }));
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('ActionGuard hides role-restricted actions from unauthenticated actors', () => {
+    const auth: AuthContextType = {
+      user: null, token: null, isAuthenticated: false, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: null, operationalModeReasonRequired: false, reloadOperationalMode: vi.fn(),
+      login: vi.fn(), logout: vi.fn(), setOperationalMode: vi.fn(), hasRole: () => false, hasPermission: () => false,
+    };
+    render(<AuthContext.Provider value={auth}><ActionGuard capabilityId="APPR.DECISION" roles="MANAGER"><Button>Phê duyệt</Button></ActionGuard></AuthContext.Provider>);
+    expect(screen.queryByRole('button', { name: 'Phê duyệt' })).not.toBeInTheDocument();
+  });
+
+  it('StateBoundary replaces loading geometry with the resolved HTTP state', () => {
+    const forbidden = Object.assign(new Error('Không đủ quyền'), { status: 403 });
+    const { rerender } = render(<StateBoundary isLoading loadingGeometry={{ kind: 'matrix', columns: 7, rows: 6 }}><span>Nội dung</span></StateBoundary>);
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-skeleton-kind', 'matrix');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    rerender(<StateBoundary error={forbidden}><span>Nội dung</span></StateBoundary>);
+    expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('Truy cập bị hạn chế');
+  });
+
+  it('StateBoundary: routes HTTP 403 and 409 errors to distinct recovery states', () => {
+    const forbidden = Object.assign(new Error('Không đủ quyền'), { status: 403 });
+    const { rerender } = render(<StateBoundary error={forbidden}><span>Nội dung</span></StateBoundary>);
+    expect(screen.getByRole('alert')).toHaveTextContent('Truy cập bị hạn chế');
+
+    const conflict = Object.assign(new Error('Phiên bản đã thay đổi'), { status: 409 });
+    rerender(<StateBoundary error={conflict}><span>Nội dung</span></StateBoundary>);
+    expect(screen.getByRole('alert')).toHaveTextContent('Xung đột dữ liệu đồng thời');
+    expect(screen.getByRole('alert')).toHaveTextContent('Phiên bản đã thay đổi');
+  });
+
+  it('DataGrid: interactive rows support keyboard selection', () => {
+    const onRowClick = vi.fn();
+    render(<DataGrid data={[{ id: 'row-1', name: 'Dòng kiểm thử' }]} columns={[{ id: 'name', header: 'Tên', cell: (row) => row.name }]} keyExtractor={(row) => row.id} onRowClick={onRowClick} />);
+    const row = screen.getByRole('row', { name: /Dòng kiểm thử/ });
+    row.focus();
+    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onRowClick).toHaveBeenCalledTimes(2);
   });
 });

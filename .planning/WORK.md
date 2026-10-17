@@ -1,79 +1,176 @@
-# Active work
 
-Status: IDLE
+### GF-R19 — Coordination / Meal Orders recovery
 
-### Greenfield Recovery Execution Record [COMPLETED]
-- **Audit & Correction**: Báo cáo phản biện `audit-correction-report.md` đã rà soát 18 findings cũ (`GF-001 → GF-018`) và phát hiện 19 findings mới (`GF-019 → GF-037`).
-- **Remediation Decisions Implemented**:
-  - `D-01` (Option A): Sửa payload `approvalsApi.decide` gửi `{ status, decision, reason }` khớp DTO C# `ApprovalRequest` và `ApprovalDecision`.
-  - `D-02` (Option A): Triệt tiêu mock string `NL-THIT-01`, `BG-260921-01` trong `WarehousePage.tsx` và `MaterialDemandView.tsx`, chuyển sang dynamic generation từ live data.
-  - `D-03` (Option B): Sửa `WeeklyScheduleView.tsx` badge sang `"Trạng thái: Kế hoạch tuần"` và giữ 4 tabs phụ không lặp header.
-  - `D-04` (Option B): Wire dynamic plan code và `window.print()` vào `[In lệnh sản xuất]`.
-  - `D-05` (Option A): Chuẩn hóa công thức đối soát `variance = standardUsage - actualUsage` (BOM - thực tế) và màu sắc hiển thị (dương = tiết kiệm/xanh, âm = hao hụt/đỏ).
-  - `D-06` (Option B): Bổ sung tham số `period` và `customerCode` vào `reportsApi` và kết nối động trong `ReportsPage.tsx`.
-  - `D-07` (Option B): Nâng cấp `StateBoundary` hỗ trợ đủ 6 UI states (loading, empty, error, forbidden 403, conflict 409, partial data banner) kèm custom skeleton layout.
-- **Phase P2: Containment & Security Hardening**:
-  - Gated dev credentials behind `import.meta.env.DEV` trong `LoginPage.tsx`.
-  - Loại bỏ backdoor mock JWT trong `authContext.tsx`, hỗ trợ `roleCode` / `roleName` case-insensitive.
-  - Khôi phục đầy đủ `allowedRoles` cho 14 canonical routes trong `routeRegistry.ts` và bọc `RoleGuard` trong `App.tsx`.
-  - Chuẩn hóa payload `createIssue` trong `warehouseApi.ts` khớp C# `CreateInventoryIssueRequest`.
-- **Phase P3: API Contract Alignment & Vertical Slices**:
-  - Đồng bộ hoá toàn bộ C# DTOs: `approvalsApi`, `warehouseApi`, `reconciliationApi`, `reportsApi`, `chefApi`.
-  - Xóa bỏ logic tính suất chay hardcoded trong `MenuCostView.tsx`, đồng bộ suất theo `productionPlans`.
-- **Phase P4: UI State, Loading & Design System Compliance**:
-  - Thay thế generic spinner fallback bằng Geometric Table Skeleton trong `App.tsx` và `StateBoundary.tsx`.
-  - Triệt tiêu Cumulative Layout Shift (CLS) trong `DashboardPage.tsx` với 5 metric skeleton cells.
-  - Thêm cột đóng băng đầu tiên (`sticky left-0`) cho `DataGrid.tsx` (Rule T7).
-  - Tích hợp bảo vệ form nháp (`isDirty`) trên `Modal.tsx` khi bấm Esc/backdrop/close.
-  - Thay thế toàn bộ `window.alert()` bằng Confirmation Modals và Action Notifications trong `ApprovalPage.tsx` và `MealOrdersPage.tsx`.
-- **Phase P5: Test Harness & Anti-Tautology Verification**:
-  - 16/16 test files passed, 87/87 tests passed (0 failed, 0 skipped).
-  - Khử bỏ mock rởm, tuân thủ nghiêm ngặt Rules TA-1 đến TA-5.
-- **Phase P6: 11-Gate Verification Pipeline (`npm run verify`)**:
-  - 100% 11 gates PASS GREEN (1.311 BE tests + 87 FE tests, 0 lint errors, 0 depcruise violations, 0 build errors).
+- Removed synthetic coordination defaults and projections: fixed date/customer, `844`, `25000`, fake lock state, fake status, fallback meal/dish names and fabricated final servings.
+- `coordinationApi.ts` now maps the actual `CoordinationOrderDto` shape, filters exact selected customer, and computes only totals from authoritative `ForecastQuantity`/`ActualQuantity` values.
+- `MealOrdersPage.tsx` now loads customers from API, defaults date in `Asia/Ho_Chi_Minh`, protects against stale responses, and displays only persisted menu/dish/order facts.
+- Removed unsupported lock, adjustment, print/export actions because the prior frontend payloads did not match the Backend contracts and `CoordinationOrderDto` does not expose enough persisted lifecycle state to safely enable them.
+- Shift tabs remain as filter scope, not route-level work navigation.
+- Tests: `MealOrders.test.tsx` 2/2 PASS; full frontend unit 17 files / 86 tests PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- Browser/persistence/role-mode evidence remains BLOCKED pending Owner-authorized isolated runtime.
 
----
+### GF-R20 — Reports contract recovery and N6 navigation
 
-### Sprint 1.2: Hardened Governance & Performance Optimization [COMPLETED]
-1. **Rule D6 Typography Floor Enforcement**:
-   - `WeeklyScheduleView.tsx`: `text-[11px]` -> `text-xs font-mono`.
-   - `DashboardPage.tsx`: `text-[11px]` -> `text-xs`.
-   - `LoginPage.tsx`: `text-[11px]` -> `text-xs`.
-   - `AppShell.tsx`: `text-[11px]` -> `text-xs font-mono`.
-   - `badge.tsx`: size `sm` nâng lên `text-xs`.
-   - `identifier-text.tsx`: icon/tooltip copy nâng lên `text-xs`.
-   - `tabs.tsx`: tab size `sm` và badge đếm nâng lên `text-xs`.
-   - Quét kiểm tra tĩnh: `rg "text-\[1[01]px\]|text-\[9px\]|text-\[8px\]" frontend/src/` đạt **0 kết quả**.
+- Removed the fabricated meal-cost transformation of ingredient demand, fixed servings/prices/cost ratios, synthetic identifiers, fixed telemetry, fake stock availability and fake Excel success.
+- Reports now use authoritative paged contracts: `ingredient-demand/aggregate/page`, `receipt-price-variance/page`, and `current-stock/page`, with exact month `dateFrom/dateTo` and `customerId` where supported.
+- Route-level report work objects moved to N6 leaves: `/reports?view=demand|prices|stock`; duplicate page tabs were removed.
+- Customer options come from API, current month uses `Asia/Ho_Chi_Minh`, and stale responses cannot overwrite a newer scope.
+- Focused Reports/AppShell verification passed after updating N6 assertions. Full frontend unit: 17 files / 82 tests PASS; lint PASS; production build PASS; diff check PASS with line-ending warnings.
+- No meal-cost report is claimed because Backend exposes no authoritative dish-cost report contract. Browser/persistence evidence remains BLOCKED.
 
-2. **Rule D7 Single Primary Action on `/approvals`**:
-   - `ApprovalPage.tsx`: Chuyển nút `Phê duyệt hồ sơ` ở cột chi tiết sang `variant="outline"`, duy trì duy nhất 1 nút Primary `Phê duyệt yêu cầu đang chọn` ở `WorkspaceHeader`.
+### Scoped Pre-Code UI Gate Block — Cross-FE Audit Batch 1
+- Routes: `/approvals`, `/purchasing`, `/warehouse`, `/reports`
+- Single Primary Work Object: existing `OperationalFrame` per route
+- Server Mode: preserve current route mode; DEFAULT data never merged with MRX
+- RBAC Guards: preserve route/navigation/action guards and backend policies
+- 6 UI States: loading, empty, error, permission-denied, partial, write-reconciliation
+- Primitives & Composites: existing `WorkspaceHeader`, `TelemetrySubbar`, `StateBoundary`, `DataGrid`, `VietnameseDateInput`, `Num`, `IdentifierText`
+- Compliance: D6, D7, T7, T8, M1.2, N6; no new tokens or primitives
+- Acceptance: remove fixed operational dates, format report timestamps in Vietnamese business timezone, preserve stale-response and fail-closed behavior, and add only regression tests with observable contract value.
 
-3. **NFR-UI-05 Motion & Reduced Motion**:
-   - `index.css`: Bổ sung `@media (prefers-reduced-motion: reduce)` tắt toàn bộ animation/transition khi người dùng kích hoạt reduced motion trên OS.
-   - `AppShell.tsx`: Chuẩn hóa thời gian thu gọn/mở rộng sidebar sang `duration-150 ease-out`.
+### GF-R21 — Cross-FE audit batch 1: operational date and timestamp authority
+- Replaced fixed operational dates on `/approvals`, `/purchasing`, and `/warehouse` with `Asia/Ho_Chi_Minh` business-date authority via `todayInBusinessTimezone`.
+- Added Vietnamese business-time formatting for report `lastUpdated`; raw UTC/ISO timestamps are no longer rendered directly.
+- Focused component verification: 4 files / 19 tests PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- Audit found next P0/P1 owner defects: `adminApi` fabricates category/unit/reference price/activity defaults; create-ingredient sends `unitName` instead of required `unitId`; approval-rule frontend model/payload does not match `ApprovalRule`/`ApprovalRuleRequest`; admin routes use blocking `alert()` and Advanced Settings exposes terminal mode/cache actions without proper confirm/feedback ownership. These remain ACTIVE, not accepted.
 
-4. **NFR-PERF-01 Bundle Splitting & Lazy Loading**:
-   - `App.tsx`: Chuyển đổi 12 routes vận hành sang `React.lazy()` bọc trong `<Suspense fallback={<WorkbenchLoadingFallback />}>`.
-   - Tách bundle thành các chunk chuyên biệt: `WeeklyMenuPage`, `PurchasingPage`, `WarehousePage`, `ApprovalPage`...
+### Continuous Execution Plan — Owner-authorized direct parent
+1. Admin contracts: remove catalog defaults, fail-close unsupported create forms, align approval-rule DTO/payload, replace alerts.
+2. Navigation: migrate Admin Data and Advanced Settings route-level views to N6 URL leaves; retain only filter/detail tabs.
+3. Shared state safety: implement dirty-navigation owner for route/query/history/unload and scope changes without overriding drafts.
+4. State/accessibility: standardize 403/409/partial/write reconciliation and audit labels/focus/keyboard/table formatting.
+5. Verification: focused red-green tests per owner, full unit/lint/build/diff/detector; browser/persistence remains blocked until authorized runtime exists.
+Execution remains ACTIVE; do not stop for per-batch approval and do not mark COMPLETED.
 
-5. **Test Hygiene & Cleanliness**:
-   - `setup.ts`: Thiết lập `window.alert = vi.fn()` loại bỏ 100% thông báo `Not implemented: Window's alert() method`.
+### Scoped Pre-Code UI Gate Block — Admin Contracts
+- Routes: `/admin-data`, `/settings/approval-rules`, `/settings/advanced`
+- Single Primary Work Object: `OperationalFrame` for catalog/rules; `SplitWorkbench` only where existing detail panel remains justified
+- Server Mode: shared catalog only where Backend allows; mode transition remains strictly DOM-MODE-1 guarded
+- RBAC Guards: route/navigation `ADMIN`; action guard plus Backend Catalog/Approval/SystemOperation policies
+- 6 UI States: loading, empty, error, permission-denied, partial, write-reconciliation
+- Primitives: existing Button/Input/Select/Badge/Num/IdentifierText/Modal and workbench composites
+- Compliance: D6, D7, T7, T8, M1.2, N6; no new styling tokens or duplicate primitives
+- Acceptance: exact C# DTO mapping, no catalog fallback facts, no `alert()`, no unsupported ingredient write without authoritative unitId, and URL-owned route-level views.
 
-6. **Kết quả Verification 11 Cổng Kiểm tra (`npm run verify`)**:
-   - `test:ignore-policy`: 2/2 PASS
-   - `test:frontend-test-taxonomy`: 1/1 PASS
-   - `test:frontend-unit-launcher`: 2/2 PASS
-   - `test:architecture-growth`: 6/6 PASS
-   - `check:architecture-growth`: PASS (0 debt)
-   - `build:be`: PASS (C# .NET 9 Web API)
-   - `test:be:ci`: 1.360/1.360 PASS (49 App Tests + 1.311 API Tests)
-   - `lint:fe`: 0 errors, 0 warnings
-   - `depcruise:fe`: 0 violations across 63 modules
-   - `build:fe`: PASS (Production build không cảnh báo chunk)
-   - `test:fe:unit`: 16/16 test files PASS (87/87 tests passed, 0 warnings)
+### GF-R22 — Admin contract and N6 recovery
+- Removed fabricated catalog defaults and unsupported ingredient/rule create mutations whose payloads did not match Backend contracts.
+- Approval Rules now renders persisted `ApprovalRule` fields read-only and fails visibly on API errors.
+- Admin Data and Advanced Settings route-level work views moved to N6 URL leaves; duplicate page tablists removed.
+- Mode transition and cache cleanup now require an accessible confirmation modal and report inline `aria-live` feedback instead of `alert()`. Mode actions are absent outside the mode view and unchanged mode cannot be submitted.
+- Full frontend unit after contract recovery: 17 files / 73 tests PASS. Focused N6/Admin verification, lint, build and detector rerun selected after final batch edits.
 
-4. **Bộ Test Chuẩn Hóa & Kết Quả Verification**:
-   - 16 test files (87 tests) bao phủ DOM behavioral tests, mock tại network boundary với DTO backend C#, không tautological.
-   - `test:fe:unit`: 16/16 files passed, 87/87 tests passed (0 failed, 0 skipped).
-   - `test:be:ci`: 1311/1311 tests passed (0 failed, 0 skipped).
-   - `npm run verify`: 100% PASS GREEN trên toàn bộ 11 cổng kiểm tra.
+### GF-R23 — Shared accessibility/state hardening
+- DataGrid interactive rows now support focus plus Enter/Space activation and expose `aria-selected`; visible focus ring added.
+- StateBoundary now derives distinct 403/409 states from HTTP-shaped errors, exposes alert/live-region semantics, and preserves conflict messages instead of flattening them into generic errors.
+- Advanced diagnostics no longer claims localhost/proxy/auth runtime health without an authorized health measurement.
+- Regression coverage added at shared primitive boundary. Full frontend unit: 17 files / 75 tests PASS; lint PASS; build PASS; detector `[]`; diff check PASS with line-ending warnings.
+
+### GF-R24 — Scope-control and accessible-label hardening
+- Removed inert date controls from Approvals, Purchasing and Warehouse; they previously implied filtering but never affected requests or rendered rows.
+- Removed fabricated approval fallback quantity `1275.5 kg`; absent value now stays unavailable, while authoritative amounts use `Num`.
+- Approval submitted/deadline timestamps now render in Vietnamese business timezone.
+- Added accessible names to customer, warehouse, supplier, shift and service-date scope controls across operational routes.
+- Full frontend unit 17 files / 75 tests PASS; lint PASS; build PASS; Impeccable detector `[]`.
+
+### GF-R25 — Weekly demand status authority
+- Material-demand handoff status now maps exact Backend `MISSING | IN_PROGRESS | FULFILLED` instead of inferring procurement/readiness semantics from quantities.
+- Removed fabricated `scheduleDays.isReady = true`; the weekly-menu import contract has no readiness field and the UI did not own such a claim.
+- Material Demand badges now translate persisted fulfillment status into Vietnamese operational labels.
+- Focused Weekly Menu/API 10/10 PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+
+### GF-R26 — AppShell operational-mode and navigation authorization
+- Removed direct `DEFAULT ↔ MATERIAL_RECONCILIATION` mutation from the AppShell footer; the mode badge now links to the guarded `/settings/advanced?view=mode` workflow.
+- AppShell navigation now filters canonical route links and nested leaves through `CANONICAL_ROUTES.allowedRoles` using the same `hasRole` authority as `RoleGuard`; empty parent groups are omitted.
+- The operational-mode badge is visible only to Admin actors; non-admin user profile and logout controls remain available.
+- TDD evidence: both regression tests failed against the previous shell behavior, then passed after the owner-level repair. Full frontend unit 17 files / 76 tests PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- Residual: navigation permission-token filtering and operational-mode route eligibility still require an exact canonical route contract before adding stricter filtering.
+
+### GF-R27 — Reports server pagination authority
+- Preserved Backend page metadata (`totalCount`, `pageNumber`, `pageSize`, `totalPages`, `hasPrev`, `hasNext`) instead of discarding it and presenting the first 100 records as complete.
+- Reports demand, receipt-price variance and current-stock requests now accept explicit server page parameters with a compact page size of 25.
+- `/reports` renders authoritative total count and accessible previous/next controls; period/customer scope changes reset to page 1 and stale response sequencing remains intact.
+- TDD evidence: API metadata/query regression and report next-page behavior both failed before implementation and passed after repair. Full frontend unit 17 files / 78 tests PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- `OWNER_DECISION_REQUIRED`: canonical routes contain role lists only. No route-level permission token or mode-eligibility metadata exists, so stricter sidebar filtering was not invented from frontend assumptions.
+
+### GF-R28 — Weekly demand completeness and Chef issue pagination
+- Weekly Menu demand loading now follows Backend `totalCount` across all aggregate pages rather than silently treating the first 100 rows as the complete weekly handoff set. Empty follow-up pages terminate safely.
+- Chef DEFAULT inventory issues now preserve Backend page metadata and request explicit page/page-size values; the issue work view exposes accessible previous/next server pagination at 25 rows per page.
+- Customer, service-date and shift scope changes reset Chef issue pagination to page 1; stale response sequencing remains active.
+- TDD evidence: multi-page weekly demand, Chef page metadata/query and Chef next-page interaction each failed before implementation and passed after repair.
+- Full frontend unit 17 files / 81 tests PASS; focused API/Weekly Menu/Chef 17/17 PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+
+### GF-R29 — Shared dirty-navigation owner (sidebar/query/beforeunload)
+- Added a single dirty-state registry under the router and connected dirty modals to it without changing standalone primitive behavior.
+- AppShell route and nested `?view=` links now defer navigation when any registered draft is dirty and present one accessible `alertdialog`; “Tiếp tục chỉnh sửa” stays on the current route, while “Hủy thay đổi” clears the registry and performs the pending navigation.
+- Active dirty state installs a native `beforeunload` guard for refresh/close-tab protection and removes it after the draft is cleared.
+- Modified-click behavior remains native; clean navigation remains owned by `NavLink`. No `window.confirm` or ad-hoc styling was introduced.
+- TDD evidence: sidebar navigation protection failed before the shared owner existed, then passed with cancellation, discard-and-navigate and `beforeunload` assertions.
+- Full frontend unit 17 files / 82 tests PASS; AppShell/Primitives focused 20/20 PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- Residual: browser back/forward is not yet intercepted. `useBlocker` cannot be safely used with the current declarative `BrowserRouter`; history-loop behavior requires a separate tested owner or an authorized router migration.
+
+### GF-R30 — HTTP state propagation and approval telemetry authority
+- Approval, Admin Data, Purchasing, Dashboard and Warehouse pages now retain `Error`/`ApiError` objects instead of flattening them to strings, allowing shared `StateBoundary` to distinguish 403 permission denial and 409 write conflict.
+- Added a route-level regression proving an approval inbox `ApiError(403)` renders the permission-denied state rather than a generic loading error.
+- Removed fabricated Approval selector counts (`16/6/4/6`), fabricated “SLA khẩn: 2” and “Đã duyệt hôm nay: 42” telemetry because the inbox DTO does not authorize those aggregates.
+- Removed fabricated “7 kho” scope copy; the warehouse selector now states only the actual scope it controls.
+- Full frontend unit 17 files / 83 tests PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- Residual: mutation failures in Approval currently use an inline action banner; 403/409 mutation-specific recovery remains to be standardized without replacing already-loaded read data.
+
+### GF-R31 — Approval mutation conflict/permission recovery
+- Approval decision failures now retain the mutation `ApiError` separately from read-query state, so a failed write does not remove the already-loaded inbox and selected-record context.
+- HTTP 409 renders an inline write-reconciliation alert with Backend message and an explicit “Tải lại dữ liệu mới nhất” recovery action; HTTP 403 renders a distinct permission denial. Other mutation failures continue through the generic inline error banner.
+- Opening a new decision clears stale mutation feedback; successful decisions clear it before reloading authoritative inbox data.
+- TDD evidence: a decision conflict regression failed against the generic banner, then passed while asserting conflict semantics, recovery action and retained inbox data.
+- Full frontend unit 17 files / 84 tests PASS; Approval focused 7/7 PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- Runtime safety: Backend and Frontend remain running for Owner inspection; no real mutation was issued by verification.
+
+### GF-R32 — Reconciliation completion recovery
+- Reconciliation completion now owns mutation errors separately from read-query errors, so 403/409 write failures do not replace the persisted batch and daily-line evidence already loaded on screen.
+- Completion 409 renders an inline write-reconciliation alert with Backend message and a “Tải lại dữ liệu mới nhất” action; completion 403 renders distinct permission feedback. Non-HTTP mutation failures remain inline.
+- Completion modal closes after a failed request, preventing an overlapping blocking modal and recovery alert; successful completion clears stale mutation feedback and replaces data only with the Backend response.
+- TDD evidence: completion conflict regression failed while `StateBoundary` replaced the batch, then passed while asserting retained daily line and explicit reload recovery.
+- Full frontend unit 17 files / 85 tests PASS; Reconciliation focused 6/6 PASS; lint PASS; build PASS; diff check PASS with line-ending warnings.
+- Runtime safety: no completion request was sent to the live Backend; running FE/BE processes remain available for Owner inspection.
+
+### CONFORMANCE-DESIGN — Requirements-to-runtime program
+- Owner approved `docs/superpowers/specs/2026-10-17-requirements-to-runtime-conformance-design.md`.
+- Scope expands from isolated Frontend create repairs to requirements reconciliation across BR/FR/NFR/UXR/design contracts, Backend capability, workflow, FE boundary, UX/UI, and runtime evidence.
+- Backend repair/capability completion is allowed after recorded Owner Decision; semantic changes require explicit decision. Migration may be proposed and source-created only after design approval; applying any migration requires separate environment/database authorization.
+- Implementation is split to avoid a stale mega-plan. Foundation A plan: `docs/superpowers/plans/2026-10-17-requirements-to-runtime-foundation-a-plan.md`; later Foundation B and vertical-slice plans are created only after the inventory establishes exact contracts.
+- Current phase: VERIFY — Foundation A Tasks 1–5 complete; Task 6 closure is in progress. No browser, database, migration, seed, deployment or production-readiness claim is authorized.
+- Foundation A Task 1: standard-library conformance checker and fail-closed invariant tests protect duplicate/dangling IDs, owners, canonical route coverage, writable readiness, mode isolation and evidence obligations.
+- Foundation A Task 2: `docs/conformance-contracts.json` inventories exactly 54 canonical requirement IDs using `title + sourceAnchor + SHA-256 statementDigest`; Markdown remains the prose authority.
+- Foundation A Task 3: COMPLETE. `docs/backend-action-index.json` deterministically indexes 246/246 HTTP actions. Every action maps to exactly one source-backed operation-grain capability, and every FR maps to a capability or explicit gap. Grouped/underspecified writes remain `PARTIAL`/`BLOCKED`; no broad placeholder or readiness inflation was added.
+- Foundation A Task 4: COMPLETE. Added 23 route/view surface contracts covering every canonical N6 destination. Each surface records work object, capabilities, structured write actions, six states, skeleton owner/geometry, table-contract link or explicit `TABLE_CONTRACT_GAP`, owner source and browser/persistence/actor-mode evidence obligations. Only currently rendered Backend mutations are action-linked; local cache cleanup is not misclassified as a business capability.
+- Foundation A Task 5: COMPLETE. DESIGN now requires route/work-object-preserving skeleton geometry and deterministic loading resolution; ENGINEERING defines READY-write fields and evidence hierarchy; UI-KIT prohibits fake skeleton records. Contract tests bind these rules. Root `verify` now includes the conformance checker.
+- Foundation A Task 6 verification evidence: conformance tests 18/18 PASS; conformance checker PASS; architecture policy tests/check PASS with six inherited debt findings and no growth; Backend build PASS; selected Backend suites PASS 49 Application + 1311 API tests. Root verification initially found `AppShell → routeRegistry` reverse dependency; route composition now injects the role resolver from `App.tsx`. Dependency cruise PASS, AppShell 7/7 PASS, lint PASS, production build PASS, and full Frontend unit 17 files / 85 tests PASS.
+- Ranked closure finding: the first dependency-safe remediation slice is **Foundation B — shared route-resolved skeleton/state and guarded-action contract**, before vertical capability work. Current surface inventory deliberately records generic skeleton geometry and widespread missing table contracts; route-specific implementation without this owner would duplicate behavior and weaken loading/permission/write reconciliation guarantees.
+- Remaining blockers: browser geometry/focus/zoom/responsive, actor-mode matrix and persistence/reload evidence require authorized isolated runtime; lifecycle outbox remains degraded; dirty browser Back/Forward lacks a safe router owner; authoritative dish-cost report is absent. SampleData/import, migration apply and database mutations remain unauthorized.
+- Foundation A status: **CLOSED / PASS at non-mutating static and test boundaries**; program-level runtime acceptance remains `NEEDS_EVIDENCE`/`BLOCKED` as listed above.
+- Foundation B status: **CLOSED / PASS at static, component and build boundaries**. Tasks 1–5 implemented under `docs/superpowers/plans/2026-10-17-requirements-to-runtime-foundation-b-plan.md`; lifecycle returned to `IDLE`.
+- Ruling: `SkeletonGeometry.rows` is a geometry-only placeholder count and is permitted; the anti-synthetic gate rejects row payload/content and business-looking fields, not the numeric placeholder count. This resolves the plan's interface/test wording conflict without weakening the no-fake-data invariant.
+- Runtime surface foundation: 23 route/view definitions now resolve through `frontend/src/routes/workbenchSurfaceRegistry.ts`; conformance parity checks route/view/kind/full geometry and rejects duplicate keys or business-looking geometry fields. Unknown views fall back only within their canonical route.
+- Loading/state foundation: `WorkbenchSkeleton` is the single geometry-only owner for table/matrix/split/form loading; `StateBoundary` delegates loading to it and preserves explicit HTTP/state precedence. Lazy Suspense loading now resolves from the current URL through `RouteWorkbenchLoadingFallback`.
+- Guarded mutation foundation: the existing `ActionGuard` now requires `capabilityId`, supports exact permission and operational-mode eligibility, and uses a disabled accessible fieldset for explained blockers. Existing Approval, MRX completion and System mode actions map respectively to `APPR.DECISION`, `RECON.BATCH.LIFECYCLE`, and `SYS.MODE.WRITE`; no new action was exposed. Approval/System shared-mode actions do not invent a current-mode restriction; MRX completion requires `MATERIAL_RECONCILIATION` plus `ReconciliationWriteAccess`.
+- TDD evidence: runtime registry RED on missing module → GREEN; skeleton/state RED on missing owner → GREEN; URL fallback RED on missing component → GREEN; ActionGuard RED on activatable blocked button → GREEN; Reconciliation wrong-mode RED on enabled completion → GREEN; stale frontend mapping gap RED → GREEN.
+- Verification: conformance 20/20 PASS; checker PASS; architecture tests 6/6 PASS; strict architecture check PASS with six unchanged inherited findings; lint PASS; dependency cruise PASS (68 modules / 256 dependencies); production build PASS; Frontend unit 17 files / 94 tests PASS; `git diff --check` PASS with LF→CRLF warnings only.
+- Review gate: `ipc-test-audit; contract/component regression; generic loading and mode blocker lacked behavioral owners; added network-boundary/page and shared-owner RED→GREEN tests; yes; low noise; prevented fake geometry and mutation activation`.
+- Review gate: `ipc-ui-review; loading/accessibility/state review; generic fallback lost route geometry and blocked actions were not semantically disabled; added aria-busy geometry and explained disabled group; correct at jsdom/static boundary; browser geometry remains noise-free unclaimed evidence; decision keeps browser status NEEDS_EVIDENCE`.
+- Review gate: `ipc-code-review; scoped Foundation B diff; route/shared ownership could have reintroduced reverse dependency; placed route fallback under routes and kept workbench primitive route-agnostic; yes; inherited broad working-tree diff noted; dependency gate passed`.
+- PASS: deterministic route/view geometry, no synthetic skeleton evidence, explicit state precedence, capability-linked current writes, wrong-mode MRX request prevention, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: real browser geometry, focus, 200% zoom, tablet overflow, actor/mode matrix and persistence/reload on an authorized isolated runtime.
+- BLOCKED: Approval exact permission token/expected-version semantics; per-command MRX lifecycle split/concurrency; System mode concurrency/idempotency; lifecycle outbox runtime degradation; browser Back/Forward dirty-draft owner.
+- Auth/System status: **CLOSED / PASS at contract, component, build and focused Backend-test boundaries** under `docs/superpowers/plans/2026-10-17-auth-system-capability-conformance-plan.md`; lifecycle returned to `IDLE`.
+- Capability reconciliation: grouped `AUTH.SESSION` is split into `AUTH.LOGIN`, `AUTH.REFRESH`, `AUTH.LOGOUT`, `AUTH.REVOKE`; grouped `SYS.MODE.WRITE` is split into Backend-only `SYS.MODE.INITIALIZE` and versioned UI action `SYS.MODE.CHANGE`. `SYS.MODE.CHANGE` is `READY` against `SystemOperationModeService` optimistic-concurrency owner; other Auth/System operations retain explicit `PARTIAL` gaps rather than inflated readiness.
+- Login recovery: removed all hardcoded sample usernames/passwords, default credentials and Development quick-login controls. Login fields start empty; tests supply credentials only inside test scope.
+- Auth boundary: logout transport failures now propagate from `authApi`; `AuthProvider` still clears local session in its existing `finally`, so local security cleanup remains guaranteed without fabricating network success.
+- Mode authority: Frontend DTO now matches Backend `SystemOperationModeDto`; PUT requires the latest fetched `version`, carries explicit confirmation/reason, and no longer writes localStorage before success or defaults version to `1`. AuthProvider applies only Backend-returned snapshots. Advanced Settings handles Backend `reasonRequired`, retains current mode on 409 and exposes authoritative reload.
+- TDD evidence: capability split RED on `AUTH.SESSION` owner → GREEN; Login empty/no-shortcut RED on embedded credentials → GREEN; mode API RED on optimistic local write → GREEN; logout RED on swallowed offline failure → GREEN. Mode reason/409 rendered regression passes against the repaired owner.
+- Verification: conformance 21/21 PASS; checker PASS; ZeroFake gate 2/2 PASS; focused Auth/System Frontend 51/51 PASS before final additions; full Frontend 17 files / 97 tests PASS; focused Backend Auth/SystemOperation 38/38 PASS; lint PASS; dependency cruise PASS (68 modules / 258 dependencies); production build PASS; `git diff --check` PASS with LF→CRLF warnings only. Final Advanced Settings regression 4/4, lint and build re-run PASS after selection-state synchronization.
+- Review gate: `ipc-test-audit; Auth/System contract and mutation tests; embedded credentials and swallowed logout made fake-safe paths; added DOM/network-boundary and real Backend-owner assertions; yes; low noise; removed synthetic credential evidence and fake logout success`.
+- Review gate: `ipc-ui-review; login/mode interaction; Login exposed credentials and mode UI lacked reason/conflict recovery; removed shortcuts and added required reason plus 409 reload; correct at jsdom/static boundary; real cookie/focus/browser behavior unmeasured; runtime remains NEEDS_EVIDENCE`.
+- Review gate: `ipc-code-review; AuthProvider/systemApi ownership; fixed expectedVersion=1 and optimistic state, preserved Backend concurrency authority; yes; one lint-detected effect ownership issue repaired; no Backend semantic change`.
+- PASS: no credential shortcuts, operation-grain action ownership, exact mode DTO/body, failed PUT state preservation, reason-required UI, 409 reload, no live mutation.
+- NEEDS_EVIDENCE: real login/cookie rotation/logout, browser focus/autofill, Admin actor mode transition, concurrent 409 and persistence/reload on authorized isolated runtime.
+- BLOCKED: refresh rotation/replay concurrency and initialization concurrency remain `PARTIAL`; no database or live credential authorization.
+- Next dependency-safe slice: **Catalog/Admin contract completion**; it requires a separate bounded plan before any create/edit surface or Backend semantic change.

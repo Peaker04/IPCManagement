@@ -26,35 +26,24 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     vi.spyOn(warehouseApi, 'getReceipts').mockResolvedValue(MOCK_RECEIPTS);
   });
 
-  it('renders Zone 1 WorkspaceHeader (56px) with warehouse select, date, and single primary button (Rule D7)', async () => {
+  it('renders Zone 1 WorkspaceHeader without exposing a source-less inventory issue command', async () => {
     renderWarehouse();
 
     expect(await screen.findByRole('heading', { name: 'Kho nguyên liệu & Nhập xuất' })).toBeInTheDocument();
-
-    // Select warehouse and date input
     expect(screen.getByRole('combobox')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('21/09/2026')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('dd/MM/yyyy')).not.toBeInTheDocument();
     expect(screen.getByText('Kho đang hoạt động')).toBeInTheDocument();
-
-    // Rule D7: Exactly 1 primary button + 1 outline
     expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    const createBtn = screen.getByRole('button', { name: 'Tạo phiếu xuất kho' });
-    expect(createBtn).toBeInTheDocument();
-    expect(createBtn).toHaveClass('bg-slate-900');
+    expect(screen.queryByRole('button', { name: 'Tạo phiếu xuất kho' })).not.toBeInTheDocument();
+    expect(screen.getByText(/Phiếu xuất phải bắt đầu từ yêu cầu vật tư đã duyệt/i)).toBeInTheDocument();
   });
 
-  it('renders Zone 2 TelemetrySubbar (44px) with 3 Segmented Tabs and telemetry pills', async () => {
-    renderWarehouse();
+  it('does not duplicate route work views as an in-page tablist', async () => {
+    renderWarehouse('/warehouse?view=issues');
 
-    // 3 Segmented Tabs
-    expect(await screen.findByRole('tab', { name: /Phiếu xuất kho ca/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Phiếu nhập kho từ PO/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Thẻ kho & Tồn hiện tại/i })).toBeInTheDocument();
-
-    // Telemetry pills
-    expect(screen.getByText(/Tổng phiếu:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Kho vận hành:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Khớp thẻ kho:/i)).toBeInTheDocument();
+    await screen.findByRole('heading', { name: 'Kho nguyên liệu & Nhập xuất' });
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.getByText(/Đang xem: Phiếu xuất kho/i)).toBeInTheDocument();
   });
 
   it('Tab 1 (Phiếu xuất kho): renders issues table and zero <details> tags', async () => {
@@ -76,10 +65,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
   });
 
   it('Tab 2 (Phiếu nhập kho từ PO): renders receipts table', async () => {
-    renderWarehouse();
-
-    const receiptTab = await screen.findByRole('tab', { name: /Phiếu nhập kho từ PO/i });
-    await userEvent.click(receiptTab);
+    renderWarehouse('/warehouse?view=receipts');
 
     expect(await screen.findByRole('columnheader', { name: 'Mã phiếu nhập' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Ngày nhập' })).toBeInTheDocument();
@@ -90,38 +76,20 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByText('RCP-PO-20260721-0858')).toBeInTheDocument();
   });
 
-  it('Tab 3 (Thẻ kho & Tồn hiện tại): renders stock cards table', async () => {
-    renderWarehouse();
+  it('Tab 3 refuses to fabricate current stock from receipt and issue history', async () => {
+    renderWarehouse('/warehouse?view=stock');
 
-    const stockTab = await screen.findByRole('tab', { name: /Thẻ kho & Tồn hiện tại/i });
-    await userEvent.click(stockTab);
-
-    expect(await screen.findByRole('columnheader', { name: 'Mã vật tư' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: /Tên nguyên liệu/i })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'ĐVT' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Tồn đầu ngày' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Nhập trong ngày' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Xuất trong ngày' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Tồn cuối ngày' })).toBeInTheDocument();
-
-    expect(screen.getByText('NL-THIT-01')).toBeInTheDocument();
-    expect(screen.getByText('Thịt đùi heo tươi')).toBeInTheDocument();
+    expect(await screen.findByText('Chưa có nguồn tồn kho hiện tại')).toBeInTheDocument();
+    expect(screen.getByText(/không thể suy ra từ phiếu nhập và phiếu xuất với tồn đầu kỳ bằng 0/i)).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Tồn cuối ngày' })).not.toBeInTheDocument();
   });
 
-  it('opens new issue modal and creates warehouse export issue', async () => {
+  it('does not expose the unsupported source-less issue modal', async () => {
     renderWarehouse();
 
-    const createBtn = await screen.findByRole('button', { name: 'Tạo phiếu xuất kho' });
-    await userEvent.click(createBtn);
-
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Tạo phiếu xuất kho nguyên liệu ca nấu' })).toBeInTheDocument();
-
-    const notesInput = screen.getByPlaceholderText(/Xuất nguyên liệu ca trưa/i);
-    await userEvent.type(notesInput, 'Xuất ca 1 theo KHSX');
-
-    const submitBtn = screen.getByRole('button', { name: 'Xác nhận xuất kho' });
-    await userEvent.click(submitBtn);
+    await screen.findByRole('heading', { name: 'Kho nguyên liệu & Nhập xuất' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xác nhận xuất kho' })).not.toBeInTheDocument();
   });
 
   it('handles error state and provides retry mechanism', async () => {

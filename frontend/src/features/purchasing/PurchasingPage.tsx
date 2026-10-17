@@ -5,15 +5,11 @@ import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { SplitView } from '../../components/workbench/SplitView';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
-import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
-import { Modal } from '../../components/ui/modal';
-import { Input } from '../../components/ui/input';
-import { ActionGuard } from '../../components/ui/action-guard';
 import {
   purchasingApi,
   type PurchaseOrderItem,
@@ -26,19 +22,10 @@ export function PurchasingPage() {
   const [orders, setOrders] = useState<PurchaseOrderItem[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierItem[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState('ALL');
-  const [orderDate, setOrderDate] = useState('2026-07-21');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // New PO Modal
-  const [isNewPoOpen, setIsNewPoOpen] = useState(false);
-  const [newSupplierId, setNewSupplierId] = useState('');
-  const [newIngredientName, setNewIngredientName] = useState('');
-  const [newQty, setNewQty] = useState(50);
-  const [newPrice, setNewPrice] = useState(50000);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
@@ -54,7 +41,7 @@ export function PurchasingPage() {
         setSelectedPoId(pos[0].id);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Không thể tải danh sách đơn mua hàng PO.');
+      setError(err instanceof Error ? err : new Error('Không thể tải danh sách đơn mua hàng PO.'));
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +63,7 @@ export function PurchasingPage() {
         }
       } catch (err: unknown) {
         if (!ignore) {
-          setError(err instanceof Error ? err.message : 'Không thể tải danh sách đơn mua hàng PO.');
+          setError(err instanceof Error ? err : new Error('Không thể tải danh sách đơn mua hàng PO.'));
           setIsLoading(false);
         }
       }
@@ -88,36 +75,6 @@ export function PurchasingPage() {
       ignore = true;
     };
   }, []);
-
-  const handleCreatePo = async () => {
-    if (!newSupplierId) {
-      alert('Vui lòng chọn nhà cung cấp');
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      await purchasingApi.createPurchaseOrder({
-        supplierId: newSupplierId,
-        orderDate,
-        lines: [
-          {
-            ingredientId: newIngredientName.trim()
-              ? `ing-${newIngredientName.trim().toLowerCase().replace(/[^a-z0-9]/g, '-')}`
-              : 'ing-custom',
-            quantity: newQty,
-            unitPrice: newPrice,
-          },
-        ],
-      });
-      setIsNewPoOpen(false);
-      await loadData();
-      alert('Đã tạo đơn mua hàng PO thành công!');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Tạo PO thất bại');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const filteredOrders = useMemo(() => {
     return orders.filter((po) => {
@@ -226,15 +183,11 @@ export function PurchasingPage() {
         contextSelectors={
           <>
             <Select
+              aria-label="Lọc nhà cung cấp"
               options={supplierOptions}
               value={selectedSupplierId}
               onChange={(e) => setSelectedSupplierId(e.target.value)}
               className="h-9 w-72 font-medium text-sm"
-            />
-            <VietnameseDateInput
-              value={orderDate}
-              onChange={(d) => setOrderDate(d)}
-              className="h-9 w-40 font-mono text-sm"
             />
             <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-mono flex items-center">
               PO đang xử lý
@@ -251,17 +204,9 @@ export function PurchasingPage() {
             >
               Làm mới
             </Button>
-            {/* Rule D7: Single primary button */}
-            <ActionGuard roles={['ADMIN', 'MANAGER', 'THUMUA', 'PURCHASER']}>
-              <Button
-                variant="default"
-                size="default"
-                onClick={() => setIsNewPoOpen(true)}
-                className="h-9 text-sm font-medium"
-              >
-                Tạo đơn mua hàng PO
-              </Button>
-            </ActionGuard>
+            <span className="text-xs text-slate-500 max-w-72">
+              PO chỉ được tạo từ đề xuất mua hàng đã duyệt.
+            </span>
           </>
         }
       />
@@ -305,9 +250,7 @@ export function PurchasingPage() {
         onRetry={loadData}
         isEmpty={filteredOrders.length === 0}
         emptyTitle="Không tìm thấy đơn mua hàng"
-        emptyDescription="Không có đơn PO nào khớp với điều kiện tìm kiếm hoặc trạng thái đã chọn."
-        actionLabel="Tạo PO mới"
-        onAction={() => setIsNewPoOpen(true)}
+        emptyDescription="Không có đơn PO nào khớp với điều kiện tìm kiếm hoặc trạng thái đã chọn. PO mới phải được tạo từ một đề xuất mua hàng đã duyệt."
       >
         <SplitView
           masterWidthClass="w-7/12"
@@ -383,67 +326,6 @@ export function PurchasingPage() {
           }
         />
       </StateBoundary>
-
-      {/* New PO Modal */}
-      <Modal
-        isOpen={isNewPoOpen}
-        onClose={() => setIsNewPoOpen(false)}
-        title="Tạo đơn mua hàng mới (PO)"
-        description="Lập đơn mua nguyên liệu bổ sung cho bếp ăn công nghiệp"
-        footer={
-          <>
-            <Button variant="outline" size="sm" onClick={() => setIsNewPoOpen(false)}>
-              Hủy bỏ
-            </Button>
-            <Button variant="default" size="sm" disabled={isSubmitting} onClick={handleCreatePo}>
-              {isSubmitting ? 'Đang tạo...' : 'Xác nhận tạo đơn PO'}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-4 text-sm text-slate-700">
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-700">Nhà cung cấp đối tác</label>
-            <Select
-              options={suppliers.map((s) => ({ value: s.supplierId, label: s.supplierName }))}
-              value={newSupplierId}
-              onChange={(e) => setNewSupplierId(e.target.value)}
-              className="h-9 w-full"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-slate-700">Tên nguyên liệu cần mua</label>
-            <Input
-              placeholder="Ví dụ: Thịt gà phi lê tươi"
-              value={newIngredientName}
-              onChange={(e) => setNewIngredientName(e.target.value)}
-              className="h-9"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-700">Số lượng (kg/lít)</label>
-              <Input
-                type="number"
-                value={newQty}
-                onChange={(e) => setNewQty(parseFloat(e.target.value) || 0)}
-                className="h-9"
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-xs font-medium text-slate-700">Đơn giá dự kiến (₫)</label>
-              <Input
-                type="number"
-                value={newPrice}
-                onChange={(e) => setNewPrice(parseFloat(e.target.value) || 0)}
-                className="h-9"
-              />
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

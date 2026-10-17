@@ -1,92 +1,49 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { AdvancedSettingsPage } from '../features/admin/AdvancedSettingsPage';
 import { AuthProvider } from '../store/authContext';
+import { AdvancedSettingsPage } from '../features/admin/AdvancedSettingsPage';
 import { systemApi } from '../api/systemApi';
+import { ApiError } from '../api/client';
 
-function renderAdvancedSettings(initialEntry = '/settings/advanced') {
-  return render(
-    <AuthProvider>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/settings/advanced" element={<AdvancedSettingsPage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
-}
-
-describe('Advanced Settings Feature (FR-SYS — Thiết lập nâng cao & Vận hành)', () => {
-  beforeEach(() => {
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', version: 1 });
-    vi.spyOn(systemApi, 'setOperationalMode').mockImplementation(async (mode) => ({ mode, version: 1 }));
+function renderPage(entry = '/settings/advanced?view=mode') { return render(<AuthProvider><MemoryRouter initialEntries={[entry]}><Routes><Route path="/settings/advanced" element={<AdvancedSettingsPage />} /></Routes></MemoryRouter></AuthProvider>); }
+describe('Advanced Settings', () => {
+  it('uses URL-owned mode view without duplicate tabs and confirms mode transition', async () => {
+    renderPage();
+    expect(screen.getByText(/Đang xem: Chế độ vận hành/)).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', { name: /Đối soát Nguyên liệu/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
+    expect(screen.getByRole('dialog', { name: 'Xác nhận chuyển chế độ vận hành' })).toBeInTheDocument();
   });
-  it('renders Zone 1 WorkspaceHeader (56px) with mode badge and single primary button (Rule D7)', async () => {
-    renderAdvancedSettings();
+  it('requires Backend reason and preserves the current mode on a version conflict', async () => {
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 7, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: true, capabilities: { navigation: [], pageTabs: {} } });
+    const change = vi.spyOn(systemApi, 'setOperationalMode').mockRejectedValue(new ApiError(409, 'Chế độ vận hành đã thay đổi.'));
+    renderPage();
 
-    expect(await screen.findByRole('heading', { name: 'Cấu hình hệ thống & Vận hành' })).toBeInTheDocument();
-    expect(screen.getByText(/Chế độ hiện tại:/i)).toBeInTheDocument();
+    await screen.findByText(/Chế độ hiện tại: Mặc định/);
+    await userEvent.click(screen.getByRole('radio', { name: /Đối soát Nguyên liệu/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
+    expect(screen.getByRole('button', { name: 'Xác nhận chuyển chế độ' })).toBeDisabled();
+    await userEvent.type(screen.getByLabelText('Lý do chuyển chế độ'), 'Hoàn tất công việc đang mở');
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận chuyển chế độ' }));
 
-    // Rule D7: Exactly 1 primary button + 1 outline
-    expect(screen.getByRole('button', { name: 'Khôi phục mặc định' })).toBeInTheDocument();
-    const saveBtn = screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' });
-    expect(saveBtn).toBeInTheDocument();
-    expect(saveBtn).toHaveClass('bg-slate-900');
-  });
-
-  it('renders Zone 2 TelemetrySubbar (44px) with tabs and telemetry pills', async () => {
-    renderAdvancedSettings();
-
-    // Tabs
-    expect(await screen.findByRole('tab', { name: /Chế độ vận hành \(DOM-MODE-1\)/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Bộ nhớ đệm & Phiên làm việc/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Chẩn đoán kết nối API/i })).toBeInTheDocument();
-
-    // Telemetry pills
-    expect(screen.getByText(/Kiến trúc:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Prefix:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Backend Kestrel .NET 9/i)).toBeInTheDocument();
+    expect(change).toHaveBeenCalledWith('MATERIAL_RECONCILIATION', 7, 'Hoàn tất công việc đang mở');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Chế độ vận hành đã thay đổi.');
+    expect(screen.getByText(/Chế độ hiện tại: Mặc định/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
   });
 
-  it('Tab 1 (Chế độ vận hành): allows selecting between DEFAULT and MATERIAL_RECONCILIATION and saves', async () => {
-    const { container } = renderAdvancedSettings();
-
-    // Check radio options
-    expect(await screen.findByText(/1. Chế độ Mặc định \(DEFAULT\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/2. Chế độ Đối soát Nguyên liệu \(MATERIAL_RECONCILIATION\)/i)).toBeInTheDocument();
-
-    // Click radio to select MATERIAL_RECONCILIATION
-    const mrxRadio = screen.getByLabelText(/2. Chế độ Đối soát Nguyên liệu/i);
-    await userEvent.click(mrxRadio);
-
-    // Save
-    const saveBtn = screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' });
-    await userEvent.click(saveBtn);
-
-    // Invariant: Zero <details> tags anywhere in DOM!
-    expect(container.querySelectorAll('details').length).toBe(0);
+  it('uses URL-owned cache view and confirms cache cleanup', async () => {
+    renderPage('/settings/advanced?view=cache');
+    expect(screen.getByText(/Đang xem: Bộ nhớ phiên/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Dọn cache ngay' }));
+    expect(screen.getByRole('dialog', { name: 'Xác nhận dọn bộ nhớ phiên' })).toBeInTheDocument();
   });
-
-  it('Tab 2 (Bộ nhớ đệm): cleans cache when clicking Dọn cache ngay', async () => {
-    renderAdvancedSettings();
-
-    const cacheTab = await screen.findByRole('tab', { name: /Bộ nhớ đệm & Phiên làm việc/i });
-    await userEvent.click(cacheTab);
-
-    expect(await screen.findByText('Dọn dẹp Cache v3')).toBeInTheDocument();
-    const clearBtn = screen.getByRole('button', { name: 'Dọn cache ngay' });
-    await userEvent.click(clearBtn);
-  });
-
-  it('Tab 3 (Chẩn đoán kết nối API): renders API diagnostics details', async () => {
-    renderAdvancedSettings();
-
-    const diagTab = await screen.findByRole('tab', { name: /Chẩn đoán kết nối API/i });
-    await userEvent.click(diagTab);
-
-    expect(await screen.findByText('Chẩn đoán Kết nối C# Backend API')).toBeInTheDocument();
-    expect(screen.getByText(/http:\/\/localhost:5262\/api/i)).toBeInTheDocument();
+  it('uses URL-owned diagnostics view', () => {
+    renderPage('/settings/advanced?view=diagnostics');
+    expect(screen.getByText(/Đang xem: Chẩn đoán kết nối/)).toBeInTheDocument();
+    expect(screen.getByText('Chẩn đoán Kết nối C# Backend API')).toBeInTheDocument();
   });
 });

@@ -2,73 +2,26 @@ import { useState } from 'react';
 import { TelemetrySubbar } from '../../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
 import { Tabs } from '../../../components/ui/tabs';
-import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { Num } from '../../../components/ui/num';
 import { IdentifierText } from '../../../components/ui/identifier-text';
-import { Modal } from '../../../components/ui/modal';
 import type { WeeklyMenuData } from '../../../api/weeklyMenuApi';
 import type { MaterialDemandItem, ProductionPlanItem } from '../../../types';
 
 export interface MaterialDemandViewProps {
   data: WeeklyMenuData;
-  onRecalculate?: () => void;
-  isApprovalModalOpen?: boolean;
-  setIsApprovalModalOpen?: (open: boolean) => void;
 }
 
-interface HandoffVoucher {
-  voucherId: string;
-  voucherCode: string;
-  shiftName: string;
-  itemCount: number;
-  totalQuantity: string;
-  createdBy: string;
-  createdAt: string;
-  status: 'signed' | 'pending';
-}
-
-
-
-export function MaterialDemandView({
-  data,
-  onRecalculate,
-  isApprovalModalOpen: externalModalOpen,
-  setIsApprovalModalOpen: externalSetModalOpen,
-}: MaterialDemandViewProps) {
-  const [activeSegmentTab, setActiveSegmentTab] = useState<'demand' | 'source-khsx' | 'vouchers'>('demand');
+export function MaterialDemandView({ data }: MaterialDemandViewProps) {
+  const [activeSegment, setActiveSegment] = useState<'demand' | 'source-khsx'>('demand');
   const [dayIndex, setDayIndex] = useState(0);
-  const [internalModalOpen, setInternalModalOpen] = useState(false);
-
-  const isModalOpen = externalModalOpen !== undefined ? externalModalOpen : internalModalOpen;
-  const setModalOpen = externalSetModalOpen || setInternalModalOpen;
-
-  const currentDay = data.scheduleDays[dayIndex] || data.scheduleDays[0];
-
-  const dynamicVouchers: HandoffVoucher[] = data.productionPlans.length > 0
-    ? data.productionPlans.map((plan, idx) => ({
-        voucherId: plan.planId || `voucher-${idx}`,
-        voucherCode: plan.planCode ? `BG-${plan.planCode}` : `BG-${data.customerCode}-${idx + 1}`,
-        shiftName: plan.shiftName || 'Ca chính',
-        itemCount: data.demandRows.length,
-        totalQuantity: `${data.demandRows.reduce((acc, r) => acc + (r.requiredQuantity || 0), 0).toLocaleString('vi-VN')} kg`,
-        createdBy: 'Hệ thống tự động',
-        createdAt: data.weekStartDate || 'Hôm nay',
-        status: 'signed' as const,
-      }))
-    : [];
-
-  const SEGMENT_TABS = [
-    { id: 'demand', label: 'Nhu cầu nguyên liệu', count: data.demandRows.length },
-    { id: 'source-khsx', label: 'KHSX nguồn', count: data.productionPlans.length },
-    { id: 'vouchers', label: 'Chứng từ bàn giao', count: dynamicVouchers.length },
-  ];
+  const currentDay = data.scheduleDays[dayIndex];
 
   const demandColumns: ColumnDef<MaterialDemandItem>[] = [
     {
       id: 'material',
       header: 'Nguyên liệu',
-      width: '26%',
+      width: '34%',
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-slate-900 truncate">{row.materialName}</span>
@@ -77,64 +30,47 @@ export function MaterialDemandView({
       ),
     },
     {
-      id: 'dishes',
-      header: 'Món sử dụng',
-      width: '32%',
-      cell: (row) => (
-        <div className="text-slate-700 truncate" title={row.dishNames.join(', ')}>
-          {row.dishNames.join(', ')}
-        </div>
-      ),
-    },
-    {
       id: 'required',
-      header: 'Cần',
-      width: '11%',
+      header: 'Nhu cầu đã tính',
+      width: '18%',
       align: 'right',
-      cell: (row) => (
-        <Num value={row.requiredQuantity} format="quantity" suffix={` ${row.unit}`} />
-      ),
+      cell: (row) => <Num value={row.requiredQuantity} format="quantity" suffix={` ${row.unit}`} />,
     },
     {
       id: 'issued',
-      header: 'Đã xuất',
-      width: '11%',
+      header: 'Đã xuất vật lý',
+      width: '18%',
       align: 'right',
-      cell: (row) => (
-        <Num value={row.issuedQuantity} format="quantity" suffix={` ${row.unit}`} />
-      ),
+      cell: (row) => <Num value={row.issuedQuantity} format="quantity" suffix={` ${row.unit}`} />,
     },
     {
       id: 'remaining',
-      header: 'Chưa xuất',
-      width: '10%',
+      header: 'Còn phải xuất',
+      width: '18%',
       align: 'right',
       cell: (row) => (
         <Num
           value={row.remainingQuantity}
           format="quantity"
           suffix={` ${row.unit}`}
-          className={row.remainingQuantity > 0 ? 'text-amber-700 font-bold' : 'text-slate-400'}
+          className={row.remainingQuantity > 0 ? 'text-amber-700 font-bold' : 'text-slate-600'}
         />
       ),
     },
     {
       id: 'status',
-      header: 'Trạng thái',
-      width: '10%',
+      header: 'Trạng thái bàn giao',
+      width: '18%',
       align: 'center',
       cell: (row) => (
-        <Badge
-          variant={row.remainingQuantity === 0 ? 'success' : 'warning'}
-          size="sm"
-        >
-          {row.remainingQuantity === 0 ? 'Đã xuất đủ' : 'Chờ xuất'}
+        <Badge variant={row.status === 'fulfilled' ? 'success' : row.status === 'in_progress' ? 'warning' : 'neutral'} size="sm">
+          {row.status === 'fulfilled' ? 'Đã hoàn tất bàn giao' : row.status === 'in_progress' ? 'Đang bàn giao' : 'Chưa bàn giao'}
         </Badge>
       ),
     },
   ];
 
-  const khsxColumns: ColumnDef<ProductionPlanItem>[] = [
+  const planColumns: ColumnDef<ProductionPlanItem>[] = [
     {
       id: 'code',
       header: 'Mã KHSX',
@@ -166,62 +102,8 @@ export function MaterialDemandView({
       width: '14%',
       align: 'center',
       cell: (row) => (
-        <Badge
-          variant={row.status === 'completed' ? 'success' : 'info'}
-          size="sm"
-        >
-          {row.status === 'completed' ? 'Đã hoàn thành' : 'Đã phát lệnh'}
-        </Badge>
-      ),
-    },
-  ];
-
-  const voucherColumns: ColumnDef<HandoffVoucher>[] = [
-    {
-      id: 'code',
-      header: 'Mã chứng từ',
-      width: '18%',
-      cell: (row) => <IdentifierText value={row.voucherCode} />,
-    },
-    {
-      id: 'shift',
-      header: 'Ca áp dụng',
-      width: '18%',
-      cell: (row) => <span className="font-semibold text-slate-900">{row.shiftName}</span>,
-    },
-    {
-      id: 'items',
-      header: 'Số dòng vật tư',
-      width: '14%',
-      align: 'right',
-      cell: (row) => <span className="font-mono">{row.itemCount} dòng</span>,
-    },
-    {
-      id: 'total',
-      header: 'Tổng khối lượng',
-      width: '16%',
-      align: 'right',
-      cell: (row) => <span className="font-mono font-semibold">{row.totalQuantity}</span>,
-    },
-    {
-      id: 'creator',
-      header: 'Người lập & Thời gian',
-      width: '22%',
-      cell: (row) => (
-        <div className="flex flex-col">
-          <span>{row.createdBy}</span>
-          <span className="text-xs text-slate-400 font-mono">{row.createdAt}</span>
-        </div>
-      ),
-    },
-    {
-      id: 'status',
-      header: 'Trạng thái ký',
-      width: '12%',
-      align: 'center',
-      cell: (row) => (
-        <Badge variant={row.status === 'signed' ? 'success' : 'warning'} size="sm">
-          {row.status === 'signed' ? 'Đã ký nhận' : 'Chờ ký'}
+        <Badge variant={row.status === 'completed' ? 'success' : row.status === 'sent_to_kitchen' ? 'info' : 'neutral'} size="sm">
+          {row.status === 'completed' ? 'Hoàn tất' : row.status === 'sent_to_kitchen' ? 'Đã gửi Bếp' : 'Bản nháp'}
         </Badge>
       ),
     },
@@ -229,40 +111,41 @@ export function MaterialDemandView({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-      {/* Zone 2: TelemetrySubbar (44px / h-11) */}
       <TelemetrySubbar
         leftControls={
           <div className="flex items-center gap-3">
-            {/* Day Switcher [<] Thứ Hai, 21/09/2026 (1/6) [>] */}
-            <div className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-1 shadow-2xs">
-              <button
-                type="button"
-                onClick={() => setDayIndex((prev) => Math.max(0, prev - 1))}
-                disabled={dayIndex === 0}
-                className="h-6 w-5 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
-                title="Ngày trước"
-              >
-                ‹
-              </button>
-              <span className="text-xs font-semibold text-slate-900 px-1 whitespace-nowrap">
-                {currentDay.dayName}, {currentDay.dateStr} ({dayIndex + 1}/6)
-              </span>
-              <button
-                type="button"
-                onClick={() => setDayIndex((prev) => Math.min(data.scheduleDays.length - 1, prev + 1))}
-                disabled={dayIndex === data.scheduleDays.length - 1}
-                className="h-6 w-5 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
-                title="Ngày sau"
-              >
-                ›
-              </button>
-            </div>
-
-            {/* Segmented Tabs chuyển đổi bảng chính (thay thế hoàn toàn 2 hộp details!) */}
+            {currentDay && (
+              <div className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-1 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setDayIndex((previous) => Math.max(0, previous - 1))}
+                  disabled={dayIndex === 0}
+                  className="h-6 w-6 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
+                  aria-label="Ngày trước"
+                >
+                  ‹
+                </button>
+                <span className="text-xs font-semibold text-slate-900 px-1 whitespace-nowrap">
+                  {currentDay.dayName}, {currentDay.dateStr} ({dayIndex + 1}/{data.scheduleDays.length})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDayIndex((previous) => Math.min(data.scheduleDays.length - 1, previous + 1))}
+                  disabled={dayIndex === data.scheduleDays.length - 1}
+                  className="h-6 w-6 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
+                  aria-label="Ngày sau"
+                >
+                  ›
+                </button>
+              </div>
+            )}
             <Tabs
-              items={SEGMENT_TABS}
-              activeId={activeSegmentTab}
-              onChange={(id) => setActiveSegmentTab(id as 'demand' | 'source-khsx' | 'vouchers')}
+              items={[
+                { id: 'demand', label: 'Nhu cầu nguyên liệu', count: data.demandRows.length },
+                { id: 'source-khsx', label: 'KHSX nguồn', count: data.productionPlans.length },
+              ]}
+              activeId={activeSegment}
+              onChange={(id) => setActiveSegment(id as 'demand' | 'source-khsx')}
               size="default"
             />
           </div>
@@ -275,104 +158,21 @@ export function MaterialDemandView({
             </span>
             <span className="text-slate-300">·</span>
             <span className="text-amber-700 font-semibold">
-              Chờ xuất: {data.demandRows.filter((r) => r.status === 'cho_xuat' || r.status === 'thieu_hut').length}
+              Còn phải xuất: {data.demandRows.filter((row) => row.remainingQuantity > 0).length}
             </span>
             <span className="text-slate-300">·</span>
-            <span className="text-emerald-700 font-semibold">
-              Đã xuất: {data.demandRows.filter((r) => r.status === 'da_xuat_du').length}
+            <span className="text-slate-700 font-semibold">
+              Đã xuất đủ: {data.demandRows.filter((row) => row.issuedQuantity > 0 && row.remainingQuantity === 0).length}
             </span>
-          </>
-        }
-        rightActions={
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRecalculate}
-              className="text-xs font-medium"
-            >
-              Tính lại nhu cầu
-            </Button>
-            {/* Rule D7: variant="outline" in subbar, Header holds the primary action */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setModalOpen(true)}
-              className="text-xs font-medium border-slate-300 text-slate-700 hover:bg-slate-100"
-            >
-              Mở hàng đợi duyệt
-            </Button>
           </>
         }
       />
 
-      {/* Zone 3: Primary DataGrid tràn khung 85% Viewport */}
-      {activeSegmentTab === 'demand' && (
-        <DataGrid<MaterialDemandItem>
-          data={data.demandRows}
-          columns={demandColumns}
-          keyExtractor={(row) => row.materialId}
-        />
+      {activeSegment === 'demand' ? (
+        <DataGrid data={data.demandRows} columns={demandColumns} keyExtractor={(row) => row.materialId} />
+      ) : (
+        <DataGrid data={data.productionPlans} columns={planColumns} keyExtractor={(row) => row.planId} />
       )}
-
-      {activeSegmentTab === 'source-khsx' && (
-        <DataGrid<ProductionPlanItem>
-          data={data.productionPlans}
-          columns={khsxColumns}
-          keyExtractor={(row) => row.planId}
-        />
-      )}
-
-      {activeSegmentTab === 'vouchers' && (
-        <DataGrid<HandoffVoucher>
-          data={dynamicVouchers}
-          columns={voucherColumns}
-          keyExtractor={(row) => row.voucherId}
-        />
-      )}
-
-      {/* Modal hàng đợi duyệt */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Hàng đợi phê duyệt nhu cầu bàn giao vật tư"
-        description={`Kế hoạch bàn giao nguyên liệu ngày ${currentDay.dayName}, ${currentDay.dateStr}`}
-        footer={
-          <>
-            <Button variant="outline" size="sm" onClick={() => setModalOpen(false)}>
-              Đóng
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => {
-                setModalOpen(false);
-                alert(`Đã phê duyệt lệnh xuất kho nguyên liệu (${data.demandRows.length} dòng)!`);
-              }}
-            >
-              Xác nhận duyệt xuất kho ({data.demandRows.length} dòng)
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Hệ thống đã kiểm tra định mức BOM của các món ăn trong ca ngày và tính toán tổng số lượng cho {data.demandRows.length} nguyên liệu.
-          </p>
-          <div className="rounded border border-slate-200 bg-slate-50 p-3 space-y-2 font-mono text-xs">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Số lượng nguyên liệu:</span>
-              <strong className="text-slate-900">{data.demandRows.length} mặt hàng</strong>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Khối lượng tổng cộng:</span>
-              <strong className="text-slate-900">
-                {data.demandRows.reduce((acc, r) => acc + (r.requiredQuantity || 0), 0).toLocaleString('vi-VN')} kg
-              </strong>
-            </div>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

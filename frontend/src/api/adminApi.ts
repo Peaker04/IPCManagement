@@ -20,12 +20,11 @@ export interface DishItem {
 
 export interface ApprovalRuleItem {
   ruleId: string;
-  ruleCode: string;
   ruleName: string;
-  targetType: string;
-  thresholdAmount: number;
-  approverRole: string;
-  slaHours: number;
+  documentType: string;
+  minAmount?: number;
+  maxAmount?: number;
+  slaHours?: number;
   isActive: boolean;
 }
 
@@ -33,10 +32,13 @@ export interface RawIngredient {
   ingredientId: string;
   ingredientCode: string;
   ingredientName: string;
-  categoryName?: string;
+  isActive: boolean;
+  isFreshDaily?: boolean;
+  referencePrice: number;
+  unitId: string;
   unitName?: string;
-  referencePrice?: number;
-  isActive?: boolean;
+  warehouseId: string;
+  warehouseName?: string;
 }
 
 export interface RawDish {
@@ -44,7 +46,7 @@ export interface RawDish {
   dishCode: string;
   dishName: string;
   dishGroup?: string;
-  isActive?: boolean;
+  isActive: boolean;
 }
 
 export const adminApi = {
@@ -55,10 +57,9 @@ export const adminApi = {
       ingredientId: i.ingredientId,
       ingredientCode: i.ingredientCode,
       ingredientName: i.ingredientName,
-      categoryName: i.categoryName || 'Nguyên liệu tươi',
-      unitName: i.unitName || 'Kilogram',
-      referencePrice: i.referencePrice || 45000,
-      isActive: i.isActive !== false,
+      unitName: i.unitName || '—',
+      referencePrice: i.referencePrice,
+      isActive: i.isActive,
     }));
   },
 
@@ -69,39 +70,13 @@ export const adminApi = {
       dishId: d.dishId,
       dishCode: d.dishCode,
       dishName: d.dishName,
-      dishGroup: d.dishGroup || 'Món mặn chính',
-      isActive: d.isActive !== false,
+      dishGroup: d.dishGroup,
+      isActive: d.isActive,
     }));
   },
 
   async getApprovalRules(): Promise<ApprovalRuleItem[]> {
-    const resp = await apiClient<ApprovalRuleItem[]>('/approval-rules');
-    return Array.isArray(resp) ? resp : [];
+    return apiClient<ApprovalRuleItem[]>('/approval-rules');
   },
 
-  async createIngredient(data: {
-    ingredientCode: string;
-    ingredientName: string;
-    unitName: string;
-    referencePrice: number;
-  }): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/ingredients', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  async createApprovalRule(data: {
-    ruleCode: string;
-    ruleName: string;
-    targetType: string;
-    thresholdAmount: number;
-    approverRole: string;
-    slaHours: number;
-  }): Promise<{ success: boolean }> {
-    return apiClient<{ success: boolean }>('/approval-rules', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
 };

@@ -1,9 +1,12 @@
 import type { ReactNode } from 'react';
+import type { OperationalMode } from '../../types';
 import { useAuth } from '../../store/useAuth';
 
 export interface ActionGuardProps {
+  capabilityId: string;
   roles?: string | string[];
   permissions?: string | string[];
+  allowedModes?: OperationalMode[];
   children: ReactNode;
   fallback?: ReactNode;
   mode?: 'hide' | 'disable';
@@ -15,14 +18,16 @@ export interface ActionGuardProps {
  * Enforces role-based action permissions for write/mutation buttons.
  */
 export function ActionGuard({
+  capabilityId,
   roles,
   permissions,
+  allowedModes,
   children,
   fallback = null,
   mode = 'hide',
   reason,
 }: ActionGuardProps) {
-  const { hasRole, hasPermission, user } = useAuth();
+  const { hasRole, hasPermission, user, operationalMode } = useAuth();
 
   if (!user) {
     return <>{fallback}</>;
@@ -39,18 +44,27 @@ export function ActionGuard({
     isAllowed = perms.some((p) => hasPermission(p));
   }
 
-  if (isAllowed) {
+  const isModeAllowed = !allowedModes?.length || allowedModes.includes(operationalMode);
+
+  if (isAllowed && isModeAllowed) {
     return <>{children}</>;
   }
 
   if (mode === 'disable') {
+    const blockedReason = reason || (!isModeAllowed
+      ? 'Thao tác không khả dụng trong chế độ vận hành hiện tại.'
+      : 'Bạn không có quyền thực hiện thao tác này.');
     return (
-      <span
-        className="inline-flex cursor-not-allowed opacity-50 select-none"
-        title={reason || 'Bạn không có quyền thực hiện thao tác này.'}
+      <fieldset
+        disabled
+        role="group"
+        aria-label={blockedReason}
+        data-capability-id={capabilityId}
+        className="inline-flex border-0 p-0 m-0 cursor-not-allowed opacity-50"
+        title={blockedReason}
       >
-        <span className="pointer-events-none">{children}</span>
-      </span>
+        {children}
+      </fieldset>
     );
   }
 
