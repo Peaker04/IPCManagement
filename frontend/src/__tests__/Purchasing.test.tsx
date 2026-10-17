@@ -37,6 +37,19 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
     expect(screen.getByText(/PO chỉ được tạo từ đề xuất mua hàng đã duyệt/i)).toBeInTheDocument();
   });
 
+  it('renders dynamic supplier partner count and avoids hardcoded 35 partners', async () => {
+    vi.spyOn(purchasingApi, 'getSuppliers').mockResolvedValue([
+      { supplierId: 's1', supplierCode: 'NCC-01', supplierName: 'Nhà cung cấp Thịt Sạch', isActive: true },
+      { supplierId: 's2', supplierCode: 'NCC-02', supplierName: 'Nhà cung cấp Rau Củ', isActive: true },
+    ]);
+
+    renderPurchasing();
+
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    expect(screen.getByText(/Tất cả nhà cung cấp \(2 đối tác\)/i)).toBeInTheDocument();
+    expect(screen.queryByText(/35 đối tác/i)).not.toBeInTheDocument();
+  });
+
   it('renders Zone 2 TelemetrySubbar (44px) with status tabs and telemetry pills', async () => {
     renderPurchasing();
 

@@ -91,7 +91,12 @@ export function PurchasingPage() {
   }, [filteredOrders]);
 
   const supplierOptions = [
-    { value: 'ALL', label: 'Tất cả nhà cung cấp (35 đối tác)' },
+    {
+      value: 'ALL',
+      label: suppliers.length > 0
+        ? `Tất cả nhà cung cấp (${suppliers.length} đối tác)`
+        : 'Tất cả nhà cung cấp',
+    },
     ...suppliers.map((s) => ({ value: s.supplierId, label: `${s.supplierCode} - ${s.supplierName}` })),
   ];
 
