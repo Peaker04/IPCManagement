@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
+import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { Tabs } from '../../components/ui/tabs';
@@ -53,6 +54,20 @@ export function MealOrdersPage() {
       });
     return () => { ignore = true; };
   }, []);
+
+  const loadOrders = useCallback(async () => {
+    if (!customerCode) return;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const summary = await coordinationApi.getOrders(serviceDate, shiftName, customerCode);
+      setData(summary);
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách đơn ăn ca phục vụ.'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [serviceDate, shiftName, customerCode]);
 
   useEffect(() => {
     if (!customerCode) return;
@@ -154,6 +169,11 @@ export function MealOrdersPage() {
             />
           </>
         }
+        actions={
+          <Button variant="outline" size="default" onClick={loadOrders} className="h-9 text-sm font-medium">
+            Làm mới
+          </Button>
+        }
       />
 
       <TelemetrySubbar
@@ -181,6 +201,7 @@ export function MealOrdersPage() {
       <StateBoundary
         isLoading={isLoading}
         error={error}
+        onRetry={loadOrders}
         isEmpty={Boolean(data && data.orders.length === 0)}
         emptyScenario="prerequisite-blocked"
         emptyTitle="Chưa có kế hoạch suất ăn"
