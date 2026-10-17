@@ -279,6 +279,33 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
 - BLOCKED: Direct source-less issue creation remains prohibited; return and stocktake mutations remain guarded pending live authority.
 
+### GF-R37 — Chef capability conformance and operational plan authority
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-chef-production-conformance-plan.md` and spec `docs/superpowers/specs/2026-10-18-chef-production-conformance-design.md`; lifecycle returned to `IDLE`.
+- Capability verification: Verified that all 25 actions associated with `FR-CHEF` are disaggregated into operation-grain single-action capabilities in `docs/conformance-contracts.json`.
+- Operational plan authority: `ChefDashboardPage.tsx` strictly adheres to 3-Zone OperationalFrame layout, compact row density (`T8`), frozen headers (`T7`), and N6 URL-leaf navigation (`?view=plans` and `?view=issues`).
+- Empty state resiliency & error recovery: `Chef.test.tsx` audited and enhanced to cover clean empty state when `plans: []` (`Chưa có kế hoạch sản xuất`) under `Rule TA-4`.
+- 100% existing UI kit reuse: Used standard primitives (`WorkspaceHeader`, `TelemetrySubbar`, `DataGrid`, `StateBoundary`, `Select`, `VietnameseDateInput`, `Button`, `Badge`, `Num`, `IdentifierText`). Zero custom primitives or ad-hoc styles written.
+- TDD RED→GREEN evidence:
+  - `check-conformance-contracts.test.mjs`: RED on missing verification assertion → GREEN (26/26 PASS).
+  - `Chef.test.tsx`: RED on missing empty state coverage → GREEN (5/5 PASS covering full 4-scenario Rule TA-4).
+- Verification:
+  - Conformance checker & tests: 26/26 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 112 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Chef contract and component regression; previous tests lacked empty state resiliency assertions; added empty plan assertions and verified 4 scenarios; yes; low noise; proved empty state accessibility and Rule TA-4 compliance`.
+  - `ipc-ui-review; 3-Zone OperationalFrame layout review; verified D6 font size >= 12px, D7 zero primary buttons, T7 frozen header, T8 compact density (36-40px), N6 URL-leaf navigation; yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; verified 25 capabilities, ensured zero synthetic telemetry, and protected DOM-MODE-1; yes; low noise; kept write surfaces guarded`.
+- PASS: Operation-grain capability verification, empty state resiliency, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
+- BLOCKED: Kitchen completion and variance waiver mutations remain guarded pending live authority.
+
+
 
 
 
