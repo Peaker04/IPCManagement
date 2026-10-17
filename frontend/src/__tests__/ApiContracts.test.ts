@@ -7,6 +7,7 @@ import { reportsApi } from '../api/reportsApi';
 import { chefApi } from '../api/chefApi';
 import { systemApi } from '../api/systemApi';
 import { authApi } from '../api/authApi';
+import { adminApi } from '../api/adminApi';
 
 function jsonResponse(data: unknown): Response {
   return new Response(JSON.stringify({ success: true, data }), {
@@ -202,5 +203,99 @@ describe('Frontend API contracts against backend DTOs', () => {
         body: JSON.stringify({ expectedVersion: 7 }),
       })
     );
+  });
+
+  it('retrieves ingredients with server pagination metadata and without fabricated categoryName', async () => {
+    const pagedPayload = {
+      items: [
+        {
+          ingredientId: '00000000-0000-0000-0000-000000000001',
+          ingredientCode: 'NL-01',
+          ingredientName: 'Thịt bò tươi',
+          isActive: true,
+          isFreshDaily: true,
+          referencePrice: 150000,
+          unitId: '00000000-0000-0000-0000-000000000010',
+          unitName: 'kg',
+          warehouseId: '00000000-0000-0000-0000-000000000100',
+          warehouseName: 'Kho Lạnh Tổng',
+        },
+      ],
+      totalCount: 42,
+      pageNumber: 2,
+      pageSize: 25,
+      totalPages: 2,
+      hasPrev: true,
+      hasNext: false,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(pagedPayload));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await adminApi.getIngredients({ pageNumber: 2, pageSize: 25, searchKeyword: 'bò' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/ingredients\?pageNumber=2&pageSize=25&searchKeyword=b%C3%B2/),
+      expect.anything()
+    );
+    expect(result.totalCount).toBe(42);
+    expect(result.pageNumber).toBe(2);
+    expect(result.pageSize).toBe(25);
+    expect(result.totalPages).toBe(2);
+    expect(result.hasPrev).toBe(true);
+    expect(result.hasNext).toBe(false);
+    expect(result.items[0]).toEqual({
+      ingredientId: '00000000-0000-0000-0000-000000000001',
+      ingredientCode: 'NL-01',
+      ingredientName: 'Thịt bò tươi',
+      unitId: '00000000-0000-0000-0000-000000000010',
+      unitName: 'kg',
+      warehouseId: '00000000-0000-0000-0000-000000000100',
+      warehouseName: 'Kho Lạnh Tổng',
+      referencePrice: 150000,
+      isFreshDaily: true,
+      isActive: true,
+    });
+    expect((result.items[0] as Record<string, unknown>).categoryName).toBeUndefined();
+  });
+
+  it('retrieves dishes with server pagination metadata and exact DTO mapping', async () => {
+    const pagedPayload = {
+      items: [
+        {
+          dishId: '00000000-0000-0000-0000-000000000002',
+          dishCode: 'M-01',
+          dishName: 'Bò xào cần tỏi',
+          dishType: 'Món chính',
+          dishGroup: 'Nhóm thịt bò',
+          isActive: true,
+        },
+      ],
+      totalCount: 15,
+      pageNumber: 1,
+      pageSize: 25,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    };
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(pagedPayload));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await adminApi.getDishes({ pageNumber: 1, pageSize: 25 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/Dishes\?pageNumber=1&pageSize=25/),
+      expect.anything()
+    );
+    expect(result.totalCount).toBe(15);
+    expect(result.pageNumber).toBe(1);
+    expect(result.totalPages).toBe(1);
+    expect(result.items[0]).toEqual({
+      dishId: '00000000-0000-0000-0000-000000000002',
+      dishCode: 'M-01',
+      dishName: 'Bò xào cần tỏi',
+      dishType: 'Món chính',
+      dishGroup: 'Nhóm thịt bò',
+      isActive: true,
+    });
   });
 });
