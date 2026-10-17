@@ -33,7 +33,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "CAT.BOM.READ",
-        "PUR.REQUEST.WORKFLOW",
         "WH.ISSUE",
         "WH.RECEIPT",
         "WH.RETURN",
@@ -44,7 +43,8 @@
         "CAT.BOM.LINE.CLOSE",
         "PLAN.DEMAND.GENERATE",
         "PLAN.DEMAND.APPROVE",
-        "PLAN.DEMAND.STALENESS.READ"
+        "PLAN.DEMAND.STALENESS.READ",
+        "PUR.WORKFLOW.GENERATE"
       ],
       "evidenceRequired": [
         "contract",
@@ -62,9 +62,6 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "APPR.DECISION",
-        "PUR.REQUEST.WORKFLOW",
-        "PUR.ORDER.LIFECYCLE",
-        "PUR.RECEIPT.LIFECYCLE",
         "WH.STOCKTAKE",
         "RECON.BATCH.LIFECYCLE",
         "REP.DATA_QUALITY.WRITE",
@@ -97,7 +94,18 @@
         "MENU.AMENDMENT.EXECUTE",
         "MENU.AMENDMENT.BREAK_GLASS",
         "MENU.AMENDMENT.EXECUTE_DECISION",
-        "MENU.AMENDMENT.REMEDIATE_FAN"
+        "MENU.AMENDMENT.REMEDIATE_FAN",
+        "PUR.WORKFLOW.GENERATE",
+        "PUR.WORKFLOW.CONFIRM_SUPPLIER",
+        "PUR.WORKFLOW.SUBMIT",
+        "PUR.ORDER.CREATE_FROM_REQUEST",
+        "PUR.ORDER.CANCEL",
+        "PUR.RECEIPT.RECORD",
+        "PUR.RECEIPT.ACCEPT_QUALITY",
+        "PUR.RECEIPT.POST",
+        "PUR.RECEIPT.CORRECTION",
+        "PUR.RECEIPT.REWORK",
+        "PUR.RECEIPT.VOID"
       ],
       "evidenceRequired": [
         "contract",
@@ -348,7 +356,6 @@
         "PLAN.SERVICE_RUN.READ",
         "WH.ISSUE",
         "WH.RETURN",
-        "WH.SUPPLEMENTAL_REQUEST",
         "PLAN.SERVICE_RUN.OPEN",
         "PLAN.SERVICE_RUN.START",
         "PLAN.SERVICE_RUN.RECORD_ACTUALS",
@@ -359,7 +366,13 @@
         "PLAN.SERVICE_RUN.CREATE_ADJUSTMENT",
         "PLAN.SERVICE_RUN.CLOSE",
         "PLAN.SERVICE_RUN.DECLARE_VARIANCE",
-        "PLAN.SERVICE_RUN.APPROVE_WAIVER"
+        "PLAN.SERVICE_RUN.APPROVE_WAIVER",
+        "WH.SUPPLEMENTAL.READ",
+        "WH.SUPPLEMENTAL.GET_BY_ID",
+        "WH.SUPPLEMENTAL.CREATE",
+        "WH.SUPPLEMENTAL.FULFILL",
+        "WH.SUPPLEMENTAL.REJECT",
+        "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING"
       ],
       "evidenceRequired": [
         "contract",
@@ -379,7 +392,8 @@
       "capabilityIds": [
         "APPR.INBOX.READ",
         "APPR.DECISION",
-        "APPR.RULES.READ"
+        "APPR.RULES.READ",
+        "APPR.HISTORY.READ"
       ],
       "evidenceRequired": [
         "contract",
@@ -399,18 +413,31 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "PUR.REQUEST.READ",
-        "PUR.REQUEST.WORKFLOW",
         "PUR.ORDER.READ",
-        "PUR.ORDER.LIFECYCLE",
         "PUR.SUPPLIER.READ",
-        "PUR.QUOTATION.WRITE",
-        "PUR.RECEIPT.LIFECYCLE",
-        "WH.SUPPLEMENTAL_REQUEST",
         "REP.DEMAND.READ",
         "REP.PRICE.READ",
         "REP.PURCHASING.READ",
         "PLAN.DEMAND.GENERATE",
-        "PLAN.DEMAND.APPROVE"
+        "PLAN.DEMAND.APPROVE",
+        "PUR.WORKFLOW.GENERATE",
+        "PUR.WORKFLOW.CONFIRM_SUPPLIER",
+        "PUR.WORKFLOW.SUBMIT",
+        "PUR.ORDER.CREATE_FROM_REQUEST",
+        "PUR.ORDER.CANCEL",
+        "PUR.QUOTATION.CREATE",
+        "PUR.QUOTATION.UPDATE",
+        "PUR.QUOTATION.DEACTIVATE",
+        "PUR.RECEIPT.RECORD",
+        "PUR.RECEIPT.ACCEPT_QUALITY",
+        "PUR.RECEIPT.POST",
+        "PUR.RECEIPT.CORRECTION",
+        "PUR.RECEIPT.REWORK",
+        "PUR.RECEIPT.VOID",
+        "WH.SUPPLEMENTAL.READ",
+        "WH.SUPPLEMENTAL.GET_BY_ID",
+        "WH.SUPPLEMENTAL.CREATE",
+        "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING"
       ],
       "evidenceRequired": [
         "contract",
@@ -428,16 +455,26 @@
       "source": "docs/DOMAIN.md",
       "assessment": "PARTIAL",
       "capabilityIds": [
-        "PUR.RECEIPT.LIFECYCLE",
         "WH.CATALOG.READ",
         "WH.ISSUE",
         "WH.RECEIPT",
         "WH.RETURN",
         "WH.STOCKTAKE",
-        "WH.SUPPLEMENTAL_REQUEST",
         "WH.LEGACY_LINEAGE",
         "REP.INVENTORY.READ",
-        "REP.STOCK_SNAPSHOT.GENERATE"
+        "REP.STOCK_SNAPSHOT.GENERATE",
+        "PUR.RECEIPT.RECORD",
+        "PUR.RECEIPT.ACCEPT_QUALITY",
+        "PUR.RECEIPT.POST",
+        "PUR.RECEIPT.CORRECTION",
+        "PUR.RECEIPT.REWORK",
+        "PUR.RECEIPT.VOID",
+        "WH.SUPPLEMENTAL.READ",
+        "WH.SUPPLEMENTAL.GET_BY_ID",
+        "WH.SUPPLEMENTAL.CREATE",
+        "WH.SUPPLEMENTAL.FULFILL",
+        "WH.SUPPLEMENTAL.REJECT",
+        "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING"
       ],
       "evidenceRequired": [
         "contract",
@@ -1632,8 +1669,7 @@
         "approval target to inbox and history"
       ],
       "actionIds": [
-        "Approvals.GetInbox",
-        "ApprovalHistory.GetHistory"
+        "Approvals.GetInbox"
       ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalsController.cs",
@@ -1738,53 +1774,6 @@
       "gaps": []
     },
     {
-      "id": "PUR.REQUEST.WORKFLOW",
-      "frCode": "FR-PUR",
-      "name": "Generate decide suppliers and submit purchase request",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "PurchasingStaff",
-        "Manager"
-      ],
-      "permissionTokens": [
-        "PurchaseAccess",
-        "PurchaseGenerateAccess"
-      ],
-      "grain": "purchase request and line supplier decision",
-      "prerequisites": [
-        "authoritative shortage demand",
-        "eligible supplier evidence"
-      ],
-      "sourceLineage": [
-        "demand shortage to request lines to supplier decisions"
-      ],
-      "actionIds": [
-        "PurchaseWorkflow.GenerateFromDemand",
-        "PurchaseWorkflow.ConfirmLineSupplier",
-        "PurchaseWorkflow.Submit"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseRequestWorkflowDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseRequestWorkflowDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestSubmissionPolicy.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestSubmissionService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-PUR",
-        "BR-GLOBAL-02",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split generation supplier decision and submission.",
-        "Concurrency idempotency and Frontend workflow unresolved."
-      ]
-    },
-    {
       "id": "PUR.ORDER.READ",
       "frCode": "FR-PUR",
       "name": "Read purchase orders",
@@ -1827,48 +1816,6 @@
       "gaps": []
     },
     {
-      "id": "PUR.ORDER.LIFECYCLE",
-      "frCode": "FR-PUR",
-      "name": "Create purchase order from request or cancel order",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "PurchasingStaff",
-        "Manager"
-      ],
-      "permissionTokens": [
-        "PurchaseAccess"
-      ],
-      "grain": "purchase order lineage",
-      "prerequisites": [
-        "approved purchase request or cancellable order"
-      ],
-      "sourceLineage": [
-        "approved purchase request to purchase order"
-      ],
-      "actionIds": [
-        "PurchaseOrders.CreateFromRequest",
-        "PurchaseOrders.Cancel"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/PurchaseOrderDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseOrderDecisionValidator.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseOrderService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-PUR",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Create and cancel require separate contracts.",
-        "Route-source request identity concurrency and confirmation unresolved."
-      ]
-    },
-    {
       "id": "PUR.SUPPLIER.READ",
       "frCode": "FR-PUR",
       "name": "Read suppliers and quotations",
@@ -1905,101 +1852,6 @@
         "purchasing.orders"
       ],
       "gaps": []
-    },
-    {
-      "id": "PUR.QUOTATION.WRITE",
-      "frCode": "FR-PUR",
-      "name": "Create update or deactivate supplier quotation",
-      "operation": "update",
-      "mode": "SHARED_MASTER_DATA",
-      "actors": [
-        "PurchasingStaff",
-        "Manager"
-      ],
-      "permissionTokens": [
-        "PurchaseAccess"
-      ],
-      "grain": "supplier ingredient quotation",
-      "prerequisites": [
-        "supplier and ingredient"
-      ],
-      "sourceLineage": [
-        "supplier quotation history"
-      ],
-      "actionIds": [
-        "SupplierQuotations.Create",
-        "SupplierQuotations.Update",
-        "SupplierQuotations.Deactivate"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/SupplierQuotationDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/SupplierQuotationDto.cs",
-        "validator": "backend/src/IPCManagement.Api/Features/Purchasing/Validators/SupplierQuotationValidators.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/SupplierQuotationService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-PUR"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split create update deactivate.",
-        "Concurrency and Frontend surface unresolved."
-      ]
-    },
-    {
-      "id": "PUR.RECEIPT.LIFECYCLE",
-      "frCode": "FR-PUR",
-      "name": "Record inspect post correct rework or void purchase receipt",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "WarehouseStaff",
-        "Admin",
-        "Coordinator"
-      ],
-      "permissionTokens": [
-        "WarehousePurchaseReceive"
-      ],
-      "grain": "purchase order receipt",
-      "prerequisites": [
-        "purchase order",
-        "receipt lifecycle eligibility"
-      ],
-      "sourceLineage": [
-        "purchase order to warehouse receipt and stock posting"
-      ],
-      "actionIds": [
-        "WarehousePurchaseReceipts.Record",
-        "WarehousePurchaseReceipts.AcceptQuality",
-        "WarehousePurchaseReceipts.Post",
-        "WarehousePurchaseReceipts.CreateCorrection",
-        "WarehousePurchaseReceipts.Rework",
-        "WarehousePurchaseReceipts.Void"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/WarehousePurchaseReceiptDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Purchasing/Contracts/WarehousePurchaseReceiptDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Purchasing/Services/ReceiptLifecycleWorkflow.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseReceivingService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-PUR",
-        "FR-WH",
-        "BR-GLOBAL-03"
-      ],
-      "surfaceIds": [
-        "warehouse.receipts"
-      ],
-      "gaps": [
-        "Split six lifecycle commands.",
-        "Policy differences concurrency and inventory posting evidence unresolved."
-      ]
     },
     {
       "id": "WH.CATALOG.READ",
@@ -2232,55 +2084,6 @@
       "gaps": [
         "Split draft count submit decision transitions.",
         "Concurrency and adjustment posting evidence unresolved."
-      ]
-    },
-    {
-      "id": "WH.SUPPLEMENTAL_REQUEST",
-      "frCode": "FR-WH",
-      "name": "Read create fulfill reject or route supplemental request",
-      "operation": "terminal",
-      "mode": "DEFAULT",
-      "actors": [
-        "Chef",
-        "WarehouseStaff"
-      ],
-      "permissionTokens": [
-        "InventoryIssueAccess",
-        "InventoryAccess"
-      ],
-      "grain": "supplemental material request",
-      "prerequisites": [
-        "service-run shortage source"
-      ],
-      "sourceLineage": [
-        "service shortage to warehouse fulfillment or purchasing route"
-      ],
-      "actionIds": [
-        "SupplementalMaterialRequests.GetAll",
-        "SupplementalMaterialRequests.GetById",
-        "SupplementalMaterialRequests.Create",
-        "SupplementalMaterialRequests.Fulfill",
-        "SupplementalMaterialRequests.Reject",
-        "SupplementalMaterialRequests.RouteToPurchasing"
-      ],
-      "backend": {
-        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
-        "requestDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/SupplementalMaterialRequestDto.cs",
-        "responseDto": "backend/src/IPCManagement.Api/Features/Inventory/Contracts/SupplementalMaterialRequestDto.cs",
-        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
-        "lifecycle": "backend/src/IPCManagement.Api/Features/Inventory/Services/SupplementalMaterialRequestRules.cs",
-        "persistence": "backend/src/IPCManagement.Api/Features/Inventory/Services/SupplementalMaterialRequestService.cs"
-      },
-      "deliveryClass": "PARTIAL",
-      "requirementIds": [
-        "FR-WH",
-        "FR-CHEF",
-        "FR-PUR"
-      ],
-      "surfaceIds": [],
-      "gaps": [
-        "Split query create and terminal routes.",
-        "Concurrency and source-scope UI unresolved."
       ]
     },
     {
@@ -5606,6 +5409,806 @@
       "gaps": [
         "Decision fan remediation UI surface unresolved."
       ]
+    },
+    {
+      "id": "APPR.HISTORY.READ",
+      "frCode": "FR-APPR",
+      "name": "Read approval decision history and audit trail",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "Admin",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "ApprovalHistoryAccess"
+      ],
+      "grain": "approval history item",
+      "prerequisites": [
+        "authenticated manager"
+      ],
+      "sourceLineage": [
+        "approval audit trail"
+      ],
+      "actionIds": [
+        "ApprovalHistory.GetHistory"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalHistoryController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Approvals/Contracts/ApprovalHistoryItemDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-APPR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Approval history UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "PUR.WORKFLOW.GENERATE",
+      "frCode": "FR-PUR",
+      "name": "Generate purchase request lines from demand deficit",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "purchase request draft lines",
+      "prerequisites": [
+        "approved material demand",
+        "unfulfilled stock deficit"
+      ],
+      "sourceLineage": [
+        "material demand to purchase request draft"
+      ],
+      "actionIds": [
+        "PurchaseWorkflow.GenerateFromDemand"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "BR-GLOBAL-02",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Purchasing workbench generate UI action unresolved."
+      ]
+    },
+    {
+      "id": "PUR.WORKFLOW.CONFIRM_SUPPLIER",
+      "frCode": "FR-PUR",
+      "name": "Confirm selected supplier for purchase request line",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "purchase request line supplier",
+      "prerequisites": [
+        "purchase request line",
+        "active supplier quotation"
+      ],
+      "sourceLineage": [
+        "supplier quotation selection"
+      ],
+      "actionIds": [
+        "PurchaseWorkflow.ConfirmLineSupplier"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Line supplier confirmation UI action unresolved."
+      ]
+    },
+    {
+      "id": "PUR.WORKFLOW.SUBMIT",
+      "frCode": "FR-PUR",
+      "name": "Submit purchase request for approval",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "purchase request document",
+      "prerequisites": [
+        "complete purchase request with confirmed suppliers"
+      ],
+      "sourceLineage": [
+        "purchase request submission to approval inbox"
+      ],
+      "actionIds": [
+        "PurchaseWorkflow.Submit"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Purchase request submission UI action unresolved."
+      ]
+    },
+    {
+      "id": "PUR.ORDER.CREATE_FROM_REQUEST",
+      "frCode": "FR-PUR",
+      "name": "Create purchase order from approved request",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "purchase order document",
+      "prerequisites": [
+        "approved purchase request"
+      ],
+      "sourceLineage": [
+        "approved purchase request to PO split by supplier"
+      ],
+      "actionIds": [
+        "PurchaseOrders.CreateFromRequest"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "PO creation from request UI action unresolved."
+      ]
+    },
+    {
+      "id": "PUR.ORDER.CANCEL",
+      "frCode": "FR-PUR",
+      "name": "Cancel purchase order",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "purchase order document",
+      "prerequisites": [
+        "draft or unreceived purchase order",
+        "cancellation reason"
+      ],
+      "sourceLineage": [
+        "purchase order cancellation record"
+      ],
+      "actionIds": [
+        "PurchaseOrders.Cancel"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseOrdersController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "PO cancellation UI action unresolved."
+      ]
+    },
+    {
+      "id": "PUR.QUOTATION.CREATE",
+      "frCode": "FR-PUR",
+      "name": "Create supplier quotation",
+      "operation": "create",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "supplier quotation",
+      "prerequisites": [
+        "active supplier",
+        "active ingredient",
+        "valid price"
+      ],
+      "sourceLineage": [
+        "supplier price quotation"
+      ],
+      "actionIds": [
+        "SupplierQuotations.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Quotation creation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.QUOTATION.UPDATE",
+      "frCode": "FR-PUR",
+      "name": "Update supplier quotation",
+      "operation": "update",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "supplier quotation",
+      "prerequisites": [
+        "existing quotation"
+      ],
+      "sourceLineage": [
+        "supplier quotation update"
+      ],
+      "actionIds": [
+        "SupplierQuotations.Update"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Quotation update UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.QUOTATION.DEACTIVATE",
+      "frCode": "FR-PUR",
+      "name": "Deactivate supplier quotation",
+      "operation": "terminal",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "PurchasingAccess"
+      ],
+      "grain": "supplier quotation",
+      "prerequisites": [
+        "existing quotation"
+      ],
+      "sourceLineage": [
+        "supplier quotation deactivation"
+      ],
+      "actionIds": [
+        "SupplierQuotations.Deactivate"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/SupplierQuotationsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Quotation deactivation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.RECEIPT.RECORD",
+      "frCode": "FR-WH",
+      "name": "Record warehouse purchase receipt from PO",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "purchase receipt document",
+      "prerequisites": [
+        "active approved PO",
+        "delivered goods"
+      ],
+      "sourceLineage": [
+        "purchase order to warehouse delivery inspection"
+      ],
+      "actionIds": [
+        "WarehousePurchaseReceipts.Record"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Receipt record UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.RECEIPT.ACCEPT_QUALITY",
+      "frCode": "FR-WH",
+      "name": "Accept quality inspection for purchase receipt",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Chef"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "purchase receipt quality status",
+      "prerequisites": [
+        "recorded receipt draft"
+      ],
+      "sourceLineage": [
+        "quality inspection report to receipt lines"
+      ],
+      "actionIds": [
+        "WarehousePurchaseReceipts.AcceptQuality"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Quality inspection UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.RECEIPT.POST",
+      "frCode": "FR-WH",
+      "name": "Post purchase receipt to inventory stock card",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "purchase receipt posting",
+      "prerequisites": [
+        "quality-accepted receipt"
+      ],
+      "sourceLineage": [
+        "posted receipt to immutable stock ledger"
+      ],
+      "actionIds": [
+        "WarehousePurchaseReceipts.Post"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Posting confirmation UI action unresolved."
+      ]
+    },
+    {
+      "id": "PUR.RECEIPT.CORRECTION",
+      "frCode": "FR-WH",
+      "name": "Create correction for posted purchase receipt",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "receipt correction line",
+      "prerequisites": [
+        "posted receipt",
+        "correction reason"
+      ],
+      "sourceLineage": [
+        "receipt correction to compensating stock movement"
+      ],
+      "actionIds": [
+        "WarehousePurchaseReceipts.CreateCorrection"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Receipt correction UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.RECEIPT.REWORK",
+      "frCode": "FR-WH",
+      "name": "Mark purchase receipt for vendor rework",
+      "operation": "update",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "receipt rework status",
+      "prerequisites": [
+        "failed quality receipt"
+      ],
+      "sourceLineage": [
+        "vendor rework disposition"
+      ],
+      "actionIds": [
+        "WarehousePurchaseReceipts.Rework"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Vendor rework UI surface unresolved."
+      ]
+    },
+    {
+      "id": "PUR.RECEIPT.VOID",
+      "frCode": "FR-WH",
+      "name": "Void unposted purchase receipt",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "receipt voiding",
+      "prerequisites": [
+        "unposted receipt draft",
+        "void reason"
+      ],
+      "sourceLineage": [
+        "voided receipt record"
+      ],
+      "actionIds": [
+        "WarehousePurchaseReceipts.Void"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Purchasing/Controllers/WarehousePurchaseReceiptsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-PUR",
+        "FR-WH",
+        "BR-GLOBAL-03"
+      ],
+      "surfaceIds": [
+        "warehouse.receipts"
+      ],
+      "gaps": [
+        "Receipt voiding UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.SUPPLEMENTAL.READ",
+      "frCode": "FR-WH",
+      "name": "Read supplemental material requests list",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Chef",
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "supplemental requests list",
+      "prerequisites": [
+        "authenticated staff"
+      ],
+      "sourceLineage": [
+        "supplemental request queries"
+      ],
+      "actionIds": [
+        "SupplementalMaterialRequests.GetAll"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Supplemental requests read UI surface not yet mapped."
+      ]
+    },
+    {
+      "id": "WH.SUPPLEMENTAL.GET_BY_ID",
+      "frCode": "FR-WH",
+      "name": "Read supplemental material request detail by ID",
+      "operation": "read",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Chef",
+        "PurchasingStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "supplemental request detail",
+      "prerequisites": [
+        "existing request ID"
+      ],
+      "sourceLineage": [
+        "supplemental request query by ID"
+      ],
+      "actionIds": [
+        "SupplementalMaterialRequests.GetById"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF",
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Supplemental request detail UI surface unresolved."
+      ]
+    },
+    {
+      "id": "WH.SUPPLEMENTAL.CREATE",
+      "frCode": "FR-CHEF",
+      "name": "Create supplemental material request from kitchen",
+      "operation": "create",
+      "mode": "DEFAULT",
+      "actors": [
+        "Chef"
+      ],
+      "permissionTokens": [
+        "ProductionAccess"
+      ],
+      "grain": "supplemental material request",
+      "prerequisites": [
+        "active service shift",
+        "ingredient shortage",
+        "valid justification"
+      ],
+      "sourceLineage": [
+        "kitchen shortage justification to supplemental request"
+      ],
+      "actionIds": [
+        "SupplementalMaterialRequests.Create"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-CHEF",
+        "FR-WH",
+        "FR-PUR"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Supplemental request creation UI surface unresolved."
+      ]
+    },
+    {
+      "id": "WH.SUPPLEMENTAL.FULFILL",
+      "frCode": "FR-WH",
+      "name": "Fulfill supplemental material request from stock",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "supplemental fulfillment",
+      "prerequisites": [
+        "pending supplemental request",
+        "available warehouse stock"
+      ],
+      "sourceLineage": [
+        "stock issuance for supplemental request"
+      ],
+      "actionIds": [
+        "SupplementalMaterialRequests.Fulfill"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Supplemental request fulfillment UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.SUPPLEMENTAL.REJECT",
+      "frCode": "FR-WH",
+      "name": "Reject supplemental material request",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff",
+        "Manager"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "supplemental rejection",
+      "prerequisites": [
+        "pending supplemental request",
+        "rejection reason"
+      ],
+      "sourceLineage": [
+        "supplemental request rejection record"
+      ],
+      "actionIds": [
+        "SupplementalMaterialRequests.Reject"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-CHEF"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Supplemental request rejection UI action unresolved."
+      ]
+    },
+    {
+      "id": "WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING",
+      "frCode": "FR-WH",
+      "name": "Route unfulfillable supplemental request to emergency purchasing",
+      "operation": "terminal",
+      "mode": "DEFAULT",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "WarehouseAccess"
+      ],
+      "grain": "supplemental procurement routing",
+      "prerequisites": [
+        "stockout supplemental request"
+      ],
+      "sourceLineage": [
+        "supplemental request to emergency procurement candidate"
+      ],
+      "actionIds": [
+        "SupplementalMaterialRequests.RouteToPurchasing"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Inventory/Controllers/SupplementalMaterialRequestsController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-WH",
+        "FR-PUR",
+        "FR-CHEF"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Routing to purchasing UI action unresolved."
+      ]
     }
   ],
   "surfaces": [
@@ -5989,7 +6592,12 @@
       "capabilityIds": [
         "WH.CATALOG.READ",
         "WH.RECEIPT",
-        "PUR.RECEIPT.LIFECYCLE"
+        "PUR.RECEIPT.RECORD",
+        "PUR.RECEIPT.ACCEPT_QUALITY",
+        "PUR.RECEIPT.POST",
+        "PUR.RECEIPT.CORRECTION",
+        "PUR.RECEIPT.REWORK",
+        "PUR.RECEIPT.VOID"
       ],
       "actions": [],
       "states": [

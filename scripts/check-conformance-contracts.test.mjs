@@ -285,6 +285,35 @@ test('splits Coordination and Planning capabilities at their actual operation gr
   }
 });
 
+test('splits Purchasing and Approvals capabilities at their actual operation grain', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+  const expectedOwners = new Map([
+    ['Approvals.GetInbox', 'APPR.INBOX.READ'],
+    ['ApprovalHistory.GetHistory', 'APPR.HISTORY.READ'],
+    ['PurchaseWorkflow.GenerateFromDemand', 'PUR.WORKFLOW.GENERATE'],
+    ['PurchaseWorkflow.ConfirmLineSupplier', 'PUR.WORKFLOW.CONFIRM_SUPPLIER'],
+    ['PurchaseWorkflow.Submit', 'PUR.WORKFLOW.SUBMIT'],
+    ['PurchaseOrders.CreateFromRequest', 'PUR.ORDER.CREATE_FROM_REQUEST'],
+    ['PurchaseOrders.Cancel', 'PUR.ORDER.CANCEL'],
+    ['SupplierQuotations.Create', 'PUR.QUOTATION.CREATE'],
+    ['SupplierQuotations.Update', 'PUR.QUOTATION.UPDATE'],
+    ['SupplierQuotations.Deactivate', 'PUR.QUOTATION.DEACTIVATE'],
+    ['WarehousePurchaseReceipts.Record', 'PUR.RECEIPT.RECORD'],
+    ['WarehousePurchaseReceipts.AcceptQuality', 'PUR.RECEIPT.ACCEPT_QUALITY'],
+    ['WarehousePurchaseReceipts.Post', 'PUR.RECEIPT.POST'],
+    ['SupplementalMaterialRequests.Create', 'WH.SUPPLEMENTAL.CREATE'],
+    ['SupplementalMaterialRequests.Fulfill', 'WH.SUPPLEMENTAL.FULFILL'],
+    ['SupplementalMaterialRequests.Reject', 'WH.SUPPLEMENTAL.REJECT'],
+    ['SupplementalMaterialRequests.RouteToPurchasing', 'WH.SUPPLEMENTAL.ROUTE_TO_PURCHASING'],
+  ]);
+
+  for (const [actionId, capabilityId] of expectedOwners) {
+    const owners = contract.capabilities.filter((capability) => capability.actionIds && capability.actionIds.includes(actionId));
+    assert.deepEqual(owners.map((owner) => owner.id), [capabilityId], `${actionId} must be owned by ${capabilityId}`);
+  }
+});
+
 test('maps every rendered Backend mutation to one guarded writable surface action', () => {
   const repoRoot = join(import.meta.dirname, '..');
   const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
