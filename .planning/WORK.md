@@ -200,3 +200,31 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
 - BLOCKED: `CAT.INGREDIENT.CREATE` remains BLOCKED pending Backend `UnitsController` endpoint; Catalog and Employee mutations lack optimistic concurrency tokens.
 
+### GF-R34 — Weekly Menu and Coordination capability conformance and telemetry authority
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-weekly-menu-coordination-conformance-plan.md` and spec `docs/superpowers/specs/2026-10-18-weekly-menu-coordination-conformance-design.md`; lifecycle returned to `IDLE`.
+- Capability disaggregation: Disaggregated 46 bundled Planning and Coordination actions into operation-grain capabilities (`COORD.ORDER.*`, `COORD.MENU_SCHEDULE.*`, `PLAN.DEMAND.*`, `COORD.CUSTOMER_CONTRACT.*`, `COORD.PORTION_RULE.*`, `PLAN.SERVICE_RUN.*`, `MENU.IMPORT.*`, `MENU.AMENDMENT.*`). Retained explicit `PARTIAL` delivery class on mutations where concurrency or authorization surfaces remain to be proven.
+- Telemetry & contract authority: `WeeklyScheduleView.tsx` now renders dynamic `mealTargetPrice` via `<Num format="currency">` when price exists, or `Theo ca / Chưa chốt` when price is 0; the static hardcoded string `25.000 ₫` is eliminated.
+- DTO truth & type alignment: `MenuCostView.tsx` and `types/index.ts` updated to use `dishType` and `dishGroup` from Backend C# DTOs instead of fabricated `categoryName`.
+- Meal Orders error retry accessibility: `MealOrdersPage.tsx` now passes a `loadOrders` retry handler to `StateBoundary` and adds a standard outline "Làm mới" action button in `WorkspaceHeader`.
+- 100% existing UI kit reuse: Used standard primitives (`WorkspaceHeader`, `TelemetrySubbar`, `DataGrid`, `StateBoundary`, `Select`, `VietnameseDateInput`, `Tabs`, `Button`, `Badge`, `Num`, `IdentifierText`); zero custom components or ad-hoc CSS written.
+- TDD RED→GREEN evidence:
+  - `check-conformance-contracts.test.mjs`: RED on missing operation-grain owners → GREEN (23/23 PASS).
+  - `WeeklyMenu.test.tsx`: RED on hardcoded `25.000 ₫` → GREEN (8/8 PASS).
+  - `MealOrders.test.tsx`: RED on missing empty state and retry button → GREEN (4/4 PASS covering full 4-scenario Rule TA-4).
+- Verification:
+  - Conformance checker & tests: 23/23 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 106 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gate: `ipc-test-audit; Weekly Menu and Coordination contract regression; previous tests lacked dynamic meal target assertions and error retry verification; added dynamic price assertions and 4-scenario testing; yes; low noise; proved telemetry authority and eliminated hardcoded numbers`.
+- Review gate: `ipc-ui-review; 3-Zone Workbench layout & accessibility review; added missing error retry button and header refresh action to MealOrdersPage, rendered dynamic target price with Num; yes; low noise; maintained 100% existing UI kit primitives`.
+- Review gate: `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; disaggregated 46 capabilities, cleaned up DishCostSummaryItem types, and protected DOM-MODE-1; yes; low noise; kept write surfaces guarded`.
+- PASS: Operation-grain disaggregation, dynamic telemetry authority, error retry recovery, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
+- BLOCKED: Order locking and service run lifecycle mutations remain guarded pending live concurrency/permission authorization; dish cost report remains a `BACKEND_CAPABILITY_GAP`.
+
+
