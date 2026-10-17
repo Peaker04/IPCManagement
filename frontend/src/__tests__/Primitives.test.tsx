@@ -19,6 +19,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { ActionGuard } from '../components/ui/action-guard';
 import { AuthContext, type AuthContextType } from '../store/useAuth';
 import { toVietnameseDate, formatVietnameseDate } from '../utils/dates';
+import { DirtyNavigationProvider } from '../components/workbench/DirtyNavigation';
+import { useDirtyNavigation } from '../components/workbench/dirty-navigation-context';
+
+function TestDirtyConsumer() {
+  const { isDirty, registerDirty } = useDirtyNavigation();
+  return (
+    <div>
+      <span>{isDirty ? 'Trạng thái: Bẩn' : 'Trạng thái: Sạch'}</span>
+      <button onClick={() => registerDirty('draft-1')}>Đánh dấu bẩn</button>
+    </div>
+  );
+}
 
 describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
   it('Button: renders variants and handles click events', async () => {
@@ -293,5 +305,25 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     fireEvent.keyDown(row, { key: 'Enter' });
     fireEvent.keyDown(row, { key: ' ' });
     expect(onRowClick).toHaveBeenCalledTimes(2);
+  });
+
+  it('DirtyNavigation: intercepts browser popstate back-button navigation when dirty draft is active', async () => {
+    const user = userEvent.setup();
+    render(
+      <DirtyNavigationProvider>
+        <TestDirtyConsumer />
+      </DirtyNavigationProvider>
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Đánh dấu bẩn' }));
+    expect(screen.getByText('Trạng thái: Bẩn')).toBeInTheDocument();
+
+    window.dispatchEvent(new PopStateEvent('popstate'));
+
+    expect(await screen.findByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Trạng thái: Bẩn')).toBeInTheDocument();
   });
 });

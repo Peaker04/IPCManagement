@@ -26,7 +26,24 @@ export function DirtyNavigationProvider({ children }: { children: ReactNode }) {
     if (!isDirty) return;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+
+    const handlePopState = () => {
+      if (typeof window !== 'undefined' && window.history) {
+        window.history.pushState(null, '', window.location.href);
+      }
+      setPendingNavigation(() => () => {
+        if (typeof window !== 'undefined' && window.history) {
+          window.history.back();
+        }
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
   }, [isDirty]);
 
   const value = useMemo(() => ({ isDirty, registerDirty, requestNavigation }), [isDirty, registerDirty, requestNavigation]);
