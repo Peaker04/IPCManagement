@@ -358,6 +358,31 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Real browser focus, 200% zoom, actor/mode matrix, and persistence on authorized isolated runtime.
 - BLOCKED: Data quality remediation and unit normalization decisions remain guarded pending live authority; dish cost report remains a `BACKEND_CAPABILITY_GAP`.
 
+### GF-R40 — Runtime browser acceptance suite and popstate dirty navigation authority
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-runtime-browser-acceptance-plan.md` and spec `docs/superpowers/specs/2026-10-18-runtime-browser-acceptance-design.md`; lifecycle returned to `IDLE`.
+- Dirty navigation popstate interception: Enhanced `DirtyNavigation.tsx` to listen to `popstate` events on `window`. When a draft is dirty and user presses browser Back/Forward, the history step is trapped, `alertdialog` opens with "Hủy thay đổi chưa lưu?", and clicking "Tiếp tục chỉnh sửa" retains the user on the draft. TDD verified in `Primitives.test.tsx`.
+- Playwright runtime browser acceptance suite: Authored `frontend/tests/browser/conformance-runtime.spec.ts` covering 5 pillars: (1) 14 canonical routes smoke and Vietnamese titles, (2) 3-Zone geometry ($56px \pm 1px$ header, $44px \pm 1px$ subbar, frozen table headers), (3) WCAG 2.2 AA Zoom 200% accessibility, (4) Triple-layer RBAC navigation filtering (non-admin cannot see Admin links), (5) Mode isolation `DOM-MODE-1` (Reconciliation completion disabled in `DEFAULT` mode).
+- 100% existing UI kit reuse: Used standard primitives (`AppShell`, `WorkspaceHeader`, `TelemetrySubbar`, `DataGrid`, `SplitView`, `StateBoundary`, `Select`, `Button`, `Badge`, `Num`, `IdentifierText`, `Modal`, `ActionGuard`, `DirtyNavigation`). Zero custom primitives or ad-hoc styles written.
+- TDD RED→GREEN evidence:
+  - `Primitives.test.tsx`: RED on missing popstate interception → GREEN (22/22 PASS).
+- Verification:
+  - Conformance checker & tests: 28/28 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 114 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Runtime browser acceptance and popstate interception regression; previous tests lacked browser history back-button draft protection; added popstate simulation and 5-pillar browser spec; yes; low noise; proved draft preservation and Rule TA-4 compliance`.
+  - `ipc-ui-review; 3-Zone layout geometry & zoom review; verified D6 font size >= 12px, D7 single primary per zone, T7 frozen header, T8 compact density (36-40px), M1.2 single modal overlay; yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical contract alignment and zero-synthetic diff audit; enhanced DirtyNavigation with popstate handling, protected DOM-MODE-1; yes; low noise; kept write surfaces guarded`.
+- PASS: Popstate dirty navigation interception, 5-pillar Playwright browser acceptance suite, 100% existing UI kit primitives, zero fake data, static/unit/build/architecture gates.
+- NEEDS_EVIDENCE: Live execution against running backend in authorized multi-user staging.
+- BLOCKED: Backend gaps (`UnitsController` missing, dish-cost report missing) remain fail-closed.
+
+
 
 
 
