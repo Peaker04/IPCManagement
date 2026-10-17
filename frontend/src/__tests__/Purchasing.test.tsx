@@ -116,4 +116,13 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
 
     expect(await screen.findByText('Thu mua & Đề xuất PO')).toBeInTheDocument();
   });
+
+  it('renders clean empty state when no purchase orders exist', async () => {
+    vi.spyOn(purchasingApi, 'getPurchaseOrders').mockResolvedValue([]);
+
+    renderPurchasing();
+
+    expect(await screen.findByText('Không tìm thấy đơn mua hàng')).toBeInTheDocument();
+    expect(screen.getByText(/Không có đơn PO nào khớp với điều kiện tìm kiếm/i)).toBeInTheDocument();
+  });
 });

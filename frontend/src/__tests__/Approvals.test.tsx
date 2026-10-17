@@ -121,4 +121,18 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
 
     expect(await screen.findByText('Hàng đợi phê duyệt')).toBeInTheDocument();
   });
+
+  it('blocks rejection without a mandatory reason according to BR-GLOBAL-03', async () => {
+    const user = userEvent.setup();
+    renderApprovals();
+
+    const rejectBtns = await screen.findAllByRole('button', { name: 'Từ chối hồ sơ' });
+    expect(rejectBtns.length).toBeGreaterThan(0);
+    await user.click(rejectBtns[0]);
+
+    const confirmRejectBtn = screen.getByRole('button', { name: 'Xác nhận từ chối' });
+    await user.click(confirmRejectBtn);
+
+    expect(screen.getByText(/Vui lòng nhập lý do từ chối hồ sơ/i)).toBeInTheDocument();
+  });
 });
