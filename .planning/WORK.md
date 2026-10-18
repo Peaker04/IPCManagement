@@ -409,6 +409,30 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Live multi-user concurrency testing under real load.
 - BLOCKED: Backend gaps (`UnitsController` missing, dish-cost report missing) remain fail-closed.
 
+### GF-R42 — UI visual defect remediation and domain microcopy conformance
+- Status: **CLOSED / PASS at contract, component, and live browser boundaries** under `docs/superpowers/plans/2026-10-18-ui-remediation-and-visual-audit-plan.md` and spec `docs/superpowers/specs/2026-10-18-ui-remediation-and-visual-audit-design.md`; lifecycle returned to `IDLE`.
+- Null safety crash fix: Replaced `menuResponse.rows` with `menuResponse?.rows || []` in `weeklyMenuApi.ts`. Solved `TypeError: Cannot read properties of null (reading 'rows')` when selecting customer `ANV` without a weekly menu in DB.
+- Header text collision fix: Added `minWidth ?? 'min-w-[720px]'` to `DataGrid.tsx` and rebalanced column widths in `ApprovalPage.tsx` and `PurchasingPage.tsx`. Completely eliminated overlapping text (`GIÁ TRỊ / KHỐI LƯỢNG TRẠNG TH...` and `MẶT HÀNG TỔNG TIỀN`).
+- Unit suffix enforcement (`Rule T4`): Added `suffix=" kg"` to `totalQuantity` in `ApprovalPage.tsx` master table and detail drawer, eliminating naked numbers.
+- Vietnamese PO status translation (`UXR-04` / `DOM-LANG-1`): Added `PO_STATUS_CONFIG` in `PurchasingPage.tsx` mapping `ORDERED` $\rightarrow$ `Đã đặt hàng`, `PARTIALLY_RECEIVED` $\rightarrow$ `Nhận một phần`, `RECEIVED` $\rightarrow$ `Đã nhận đủ`, `DRAFT` $\rightarrow$ `Dự thảo`, `APPROVED` $\rightarrow$ `Đã duyệt`, `CANCELLED` $\rightarrow$ `Đã hủy`. Eliminated all raw English enums.
+- Status tabs alignment: Updated `STATUS_TABS` on `/purchasing` to include `ORDERED` and `PARTIALLY_RECEIVED`, matching real database orders.
+- Detail panel empty state: Added clean empty notice when `selectedPo.lines.length === 0`: *"Đơn PO này chưa có dòng nguyên liệu chi tiết."*
+- Verification:
+  - 28/28 Playwright browser tests PASS on Chromium.
+  - 116/116 frontend unit tests PASS.
+  - 28/28 conformance tests PASS.
+  - ESLint: 0 errors, 0 warnings.
+  - Production build: PASS.
+  - Dependency cruiser: 0 violations.
+- Review gates:
+  - `ipc-test-audit; Visual defect and null-safety regression; added null weekly menu test and Vietnamese status badge tests; yes; low noise; proved Rule TA-4 and UXR-04 compliance`.
+  - `ipc-ui-review; Visual truth & layout collision review; eliminated header overlaps in split views, added min-width to DataGrid, enforced unit suffix on quantities, translated raw enums; yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical fix on root owners; fixed weeklyMenuApi, DataGrid, and PurchasingPage without creating duplicate components; yes; low noise; protected DOM-MODE-1`.
+- PASS: Zero header collisions, null-safety on all queries, 100% Vietnamese domain microcopy, all test suites green.
+- NEEDS_EVIDENCE: Live multi-user concurrency testing under real load.
+- BLOCKED: Backend gaps (`UnitsController` missing, dish-cost report missing) remain fail-closed.
+
+
 
 
 
