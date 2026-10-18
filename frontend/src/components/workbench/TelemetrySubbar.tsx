@@ -37,7 +37,7 @@ export function TelemetrySubbar({
       {/* Right controls: Inline pills + optional secondary actions */}
       <div className="flex items-center gap-3.5 shrink-0">
         {telemetryPills && (
-          <div className="inline-flex items-center gap-2.5 font-mono text-xs text-slate-600">
+          <div className="inline-flex items-center gap-2.5 text-xs text-slate-600">
             {telemetryPills}
           </div>
         )}

@@ -113,20 +113,20 @@ export function WeeklyMenuPage() {
   const emptyContext = useMemo(() => {
     if (activeView === 'demand') {
       return {
-        title: 'Chưa có nhu cầu nguyên liệu có thẩm quyền',
-        desc: 'Backend chưa trả demand aggregate cho khách hàng và tuần đã chọn. Không sử dụng BOM tự tính thay cho nhu cầu đã sinh.',
+        title: 'Chưa có nhu cầu nguyên liệu cho tuần này',
+        desc: 'Chưa phát sinh dữ liệu bàn giao nguyên liệu cho khách hàng và tuần đã chọn.',
       };
     }
     if (activeView === 'production-plan') {
       return {
-        title: 'Chưa có kế hoạch sản xuất',
-        desc: 'Không có KHSX persisted trong phạm vi khách hàng và tuần đã chọn.',
+        title: 'Chưa có kế hoạch sản xuất ca bếp',
+        desc: 'Chưa có KHSX được duyệt cho khách hàng và tuần đã chọn.',
       };
     }
     if (activeView === 'cost') {
       return {
         title: 'Chưa có số liệu phân rã chi phí BOM',
-        desc: 'Backend hiện chưa cung cấp báo cáo giá vốn món ăn đúng grain cho phạm vi này; frontend không tự suy diễn chi phí.',
+        desc: 'Hệ thống đang chờ báo cáo giá vốn món ăn chính thức từ phân hệ định mức.',
       };
     }
     return {

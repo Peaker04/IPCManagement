@@ -197,7 +197,7 @@ export function PurchasingPage() {
               onChange={(e) => setSelectedSupplierId(e.target.value)}
               className="h-9 w-72 font-medium text-sm"
             />
-            <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-mono flex items-center">
+            <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-medium flex items-center whitespace-nowrap shrink-0">
               PO đang xử lý
             </Badge>
           </>

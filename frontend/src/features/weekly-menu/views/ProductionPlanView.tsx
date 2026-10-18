@@ -62,7 +62,11 @@ export function ProductionPlanView({ data }: ProductionPlanViewProps) {
       id: 'shift',
       header: 'Ca sản xuất',
       width: '16%',
-      cell: (row) => <span className="font-medium text-slate-700 text-sm">{row.shiftName}</span>,
+      cell: (row) => (
+        <span className="font-medium text-slate-700 text-sm">
+          {row.shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : row.shiftName === 'AFTERNOON' ? 'Ca 2 (Chiều)' : row.shiftName}
+        </span>
+      ),
     },
     {
       id: 'plannedServings',

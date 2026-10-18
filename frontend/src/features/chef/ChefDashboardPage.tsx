@@ -100,7 +100,7 @@ export function ChefDashboardPage() {
   const planColumns: ColumnDef<ChefPlanLineItem>[] = [
     { id: 'code', header: 'Mã KHSX', width: '16%', cell: (row) => <IdentifierText value={row.planCode} /> },
     { id: 'dish', header: 'Tên món ăn', width: '30%', cell: (row) => <span className="font-semibold text-slate-900">{row.dishName}</span> },
-    { id: 'shift', header: 'Ca sản xuất', width: '14%', cell: (row) => <span>{row.shiftName}</span> },
+    { id: 'shift', header: 'Ca sản xuất', width: '14%', cell: (row) => <span>{row.shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : row.shiftName === 'AFTERNOON' ? 'Ca 2 (Chiều)' : row.shiftName}</span> },
     { id: 'servings', header: 'Số suất kế hoạch', width: '14%', align: 'right', cell: (row) => <Num value={row.plannedServings} format="quantity" suffix=" suất" /> },
     { id: 'date', header: 'Ngày phục vụ', width: '13%', cell: (row) => <span className="font-mono text-xs">{formatVietnameseDate(row.serviceDate)}</span> },
     { id: 'status', header: 'Bàn giao Bếp', width: '13%', align: 'center', cell: (row) => <Badge variant={row.sentToKitchenAt ? 'info' : 'neutral'} size="sm">{row.sentToKitchenAt ? 'Đã gửi Bếp' : 'Chưa gửi'}</Badge> },

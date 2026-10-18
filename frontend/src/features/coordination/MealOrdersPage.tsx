@@ -143,7 +143,11 @@ export function MealOrdersPage() {
       header: 'Ca phục vụ',
       width: '10%',
       align: 'center',
-      cell: (row) => <Badge variant="neutral" size="sm">{row.shiftName}</Badge>,
+      cell: (row) => (
+        <Badge variant="neutral" size="sm" className="whitespace-nowrap">
+          {row.shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : row.shiftName === 'AFTERNOON' ? 'Ca 2 (Chiều)' : row.shiftName}
+        </Badge>
+      ),
     },
   ];
 

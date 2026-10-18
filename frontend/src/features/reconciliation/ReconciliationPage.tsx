@@ -302,7 +302,7 @@ export function ReconciliationPage() {
         error={displayedError}
         isForbidden={isForbidden}
         isModeConflict={isModeConflict}
-        modeConflictMessage={isAdmin ? error?.message : 'Phân hệ Đối soát chỉ hoạt động trong Chế độ MRX. Vui lòng liên hệ Quản trị viên (Admin) để kích hoạt chế độ này.'}
+        modeConflictMessage={isAdmin ? 'Hệ thống đang vận hành ở Chế độ Mặc định (DEFAULT). Theo nguyên tắc an toàn DOM-MODE-1, phân hệ Đối soát chỉ hoạt động khi kích hoạt Chế độ MRX trong phần Thiết lập nâng cao.' : 'Phân hệ Đối soát chỉ hoạt động trong Chế độ MRX. Vui lòng liên hệ Quản trị viên (Admin) để kích hoạt chế độ này.'}
         onSwitchMode={isAdmin ? () => navigate('/settings/advanced?view=mode') : undefined}
         isConflict={isConflict}
         conflictDetails={error?.message}
