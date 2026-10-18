@@ -88,7 +88,15 @@ export interface RawIssue {
 
 export const warehouseApi = {
   async getWarehouses(): Promise<WarehouseItem[]> {
-    return apiClient<WarehouseItem[]>('/warehouses');
+    const resp = await apiClient<{ items?: WarehouseItem[] } | WarehouseItem[]>('/warehouses');
+    const items = Array.isArray(resp) ? resp : resp?.items || [];
+    return items.map((w) => ({
+      warehouseId: w.warehouseId,
+      warehouseCode: w.warehouseCode,
+      warehouseName: w.warehouseName,
+      location: w.location,
+      isActive: w.isActive,
+    }));
   },
 
   async getReceipts(): Promise<InventoryReceiptItem[]> {
