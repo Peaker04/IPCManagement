@@ -172,7 +172,7 @@ export const weeklyMenuApi = {
       this.getAllDemand(weekStartDate, weekEndDate, matchedCustomer.customerId),
     ]);
 
-    const rows = menuResponse.rows || [];
+    const rows = menuResponse?.rows || [];
     const dates = Array.from(new Set(rows.map((row) => row.serviceDate))).sort();
     const scheduleDays: ScheduleDayColumn[] = dates.map((date, index) => ({
       dayName: DAY_NAMES[index] || `Ngày ${index + 1}`,

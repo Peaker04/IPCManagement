@@ -21,6 +21,7 @@ function renderWeeklyMenu(initialEntry = '/weekly-menu') {
 
 describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
       { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
     ]);
@@ -63,6 +64,16 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     expect(await screen.findByText('Theo ca / Chưa chốt')).toBeInTheDocument();
     expect(screen.queryByText('25.000 ₫')).not.toBeInTheDocument();
+  });
+
+  it('handles null weekly menu response without throwing Cannot read properties of null', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenu').mockResolvedValueOnce(null as unknown as RawWeeklyMenuResponse);
+    vi.spyOn(weeklyMenuApi, 'getProductionPlans').mockResolvedValueOnce([]);
+    vi.spyOn(weeklyMenuApi, 'getAllDemand').mockResolvedValueOnce({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100, remainingToIssueCount: 0, pendingKitchenReceiptCount: 0 });
+
+    const result = await weeklyMenuApi.getWeeklyMenuData('DAV', '2026-10-12');
+    expect(result.matrixRows).toEqual([]);
+    expect(result.scheduleDays).toEqual([]);
   });
 
   it('View 1 (Kế hoạch tuần): renders Mon-Sat matrix without duplicate subbar tabs or repetitive cell text', async () => {
