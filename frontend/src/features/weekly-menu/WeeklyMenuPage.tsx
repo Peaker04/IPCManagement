@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
@@ -29,6 +29,7 @@ function currentWeekStart(): string {
 }
 
 export function WeeklyMenuPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
   const activeView = requestedView === 'demand' || requestedView === 'production-plan' || requestedView === 'cost'
@@ -189,6 +190,8 @@ export function WeeklyMenuPage() {
         emptyScenario="prerequisite-blocked"
         emptyTitle={emptyContext.title}
         emptyDescription={emptyContext.desc}
+        actionLabel={activeView === 'schedule' ? 'Xem bàn giao ca' : 'Làm mới dữ liệu'}
+        onAction={activeView === 'schedule' ? () => navigate('/weekly-menu?view=demand') : handleRefresh}
       >
         {data && activeView === 'schedule' && <WeeklyScheduleView data={data} />}
         {data && activeView === 'demand' && <MaterialDemandView data={data} />}

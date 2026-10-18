@@ -58,11 +58,12 @@ export function DataGrid<T>({
                 key={col.id}
                 style={{ width: col.width, minWidth: col.minWidth }}
                 className={clsx(
-                  'h-10 px-4 text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap',
+                  'h-10 px-3 text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap overflow-hidden text-ellipsis',
                   colIdx === 0 && 'sticky left-0 z-20 bg-slate-100',
                   col.align === 'right' && 'text-right',
                   col.align === 'center' && 'text-center'
                 )}
+                title={typeof col.header === 'string' ? col.header : undefined}
               >
                 {col.header}
               </th>
@@ -99,7 +100,7 @@ export function DataGrid<T>({
                     key={col.id}
                     style={{ minWidth: col.minWidth }}
                     className={clsx(
-                      'px-4 py-2 truncate text-sm',
+                      'px-3 py-2 truncate text-sm',
                       colIdx === 0 && 'sticky left-0 z-10 bg-inherit shadow-[1px_0_0_0_var(--border-subtle)]',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center'

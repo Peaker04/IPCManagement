@@ -123,12 +123,14 @@ export function PurchasingPage() {
       id: 'code',
       header: 'Mã đơn PO',
       width: '16%',
+      minWidth: '95px',
       cell: (row) => <IdentifierText value={row.code} />,
     },
     {
       id: 'supplier',
       header: 'Nhà cung cấp',
       width: '24%',
+      minWidth: '120px',
       cell: (row) => (
         <span className="font-semibold text-slate-900 text-sm truncate block">
           {row.supplierName}
@@ -139,6 +141,7 @@ export function PurchasingPage() {
       id: 'date',
       header: 'Ngày đặt',
       width: '13%',
+      minWidth: '75px',
       cell: (row) => (
         <span className="font-mono text-xs text-slate-700">
           {formatVietnameseDate(row.orderDate)}
@@ -149,6 +152,7 @@ export function PurchasingPage() {
       id: 'items',
       header: 'Mặt hàng',
       width: '12%',
+      minWidth: '65px',
       align: 'center',
       cell: (row) => <span className="font-mono text-xs whitespace-nowrap">{row.linesCount} dòng</span>,
     },
@@ -156,6 +160,7 @@ export function PurchasingPage() {
       id: 'amount',
       header: 'Tổng tiền',
       width: '18%',
+      minWidth: '95px',
       align: 'right',
       cell: (row) => (
         <Num value={row.totalAmount} format="currency" className="font-bold text-slate-900 text-sm" />
@@ -165,11 +170,12 @@ export function PurchasingPage() {
       id: 'status',
       header: 'Trạng thái',
       width: '17%',
+      minWidth: '95px',
       align: 'center',
       cell: (row) => {
         const config = PO_STATUS_CONFIG[row.status] || { label: row.status, variant: 'neutral' };
         return (
-          <Badge variant={config.variant} size="sm">
+          <Badge variant={config.variant} size="sm" className="whitespace-nowrap">
             {config.label}
           </Badge>
         );
@@ -263,7 +269,7 @@ export function PurchasingPage() {
               keyExtractor={(row) => row.id}
               selectedKey={selectedPo?.id}
               onRowClick={(row) => setSelectedPoId(row.id)}
-              minWidth="min-w-[800px]"
+              minWidth="min-w-[550px]"
             />
           }
           detail={

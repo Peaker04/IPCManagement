@@ -207,7 +207,7 @@ export function WarehousePage() {
               options={warehouseOptions}
               value={selectedWarehouseId}
               onChange={(e) => setSelectedWarehouseId(e.target.value)}
-              className="h-9 w-72 font-medium text-sm"
+              className="h-9 w-60 font-medium text-sm"
             />
             <Badge variant="success" size="default" className="h-9 px-3 text-sm font-medium flex items-center whitespace-nowrap shrink-0">
               Kho đang hoạt động
@@ -215,19 +215,14 @@ export function WarehousePage() {
           </>
         }
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={loadData}
-              className="h-9 text-sm font-medium"
-            >
-              Làm mới
-            </Button>
-            <span className="text-xs text-slate-500 max-w-80">
-              Phiếu xuất phải bắt đầu từ yêu cầu vật tư đã duyệt.
-            </span>
-          </>
+          <Button
+            variant="outline"
+            size="default"
+            onClick={loadData}
+            className="h-9 text-sm font-medium"
+          >
+            Làm mới
+          </Button>
         }
       />
 
@@ -252,6 +247,11 @@ export function WarehousePage() {
               Tồn kho: Chưa có nguồn dữ liệu
             </Badge>
           </>
+        }
+        rightActions={
+          <span className="text-xs text-slate-500 truncate max-w-72">
+            Phiếu xuất phải bắt đầu từ yêu cầu vật tư đã duyệt.
+          </span>
         }
       />
 

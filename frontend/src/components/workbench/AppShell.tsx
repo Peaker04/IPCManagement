@@ -144,6 +144,7 @@ export function AppShell({ children, getAllowedRoles = () => undefined }: AppShe
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>, to: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarCollapsed(true);
     if (!requestNavigation(() => navigate(to))) event.preventDefault();
   };
 
@@ -160,7 +161,8 @@ export function AppShell({ children, getAllowedRoles = () => undefined }: AppShe
       <aside
         className={clsx(
           'shrink-0 border-r border-slate-200 bg-white flex flex-col h-dvh select-none z-30 transition-all duration-150 ease-out',
-          isSidebarCollapsed ? 'w-16' : 'w-60'
+          isSidebarCollapsed ? 'w-16' : 'w-60',
+          !isSidebarCollapsed && 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:shadow-2xl'
         )}
         aria-label="Thanh điều hướng chính"
       >
@@ -351,6 +353,15 @@ export function AppShell({ children, getAllowedRoles = () => undefined }: AppShe
           </div>
         )}
       </aside>
+
+      {/* Mobile Backdrop when sidebar is expanded on small screens */}
+      {!isSidebarCollapsed && (
+        <div
+          role="presentation"
+          onClick={() => setIsSidebarCollapsed(true)}
+          className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xs z-20 md:hidden"
+        />
+      )}
 
       {/* Right Workbench Frame */}
       <main className="flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40">

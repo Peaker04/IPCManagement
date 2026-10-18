@@ -140,13 +140,15 @@ export function ApprovalPage() {
     {
       id: 'targetCode',
       header: 'Mã đối tượng',
-      width: '16%',
+      width: '15%',
+      minWidth: '95px',
       cell: (row) => <IdentifierText value={row.targetCode} />,
     },
     {
       id: 'title',
       header: 'Tiêu đề yêu cầu phê duyệt',
-      width: '26%',
+      width: '28%',
+      minWidth: '150px',
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-slate-900 text-sm truncate">{row.title}</span>
@@ -158,18 +160,21 @@ export function ApprovalPage() {
       id: 'submittedBy',
       header: 'Người gửi',
       width: '14%',
+      minWidth: '85px',
       cell: (row) => <span className="text-slate-700 text-sm truncate block">{row.submittedBy}</span>,
     },
     {
       id: 'sla',
       header: 'Hạn SLA',
-      width: '14%',
+      width: '11%',
+      minWidth: '65px',
       cell: (row) => <span className="font-mono text-xs text-slate-600">{formatVietnameseDateTime(row.slaDeadline)}</span>,
     },
     {
       id: 'total',
       header: 'Quy mô',
       width: '18%',
+      minWidth: '100px',
       align: 'right',
       cell: (row) => (
         row.totalValue != null ? (
@@ -184,12 +189,14 @@ export function ApprovalPage() {
     {
       id: 'status',
       header: 'Trạng thái',
-      width: '12%',
+      width: '14%',
+      minWidth: '85px',
       align: 'center',
       cell: (row) => (
         <Badge
           variant={row.status === 'APPROVED' ? 'success' : row.status === 'REJECTED' ? 'danger' : 'warning'}
           size="sm"
+          className="whitespace-nowrap"
         >
           {row.status === 'PENDING' ? 'Chờ duyệt' : row.status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}
         </Badge>
@@ -289,7 +296,7 @@ export function ApprovalPage() {
         onAction={() => loadData()}
       >
         <SplitView
-          masterWidthClass="w-7/12"
+          masterWidthClass="w-7/12 2xl:w-8/12"
           master={
             <DataGrid<ApprovalInboxItem>
               data={filteredItems}
@@ -297,7 +304,7 @@ export function ApprovalPage() {
               keyExtractor={(row) => row.inboxItemId}
               selectedKey={selectedItem?.inboxItemId}
               onRowClick={(row) => setSelectedItemId(row.inboxItemId)}
-              minWidth="min-w-[780px]"
+              minWidth="min-w-[580px]"
             />
           }
           detail={

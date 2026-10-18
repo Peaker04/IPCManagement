@@ -127,11 +127,11 @@ export function DashboardPage() {
                   )}
                 >
               <div className="flex items-center justify-between gap-1">
-                <span className="text-xs text-slate-500 font-medium truncate" title={metric.label}>
+                <span className="text-xs text-slate-600 font-medium truncate" title={metric.label}>
                   {metric.label}
                 </span>
                 {metric.unit && (
-                  <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                  <span className="text-xs text-slate-500 font-mono shrink-0">
                     ({metric.unit})
                   </span>
                 )}
@@ -171,6 +171,8 @@ export function DashboardPage() {
         isEmpty={!data || data.tasks.length === 0}
         emptyTitle="Hôm nay không có nhiệm vụ tồn đọng"
         emptyDescription="Mọi công đoạn ca hôm nay đã hoàn thành hoặc chưa đến giờ kích hoạt."
+        actionLabel="Mở bàn giao ca"
+        onAction={() => navigate('/weekly-menu?view=demand')}
       >
         {data && (
           <SplitView
