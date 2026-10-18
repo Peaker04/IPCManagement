@@ -18,6 +18,15 @@ import {
 } from '../../api/purchasingApi';
 import { formatVietnameseDate } from '../../utils/dates';
 
+const PO_STATUS_CONFIG: Record<string, { label: string; variant: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }> = {
+  DRAFT: { label: 'Dự thảo', variant: 'neutral' },
+  APPROVED: { label: 'Đã duyệt', variant: 'info' },
+  ORDERED: { label: 'Đã đặt hàng', variant: 'warning' },
+  PARTIALLY_RECEIVED: { label: 'Nhận một phần', variant: 'warning' },
+  RECEIVED: { label: 'Đã nhận đủ', variant: 'success' },
+  CANCELLED: { label: 'Đã hủy', variant: 'danger' },
+};
+
 export function PurchasingPage() {
   const [orders, setOrders] = useState<PurchaseOrderItem[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierItem[]>([]);
@@ -102,22 +111,22 @@ export function PurchasingPage() {
 
   const STATUS_TABS = [
     { id: 'ALL', label: 'Tất cả đơn PO', count: orders.length },
-    { id: 'DRAFT', label: 'Dự thảo', count: orders.filter((o) => o.status === 'DRAFT').length },
-    { id: 'APPROVED', label: 'Đã duyệt', count: orders.filter((o) => o.status === 'APPROVED').length },
-    { id: 'RECEIVED', label: 'Đã nhận hàng', count: orders.filter((o) => o.status === 'RECEIVED').length },
+    { id: 'ORDERED', label: 'Đã đặt hàng', count: orders.filter((o) => o.status === 'ORDERED').length },
+    { id: 'PARTIALLY_RECEIVED', label: 'Nhận một phần', count: orders.filter((o) => o.status === 'PARTIALLY_RECEIVED').length },
+    { id: 'RECEIVED', label: 'Đã nhận đủ', count: orders.filter((o) => o.status === 'RECEIVED').length },
   ];
 
   const columns: ColumnDef<PurchaseOrderItem>[] = [
     {
       id: 'code',
       header: 'Mã đơn PO',
-      width: '20%',
+      width: '18%',
       cell: (row) => <IdentifierText value={row.code} />,
     },
     {
       id: 'supplier',
       header: 'Nhà cung cấp',
-      width: '32%',
+      width: '28%',
       cell: (row) => (
         <span className="font-semibold text-slate-900 text-sm truncate block">
           {row.supplierName}
@@ -144,7 +153,7 @@ export function PurchasingPage() {
     {
       id: 'amount',
       header: 'Tổng tiền',
-      width: '14%',
+      width: '16%',
       align: 'right',
       cell: (row) => (
         <Num value={row.totalAmount} format="currency" className="font-bold text-slate-900 text-sm" />
@@ -153,30 +162,16 @@ export function PurchasingPage() {
     {
       id: 'status',
       header: 'Trạng thái',
-      width: '12%',
+      width: '14%',
       align: 'center',
-      cell: (row) => (
-        <Badge
-          variant={
-            row.status === 'RECEIVED'
-              ? 'success'
-              : row.status === 'APPROVED'
-              ? 'info'
-              : row.status === 'DRAFT'
-              ? 'neutral'
-              : 'warning'
-          }
-          size="sm"
-        >
-          {row.status === 'RECEIVED'
-            ? 'Đã nhận kho'
-            : row.status === 'APPROVED'
-            ? 'Đã duyệt PO'
-            : row.status === 'DRAFT'
-            ? 'Dự thảo'
-            : row.status}
-        </Badge>
-      ),
+      cell: (row) => {
+        const config = PO_STATUS_CONFIG[row.status] || { label: row.status, variant: 'neutral' };
+        return (
+          <Badge variant={config.variant} size="sm">
+            {config.label}
+          </Badge>
+        );
+      },
     },
   ];
 
@@ -286,34 +281,40 @@ export function PurchasingPage() {
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-auto">
-                  <table className="w-full text-left text-sm border-collapse table-fixed">
-                    <thead className="sticky top-0 z-10 bg-slate-100/95 border-b border-slate-200 text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                      <tr>
-                        <th className="h-10 px-4 w-[40%]">Nguyên liệu</th>
-                        <th className="h-10 px-3 w-[16%] text-center">ĐVT</th>
-                        <th className="h-10 px-3 w-[20%] text-right">Số lượng</th>
-                        <th className="h-10 px-4 w-[24%] text-right">Thành tiền</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-800">
-                      {selectedPo.lines.map((line: PurchaseOrderLineItem) => (
-                        <tr key={line.lineId} className="h-10 hover:bg-slate-50">
-                          <td className="px-4 py-2 truncate">
-                            <span className="font-medium text-slate-900 text-sm">{line.ingredientName}</span>
-                          </td>
-                          <td className="px-3 py-2 text-center whitespace-nowrap text-slate-600 font-mono text-xs">
-                            {line.unit}
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono text-sm">
-                            <Num value={line.orderedQuantity} format="quantity" />
-                          </td>
-                          <td className="px-4 py-2 text-right">
-                            <Num value={line.lineTotal} format="currency" className="font-semibold text-slate-900" />
-                          </td>
+                  {selectedPo.lines.length === 0 ? (
+                    <div className="flex-1 h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 text-xs">
+                      Đơn PO này chưa có dòng nguyên liệu chi tiết.
+                    </div>
+                  ) : (
+                    <table className="w-full text-left text-sm border-collapse table-fixed">
+                      <thead className="sticky top-0 z-10 bg-slate-100/95 border-b border-slate-200 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                        <tr>
+                          <th className="h-10 px-4 w-[40%]">Nguyên liệu</th>
+                          <th className="h-10 px-3 w-[16%] text-center">ĐVT</th>
+                          <th className="h-10 px-3 w-[20%] text-right">Số lượng</th>
+                          <th className="h-10 px-4 w-[24%] text-right">Thành tiền</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-800">
+                        {selectedPo.lines.map((line: PurchaseOrderLineItem) => (
+                          <tr key={line.lineId} className="h-10 hover:bg-slate-50">
+                            <td className="px-4 py-2 truncate">
+                              <span className="font-medium text-slate-900 text-sm">{line.ingredientName}</span>
+                            </td>
+                            <td className="px-3 py-2 text-center whitespace-nowrap text-slate-600 font-mono text-xs">
+                              {line.unit}
+                            </td>
+                            <td className="px-3 py-2 text-right font-mono text-sm">
+                              <Num value={line.orderedQuantity} format="quantity" />
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <Num value={line.lineTotal} format="currency" className="font-semibold text-slate-900" />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
 
                 <div className="h-11 px-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 font-medium text-sm">

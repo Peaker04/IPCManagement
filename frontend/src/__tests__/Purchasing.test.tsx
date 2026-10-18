@@ -55,9 +55,9 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
 
     // Status tabs
     expect(await screen.findByRole('tab', { name: /Tất cả đơn PO/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Dự thảo/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Đã duyệt/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /Đã nhận hàng/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Đã đặt hàng/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Nhận một phần/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /Đã nhận đủ/i })).toBeInTheDocument();
 
     // Telemetry pills
     expect(screen.getByText(/Tổng PO:/i)).toBeInTheDocument();
@@ -124,5 +124,14 @@ describe('Purchasing Feature (FR-PUR — Thu mua & PO)', () => {
 
     expect(await screen.findByText('Không tìm thấy đơn mua hàng')).toBeInTheDocument();
     expect(screen.getByText(/Không có đơn PO nào khớp với điều kiện tìm kiếm/i)).toBeInTheDocument();
+  });
+
+  it('renders Vietnamese domain labels for PO statuses and avoids raw English enums', async () => {
+    renderPurchasing();
+
+    await screen.findByRole('heading', { name: 'Thu mua & Đề xuất PO' });
+    expect(screen.queryByText('ORDERED')).not.toBeInTheDocument();
+    expect(screen.queryByText('PARTIALLY_RECEIVED')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Đã đặt hàng').length).toBeGreaterThan(0);
   });
 });

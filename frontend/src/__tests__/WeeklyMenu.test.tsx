@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { WeeklyMenuPage } from '../features/weekly-menu/WeeklyMenuPage';
 import { AuthProvider } from '../store/authContext';
-import { weeklyMenuApi } from '../api/weeklyMenuApi';
+import { weeklyMenuApi, type RawWeeklyMenuResponse } from '../api/weeklyMenuApi';
 import { MOCK_WEEKLY_MENU_DATA } from '../test/fixtures';
 
 function renderWeeklyMenu(initialEntry = '/weekly-menu') {

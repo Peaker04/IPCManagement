@@ -17,7 +17,7 @@ export interface PurchaseOrderItem {
   supplierId: string;
   supplierName: string;
   orderDate: string;
-  status: 'DRAFT' | 'APPROVED' | 'SENT' | 'RECEIVED' | 'CANCELLED';
+  status: 'DRAFT' | 'APPROVED' | 'SENT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
   totalAmount: number;
   linesCount: number;
   lines: PurchaseOrderLineItem[];

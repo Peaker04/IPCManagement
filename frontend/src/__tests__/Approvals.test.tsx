@@ -64,7 +64,7 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     expect(screen.getByRole('columnheader', { name: /Tiêu đề yêu cầu/i })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Người gửi' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Hạn SLA' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Giá trị / Khối lượng' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Quy mô' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
 
     // Detail header

@@ -139,13 +139,13 @@ export function ApprovalPage() {
     {
       id: 'targetCode',
       header: 'Mã đối tượng',
-      width: '20%',
+      width: '18%',
       cell: (row) => <IdentifierText value={row.targetCode} />,
     },
     {
       id: 'title',
       header: 'Tiêu đề yêu cầu phê duyệt',
-      width: '32%',
+      width: '28%',
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-slate-900 text-sm truncate">{row.title}</span>
@@ -156,25 +156,25 @@ export function ApprovalPage() {
     {
       id: 'submittedBy',
       header: 'Người gửi',
-      width: '16%',
+      width: '15%',
       cell: (row) => <span className="text-slate-700 text-sm truncate block">{row.submittedBy}</span>,
     },
     {
       id: 'sla',
       header: 'Hạn SLA',
-      width: '14%',
+      width: '13%',
       cell: (row) => <span className="font-mono text-xs text-slate-600">{formatVietnameseDateTime(row.slaDeadline)}</span>,
     },
     {
       id: 'total',
-      header: 'Giá trị / Khối lượng',
-      width: '16%',
+      header: 'Quy mô',
+      width: '14%',
       align: 'right',
       cell: (row) => (
         row.totalValue != null ? (
           <Num value={row.totalValue} format="currency" className="font-bold text-slate-900 text-sm" />
         ) : row.totalQuantity != null ? (
-          <Num value={row.totalQuantity} format="quantity" className="font-bold text-slate-900 text-sm" />
+          <Num value={row.totalQuantity} format="quantity" suffix=" kg" className="font-bold text-slate-900 text-sm" />
         ) : (
           <span>—</span>
         )
@@ -353,7 +353,7 @@ export function ApprovalPage() {
                         {selectedItem.totalValue != null
                           ? <Num value={selectedItem.totalValue} format="currency" />
                           : selectedItem.totalQuantity != null
-                            ? <Num value={selectedItem.totalQuantity} format="quantity" />
+                            ? <Num value={selectedItem.totalQuantity} format="quantity" suffix=" kg" />
                             : '—'}
                       </strong>
                     </div>

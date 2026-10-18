@@ -18,6 +18,7 @@ export interface DataGridProps<T = unknown> {
   selectedKey?: string;
   emptyState?: ReactNode;
   className?: string;
+  minWidth?: string;
 }
 
 /**
@@ -33,6 +34,7 @@ export function DataGrid<T>({
   selectedKey,
   emptyState,
   className,
+  minWidth,
 }: DataGridProps<T>) {
   if (data.length === 0 && emptyState) {
     return <div className="flex-1 min-h-0 flex flex-col">{emptyState}</div>;
@@ -47,7 +49,7 @@ export function DataGrid<T>({
         )
       )}
     >
-      <table className="w-full text-left text-sm text-slate-800 border-collapse table-fixed">
+      <table className={twMerge('w-full text-left text-sm text-slate-800 border-collapse table-fixed', minWidth ?? 'min-w-[720px]')}>
         <thead className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-xs border-b border-slate-200">
           <tr>
             {columns.map((col, colIdx) => (
