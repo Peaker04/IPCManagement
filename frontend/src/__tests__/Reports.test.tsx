@@ -29,7 +29,7 @@ describe('Reports', () => {
 
   it('requests the next server page and reports the authoritative total', async () => {
     renderPage();
-    expect(await screen.findByText('26 dòng authoritative')).toBeInTheDocument();
+    expect(await screen.findByText('26 dòng số liệu')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -39,6 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function ReconciliationPage() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [customerCode, setCustomerCode] = useState('');
   const [serviceDate, setServiceDate] = useState(todayInBusinessTimezone);
@@ -192,8 +194,14 @@ export function ReconciliationPage() {
   ], []);
 
   const isForbidden = error instanceof ApiError && error.status === 403;
-  const isConflict = error instanceof ApiError && error.status === 409;
-  const displayedError = isForbidden || isConflict ? null : error;
+  const isModeConflict = error instanceof ApiError && error.status === 409 && (
+    error.message.includes('chế độ') ||
+    error.message.includes('Đối chiếu') ||
+    error.message.includes('MRX') ||
+    error.message.includes('DEFAULT')
+  );
+  const isConflict = error instanceof ApiError && error.status === 409 && !isModeConflict;
+  const displayedError = isForbidden || isConflict || isModeConflict ? null : error;
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
@@ -290,6 +298,9 @@ export function ReconciliationPage() {
         isLoading={isLoading}
         error={displayedError}
         isForbidden={isForbidden}
+        isModeConflict={isModeConflict}
+        modeConflictMessage={error?.message}
+        onSwitchMode={() => navigate('/settings/advanced?view=mode')}
         isConflict={isConflict}
         conflictDetails={error?.message}
         onResolveConflict={() => loadData()}

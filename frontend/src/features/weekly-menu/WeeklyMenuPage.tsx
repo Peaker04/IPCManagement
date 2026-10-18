@@ -130,7 +130,7 @@ export function WeeklyMenuPage() {
     }
     return {
       title: 'Chưa có thực đơn cho tuần này',
-      desc: 'Không có dòng thực đơn persisted cho khách hàng và tuần đã chọn.',
+      desc: 'Chưa có thực đơn được duyệt cho khách hàng và tuần đã chọn.',
     };
   }, [activeView]);
 

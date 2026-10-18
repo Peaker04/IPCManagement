@@ -6,6 +6,7 @@ export interface ColumnDef<T> {
   id: string;
   header: ReactNode;
   width?: string;
+  minWidth?: string;
   align?: 'left' | 'center' | 'right';
   cell: (row: T, index: number) => ReactNode;
 }
@@ -49,13 +50,13 @@ export function DataGrid<T>({
         )
       )}
     >
-      <table className={twMerge('w-full text-left text-sm text-slate-800 border-collapse table-fixed', minWidth ?? 'min-w-[720px]')}>
+      <table className={twMerge('w-full text-left text-sm text-slate-800 border-collapse table-fixed', minWidth ?? 'min-w-[800px]')}>
         <thead className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-xs border-b border-slate-200">
           <tr>
             {columns.map((col, colIdx) => (
               <th
                 key={col.id}
-                style={{ width: col.width }}
+                style={{ width: col.width, minWidth: col.minWidth }}
                 className={clsx(
                   'h-10 px-4 text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap',
                   colIdx === 0 && 'sticky left-0 z-20 bg-slate-100',
@@ -96,6 +97,7 @@ export function DataGrid<T>({
                 {columns.map((col, colIdx) => (
                   <td
                     key={col.id}
+                    style={{ minWidth: col.minWidth }}
                     className={clsx(
                       'px-4 py-2 truncate text-sm',
                       colIdx === 0 && 'sticky left-0 z-10 bg-inherit backdrop-blur-xs',

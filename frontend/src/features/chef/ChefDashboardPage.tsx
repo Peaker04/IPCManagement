@@ -98,21 +98,21 @@ export function ChefDashboardPage() {
   };
 
   const planColumns: ColumnDef<ChefPlanLineItem>[] = [
-    { id: 'code', header: 'Mã KHSX', width: '18%', cell: (row) => <IdentifierText value={row.planCode} /> },
-    { id: 'dish', header: 'Tên món ăn', width: '32%', cell: (row) => <span className="font-semibold text-slate-900">{row.dishName}</span> },
-    { id: 'shift', header: 'Ca sản xuất', width: '16%', cell: (row) => <span>{row.shiftName}</span> },
-    { id: 'servings', header: 'Số suất kế hoạch', width: '16%', align: 'right', cell: (row) => <Num value={row.plannedServings} format="quantity" suffix=" suất" /> },
-    { id: 'date', header: 'Ngày phục vụ', width: '14%', cell: (row) => <span className="font-mono text-xs">{formatVietnameseDate(row.serviceDate)}</span> },
-    { id: 'status', header: 'Bàn giao Bếp', width: '14%', align: 'center', cell: (row) => <Badge variant={row.sentToKitchenAt ? 'info' : 'neutral'} size="sm">{row.sentToKitchenAt ? 'Đã gửi Bếp' : 'Chưa gửi'}</Badge> },
+    { id: 'code', header: 'Mã KHSX', width: '16%', cell: (row) => <IdentifierText value={row.planCode} /> },
+    { id: 'dish', header: 'Tên món ăn', width: '30%', cell: (row) => <span className="font-semibold text-slate-900">{row.dishName}</span> },
+    { id: 'shift', header: 'Ca sản xuất', width: '14%', cell: (row) => <span>{row.shiftName}</span> },
+    { id: 'servings', header: 'Số suất kế hoạch', width: '14%', align: 'right', cell: (row) => <Num value={row.plannedServings} format="quantity" suffix=" suất" /> },
+    { id: 'date', header: 'Ngày phục vụ', width: '13%', cell: (row) => <span className="font-mono text-xs">{formatVietnameseDate(row.serviceDate)}</span> },
+    { id: 'status', header: 'Bàn giao Bếp', width: '13%', align: 'center', cell: (row) => <Badge variant={row.sentToKitchenAt ? 'info' : 'neutral'} size="sm">{row.sentToKitchenAt ? 'Đã gửi Bếp' : 'Chưa gửi'}</Badge> },
   ];
 
   const issueColumns: ColumnDef<ChefIssueItem>[] = [
-    { id: 'code', header: 'Mã phiếu xuất', width: '20%', cell: (row) => <IdentifierText value={row.issueCode} /> },
+    { id: 'code', header: 'Mã phiếu xuất', width: '18%', cell: (row) => <IdentifierText value={row.issueCode} /> },
     { id: 'date', header: 'Ngày xuất', width: '14%', cell: (row) => <span className="font-mono text-xs">{formatVietnameseDate(row.issueDate)}</span> },
     { id: 'warehouse', header: 'Kho xuất', width: '24%', cell: (row) => <span>{row.warehouseName}</span> },
     { id: 'lines', header: 'Dòng vật tư', width: '14%', align: 'right', cell: (row) => <Num value={row.lines.length} format="quantity" suffix=" dòng" /> },
-    { id: 'quantity', header: 'Tổng thực xuất', width: '16%', align: 'right', cell: (row) => <Num value={row.lines.reduce((sum, line) => sum + line.issuedQty, 0)} format="quantity" /> },
-    { id: 'received', header: 'Bếp xác nhận', width: '16%', align: 'center', cell: (row) => <Badge variant={row.receivedAt ? 'success' : 'warning'} size="sm">{row.receivedAt ? 'Đã nhận' : 'Chờ xác nhận'}</Badge> },
+    { id: 'quantity', header: 'Tổng thực xuất', width: '15%', align: 'right', cell: (row) => <Num value={row.lines.reduce((sum, line) => sum + line.issuedQty, 0)} format="quantity" /> },
+    { id: 'received', header: 'Bếp xác nhận', width: '15%', align: 'center', cell: (row) => <Badge variant={row.receivedAt ? 'success' : 'warning'} size="sm">{row.receivedAt ? 'Đã nhận' : 'Chờ xác nhận'}</Badge> },
   ];
 
   const activeData = activeView === 'issues' ? data?.issues || [] : data?.plans || [];
@@ -158,7 +158,7 @@ export function ChefDashboardPage() {
         isEmpty={Boolean(data && activeData.length === 0)}
         emptyScenario="prerequisite-blocked"
         emptyTitle={activeView === 'issues' ? 'Chưa có phiếu xuất bàn giao' : 'Chưa có kế hoạch sản xuất'}
-        emptyDescription={activeView === 'issues' ? 'Kho chưa phát hành phiếu xuất DEFAULT cho ngày, ca và khách hàng đã chọn.' : 'Điều phối chưa có KHSX persisted cho ngày, ca và khách hàng đã chọn.'}
+        emptyDescription={activeView === 'issues' ? 'Kho chưa phát hành phiếu xuất cho ngày, ca và khách hàng đã chọn.' : 'Chưa có KHSX được duyệt cho ngày, ca và khách hàng đã chọn.'}
       >
         {data && activeView === 'plans' && <DataGrid data={data.plans} columns={planColumns} keyExtractor={(row) => row.planLineId} />}
         {data && activeView === 'issues' && <DataGrid data={data.issues} columns={issueColumns} keyExtractor={(row) => row.issueId} />}

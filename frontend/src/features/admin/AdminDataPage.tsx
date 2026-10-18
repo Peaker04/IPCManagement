@@ -97,42 +97,52 @@ export function AdminDataPage() {
     {
       id: 'code',
       header: 'Mã nguyên liệu',
-      width: '16%',
+      width: '15%',
+      minWidth: '130px',
       cell: (row) => <IdentifierText value={row.ingredientCode} />,
     },
     {
       id: 'name',
       header: 'Tên nguyên liệu thực phẩm',
-      width: '26%',
+      width: '27%',
+      minWidth: '200px',
       cell: (row) => <span className="font-semibold text-slate-900 text-sm">{row.ingredientName}</span>,
     },
     {
       id: 'unit',
       header: 'ĐVT',
-      width: '10%',
+      width: '8%',
+      minWidth: '60px',
       align: 'center',
-      cell: (row) => <span className="font-mono text-xs text-slate-600">{row.unitName || '—'}</span>,
+      cell: (row) => (
+        <span className="font-mono text-xs text-slate-600">
+          {row.unitName === 'Kilogram' || row.unitName === 'Kilograms' ? 'kg' : row.unitName || '—'}
+        </span>
+      ),
     },
     {
       id: 'warehouse',
       header: 'Kho quản lý',
       width: '16%',
+      minWidth: '130px',
       cell: (row) => <span className="text-slate-600 text-sm">{row.warehouseName || '—'}</span>,
     },
     {
       id: 'price',
       header: 'Đơn giá tham chiếu',
       width: '14%',
+      minWidth: '120px',
       align: 'right',
       cell: (row) => <Num value={row.referencePrice} format="currency" className="font-bold text-slate-900 text-sm" />,
     },
     {
       id: 'fresh',
       header: 'Loại hàng',
-      width: '9%',
+      width: '10%',
+      minWidth: '95px',
       align: 'center',
       cell: (row) => (
-        <Badge variant="neutral" size="sm">
+        <Badge variant="neutral" size="sm" className="whitespace-nowrap">
           {row.isFreshDaily ? 'Tươi sống' : 'Tiêu chuẩn'}
         </Badge>
       ),
@@ -140,10 +150,11 @@ export function AdminDataPage() {
     {
       id: 'status',
       header: 'Trạng thái',
-      width: '9%',
+      width: '10%',
+      minWidth: '105px',
       align: 'center',
       cell: (row) => (
-        <Badge variant={row.isActive ? 'success' : 'neutral'} size="sm">
+        <Badge variant={row.isActive ? 'success' : 'neutral'} size="sm" className="whitespace-nowrap">
           {row.isActive ? 'Đang áp dụng' : 'Tạm khóa'}
         </Badge>
       ),
@@ -155,33 +166,38 @@ export function AdminDataPage() {
       id: 'code',
       header: 'Mã món',
       width: '18%',
+      minWidth: '140px',
       cell: (row) => <IdentifierText value={row.dishCode} />,
     },
     {
       id: 'name',
       header: 'Tên món ăn tiêu chuẩn',
       width: '38%',
+      minWidth: '220px',
       cell: (row) => <span className="font-semibold text-slate-900 text-sm">{row.dishName}</span>,
     },
     {
       id: 'type',
       header: 'Phân loại',
       width: '18%',
+      minWidth: '120px',
       cell: (row) => <span className="text-slate-600 text-sm">{row.dishType || '—'}</span>,
     },
     {
       id: 'group',
       header: 'Nhóm phân loại',
       width: '14%',
+      minWidth: '110px',
       cell: (row) => <span className="text-slate-600 text-sm">{row.dishGroup || '—'}</span>,
     },
     {
       id: 'status',
       header: 'Trạng thái',
       width: '12%',
+      minWidth: '100px',
       align: 'center',
       cell: (row) => (
-        <Badge variant={row.isActive ? 'success' : 'neutral'} size="sm">
+        <Badge variant={row.isActive ? 'success' : 'neutral'} size="sm" className="whitespace-nowrap">
           {row.isActive ? 'Hoạt động' : 'Tạm dừng'}
         </Badge>
       ),
@@ -195,7 +211,7 @@ export function AdminDataPage() {
         title="Quản trị dữ liệu & Danh mục"
         contextSelectors={
           <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
-            {pageInfo.totalCount} {activeView === 'ingredients' ? 'nguyên liệu' : 'món ăn'} persisted
+            {pageInfo.totalCount} {activeView === 'ingredients' ? 'nguyên liệu danh mục' : 'món ăn tiêu chuẩn'}
           </Badge>
         }
         actions={
@@ -216,7 +232,7 @@ export function AdminDataPage() {
           <span className="inline-flex items-center gap-1">
             <span className="text-slate-500">Tổng danh mục:</span>
             <strong className="text-slate-900 font-mono font-bold">
-              {pageInfo.totalCount} mặt hàng authoritative
+              {pageInfo.totalCount} mặt hàng chính thức
             </strong>
           </span>
         }
@@ -229,7 +245,7 @@ export function AdminDataPage() {
         onRetry={loadData}
         isEmpty={!isLoading && !error && (activeView === 'ingredients' ? ingredients.length === 0 : dishes.length === 0)}
         emptyTitle={activeView === 'ingredients' ? 'Chưa có danh mục nguyên liệu' : 'Chưa có danh mục món ăn'}
-        emptyDescription="Backend chưa có dữ liệu persisted cho danh mục này."
+        emptyDescription="Chưa có dữ liệu danh mục cho phân hệ này."
       >
         {activeView === 'ingredients' ? (
           <DataGrid<IngredientItem>

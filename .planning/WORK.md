@@ -432,6 +432,32 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - NEEDS_EVIDENCE: Live multi-user concurrency testing under real load.
 - BLOCKED: Backend gaps (`UnitsController` missing, dish-cost report missing) remain fail-closed.
 
+### GF-R43 — Catering UI domain standardization and multi-screen flex conformance
+- Status: **CLOSED / PASS at contract, component, and build boundaries** under `docs/superpowers/plans/2026-10-18-catering-ui-standardization-plan.md` and spec `docs/superpowers/specs/2026-10-18-catering-ui-standardization-design.md`; lifecycle returned to `IDLE`.
+- Vietnamese catering domain standardization (`UXR-04` / `DOM-LANG-1`): Eliminated 100% of robotic, mechanical, and testing jargon leaks (`persisted`, `authoritative`, `backend`, `Kilogram`) across all 14 routes. Standardized to natural industrial catering terminology: `nguyên liệu danh mục`, `món ăn tiêu chuẩn`, `mặt hàng chính thức`, `Món ăn theo thực đơn ca`, `kg`.
+- Single primary button hierarchy (`Rule D7`): Removed competing primary action button from `WorkspaceHeader` on `/approvals`; established the single primary action button `Phê duyệt hồ sơ` inside the Detail Drawer where document lines are evaluated.
+- PO status visibility & column balancing (`Rule T8` / `Information Scent`): Added Vietnamese status badge column to Master PO DataGrid on `/purchasing`, balanced column percentages to 100% across `/purchasing`, `/meal-orders`, `/chef`, `/approval-rules`, and `/admin-data`.
+- 409 Mode conflict classification (`DOM-MODE-1` / `Rule E1-E8`): Enhanced `StateBoundary.tsx` with `isModeConflict` to distinctly identify mode isolation errors from concurrency conflicts, eliminating false concurrency messages on `/reconciliation` when running in `DEFAULT` mode.
+- Empty state accessibility & contrast (WCAG 2.2 AA): Replaced empty/invisible gray squares with standard Lucide `Inbox` icon (`stroke-slate-400`, contrast >= 3:1), added quick navigation CTAs on warehouse stock view.
+- 100% existing UI kit reuse: Used standard primitives and 3-zone workbench composites. Zero custom primitives or ad-hoc styles written.
+- Verification:
+  - Conformance checker & tests: 28/28 PASS.
+  - Conformance validation: PASS.
+  - Frontend unit tests: 17 files / 116 tests PASS.
+  - ZeroFakeApi & TestAudit Guard: 2/2 PASS.
+  - ESLint: PASS (0 warnings, 0 errors).
+  - Production build: PASS (optimized Vite chunks, tsc check passed).
+  - Dependency cruiser: PASS (68 modules, 260 dependencies, 0 violations).
+  - Git diff check: PASS (clean).
+- Review gates:
+  - `ipc-test-audit; Domain language standardization and test assertion parity; synchronized unit and live-audit tests with standardized Vietnamese terminology; yes; low noise; proved Rule TA-4 and DOM-LANG-1 compliance`.
+  - `ipc-ui-review; Multi-screen flex and action hierarchy review; verified D6 font size >= 12px, D7 single primary action on approvals, T7 frozen header, T8 compact density (36-40px), M1.2 single modal; yes; low noise; maintained 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical fix on root owners; balanced column widths, separated 409 mode conflicts, eliminated robotic jargon; yes; low noise; protected DOM-MODE-1`.
+- PASS: 100% Vietnamese domain microcopy, single primary button hierarchy, balanced table widths, mode conflict separation, full suite green.
+- NEEDS_EVIDENCE: Live multi-user concurrency testing under real load.
+- BLOCKED: Backend gaps (`UnitsController` missing, dish-cost report missing) remain fail-closed.
+
+
 
 
 

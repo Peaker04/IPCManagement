@@ -120,13 +120,13 @@ export function PurchasingPage() {
     {
       id: 'code',
       header: 'Mã đơn PO',
-      width: '18%',
+      width: '16%',
       cell: (row) => <IdentifierText value={row.code} />,
     },
     {
       id: 'supplier',
       header: 'Nhà cung cấp',
-      width: '28%',
+      width: '24%',
       cell: (row) => (
         <span className="font-semibold text-slate-900 text-sm truncate block">
           {row.supplierName}
@@ -136,7 +136,7 @@ export function PurchasingPage() {
     {
       id: 'date',
       header: 'Ngày đặt',
-      width: '14%',
+      width: '13%',
       cell: (row) => (
         <span className="font-mono text-xs text-slate-700">
           {formatVietnameseDate(row.orderDate)}
@@ -146,14 +146,14 @@ export function PurchasingPage() {
     {
       id: 'items',
       header: 'Mặt hàng',
-      width: '10%',
+      width: '12%',
       align: 'center',
-      cell: (row) => <span className="font-mono text-xs">{row.linesCount} dòng</span>,
+      cell: (row) => <span className="font-mono text-xs whitespace-nowrap">{row.linesCount} dòng</span>,
     },
     {
       id: 'amount',
       header: 'Tổng tiền',
-      width: '16%',
+      width: '18%',
       align: 'right',
       cell: (row) => (
         <Num value={row.totalAmount} format="currency" className="font-bold text-slate-900 text-sm" />
@@ -162,7 +162,7 @@ export function PurchasingPage() {
     {
       id: 'status',
       header: 'Trạng thái',
-      width: '14%',
+      width: '17%',
       align: 'center',
       cell: (row) => {
         const config = PO_STATUS_CONFIG[row.status] || { label: row.status, variant: 'neutral' };
@@ -253,7 +253,7 @@ export function PurchasingPage() {
         emptyDescription="Không có đơn PO nào khớp với điều kiện tìm kiếm hoặc trạng thái đã chọn. PO mới phải được tạo từ một đề xuất mua hàng đã duyệt."
       >
         <SplitView
-          masterWidthClass="w-7/12"
+          masterWidthClass="w-7/12 xl:w-8/12"
           master={
             <DataGrid<PurchaseOrderItem>
               data={filteredOrders}
@@ -261,6 +261,7 @@ export function PurchasingPage() {
               keyExtractor={(row) => row.id}
               selectedKey={selectedPo?.id}
               onRowClick={(row) => setSelectedPoId(row.id)}
+              minWidth="min-w-[800px]"
             />
           }
           detail={

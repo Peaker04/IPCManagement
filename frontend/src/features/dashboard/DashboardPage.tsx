@@ -126,32 +126,33 @@ export function DashboardPage() {
                     isSelected ? 'bg-blue-50/80 ring-1 ring-inset ring-blue-500' : 'hover:bg-slate-50'
                   )}
                 >
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-500 font-medium truncate">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-xs text-slate-500 font-medium truncate" title={metric.label}>
                   {metric.label}
                 </span>
                 {metric.unit && (
-                  <span className="text-xs text-slate-400 font-mono">
-                    {metric.unit}
+                  <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                    ({metric.unit})
                   </span>
                 )}
               </div>
               <div className="flex items-baseline gap-2 mt-0.5">
-                <span className="text-base font-bold text-slate-900 font-mono tracking-tight tabular-nums">
+                <span className="text-base font-bold text-slate-900 font-mono tracking-tight tabular-nums shrink-0">
                   {metric.value}
                 </span>
                 {metric.trend && (
                   <span
                     className={clsx(
-                      'text-xs truncate',
+                      'text-xs truncate font-medium',
                       metric.variant === 'danger'
-                        ? 'text-rose-600 font-medium'
+                        ? 'text-rose-600'
                         : metric.variant === 'warning'
-                        ? 'text-amber-600 font-medium'
+                        ? 'text-amber-600'
                         : metric.variant === 'success'
                         ? 'text-emerald-600'
                         : 'text-slate-500'
                     )}
+                    title={metric.trend}
                   >
                     {metric.trend}
                   </span>

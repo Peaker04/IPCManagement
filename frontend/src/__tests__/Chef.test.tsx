@@ -90,6 +90,6 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     renderChef('/chef?view=plans');
 
     expect(await screen.findByText('Chưa có kế hoạch sản xuất')).toBeInTheDocument();
-    expect(screen.getByText('Điều phối chưa có KHSX persisted cho ngày, ca và khách hàng đã chọn.')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có KHSX được duyệt cho ngày, ca và khách hàng đã chọn.')).toBeInTheDocument();
   });
 });

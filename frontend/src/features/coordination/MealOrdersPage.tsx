@@ -95,7 +95,7 @@ export function MealOrdersPage() {
     {
       id: 'mealType',
       header: 'Phân loại suất ăn',
-      width: '22%',
+      width: '20%',
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-slate-900 text-sm truncate">{row.mealType || 'Chưa phân loại'}</span>
@@ -106,7 +106,7 @@ export function MealOrdersPage() {
     {
       id: 'menu',
       header: 'Thực đơn',
-      width: '22%',
+      width: '20%',
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-medium text-slate-800 text-sm truncate">{row.menuName || 'Chưa có tên thực đơn'}</span>
@@ -116,8 +116,8 @@ export function MealOrdersPage() {
     },
     {
       id: 'dishes',
-      header: 'Món ăn persisted',
-      width: '26%',
+      header: 'Món ăn theo thực đơn ca',
+      width: '28%',
       cell: (row) => (
         <span className="text-sm text-slate-700">
           {row.dishes.length > 0 ? row.dishes.map((dish) => dish.dishName).join(', ') : 'Chưa có món ăn'}
@@ -127,21 +127,21 @@ export function MealOrdersPage() {
     {
       id: 'forecast',
       header: 'Suất dự kiến',
-      width: '12%',
+      width: '11%',
       align: 'right',
       cell: (row) => <Num value={row.forecastQuantity} format="quantity" suffix=" suất" />,
     },
     {
       id: 'actual',
       header: 'Suất thực tế',
-      width: '12%',
+      width: '11%',
       align: 'right',
       cell: (row) => <Num value={row.actualQuantity} format="quantity" suffix=" suất" />,
     },
     {
       id: 'scope',
       header: 'Ca phục vụ',
-      width: '12%',
+      width: '10%',
       align: 'center',
       cell: (row) => <Badge variant="neutral" size="sm">{row.shiftName}</Badge>,
     },
@@ -205,7 +205,7 @@ export function MealOrdersPage() {
         isEmpty={Boolean(data && data.orders.length === 0)}
         emptyScenario="prerequisite-blocked"
         emptyTitle="Chưa có kế hoạch suất ăn"
-        emptyDescription="Không có dòng kế hoạch persisted cho khách hàng, ngày và ca đã chọn."
+        emptyDescription="Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn."
       >
         {data && <DataGrid data={data.orders} columns={columns} keyExtractor={(row) => row.quantityPlanLineId} />}
       </StateBoundary>

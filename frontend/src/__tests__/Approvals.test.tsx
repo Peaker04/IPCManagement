@@ -35,11 +35,12 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     expect(screen.queryByPlaceholderText('dd/MM/yyyy')).not.toBeInTheDocument();
     expect(screen.getAllByText(/chờ xử lý/i).length).toBeGreaterThan(0);
 
-    // Rule D7: Exactly 1 primary button + 1 outline
+    // Rule D7: Single primary button hierarchy - header keeps outline refresh, drawer owns primary decision
     expect(screen.getByRole('button', { name: 'Làm mới' })).toBeInTheDocument();
-    const approveBtn = screen.getByRole('button', { name: 'Phê duyệt yêu cầu đang chọn' });
-    expect(approveBtn).toBeInTheDocument();
-    expect(approveBtn).toHaveClass('bg-slate-900');
+    expect(screen.queryByRole('button', { name: 'Phê duyệt yêu cầu đang chọn' })).not.toBeInTheDocument();
+    const drawerApproveBtn = (await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' }))[0];
+    expect(drawerApproveBtn).toBeInTheDocument();
+    expect(drawerApproveBtn).toHaveClass('bg-slate-900');
   });
 
   it('renders Zone 2 TelemetrySubbar (44px) with filter tabs and telemetry pills', async () => {

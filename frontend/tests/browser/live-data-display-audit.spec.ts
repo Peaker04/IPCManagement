@@ -69,11 +69,11 @@ test.describe('Live Data Display Audit Across Routes (Real Backend & MySQL)', ()
     await page.goto('/admin-data?view=ingredients');
     await expect(page.getByRole('heading', { name: 'Quản trị dữ liệu & Danh mục' })).toBeVisible({ timeout: 15_000 });
 
-    // Zone 1 Badge displays real persisted count (756 nguyên liệu)
-    await expect(page.getByText('756 nguyên liệu persisted')).toBeVisible({ timeout: 10_000 });
+    // Zone 1 Badge displays real count (756 nguyên liệu)
+    await expect(page.getByText('756 nguyên liệu danh mục')).toBeVisible({ timeout: 10_000 });
 
     // Zone 2 Telemetry displays 756 items
-    await expect(page.getByText('756 mặt hàng authoritative')).toBeVisible();
+    await expect(page.getByText('756 mặt hàng chính thức')).toBeVisible();
 
     // Table renders real C# DTO column headers
     await expect(page.getByRole('columnheader', { name: 'Mã nguyên liệu' })).toBeVisible();
@@ -106,11 +106,11 @@ test.describe('Live Data Display Audit Across Routes (Real Backend & MySQL)', ()
     await page.goto('/admin-data?view=dishes');
     await expect(page.getByRole('heading', { name: 'Quản trị dữ liệu & Danh mục' })).toBeVisible({ timeout: 15_000 });
 
-    // Zone 1 Badge displays 195 món ăn persisted
-    await expect(page.getByText('195 món ăn persisted')).toBeVisible({ timeout: 10_000 });
+    // Zone 1 Badge displays 195 món ăn
+    await expect(page.getByText('195 món ăn tiêu chuẩn')).toBeVisible({ timeout: 10_000 });
 
     // Zone 2 Telemetry displays 195 mặt hàng
-    await expect(page.getByText('195 mặt hàng authoritative')).toBeVisible();
+    await expect(page.getByText('195 mặt hàng chính thức')).toBeVisible();
 
     // Table renders real C# DTO column headers for dishes
     await expect(page.getByRole('columnheader', { name: 'Mã món' })).toBeVisible();

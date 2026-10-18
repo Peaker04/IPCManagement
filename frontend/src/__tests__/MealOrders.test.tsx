@@ -36,7 +36,7 @@ describe('Meal Orders Feature (FR-COORD — Behavioral Audit)', () => {
     expect(screen.getByRole('tab', { name: 'Ca 1 (Sáng)' })).toBeInTheDocument();
     expect(await screen.findByRole('columnheader', { name: 'Phân loại suất ăn' })).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Thực đơn' })).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Món ăn persisted' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Món ăn theo thực đơn ca' })).toBeInTheDocument();
     expect(screen.getByText('Khô gà lá chanh')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /chốt số lượng/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /xuất báo cáo/i })).not.toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('Meal Orders Feature (FR-COORD — Behavioral Audit)', () => {
     renderMealOrders();
 
     expect(await screen.findByText('Chưa có kế hoạch suất ăn')).toBeInTheDocument();
-    expect(screen.getByText('Không có dòng kế hoạch persisted cho khách hàng, ngày và ca đã chọn.')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn.')).toBeInTheDocument();
   });
 
   // Kịch bản 4: Error Handling & Retry

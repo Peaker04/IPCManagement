@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -17,6 +17,7 @@ import {
 import { formatVietnameseDate } from '../../utils/dates';
 
 export function WarehousePage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
   const activeView: 'issues' | 'receipts' | 'stock' =
@@ -208,7 +209,7 @@ export function WarehousePage() {
               onChange={(e) => setSelectedWarehouseId(e.target.value)}
               className="h-9 w-72 font-medium text-sm"
             />
-            <Badge variant="success" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
+            <Badge variant="success" size="default" className="h-9 px-3 text-sm font-medium flex items-center whitespace-nowrap shrink-0">
               Kho đang hoạt động
             </Badge>
           </>
@@ -294,6 +295,8 @@ export function WarehousePage() {
             emptyScenario="prerequisite-blocked"
             emptyTitle="Chưa có nguồn tồn kho hiện tại"
             emptyDescription="Tồn kho hiện tại phải đến từ snapshot có thẩm quyền; không thể suy ra từ phiếu nhập và phiếu xuất với tồn đầu kỳ bằng 0."
+            actionLabel="Xem phiếu xuất kho"
+            onAction={() => navigate('/warehouse?view=issues')}
           >
             <div />
           </StateBoundary>

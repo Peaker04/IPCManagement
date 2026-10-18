@@ -139,13 +139,13 @@ export function ApprovalPage() {
     {
       id: 'targetCode',
       header: 'Mã đối tượng',
-      width: '18%',
+      width: '16%',
       cell: (row) => <IdentifierText value={row.targetCode} />,
     },
     {
       id: 'title',
       header: 'Tiêu đề yêu cầu phê duyệt',
-      width: '28%',
+      width: '26%',
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
           <span className="font-semibold text-slate-900 text-sm truncate">{row.title}</span>
@@ -156,19 +156,19 @@ export function ApprovalPage() {
     {
       id: 'submittedBy',
       header: 'Người gửi',
-      width: '15%',
+      width: '14%',
       cell: (row) => <span className="text-slate-700 text-sm truncate block">{row.submittedBy}</span>,
     },
     {
       id: 'sla',
       header: 'Hạn SLA',
-      width: '13%',
+      width: '14%',
       cell: (row) => <span className="font-mono text-xs text-slate-600">{formatVietnameseDateTime(row.slaDeadline)}</span>,
     },
     {
       id: 'total',
       header: 'Quy mô',
-      width: '14%',
+      width: '18%',
       align: 'right',
       cell: (row) => (
         row.totalValue != null ? (
@@ -216,28 +216,14 @@ export function ApprovalPage() {
           </>
         }
         actions={
-          <>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => loadData()}
-              className="h-9 text-sm font-medium"
-            >
-              Làm mới
-            </Button>
-            {/* Rule D7: Single primary button */}
-            <ActionGuard capabilityId="APPR.DECISION" roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
-              <Button
-                variant="default"
-                size="default"
-                disabled={!selectedItem || isSubmitting}
-                onClick={() => openConfirmModal('APPROVE')}
-                className="h-9 text-sm font-medium"
-              >
-                Phê duyệt yêu cầu đang chọn
-              </Button>
-            </ActionGuard>
-          </>
+          <Button
+            variant="outline"
+            size="default"
+            onClick={() => loadData()}
+            className="h-9 text-sm font-medium"
+          >
+            Làm mới
+          </Button>
         }
       />
 
@@ -310,6 +296,7 @@ export function ApprovalPage() {
               keyExtractor={(row) => row.inboxItemId}
               selectedKey={selectedItem?.inboxItemId}
               onRowClick={(row) => setSelectedItemId(row.inboxItemId)}
+              minWidth="min-w-[780px]"
             />
           }
           detail={
@@ -369,7 +356,7 @@ export function ApprovalPage() {
                           <div key={idx} className="flex justify-between px-3 py-2">
                             <span className="font-medium text-slate-900">{m.name}</span>
                             <span className="font-mono text-slate-700">
-                              <Num value={m.quantity} format="quantity" suffix={` ${m.unit}`} />
+                              <Num value={m.quantity} format="quantity" suffix={` ${m.unit === 'Kilogram' || m.unit === 'Kilograms' ? 'kg' : m.unit}`} />
                             </span>
                           </div>
                         ))}
@@ -404,11 +391,11 @@ export function ApprovalPage() {
                   </ActionGuard>
                   <ActionGuard capabilityId="APPR.DECISION" roles={['ADMIN', 'MANAGER', 'QUAN_LY_THU_MUA', 'QUAN_LY_SAN_XUAT']}>
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       disabled={isSubmitting}
                       onClick={() => openConfirmModal('APPROVE')}
-                      className="font-semibold text-xs border-slate-300 hover:bg-slate-100"
+                      className="font-semibold text-xs shadow-2xs"
                     >
                       {isSubmitting ? 'Đang duyệt...' : 'Phê duyệt hồ sơ'}
                     </Button>
