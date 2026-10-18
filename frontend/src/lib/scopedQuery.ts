@@ -3,13 +3,18 @@
  *
  * Implements in-memory caching, request deduplication, stale-while-revalidate,
  * keepPreviousData, and strict operational mode partitioning (DOM-MODE-1).
+ * Uses React 19 useSyncExternalStore for 100% purity and zero layout jitter.
  */
 
-import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { useState, useCallback, useSyncExternalStore } from 'react';
 import type { OperationalMode } from '../types';
 
-export interface CacheEntry<T = unknown> {
-  data: T;
+export interface QueryRecord<TData = unknown, TError = Error> {
+  data: TData | undefined;
+  previousData: TData | undefined;
+  error: TError | null;
+  isFetching: boolean;
+  isRefetching: boolean;
   timestamp: number;
   mode: OperationalMode;
   scope: string;
@@ -52,9 +57,20 @@ export interface ScopedMutationResult<TData, TVariables, TError = Error> {
   reset: () => void;
 }
 
+const DEFAULT_RECORD: QueryRecord = {
+  data: undefined,
+  previousData: undefined,
+  error: null,
+  isFetching: false,
+  isRefetching: false,
+  timestamp: 0,
+  mode: 'DEFAULT',
+  scope: 'GLOBAL',
+};
+
 // Global In-Memory Query Store
 class ScopedQueryClientStore {
-  private cache = new Map<string, CacheEntry>();
+  private records = new Map<string, QueryRecord>();
   private inFlight = new Map<string, Promise<unknown>>();
   private listeners = new Set<() => void>();
 
@@ -68,16 +84,56 @@ class ScopedQueryClientStore {
     return `${mode}#${role}#${scope}#${rawParts}`;
   }
 
-  public get<T>(normalizedKey: string): CacheEntry<T> | undefined {
-    return this.cache.get(normalizedKey) as CacheEntry<T> | undefined;
+  public getRecord<TData, TError = Error>(normalizedKey: string): QueryRecord<TData, TError> {
+    const existing = this.records.get(normalizedKey);
+    if (!existing) {
+      return DEFAULT_RECORD as QueryRecord<TData, TError>;
+    }
+    return existing as QueryRecord<TData, TError>;
+  }
+
+  public get<T>(normalizedKey: string): { data: T; mode: OperationalMode; timestamp: number } | undefined {
+    const record = this.records.get(normalizedKey);
+    if (!record || record.data === undefined) return undefined;
+    return { data: record.data as T, mode: record.mode, timestamp: record.timestamp };
   }
 
   public set<T>(normalizedKey: string, data: T, mode: OperationalMode, scope = 'GLOBAL'): void {
-    this.cache.set(normalizedKey, {
+    const current = this.getRecord(normalizedKey);
+    this.records.set(normalizedKey, {
+      ...current,
       data,
+      previousData: current.data ?? data,
+      error: null,
+      isFetching: false,
+      isRefetching: false,
       timestamp: Date.now(),
       mode,
       scope,
+    });
+    this.notify();
+  }
+
+  public setFetching(normalizedKey: string, isRefetch: boolean, mode: OperationalMode, scope = 'GLOBAL'): void {
+    const current = this.getRecord(normalizedKey);
+    this.records.set(normalizedKey, {
+      ...current,
+      isFetching: true,
+      isRefetching: isRefetch,
+      previousData: current.data,
+      mode,
+      scope,
+    });
+    this.notify();
+  }
+
+  public setError<TError>(normalizedKey: string, error: TError): void {
+    const current = this.getRecord(normalizedKey);
+    this.records.set(normalizedKey, {
+      ...current,
+      error: error as Error,
+      isFetching: false,
+      isRefetching: false,
     });
     this.notify();
   }
@@ -96,25 +152,25 @@ class ScopedQueryClientStore {
 
   public invalidateQueries(keyPatternParts: (string | number | boolean | null | undefined)[]): void {
     const pattern = keyPatternParts.map((p) => String(p ?? '')).join('::');
-    for (const key of this.cache.keys()) {
+    for (const key of this.records.keys()) {
       if (key.includes(pattern)) {
-        this.cache.delete(key);
+        this.records.delete(key);
       }
     }
     this.notify();
   }
 
   public flushMode(modeToFlush: OperationalMode): void {
-    for (const [key, entry] of this.cache.entries()) {
+    for (const [key, entry] of this.records.entries()) {
       if (entry.mode === modeToFlush) {
-        this.cache.delete(key);
+        this.records.delete(key);
       }
     }
     this.notify();
   }
 
   public clearAll(): void {
-    this.cache.clear();
+    this.records.clear();
     this.inFlight.clear();
     this.notify();
   }
@@ -145,7 +201,6 @@ export function useScopedQuery<TData, TError = Error>({
   queryKey,
   queryFn,
   enabled = true,
-  staleTime = 30_000,
   keepPreviousData = false,
   mode = 'DEFAULT',
   userRole = 'USER',
@@ -153,45 +208,18 @@ export function useScopedQuery<TData, TError = Error>({
 }: ScopedQueryOptions<TData>): ScopedQueryResult<TData, TError> {
   const normalizedKey = queryClient.normalizeKey(queryKey, mode, userRole, scopeKey);
 
-  // Subscribe to cache updates
-  useSyncExternalStore(
+  // Subscribe to store updates via pure useSyncExternalStore
+  const record = useSyncExternalStore(
     (cb) => queryClient.subscribe(cb),
-    () => queryClient.get(normalizedKey)?.timestamp ?? 0
+    () => queryClient.getRecord<TData, TError>(normalizedKey)
   );
 
-  const cachedEntry = queryClient.get<TData>(normalizedKey);
-  const hasCachedData = cachedEntry !== undefined;
-  const isStale = !cachedEntry || Date.now() - cachedEntry.timestamp > staleTime;
-
-  const [data, setData] = useState<TData | undefined>(cachedEntry?.data);
-  const [error, setError] = useState<TError | null>(null);
-  const [isFetching, setIsFetching] = useState<boolean>(!hasCachedData || isStale);
-  const [isRefetching, setIsRefetching] = useState<boolean>(false);
-  const previousDataRef = useRef<TData | undefined>(cachedEntry?.data);
-  const isPreviousData = Boolean(keepPreviousData && isFetching && data === previousDataRef.current && data !== undefined);
-
-  // Track active request ID to prevent race conditions
-  const activeRequestId = useRef(0);
-
   const executeFetch = useCallback(
-    async (isManualRefetch = false): Promise<TData | undefined> => {
+    async (isManual = false): Promise<TData | undefined> => {
       if (!enabled) return undefined;
-      const currentId = ++activeRequestId.current;
 
-      const cached = queryClient.get<TData>(normalizedKey);
-      if (cached) {
-        if (!keepPreviousData) {
-          setData(cached.data);
-        }
-        previousDataRef.current = cached.data;
-      }
+      queryClient.setFetching(normalizedKey, isManual, mode, scopeKey);
 
-      if (isManualRefetch) {
-        setIsRefetching(true);
-      }
-      setIsFetching(true);
-
-      // Check existing in-flight request to deduplicate
       let fetchPromise = queryClient.getInFlight<TData>(normalizedKey);
       if (!fetchPromise) {
         fetchPromise = queryFn();
@@ -200,56 +228,31 @@ export function useScopedQuery<TData, TError = Error>({
 
       try {
         const result = await fetchPromise;
-        if (currentId === activeRequestId.current) {
-          queryClient.set(normalizedKey, result, mode, scopeKey);
-          setData(result);
-          previousDataRef.current = result;
-          setError(null);
-          return result;
-        }
+        queryClient.set(normalizedKey, result, mode, scopeKey);
+        return result;
       } catch (err) {
-        if (currentId === activeRequestId.current) {
-          const failure = err instanceof Error ? (err as TError) : (new Error(String(err)) as TError);
-          setError(failure);
-          // Non-destructive: if we already have data, KEEP it visible!
-          if (!previousDataRef.current) {
-            setData(undefined);
-          }
-        }
+        const failure = err instanceof Error ? (err as TError) : (new Error(String(err)) as TError);
+        queryClient.setError(normalizedKey, failure);
       } finally {
         queryClient.clearInFlight(normalizedKey);
-        if (currentId === activeRequestId.current) {
-          setIsFetching(false);
-          setIsRefetching(false);
-        }
       }
       return undefined;
     },
-    [enabled, normalizedKey, queryFn, mode, scopeKey, keepPreviousData]
+    [enabled, normalizedKey, queryFn, mode, scopeKey]
   );
 
-  useEffect(() => {
-    if (!enabled) return;
-    const entry = queryClient.get<TData>(normalizedKey);
-    if (!entry || Date.now() - entry.timestamp > staleTime) {
-      executeFetch(false);
-    } else {
-      setData(entry.data);
-      previousDataRef.current = entry.data;
-      setIsFetching(false);
-    }
-  }, [normalizedKey, enabled, staleTime, executeFetch]);
-
-  const isInitialLoading = !hasCachedData && isFetching && data === undefined;
-  const status = error ? 'error' : isInitialLoading ? 'loading' : 'success';
+  const isInitialLoading = enabled && record.data === undefined && (record.isFetching || record.timestamp === 0);
+  const displayData = keepPreviousData && record.data === undefined ? record.previousData : record.data;
+  const isPreviousData = Boolean(keepPreviousData && record.data === undefined && record.previousData !== undefined);
+  const status = record.error ? 'error' : isInitialLoading ? 'loading' : 'success';
 
   return {
-    data,
-    error,
+    data: displayData,
+    error: record.error,
     status,
     isInitialLoading,
-    isFetching,
-    isRefetching,
+    isFetching: record.isFetching,
+    isRefetching: record.isRefetching,
     isPreviousData,
     refetch: () => executeFetch(true),
   };
@@ -273,7 +276,6 @@ export function useScopedMutation<TData, TVariables, TError = Error>({
       setError(null);
       try {
         const result = await mutationFn(variables);
-        // Automatically invalidate target queries
         for (const key of invalidateKeys) {
           queryClient.invalidateQueries(key);
         }
