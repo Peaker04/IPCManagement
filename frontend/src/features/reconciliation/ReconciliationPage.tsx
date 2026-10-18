@@ -299,6 +299,8 @@ export function ReconciliationPage() {
 
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={Boolean(data && data.lines.length > 0)}
         error={displayedError}
         isForbidden={isForbidden}
         isModeConflict={isModeConflict}

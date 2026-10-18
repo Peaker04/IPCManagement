@@ -287,6 +287,8 @@ export function ApprovalPage() {
       {/* Zone 3: SplitView (Master 7 cols Queue | Detail 5 cols Decision Drawer) */}
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={items.length > 0}
         error={error}
         onRetry={() => loadData()}
         isEmpty={filteredItems.length === 0}

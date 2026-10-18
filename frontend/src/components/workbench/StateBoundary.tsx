@@ -8,6 +8,9 @@ export type EmptyScenario = 'true-empty' | 'prerequisite-blocked' | 'partial-dat
 
 export interface StateBoundaryProps {
   isLoading?: boolean;
+  isFetching?: boolean;
+  isPreviousData?: boolean;
+  hasExistingData?: boolean;
   loadingVariant?: 'table' | 'cards' | 'matrix' | 'form';
   loadingGeometry?: SkeletonGeometry;
   customSkeleton?: ReactNode;
@@ -69,6 +72,9 @@ function resolveEmptyContent(
 
 export function StateBoundary({
   isLoading,
+  isFetching,
+  isPreviousData,
+  hasExistingData,
   loadingVariant = 'table',
   loadingGeometry,
   customSkeleton,
@@ -98,13 +104,18 @@ export function StateBoundary({
   const showForbidden = isForbidden || errorStatus === 403;
   const showConflict = isConflict || errorStatus === 409;
 
-  // 1. Loading State (Geometric Compact Table or Custom Skeleton)
-  if (isLoading) {
+  // 1. Initial Loading State (ONLY when there is no existing data to display)
+  if (isLoading && !hasExistingData) {
     if (customSkeleton) {
       return <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>{customSkeleton}</div>;
     }
 
-    return <WorkbenchSkeleton geometry={loadingGeometry ?? { kind: loadingVariant === 'cards' ? 'table' : loadingVariant, columns: loadingVariant === 'matrix' ? 7 : 4, rows: loadingVariant === 'form' ? 4 : 8, toolbar: true }} className={className} />;
+    return (
+      <WorkbenchSkeleton
+        geometry={loadingGeometry ?? { kind: loadingVariant === 'cards' ? 'table' : loadingVariant, columns: loadingVariant === 'matrix' ? 7 : 6, rows: loadingVariant === 'form' ? 4 : 12, toolbar: false }}
+        className={className}
+      />
+    );
   }
 
   // 2. Permission-Denied State (403)
@@ -162,9 +173,30 @@ export function StateBoundary({
     );
   }
 
-  // 4. Error State
+  // 4. Error State (Non-destructive when existing data is available)
   if (error && errorStatus !== 403 && errorStatus !== 409) {
     const message = typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.';
+    if (hasExistingData) {
+      // Non-destructive inline alert: keeps data visible and allows retry
+      return (
+        <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>
+          <div role="alert" className="px-4 py-2 text-xs bg-rose-50 border-b border-rose-200 text-rose-800 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold">Không thể tải dữ liệu</span>
+              <span>: </span>
+              <span>{message}</span>
+            </div>
+            {onRetry && (
+              <Button variant="outline" size="xs" onClick={onRetry} className="h-6 px-2 text-xs">
+                Thử lại
+              </Button>
+            )}
+          </div>
+          {children}
+        </div>
+      );
+    }
+
     return (
       <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Không thể tải dữ liệu</h3>
@@ -200,13 +232,23 @@ export function StateBoundary({
 
   // 6. Partial State Banner & Content
   return (
-    <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>
+    <div className={clsx('flex-1 min-h-0 w-full flex flex-col relative', className)}>
+      {/* Subtle Micro-Progress Bar during background refetch / pagination */}
+      {isFetching && hasExistingData && (
+        <div aria-hidden="true" className="h-0.5 w-full bg-blue-600/80 animate-pulse shrink-0 absolute top-0 left-0 right-0 z-20" />
+      )}
       {isPartial && (
-        <div role="status" aria-live="polite" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between">
+        <div role="status" aria-live="polite" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between shrink-0">
           <span>{partialMessage || 'Dữ liệu hiển thị một phần do các ca sản xuất đang diễn ra.'}</span>
         </div>
       )}
-      {children}
+      {isPreviousData ? (
+        <div className="flex-1 min-h-0 w-full flex flex-col opacity-75 pointer-events-none transition-opacity duration-150" aria-busy="true">
+          {children}
+        </div>
+      ) : (
+        children
+      )}
     </div>
   );
 }

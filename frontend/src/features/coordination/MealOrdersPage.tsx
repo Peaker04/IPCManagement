@@ -204,6 +204,8 @@ export function MealOrdersPage() {
 
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={Boolean(data && data.orders.length > 0)}
         error={error}
         onRetry={loadOrders}
         isEmpty={Boolean(data && data.orders.length === 0)}

@@ -254,6 +254,8 @@ export function PurchasingPage() {
       {/* Zone 3: SplitView (Master 7 cols PO list | Detail 5 cols PO lines) */}
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={orders.length > 0}
         error={error}
         onRetry={loadData}
         isEmpty={filteredOrders.length === 0}

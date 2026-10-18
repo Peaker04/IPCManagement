@@ -153,6 +153,8 @@ export function ChefDashboardPage() {
 
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={Boolean(data && activeData.length > 0)}
         error={error}
         onRetry={reload}
         isEmpty={Boolean(data && activeData.length === 0)}

@@ -166,6 +166,8 @@ export function DashboardPage() {
       {/* Zone 3: SplitView (Left: Tasks Table 8 cols | Right: 4-Stage Stepper 4 cols) */}
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={Boolean(data && data.metrics.length > 0)}
         error={error}
         onRetry={handleRefresh}
         isEmpty={!data || data.tasks.length === 0}

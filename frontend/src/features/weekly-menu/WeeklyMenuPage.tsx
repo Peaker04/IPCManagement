@@ -184,6 +184,8 @@ export function WeeklyMenuPage() {
 
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={Boolean(data && (data.matrixRows.length > 0 || data.demandRows.length > 0 || data.productionPlans.length > 0))}
         error={error}
         onRetry={handleRefresh}
         isEmpty={isViewEmpty}

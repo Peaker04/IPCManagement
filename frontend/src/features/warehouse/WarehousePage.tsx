@@ -258,6 +258,8 @@ export function WarehousePage() {
       {/* Zone 3: DataGrid */}
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={issues.length > 0 || receipts.length > 0}
         error={error}
         onRetry={loadData}
         isEmpty={

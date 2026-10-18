@@ -241,6 +241,8 @@ export function AdminDataPage() {
       {/* Zone 3: DataGrid */}
       <StateBoundary
         isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={activeView === 'ingredients' ? ingredients.length > 0 : dishes.length > 0}
         error={error}
         onRetry={loadData}
         isEmpty={!isLoading && !error && (activeView === 'ingredients' ? ingredients.length === 0 : dishes.length === 0)}
