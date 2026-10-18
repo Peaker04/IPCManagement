@@ -129,7 +129,7 @@ export function StateBoundary({
         <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-3">
           MRX
         </div>
-        <h3 className="text-sm font-semibold text-slate-900 mb-1">Yêu cầu Chế độ Đối soát nguyên liệu</h3>
+        <h3 className="text-sm font-semibold text-slate-900 mb-1">Phân hệ yêu cầu Chế độ MRX</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">
           {modeConflictMessage || 'Hệ thống đang vận hành ở Chế độ Mặc định (DEFAULT). Theo nguyên tắc an toàn DOM-MODE-1, phân hệ Đối soát chỉ hoạt động khi kích hoạt Chế độ MRX trong phần Thiết lập nâng cao.'}
         </p>

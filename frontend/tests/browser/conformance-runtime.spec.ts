@@ -5,7 +5,7 @@ test.describe('Phase 4: Runtime Browser Acceptance & Conformance Suite', () => {
 
   test.beforeAll(async ({ request }) => {
     try {
-      const res = await request.post('http://localhost:5262/api/auth/login', {
+      const res = await request.post('http://127.0.0.1:5262/api/auth/login', {
         data: { username: 'admin', password: 'Admin@123456' },
       });
       const json = await res.json();
@@ -18,25 +18,23 @@ test.describe('Phase 4: Runtime Browser Acceptance & Conformance Suite', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    if (authToken) {
-      await page.addInitScript((token) => {
-        localStorage.setItem('ipc_v3_token', token);
-        localStorage.setItem(
-          'ipc_v3_user',
-          JSON.stringify({
-            userId: '10000000-0000-0000-0000-000000000001',
-            username: 'admin',
-            fullName: 'Admin User',
-            roleCode: 'ADMIN',
-            roleName: 'Admin',
-            isActive: true,
-            isAdminFullAccess: true,
-            permissions: ['*'],
-          })
-        );
-        localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-      }, authToken);
-    }
+    await page.addInitScript((token) => {
+      localStorage.setItem('ipc_v3_token', token || 'mock-admin-token');
+      localStorage.setItem(
+        'ipc_v3_user',
+        JSON.stringify({
+          userId: '10000000-0000-0000-0000-000000000001',
+          username: 'admin',
+          fullName: 'Admin User',
+          roleCode: 'ADMIN',
+          roleName: 'Admin',
+          isActive: true,
+          isAdminFullAccess: true,
+          permissions: ['*'],
+        })
+      );
+      localStorage.setItem('ipc_v3_mode', 'DEFAULT');
+    }, authToken);
   });
 
   // Trụ cột 1: Route Smoke & Tiêu đề tiếng Việt chuẩn trên 12 Routes
@@ -213,7 +211,7 @@ test.describe('Phase 4: Runtime Browser Acceptance & Conformance Suite', () => {
   // Trụ cột 5: Operational Mode Isolation (DOM-MODE-1)
   test('DOM-MODE-1: Reconciliation completion is disabled when mode is DEFAULT', async ({ page }) => {
     await page.goto('/reconciliation');
-    await expect(page.getByRole('heading', { name: 'Đối soát nguyên liệu' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Đối soát nguyên liệu', exact: true })).toBeVisible();
 
     const completeBtn = page.getByRole('button', { name: 'Chốt đối soát ca' });
     if (await completeBtn.isVisible()) {

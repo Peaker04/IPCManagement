@@ -100,7 +100,7 @@ export function DataGrid<T>({
                     style={{ minWidth: col.minWidth }}
                     className={clsx(
                       'px-4 py-2 truncate text-sm',
-                      colIdx === 0 && 'sticky left-0 z-10 bg-inherit shadow-[1px_0_0_0_#e2e8f0]',
+                      colIdx === 0 && 'sticky left-0 z-10 bg-inherit shadow-[1px_0_0_0_var(--border-subtle)]',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center'
                     )}

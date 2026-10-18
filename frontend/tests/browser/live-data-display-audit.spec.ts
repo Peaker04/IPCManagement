@@ -137,8 +137,7 @@ test.describe('Live Data Display Audit Across Routes (Real Backend & MySQL)', ()
     // Dynamic supplier selector shows real partner count from MySQL (35 đối tác)
     const supplierSelect = page.getByRole('combobox');
     await expect(supplierSelect).toBeVisible({ timeout: 10_000 });
-    const selectText = await supplierSelect.textContent();
-    expect(selectText).toMatch(/35 đối tác/);
+    await expect(supplierSelect).toContainText('35 đối tác', { timeout: 10_000 });
 
     // Master table renders real purchase order columns
     await expect(page.getByRole('columnheader', { name: 'Mã đơn PO' })).toBeVisible();
@@ -196,7 +195,7 @@ test.describe('Live Data Display Audit Across Routes (Real Backend & MySQL)', ()
   // 7. Kiểm tra dữ liệu thật trên Đối soát nguyên liệu (/reconciliation)
   test('Reconciliation (/reconciliation): Renders customer selector and mode-guarded batch action', async ({ page }) => {
     await page.goto('/reconciliation');
-    await expect(page.getByRole('heading', { name: 'Đối soát nguyên liệu' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('heading', { name: 'Đối soát nguyên liệu', exact: true })).toBeVisible({ timeout: 15_000 });
 
     // Customer selector populated
     await expect(page.getByRole('combobox', { name: 'Chọn khách hàng đối soát' })).toBeVisible();
