@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -41,6 +42,8 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function ReconciliationPage() {
   const navigate = useNavigate();
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('Admin') || hasRole('ADMIN');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [customerCode, setCustomerCode] = useState('');
   const [serviceDate, setServiceDate] = useState(todayInBusinessTimezone);
@@ -299,8 +302,8 @@ export function ReconciliationPage() {
         error={displayedError}
         isForbidden={isForbidden}
         isModeConflict={isModeConflict}
-        modeConflictMessage={error?.message}
-        onSwitchMode={() => navigate('/settings/advanced?view=mode')}
+        modeConflictMessage={isAdmin ? error?.message : 'Phân hệ Đối soát chỉ hoạt động trong Chế độ MRX. Vui lòng liên hệ Quản trị viên (Admin) để kích hoạt chế độ này.'}
+        onSwitchMode={isAdmin ? () => navigate('/settings/advanced?view=mode') : undefined}
         isConflict={isConflict}
         conflictDetails={error?.message}
         onResolveConflict={() => loadData()}

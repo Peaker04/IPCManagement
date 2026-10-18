@@ -89,9 +89,9 @@ export function DataGrid<T>({
                   'h-10 transition-colors',
                   onRowClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500',
                   isSelected
-                    ? 'bg-blue-50/70 hover:bg-blue-50'
+                    ? 'bg-blue-50 hover:bg-blue-100/70'
                     : 'hover:bg-slate-50/80',
-                  index % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'
+                  index % 2 === 1 ? 'bg-slate-50' : 'bg-white'
                 )}
               >
                 {columns.map((col, colIdx) => (
@@ -100,7 +100,7 @@ export function DataGrid<T>({
                     style={{ minWidth: col.minWidth }}
                     className={clsx(
                       'px-4 py-2 truncate text-sm',
-                      colIdx === 0 && 'sticky left-0 z-10 bg-inherit backdrop-blur-xs',
+                      colIdx === 0 && 'sticky left-0 z-10 bg-inherit shadow-[1px_0_0_0_#e2e8f0]',
                       col.align === 'right' && 'text-right',
                       col.align === 'center' && 'text-center'
                     )}

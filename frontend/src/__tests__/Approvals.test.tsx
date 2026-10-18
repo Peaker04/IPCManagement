@@ -76,11 +76,23 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
   });
 
   it('approves selected item and updates decision', async () => {
+    const decideSpy = vi.spyOn(approvalsApi, 'decide').mockResolvedValue({ success: true });
     renderApprovals();
 
     const approveBtns = await screen.findAllByRole('button', { name: 'Phê duyệt hồ sơ' });
     expect(approveBtns.length).toBeGreaterThan(0);
     await userEvent.click(approveBtns[0]);
+
+    // Confirm inside modal
+    const confirmBtn = await screen.findByRole('button', { name: 'Xác nhận phê duyệt' });
+    await userEvent.click(confirmBtn);
+
+    expect(decideSpy).toHaveBeenCalledWith(
+      MOCK_APPROVALS[0].targetType,
+      MOCK_APPROVALS[0].targetId,
+      'APPROVE',
+      'Phê duyệt hồ sơ theo thẩm quyền'
+    );
   });
 
   it('keeps loaded inbox data visible when a decision conflicts with a newer version', async () => {

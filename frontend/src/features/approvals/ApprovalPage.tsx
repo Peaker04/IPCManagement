@@ -90,7 +90,8 @@ export function ApprovalPage() {
     setIsSubmitting(true);
     setValidationError(null);
     try {
-      await approvalsApi.decide(selectedItem.targetType, selectedItem.targetId, confirmAction, decisionReason);
+      const finalReason = decisionReason.trim() || (confirmAction === 'APPROVE' ? 'Phê duyệt hồ sơ theo thẩm quyền' : '');
+      await approvalsApi.decide(selectedItem.targetType, selectedItem.targetId, confirmAction, finalReason);
       const actionName = confirmAction === 'APPROVE' ? 'phê duyệt' : 'từ chối';
       const targetCode = selectedItem.targetCode;
       setDecisionReason('');

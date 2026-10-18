@@ -20,7 +20,9 @@ import { formatVietnameseDate } from '../../utils/dates';
 
 const PO_STATUS_CONFIG: Record<string, { label: string; variant: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }> = {
   DRAFT: { label: 'Dự thảo', variant: 'neutral' },
+  PENDING_APPROVAL: { label: 'Chờ duyệt', variant: 'warning' },
   APPROVED: { label: 'Đã duyệt', variant: 'info' },
+  SENT: { label: 'Đã gửi NCC', variant: 'info' },
   ORDERED: { label: 'Đã đặt hàng', variant: 'warning' },
   PARTIALLY_RECEIVED: { label: 'Nhận một phần', variant: 'warning' },
   RECEIVED: { label: 'Đã nhận đủ', variant: 'success' },
