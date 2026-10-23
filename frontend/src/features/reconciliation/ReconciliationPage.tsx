@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
@@ -11,41 +11,63 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
-import { Modal } from '../../components/ui/modal';
 import { ActionGuard } from '../../components/ui/action-guard';
 import { ApiError } from '../../api/client';
+import { ReconciliationReportTables } from './ReconciliationReportTables';
+import { ReconciliationDispositionModal } from './ReconciliationDispositionModal';
+import { ReconciliationQueueCards } from './ReconciliationQueueCards';
+import { ReconciliationLifecycleStrip } from './ReconciliationLifecycleStrip';
+import { ReconciliationLinesFilterToolbar, type LineStatusFilter } from './ReconciliationLinesFilterToolbar';
+import { ReconciliationCompletionModal } from './ReconciliationCompletionModal';
 import {
   reconciliationApi,
   type ReconciliationBatchSummary,
   type ReconciliationLineItem,
 } from '../../api/reconciliationApi';
+import {
+  mrxApi,
+  type MrxBatchSummary,
+  type MrxOperationalSummary,
+  type MrxVarianceRegisterReport,
+  type MrxTransactionHistoryReport,
+  type MrxAuditTrailReport,
+  type MrxCompletedRegisterReport,
+} from '../../api/mrxApi';
+import { todayInBusinessTimezone } from '../../utils/dates';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
 
-function todayInBusinessTimezone(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+function weekStartFor(date: string): string {
+  const value = new Date(`${date}T00:00:00Z`);
+  const day = value.getUTCDay();
+  value.setUTCDate(value.getUTCDate() - (day === 0 ? 6 : day - 1));
+  return value.toISOString().slice(0, 10);
 }
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Đang chuẩn bị',
   READY: 'Chờ Kho xuất',
-  TRANSFERRED: 'Đã khóa',
+  TRANSFERRED: 'Đã bàn giao kho',
   IN_PROGRESS: 'Đang đối chiếu',
   COMPLETED: 'Hoàn tất',
   WEEK_COMPLETE: 'Đủ điều kiện hoàn tất tuần',
+  MATCHED: 'Khớp định mức',
+  EXACT: 'Khớp',
+  NEEDS_REVIEW: 'Cần giải trình',
+  DISPOSED: 'Đã giải trình',
+  UNDER_ISSUED: 'Chờ xuất đủ',
+  OVER_ISSUED: 'Xuất vượt',
 };
 
 export function ReconciliationPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('Admin') || hasRole('ADMIN');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [customerCode, setCustomerCode] = useState('');
+  const [batches, setBatches] = useState<MrxBatchSummary[]>([]);
+  const [batchId, setBatchId] = useState(() => searchParams.get('batchId') || '');
   const [serviceDate, setServiceDate] = useState(todayInBusinessTimezone);
   const [data, setData] = useState<ReconciliationBatchSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,6 +75,78 @@ export function ReconciliationPage() {
   const [mutationError, setMutationError] = useState<Error | null>(null);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDispositionLine, setSelectedDispositionLine] = useState<ReconciliationLineItem | null>(null);
+
+  const viewParam = searchParams.get('view');
+  const activeReportTab: 'lines' | 'variances' | 'transactions' | 'audit' | 'completed' =
+    viewParam === 'variances' || viewParam === 'transactions' || viewParam === 'audit' || viewParam === 'completed'
+      ? viewParam
+      : 'lines';
+
+  const [variancesReport, setVariancesReport] = useState<MrxVarianceRegisterReport | null>(null);
+  const [transactionsReport, setTransactionsReport] = useState<MrxTransactionHistoryReport | null>(null);
+  const [auditReport, setAuditReport] = useState<MrxAuditTrailReport | null>(null);
+  const [completedReport, setCompletedReport] = useState<MrxCompletedRegisterReport | null>(null);
+  const [operationalSummary, setOperationalSummary] = useState<MrxOperationalSummary | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [lineStatusFilter, setLineStatusFilter] = useState<LineStatusFilter>('ALL');
+
+  const needsReviewCount = useMemo(() => (data?.lines ?? []).filter((l) => (l.issuedRequiredDifference ?? 0) !== 0 && !l.disposition).length, [data]);
+  const disposedCount = useMemo(() => (data?.lines ?? []).filter((l) => Boolean(l.disposition)).length, [data]);
+  const matchedCount = useMemo(() => (data?.lines ?? []).filter((l) => l.issuedRequiredDifference === 0).length, [data]);
+
+  const filteredLines = useMemo(() => {
+    if (!data?.lines) return [];
+    return data.lines.filter((line) => {
+      if (lineStatusFilter === 'NEEDS_REVIEW') {
+        if ((line.issuedRequiredDifference ?? 0) === 0 || Boolean(line.disposition)) return false;
+      } else if (lineStatusFilter === 'DISPOSED') {
+        if (!line.disposition) return false;
+      } else if (lineStatusFilter === 'MATCHED') {
+        if (line.issuedRequiredDifference !== 0) return false;
+      }
+
+      if (searchTerm.trim()) {
+        const query = searchTerm.trim().toLowerCase();
+        const nameMatch = line.materialName?.toLowerCase().includes(query);
+        const codeMatch = line.materialCode?.toLowerCase().includes(query);
+        if (!nameMatch && !codeMatch) return false;
+      }
+
+      return true;
+    });
+  }, [data, lineStatusFilter, searchTerm]);
+
+  useEffect(() => {
+    let ignore = false;
+    mrxApi.getOperationalSummary()
+      .then((summary) => { if (!ignore) setOperationalSummary(summary); })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, []);
+
+  useEffect(() => {
+    if (activeReportTab === 'completed') {
+      mrxApi.getCompletedRegister()
+        .then(setCompletedReport)
+        .catch(() => setCompletedReport(null));
+      return;
+    }
+    if (!batchId) return;
+    if (activeReportTab === 'variances') {
+      mrxApi.getVarianceRegister(batchId, weekStartFor(serviceDate))
+        .then(setVariancesReport)
+        .catch(() => setVariancesReport(null));
+    } else if (activeReportTab === 'transactions') {
+      mrxApi.getTransactionsHistory(batchId)
+        .then(setTransactionsReport)
+        .catch(() => setTransactionsReport(null));
+    } else if (activeReportTab === 'audit') {
+      mrxApi.getAuditTrail(batchId)
+        .then(setAuditReport)
+        .catch(() => setAuditReport(null));
+    }
+  }, [batchId, activeReportTab, serviceDate]);
 
   useEffect(() => {
     let ignore = false;
@@ -71,8 +165,8 @@ export function ReconciliationPage() {
     };
   }, []);
 
-  const loadData = async (date = serviceDate, customer = customerCode) => {
-    if (!customer) {
+  const loadData = async (id = batchId, date = serviceDate) => {
+    if (!id) {
       setData(null);
       setIsLoading(false);
       return;
@@ -80,7 +174,7 @@ export function ReconciliationPage() {
     setIsLoading(true);
     setError(null);
     try {
-      setData(await reconciliationApi.getReconciliationSummary(date, customer));
+      setData(await reconciliationApi.getReconciliationSummary(id, date));
     } catch (cause: unknown) {
       setData(null);
       setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
@@ -90,26 +184,44 @@ export function ReconciliationPage() {
   };
 
   useEffect(() => {
-    if (!customerCode) return;
+    const customerId = customers.find((customer) => customer.customerCode === customerCode)?.customerId;
+    if (!customerId) return;
     let ignore = false;
-    reconciliationApi
-      .getReconciliationSummary(serviceDate, customerCode)
-      .then((result) => {
-        if (!ignore) setData(result);
+    mrxApi.getBatchPage({ customerId, weekStartDate: weekStartFor(serviceDate), pageSize: 100 })
+      .then((page) => {
+        if (ignore) return;
+        setBatches(page.items);
+        const selected = batchId || page.items[0]?.batchId || '';
+        setBatchId(selected);
+        if (!selected) {
+          setData(null);
+          setIsLoading(false);
+        }
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          if (selected) next.set('batchId', selected); else next.delete('batchId');
+          return next;
+        }, { replace: true });
       })
       .catch((cause: unknown) => {
-        if (!ignore) {
-          setData(null);
-          setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
-        }
-      })
-      .finally(() => {
-        if (!ignore) setIsLoading(false);
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách lô đối soát.'));
       });
-    return () => {
-      ignore = true;
-    };
-  }, [serviceDate, customerCode]);
+    return () => { ignore = true; };
+  }, [batchId, customerCode, customers, serviceDate, setSearchParams]);
+
+  useEffect(() => {
+    if (!batchId) return;
+    let ignore = false;
+    reconciliationApi.getReconciliationSummary(batchId, serviceDate)
+      .then((result) => { if (!ignore) setData(result); })
+      .catch((cause: unknown) => {
+        if (ignore) return;
+        setData(null);
+        setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
+      })
+      .finally(() => { if (!ignore) setIsLoading(false); });
+    return () => { ignore = true; };
+  }, [batchId, serviceDate]);
 
   const canComplete = data?.status === 'IN_PROGRESS' && data.weeklyStatus === 'WEEK_COMPLETE';
 
@@ -133,6 +245,11 @@ export function ReconciliationPage() {
   const customerOptions = customers.map((customer) => ({
     value: customer.customerCode,
     label: `${customer.customerCode} - ${customer.customerName}`,
+  }));
+
+  const batchOptions = batches.map((batch) => ({
+    value: batch.batchId,
+    label: `${batch.customerCode || batch.customerName || 'Khách hàng'} · ${batch.status} · ${batch.batchId.slice(0, 8)}`,
   }));
 
   const columns = useMemo<ColumnDef<ReconciliationLineItem>[]>(() => [
@@ -186,7 +303,7 @@ export function ReconciliationPage() {
     {
       id: 'status',
       header: 'Trạng thái dòng',
-      width: '16%',
+      width: '14%',
       align: 'center',
       cell: (row) => (
         <Badge variant={row.disposition ? 'success' : row.triggers.length > 0 ? 'warning' : 'neutral'} size="sm">
@@ -194,7 +311,45 @@ export function ReconciliationPage() {
         </Badge>
       ),
     },
-  ], []);
+    {
+      id: 'action',
+      header: 'Thao tác',
+      width: '14%',
+      align: 'right',
+      cell: (row) => {
+        const isCompleted = data?.status === 'COMPLETED';
+        if (row.disposition) {
+          return (
+            <Button
+              variant="outline"
+              size="xs"
+              onClick={() => setSelectedDispositionLine(row)}
+              aria-label={`Xem hướng xử lý ${row.materialName}`}
+            >
+              Xem hướng xử lý
+            </Button>
+          );
+        }
+        if (row.issuedRequiredDifference != null && row.issuedRequiredDifference > 0) {
+          return (
+            <Button
+              variant="default"
+              size="xs"
+              onClick={() => setSelectedDispositionLine(row)}
+              aria-label={`Xử lý chênh lệch ${row.materialName}`}
+              disabled={isCompleted}
+            >
+              Xử lý chênh lệch
+            </Button>
+          );
+        }
+        if (row.issuedRequiredDifference != null && row.issuedRequiredDifference < 0) {
+          return <span className="text-xs text-amber-700 font-medium">Chờ Kho xuất đủ</span>;
+        }
+        return <span className="text-xs text-slate-400">—</span>;
+      },
+    },
+  ], [data?.status]);
 
   const isForbidden = error instanceof ApiError && error.status === 403;
   const isModeConflict = error instanceof ApiError && error.status === 409 && (
@@ -205,6 +360,12 @@ export function ReconciliationPage() {
   );
   const isConflict = error instanceof ApiError && error.status === 409 && !isModeConflict;
   const displayedError = isForbidden || isConflict || isModeConflict ? null : error;
+
+  const selectBatch = (b?: MrxBatchSummary) => {
+    if (!b) return;
+    setBatchId(b.batchId);
+    setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('batchId', b.batchId); return next; });
+  };
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
@@ -219,10 +380,34 @@ export function ReconciliationPage() {
               onChange={(event) => {
                 setIsLoading(true);
                 setError(null);
+                setBatchId('');
+                setSearchParams((current) => {
+                  const next = new URLSearchParams(current);
+                  next.delete('batchId');
+                  return next;
+                });
                 setCustomerCode(event.target.value);
               }}
               className="h-9 w-64 font-medium text-sm"
               disabled={customers.length === 0}
+            />
+            <Select
+              aria-label="Chọn lô đối soát"
+              options={batchOptions}
+              value={batchId}
+              onChange={(event) => {
+                const selected = event.target.value;
+                setIsLoading(true);
+                setError(null);
+                setBatchId(selected);
+                setSearchParams((current) => {
+                  const next = new URLSearchParams(current);
+                  next.set('batchId', selected);
+                  return next;
+                });
+              }}
+              className="h-9 w-72 font-medium text-sm"
+              disabled={batches.length === 0}
             />
             <VietnameseDateInput
               aria-label="Ngày đối soát"
@@ -230,6 +415,12 @@ export function ReconciliationPage() {
               onChange={(date) => {
                 setIsLoading(true);
                 setError(null);
+                setBatchId('');
+                setSearchParams((current) => {
+                  const next = new URLSearchParams(current);
+                  next.delete('batchId');
+                  return next;
+                });
                 setServiceDate(date);
               }}
               className="h-9 w-40 font-mono text-sm"
@@ -254,7 +445,7 @@ export function ReconciliationPage() {
                 reason="Chỉ khả dụng trong chế độ đối soát nguyên liệu."
               >
                 <Button variant="default" size="default" onClick={() => setIsCompleteOpen(true)} className="h-9 text-sm font-medium">
-                  Chốt đối soát ca
+                  Chốt đối soát tuần
                 </Button>
               </ActionGuard>
             )}
@@ -262,8 +453,44 @@ export function ReconciliationPage() {
         }
       />
 
+      {/* 5 Operational Queue Metric Cards (Rule D7 / Control Tower) */}
+      <ReconciliationQueueCards
+        operationalSummary={operationalSummary}
+        onNavigateBatchPrep={() => {
+          if (isAdmin || hasRole('Coordinator') || hasRole('COORDINATOR') || hasRole('Điều phối')) {
+            navigate('/weekly-menu?view=mrx-batch');
+          } else {
+            setSearchParams((curr) => {
+              const next = new URLSearchParams(curr);
+              next.set('view', 'audit');
+              return next;
+            });
+          }
+        }}
+        onFilterAwaitingWarehouse={() => selectBatch(batches.find((b) => b.status === 'READY' || b.status === 'TRANSFERRED'))}
+        onNavigateDeltas={() => {
+          if (isAdmin || hasRole('WarehouseStaff') || hasRole('Thủ kho')) {
+            navigate('/warehouse?view=mrx-issues');
+          } else {
+            setSearchParams((curr) => {
+              const next = new URLSearchParams(curr);
+              next.set('view', 'transactions');
+              return next;
+            });
+          }
+        }}
+        onFilterVariances={() => {
+          setSearchParams((curr) => {
+            const next = new URLSearchParams(curr);
+            next.set('view', 'variances');
+            return next;
+          });
+        }}
+        onFilterReadyCompletion={() => selectBatch(batches.find((b) => b.status === 'IN_PROGRESS'))}
+      />
+
       <TelemetrySubbar
-        leftControls={<span className="text-xs font-semibold text-slate-700">Rà soát dòng đối soát theo ngày</span>}
+        leftControls={<ReconciliationLifecycleStrip status={data?.status} />}
         telemetryPills={data ? (
           <>
             <span className="inline-flex items-center gap-1">
@@ -300,7 +527,8 @@ export function ReconciliationPage() {
       <StateBoundary
         isLoading={isLoading}
         isFetching={isLoading}
-        hasExistingData={Boolean(data && data.lines.length > 0)}
+        loadingGeometry={{ kind: 'table', columns: 8, rows: 10, columnWidths: ['16%', '28%', '10%', '14%', '14%', '14%', '14%', '14%'] }}
+        hasExistingData={activeReportTab === 'lines' ? Boolean(data && data.lines.length > 0) : true}
         error={displayedError}
         isForbidden={isForbidden}
         isModeConflict={isModeConflict}
@@ -312,32 +540,57 @@ export function ReconciliationPage() {
         onRetry={() => loadData()}
         isPartial={Boolean(data && data.lines.length === 0 && data.status !== 'COMPLETED')}
         partialMessage="Backend chỉ trả phạm vi vận hành hoặc chưa có daily review cho ngày đã chọn."
-        isEmpty={!data || data.lines.length === 0}
+        isEmpty={activeReportTab === 'lines' ? (!data || data.lines.length === 0) : false}
         emptyScenario="prerequisite-blocked"
-        emptyTitle="Chưa có dòng đối soát đúng phạm vi"
-        emptyDescription="Không có daily lineage cho khách hàng và ngày đã chọn, hoặc vai trò hiện tại chỉ được xem phạm vi vận hành."
+        emptyTitle="Chưa có dữ liệu đối soát cho ngày đã chọn"
+        emptyDescription="Chưa có kế hoạch định lượng nguyên liệu cho khách hàng và ngày đã chọn, hoặc vai trò hiện tại chỉ được xem phạm vi vận hành."
       >
-        {data && <DataGrid data={data.lines} columns={columns} keyExtractor={(row) => row.dailyLineId || row.id} />}
+        {activeReportTab === 'lines' && data && (
+          <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
+            <ReconciliationLinesFilterToolbar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              statusFilter={lineStatusFilter}
+              onStatusFilterChange={setLineStatusFilter}
+              totalCount={data.lines.length}
+              needsReviewCount={needsReviewCount}
+              disposedCount={disposedCount}
+              matchedCount={matchedCount}
+            />
+            <DataGrid data={filteredLines} columns={columns} keyExtractor={(row) => row.dailyLineId || row.id} />
+          </div>
+        )}
+
+        {activeReportTab !== 'lines' && (
+          <ReconciliationReportTables
+            activeTab={activeReportTab}
+            batchId={batchId}
+            variancesReport={variancesReport}
+            transactionsReport={transactionsReport}
+            auditReport={auditReport}
+            completedReport={completedReport}
+          />
+        )}
       </StateBoundary>
 
-      <Modal
+      <ReconciliationCompletionModal
         isOpen={isCompleteOpen}
         onClose={() => setIsCompleteOpen(false)}
-        title="Xác nhận hoàn tất lô đối soát"
-        description={`Lô ${data?.batchId || ''} · phiên bản ${data?.version ?? '—'}`}
-        footer={
-          <>
-            <Button variant="outline" size="sm" onClick={() => setIsCompleteOpen(false)}>Quay lại</Button>
-            <Button variant="default" size="sm" disabled={isSubmitting} onClick={handleComplete}>
-              {isSubmitting ? 'Đang hoàn tất...' : 'Xác nhận hoàn tất lô'}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm leading-relaxed text-slate-700">
-          Backend sẽ kiểm tra lại trạng thái tuần và phiên bản hiện tại trước khi chuyển lô sang Hoàn tất. Thao tác không tự tạo bút toán kho hoặc số liệu tài chính.
-        </p>
-      </Modal>
+        data={data}
+        customerCode={customerCode}
+        isSubmitting={isSubmitting}
+        onConfirm={handleComplete}
+        statusLabels={STATUS_LABELS}
+      />
+
+      <ReconciliationDispositionModal
+        key={selectedDispositionLine?.dailyLineId ?? 'empty'}
+        selectedLine={selectedDispositionLine}
+        isOpen={Boolean(selectedDispositionLine)}
+        onClose={() => setSelectedDispositionLine(null)}
+        onSaved={loadData}
+        isCompleted={data?.status === 'COMPLETED'}
+      />
     </div>
   );
 }

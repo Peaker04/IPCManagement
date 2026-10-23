@@ -20,6 +20,7 @@ public class FeatureDependencyConventionTests
         new("Inventory", "SystemOperation"),
         new("Planning", "Purchasing"),
         new("Purchasing", "Inventory"),
+        new("Reconciliation", "Inventory"),
         new("Reconciliation", "SampleData"),
         new("Reconciliation", "SystemOperation"),
         new("Reports", "Purchasing"),

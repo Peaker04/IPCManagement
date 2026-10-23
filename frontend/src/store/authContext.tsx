@@ -8,7 +8,10 @@ const TOKEN_KEY = 'ipc_v3_token';
 const USER_KEY = 'ipc_v3_user';
 const MODE_KEY = 'ipc_v3_mode';
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children, resolveLanding = () => '/' }: {
+  children: ReactNode;
+  resolveLanding?: (user: UserInfo, mode: OperationalMode) => string;
+}) {
   const [user, setUser] = useState<UserInfo | null>(() => {
     try {
       const stored = localStorage.getItem(USER_KEY);
@@ -47,12 +50,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const resp = await authApi.login(username, password);
       localStorage.setItem(TOKEN_KEY, resp.accessToken);
       localStorage.setItem(USER_KEY, JSON.stringify(resp.user));
-      setToken(resp.accessToken);
-      setUser(resp.user);
+      try {
+        const modeSnapshot = await systemApi.getOperationalMode();
+        applyModeSnapshot(modeSnapshot);
+        setToken(resp.accessToken);
+        setUser(resp.user);
+        return { user: resp.user, operationalMode: modeSnapshot.mode, landingPath: resolveLanding(resp.user, modeSnapshot.mode) };
+      } catch (error) {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        throw error;
+      }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applyModeSnapshot, resolveLanding]);
 
   const logout = useCallback(async () => {
     try {
@@ -84,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userRoleName = user.roleName?.toUpperCase() || '';
     return allowed.includes(userRoleCode) || allowed.includes(userRoleName);
   }, [user]);
+  const landingPath = user ? resolveLanding(user, operationalMode) : '/login';
 
   return (
     <AuthContext.Provider
@@ -95,6 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         operationalMode,
         operationalModeVersion,
         operationalModeReasonRequired,
+        landingPath,
         reloadOperationalMode,
         login,
         logout,

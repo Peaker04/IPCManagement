@@ -282,12 +282,15 @@ public partial class WorkflowGenerationTests
         var issueLineId = GuidHelper.NewId();
         var reconciliationBatchId = GuidHelper.NewId();
         var reconciliationBatchLineId = GuidHelper.NewId();
+        var reconciliationDailyLineId = GuidHelper.NewId();
+        var sourceDeltaId = GuidHelper.NewId();
         await context.Database.ExecuteSqlRawAsync("""
             CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
             CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
             CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL, FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL, FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL);
             CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
-            CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
+            CREATE TABLE reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
+            CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL);
             CREATE TABLE reconciliationactuals (actualId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, side TEXT NOT NULL, quantity TEXT NOT NULL, version INTEGER NOT NULL, enteredBy BLOB NOT NULL, enteredAt TEXT NOT NULL);
             CREATE TABLE reconciliationdispositions (dispositionId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
             """);
@@ -312,6 +315,15 @@ public partial class WorkflowGenerationTests
                     ToleranceSourceKind = "SYSTEM_DEFAULT",
                     ToleranceSourceVersion = "1",
                     Version = 1,
+                    DailyLines =
+                    [
+                        new ReconciliationBatchDailyLine
+                        {
+                            DailyLineId = reconciliationDailyLineId, BatchId = reconciliationBatchId,
+                            IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+                            ServiceDate = new DateOnly(2026, 6, 15), RequiredQuantity = 3m, Version = 1
+                        }
+                    ]
                 }
             ]
         });
@@ -334,10 +346,20 @@ public partial class WorkflowGenerationTests
                     IngredientId = fixture.IngredientId,
                     UnitId = fixture.UnitId,
                     ReconciliationBatchLineId = reconciliationBatchLineId,
+                    ReconciliationBatchDailyLineId = reconciliationDailyLineId,
+                    ReconciliationServiceDate = new DateOnly(2026, 6, 15),
                     RequestedQty = 5m,
                     IssuedQty = 5m,
                 }
             ]
+        });
+        context.Reconciliationsourcedeltas.Add(new ReconciliationSourceDelta
+        {
+            SourceDeltaId = sourceDeltaId, SourceRevisionId = GuidHelper.NewId(), BatchId = reconciliationBatchId,
+            DailyLineId = reconciliationDailyLineId, ServiceDate = new DateOnly(2026, 6, 15),
+            IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+            PreviousRequiredQuantity = 5m, NewRequiredQuantity = 3m, DeltaQuantity = -2m,
+            WorkKind = "RETURN_REQUIRED", Status = "PENDING", Version = 1, CreatedAt = DateTime.UtcNow
         });
         context.Currentstocks.Add(new CurrentStock
         {
@@ -355,6 +377,8 @@ public partial class WorkflowGenerationTests
             ReturnDate = new DateOnly(2026, 6, 15),
             ReturnType = "RETURN",
             IssueId = GuidHelper.ToGuidString(issueId),
+            ReconciliationSourceDeltaId = GuidHelper.ToGuidString(sourceDeltaId),
+            ExpectedSourceDeltaVersion = 1,
             Reason = "Reconciliation family correction",
             Lines =
             [
@@ -369,6 +393,7 @@ public partial class WorkflowGenerationTests
         };
 
         var created = await service.CreateAsync(command, fixture.UserIdString);
+        (await context.Reconciliationsourcedeltas.SingleAsync()).Status.Should().Be("PENDING");
         var createReplay = await service.CreateAsync(command, fixture.UserIdString);
         var confirmation = new ConfirmInventoryReturnReceiptRequest { CommandId = "phase30-recon-return-confirm" };
         await service.ConfirmReceiptAsync(created!.ReturnId, confirmation, fixture.UserIdString);
@@ -380,6 +405,12 @@ public partial class WorkflowGenerationTests
         persistedReturnLine.SourceIssueLineId.Should().Equal(issueLineId);
         (await context.Currentstocks.Select(item => item.CurrentQty).SingleAsync()).Should().Be(12m);
         (await context.Stockmovements.CountAsync(item => item.MovementType == "RETURN")).Should().Be(1);
+        var resolvedDelta = await context.Reconciliationsourcedeltas.SingleAsync();
+        resolvedDelta.Status.Should().Be("RESOLVED");
+        resolvedDelta.Version.Should().Be(2);
+        resolvedDelta.ResolutionEntity.Should().Be(nameof(InventoryReturn));
+        resolvedDelta.ResolutionId.Should().Equal(GuidHelper.ParseGuidString(created.ReturnId)!);
+        resolvedDelta.ResolutionCommandId.Should().Be(confirmation.CommandId);
         (await context.Lifecycletransitions.CountAsync(item => item.AggregateType == "InventoryReturn")).Should().Be(2);
 
         var defaultReturned = await (
@@ -413,5 +444,137 @@ public partial class WorkflowGenerationTests
         completed.Lines.Single().IssuedQuantity.Should().Be(3m);
         (await context.Inventoryissuelines.Where(line => line.MaterialRequestLineId != null).SumAsync(line => (decimal?)line.IssuedQty) ?? 0m)
             .Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task Phase30WarehouseReturnFamily_ReconciliationCorrection_Rejects_AdjustedLines_At_Receipt_Confirmation()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var issueId = GuidHelper.NewId();
+        var issueLineId = GuidHelper.NewId();
+        var reconciliationBatchId = GuidHelper.NewId();
+        var reconciliationBatchLineId = GuidHelper.NewId();
+        var reconciliationDailyLineId = GuidHelper.NewId();
+        var sourceDeltaId = GuidHelper.NewId();
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
+            CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
+            CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL, FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL, FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL);
+            CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
+            CREATE TABLE reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
+            CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL);
+            CREATE TABLE reconciliationactuals (actualId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, side TEXT NOT NULL, quantity TEXT NOT NULL, version INTEGER NOT NULL, enteredBy BLOB NOT NULL, enteredAt TEXT NOT NULL);
+            CREATE TABLE reconciliationdispositions (dispositionId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
+            """);
+        context.Reconciliationbatches.Add(new ReconciliationBatch
+        {
+            BatchId = reconciliationBatchId,
+            MenuVersionId = GuidHelper.NewId(),
+            QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "IN_PROGRESS",
+            Version = 1,
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Lines =
+            [
+                new ReconciliationBatchLine
+                {
+                    BatchLineId = reconciliationBatchLineId,
+                    IngredientId = fixture.IngredientId,
+                    CanonicalUnitId = fixture.UnitId,
+                    RequiredQuantity = 3m,
+                    FrozenTolerance = 100m,
+                    ToleranceSourceKind = "SYSTEM_DEFAULT",
+                    ToleranceSourceVersion = "1",
+                    Version = 1,
+                    DailyLines =
+                    [
+                        new ReconciliationBatchDailyLine
+                        {
+                            DailyLineId = reconciliationDailyLineId, BatchId = reconciliationBatchId,
+                            IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+                            ServiceDate = new DateOnly(2026, 6, 15), RequiredQuantity = 3m, Version = 1
+                        }
+                    ]
+                }
+            ]
+        });
+        context.Inventoryissues.Add(new InventoryIssue
+        {
+            IssueId = issueId,
+            IssueCode = "ISS-RECON-RETURN-ADJ",
+            IssueDate = new DateOnly(2026, 6, 15),
+            WarehouseId = fixture.WarehouseId,
+            ReconciliationBatchId = reconciliationBatchId,
+            IssuedBy = fixture.UserId,
+            ReceivedBy = fixture.UserId,
+            ReceivedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryissuelines =
+            [
+                new InventoryIssueLine
+                {
+                    IssueLineId = issueLineId,
+                    IngredientId = fixture.IngredientId,
+                    UnitId = fixture.UnitId,
+                    ReconciliationBatchLineId = reconciliationBatchLineId,
+                    ReconciliationBatchDailyLineId = reconciliationDailyLineId,
+                    ReconciliationServiceDate = new DateOnly(2026, 6, 15),
+                    RequestedQty = 5m,
+                    IssuedQty = 5m,
+                }
+            ]
+        });
+        context.Reconciliationsourcedeltas.Add(new ReconciliationSourceDelta
+        {
+            SourceDeltaId = sourceDeltaId, SourceRevisionId = GuidHelper.NewId(), BatchId = reconciliationBatchId,
+            DailyLineId = reconciliationDailyLineId, ServiceDate = new DateOnly(2026, 6, 15),
+            IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
+            PreviousRequiredQuantity = 5m, NewRequiredQuantity = 3m, DeltaQuantity = -2m,
+            WorkKind = "RETURN_REQUIRED", Status = "PENDING", Version = 1, CreatedAt = DateTime.UtcNow
+        });
+        context.Currentstocks.Add(new CurrentStock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 10m,
+            LastUpdated = DateTime.UtcNow,
+        });
+        await context.SaveChangesAsync();
+        var service = CreateInventoryReturnService(context);
+        var command = new CreateInventoryReturnRequest
+        {
+            CommandId = "phase30-recon-return-adj-create",
+            ReturnDate = new DateOnly(2026, 6, 15),
+            ReturnType = "RETURN",
+            IssueId = GuidHelper.ToGuidString(issueId),
+            ReconciliationSourceDeltaId = GuidHelper.ToGuidString(sourceDeltaId),
+            ExpectedSourceDeltaVersion = 1,
+            Reason = "Reconciliation family correction",
+            Lines =
+            [
+                new CreateInventoryReturnLineRequest
+                {
+                    SourceIssueLineId = GuidHelper.ToGuidString(issueLineId),
+                    IngredientId = fixture.IngredientIdString,
+                    UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                    Quantity = 2m,
+                }
+            ]
+        };
+
+        var created = await service.CreateAsync(command, fixture.UserIdString);
+        var returnLineId = (await context.Inventoryreturnlines.SingleAsync()).ReturnLineId;
+        var confirmation = new ConfirmInventoryReturnReceiptRequest
+        {
+            CommandId = "phase30-recon-return-adj-confirm",
+            AdjustedLines = [new ConfirmInventoryReturnLineRequest { ReturnLineId = GuidHelper.ToGuidString(returnLineId), NewQuantity = 1.5m }]
+        };
+
+        var action = () => service.ConfirmReceiptAsync(created!.ReturnId, confirmation, fixture.UserIdString);
+        await action.Should().ThrowAsync<BusinessRuleException>().WithMessage("*Không thể điều chỉnh số lượng*");
     }
 }

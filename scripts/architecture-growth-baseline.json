@@ -38,7 +38,7 @@
       "files": [
         "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
       ],
-      "lines": 766,
+      "lines": 726,
       "level": "WARNING"
     },
     {
@@ -50,16 +50,6 @@
         "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.cs"
       ],
       "lines": 730,
-      "level": "WARNING"
-    },
-    {
-      "id": "service:InventoryReturnService",
-      "kind": "service",
-      "name": "InventoryReturnService",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReturnService.cs"
-      ],
-      "lines": 618,
       "level": "WARNING"
     },
     {

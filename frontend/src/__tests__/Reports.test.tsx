@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { reportsApi } from '../api/reportsApi';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
+import { queryClient } from '../lib/scopedQuery';
 
 function renderPage(entry = '/reports?view=demand') {
   return render(<MemoryRouter initialEntries={[entry]}><Routes><Route path="/reports" element={<ReportsPage />} /></Routes></MemoryRouter>);
@@ -12,6 +13,7 @@ function renderPage(entry = '/reports?view=demand') {
 
 describe('Reports', () => {
   beforeEach(() => {
+    queryClient.clearAll();
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([{ customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' }]);
     vi.spyOn(reportsApi, 'getDemand').mockResolvedValue({ items: [{ requestDate: '2026-10-01', customerCode: 'DAV', customerName: 'Draxlmaier', ingredientId: 'i1', ingredientName: 'Gạo', unitId: 'kg', unitName: 'kg', totalRequiredQty: 10, currentStockQty: 4, suggestedPurchaseQty: 6, issuedQty: 2, receivedByKitchenQty: 1, fulfillmentStatus: 'PARTIAL' }], totalCount: 26, pageNumber: 1, pageSize: 25, totalPages: 2, hasPrev: false, hasNext: true });
     vi.spyOn(reportsApi, 'getPriceVariance').mockResolvedValue({ items: [{ receiptLineId: 'rl1', receiptCode: 'PN-1', receiptDate: '2026-10-01', ingredientId: 'i1', ingredientName: 'Gạo', unitName: 'kg', quantity: 10, unitPrice: 20000, referencePrice: 18000, variancePercent: 11.1, isWarning: true }], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false });

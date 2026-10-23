@@ -378,6 +378,50 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
+    public async Task Pending_positive_source_delta_resolves_only_with_exact_supplemental_issue_transaction()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+        var batch = await context.Reconciliationbatches.SingleAsync();
+        var daily = await context.Reconciliationbatchdailylines.SingleAsync();
+        var deltaId = GuidHelper.NewId();
+        context.Reconciliationsourcerevisions.Add(new ReconciliationSourceRevision
+        {
+            SourceRevisionId = GuidHelper.NewId(), MenuAmendmentId = GuidHelper.NewId(), BatchId = batch.BatchId,
+            PreviousMenuVersionId = batch.MenuVersionId, AppliedMenuVersionId = GuidHelper.NewId(), RevisionNumber = 1,
+            Status = "APPLIED", Reason = "Tăng định lượng", AppliedBy = fixture.Actor, AppliedAt = DateTime.UtcNow,
+            Deltas = [new ReconciliationSourceDelta
+            {
+                SourceDeltaId = deltaId, BatchId = batch.BatchId, DailyLineId = daily.DailyLineId, ServiceDate = daily.ServiceDate,
+                IngredientId = daily.IngredientId, CanonicalUnitId = daily.CanonicalUnitId,
+                PreviousRequiredQuantity = 2m, NewRequiredQuantity = 2.5m, DeltaQuantity = 0.5m,
+                WorkKind = "SUPPLEMENTAL_ISSUE", Status = "PENDING", Version = 1, CreatedAt = DateTime.UtcNow
+            }]
+        });
+        await context.SaveChangesAsync();
+        fixture.Request.CommandId = "resolve-delta-" + Guid.NewGuid().ToString("N");
+        fixture.Request.ExpectedVersion = batch.Version;
+        fixture.Request.IsSupplemental = true;
+        fixture.Request.ReconciliationSourceDeltaId = GuidHelper.ToGuidString(deltaId);
+        fixture.Request.ExpectedSourceDeltaVersion = 1;
+        fixture.Request.Lines[0].RequestedQty = 0.5m;
+        fixture.Request.Lines[0].IssuedQty = 0.5m;
+        fixture.Request.Lines[0].VarianceReason = "Xuất bổ sung theo thay đổi nguồn";
+
+        var result = await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+
+        context.ChangeTracker.Clear();
+        var resolved = await context.Reconciliationsourcedeltas.SingleAsync();
+        Assert.Equal("RESOLVED", resolved.Status);
+        Assert.Equal(2, resolved.Version);
+        Assert.Equal(nameof(InventoryIssue), resolved.ResolutionEntity);
+        Assert.True(resolved.ResolutionId!.SequenceEqual(GuidHelper.ParseGuidString(result!.IssueId)!));
+        Assert.True(resolved.ResolvedBy!.SequenceEqual(fixture.Actor));
+        Assert.Equal(fixture.Request.CommandId, resolved.ResolutionCommandId);
+    }
+
+    [Fact]
     public async Task Supplemental_issue_adds_a_new_transaction_for_an_existing_frozen_line()
     {
         await using var context = CreateContext();
@@ -1289,6 +1333,8 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         WarehouseId = source.WarehouseId,
         MaterialRequestId = source.MaterialRequestId,
         ReconciliationBatchId = source.ReconciliationBatchId,
+        ReconciliationSourceDeltaId = source.ReconciliationSourceDeltaId,
+        ExpectedSourceDeltaVersion = source.ExpectedSourceDeltaVersion,
         Lines = source.Lines.Select(line => new CreateInventoryIssueLineRequest
         {
             MaterialRequestLineId = line.MaterialRequestLineId,

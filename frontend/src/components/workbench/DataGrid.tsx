@@ -12,12 +12,13 @@ export interface ColumnDef<T> {
 }
 
 export interface DataGridProps<T = unknown> {
-  data: T[];
-  columns: ColumnDef<T>[];
+  data: readonly T[];
+  columns: readonly ColumnDef<T>[];
   keyExtractor: (row: T, index: number) => string;
   onRowClick?: (row: T) => void;
   selectedKey?: string;
   emptyState?: ReactNode;
+  emptyMessage?: string;
   className?: string;
   minWidth?: string;
 }
@@ -34,11 +35,16 @@ export function DataGrid<T>({
   onRowClick,
   selectedKey,
   emptyState,
+  emptyMessage,
   className,
   minWidth,
 }: DataGridProps<T>) {
-  if (data.length === 0 && emptyState) {
-    return <div className="flex-1 min-h-0 flex flex-col">{emptyState}</div>;
+  if (data.length === 0 && (emptyState || emptyMessage)) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 bg-white text-center">
+        {emptyState || <p className="text-xs text-slate-500">{emptyMessage}</p>}
+      </div>
+    );
   }
 
   return (

@@ -6,7 +6,7 @@
  * Uses React 19 useSyncExternalStore for 100% purity and zero layout jitter.
  */
 
-import { useState, useCallback, useSyncExternalStore } from 'react';
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import type { OperationalMode } from '../types';
 
 export interface QueryRecord<TData = unknown, TError = Error> {
@@ -201,6 +201,7 @@ export function useScopedQuery<TData, TError = Error>({
   queryKey,
   queryFn,
   enabled = true,
+  staleTime = 30000,
   keepPreviousData = false,
   mode = 'DEFAULT',
   userRole = 'USER',
@@ -221,7 +222,7 @@ export function useScopedQuery<TData, TError = Error>({
       queryClient.setFetching(normalizedKey, isManual, mode, scopeKey);
 
       let fetchPromise = queryClient.getInFlight<TData>(normalizedKey);
-      if (!fetchPromise) {
+      if (!fetchPromise || isManual) {
         fetchPromise = queryFn();
         queryClient.setInFlight(normalizedKey, fetchPromise);
       }
@@ -240,6 +241,14 @@ export function useScopedQuery<TData, TError = Error>({
     },
     [enabled, normalizedKey, queryFn, mode, scopeKey]
   );
+
+  useEffect(() => {
+    if (!enabled) return;
+    const isStale = record.timestamp === 0 || Date.now() - record.timestamp > staleTime;
+    if (record.data === undefined || isStale) {
+      void executeFetch();
+    }
+  }, [enabled, executeFetch, record.data, record.timestamp, staleTime]);
 
   const isInitialLoading = enabled && record.data === undefined && (record.isFetching || record.timestamp === 0);
   const displayData = keepPreviousData && record.data === undefined ? record.previousData : record.data;

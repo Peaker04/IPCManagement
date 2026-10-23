@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ChefDashboardPage } from '../features/chef/ChefDashboardPage';
 import { AuthProvider } from '../store/authContext';
 import { chefApi } from '../api/chefApi';
+import { mrxApi } from '../api/mrxApi';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { MOCK_CHEF_DATA } from '../test/fixtures';
 
@@ -91,5 +92,69 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
 
     expect(await screen.findByText('Chưa có kế hoạch sản xuất')).toBeInTheDocument();
     expect(screen.getByText('Chưa có KHSX được duyệt cho ngày, ca và khách hàng đã chọn.')).toBeInTheDocument();
+  });
+
+  it('MRX cooking workbench renders sanitized cooking projection with allowed frozen fields and no warehouse/price columns', async () => {
+    vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
+      batchId: 'batch-1',
+      sourceVersion: 2,
+      rows: [{
+        serviceDate: '2026-06-15',
+        weekday: 'Thứ Hai',
+        shiftName: 'Ca sáng',
+        dishCode: 'MON-01',
+        dishName: 'Cơm sườn nướng',
+        servings: 100,
+        ingredientCode: 'SUON-01',
+        ingredientName: 'Sườn heo',
+        unitName: 'kg',
+        bomQuantityPerServing: 0.15,
+        wasteRatePercent: 5,
+        totalRequiredQuantity: 15,
+      }],
+    });
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+
+    renderChef('/chef?view=mrx-cooking&batchId=batch-1');
+
+    expect(await screen.findByRole('heading', { name: 'Phiếu nấu theo lô' })).toBeInTheDocument();
+    expect(await screen.findByText('Cơm sườn nướng')).toBeInTheDocument();
+    expect(screen.getByText('Sườn heo')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('15')).toBeInTheDocument();
+
+    // Forbidden fields & mutations MUST NOT exist
+    expect(screen.queryByText(/Đơn giá/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Giá vốn/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Thực xuất/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tồn kho/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Chênh lệch/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Xuất kho/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Xác nhận nhận hàng/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Chốt đối soát/i })).not.toBeInTheDocument();
+
+    // Export buttons
+    const csvBtn = screen.getByRole('button', { name: 'Tải CSV' });
+    await userEvent.click(csvBtn);
+    expect(openSpy).toHaveBeenCalledWith('/api/reconciliation/batches/batch-1/kitchen-cooking/csv', '_blank');
+
+    const xlsxBtn = screen.getByRole('button', { name: 'Tải Excel' });
+    await userEvent.click(xlsxBtn);
+    expect(openSpy).toHaveBeenCalledWith('/api/reconciliation/batches/batch-1/kitchen-cooking/xlsx', '_blank');
+
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
+    const printBtn = screen.getByRole('button', { name: 'In phiếu nấu' });
+    await userEvent.click(printBtn);
+    expect(printSpy).toHaveBeenCalled();
+  });
+
+  it('MRX cooking workbench surfaces compatibility error neutrally when lineage is missing', async () => {
+    vi.spyOn(mrxApi, 'getKitchenCooking').mockRejectedValueOnce(
+      new Error('KITCHEN_FROZEN_LINEAGE_MISSING: Lô chưa có định lượng đóng băng theo ngày')
+    );
+
+    renderChef('/chef?view=mrx-cooking&batchId=batch-legacy');
+
+    expect(await screen.findByText(/KITCHEN_FROZEN_LINEAGE_MISSING/)).toBeInTheDocument();
   });
 });

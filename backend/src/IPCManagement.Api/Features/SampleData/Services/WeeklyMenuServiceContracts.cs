@@ -105,8 +105,32 @@ public interface IWeeklyMenuBulkEditService
 
 public interface IMenuAmendmentService
 {
+    Task<MenuAmendmentResultDto> PreviewMrxAsync(
+        CreateMenuAmendmentRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<MenuAmendmentResultDto> SubmitMrxAsync(
+        CreateMenuAmendmentRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<MenuAmendmentResultDto> PreviewAsync(
+        CreateMenuAmendmentRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<MenuAmendmentResultDto> CreateAsync(
         CreateMenuAmendmentRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<MenuAmendmentResultDto> ConfirmMrxAsync(
+        CreateMenuAmendmentRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<MenuAmendmentResultDto> DecideMrxAsync(
+        string amendmentId,
+        ReviewMenuAmendmentRequest request,
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
@@ -116,5 +140,18 @@ public interface IMenuAmendmentService
     Task<MenuAmendmentDecisionItemDto> ExecuteDecisionAsync(string decisionItemId, MenuAmendmentDecisionCommandRequest request, string? actorUserId, CancellationToken cancellationToken = default);
     Task<MenuAmendmentDecisionRemediationDto> RemediateDecisionFanAsync(string reconciliationCaseId, RemediateMenuAmendmentDecisionFanRequest request, string? actorUserId, CancellationToken cancellationToken = default);
     Task<MenuAmendmentDecisionPageDto> GetDecisionPageAsync(string? customerId, bool allCustomers, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetMrxInboxAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default);
+}
+
+public interface IReconciliationSourceRevisionStager
+{
+    Task StageAffectedBatchesAsync(
+        string amendmentId,
+        byte[] baseMenuVersionId,
+        byte[] newMenuVersionId,
+        string? actorUserId,
+        string reason,
+        IReadOnlyList<MenuSchedule> schedules,
+        CancellationToken cancellationToken = default);
 }

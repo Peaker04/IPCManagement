@@ -1,11 +1,13 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './store/authContext';
+import { useAuth } from './store/useAuth';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { AppShell } from './components/workbench/AppShell';
 import { LoginPage } from './features/auth/LoginPage';
 import { ForbiddenPage } from './features/auth/ForbiddenPage';
 import { CANONICAL_ROUTES } from './routes/routeRegistry';
+import { resolveEligibleNavigation, resolveLandingPath } from './routes/navigationEligibility';
 import { DirtyNavigationProvider } from './components/workbench/DirtyNavigation';
 import { RouteWorkbenchLoadingFallback } from './routes/RouteWorkbenchLoadingFallback';
 
@@ -31,9 +33,19 @@ function WorkbenchLoadingFallback() {
 
 const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
 
+function AuthorizedAppShell() {
+  const { user, operationalMode, operationalModeVersion } = useAuth();
+  const eligibleRoutes = resolveEligibleNavigation(
+    CANONICAL_ROUTES,
+    user ?? {},
+    operationalModeVersion === null ? null : operationalMode
+  );
+  return <AppShell navigation={eligibleRoutes} />;
+}
+
 export function App() {
   return (
-    <AuthProvider>
+    <AuthProvider resolveLanding={(user, mode) => resolveLandingPath(CANONICAL_ROUTES, user, mode)}>
       <BrowserRouter>
         <DirtyNavigationProvider>
         <Routes>
@@ -43,7 +55,7 @@ export function App() {
 
           {/* Protected routes wrapped in AppShell with RoleGuard — 100% Real Canonical Routes */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppShell getAllowedRoles={getRouteRoles} />}>
+            <Route element={<AuthorizedAppShell />}>
               <Route
                 path="/"
                 element={

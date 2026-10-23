@@ -242,8 +242,8 @@ export function StateBoundary({
           <span>{partialMessage || 'Dữ liệu hiển thị một phần do các ca sản xuất đang diễn ra.'}</span>
         </div>
       )}
-      {isPreviousData ? (
-        <div className="flex-1 min-h-0 w-full flex flex-col opacity-75 pointer-events-none transition-opacity duration-150" aria-busy="true">
+      {(isPreviousData || (isFetching && hasExistingData)) ? (
+        <div className="flex-1 min-h-0 w-full flex flex-col opacity-70 pointer-events-none transition-opacity duration-150" aria-busy="true">
           {children}
         </div>
       ) : (

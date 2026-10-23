@@ -4,6 +4,7 @@ public sealed class CreateMenuAmendmentRequest
 {
     public string CustomerId { get; set; } = string.Empty;
     public DateOnly WeekStartDate { get; set; }
+    public string? ExpectedBaseMenuVersionId { get; set; }
     public string Reason { get; set; } = string.Empty;
     public List<CreateMenuAmendmentLineRequest> Lines { get; set; } = [];
 }
@@ -13,7 +14,19 @@ public sealed class CreateMenuAmendmentLineRequest
     public DateOnly ServiceDate { get; set; }
     public string ShiftName { get; set; } = string.Empty;
     public string DishSlot { get; set; } = string.Empty;
+    public string? NewDishId { get; set; }
+    public int? NewServings { get; set; }
+}
+
+public sealed class MenuAmendmentImpactLineDto
+{
+    public DateOnly ServiceDate { get; set; }
+    public string ShiftName { get; set; } = string.Empty;
+    public string DishSlot { get; set; } = string.Empty;
+    public string OldDishId { get; set; } = string.Empty;
     public string NewDishId { get; set; } = string.Empty;
+    public int CurrentServings { get; set; }
+    public int NewServings { get; set; }
 }
 
 public sealed class MenuAmendmentResultDto
@@ -30,6 +43,8 @@ public sealed class MenuAmendmentResultDto
     public string? ReconciliationCaseId { get; set; }
     public IReadOnlyList<string> AffectedDocumentIds { get; set; } = [];
     public IReadOnlyList<string> AffectedSourceLineIds { get; set; } = [];
+    public IReadOnlyList<string> AffectedReconciliationBatchIds { get; set; } = [];
+    public IReadOnlyList<MenuAmendmentImpactLineDto> ImpactLines { get; set; } = [];
     public IReadOnlyList<MenuAmendmentDecisionScopeDto> DecisionScopes { get; set; } = [];
 }
 
@@ -128,4 +143,6 @@ public sealed class MenuAmendmentInboxItemDto
     public bool HasIssue { get; set; }
     public int AffectedDemandCount { get; set; }
     public int AffectedPurchaseRequestCount { get; set; }
+    public IReadOnlyList<string> AffectedReconciliationBatchIds { get; set; } = [];
+    public IReadOnlyList<MenuAmendmentImpactLineDto> ImpactLines { get; set; } = [];
 }

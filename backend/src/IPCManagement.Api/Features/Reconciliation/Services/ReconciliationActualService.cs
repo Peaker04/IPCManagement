@@ -152,6 +152,9 @@ public sealed class ReconciliationActualService(
                     current.Version++;
                     current.DisposedBy = actor;
                     current.DisposedAt = DateTime.UtcNow;
+                    current.InvalidatedAt = null;
+                    current.InvalidatedBy = null;
+                    current.InvalidationReason = null;
                 }
                 resultingVersion = current.Version;
                 await context.SaveChangesAsync(operationToken);

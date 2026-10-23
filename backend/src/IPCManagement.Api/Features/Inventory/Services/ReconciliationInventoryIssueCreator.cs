@@ -130,6 +130,24 @@ internal sealed class ReconciliationInventoryIssueCreator
                     throw new BusinessRuleException("Một dòng nguồn theo ngày không thể xuất lặp trong cùng phiếu.");
                 if (!isSupplemental && resolved.Count != sourceById.Count)
                     throw new BusinessRuleException("Phiếu xuất đầu tiên phải ghi nhận đủ mọi nguyên liệu của lô đã khóa.");
+                ReconciliationSourceDelta? sourceDelta = null;
+                if (!string.IsNullOrWhiteSpace(dto.ReconciliationSourceDeltaId))
+                {
+                    if (!isSupplemental || dto.ExpectedSourceDeltaVersion is null || resolved.Count != 1)
+                        throw new BusinessRuleException("Xử lý thay đổi nguồn phải là một phiếu xuất thêm cho đúng một dòng delta.");
+                    var sourceDeltaId = GuidHelper.ParseGuidString(dto.ReconciliationSourceDeltaId)
+                        ?? throw new ArgumentException("ReconciliationSourceDeltaId không hợp lệ.");
+                    sourceDelta = await _context.Reconciliationsourcedeltas.SingleOrDefaultAsync(item => item.SourceDeltaId == sourceDeltaId, token)
+                        ?? throw new KeyNotFoundException("Không tìm thấy thay đổi nguồn cần xuất bổ sung.");
+                    var resolvedLine = resolved.Single();
+                    if (sourceDelta.Status != "PENDING" || sourceDelta.Version != dto.ExpectedSourceDeltaVersion
+                        || sourceDelta.WorkKind != "SUPPLEMENTAL_ISSUE" || !sourceDelta.BatchId.SequenceEqual(batchId)
+                        || sourceDelta.DailyLineId is null || !sourceDelta.DailyLineId.SequenceEqual(resolvedLine.Source.DailyLineId)
+                        || sourceDelta.ServiceDate != dto.IssueDate || !sourceDelta.IngredientId.SequenceEqual(resolvedLine.Source.IngredientId)
+                        || !sourceDelta.CanonicalUnitId.SequenceEqual(resolvedLine.Source.CanonicalUnitId)
+                        || DecimalPolicy.RoundQuantity(sourceDelta.DeltaQuantity) != resolvedLine.Quantity)
+                        throw new DbUpdateConcurrencyException("Thay đổi nguồn đã đổi hoặc không khớp phiếu xuất thêm; hãy tải lại hàng đợi.");
+                }
                 var hasExistingIssueForDate = await _context.Inventoryissues.AnyAsync(
                     item => item.ReconciliationBatchId == batchId && item.IssueDate == dto.IssueDate, token);
                 if (isSupplemental != hasExistingIssueForDate)
@@ -189,6 +207,17 @@ internal sealed class ReconciliationInventoryIssueCreator
                     }).ToList()
                 };
                 _issueRepository.Add(issue);
+                if (sourceDelta is not null)
+                {
+                    _context.Entry(sourceDelta).Property(item => item.Version).OriginalValue = dto.ExpectedSourceDeltaVersion!.Value;
+                    sourceDelta.Status = "RESOLVED";
+                    sourceDelta.Version++;
+                    sourceDelta.ResolvedAt = DateTime.UtcNow;
+                    sourceDelta.ResolvedBy = actorId;
+                    sourceDelta.ResolutionEntity = nameof(InventoryIssue);
+                    sourceDelta.ResolutionId = issueId;
+                    sourceDelta.ResolutionCommandId = commandId;
+                }
                 if (isSupplemental)
                 {
                     var affectedLineIds = resolved.Select(item => item.Source.BatchLineId).ToList();

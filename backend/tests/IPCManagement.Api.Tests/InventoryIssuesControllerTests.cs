@@ -75,18 +75,21 @@ public class InventoryIssuesControllerTests
         forbidden.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
     }
 
-    [Fact]
-    public async Task GetById_Should_ReturnBadRequest_WhenSourceFamilyIsUnknown()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Read_Should_RejectUnknownSourceFamily_BeforeRepositoryAccess(bool detail)
     {
-        _inventoryIssueService.GetByIdAsync("issue-id", "UNKNOWN")
-            .Returns<Task<InventoryIssueDto?>>(_ => throw new ArgumentException("Unknown inventory issue source family 'UNKNOWN'."));
-
-        var result = await CreateController().GetByIdAsync("issue-id", "UNKNOWN");
+        IActionResult result = detail
+            ? await CreateController().GetByIdAsync("issue-id", "UNKNOWN")
+            : await CreateController().GetAllAsync(new InventoryIssueFilterRequestDto { SourceFamily = "UNKNOWN" });
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
         badRequest.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
         var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;
-        response.Message.Should().Be("Unknown inventory issue source family 'UNKNOWN'.");
+        response.Message.Should().Contain("UNKNOWN");
+        await _inventoryIssueService.DidNotReceive().GetByIdAsync(Arg.Any<string>(), Arg.Any<string>());
+        await _inventoryIssueService.DidNotReceive().GetPagedAsync(Arg.Any<InventoryIssueFilterRequestDto>());
     }
 
     [Theory]
@@ -147,6 +150,26 @@ public class InventoryIssuesControllerTests
         result.Should().BeOfType<CreatedAtActionResult>();
         await _inventoryIssueService.Received(1)
             .CreateAsync(Arg.Any<CreateInventoryIssueRequest>(), userId);
+    }
+
+    [Fact]
+    public async Task Create_Should_PreserveReconciliationSourceFamily_InLocationRoute()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var issueId = Guid.NewGuid().ToString();
+        _currentUserService.GetRoleNames(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(["WarehouseStaff"]);
+        _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(userId);
+        _inventoryIssueService.CreateAsync(Arg.Any<CreateInventoryIssueRequest>(), userId)
+            .Returns(new InventoryIssueCreatedDto { IssueId = issueId, IssueCode = "ISS-MRX" });
+
+        var result = await CreateController(SystemOperationEligibility.MaterialReconciliation).CreateAsync(new CreateInventoryIssueRequest
+        {
+            ReconciliationBatchId = Guid.NewGuid().ToString()
+        });
+
+        var created = result.Should().BeOfType<CreatedAtActionResult>().Subject;
+        created.RouteValues.Should().ContainKey("sourceFamily")
+            .WhoseValue.Should().Be(InventoryIssueSourceFamilies.MaterialReconciliation);
     }
 
     [Fact]

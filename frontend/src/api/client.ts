@@ -27,10 +27,13 @@ export async function apiClient<T>(
   const mode = (typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_mode') : null) || 'DEFAULT';
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     'X-Operational-Mode': mode,
     ...(options.headers as Record<string, string>),
   };
+
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,6 +12,7 @@ import { IdentifierText } from '../components/ui/identifier-text';
 import { VietnameseDateInput } from '../components/ui/vietnamese-date-input';
 import { Modal } from '../components/ui/modal';
 import { Tabs } from '../components/ui/tabs';
+import { SplitView } from '../components/workbench/SplitView';
 import { DataGrid } from '../components/workbench/DataGrid';
 import { StateBoundary } from '../components/workbench/StateBoundary';
 import { WorkbenchSkeleton } from '../components/workbench/WorkbenchSkeleton';
@@ -192,6 +194,50 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
+  it('Modal: traps Tab focus within open dialog and restores focus to trigger on close', async () => {
+    function FocusTrapHarness() {
+      const [isOpen, setIsOpen] = useState(false);
+      return (
+        <div>
+          <button id="trigger-btn" type="button" onClick={() => setIsOpen(true)}>Mở Modal</button>
+          <Modal
+            isOpen={isOpen}
+            onClose={() => setIsOpen(false)}
+            title="Kiểm tra Focus Trap"
+            footer={
+              <button id="footer-btn" type="button" onClick={() => setIsOpen(false)}>Đóng</button>
+            }
+          >
+            <input id="modal-input" placeholder="Nhập liệu" />
+          </Modal>
+        </div>
+      );
+    }
+
+    render(<FocusTrapHarness />);
+    const trigger = screen.getByRole('button', { name: 'Mở Modal' });
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+
+    await userEvent.click(trigger);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+    const footerBtn = screen.getByRole('button', { name: 'Đóng' });
+    footerBtn.focus();
+    expect(document.activeElement).toBe(footerBtn);
+
+    // Press Tab on last element -> wraps to first focusable element inside modal
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Tab' });
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement | null);
+
+    // Press Escape to close
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    // Focus restored to trigger
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it('Tabs: renders segmented control and navigates with arrow keys', async () => {
     const handleChange = vi.fn();
     const items = [
@@ -240,7 +286,7 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     const onClick = vi.fn();
     const auth: AuthContextType = {
       user: { userId: 'u-1', username: 'manager', fullName: 'Quản lý', roleCode: 'MANAGER', roleName: 'Quản lý', isActive: true, isAdminFullAccess: false, permissions: [] },
-      token: 'token', isAuthenticated: true, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: 1, operationalModeReasonRequired: false, reloadOperationalMode: vi.fn(),
+      token: 'token', isAuthenticated: true, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: 1, operationalModeReasonRequired: false, landingPath: '/', reloadOperationalMode: vi.fn(),
       login: vi.fn(), logout: vi.fn(), setOperationalMode: vi.fn(), hasRole: () => true, hasPermission: () => false,
     };
     const { rerender } = render(
@@ -268,7 +314,7 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
 
   it('ActionGuard hides role-restricted actions from unauthenticated actors', () => {
     const auth: AuthContextType = {
-      user: null, token: null, isAuthenticated: false, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: null, operationalModeReasonRequired: false, reloadOperationalMode: vi.fn(),
+      user: null, token: null, isAuthenticated: false, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: null, operationalModeReasonRequired: false, landingPath: '/login', reloadOperationalMode: vi.fn(),
       login: vi.fn(), logout: vi.fn(), setOperationalMode: vi.fn(), hasRole: () => false, hasPermission: () => false,
     };
     render(<AuthContext.Provider value={auth}><ActionGuard capabilityId="APPR.DECISION" roles="MANAGER"><Button>Phê duyệt</Button></ActionGuard></AuthContext.Provider>);
@@ -325,5 +371,87 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(screen.getByText('Trạng thái: Bẩn')).toBeInTheDocument();
+  });
+
+  it('SplitView: adapts to tablet viewport when detail is active with back button', async () => {
+    const handleBack = vi.fn();
+    const { rerender } = render(
+      <SplitView
+        master={<div>Bảng danh sách Master</div>}
+        detail={<div>Bảng chi tiết Detail</div>}
+        hasActiveDetail={false}
+        onBackToMaster={handleBack}
+      />
+    );
+
+    expect(screen.getByText('Bảng danh sách Master')).toBeInTheDocument();
+    expect(screen.getByText('Bảng chi tiết Detail')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Quay lại danh sách' })).not.toBeInTheDocument();
+
+    // When detail is active
+    rerender(
+      <SplitView
+        master={<div>Bảng danh sách Master</div>}
+        detail={<div>Bảng chi tiết Detail</div>}
+        hasActiveDetail={true}
+        onBackToMaster={handleBack}
+      />
+    );
+
+    const backBtn = screen.getByRole('button', { name: 'Quay lại danh sách' });
+    expect(backBtn).toBeInTheDocument();
+    await userEvent.click(backBtn);
+    expect(handleBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('StateBoundary: preserves DOM and applies opacity-70 overlay during background refetch (Zero-CLS)', () => {
+    const { rerender } = render(
+      <StateBoundary
+        isLoading={false}
+        isFetching={false}
+        hasExistingData={true}
+      >
+        <div data-testid="table-content">Dữ liệu bảng thật</div>
+      </StateBoundary>
+    );
+
+    const content = screen.getByTestId('table-content');
+    expect(content).toBeInTheDocument();
+    expect(content.parentElement).not.toHaveClass('opacity-70');
+
+    // Background refetch begins: isFetching is true, but existing data is preserved
+    rerender(
+      <StateBoundary
+        isLoading={false}
+        isFetching={true}
+        hasExistingData={true}
+      >
+        <div data-testid="table-content">Dữ liệu bảng thật</div>
+      </StateBoundary>
+    );
+
+    // Table content is still in DOM (no skeleton unmount), but dimmed with opacity-70
+    expect(screen.getByTestId('table-content')).toBeInTheDocument();
+    expect(screen.getByTestId('table-content').parentElement).toHaveClass('opacity-70');
+    expect(screen.getByTestId('table-content').parentElement).toHaveClass('pointer-events-none');
+  });
+
+  it('WorkbenchSkeleton: renders custom column widths matching real table geometry to prevent layout shift', () => {
+    const { container } = render(
+      <WorkbenchSkeleton
+        geometry={{
+          kind: 'table',
+          columns: 3,
+          rows: 2,
+          columnWidths: ['20%', '50%', '30%'],
+        }}
+      />
+    );
+
+    const cells = container.querySelectorAll('[data-skeleton-cell]');
+    expect(cells.length).toBe(6);
+    expect(cells[0]).toHaveStyle({ width: '20%' });
+    expect(cells[1]).toHaveStyle({ width: '50%' });
+    expect(cells[2]).toHaveStyle({ width: '30%' });
   });
 });

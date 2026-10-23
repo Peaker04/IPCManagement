@@ -81,7 +81,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Tạo mới phiếu trả nguyên liệu dư sau sản xuất.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<InventoryReturnCreatedDto>), StatusCodes.Status201Created)]
-    [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
+    [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReturnRequest dto)
     {
         var userId = _currentUserService.GetUserId(User);

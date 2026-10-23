@@ -21,8 +21,8 @@ public sealed class ReconciliationKitchenExportService(IpcManagementContext cont
         if (batch is null) return null;
 
         var dailyLines = inMemory
-            ? (await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync(token)).Where(item => item.BatchId.SequenceEqual(id)).ToList()
-            : await context.Reconciliationbatchdailylines.AsNoTracking().Where(item => item.BatchId == id).ToListAsync(token);
+            ? (await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync(token)).Where(item => item.BatchId.SequenceEqual(id) && item.RequiredQuantity > 0).ToList()
+            : await context.Reconciliationbatchdailylines.AsNoTracking().Where(item => item.BatchId == id && item.RequiredQuantity > 0).ToListAsync(token);
         if (dailyLines.Count == 0)
             throw new InvalidOperationException("LEGACY_DAILY_LINEAGE_MISSING: Lô chưa có dữ liệu nấu ăn đóng băng theo ngày.");
         var dailyById = dailyLines.ToDictionary(item => Convert.ToHexString(item.DailyLineId), StringComparer.Ordinal);

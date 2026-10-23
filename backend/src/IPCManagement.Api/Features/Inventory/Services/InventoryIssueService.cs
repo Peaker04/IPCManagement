@@ -278,12 +278,11 @@ public class InventoryIssueService : IInventoryIssueService
         var isReconciliationSource = sourceFamily.MaterialRequestId is null && sourceFamily.ReconciliationBatchId is not null;
         if (!isDefaultSource && !isReconciliationSource)
             throw new BusinessRuleException("Phiếu xuất không có đúng một source lineage để xác nhận nhận hàng.");
-        var owningMode = isDefaultSource ? SystemOperationEligibility.Default : SystemOperationEligibility.MaterialReconciliation;
-        EnsureOwningMode(owningMode, "Phiếu xuất chỉ được tiếp tục khi workflow nguồn đang hoạt động.");
-        var disposition = isDefaultSource
-            ? OperationDisposition.ExcludedInMaterialReconciliation
-            : OperationDisposition.ReconciliationOnly;
-        var modeProtection = OptionalModeProtection(disposition);
+        if (isReconciliationSource)
+            throw new BusinessRuleException("Bếp không xác nhận phiếu xuất của chế độ đối chiếu nguyên liệu.");
+
+        EnsureOwningMode(SystemOperationEligibility.Default, "Phiếu xuất chỉ được tiếp tục khi workflow nguồn đang hoạt động.");
+        var modeProtection = OptionalModeProtection(OperationDisposition.ExcludedInMaterialReconciliation);
 
         // Luồng này ghi vào inventoryissues, auditlogs và supplementalmaterialrequests. Không có
         // transaction thì phiếu có thể được đánh dấu "bếp đã nhận" trong khi nhu cầu bổ sung liên quan

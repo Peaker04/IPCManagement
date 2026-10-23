@@ -19,8 +19,8 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login(username, password);
-      navigate('/');
+      const result = await login(username, password);
+      navigate(result.landingPath);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Tên đăng nhập hoặc mật khẩu không chính xác.';
       setError(msg);

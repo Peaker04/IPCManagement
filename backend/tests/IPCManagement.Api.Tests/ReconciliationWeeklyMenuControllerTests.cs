@@ -14,15 +14,18 @@ namespace IPCManagement.Api.Tests;
 public sealed class ReconciliationWeeklyMenuControllerTests
 {
     [Fact]
-    public void Reconciliation_read_is_retained_and_legacy_coordination_read_is_explicitly_excluded()
+    public void Reconciliation_read_is_mrx_only_and_legacy_coordination_read_is_explicitly_excluded()
     {
-        var retained = typeof(ReconciliationWeeklyMenuController)
+        var reconciliationOnly = typeof(ReconciliationWeeklyMenuController)
             .GetCustomAttribute<SystemOperationAttribute>();
-        Assert.NotNull(retained);
-        Assert.Equal(OperationDisposition.Retained, retained.Disposition);
+        Assert.NotNull(reconciliationOnly);
+        Assert.Equal(OperationDisposition.ReconciliationOnly, reconciliationOnly.Disposition);
         Assert.True(SystemOperationEligibility.IsAllowed(
             SystemOperationEligibility.MaterialReconciliation,
-            retained.Disposition));
+            reconciliationOnly.Disposition));
+        Assert.False(SystemOperationEligibility.IsAllowed(
+            SystemOperationEligibility.Default,
+            reconciliationOnly.Disposition));
 
         var legacyMethod = typeof(WeeklyMenuImportsController)
             .GetMethod(nameof(WeeklyMenuImportsController.GetWeeklyMenuAsync));

@@ -191,6 +191,12 @@ public static class AuthorizationPolicies
     public const string ProductionRead = "production.read";
     public const string WarehouseRead = "warehouse.read";
     public const string ReportRead = "report.read";
+    public const string ReconciliationRead = "reconciliation.read";
+    public const string ReconciliationSourceRead = "reconciliation.source.read";
+    public const string ReconciliationWarehouseRead = "reconciliation.warehouse.read";
+    public const string ReconciliationKitchenRead = "reconciliation.kitchen.read";
+    public const string ReconciliationDisposition = "reconciliation.disposition";
+    public const string ReconciliationComplete = "reconciliation.complete";
 
     public static readonly string[] AllPermissions =
     [
@@ -215,7 +221,13 @@ public static class AuthorizationPolicies
         InventoryAdjustmentApprove,
         ProductionRead,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationSourceRead,
+        ReconciliationWarehouseRead,
+        ReconciliationKitchenRead,
+        ReconciliationDisposition,
+        ReconciliationComplete
     ];
 
     private static readonly string[] ManagerPermissions =
@@ -241,7 +253,10 @@ public static class AuthorizationPolicies
         InventoryAdjustmentApprove,
         ProductionRead,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationDisposition,
+        ReconciliationComplete
     ];
 
     private static readonly string[] CoordinatorPermissions =
@@ -255,7 +270,9 @@ public static class AuthorizationPolicies
         CoordinationOrderSignoff,
         DemandGenerate,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationSourceRead
     ];
 
     private static readonly string[] ProcurementPermissions =
@@ -279,7 +296,9 @@ public static class AuthorizationPolicies
         InventoryIssueApprove,
         InventoryAdjustmentApprove,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationWarehouseRead
     ];
 
     private static readonly string[] ProductionPermissions =
@@ -288,7 +307,8 @@ public static class AuthorizationPolicies
         DashboardRead,
         CatalogRead,
         ProductionRead,
-        ReportRead
+        ReportRead,
+        ReconciliationKitchenRead
     ];
 
     public static IReadOnlyList<string> ResolvePermissions(string? roleName)

@@ -121,29 +121,14 @@ function mapBatch(batch: RawReconciliationBatchDto, serviceDate?: string): Recon
 }
 
 export const reconciliationApi = {
-  async getBatches(): Promise<RawReconciliationBatchDto[]> {
-    return apiClient<RawReconciliationBatchDto[]>('/reconciliation/batches');
-  },
-
   async getReconciliationSummary(
-    serviceDate: string,
-    customerCode: string
+    batchId: string,
+    serviceDate?: string
   ): Promise<ReconciliationBatchSummary> {
-    const batches = await this.getBatches();
-    const matched = batches.find((batch) => {
-      const customerMatches = batch.customerCode === customerCode;
-      const dateMatches =
-        batch.dailyReview?.lines.some((line) => line.serviceDate === serviceDate) ||
-        batch.lines.some((line) => line.serviceDate === serviceDate) ||
-        (batch.weekStartDate && batch.weekEndDate && serviceDate >= batch.weekStartDate && serviceDate <= batch.weekEndDate);
-      return customerMatches && Boolean(dateMatches);
-    });
-
-    if (!matched) {
-      throw new Error(`Không có lô đối soát đúng phạm vi ngày ${serviceDate} và khách hàng ${customerCode}.`);
-    }
-
-    return mapBatch(matched, serviceDate);
+    const batch = await apiClient<RawReconciliationBatchDto>(
+      `/reconciliation/batches/${encodeURIComponent(batchId)}`
+    );
+    return mapBatch(batch, serviceDate);
   },
 
   async completeReconciliation(batchId: string, expectedVersion: number): Promise<ReconciliationBatchSummary> {

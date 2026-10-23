@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
+import { useAuth } from '../../store/useAuth';
 
 export function ForbiddenPage() {
   const navigate = useNavigate();
+  const { landingPath } = useAuth();
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center bg-white">
@@ -17,7 +19,7 @@ export function ForbiddenPage() {
         <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
           Quay lại
         </Button>
-        <Button variant="default" size="sm" onClick={() => navigate('/')}>
+        <Button variant="default" size="sm" onClick={() => navigate(landingPath)}>
           Về bàn điều hành
         </Button>
       </div>

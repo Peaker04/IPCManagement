@@ -33,75 +33,52 @@ type NavigationEntry =
   | { type: 'link'; to: string; label: string; icon: LucideIcon; exact?: boolean }
   | { type: 'parent'; id: string; label: string; icon: LucideIcon; children: NavLeafItem[] };
 
-const NAVIGATION_MENU: NavigationEntry[] = [
-  { type: 'link', to: '/', label: 'Tổng quan', icon: LayoutDashboard, exact: true },
-  {
-    type: 'parent',
-    id: 'weekly-menu',
-    label: 'Thực đơn tuần',
-    icon: CalendarDays,
-    children: [
-      { to: '/weekly-menu', label: 'Kế hoạch tuần', exact: true },
-      { to: '/weekly-menu?view=demand', label: 'Bàn giao nguyên liệu' },
-      { to: '/weekly-menu?view=production-plan', label: 'Kế hoạch sản xuất' },
-      { to: '/weekly-menu?view=cost', label: 'Giá vốn & Định mức BOM' },
-    ],
-  },
-  { type: 'link', to: '/meal-orders', label: 'Điều phối đơn', icon: Utensils },
-  { type: 'link', to: '/approvals', label: 'Duyệt vận hành', icon: ClipboardCheck },
-  { type: 'link', to: '/purchasing', label: 'Thu mua', icon: ShoppingCart },
-  {
-    type: 'parent',
-    id: 'warehouse',
-    label: 'Kho nguyên liệu',
-    icon: Warehouse,
-    children: [
-      { to: '/warehouse?view=issues', label: 'Phiếu xuất kho' },
-      { to: '/warehouse?view=receipts', label: 'Phiếu nhập kho' },
-      { to: '/warehouse?view=stock', label: 'Tồn kho hiện tại' },
-    ],
-  },
-  {
-    type: 'parent',
-    id: 'chef',
-    label: 'Bếp trưởng',
-    icon: ChefHat,
-    children: [
-      { to: '/chef?view=plans', label: 'Kế hoạch sản xuất' },
-      { to: '/chef?view=issues', label: 'Phiếu xuất bàn giao' },
-    ],
-  },
-  { type: 'link', to: '/reconciliation', label: 'Đối soát nguyên liệu', icon: Scale },
-  {
-    type: 'parent',
-    id: 'reports',
-    label: 'Báo cáo vận hành',
-    icon: TrendingUp,
-    children: [
-      { to: '/reports?view=demand', label: 'Nhu cầu nguyên liệu' },
-      { to: '/reports?view=prices', label: 'Biến động giá nhập' },
-      { to: '/reports?view=stock', label: 'Tồn kho hiện tại' },
-    ],
-  },
-  {
-    type: 'parent',
-    id: 'administration',
-    label: 'Quản trị hệ thống',
-    icon: Settings,
-    children: [
-      { to: '/admin-data?view=ingredients', label: 'Danh mục nguyên liệu' },
-      { to: '/admin-data?view=dishes', label: 'Danh mục món ăn' },
-      { to: '/settings/approval-rules', label: 'Quy trình phê duyệt' },
-      { to: '/settings/advanced?view=mode', label: 'Chế độ vận hành' },
-      { to: '/settings/advanced?view=cache', label: 'Bộ nhớ phiên' },
-      { to: '/settings/advanced?view=diagnostics', label: 'Chẩn đoán kết nối' },
-    ],
-  },
-];
+const ROUTE_ICONS: Record<string, LucideIcon> = {
+  '/': LayoutDashboard,
+  '/weekly-menu': CalendarDays,
+  '/meal-orders': Utensils,
+  '/approvals': ClipboardCheck,
+  '/purchasing': ShoppingCart,
+  '/warehouse': Warehouse,
+  '/chef': ChefHat,
+  '/reconciliation': Scale,
+  '/reports': TrendingUp,
+  '/admin-data': Settings,
+  '/settings/approval-rules': Settings,
+  '/settings/advanced': Settings,
+};
+
+interface AppShellNavigationRoute {
+  path: string;
+  title: string;
+  navigationLabel?: string;
+  leaves?: Array<{ to: string; label: string }>;
+}
+
+function toNavigationMenu(routes: AppShellNavigationRoute[]): NavigationEntry[] {
+  const entries: NavigationEntry[] = [];
+  const administration: NavLeafItem[] = [];
+  for (const route of routes) {
+    if (route.path === '/login' || route.path === '/forbidden') continue;
+    const children = route.leaves?.map((leaf) => ({ to: leaf.to, label: leaf.label, exact: leaf.to === route.path }));
+    if (route.path === '/admin-data' || route.path.startsWith('/settings/')) {
+      administration.push(...(children ?? [{ to: route.path, label: route.navigationLabel ?? route.title }]));
+      continue;
+    }
+    const icon = ROUTE_ICONS[route.path] ?? Menu;
+    entries.push(children
+      ? { type: 'parent', id: route.path.slice(1) || 'root', label: route.navigationLabel ?? route.title, icon, children }
+      : { type: 'link', to: route.path, label: route.navigationLabel ?? route.title, icon, exact: route.path === '/' });
+  }
+  if (administration.length > 0) {
+    entries.push({ type: 'parent', id: 'administration', label: 'Quản trị hệ thống', icon: Settings, children: administration });
+  }
+  return entries;
+}
 
 export interface AppShellProps {
   children?: ReactNode;
-  getAllowedRoles?: (path: string) => string[] | undefined;
+  navigation: AppShellNavigationRoute[];
 }
 
 /**
@@ -109,7 +86,7 @@ export interface AppShellProps {
  * Left Sidebar: w-60 (240px) with hamburger toggle, real Lucide icons, nested tree with vertical guide line
  * Right Frame: flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40
  */
-export function AppShell({ children, getAllowedRoles = () => undefined }: AppShellProps) {
+export function AppShell({ children, navigation }: AppShellProps) {
   const { user, logout, operationalMode, hasRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -120,6 +97,7 @@ export function AppShell({ children, getAllowedRoles = () => undefined }: AppShe
     'weekly-menu': true,
     warehouse: true,
     chef: true,
+    reconciliation: true,
     reports: true,
     administration: true,
   });
@@ -131,16 +109,7 @@ export function AppShell({ children, getAllowedRoles = () => undefined }: AppShe
     }));
   };
 
-  const canAccessPath = (url: string) => {
-    const path = url.split('?')[0];
-    const allowedRoles = getAllowedRoles(path);
-    return !allowedRoles?.length || hasRole(allowedRoles);
-  };
-  const visibleNavigation = NAVIGATION_MENU.flatMap((entry): NavigationEntry[] => {
-    if (entry.type === 'link') return canAccessPath(entry.to) ? [entry] : [];
-    const children = entry.children.filter((child) => canAccessPath(child.to));
-    return children.length > 0 ? [{ ...entry, children }] : [];
-  });
+  const visibleNavigation = toNavigationMenu(navigation);
 
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>, to: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

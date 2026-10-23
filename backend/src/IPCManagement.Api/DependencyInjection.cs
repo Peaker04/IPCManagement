@@ -70,6 +70,10 @@ public static class DependencyInjection
         services.AddScoped<ReconciliationActualService>();
         services.AddScoped<ReconciliationKitchenExportService>();
         services.AddScoped<ReconciliationCompletionService>();
+        services.AddScoped<ReconciliationSourceRevisionService>();
+        services.AddScoped<IReconciliationSourceRevisionStager, ReconciliationSourceRevisionService>();
+        services.AddScoped<ReconciliationPreparationService>();
+        services.AddScoped<ReconciliationReportsService>();
         services.AddScoped<IEfTransactionRunner>(serviceProvider =>
             new EfTransactionRunner(
                 serviceProvider.GetRequiredService<IpcManagementContext>(),
@@ -113,6 +117,7 @@ public static class DependencyInjection
         services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryAdjustmentApprovalHandler>();
         services.AddScoped<IIngredientService, IngredientService>();
+        services.AddScoped<IUnitService, UnitService>();
         services.AddScoped<IDishCatalogService, DishCatalogService>();
         services.AddScoped<IDishCatalogDiagnosticsService, DishCatalogDiagnosticsService>();
         services.AddScoped<IDishBomTemplateService, DishBomTemplateService>();

@@ -77,6 +77,10 @@ internal sealed class InventoryIssueConfiguration : IEntityTypeConfiguration<Inv
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("reconciliationBatchId");
+        entity.Property(e => e.PreparationGroupId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("preparationGroupId");
         entity.Property(e => e.ReceivedBy)
             .HasMaxLength(16)
             .IsFixedLength()
@@ -588,6 +592,12 @@ internal sealed class InventoryReturnConfiguration : IEntityTypeConfiguration<In
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("issueId");
+        entity.Property(e => e.ReconciliationSourceDeltaId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("reconciliationSourceDeltaId");
+        entity.Property(e => e.ReconciliationSourceDeltaVersion)
+            .HasColumnName("reconciliationSourceDeltaVersion");
         entity.Property(e => e.Reason)
             .HasColumnType("text")
             .HasColumnName("reason");

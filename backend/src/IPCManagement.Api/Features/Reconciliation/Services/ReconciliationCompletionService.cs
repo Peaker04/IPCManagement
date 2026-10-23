@@ -24,6 +24,8 @@ public sealed class ReconciliationCompletionService(
                 var batch = await context.Reconciliationbatches.Include(x => x.Lines).SingleOrDefaultAsync(x => x.BatchId == batchId, operationToken) ?? throw new KeyNotFoundException();
                 context.Entry(batch).Property(x => x.Version).OriginalValue = request.ExpectedVersion;
                 if (batch.Status != "IN_PROGRESS" || batch.Version != request.ExpectedVersion || batch.Lines.Count == 0) throw new DbUpdateConcurrencyException("Lô chưa sẵn sàng hoàn tất hoặc đã thay đổi.");
+                if (await context.Reconciliationsourcedeltas.AsNoTracking().AnyAsync(x => x.BatchId == batchId && x.Status == "PENDING", operationToken))
+                    throw new InvalidOperationException("Chưa thể hoàn tất khi thay đổi nguồn vẫn còn chờ Kho xử lý.");
                 var dailyProjection = await batches.GetWarehouseDailyAsync(id, operationToken);
                 var usesDailyLineage = dailyProjection is not null
                     && dailyProjection.Compatibility.ReasonCode != "LEGACY_DAILY_LINEAGE_MISSING";

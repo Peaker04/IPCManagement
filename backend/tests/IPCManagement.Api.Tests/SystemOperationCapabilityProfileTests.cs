@@ -49,11 +49,12 @@ public sealed class SystemOperationCapabilityProfileTests
         var profile = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation);
 
         Assert.Equal(
-            ["dashboard", "weekly-menu", "warehouse", "reconciliation", "admin-data"],
+            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
             profile.Navigation);
-        Assert.Equal(["schedule", "material-demand"], profile.PageTabs["weekly-menu"]);
-        Assert.Equal(["demand", "movement"], profile.PageTabs["warehouse"]);
-        Assert.Equal(["bom-import", "audit"], profile.PageTabs["admin-data"]);
+        Assert.Equal(["mrx-batch"], profile.PageTabs["weekly-menu"]);
+        Assert.Equal(["mrx-daily", "mrx-issues"], profile.PageTabs["warehouse"]);
+        Assert.Equal(["mrx-cooking"], profile.PageTabs["chef"]);
+        Assert.Equal(["ingredients", "dishes"], profile.PageTabs["admin-data"]);
         Assert.Equal(6, profile.PageTabs.Sum(group => group.Value.Count));
     }
 
@@ -106,10 +107,12 @@ public sealed class SystemOperationCapabilityProfileTests
         var payload = Assert.IsType<ApiResponse<SystemOperationModeDto>>(ok.Value);
         Assert.NotNull(payload.Data);
         Assert.Equal(
-            ["dashboard", "weekly-menu", "warehouse", "reconciliation", "admin-data"],
+            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
             payload.Data.Capabilities.Navigation);
-        Assert.Equal(["schedule", "material-demand"], payload.Data.Capabilities.PageTabs["weekly-menu"]);
-        Assert.Equal(["demand", "movement"], payload.Data.Capabilities.PageTabs["warehouse"]);
+        Assert.Equal(["mrx-batch"], payload.Data.Capabilities.PageTabs["weekly-menu"]);
+        Assert.Equal(["mrx-daily", "mrx-issues"], payload.Data.Capabilities.PageTabs["warehouse"]);
+        Assert.Equal(["mrx-cooking"], payload.Data.Capabilities.PageTabs["chef"]);
+        Assert.Equal(["ingredients", "dishes"], payload.Data.Capabilities.PageTabs["admin-data"]);
     }
 
     [Fact]
@@ -144,10 +147,12 @@ public sealed class SystemOperationCapabilityProfileTests
         Assert.Equal(33, before.Capabilities.PageTabs.Sum(group => group.Value.Count));
         Assert.Equal(SystemOperationEligibility.MaterialReconciliation, after.Mode);
         Assert.Equal(
-            ["dashboard", "weekly-menu", "warehouse", "reconciliation", "admin-data"],
+            ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
             after.Capabilities.Navigation);
-        Assert.Equal(["schedule", "material-demand"], after.Capabilities.PageTabs["weekly-menu"]);
-        Assert.Equal(["bom-import", "audit"], after.Capabilities.PageTabs["admin-data"]);
+        Assert.Equal(["mrx-batch"], after.Capabilities.PageTabs["weekly-menu"]);
+        Assert.Equal(["mrx-daily", "mrx-issues"], after.Capabilities.PageTabs["warehouse"]);
+        Assert.Equal(["mrx-cooking"], after.Capabilities.PageTabs["chef"]);
+        Assert.Equal(["ingredients", "dishes"], after.Capabilities.PageTabs["admin-data"]);
     }
 
     private static IpcManagementContext CreateContext()

@@ -137,6 +137,7 @@ public class InventoryIssueDto
     public string?  WarehouseName     { get; set; }
     public string?  MaterialRequestId { get; set; }
     public string?  ReconciliationBatchId { get; set; }
+    public string?  PreparationGroupId { get; set; }
     public string   IssuedBy          { get; set; } = string.Empty;
     public string?  IssuedByName      { get; set; }
     public string?  ReceivedBy        { get; set; }
@@ -175,6 +176,8 @@ public class InventoryIssueLineDto
     public string   IssueLineId    { get; set; } = string.Empty;
     public string?  MaterialRequestLineId { get; set; }
     public string?  ReconciliationBatchLineId { get; set; }
+    public string?  ReconciliationBatchDailyLineId { get; set; }
+    public DateOnly? ReconciliationServiceDate { get; set; }
     public string   IngredientId   { get; set; } = string.Empty;
     public string?  IngredientName { get; set; }
     public decimal  RequestedQty   { get; set; }
@@ -209,6 +212,10 @@ public class CreateInventoryIssueRequest
     public string? MaterialRequestId { get; set; }
 
     public string? ReconciliationBatchId { get; set; }
+
+    public string? ReconciliationSourceDeltaId { get; set; }
+
+    public long? ExpectedSourceDeltaVersion { get; set; }
 
     public bool? IsSupplemental { get; set; }
 
@@ -339,6 +346,10 @@ public class CreateInventoryReturnRequest
 
     [Required]
     public string IssueId { get; set; } = string.Empty;
+
+    public string? ReconciliationSourceDeltaId { get; set; }
+
+    public long? ExpectedSourceDeltaVersion { get; set; }
 
     public string? Reason { get; set; }
 

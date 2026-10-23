@@ -3,6 +3,7 @@ using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
+using IPCManagement.Api.Shared.Contracts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,11 +26,9 @@ public sealed class ReconciliationBatchesController : ControllerBase
         this.currentUser = currentUser;
     }
 
-    [HttpGet, Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess), ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReconciliationBatchDto>>), StatusCodes.Status200OK)] public async Task<IActionResult> List(CancellationToken token)
-    {
-        var items = await service.ListAsync(token);
-        return Ok(ApiResponse<IReadOnlyList<ReconciliationBatchDto>>.SuccessResult(CanReadReconciliationDetails() ? items : items.Select(ToOperationalScope).ToList()));
-    }
+    [HttpGet, Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess), ProducesResponseType(typeof(ApiResponse<PagedResponseDto<ReconciliationBatchSummaryDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List([FromQuery] ReconciliationBatchPageQuery query, CancellationToken token)
+        => Ok(ApiResponse<PagedResponseDto<ReconciliationBatchSummaryDto>>.SuccessResult(await service.GetPageAsync(query, token)));
     [HttpGet("draft-sources"), Authorize(Policy = AuthorizationPolicies.ReconciliationSourceReadAccess), ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReconciliationDraftSourceDto>>), StatusCodes.Status200OK)] public async Task<IActionResult> DraftSources(CancellationToken token) => Ok(ApiResponse<IReadOnlyList<ReconciliationDraftSourceDto>>.SuccessResult(await service.ListDraftSourcesAsync(token)));
     [HttpGet("{id}"), Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess), ProducesResponseType(typeof(ApiResponse<ReconciliationBatchDto>), StatusCodes.Status200OK)] public async Task<IActionResult> Get(string id, CancellationToken token) { var item = await service.GetAsync(id, token); return item is null ? NotFound(ApiResponse.FailResult("Không tìm thấy lô đối chiếu.")) : Ok(ApiResponse<ReconciliationBatchDto>.SuccessResult(CanReadReconciliationDetails() ? item : ToOperationalScope(item))); }
     [HttpGet("{id}/warehouse-daily"), Authorize(Policy = AuthorizationPolicies.ReconciliationWarehouseReadAccess), ProducesResponseType(typeof(ApiResponse<ReconciliationWarehouseDailyDto>), StatusCodes.Status200OK)] public async Task<IActionResult> WarehouseDaily(string id, CancellationToken token) { var item = await service.GetWarehouseDailyAsync(id, token); return item is null ? NotFound(ApiResponse.FailResult("Không tìm thấy lô đối chiếu.")) : Ok(ApiResponse<ReconciliationWarehouseDailyDto>.SuccessResult(item)); }

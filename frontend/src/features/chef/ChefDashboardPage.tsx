@@ -14,6 +14,7 @@ import { chefApi, type ChefDashboardData, type ChefIssueItem, type ChefPlanLineI
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
 import { formatVietnameseDate } from '../../utils/dates';
+import { MrxCookingWorkbench } from './MrxCookingWorkbench';
 
 const SHIFT_OPTIONS = [
   { value: 'MORNING', label: 'Ca 1 (Sáng)' },
@@ -32,6 +33,14 @@ function todayInBusinessTimezone(): string {
 const ISSUE_PAGE_SIZE = 25;
 
 export function ChefDashboardPage() {
+  const [searchParams] = useSearchParams();
+  if (searchParams.get('view') === 'mrx-cooking') {
+    return <MrxCookingWorkbench />;
+  }
+  return <DefaultChefDashboardPage />;
+}
+
+function DefaultChefDashboardPage() {
   const [searchParams] = useSearchParams();
   const activeView = searchParams.get('view') === 'issues' ? 'issues' : 'plans';
   const [customers, setCustomers] = useState<CustomerOption[]>([]);

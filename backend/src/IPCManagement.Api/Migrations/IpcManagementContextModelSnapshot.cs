@@ -1085,6 +1085,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("materialRequestId")
                         .IsFixedLength();
 
+                    b.Property<byte[]>("PreparationGroupId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("preparationGroupId")
+                        .IsFixedLength();
+
                     b.Property<DateTime?>("ReceivedAt")
                         .HasColumnType("datetime")
                         .HasColumnName("receivedAt");
@@ -1538,6 +1544,16 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .HasColumnName("receivedBy")
                         .IsFixedLength();
+
+                    b.Property<byte[]>("ReconciliationSourceDeltaId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("reconciliationSourceDeltaId")
+                        .IsFixedLength();
+
+                    b.Property<long?>("ReconciliationSourceDeltaVersion")
+                        .HasColumnType("bigint")
+                        .HasColumnName("reconciliationSourceDeltaVersion");
 
                     b.Property<string>("ReturnCode")
                         .IsRequired()
@@ -4731,7 +4747,7 @@ namespace IPCManagement.Api.Migrations
 
                     b.ToTable("reconciliationbatchdailylines", null, t =>
                         {
-                            t.HasCheckConstraint("ckReconciliationBatchDailyLineRequiredQuantity", "`requiredQuantity` > 0");
+                            t.HasCheckConstraint("ckReconciliationBatchDailyLineRequiredQuantity", "`requiredQuantity` >= 0");
                         });
                 });
 
@@ -4821,6 +4837,18 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .IsFixedLength();
 
+                    b.Property<DateTime?>("InvalidatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte[]>("InvalidatedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("InvalidationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
                     b.Property<string>("Reason")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -4884,6 +4912,182 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex("DisposedBy");
 
                     b.ToTable("reconciliationdispositions", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceDelta", b =>
+                {
+                    b.Property<byte[]>("SourceDeltaId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CanonicalUnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte[]>("DailyLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("DeltaQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("NewRequiredQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<decimal>("PreviousRequiredQuantity")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("ResolutionCommandId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
+
+                    b.Property<string>("ResolutionEntity")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<byte[]>("ResolutionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte[]>("ResolvedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<byte[]>("SourceRevisionId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<long>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("WorkKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.HasKey("SourceDeltaId");
+
+                    b.HasIndex("DailyLineId", "BatchId", "IngredientId", "CanonicalUnitId");
+
+                    b.HasIndex("SourceRevisionId", "DailyLineId", "ServiceDate", "IngredientId", "CanonicalUnitId")
+                        .IsUnique();
+
+                    b.ToTable("reconciliationsourcedeltas", null, t =>
+                        {
+                            t.HasCheckConstraint("ckReconciliationSourceDeltaNonZero", "`deltaQuantity` <> 0");
+
+                            t.HasCheckConstraint("ckReconciliationSourceDeltaStatus", "`status` IN ('PENDING','RESOLVED','CANCELLED')");
+
+                            t.HasCheckConstraint("ckReconciliationSourceDeltaWorkKind", "`workKind` IN ('SUPPLEMENTAL_ISSUE','RETURN_REQUIRED')");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceRevision", b =>
+                {
+                    b.Property<byte[]>("SourceRevisionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("AppliedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<byte[]>("AppliedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("AppliedMenuVersionId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("BatchId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("MenuAmendmentId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("PreviousMenuVersionId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<long>("RevisionNumber")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.HasKey("SourceRevisionId");
+
+                    b.HasIndex("AppliedBy");
+
+                    b.HasIndex("AppliedMenuVersionId");
+
+                    b.HasIndex("PreviousMenuVersionId");
+
+                    b.HasIndex("BatchId", "RevisionNumber")
+                        .IsUnique();
+
+                    b.HasIndex("MenuAmendmentId", "BatchId")
+                        .IsUnique();
+
+                    b.ToTable("reconciliationsourcerevisions", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationTolerance", b =>
@@ -7721,6 +7925,54 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("BatchLine");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceDelta", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationSourceRevision", "SourceRevision")
+                        .WithMany("Deltas")
+                        .HasForeignKey("SourceRevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatchDailyLine", "DailyLine")
+                        .WithMany()
+                        .HasForeignKey("DailyLineId", "BatchId", "IngredientId", "CanonicalUnitId")
+                        .HasPrincipalKey("DailyLineId", "BatchId", "IngredientId", "CanonicalUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DailyLine");
+
+                    b.Navigation("SourceRevision");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceRevision", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.MenuVersion", null)
+                        .WithMany()
+                        .HasForeignKey("AppliedMenuVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.ReconciliationBatch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.MenuVersion", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousMenuVersionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationTolerance", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", null)
@@ -8339,6 +8591,11 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Contributors");
 
                     b.Navigation("DailyLines");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ReconciliationSourceRevision", b =>
+                {
+                    b.Navigation("Deltas");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Role", b =>

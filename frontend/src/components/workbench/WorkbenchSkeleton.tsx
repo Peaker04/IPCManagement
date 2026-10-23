@@ -6,6 +6,7 @@ export interface SkeletonGeometry {
   kind: SkeletonKind;
   columns?: number;
   rows?: number;
+  columnWidths?: string[];
   splitRatio?: '60/40' | '65/35';
   toolbar?: boolean;
 }
@@ -15,21 +16,36 @@ export interface WorkbenchSkeletonProps {
   className?: string;
 }
 
-function SkeletonRows({ columns, rows }: { columns: number; rows: number }) {
+function SkeletonRows({ columns, rows, columnWidths }: { columns: number; rows: number; columnWidths?: string[] }) {
   return (
     <div className="flex-1 min-h-0 divide-y divide-slate-100 bg-white" aria-hidden="true">
       {/* Table Header Skeleton */}
       <div className="h-10 w-full bg-slate-100 border-b border-slate-200 flex items-center gap-4 px-4 shrink-0">
-        {Array.from({ length: columns }).map((__, column) => (
-          <span key={column} className="h-3.5 flex-1 bg-slate-300/80 rounded" />
-        ))}
+        {Array.from({ length: columns }).map((__, column) => {
+          const width = columnWidths?.[column];
+          return (
+            <span
+              key={column}
+              style={width ? { width, flex: 'none' } : undefined}
+              className={clsx('h-3.5 bg-slate-300/80 rounded', !width && 'flex-1')}
+            />
+          );
+        })}
       </div>
       {/* Table Body Rows Skeleton (fills full viewport) */}
       {Array.from({ length: rows }).map((_, row) => (
         <div key={row} data-skeleton-row className="h-10 w-full bg-white flex items-center gap-4 px-4 animate-pulse">
-          {Array.from({ length: columns }).map((__, column) => (
-            <span key={column} data-skeleton-cell className="h-3 flex-1 bg-slate-200 rounded" />
-          ))}
+          {Array.from({ length: columns }).map((__, column) => {
+            const width = columnWidths?.[column];
+            return (
+              <span
+                key={column}
+                data-skeleton-cell
+                style={width ? { width, flex: 'none' } : undefined}
+                className={clsx('h-3 bg-slate-200 rounded', !width && 'flex-1')}
+              />
+            );
+          })}
         </div>
       ))}
     </div>
@@ -39,7 +55,7 @@ function SkeletonRows({ columns, rows }: { columns: number; rows: number }) {
 export function WorkbenchSkeleton({ geometry, className }: WorkbenchSkeletonProps) {
   const columns = Math.max(1, geometry.columns ?? 6);
   const rows = Math.max(1, geometry.rows ?? 12);
-  const content = <SkeletonRows columns={columns} rows={rows} />;
+  const content = <SkeletonRows columns={columns} rows={rows} columnWidths={geometry.columnWidths} />;
 
   return (
     <div

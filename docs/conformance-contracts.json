@@ -215,6 +215,7 @@
       "assessment": "PARTIAL",
       "capabilityIds": [
         "CAT.INGREDIENT.READ",
+        "CAT.UNIT.READ",
         "CAT.DISH.READ",
         "CAT.BOM.READ",
         "SAMPLE.DATA.IMPORT",
@@ -536,6 +537,10 @@
         "RECON.BATCH.READ",
         "RECON.KITCHEN_REPORT.READ",
         "RECON.CONFIG.INIT",
+        "RECON.SOURCE_CHANGE.INBOX",
+        "RECON.SOURCE_CHANGE.PREVIEW",
+        "RECON.SOURCE_CHANGE.SUBMIT",
+        "RECON.SOURCE_CHANGE.DECIDE",
         "RECON.BATCH.CREATE",
         "RECON.BATCH.PREVIEW_IMPORT",
         "RECON.BATCH.COMMIT_IMPORT",
@@ -1185,7 +1190,9 @@
         "NFR-SEC-01"
       ],
       "surfaceIds": [],
-      "gaps": []
+      "gaps": [
+        "NO_SURFACE: Backend capability is ready but no authorized Frontend work surface is delivered."
+      ]
     },
     {
       "id": "ADMIN.EMPLOYEE.READ",
@@ -1222,7 +1229,9 @@
         "NFR-SEC-01"
       ],
       "surfaceIds": [],
-      "gaps": []
+      "gaps": [
+        "NO_SURFACE: Backend capability is ready but no authorized Frontend work surface is delivered."
+      ]
     },
     {
       "id": "SYS.MODE.READ",
@@ -1252,9 +1261,7 @@
         "BR-GLOBAL-01"
       ],
       "surfaceIds": [
-        "admin.mode",
-        "admin.cache",
-        "admin.diagnostics"
+        "admin.mode"
       ],
       "gaps": []
     },
@@ -1283,6 +1290,41 @@
         "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs",
         "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/IngredientDto.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "READY",
+      "requirementIds": [
+        "FR-CAT"
+      ],
+      "surfaceIds": [
+        "admin.ingredients"
+      ],
+      "gaps": []
+    },
+    {
+      "id": "CAT.UNIT.READ",
+      "frCode": "FR-CAT",
+      "name": "Read catalog units",
+      "operation": "read",
+      "mode": "SHARED_MASTER_DATA",
+      "actors": [
+        "CatalogReader"
+      ],
+      "permissionTokens": [
+        "CatalogReadAccess"
+      ],
+      "grain": "unit record",
+      "prerequisites": [],
+      "sourceLineage": [
+        "unit master data"
+      ],
+      "actionIds": [
+        "Units.GetAll"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/UnitsController.cs",
+        "responseDto": "backend/src/IPCManagement.Api/Features/Catalog/Contracts/UnitDto.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
+        "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/UnitService.cs"
       },
       "deliveryClass": "READY",
       "requirementIds": [
@@ -1981,7 +2023,11 @@
         "ReconciliationBatches.Dishes",
         "ReconciliationBatches.SourceChanges",
         "ReconciliationBatches.WarehouseDaily",
-        "ReconciliationWeeklyMenu.Get"
+        "ReconciliationSourceDeltas.List",
+        "ReconciliationWeeklyMenu.Get",
+        "ReconciliationPreparation.Get",
+        "ReconciliationPreparation.GetWorkbookPreview",
+        "ReconciliationPreparation.ExportWorkbook"
       ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationBatchesController.cs",
@@ -2024,7 +2070,16 @@
         "ReconciliationKitchenCooking.Csv",
         "ReconciliationKitchenCooking.Xlsx",
         "ReconciliationReports.Get",
-        "ReconciliationReports.Export"
+        "ReconciliationReports.Export",
+        "ReconciliationReports.GetOperationalSummary",
+        "ReconciliationReports.GetTransactionsHistory",
+        "ReconciliationReports.ExportTransactionsHistory",
+        "ReconciliationReports.GetVarianceRegister",
+        "ReconciliationReports.ExportVarianceRegister",
+        "ReconciliationReports.GetCompletedRegister",
+        "ReconciliationReports.ExportCompletedRegister",
+        "ReconciliationReports.GetAuditTrail",
+        "ReconciliationReports.ExportAuditTrail"
       ],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationKitchenCookingController.cs",
@@ -2038,7 +2093,9 @@
         "BR-GLOBAL-01"
       ],
       "surfaceIds": [],
-      "gaps": []
+      "gaps": [
+        "NO_SURFACE: Backend capability is ready but no authorized Frontend work surface is delivered."
+      ]
     },
     {
       "id": "ADMIN.SAMPLE_USERS.SEED",
@@ -2197,7 +2254,9 @@
         "NFR-SEC-01"
       ],
       "surfaceIds": [],
-      "gaps": []
+      "gaps": [
+        "NO_SURFACE: Backend capability is ready but no authorized Frontend work surface is delivered."
+      ]
     },
     {
       "id": "REP.DEMAND.READ",
@@ -2419,8 +2478,7 @@
         "FR-REP"
       ],
       "surfaceIds": [
-        "dashboard.root",
-        "admin.diagnostics"
+        "dashboard.root"
       ],
       "gaps": []
     },
@@ -2722,13 +2780,12 @@
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs",
         "persistence": "backend/src/IPCManagement.Api/Features/Catalog/Services/IngredientService.cs"
       },
-      "deliveryClass": "BLOCKED",
+      "deliveryClass": "PARTIAL",
       "requirementIds": [
         "FR-CAT"
       ],
       "surfaceIds": [],
       "gaps": [
-        "UnitsController lookup authority missing; Frontend cannot supply authoritative UnitId.",
         "Ingredient entity lacks optimistic concurrency token."
       ]
     },
@@ -2768,7 +2825,6 @@
       ],
       "surfaceIds": [],
       "gaps": [
-        "Unit selection authority missing for updates.",
         "Ingredient entity lacks optimistic concurrency token."
       ]
     },
@@ -6638,6 +6694,90 @@
       ]
     },
     {
+      "id": "RECON.SOURCE_CHANGE.INBOX",
+      "frCode": "FR-RECON",
+      "name": "Read pending MRX source changes",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": ["Admin"],
+      "permissionTokens": ["reconciliation.source.read"],
+      "grain": "pending source change inbox",
+      "prerequisites": ["pending specialist source change"],
+      "sourceLineage": ["immutable source-change impact snapshot"],
+      "actionIds": ["WeeklyMenuImports.GetMrxMenuAmendmentInbox"],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
+      "surfaceIds": ["mrx.batch"],
+      "gaps": ["Browser and persistence evidence remain required."]
+    },
+    {
+      "id": "RECON.SOURCE_CHANGE.PREVIEW",
+      "frCode": "FR-RECON",
+      "name": "Preview MRX source change impact",
+      "operation": "read",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": ["Admin", "Coordinator"],
+      "permissionTokens": ["reconciliation.source.read"],
+      "grain": "source change impact preview",
+      "prerequisites": ["versioned weekly menu source", "effective dish BOM"],
+      "sourceLineage": ["customer/date/shift/dish/servings to affected MRX batches"],
+      "actionIds": ["WeeklyMenuImports.PreviewMenuAmendment"],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
+      "surfaceIds": ["mrx.batch"],
+      "gaps": ["Browser and persistence evidence remain required."]
+    },
+    {
+      "id": "RECON.SOURCE_CHANGE.SUBMIT",
+      "frCode": "FR-RECON",
+      "name": "Submit MRX source change for Admin decision",
+      "operation": "create",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": ["Coordinator"],
+      "permissionTokens": ["reconciliation.source.read"],
+      "grain": "pending source change request",
+      "prerequisites": ["current impact preview"],
+      "sourceLineage": ["versioned source change request and immutable impact snapshot"],
+      "actionIds": ["WeeklyMenuImports.SubmitMrxMenuAmendment"],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
+      "surfaceIds": ["mrx.batch"],
+      "gaps": ["Browser and persistence evidence remain required."]
+    },
+    {
+      "id": "RECON.SOURCE_CHANGE.DECIDE",
+      "frCode": "FR-RECON",
+      "name": "Confirm or decide MRX source change",
+      "operation": "update",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": ["Admin"],
+      "permissionTokens": ["reconciliation.source.read"],
+      "grain": "source change decision",
+      "prerequisites": ["current impact preview or pending specialist request"],
+      "sourceLineage": ["Admin actor to source revision and audit"],
+      "actionIds": ["WeeklyMenuImports.ConfirmMrxMenuAmendment", "WeeklyMenuImports.DecideMrxMenuAmendment"],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": ["FR-RECON", "BR-GLOBAL-01"],
+      "surfaceIds": ["mrx.batch"],
+      "gaps": ["Browser and persistence evidence remain required."]
+    },
+    {
       "id": "RECON.BATCH.CREATE",
       "frCode": "FR-RECON",
       "name": "Create draft reconciliation batch",
@@ -6901,7 +7041,9 @@
         "BR-GLOBAL-01"
       ],
       "surfaceIds": [],
-      "gaps": []
+      "gaps": [
+        "NO_SURFACE: Backend capability is ready but no authorized Frontend work surface is delivered."
+      ]
     },
     {
       "id": "RECON.ACTUALS.PURCHASED",
@@ -7058,6 +7200,42 @@
       ]
     },
     {
+      "id": "RECON.PREPARATION.ISSUE",
+      "frCode": "FR-RECON",
+      "name": "Coordinated multi-customer preparation issue",
+      "operation": "create",
+      "mode": "MATERIAL_RECONCILIATION",
+      "actors": [
+        "WarehouseStaff"
+      ],
+      "permissionTokens": [
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "grain": "coordinated multi-customer preparation issue",
+      "prerequisites": [
+        "transferred or in progress batches on same date"
+      ],
+      "sourceLineage": [
+        "reconciliation batch daily lines to coordinated issues"
+      ],
+      "actionIds": [
+        "ReconciliationPreparation.Issue"
+      ],
+      "backend": {
+        "controller": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationPreparationController.cs",
+        "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"
+      },
+      "deliveryClass": "PARTIAL",
+      "requirementIds": [
+        "FR-RECON",
+        "FR-WH"
+      ],
+      "surfaceIds": [],
+      "gaps": [
+        "Warehouse multi-customer preparation issue action."
+      ]
+    },
+    {
       "id": "REP.DATA_QUALITY.READ",
       "frCode": "FR-REP",
       "name": "Read data quality dispositions list",
@@ -7092,7 +7270,9 @@
         "BR-GLOBAL-03"
       ],
       "surfaceIds": [],
-      "gaps": []
+      "gaps": [
+        "NO_SURFACE: Backend capability is ready but no authorized Frontend work surface is delivered."
+      ]
     },
     {
       "id": "REP.DATA_QUALITY.CREATE",
@@ -7857,6 +8037,206 @@
       ]
     },
     {
+      "id": "mrx.batch",
+      "route": "/weekly-menu",
+      "view": "mrx-batch",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "RECON.BATCH.CREATE",
+        "RECON.BATCH.PREVIEW_IMPORT",
+        "RECON.BATCH.COMMIT_IMPORT",
+        "RECON.BATCH.READY",
+        "RECON.BATCH.TRANSFER_WAREHOUSE",
+        "RECON.SOURCE_CHANGE.INBOX",
+        "RECON.SOURCE_CHANGE.PREVIEW",
+        "RECON.SOURCE_CHANGE.SUBMIT",
+        "RECON.SOURCE_CHANGE.DECIDE"
+      ],
+      "actions": [
+        {
+          "id": "submit-source-change",
+          "label": "Gửi Admin duyệt",
+          "capabilityId": "RECON.SOURCE_CHANGE.SUBMIT"
+        },
+        {
+          "id": "decide-source-change",
+          "label": "Phê duyệt thay đổi",
+          "capabilityId": "RECON.SOURCE_CHANGE.DECIDE"
+        },
+        {
+          "id": "preview-quantity-import",
+          "label": "Kiểm tra định lượng",
+          "capabilityId": "RECON.BATCH.PREVIEW_IMPORT"
+        },
+        {
+          "id": "commit-quantity-import",
+          "label": "Tạo lô nháp",
+          "capabilityId": "RECON.BATCH.COMMIT_IMPORT"
+        },
+        {
+          "id": "ready-batch",
+          "label": "Đóng băng lô",
+          "capabilityId": "RECON.BATCH.READY"
+        },
+        {
+          "id": "transfer-batch",
+          "label": "Chuyển sang Kho",
+          "capabilityId": "RECON.BATCH.TRANSFER_WAREHOUSE"
+        }
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 7,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/weekly-menu/MrxBatchWorkbench.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "mrx.daily",
+      "route": "/warehouse",
+      "view": "mrx-daily",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "RECON.BATCH.READ",
+        "WH.ISSUE.CREATE"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 7,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "FRONTEND_IMPLEMENTATION_GAP: Warehouse MRX daily issue workbench is not delivered yet.",
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/warehouse/WarehousePage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "mrx.issues",
+      "route": "/warehouse",
+      "view": "mrx-issues",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "WH.ISSUE.READ",
+        "WH.ISSUE.CREATE"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 6,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "FRONTEND_IMPLEMENTATION_GAP: Warehouse MRX supplemental issue workbench is not delivered yet.",
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/warehouse/WarehousePage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
+      "id": "mrx.cooking",
+      "route": "/chef",
+      "view": "mrx-cooking",
+      "workObject": "OperationalFrame",
+      "capabilityIds": [
+        "RECON.KITCHEN_REPORT.READ"
+      ],
+      "actions": [],
+      "states": [
+        "loading",
+        "empty",
+        "error",
+        "permission-denied",
+        "partial",
+        "write-reconciliation"
+      ],
+      "skeleton": {
+        "kind": "table",
+        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
+        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
+        "geometry": {
+          "kind": "table",
+          "columns": 7,
+          "rows": 8,
+          "toolbar": true
+        }
+      },
+      "gaps": [
+        "FRONTEND_IMPLEMENTATION_GAP: Chef MRX cooking workbench is not delivered yet.",
+        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
+      ],
+      "owner": "frontend/src/features/chef/ChefDashboardPage.tsx",
+      "evidenceRequired": [
+        "contract",
+        "browser",
+        "persistence",
+        "actor-mode"
+      ]
+    },
+    {
       "id": "reconciliation.batch",
       "route": "/reconciliation",
       "workObject": "OperationalFrame",
@@ -8151,83 +8531,6 @@
           "capabilityId": "SYS.MODE.CHANGE"
         }
       ],
-      "states": [
-        "loading",
-        "empty",
-        "error",
-        "permission-denied",
-        "partial",
-        "write-reconciliation"
-      ],
-      "skeleton": {
-        "kind": "form",
-        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
-        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
-        "geometry": {
-          "kind": "form",
-          "rows": 4,
-          "toolbar": true
-        }
-      },
-      "gaps": [
-        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
-      ],
-      "owner": "frontend/src/features/admin/AdvancedSettingsPage.tsx",
-      "evidenceRequired": [
-        "contract",
-        "browser",
-        "persistence",
-        "actor-mode"
-      ]
-    },
-    {
-      "id": "admin.cache",
-      "route": "/settings/advanced",
-      "view": "cache",
-      "workObject": "OperationalFrame",
-      "capabilityIds": [
-        "SYS.MODE.READ"
-      ],
-      "actions": [],
-      "states": [
-        "loading",
-        "empty",
-        "error",
-        "permission-denied",
-        "partial",
-        "write-reconciliation"
-      ],
-      "skeleton": {
-        "kind": "form",
-        "owner": "frontend/src/components/workbench/StateBoundary.tsx",
-        "geometryContract": "Runtime geometry is owned by workbenchSurfaceRegistry.ts; browser validation remains required.",
-        "geometry": {
-          "kind": "form",
-          "rows": 3,
-          "toolbar": true
-        }
-      },
-      "gaps": [
-        "TABLE_CONTRACT_GAP: route/view table grain is not yet registered."
-      ],
-      "owner": "frontend/src/features/admin/AdvancedSettingsPage.tsx",
-      "evidenceRequired": [
-        "contract",
-        "browser",
-        "persistence",
-        "actor-mode"
-      ]
-    },
-    {
-      "id": "admin.diagnostics",
-      "route": "/settings/advanced",
-      "view": "diagnostics",
-      "workObject": "OperationalFrame",
-      "capabilityIds": [
-        "SYS.MODE.READ",
-        "REP.KPI.READ"
-      ],
-      "actions": [],
       "states": [
         "loading",
         "empty",

@@ -6,6 +6,7 @@ using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 
@@ -16,6 +17,11 @@ public sealed class ReconciliationBatchService(
     IEfTransactionRunner transactions,
     SystemOperationRequestContext requestContext)
 {
+    public Task<PagedResponseDto<ReconciliationBatchSummaryDto>> GetPageAsync(
+        ReconciliationBatchPageQuery request,
+        CancellationToken token = default) =>
+        ReconciliationBatchQueryProjector.GetPageAsync(context, request, RequiredId, token);
+
     public async Task<IReadOnlyList<ReconciliationBatchDto>> ListAsync(CancellationToken token = default)
     {
         var batches = await context.Reconciliationbatches.AsNoTracking()
@@ -54,9 +60,9 @@ public sealed class ReconciliationBatchService(
 
         var storedDailyLines = inMemory
             ? (await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync(token))
-                .Where(line => line.BatchId.SequenceEqual(batchId)).ToList()
+                .Where(line => line.BatchId.SequenceEqual(batchId) && line.RequiredQuantity > 0).ToList()
             : await context.Reconciliationbatchdailylines.AsNoTracking()
-                .Where(line => line.BatchId == batchId).ToListAsync(token);
+                .Where(line => line.BatchId == batchId && line.RequiredQuantity > 0).ToListAsync(token);
         var weeklyLines = inMemory
             ? await context.Reconciliationbatchlines.AsNoTracking().ToListAsync(token)
             : await context.Reconciliationbatchlines.AsNoTracking()
@@ -70,9 +76,9 @@ public sealed class ReconciliationBatchService(
         var dailyLineIds = storedDailyLines.Select(line => line.DailyLineId).ToList();
         var dailyDispositions = inMemory
             ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token))
-                .Where(item => dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
+                .Where(item => item.InvalidatedAt == null && dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
             : await context.Reconciliationdailydispositions.AsNoTracking()
-                .Where(item => dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
+                .Where(item => item.InvalidatedAt == null && dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
         var disposedDailyIds = dailyDispositions
             .Where(item => !string.IsNullOrWhiteSpace(item.Reason))
             .Select(item => Convert.ToHexString(item.DailyLineId)).ToHashSet(StringComparer.Ordinal);
@@ -219,7 +225,7 @@ public sealed class ReconciliationBatchService(
 
         var dailyIds = daily.Dates.SelectMany(day => day.Lines).Select(line => RequiredId(line.DailyLineId)).ToList();
         var dailyDispositions = await context.Reconciliationdailydispositions.AsNoTracking()
-            .Where(item => dailyIds.Contains(item.DailyLineId)).ToListAsync(token);
+            .Where(item => item.InvalidatedAt == null && dailyIds.Contains(item.DailyLineId)).ToListAsync(token);
         var dispositionById = dailyDispositions.ToDictionary(item => GuidHelper.ToGuidString(item.DailyLineId), StringComparer.Ordinal);
         var dailyNotes = (await context.Auditlogs.AsNoTracking()
                 .Where(audit => audit.EntityName == nameof(InventoryIssueLine) && audit.FieldName == nameof(InventoryIssueLine.IssuedQty)
@@ -308,54 +314,8 @@ public sealed class ReconciliationBatchService(
             .ToList();
     }
 
-    public async Task<IReadOnlyList<ReconciliationBatchDishSummaryDto>> ListDishesAsync(string id, CancellationToken token = default)
-    {
-        var batchId = RequiredId(id);
-        var linesQuery = context.Reconciliationbatchlines.AsNoTracking()
-            .Include(line => line.Ingredient)
-            .Include(line => line.CanonicalUnit)
-            .Include(line => line.Contributors);
-        var lines = context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory"
-            ? context.ChangeTracker.Entries<ReconciliationBatchLine>().Select(entry => entry.Entity).Where(line => line.BatchId.AsSpan().SequenceEqual(batchId)).ToList()
-            : await linesQuery.Where(line => line.BatchId == batchId).ToListAsync(token);
-        if (lines.Count == 0) throw new KeyNotFoundException("Không tìm thấy lô đối chiếu.");
-
-        var dailyLines = context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory"
-            ? context.ChangeTracker.Entries<ReconciliationBatchDailyLine>().Select(entry => entry.Entity).Where(line => line.BatchId.AsSpan().SequenceEqual(batchId)).ToList()
-            : await context.Reconciliationbatchdailylines.AsNoTracking().Where(line => line.BatchId == batchId).ToListAsync(token);
-        var dailyLinesById = dailyLines.ToDictionary(line => Convert.ToHexString(line.DailyLineId), StringComparer.Ordinal);
-        var contributors = lines.SelectMany(line => line.Contributors.Select(contributor => new { Line = line, Contributor = contributor })).ToList();
-        if (contributors.Any(item => item.Contributor.DailyLineId is null || !dailyLinesById.ContainsKey(Convert.ToHexString(item.Contributor.DailyLineId)) || item.Contributor.DishId is null
-            || string.IsNullOrWhiteSpace(item.Contributor.FrozenDishCode) || string.IsNullOrWhiteSpace(item.Contributor.FrozenDishName)
-            || string.IsNullOrWhiteSpace(item.Contributor.FrozenShiftName) || item.Contributor.FrozenServings is null || item.Contributor.FrozenBomQuantityPerServing is null))
-            throw new BusinessRuleException("KITCHEN_FROZEN_LINEAGE_MISSING");
-
-        return contributors
-            .GroupBy(item => Convert.ToHexString(item.Contributor.DishId!))
-            .Select(dishGroup =>
-            {
-                var first = dishGroup.First().Contributor;
-                var materials = dishGroup
-                    .GroupBy(item => new { Daily = Convert.ToHexString(item.Contributor.DailyLineId!), Line = Convert.ToHexString(item.Line.BatchLineId) })
-                    .Select(group =>
-                    {
-                        var facts = group.Select(item => new { item.Contributor.FrozenBomQuantityPerServing, item.Contributor.FrozenWasteRatePercent }).Distinct().ToList();
-                        if (facts.Count != 1) throw new BusinessRuleException("KITCHEN_FROZEN_LINEAGE_AMBIGUOUS");
-                        var item = group.First();
-                        return new ReconciliationBatchDishMaterialDto(
-                            GuidHelper.ToGuidString(item.Line.BatchLineId), GuidHelper.ToGuidString(item.Line.IngredientId), item.Line.Ingredient?.IngredientCode,
-                            item.Line.Ingredient?.IngredientName, GuidHelper.ToGuidString(item.Line.CanonicalUnitId), item.Line.CanonicalUnit?.UnitName,
-                            facts[0].FrozenBomQuantityPerServing!.Value, GuidHelper.ToGuidString(item.Contributor.DailyLineId!), dailyLinesById[Convert.ToHexString(item.Contributor.DailyLineId!)].ServiceDate.ToString("yyyy-MM-dd"));
-                    }).OrderBy(material => material.ServiceDate).ThenBy(material => material.IngredientName).ToList();
-                var scopes = dishGroup
-                    .GroupBy(item => new { ServiceDate = dailyLinesById[Convert.ToHexString(item.Contributor.DailyLineId!)].ServiceDate, item.Contributor.FrozenShiftName, item.Contributor.FrozenServings })
-                    .Select(group => new ReconciliationBatchDishScopeDto(group.Key.ServiceDate.ToString("yyyy-MM-dd"), group.Key.FrozenShiftName!, group.Key.FrozenServings!.Value, group.Key.FrozenServings.Value, 0))
-                    .OrderBy(scope => scope.ServiceDate).ThenBy(scope => scope.ShiftName).ToList();
-                return new ReconciliationBatchDishSummaryDto(GuidHelper.ToGuidString(first.DishId!), first.FrozenDishCode!, first.FrozenDishName!, materials, scopes);
-            })
-            .OrderBy(dish => dish.DishName)
-            .ToList();
-    }
+    public Task<IReadOnlyList<ReconciliationBatchDishSummaryDto>> ListDishesAsync(string id, CancellationToken token = default) =>
+        ReconciliationBatchQueryProjector.ListDishesAsync(context, id, RequiredId, token);
 
     public async Task<ReconciliationBatchDto> CreateDraftAsync(CreateReconciliationDraftRequest request, string actorId, CancellationToken token = default)
     {
@@ -518,11 +478,11 @@ public sealed class ReconciliationBatchService(
                     .SingleOrDefaultAsync(x => x.BatchId == bytes, operationToken) ?? throw new KeyNotFoundException();
                 context.Entry(batch).Property(x => x.Version).OriginalValue = request.ExpectedVersion;
                 if (batch.Status != "DRAFT" || batch.Version != request.ExpectedVersion) throw new DbUpdateConcurrencyException("Lô đối chiếu đã thay đổi.");
-                if (batch.Lines.Count == 0 || batch.Lines.Any(x =>
-                        x.RequiredQuantity <= 0
-                        || x.FrozenTolerance < 0
-                        || x.DailyLines.Count == 0
-                        || x.DailyLines.Any(daily => daily.RequiredQuantity <= 0)
+                var activeLines = batch.Lines.Where(x => x.RequiredQuantity > 0).ToList();
+                if (activeLines.Count == 0 || activeLines.Any(x =>
+                        x.FrozenTolerance < 0
+                        || x.DailyLines.Count(daily => daily.RequiredQuantity > 0) == 0
+                        || x.DailyLines.Any(daily => daily.RequiredQuantity < 0)
                         || decimal.Round(x.DailyLines.Sum(daily => daily.RequiredQuantity), 6, MidpointRounding.AwayFromZero) != decimal.Round(x.RequiredQuantity, 6, MidpointRounding.AwayFromZero)
                         || x.Contributors.Count == 0
                         || x.Contributors.Any(contributor => contributor.DailyLineId is null || contributor.SourceQuantity <= 0)))
@@ -621,7 +581,7 @@ public sealed class ReconciliationBatchService(
 
     private static ReconciliationWarehouseTransferDto MapTransfer(ReconciliationBatch batch) =>
         new(GuidHelper.ToGuidString(batch.BatchId), batch.Status, batch.Version,
-            batch.Lines.OrderBy(line => Convert.ToHexString(line.BatchLineId)).Select(line =>
+            batch.Lines.Where(line => line.RequiredQuantity > 0).OrderBy(line => Convert.ToHexString(line.BatchLineId)).Select(line =>
                 new ReconciliationWarehouseTransferLineDto(
                     GuidHelper.ToGuidString(line.BatchLineId), GuidHelper.ToGuidString(line.IngredientId),
                     line.Ingredient?.IngredientCode, line.Ingredient?.IngredientName,
@@ -700,7 +660,7 @@ public sealed class ReconciliationBatchService(
         (string? CustomerId, string? CustomerName, string? CustomerCode)? customer = null,
         DateOnly? weekStartDate = null) =>
         new(GuidHelper.ToGuidString(batch.BatchId), GuidHelper.ToGuidString(batch.MenuVersionId), GuidHelper.ToGuidString(batch.QuantityImportBatchId), batch.Status, batch.Version, batch.CreatedAt, batch.ReadyAt, batch.CompletedAt,
-            (explicitLines ?? batch.Lines.ToList()).Select(line => ReconciliationComparisonService.Map(
+            (explicitLines ?? batch.Lines.ToList()).Where(line => line.RequiredQuantity > 0).Select(line => ReconciliationComparisonService.Map(
                 line,
                 actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
                 dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),

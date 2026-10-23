@@ -1299,7 +1299,7 @@
       "route": "api/inventory-returns",
       "policies": [
         "AUTHENTICATED",
-        "ProductionAccess"
+        "InventoryIssueAccess"
       ],
       "requestTypes": [
         "CreateInventoryReturnRequest"
@@ -2201,7 +2201,7 @@
       "route": "api/reconciliation/lines/disposition-categories",
       "policies": [
         "AUTHENTICATED",
-        "ReportAccess"
+        "ReconciliationDispositionAccess"
       ],
       "requestTypes": [],
       "responseTypes": [
@@ -2345,7 +2345,8 @@
       ],
       "requestTypes": [],
       "responseTypes": [
-        "ReconciliationBatchDto"
+        "PagedResponseDto",
+        "ReconciliationBatchSummaryDto"
       ]
     },
     {
@@ -2500,6 +2501,70 @@
       "responseTypes": []
     },
     {
+      "actionId": "ReconciliationPreparation.ExportWorkbook",
+      "controller": "ReconciliationPreparationController",
+      "sourceMethod": "ExportWorkbook",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationPreparationController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/preparation/export-workbook",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationPreparation.Get",
+      "controller": "ReconciliationPreparationController",
+      "sourceMethod": "Get",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationPreparationController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/preparation",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationPreparationDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationPreparation.GetWorkbookPreview",
+      "controller": "ReconciliationPreparationController",
+      "sourceMethod": "GetWorkbookPreview",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationPreparationController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/preparation/workbook-preview",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "ReconciliationPreparationWorkbookDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationPreparation.Issue",
+      "controller": "ReconciliationPreparationController",
+      "sourceMethod": "Issue",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationPreparationController.cs",
+      "httpMethod": "POST",
+      "route": "api/reconciliation/preparation/issue",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [
+        "CoordinatedPreparationIssueRequest"
+      ],
+      "responseTypes": [
+        "CoordinatedPreparationIssueResultDto"
+      ]
+    },
+    {
       "actionId": "ReconciliationReports.Export",
       "controller": "ReconciliationReportsController",
       "sourceMethod": "Export",
@@ -2507,7 +2572,64 @@
       "httpMethod": "GET",
       "route": "api/reconciliation/reports/{id}/export",
       "policies": [
-        "ReportAccess"
+        "AUTHENTICATED",
+        "ReconciliationDispositionAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationReports.ExportAuditTrail",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "ExportAuditTrail",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/audit-trail/csv",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationReports.ExportCompletedRegister",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "ExportCompletedRegister",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/completed-register/csv",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationReports.ExportTransactionsHistory",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "ExportTransactionsHistory",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/transactions-history/csv",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": []
+    },
+    {
+      "actionId": "ReconciliationReports.ExportVarianceRegister",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "ExportVarianceRegister",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/variance-register/csv",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
       ],
       "requestTypes": [],
       "responseTypes": []
@@ -2520,11 +2642,109 @@
       "httpMethod": "GET",
       "route": "api/reconciliation/reports/{id}",
       "policies": [
-        "ReportAccess"
+        "AUTHENTICATED",
+        "ReconciliationDispositionAccess"
       ],
       "requestTypes": [],
       "responseTypes": [
         "ReconciliationBatchDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationReports.GetAuditTrail",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "GetAuditTrail",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/audit-trail",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MrxAuditTrailReportDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationReports.GetCompletedRegister",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "GetCompletedRegister",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/completed-register",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MrxCompletedRegisterReportDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationReports.GetOperationalSummary",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "GetOperationalSummary",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/operational-summary",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MrxOperationalSummaryDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationReports.GetTransactionsHistory",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "GetTransactionsHistory",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/transactions-history",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MrxTransactionHistoryReportDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationReports.GetVarianceRegister",
+      "controller": "ReconciliationReportsController",
+      "sourceMethod": "GetVarianceRegister",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationReportsController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/reports/variance-register",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MrxVarianceRegisterReportDto"
+      ]
+    },
+    {
+      "actionId": "ReconciliationSourceDeltas.List",
+      "controller": "ReconciliationSourceDeltasController",
+      "sourceMethod": "List",
+      "source": "backend/src/IPCManagement.Api/Features/Reconciliation/Controllers/ReconciliationSourceDeltasController.cs",
+      "httpMethod": "GET",
+      "route": "api/reconciliation/source-deltas",
+      "policies": [
+        "AUTHENTICATED",
+        "ReconciliationWarehouseReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "PagedResponseDto",
+        "ReconciliationSourceDeltaQueueItemDto"
       ]
     },
     {
@@ -3376,6 +3596,21 @@
       "responseTypes": []
     },
     {
+      "actionId": "Units.GetAll",
+      "controller": "UnitsController",
+      "sourceMethod": "GetAllAsync",
+      "source": "backend/src/IPCManagement.Api/Features/Catalog/Controllers/UnitsController.cs",
+      "httpMethod": "GET",
+      "route": "api/units",
+      "policies": [
+        "CatalogReadAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "UnitDto"
+      ]
+    },
+    {
       "actionId": "WarehousePurchaseReceipts.AcceptQuality",
       "controller": "WarehousePurchaseReceiptsController",
       "sourceMethod": "AcceptQualityAsync",
@@ -3594,6 +3829,24 @@
       ]
     },
     {
+      "actionId": "WeeklyMenuImports.ConfirmMrxMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "ConfirmMrxMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/admin-confirm",
+      "policies": [
+        "CoordinationAccess",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "CreateMenuAmendmentRequest"
+      ],
+      "responseTypes": [
+        "MenuAmendmentResultDto"
+      ]
+    },
+    {
       "actionId": "WeeklyMenuImports.CreateMenuAmendment",
       "controller": "WeeklyMenuImportsController",
       "sourceMethod": "CreateMenuAmendmentAsync",
@@ -3605,6 +3858,24 @@
       ],
       "requestTypes": [
         "CreateMenuAmendmentRequest"
+      ],
+      "responseTypes": [
+        "MenuAmendmentResultDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.DecideMrxMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "DecideMrxMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/{amendmentId}/mrx-decision",
+      "policies": [
+        "CoordinationAccess",
+        "AdminAccess"
+      ],
+      "requestTypes": [
+        "ReviewMenuAmendmentRequest"
       ],
       "responseTypes": [
         "MenuAmendmentResultDto"
@@ -3710,6 +3981,22 @@
       "responseTypes": []
     },
     {
+      "actionId": "WeeklyMenuImports.GetMrxMenuAmendmentInbox",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "GetMrxMenuAmendmentInboxAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "GET",
+      "route": "api/coordination/weekly-menu/amendments/mrx-inbox",
+      "policies": [
+        "CoordinationAccess",
+        "AdminAccess"
+      ],
+      "requestTypes": [],
+      "responseTypes": [
+        "MenuAmendmentInboxItemDto"
+      ]
+    },
+    {
       "actionId": "WeeklyMenuImports.GetWeeklyMenu",
       "controller": "WeeklyMenuImportsController",
       "sourceMethod": "GetWeeklyMenuAsync",
@@ -3752,6 +4039,24 @@
       ],
       "requestTypes": [],
       "responseTypes": []
+    },
+    {
+      "actionId": "WeeklyMenuImports.PreviewMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "PreviewMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/preview",
+      "policies": [
+        "CoordinationAccess",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [
+        "CreateMenuAmendmentRequest"
+      ],
+      "responseTypes": [
+        "MenuAmendmentResultDto"
+      ]
     },
     {
       "actionId": "WeeklyMenuImports.PreviewWeeklyMenuImport",
@@ -3830,6 +4135,24 @@
       ],
       "responseTypes": [
         "CustomerImportMappingDto"
+      ]
+    },
+    {
+      "actionId": "WeeklyMenuImports.SubmitMrxMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "SubmitMrxMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/mrx-submit",
+      "policies": [
+        "CoordinationAccess",
+        "ReconciliationSourceReadAccess"
+      ],
+      "requestTypes": [
+        "CreateMenuAmendmentRequest"
+      ],
+      "responseTypes": [
+        "MenuAmendmentResultDto"
       ]
     },
     {

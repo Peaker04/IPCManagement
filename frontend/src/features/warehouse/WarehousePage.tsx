@@ -15,8 +15,33 @@ import {
   type InventoryIssueItem,
 } from '../../api/warehouseApi';
 import { formatVietnameseDate } from '../../utils/dates';
+import { MrxDailyIssueWorkbench } from './MrxDailyIssueWorkbench';
+import { MrxMultiCustomerPreparationWorkbench } from './MrxMultiCustomerPreparationWorkbench';
+import { MrxSourceDeltaWorkbench } from './MrxSourceDeltaWorkbench';
 
 export function WarehousePage() {
+  const [searchParams] = useSearchParams();
+  const view = searchParams.get('view');
+  if (view === 'mrx-daily') {
+    const batchId = searchParams.get('batchId');
+    const serviceDate = searchParams.get('date');
+    if (batchId && serviceDate) {
+      return <MrxDailyIssueWorkbench batchId={batchId} serviceDate={serviceDate} />;
+    }
+    if (serviceDate) {
+      return <MrxMultiCustomerPreparationWorkbench serviceDate={serviceDate} />;
+    }
+    return <MrxDailyIssueWorkbench batchId="" serviceDate="" />;
+  }
+  if (view === 'mrx-preparation') {
+    const serviceDate = searchParams.get('date');
+    return <MrxMultiCustomerPreparationWorkbench serviceDate={serviceDate || ''} />;
+  }
+  if (view === 'mrx-issues') return <MrxSourceDeltaWorkbench />;
+  return <DefaultWarehousePage />;
+}
+
+function DefaultWarehousePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const requestedView = searchParams.get('view');

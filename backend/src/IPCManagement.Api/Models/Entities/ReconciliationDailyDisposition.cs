@@ -9,5 +9,8 @@ public sealed class ReconciliationDailyDisposition
     public long Version { get; set; }
     public byte[] DisposedBy { get; set; } = null!;
     public DateTime DisposedAt { get; set; }
+    public DateTime? InvalidatedAt { get; set; }
+    public byte[]? InvalidatedBy { get; set; }
+    public string? InvalidationReason { get; set; }
     public ReconciliationBatchDailyLine DailyLine { get; set; } = null!;
 }

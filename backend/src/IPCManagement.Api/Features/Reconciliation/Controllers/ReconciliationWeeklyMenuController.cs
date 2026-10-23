@@ -11,7 +11,7 @@ namespace IPCManagement.Api.Features.Reconciliation.Controllers;
 [ApiController]
 [Route("api/reconciliation/weekly-menu")]
 [Authorize(Policy = AuthorizationPolicies.CoordinationAccess)]
-[SystemOperation("reconciliation.weekly-menu.read")]
+[SystemOperation("reconciliation.weekly-menu.read", OperationDisposition.ReconciliationOnly)]
 public sealed class ReconciliationWeeklyMenuController(IWeeklyMenuQueryService queryService) : ControllerBase
 {
     [HttpGet]

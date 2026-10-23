@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '../store/authContext';
@@ -9,6 +9,19 @@ import { ApiError } from '../api/client';
 
 function renderPage(entry = '/settings/advanced?view=mode') { return render(<AuthProvider><MemoryRouter initialEntries={[entry]}><Routes><Route path="/settings/advanced" element={<AdvancedSettingsPage />} /></Routes></MemoryRouter></AuthProvider>); }
 describe('Advanced Settings', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    localStorage.setItem('ipc_v3_user', JSON.stringify({
+      userId: '10000000-0000-0000-0000-000000000001',
+      username: 'admin',
+      fullName: 'Admin User',
+      roleCode: 'ADMIN',
+      roleName: 'Admin',
+      isActive: true,
+      isAdminFullAccess: true,
+      permissions: ['*'],
+    }));
+  });
   it('uses URL-owned mode view without duplicate tabs and confirms mode transition', async () => {
     renderPage();
     expect(screen.getByText(/Đang xem: Chế độ vận hành/)).toBeInTheDocument();
@@ -25,9 +38,11 @@ describe('Advanced Settings', () => {
     await screen.findByText(/Chế độ hiện tại: Mặc định/);
     await userEvent.click(screen.getByRole('radio', { name: /Đối soát Nguyên liệu/i }));
     await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
-    expect(screen.getByRole('button', { name: 'Xác nhận chuyển chế độ' })).toBeDisabled();
-    await userEvent.type(screen.getByLabelText('Lý do chuyển chế độ'), 'Hoàn tất công việc đang mở');
-    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận chuyển chế độ' }));
+    const confirmBtn = await screen.findByRole('button', { name: 'Xác nhận chuyển chế độ' });
+    expect(confirmBtn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Lý do chuyển chế độ/i), { target: { value: 'Hoàn tất công việc đang mở' } });
+    expect(confirmBtn).toBeEnabled();
+    await userEvent.click(confirmBtn);
 
     expect(change).toHaveBeenCalledWith('MATERIAL_RECONCILIATION', 7, 'Hoàn tất công việc đang mở');
     expect(await screen.findByRole('alert')).toHaveTextContent('Chế độ vận hành đã thay đổi.');
@@ -35,15 +50,9 @@ describe('Advanced Settings', () => {
     expect(screen.getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
   });
 
-  it('uses URL-owned cache view and confirms cache cleanup', async () => {
-    renderPage('/settings/advanced?view=cache');
-    expect(screen.getByText(/Đang xem: Bộ nhớ phiên/)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Dọn cache ngay' }));
-    expect(screen.getByRole('dialog', { name: 'Xác nhận dọn bộ nhớ phiên' })).toBeInTheDocument();
-  });
-  it('uses URL-owned diagnostics view', () => {
-    renderPage('/settings/advanced?view=diagnostics');
-    expect(screen.getByText(/Đang xem: Chẩn đoán kết nối/)).toBeInTheDocument();
-    expect(screen.getByText('Chẩn đoán Kết nối C# Backend API')).toBeInTheDocument();
+  it.each(['cache', 'diagnostics'])('fails closed from unsupported %s support view to mode settings', async (view) => {
+    renderPage(`/settings/advanced?view=${view}`);
+    expect(await screen.findByText(/Đang xem: Chế độ vận hành/)).toBeInTheDocument();
+    expect(screen.queryByText(/Dọn cache ngay|Chẩn đoán Kết nối|Database Engine|MySQL 8\.0/i)).not.toBeInTheDocument();
   });
 });

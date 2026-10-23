@@ -28,23 +28,15 @@ public class InventoryReturnService : IInventoryReturnService
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
     private readonly SystemOperationRequestContext? _requestContext;
     public InventoryReturnService(
-        IInventoryReturnRepository returnRepository,
-        IInventoryIssueRepository issueRepository,
-        IUnitOfWork unitOfWork,
-        IStockLedgerService stockLedgerService,
-        IEfTransactionRunner transactionRunner,
-        IOperationalWarehouseResolver operationalWarehouseResolver,
-        IpcManagementContext? context = null,
-        SystemOperationRequestContext? requestContext = null)
+        IInventoryReturnRepository returnRepository, IInventoryIssueRepository issueRepository,
+        IUnitOfWork unitOfWork, IStockLedgerService stockLedgerService,
+        IEfTransactionRunner transactionRunner, IOperationalWarehouseResolver operationalWarehouseResolver,
+        IpcManagementContext? context = null, SystemOperationRequestContext? requestContext = null)
     {
-        _returnRepository = returnRepository;
-        _issueRepository = issueRepository;
-        _unitOfWork = unitOfWork;
-        _stockLedgerService = stockLedgerService;
-        _transactionRunner = transactionRunner;
-        _operationalWarehouseResolver = operationalWarehouseResolver;
-        _context = context;
-        _requestContext = requestContext;
+        _returnRepository = returnRepository; _issueRepository = issueRepository;
+        _unitOfWork = unitOfWork; _stockLedgerService = stockLedgerService;
+        _transactionRunner = transactionRunner; _operationalWarehouseResolver = operationalWarehouseResolver;
+        _context = context; _requestContext = requestContext;
     }
     public async Task<PagedResponseDto<InventoryReturnDto>> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
@@ -52,18 +44,14 @@ public class InventoryReturnService : IInventoryReturnService
         var (items, totalCount) = await _returnRepository.GetPagedAsync(request);
         return PagedResponseDto<InventoryReturnDto>.Create(
             items.Select(inventoryReturn => InventoryMapper.MapReturn(inventoryReturn, includeLines: true)),
-            totalCount,
-            request.PageNumber,
-            request.PageSize);
+            totalCount, request.PageNumber, request.PageSize);
     }
     public async Task<InventoryReturnDto?> GetByIdAsync(string id)
     {
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return null;
         var inventoryReturn = await _returnRepository.GetByIdWithLinesAsync(bytes);
-        return inventoryReturn is null
-            ? null
-            : InventoryMapper.MapReturn(inventoryReturn, includeLines: true);
+        return inventoryReturn is null ? null : InventoryMapper.MapReturn(inventoryReturn, includeLines: true);
     }
     public async Task<InventoryReturnCreatedDto?> CreateAsync(CreateInventoryReturnRequest dto, string? userId)
     {
@@ -110,6 +98,8 @@ public class InventoryReturnService : IInventoryReturnService
                         "Bếp cần xác nhận đã nhận phiếu xuất gốc trước khi tạo phiếu trả hoặc khai báo hao hụt.");
                 }
                 var accountedQuantities = await _returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(issueBytes);
+                var sourceDelta = await InventoryReturnSourceDeltaHandler.ValidateAndLoadSourceDeltaAsync(
+                    _context, dto, returnType, ReturnTypeReturn, issue.ReconciliationBatchId);
                 var sourceLineIds = new HashSet<string>(StringComparer.Ordinal);
                 var inventoryReturn = new InventoryReturn
                 {
@@ -122,7 +112,9 @@ public class InventoryReturnService : IInventoryReturnService
                     IssueId = issueBytes,
                     Reason = dto.Reason.Trim(),
                     CreatedBy = userIdBytes,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    ReconciliationSourceDeltaId = sourceDelta?.SourceDeltaId,
+                    ReconciliationSourceDeltaVersion = dto.ExpectedSourceDeltaVersion
                 };
                 inventoryReturn.Inventoryreturnlines = dto.Lines.Select(line =>
                 {
@@ -140,14 +132,12 @@ public class InventoryReturnService : IInventoryReturnService
                     ValidateReturnQuantity(sourceLine, accountedQuantities.GetValueOrDefault(sourceLineId), quantity);
                     return new InventoryReturnLine
                     {
-                        ReturnLineId = GuidHelper.NewId(),
-                        ReturnId = inventoryReturn.ReturnId,
-                        IngredientId = ingredientBytes,
-                        UnitId = unitBytes,
-                        SourceIssueLineId = sourceLine.IssueLineId,
-                        Quantity = quantity
+                        ReturnLineId = GuidHelper.NewId(), ReturnId = inventoryReturn.ReturnId,
+                        IngredientId = ingredientBytes, UnitId = unitBytes,
+                        SourceIssueLineId = sourceLine.IssueLineId, Quantity = quantity
                     };
                 }).ToList();
+                InventoryReturnSourceDeltaHandler.ValidateReturnLineMatchesSourceDelta(sourceDelta, inventoryReturn, issue);
                 _returnRepository.Add(inventoryReturn);
                 var result = new InventoryReturnCreatedDto
                 {
@@ -215,6 +205,8 @@ public class InventoryReturnService : IInventoryReturnService
                 {
                     throw new ResourceConflictException("Phiếu trả nguyên liệu này đã được xác nhận.");
                 }
+                var sourceDelta = await InventoryReturnSourceDeltaHandler.ValidateSourceDeltaForReceiptAsync(
+                    _context, inventoryReturn, cancellationToken);
                 if (dto.ExpectedVersion != 0)
                 {
                     throw new ResourceConflictException("Phiếu trả đã thay đổi; hãy tải lại trước khi xác nhận.");
@@ -222,6 +214,10 @@ public class InventoryReturnService : IInventoryReturnService
                 var proposedAdjustments = new List<(InventoryReturnLine Line, decimal Quantity)>();
                 if (dto.AdjustedLines != null && dto.AdjustedLines.Any())
                 {
+                    if (sourceDelta is not null)
+                    {
+                        throw new BusinessRuleException("Không thể điều chỉnh số lượng khi xác nhận hoàn trả gắn với thay đổi nguồn.");
+                    }
                     var adjustedLineIds = new HashSet<string>(StringComparer.Ordinal);
                     foreach (var adjustedLine in dto.AdjustedLines)
                     {
@@ -344,21 +340,19 @@ public class InventoryReturnService : IInventoryReturnService
                     foreach (var line in inventoryReturn.Inventoryreturnlines)
                     {
                         await _stockLedgerService.AddStockAsync(
-                            inventoryReturn.WarehouseId,
-                            line.IngredientId,
-                            line.UnitId,
-                            line.Quantity,
-                            "RETURN",
-                            "inventoryreturns",
-                            inventoryReturn.ReturnId,
-                            userIdBytes,
-                            "Trả nguyên liệu dư sau sản xuất",
-                            $"Phiếu trả {inventoryReturn.ReturnCode}");
+                            inventoryReturn.WarehouseId, line.IngredientId, line.UnitId, line.Quantity,
+                            "RETURN", "inventoryreturns", inventoryReturn.ReturnId, userIdBytes,
+                            "Trả nguyên liệu dư sau sản xuất", $"Phiếu trả {inventoryReturn.ReturnCode}");
                     }
                 }
                 else
                 {
                     AddWasteAudit(inventoryReturn, sourceIssue, userIdBytes);
+                }
+                if (_context is not null)
+                {
+                    InventoryReturnSourceDeltaHandler.ResolveSourceDeltaOnReceipt(
+                        _context, sourceDelta, inventoryReturn, confirmedAt, userIdBytes, commandId);
                 }
 
                 var response = JsonSerializer.Serialize(new
@@ -368,19 +362,10 @@ public class InventoryReturnService : IInventoryReturnService
                     concurrencyVersion = 1
                 });
                 recorder.Stage(new LifecycleTransitionRequest(
-                    aggregateType,
-                    inventoryReturn.ReturnId,
-                    commandId,
-                    1,
-                    "PENDING_RECEIPT",
-                    inventoryReturn.ReturnType == ReturnTypeWaste ? "RECORDED" : "RECEIVED",
-                    userIdBytes,
-                    dto.ExpectedVersion,
-                    dto.HasDiscrepancy ? dto.DiscrepancyNote?.Trim() : auditLogReason,
-                    dto.CorrelationId?.Trim(),
-                    dto.CausationId?.Trim(),
-                    response,
-                    response));
+                    aggregateType, inventoryReturn.ReturnId, commandId,
+                    1, "PENDING_RECEIPT", inventoryReturn.ReturnType == ReturnTypeWaste ? "RECORDED" : "RECEIVED",
+                    userIdBytes, dto.ExpectedVersion, dto.HasDiscrepancy ? dto.DiscrepancyNote?.Trim() : auditLogReason,
+                    dto.CorrelationId?.Trim(), dto.CausationId?.Trim(), response, response));
 
                 await _context.SaveChangesAsync(cancellationToken);
                 return true;
@@ -464,12 +449,9 @@ public class InventoryReturnService : IInventoryReturnService
     {
         EnsureAllocationContext(_context);
         var sourceLines = await InventoryReturnScopeLoader.LoadScopedAsync(_context!, query, cancellationToken);
-        var customers = (await _context!.Customers.AsNoTracking().ToListAsync(cancellationToken))
-            .ToDictionary(item => Convert.ToHexString(item.CustomerId));
-        var ingredients = (await _context.Ingredients.AsNoTracking().ToListAsync(cancellationToken))
-            .ToDictionary(item => Convert.ToHexString(item.IngredientId));
-        var units = (await _context.Units.AsNoTracking().ToListAsync(cancellationToken))
-            .ToDictionary(item => Convert.ToHexString(item.UnitId));
+        var customers = (await _context!.Customers.AsNoTracking().ToListAsync(cancellationToken)).ToDictionary(item => Convert.ToHexString(item.CustomerId));
+        var ingredients = (await _context.Ingredients.AsNoTracking().ToListAsync(cancellationToken)).ToDictionary(item => Convert.ToHexString(item.IngredientId));
+        var units = (await _context.Units.AsNoTracking().ToListAsync(cancellationToken)).ToDictionary(item => Convert.ToHexString(item.UnitId));
         var actorIsAdmin = await InventoryReturnScopeLoader.IsAdminAsync(_context!, userId, cancellationToken);
         var sourceIds = sourceLines.Select(item => item.Line.IssueLineId).ToList();
         var returnedAndWasted = await _context!.Inventoryreturnlines.AsNoTracking()
@@ -519,9 +501,7 @@ public class InventoryReturnService : IInventoryReturnService
                 Version = dispositions.Count(item => item.SourceIssueLineId.SequenceEqual(source.Line.IssueLineId)),
                 DecisionId = hasValidLineage && DecimalPolicy.GreaterThanQuantity(excess, 0) ? BuildDecisionId(sourceId) : null,
                 DecisionReason = hasValidLineage ? null : "Chưa xác định được dòng chứng từ gốc; cần người có thẩm quyền quyết định.",
-                AllowedActions = hasValidLineage && actorIsAdmin && DecimalPolicy.GreaterThanQuantity(excess, 0)
-                    ? ["CROSS_CUSTOMER_DISPOSITION"]
-                    : [],
+                AllowedActions = hasValidLineage && actorIsAdmin && DecimalPolicy.GreaterThanQuantity(excess, 0) ? ["CROSS_CUSTOMER_DISPOSITION"] : [],
             };
         }).ToList();
     }

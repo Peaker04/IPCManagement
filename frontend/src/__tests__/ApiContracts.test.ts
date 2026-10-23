@@ -8,6 +8,7 @@ import { chefApi } from '../api/chefApi';
 import { systemApi } from '../api/systemApi';
 import { authApi } from '../api/authApi';
 import { adminApi } from '../api/adminApi';
+import { mrxApi } from '../api/mrxApi';
 
 function jsonResponse(data: unknown): Response {
   return new Response(JSON.stringify({ success: true, data }), {
@@ -161,8 +162,8 @@ describe('Frontend API contracts against backend DTOs', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(2, expect.stringMatching(/pageNumber=2&pageSize=25/), expect.any(Object));
   });
 
-  it('requires an exact reconciliation scope and sends expectedVersion when completing a batch', async () => {
-    const batches = [
+  it('loads reconciliation detail by exact batch identity and sends expectedVersion when completing it', async () => {
+    const batch =
       {
         batchId: '66666666-6666-6666-6666-666666666666',
         menuVersionId: '77777777-7777-7777-7777-777777777777',
@@ -179,17 +180,23 @@ describe('Frontend API contracts against backend DTOs', () => {
         weekEndDate: '2026-09-27',
         dailyReview: { weeklyStatus: 'IN_PROGRESS', lines: [] },
         lines: [],
-      },
-    ];
+      };
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse(batches))
-      .mockResolvedValueOnce(jsonResponse(batches[0]));
+      .mockResolvedValueOnce(jsonResponse(batch))
+      .mockResolvedValueOnce(jsonResponse(batch));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(
-      reconciliationApi.getReconciliationSummary('2026-09-21', 'DAV')
-    ).rejects.toThrow(/không có lô đối soát/i);
+    const summary = await reconciliationApi.getReconciliationSummary(
+      '66666666-6666-6666-6666-666666666666',
+      '2026-09-21'
+    );
+    expect(summary.batchId).toBe('66666666-6666-6666-6666-666666666666');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/\/api\/reconciliation\/batches\/66666666-6666-6666-6666-666666666666$/),
+      expect.any(Object)
+    );
 
     await reconciliationApi.completeReconciliation(
       '66666666-6666-6666-6666-666666666666',
@@ -203,6 +210,82 @@ describe('Frontend API contracts against backend DTOs', () => {
         body: JSON.stringify({ expectedVersion: 7 }),
       })
     );
+  });
+
+  it('sends exact MRX lifecycle and actor-handoff contracts', async () => {
+    const batchId = '66666666-6666-6666-6666-666666666666';
+    const dailyLineId = '77777777-7777-7777-7777-777777777777';
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({}));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const sourceChange = {
+      customerId: 'customer-1', weekStartDate: '2026-10-19', expectedBaseMenuVersionId: 'menu-v1', reason: 'Khách hàng điều chỉnh',
+      lines: [{ serviceDate: '2026-10-19', shiftName: 'MORNING', dishSlot: 'main', newServings: 120 }],
+    };
+    await mrxApi.previewSourceChange(sourceChange);
+    await mrxApi.submitSourceChange(sourceChange);
+    await mrxApi.confirmSourceChange(sourceChange);
+    await mrxApi.decideSourceChange('amendment-1', false, 'Khách hàng hủy yêu cầu');
+    await mrxApi.previewQuantityImport({ menuVersionId: 'menu-v1', sourceLabel: 'Tuần 43' });
+    await mrxApi.commitQuantityImport({ token: 'preview-token', contentFingerprint: 'fingerprint-v2', sourceLabel: 'Tuần 43' });
+    await mrxApi.createBatch({ menuVersionId: 'menu-v1', quantityImportBatchId: 'import-1' });
+    await mrxApi.markReady(batchId, 2);
+    await mrxApi.transferToWarehouse(batchId, 3);
+    await mrxApi.createIssue({
+      commandId: 'issue-command-1', expectedVersion: 4, issueDate: '2026-10-19',
+      reconciliationBatchId: batchId, isSupplemental: false,
+      lines: [{
+        reconciliationBatchLineId: 'line-1', reconciliationBatchDailyLineId: dailyLineId,
+        ingredientId: 'ingredient-1', unitId: 'unit-1', requestedQty: 2, issuedQty: 2,
+      }],
+    });
+    await mrxApi.setDailyDisposition(dailyLineId, { category: 'ACCEPTED_VARIANCE', reason: 'Chấp nhận chênh lệch thực tế', expectedVersion: 1 });
+    await mrxApi.completeBatch(batchId, 5);
+
+    const requests = fetchMock.mock.calls.map(([url, init]) => [String(url), init as RequestInit]);
+    expect(requests).toEqual(expect.arrayContaining([
+      [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/preview$/), expect.objectContaining({ method: 'POST', body: JSON.stringify(sourceChange) })],
+      [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/mrx-submit$/), expect.objectContaining({ method: 'POST', body: JSON.stringify(sourceChange) })],
+      [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/admin-confirm$/), expect.objectContaining({ method: 'POST', body: JSON.stringify(sourceChange) })],
+      [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/amendment-1\/mrx-decision$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ approved: false, reason: 'Khách hàng hủy yêu cầu' }) })],
+      [expect.stringMatching(/\/api\/reconciliation\/batches\/quantity-import\/preview$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ menuVersionId: 'menu-v1', sourceLabel: 'Tuần 43' }) })],
+      [expect.stringMatching(/\/api\/reconciliation\/batches\/quantity-import\/commit$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'preview-token', contentFingerprint: 'fingerprint-v2', sourceLabel: 'Tuần 43' }) })],
+      [expect.stringMatching(/\/api\/reconciliation\/batches$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ menuVersionId: 'menu-v1', quantityImportBatchId: 'import-1' }) })],
+      [expect.stringMatching(new RegExp(`/api/reconciliation/batches/${batchId}/ready$`)), expect.objectContaining({ method: 'POST', body: JSON.stringify({ expectedVersion: 2 }) })],
+      [expect.stringMatching(new RegExp(`/api/reconciliation/batches/${batchId}/transfer-to-warehouse$`)), expect.objectContaining({ method: 'POST', body: JSON.stringify({ expectedVersion: 3 }) })],
+      [expect.stringMatching(/\/api\/inventory-issues$/), expect.objectContaining({ method: 'POST' })],
+      [expect.stringMatching(new RegExp(`/api/reconciliation/daily-lines/${dailyLineId}/disposition$`)), expect.objectContaining({ method: 'PUT', body: JSON.stringify({ category: 'ACCEPTED_VARIANCE', reason: 'Chấp nhận chênh lệch thực tế', expectedVersion: 1 }) })],
+      [expect.stringMatching(new RegExp(`/api/reconciliation/batches/${batchId}/complete$`)), expect.objectContaining({ method: 'POST', body: JSON.stringify({ expectedVersion: 5 }) })],
+    ]));
+  });
+
+  it('uses batch identity and MRX source family for operational reads', async () => {
+    const batchId = '66666666-6666-6666-6666-666666666666';
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await mrxApi.getSourceChangeInbox();
+    await mrxApi.getBatchPage({ customerId: 'customer-1', weekStartDate: '2026-10-19', status: 'READY', pageNumber: 2, pageSize: 25 });
+    await mrxApi.getDraftSources();
+    await mrxApi.getWeeklySource('customer-1', '2026-10-19');
+    await mrxApi.getBatch(batchId);
+    await mrxApi.getWarehouseDaily(batchId);
+    await mrxApi.getIssues(batchId, 2, 25);
+    await mrxApi.getDispositionCategories();
+    await mrxApi.getKitchenCooking(batchId);
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(urls).toEqual(expect.arrayContaining([
+      expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/mrx-inbox$/),
+      expect.stringMatching(/\/api\/reconciliation\/batches\?CustomerId=customer-1&WeekStartDate=2026-10-19&Status=READY&PageNumber=2&PageSize=25$/),
+      expect.stringMatching(/\/api\/reconciliation\/batches\/draft-sources$/),
+      expect.stringMatching(/\/api\/reconciliation\/weekly-menu\?customerId=customer-1&weekStartDate=2026-10-19$/),
+      expect.stringMatching(new RegExp(`/api/reconciliation/batches/${batchId}$`)),
+      expect.stringMatching(new RegExp(`/api/reconciliation/batches/${batchId}/warehouse-daily$`)),
+      expect.stringMatching(new RegExp(`/api/inventory-issues\\?.*SourceFamily=MATERIAL_RECONCILIATION.*ReconciliationBatchId=${batchId}.*PageNumber=2.*PageSize=25`)),
+      expect.stringMatching(/\/api\/reconciliation\/lines\/disposition-categories$/),
+      expect.stringMatching(new RegExp(`/api/reconciliation/batches/${batchId}/kitchen-cooking$`)),
+    ]));
   });
 
   it('retrieves ingredients with server pagination metadata and without fabricated categoryName', async () => {

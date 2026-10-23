@@ -214,6 +214,7 @@ test('splits Catalog and Admin capabilities at their actual operation grain', ()
     ['Ingredients.Create', 'CAT.INGREDIENT.CREATE'],
     ['Ingredients.Update', 'CAT.INGREDIENT.UPDATE'],
     ['Ingredients.Delete', 'CAT.INGREDIENT.CLOSE'],
+    ['Units.GetAll', 'CAT.UNIT.READ'],
     ['Dishes.Create', 'CAT.DISH.CREATE'],
     ['Dishes.Update', 'CAT.DISH.UPDATE'],
     ['Dishes.Delete', 'CAT.DISH.CLOSE'],
@@ -239,11 +240,38 @@ test('splits Catalog and Admin capabilities at their actual operation grain', ()
 
   const ingredientCreate = contract.capabilities.find((c) => c.id === 'CAT.INGREDIENT.CREATE');
   assert.ok(ingredientCreate, 'CAT.INGREDIENT.CREATE must exist');
-  assert.equal(ingredientCreate.deliveryClass, 'BLOCKED');
+  assert.equal(ingredientCreate.deliveryClass, 'PARTIAL');
   assert.ok(
-    ingredientCreate.gaps.some((g) => g.includes('UnitsController') || g.includes('UnitId')),
-    'CAT.INGREDIENT.CREATE must explicitly document missing UnitsController lookup authority'
+    ingredientCreate.gaps.every((g) => !g.includes('UnitsController') && !g.includes('UnitId')),
+    'CAT.INGREDIENT.CREATE must not retain the resolved unit lookup gap'
   );
+});
+
+test('does not count missing capability surfaces or unsupported admin utilities as delivered coverage', () => {
+  const repoRoot = join(import.meta.dirname, '..');
+  const contract = JSON.parse(readFileSync(join(repoRoot, 'docs/conformance-contracts.json'), 'utf8'));
+
+  assert.equal(contract.surfaces.some((surface) => surface.id === 'admin.cache'), false);
+  assert.equal(contract.surfaces.some((surface) => surface.id === 'admin.diagnostics'), false);
+
+  const capabilitiesWithoutSurface = contract.capabilities.filter(
+    (capability) => !capability.surfaceIds || capability.surfaceIds.length === 0
+  );
+  assert.ok(capabilitiesWithoutSurface.length > 0, 'the current program must retain explicit delivery gaps');
+  for (const capability of capabilitiesWithoutSurface.filter((entry) => entry.deliveryClass === 'READY')) {
+    assert.ok(
+      capability.gaps.some((gap) => gap.startsWith('NO_SURFACE:') || gap.startsWith('BACKEND_CAPABILITY_GAP:')),
+      `${capability.id} is Backend-ready but must record why it has no delivered surface`
+    );
+  }
+
+  for (const requirement of contract.requirements.filter((entry) => entry.kind === 'FR')) {
+    const hasMissingSurface = requirement.capabilityIds.some((capabilityId) => {
+      const capability = contract.capabilities.find((entry) => entry.id === capabilityId);
+      return capability && (!capability.surfaceIds || capability.surfaceIds.length === 0);
+    });
+    if (hasMissingSurface) assert.equal(requirement.assessment, 'PARTIAL');
+  }
 });
 
 test('splits Coordination and Planning capabilities at their actual operation grain', () => {

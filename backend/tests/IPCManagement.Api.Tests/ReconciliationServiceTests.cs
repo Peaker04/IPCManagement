@@ -350,6 +350,167 @@ public sealed partial class ReconciliationServiceTests
     }
 
     [Fact]
+    public async Task Completion_rejects_batch_with_unresolved_source_delta_before_finalizing()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        context.Reconciliationsourcerevisions.Add(new ReconciliationSourceRevision
+        {
+            SourceRevisionId = GuidHelper.NewId(), MenuAmendmentId = GuidHelper.NewId(), BatchId = fixture.Batch.BatchId,
+            PreviousMenuVersionId = fixture.Batch.MenuVersionId, AppliedMenuVersionId = GuidHelper.NewId(), RevisionNumber = 1,
+            Status = "APPLIED", Reason = "Tăng số suất", AppliedBy = fixture.Actor, AppliedAt = DateTime.UtcNow
+        });
+        context.Reconciliationsourcedeltas.Add(new ReconciliationSourceDelta
+        {
+            SourceDeltaId = GuidHelper.NewId(), SourceRevisionId = context.Reconciliationsourcerevisions.Local.Single().SourceRevisionId,
+            BatchId = fixture.Batch.BatchId, DailyLineId = GuidHelper.NewId(), IngredientId = fixture.Line.IngredientId,
+            CanonicalUnitId = fixture.Line.CanonicalUnitId, PreviousRequiredQuantity = 10m, NewRequiredQuantity = 12m,
+            DeltaQuantity = 2m, WorkKind = "SUPPLEMENTAL_ISSUE", Status = "PENDING", Version = 1, CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var runner = new ImmediateTransactionRunner();
+        var completion = new ReconciliationCompletionService(context, new ReconciliationBatchService(context, runner, ProtectedContext()), runner, ProtectedContext());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(
+            GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor)));
+
+        Assert.Contains("thay đổi nguồn", error.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("IN_PROGRESS", fixture.Batch.Status);
+    }
+
+    [Fact]
+    public async Task Issued_batch_revision_persists_positive_delta_invalidates_only_affected_disposition_and_replays_idempotently()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        var daily = new ReconciliationBatchDailyLine
+        {
+            DailyLineId = GuidHelper.NewId(), BatchLineId = fixture.Line.BatchLineId, BatchId = fixture.Batch.BatchId,
+            IngredientId = fixture.Line.IngredientId, CanonicalUnitId = fixture.Line.CanonicalUnitId,
+            ServiceDate = new DateOnly(2026, 8, 25), RequiredQuantity = 10m, Version = 1, BatchLine = fixture.Line
+        };
+        fixture.Line.DailyLines.Add(daily);
+        context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity.ReconciliationBatchDailyLineId = daily.DailyLineId;
+        context.Reconciliationdailydispositions.Add(new ReconciliationDailyDisposition
+        {
+            DispositionId = GuidHelper.NewId(), DailyLineId = daily.DailyLineId, DailyLine = daily,
+            Category = "ACCEPTED_VARIANCE", Reason = "Quyết định cũ", Version = 1,
+            DisposedBy = fixture.Actor, DisposedAt = DateTime.UtcNow
+        });
+        context.Reconciliationtolerances.Add(new ReconciliationTolerance
+        {
+            ToleranceId = GuidHelper.NewId(), ScopeKind = "SYSTEM_DEFAULT", Value = 0.5m, Version = 1,
+            CreatedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var amendmentId = GuidHelper.ToGuidString(GuidHelper.NewId());
+        var appliedVersionId = GuidHelper.ToGuidString(GuidHelper.NewId());
+        var service = new ReconciliationSourceRevisionService(context);
+        var requirements = new[] { new ReconciliationRevisionMaterialFact(daily.ServiceDate, GuidHelper.ToGuidString(daily.IngredientId), GuidHelper.ToGuidString(daily.CanonicalUnitId), 12m) };
+
+        var revision = await service.StageIssuedBatchAsync(
+            GuidHelper.ToGuidString(fixture.Batch.BatchId), amendmentId, GuidHelper.ToGuidString(fixture.Batch.MenuVersionId),
+            appliedVersionId, requirements, GuidHelper.ToGuidString(fixture.Actor), "Tăng số suất");
+        var replay = await service.StageIssuedBatchAsync(
+            GuidHelper.ToGuidString(fixture.Batch.BatchId), amendmentId, GuidHelper.ToGuidString(fixture.Batch.MenuVersionId),
+            appliedVersionId, requirements, GuidHelper.ToGuidString(fixture.Actor), "Tăng số suất");
+
+        Assert.Equal(revision.SourceRevisionId, replay.SourceRevisionId);
+        Assert.Single(await context.Reconciliationsourcerevisions.ToListAsync());
+        var delta = Assert.Single(await context.Reconciliationsourcedeltas.ToListAsync());
+        Assert.Equal(2m, delta.DeltaQuantity);
+        Assert.Equal("SUPPLEMENTAL_ISSUE", delta.WorkKind);
+        Assert.Equal("PENDING", delta.Status);
+        var disposition = await context.Reconciliationdailydispositions.SingleAsync();
+        Assert.NotNull(disposition.InvalidatedAt);
+        Assert.Equal(fixture.Actor, disposition.InvalidatedBy);
+        Assert.Equal(10m, daily.RequiredQuantity);
+        var queue = await service.GetPendingPageAsync(new ReconciliationSourceDeltaPageQuery { BatchId = GuidHelper.ToGuidString(fixture.Batch.BatchId) });
+        var queued = Assert.Single(queue.Items);
+        Assert.Equal(GuidHelper.ToGuidString(daily.DailyLineId), queued.DailyLineId);
+        Assert.Equal("SUPPLEMENTAL_ISSUE", queued.WorkKind);
+    }
+
+    [Fact]
+    public async Task Unissued_batch_revision_replaces_current_projection_without_pending_warehouse_work()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        fixture.Batch.Status = "DRAFT";
+        context.RemoveRange(context.ChangeTracker.Entries<InventoryIssueLine>().Select(entry => entry.Entity));
+        context.RemoveRange(context.ChangeTracker.Entries<InventoryIssue>().Select(entry => entry.Entity));
+        var daily = new ReconciliationBatchDailyLine
+        {
+            DailyLineId = GuidHelper.NewId(), BatchLineId = fixture.Line.BatchLineId, BatchId = fixture.Batch.BatchId,
+            IngredientId = fixture.Line.IngredientId, CanonicalUnitId = fixture.Line.CanonicalUnitId,
+            ServiceDate = new DateOnly(2026, 8, 25), RequiredQuantity = 10m, Version = 1, BatchLine = fixture.Line
+        };
+        fixture.Line.DailyLines.Add(daily);
+        context.Reconciliationtolerances.Add(new ReconciliationTolerance
+        {
+            ToleranceId = GuidHelper.NewId(), ScopeKind = "SYSTEM_DEFAULT", Value = 0.5m, Version = 1,
+            CreatedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var appliedVersionId = GuidHelper.ToGuidString(GuidHelper.NewId());
+        var service = new ReconciliationSourceRevisionService(context);
+
+        var revision = await service.StageBatchAsync(
+            GuidHelper.ToGuidString(fixture.Batch.BatchId), GuidHelper.ToGuidString(GuidHelper.NewId()),
+            GuidHelper.ToGuidString(fixture.Batch.MenuVersionId), appliedVersionId,
+            [new(daily.ServiceDate, GuidHelper.ToGuidString(daily.IngredientId), GuidHelper.ToGuidString(daily.CanonicalUnitId), 12m,
+                [new(GuidHelper.ToGuidString(GuidHelper.NewId()), GuidHelper.ToGuidString(GuidHelper.NewId()),
+                    GuidHelper.ToGuidString(GuidHelper.NewId()), GuidHelper.ToGuidString(GuidHelper.NewId()),
+                    "MORNING", "DISH", "Món", 12, 1m, 0m, 12m)])],
+            GuidHelper.ToGuidString(fixture.Actor), "Tăng số suất");
+
+        Assert.Equal("APPLIED", revision.Status);
+        var delta = Assert.Single(await context.Reconciliationsourcedeltas.ToListAsync());
+        Assert.Equal("RESOLVED", delta.Status);
+        Assert.NotNull(delta.ResolvedAt);
+        Assert.Equal(12m, daily.RequiredQuantity);
+        Assert.Equal(12m, fixture.Line.RequiredQuantity);
+        Assert.Equal(ReconciliationBatchService.RequiredId(appliedVersionId), fixture.Batch.MenuVersionId);
+    }
+
+    [Fact]
+    public async Task Issued_batch_new_ingredient_creates_hidden_zero_placeholder_and_pending_delta()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        var daily = new ReconciliationBatchDailyLine
+        {
+            DailyLineId = GuidHelper.NewId(), BatchLineId = fixture.Line.BatchLineId, BatchId = fixture.Batch.BatchId,
+            IngredientId = fixture.Line.IngredientId, CanonicalUnitId = fixture.Line.CanonicalUnitId,
+            ServiceDate = new DateOnly(2026, 8, 25), RequiredQuantity = 10m, Version = 1, BatchLine = fixture.Line
+        };
+        fixture.Line.DailyLines.Add(daily);
+        context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity.ReconciliationBatchDailyLineId = daily.DailyLineId;
+        context.Reconciliationtolerances.Add(new ReconciliationTolerance
+        {
+            ToleranceId = GuidHelper.NewId(), ScopeKind = "SYSTEM_DEFAULT", Value = 0.5m, Version = 1,
+            CreatedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        var newIngredientId = GuidHelper.ToGuidString(GuidHelper.NewId());
+        var service = new ReconciliationSourceRevisionService(context);
+
+        await service.StageBatchAsync(
+            GuidHelper.ToGuidString(fixture.Batch.BatchId), GuidHelper.ToGuidString(GuidHelper.NewId()),
+            GuidHelper.ToGuidString(fixture.Batch.MenuVersionId), GuidHelper.ToGuidString(GuidHelper.NewId()),
+            [
+                new(daily.ServiceDate, GuidHelper.ToGuidString(daily.IngredientId), GuidHelper.ToGuidString(daily.CanonicalUnitId), 10m),
+                new(daily.ServiceDate, newIngredientId, GuidHelper.ToGuidString(daily.CanonicalUnitId), 3m)
+            ], GuidHelper.ToGuidString(fixture.Actor), "Đổi món");
+
+        var delta = Assert.Single(await context.Reconciliationsourcedeltas.ToListAsync());
+        Assert.Equal("PENDING", delta.Status);
+        Assert.Equal(3m, delta.NewRequiredQuantity);
+        var placeholder = await context.Reconciliationbatchdailylines.SingleAsync(item => item.IngredientId == ReconciliationBatchService.RequiredId(newIngredientId));
+        Assert.Equal(0m, placeholder.RequiredQuantity);
+    }
+
+    [Fact]
     public async Task AggregateAndCompletion_Should_IgnoreDefaultAndLegacyCollisionQuantities()
     {
         await using var context = CreateContext();
@@ -461,6 +622,46 @@ public sealed partial class ReconciliationServiceTests
 
         Assert.Equal(new DateOnly(2026, 9, 21), batch.WeekStartDate);
         Assert.Equal(new DateOnly(2026, 9, 26), batch.WeekEndDate);
+    }
+
+    [Fact]
+    public async Task Page_summaries_filter_customer_week_status_and_order_deterministically_without_loading_lines()
+    {
+        await using var context = CreateContext();
+        var customerId = GuidHelper.NewId();
+        var otherCustomerId = GuidHelper.NewId();
+        var week = new DateOnly(2026, 10, 19);
+        var firstVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = week, VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        var secondVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = week, VersionNo = 2, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        var otherVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = otherCustomerId, WeekStartDate = week, VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        context.Menuversions.AddRange(firstVersion, secondVersion, otherVersion);
+        var older = new ReconciliationBatch { BatchId = GuidHelper.ParseGuidString("00000000-0000-0000-0000-000000000001")!, MenuVersionId = firstVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 2, CreatedBy = GuidHelper.NewId(), CreatedAt = new DateTime(2026, 10, 18, 9, 0, 0, DateTimeKind.Utc) };
+        var newer = new ReconciliationBatch { BatchId = GuidHelper.ParseGuidString("00000000-0000-0000-0000-000000000002")!, MenuVersionId = secondVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 3, CreatedBy = GuidHelper.NewId(), CreatedAt = new DateTime(2026, 10, 18, 9, 0, 0, DateTimeKind.Utc) };
+        context.Reconciliationbatches.AddRange(older, newer,
+            new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = otherVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 1, CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow },
+            new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = firstVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "COMPLETED", Version = 4, CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow });
+        await context.SaveChangesAsync();
+        var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
+
+        var firstPage = await service.GetPageAsync(new ReconciliationBatchPageQuery
+        {
+            CustomerId = GuidHelper.ToGuidString(customerId), WeekStartDate = week, Status = "READY", PageNumber = 1, PageSize = 1
+        });
+        var secondPage = await service.GetPageAsync(new ReconciliationBatchPageQuery
+        {
+            CustomerId = GuidHelper.ToGuidString(customerId), WeekStartDate = week, Status = "READY", PageNumber = 2, PageSize = 1
+        });
+
+        Assert.Equal(2, firstPage.TotalCount);
+        Assert.Equal(GuidHelper.ToGuidString(older.BatchId), Assert.Single(firstPage.Items).BatchId);
+        Assert.Equal(GuidHelper.ToGuidString(newer.BatchId), Assert.Single(secondPage.Items).BatchId);
+        Assert.All(firstPage.Items.Concat(secondPage.Items), item =>
+        {
+            Assert.Equal(GuidHelper.ToGuidString(customerId), item.CustomerId);
+            Assert.Equal(week, item.WeekStartDate);
+            Assert.Equal("READY", item.Status);
+        });
+        Assert.Empty(context.ChangeTracker.Entries<ReconciliationBatchLine>());
     }
 
     [Theory]
@@ -677,7 +878,7 @@ public sealed partial class ReconciliationServiceTests
             var included = new HashSet<Type>
             {
                 typeof(MenuVersion), typeof(QuantityImportBatch), typeof(MealQuantityPlan), typeof(MenuSchedule), typeof(MealQuantityPlanLine),
-                typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchDailyLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationDailyDisposition), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
+                typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchDailyLine), typeof(ReconciliationBatchContributor), typeof(ReconciliationSourceRevision), typeof(ReconciliationSourceDelta), typeof(ReconciliationTolerance), typeof(ReconciliationDailyDisposition), typeof(ReconciliationActual), typeof(ReconciliationActualRevision),
                 typeof(ReconciliationDisposition), typeof(BomAdjustment), typeof(Ingredient), typeof(Unit), typeof(InventoryIssue), typeof(InventoryIssueLine),
                 typeof(InventoryReturn), typeof(InventoryReturnLine), typeof(AuditLog), typeof(Dish), typeof(DishBom)
             };
@@ -737,6 +938,13 @@ public sealed partial class ReconciliationServiceTests
             modelBuilder.Entity<ReconciliationBatchDailyLine>().HasKey(x => x.DailyLineId);
             modelBuilder.Entity<ReconciliationBatchDailyLine>().HasOne(x => x.BatchLine).WithMany(x => x.DailyLines).HasForeignKey(x => x.BatchLineId);
             modelBuilder.Entity<ReconciliationBatchContributor>().HasOne(x => x.DailyLine).WithMany(x => x.Contributors).HasForeignKey(x => x.DailyLineId);
+            modelBuilder.Entity<ReconciliationTolerance>().HasKey(x => x.ToleranceId);
+            modelBuilder.Entity<ReconciliationSourceRevision>().HasKey(x => x.SourceRevisionId);
+            modelBuilder.Entity<ReconciliationSourceRevision>().Ignore(x => x.Batch);
+            modelBuilder.Entity<ReconciliationSourceRevision>().Ignore(x => x.Deltas);
+            modelBuilder.Entity<ReconciliationSourceDelta>().HasKey(x => x.SourceDeltaId);
+            modelBuilder.Entity<ReconciliationSourceDelta>().Ignore(x => x.SourceRevision);
+            modelBuilder.Entity<ReconciliationSourceDelta>().Ignore(x => x.DailyLine);
             modelBuilder.Entity<ReconciliationDailyDisposition>().HasKey(x => x.DispositionId);
             modelBuilder.Entity<ReconciliationDailyDisposition>().HasOne(x => x.DailyLine).WithOne(x => x.Disposition).HasForeignKey<ReconciliationDailyDisposition>(x => x.DailyLineId);
             modelBuilder.Entity<ReconciliationActual>().HasKey(x => x.ActualId);

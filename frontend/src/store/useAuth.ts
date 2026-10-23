@@ -1,6 +1,12 @@
 import { createContext, useContext } from 'react';
 import type { UserInfo, OperationalMode } from '../types';
 
+export interface LoginContextResult {
+  user: UserInfo;
+  operationalMode: OperationalMode;
+  landingPath: string;
+}
+
 export interface AuthContextType {
   user: UserInfo | null;
   token: string | null;
@@ -9,8 +15,9 @@ export interface AuthContextType {
   operationalMode: OperationalMode;
   operationalModeVersion: number | null;
   operationalModeReasonRequired: boolean;
+  landingPath: string;
   reloadOperationalMode: () => Promise<void>;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<LoginContextResult>;
   logout: () => Promise<void>;
   setOperationalMode: (mode: OperationalMode, reason?: string) => Promise<void>;
   hasPermission: (permission: string) => boolean;

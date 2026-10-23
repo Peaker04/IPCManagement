@@ -6,15 +6,20 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { ForbiddenPage } from '../features/auth/ForbiddenPage';
 import { AuthProvider } from '../store/authContext';
 import { authApi } from '../api/authApi';
+import { systemApi } from '../api/systemApi';
+import { CANONICAL_ROUTES } from '../routes/routeRegistry';
+import { resolveLandingPath } from '../routes/navigationEligibility';
 
 function renderWithProviders(ui: React.ReactElement, initialEntry = '/login') {
   return render(
-    <AuthProvider>
+    <AuthProvider resolveLanding={(user, mode) => resolveLandingPath(CANONICAL_ROUTES, user, mode)}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/login" element={ui} />
           <Route path="/forbidden" element={<ForbiddenPage />} />
           <Route path="/" element={<div data-testid="dashboard-target">Bàn điều hành</div>} />
+          <Route path="/reconciliation" element={<div data-testid="reconciliation-target">Đối soát nguyên liệu</div>} />
+          <Route path="/weekly-menu" element={<div data-testid="mrx-batch-target">Chuẩn bị lô đối soát</div>} />
         </Routes>
       </MemoryRouter>
     </AuthProvider>
@@ -44,6 +49,7 @@ describe('Auth Feature (FR-AUTH)', () => {
   });
 
   it('LoginPage: successfully authenticates and redirects to dashboard', async () => {
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: ['dashboard'], pageTabs: {} } });
     vi.spyOn(authApi, 'login').mockResolvedValueOnce({
       accessToken: 'test-token',
       tokenType: 'Bearer',
@@ -70,6 +76,41 @@ describe('Auth Feature (FR-AUTH)', () => {
     expect(await screen.findByTestId('dashboard-target')).toBeInTheDocument();
   });
 
+  it('LoginPage: reloads the protected operation mode after authentication', async () => {
+    const mode = vi.spyOn(systemApi, 'getOperationalMode')
+      .mockRejectedValueOnce(new Error('401 before login'))
+      .mockResolvedValueOnce({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 9, updatedAt: '2026-10-20T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.spyOn(authApi, 'login').mockResolvedValueOnce({
+      accessToken: 'test-token', tokenType: 'Bearer', expiresIn: 3600,
+      user: { userId: 'u-1', username: 'admin', fullName: 'Quản trị viên', roleCode: 'ADMIN', roleName: 'Quản trị viên', isActive: true, isAdminFullAccess: true, permissions: ['*'] },
+    });
+    renderWithProviders(<LoginPage />);
+
+    await userEvent.type(screen.getByLabelText('Tên đăng nhập'), 'admin');
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'password-from-test-only');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' }));
+
+    expect(await screen.findByTestId('mrx-batch-target')).toBeInTheDocument();
+    await vi.waitFor(() => expect(mode).toHaveBeenCalledTimes(2));
+  });
+
+  it('LoginPage: sends a Manager in MRX mode to reconciliation instead of the DEFAULT dashboard', async () => {
+    vi.spyOn(systemApi, 'getOperationalMode')
+      .mockRejectedValueOnce(new Error('401 before login'))
+      .mockResolvedValueOnce({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 9, updatedAt: '2026-10-20T00:00:00Z', reasonRequired: false, capabilities: { navigation: ['reconciliation'], pageTabs: {} } });
+    vi.spyOn(authApi, 'login').mockResolvedValueOnce({
+      accessToken: 'manager-token', tokenType: 'Bearer', expiresIn: 3600,
+      user: { userId: 'manager-1', username: 'quanly', fullName: 'Quản lý', roleCode: 'MANAGER', roleName: 'Quản lý', isActive: true, isAdminFullAccess: false, permissions: ['reconciliation.read', 'reconciliation.disposition', 'reconciliation.complete'] },
+    });
+    renderWithProviders(<LoginPage />);
+
+    await userEvent.type(screen.getByLabelText('Tên đăng nhập'), 'quanly');
+    await userEvent.type(screen.getByLabelText('Mật khẩu'), 'password-from-test-only');
+    await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' }));
+
+    expect(await screen.findByTestId('reconciliation-target')).toBeInTheDocument();
+  });
+
   it('LoginPage: displays clear error feedback when authentication fails', async () => {
     vi.spyOn(authApi, 'login').mockRejectedValueOnce(
       new Error('Tên đăng nhập hoặc mật khẩu không chính xác.')
@@ -90,12 +131,24 @@ describe('Auth Feature (FR-AUTH)', () => {
     );
   });
 
+  it('ForbiddenPage: returns an authenticated Manager to the MRX reconciliation landing', async () => {
+    localStorage.setItem('ipc_v3_token', 'manager-token');
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    localStorage.setItem('ipc_v3_user', JSON.stringify({
+      userId: 'manager-1', username: 'quanly', fullName: 'Quản lý', roleCode: 'MANAGER', roleName: 'Quản lý', isActive: true,
+      isAdminFullAccess: false, permissions: ['reconciliation.read', 'reconciliation.disposition', 'reconciliation.complete'],
+    }));
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 9, updatedAt: '2026-10-20T00:00:00Z', reasonRequired: false, capabilities: { navigation: ['reconciliation'], pageTabs: {} } });
+    renderWithProviders(<ForbiddenPage />, '/forbidden');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Về bàn điều hành' }));
+
+    expect(await screen.findByTestId('reconciliation-target')).toBeInTheDocument();
+    localStorage.clear();
+  });
+
   it('ForbiddenPage: renders clean 403 screen with navigation buttons', () => {
-    render(
-      <MemoryRouter initialEntries={['/forbidden']}>
-        <ForbiddenPage />
-      </MemoryRouter>
-    );
+    renderWithProviders(<ForbiddenPage />, '/forbidden');
 
     expect(screen.getByText('403')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Truy cập bị từ chối' })).toBeInTheDocument();

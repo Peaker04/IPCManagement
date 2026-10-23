@@ -8,7 +8,10 @@ import type {
   ScheduleDayColumn,
   WeeklyScheduleMatrixRow,
 } from '../types';
+import type { paths } from '../shared/api/contracts/schema';
 import { formatVietnameseDate } from '../utils/dates';
+
+type WeeklyMenuImportResult = paths['/api/coordination/weekly-menu/import/preview']['post']['responses']['200']['content']['application/json']['data'];
 
 export interface WeeklyMenuData {
   customerId: string;
@@ -108,9 +111,11 @@ export const weeklyMenuApi = {
   },
 
   async getWeeklyMenu(customerId: string, weekStartDate: string): Promise<RawWeeklyMenuResponse> {
-    return apiClient<RawWeeklyMenuResponse>(
-      `/coordination/weekly-menu?customerId=${encodeURIComponent(customerId)}&weekStartDate=${encodeURIComponent(weekStartDate)}`
-    );
+    const mode = (typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_mode') : null) || 'DEFAULT';
+    const endpoint = mode === 'MATERIAL_RECONCILIATION'
+      ? `/reconciliation/weekly-menu?customerId=${encodeURIComponent(customerId)}&weekStartDate=${encodeURIComponent(weekStartDate)}`
+      : `/coordination/weekly-menu?customerId=${encodeURIComponent(customerId)}&weekStartDate=${encodeURIComponent(weekStartDate)}`;
+    return apiClient<RawWeeklyMenuResponse>(endpoint);
   },
 
   async getProductionPlans(dateFrom: string, dateTo: string, customerId: string): Promise<RawProductionPlan[]> {
@@ -166,10 +171,17 @@ export const weeklyMenuApi = {
     }
 
     const weekEndDate = addDays(weekStartDate, 6);
+    const mode = (typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_mode') : null) || 'DEFAULT';
+    const isMrx = mode === 'MATERIAL_RECONCILIATION';
+
     const [menuResponse, rawPlans, demandPage] = await Promise.all([
       this.getWeeklyMenu(matchedCustomer.customerId, weekStartDate),
-      this.getProductionPlans(weekStartDate, weekEndDate, matchedCustomer.customerId),
-      this.getAllDemand(weekStartDate, weekEndDate, matchedCustomer.customerId),
+      isMrx
+        ? Promise.resolve([])
+        : this.getProductionPlans(weekStartDate, weekEndDate, matchedCustomer.customerId).catch(() => []),
+      isMrx
+        ? Promise.resolve({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100, remainingToIssueCount: 0, pendingKitchenReceiptCount: 0 })
+        : this.getAllDemand(weekStartDate, weekEndDate, matchedCustomer.customerId).catch(() => ({ items: [], totalCount: 0, pageNumber: 1, pageSize: 100, remainingToIssueCount: 0, pendingKitchenReceiptCount: 0 })),
     ]);
 
     const rows = menuResponse?.rows || [];
@@ -238,5 +250,42 @@ export const weeklyMenuApi = {
       dishCosts: [],
       dailyMaterials: [],
     };
+  },
+
+  async previewWeeklyMenuImport(formData: FormData): Promise<WeeklyMenuImportResult> {
+    return apiClient<WeeklyMenuImportResult>(
+      '/coordination/weekly-menu/import/preview',
+      { method: 'POST', body: formData }
+    );
+  },
+
+  async commitWeeklyMenuImport(formData: FormData): Promise<WeeklyMenuImportResult> {
+    return apiClient<WeeklyMenuImportResult>(
+      '/coordination/weekly-menu/import/commit',
+      { method: 'POST', body: formData }
+    );
+  },
+
+  getWeeklyMenuTemplateUrl(customerId?: string, weekStartDate?: string): string {
+    const params = new URLSearchParams();
+    if (customerId) params.set('customerId', customerId);
+    if (weekStartDate) params.set('weekStartDate', weekStartDate);
+    return `/api/coordination/weekly-menu/template?${params.toString()}`;
+  },
+
+  async getMenuSchedules(customerId: string, weekStartDate: string): Promise<Array<{ menuScheduleId: string; serviceDate: string; shiftName: string; status: string; menuVersionStatus?: string }>> {
+    return apiClient<Array<{ menuScheduleId: string; serviceDate: string; shiftName: string; status: string; menuVersionStatus?: string }>>(
+      `/coordination/menu-schedules?customerId=${encodeURIComponent(customerId)}&weekStartDate=${encodeURIComponent(weekStartDate)}`
+    );
+  },
+
+  async publishMenuSchedule(menuScheduleId: string, reason = 'Xuất bản thực đơn tuần'): Promise<unknown> {
+    return apiClient(
+      `/coordination/menu-schedules/${encodeURIComponent(menuScheduleId)}/version`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'ACTIVE', reason }),
+      }
+    );
   },
 };

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMemo, useRef, useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
@@ -12,6 +12,8 @@ import { WeeklyScheduleView } from './views/WeeklyScheduleView';
 import { MaterialDemandView } from './views/MaterialDemandView';
 import { ProductionPlanView } from './views/ProductionPlanView';
 import { MenuCostView } from './views/MenuCostView';
+import { MrxBatchWorkbench } from './MrxBatchWorkbench';
+import { WeeklyMenuImportModal } from './WeeklyMenuImportModal';
 
 function currentWeekStart(): string {
   const now = new Date();
@@ -29,7 +31,11 @@ function currentWeekStart(): string {
 }
 
 export function WeeklyMenuPage() {
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  return searchParams.get('view') === 'mrx-batch' ? <MrxBatchWorkbench /> : <DefaultWeeklyMenuPage />;
+}
+
+function DefaultWeeklyMenuPage() {
   const [searchParams] = useSearchParams();
   const requestedView = searchParams.get('view');
   const activeView = requestedView === 'demand' || requestedView === 'production-plan' || requestedView === 'cost'
@@ -41,6 +47,7 @@ export function WeeklyMenuPage() {
   const [weekStartDate, setWeekStartDate] = useState(currentWeekStart);
   const [data, setData] = useState<WeeklyMenuData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const requestSequence = useRef(0);
 
@@ -176,9 +183,19 @@ export function WeeklyMenuPage() {
           </>
         }
         actions={
-          <Button variant="outline" size="default" onClick={handleRefresh} className="h-9 text-sm font-medium">
-            Làm mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => setIsImportModalOpen(true)}
+              className="h-9 text-sm font-medium"
+            >
+              Nhập thực đơn Excel
+            </Button>
+            <Button variant="outline" size="default" onClick={handleRefresh} className="h-9 text-sm font-medium">
+              Làm mới
+            </Button>
+          </div>
         }
       />
 
@@ -192,14 +209,23 @@ export function WeeklyMenuPage() {
         emptyScenario="prerequisite-blocked"
         emptyTitle={emptyContext.title}
         emptyDescription={emptyContext.desc}
-        actionLabel={activeView === 'schedule' ? 'Xem bàn giao ca' : 'Làm mới dữ liệu'}
-        onAction={activeView === 'schedule' ? () => navigate('/weekly-menu?view=demand') : handleRefresh}
+        actionLabel={activeView === 'schedule' ? 'Nhập thực đơn ngay' : 'Làm mới dữ liệu'}
+        onAction={activeView === 'schedule' ? () => setIsImportModalOpen(true) : handleRefresh}
       >
         {data && activeView === 'schedule' && <WeeklyScheduleView data={data} />}
         {data && activeView === 'demand' && <MaterialDemandView data={data} />}
         {data && activeView === 'production-plan' && <ProductionPlanView data={data} />}
         {data && activeView === 'cost' && <MenuCostView data={data} />}
       </StateBoundary>
+
+      <WeeklyMenuImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        customers={customers}
+        initialCustomerId={customers.find((c) => c.customerCode === customerCode)?.customerId}
+        initialWeekStartDate={weekStartDate}
+        onImportSuccess={handleRefresh}
+      />
     </div>
   );
 }

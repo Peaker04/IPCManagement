@@ -25,7 +25,7 @@ describe('Dashboard Feature (FR-DASH — Bàn điều hành hôm nay)', () => {
     renderDashboard();
 
     expect(await screen.findByRole('heading', { name: 'Bàn điều hành hôm nay' })).toBeInTheDocument();
-    expect(screen.getByText(/(?:Thứ [Hai|Ba|Tư|Năm|Sáu|Bảy]|Chủ Nhật),\s*\d{2}\/\d{2}\/\d{4}/)).toBeInTheDocument();
+    expect(screen.getByText(/(?:Thứ (?:Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ Nhật),\s*\d{2}\/\d{2}\/\d{4}/)).toBeInTheDocument();
     expect(screen.getByText(/Ca 1 & Ca 2 đang vận hành/i)).toBeInTheDocument();
 
     // Actions: 1 primary + 1 outline (Rule D7)

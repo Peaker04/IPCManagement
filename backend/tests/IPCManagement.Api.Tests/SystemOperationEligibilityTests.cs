@@ -34,7 +34,7 @@ public sealed class SystemOperationEligibilityTests
     }
 
     [Fact]
-    public void Admin_audit_read_surface_is_explicitly_retained_without_enabling_reports_navigation()
+    public void Admin_audit_read_endpoint_is_retained_without_advertising_an_unimplemented_navigation_surface()
     {
         var metadata = Assert.Single(typeof(AuditReportsController)
             .GetCustomAttributes(typeof(SystemOperationAttribute), inherit: true)
@@ -44,7 +44,7 @@ public sealed class SystemOperationEligibilityTests
         Assert.Equal(OperationDisposition.Retained, metadata.Disposition);
         Assert.DoesNotContain("reports", SystemOperationEligibility
             .CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation).Navigation);
-        Assert.Contains("audit", SystemOperationEligibility
+        Assert.DoesNotContain("audit", SystemOperationEligibility
             .CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation).PageTabs["admin-data"]);
     }
 
