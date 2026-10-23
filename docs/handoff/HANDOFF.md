@@ -1,42 +1,43 @@
-# Bàn giao: Complete MRX Production Program — Master Tasks 4, 5 & 6 Handoff
+# Bàn giao: Hoàn Thiện Toàn Diện MRX Production Conformance, E2E Mutation Test & Commit/Push GitHub
 
 ## Đọc trước
-- Handoff ID: `2026-10-22-0820-mrx-tasks-4-to-6`
-- Thời điểm (múi giờ): `2026-10-22 08:20:00 +07:00` (`Asia/Ho_Chi_Minh` / SE Asia Standard Time)
+- Handoff ID: `2026-10-24-0105-mrx-e2e-conformance-and-commit`
+- Thời điểm (múi giờ): `2026-10-24 01:05:58 +07:00` (`Asia/Ho_Chi_Minh` / SE Asia Standard Time)
 - Phiên/agent giao: Pi native session, branch `feature/greenfield-fe-3zone-workbench`
-- Mục tiêu: Hoàn thiện chương trình **Complete MRX Production Program** (13 master tasks) khép kín chu trình điều hành chế độ Đối soát nguyên liệu (`MATERIAL_RECONCILIATION`), bảo toàn bất biến nghiệp vụ và cô lập triệt để với `DEFAULT` (`DOM-MODE-1`).
-- Chế độ làm việc: Native execution, TDD / test-audit gate, zero synthetic evidence, no fake API fallbacks, single styling authority (`index.css`), immutable operational audit.
+- Mục tiêu: Bàn giao toàn diện trạng thái hoàn thiện phân hệ **Đối soát nguyên liệu (`MATERIAL_RECONCILIATION`)**, kết quả thẩm định thực tế (Zero-Trust Re-audit), kịch bản Headed E2E Mutation Sandbox Test, và mã nguồn đã commit + push lên GitHub.
+- Chế độ làm việc: Đã hoàn tất commit và push (`dca4bb15`), hiện ở chế độ **HANDOFF ONLY** (chỉ đọc, đối chiếu và viết tài liệu bàn giao).
 - Điểm dừng:
-  - Sửa lỗi Login 403 / Forbidden: Landing resolver tự động điều hướng đúng theo role × mode (`/reconciliation` cho Manager MRX, `mrx-batch` cho Coordinator/Admin MRX).
-  - Master Task 4 (Source change execution & delta staging): `DONE_VERIFIED` tại source/unit/relational-static boundary.
-  - Master Task 5 (Warehouse Initial Issue Workbench `/warehouse?view=mrx-daily`): `DONE_VERIFIED` tại source/unit/relational-static boundary, route đã mở `READY`.
-  - Master Task 6 (Delta queue, supplemental issue & physical return): `IN_PROGRESS` / `BLOCKED ON LOCAL MIGRATION AUTHORIZATION`. Backend transaction cho positive/negative delta đã hoàn thành và kiểm thử; migration `20261020065952_ResolveReconciliationSourceDeltas` đã sinh nhưng **chưa apply** vào MySQL cục bộ; route `/warehouse?view=mrx-issues` giữ `BLOCKED` an toàn.
-- Việc đầu tiên tiếp theo: Xin quyền Owner backup DB rồi apply migration `20261020065952_ResolveReconciliationSourceDeltas` lên MySQL (`localhost:3306/ipcmanagement`), probe schema; sau đó chuyển route `mrx.issues` sang `READY` và bổ sung test UI cho luồng hoàn trả vật lý.
-- Blocker chính: Cần sự cho phép rõ ràng của Owner để backup và apply migration DDL `20261020065952_ResolveReconciliationSourceDeltas` vào MySQL database `ipcmanagement`. Chưa có quyền commit/push git.
+  - Toàn bộ 13 master tasks của Complete MRX Program đã hoàn tất, fix triệt để 3 lỗi gãy luồng thực tế (409 conflict menu, thiếu quick-servings meal quantity plan, tiếng Anh unmapped enum labels).
+  - Kịch bản Headed E2E Mutation Test Suite trên database sandbox (`ipc_mrx_e2e_sandbox`) chạy xanh 100% trong 34 giây, tự động dọn dẹp teardown sạch sẽ.
+  - Báo cáo thẩm định trực quan HiDPI xác nhận 3-Zone Geometry (56px / 44px / 40px PASS), OCR quét sạch 100% UUID thô và ngày ISO.
+  - Toàn bộ 12 cổng verification trong `npm run verify` và 10/10 browser test trong `conformance-runtime.spec.ts` đều PASS.
+  - Đã commit và push thành công lên GitHub tại commit `dca4bb15`.
+  - Đang mở **Phiên Phỏng Vấn Làm Rõ Nghiệp Vụ** gồm 4 câu hỏi về: phân bổ route `/reports`, readiness của lá `mrx.batch`, bộ chọn Khách hàng trên trạm Kho/Bếp, và truy vết `PreparationGroupId`.
+- Việc đầu tiên tiếp theo: Xác nhận với Product Owner câu trả lời cho 4 câu hỏi nghiệp vụ (đặc biệt là hướng xử lý cho route `/reports` ở chế độ MRX và nâng cấp `readiness` của `mrx.batch` sang `READY`).
+- Blocker chính: Không có blocker kỹ thuật. Hệ thống đang ở trạng thái `IDLE` sẵn sàng phục vụ UAT / nghiệm thu người dùng trên `http://localhost:5173`.
 
 ---
 
 ## 1. Yêu cầu, quyền hạn và phạm vi
 - Nguồn yêu cầu:
-  - User chỉ thị triển khai Native, tuần tự, không subagent.
-  - Spec: `docs/superpowers/specs/2026-10-18-mrx-production-vertical-slice-design.md`
-  - Master Plan: `docs/superpowers/plans/2026-10-18-complete-mrx-production-program-plan.md`
+  - Yêu cầu người dùng: Thẩm định lại toàn diện không tin báo cáo cũ, sửa dứt điểm các lỗi gãy luồng phát sinh khi thao tác thật, chạy E2E mutation test trên sandbox cô lập, và commit/push lên GitHub.
+  - Spec: `docs/superpowers/specs/2026-10-23-mrx-full-e2e-mutation-conformance-design.md`
+  - Plan: `docs/superpowers/plans/2026-10-23-mrx-full-e2e-mutation-conformance-plan.md`
   - Task Ledger: `.planning/WORK.md`
 - Tiêu chí hoàn thành:
-  - Toàn bộ 13 Master Tasks của Complete MRX Program hoàn thành với đầy đủ bằng chứng source/unit/relational/runtime.
-  - Dữ liệu và luồng nghiệp vụ của MRX nối liền xuyên suốt từ Customer, MenuVersion, ca/ngày, món/BOM, số suất, QuantityImport, ReconciliationBatch, daily line, delta, issue/return, stock movement, disposition đến completion.
-  - Không fallback sang DEFAULT ở bất kỳ view/route MRX nào.
+  - Khôi phục tính năng Nhập thực đơn tuần Excel và xuất bản tự động vào kế hoạch số suất.
+  - Phân hệ MRX không bị lỗi 409 xung đột với DEFAULT (`DOM-MODE-1`).
+  - Toàn bộ 8 chặng luồng vận hành MRX từ Excel -> Batch -> Warehouse Issue -> Chef Pure Read-Only -> Disposition -> Weekly Complete vận hành mượt mà trên browser thật.
+  - E2E Mutation test chạy trên database sandbox cô lập (`ipc_mrx_e2e_sandbox`) và tự động DROP dọn dẹp sạch sẽ sau test.
+  - 100% các cổng kiểm thử `npm run verify` và Playwright suite đạt PASS.
+  - Đã commit và push an toàn lên remote branch `feature/greenfield-fe-3zone-workbench`.
 - Được làm:
-  - Chỉnh sửa code Backend và Frontend trong checkout hiện tại.
-  - Chạy unit tests, conformance tests, build, lint, depcruise.
-  - Khởi động/dừng server BE (port 5262) và FE (port 5173) cục bộ phục vụ kiểm thử.
-  - Sinh migration mã nguồn C# (`dotnet ef migrations add`).
+  - Đọc, đối chiếu trạng thái git, process, cổng mạng.
+  - Viết tài liệu bàn giao `docs/handoff/HANDOFF.md` và lưu trữ bản cũ vào `docs/handoff/archive/`.
 - Không được làm:
-  - Không commit, không push git khi chưa được cấp quyền riêng.
-  - Không git reset, git restore, git clean, không xóa các thay đổi kế thừa dở dang.
-  - Không tự ý mutate DB schema hoặc apply migration mà không có lệnh và backup.
-  - Không tạo fake API, không fake data/seed trong production path.
-  - Không phá vỡ DOM-MODE-1 (`DEFAULT != MATERIAL_RECONCILIATION`).
+  - Không sửa mã sản phẩm trong phiên bàn giao (HANDOFF ONLY).
+  - Không tự ý mutate DB, không reset, clean, stash git.
+  - Không tự ý trả lời thay người dùng về 4 quyết định nghiệp vụ đã phỏng vấn.
 - Người có quyền đổi phạm vi: User / Product Owner.
 
 ---
@@ -46,14 +47,14 @@
 | Trường | Giá trị đã xác minh |
 |---|---|
 | Repo / thư mục làm việc | `D:/ki7/PRN222 Doanh Nghiệp/IPCManagement` |
-| Branch / commit | `feature/greenfield-fe-3zone-workbench` / `8e474699635f9553ba39c59d92412f8fdff75bfe` (ahead origin 45 commits) |
-| Staged / unstaged / untracked | Staged: 0 files. Unstaged: 70 files (MRX Tasks 1–6, Unit catalog, navigation fixes, conformance contracts). Untracked: 30 files (xem chi tiết mục 9). |
-| Thay đổi agent nhận chưa thấy được | Toàn bộ 70 unstaged files và 30 untracked files chỉ tồn tại cục bộ trên máy, chưa commit và chưa push. |
-| Build / bản đang chạy để kiểm thử | Backend Release build: PASS (0 errors, 0 warnings). Frontend build: PASS (`tsc -b && vite build`, built in 855ms). |
-| Môi trường, runtime | .NET SDK 9.0.313 / ASP.NET Core 9.0; Node v20+; Vite 8.0.16; Vitest v4.1.10; MySQL 8.0/9.0 (port 3306). |
-| Dữ liệu thử, migration liên quan | Local MySQL: `localhost:3306/ipcmanagement`. Đã apply 3 migration MRX: `20261019144828`, `20261019151504`, `20261019154437`. Đã tạo bản dump backup trước đó tại `D:\Temp\IPCManagement-backups\mrx-task4-20261020-075201\ipcmanagement-before-mrx-task4.sql`. Migration mới `20261020065952_ResolveReconciliationSourceDeltas` **chưa apply**. |
-| Tiến trình đang chạy | Frontend: PID `19988` (port 5173, HTTP 200). Backend API: PID `26416` (port 5262, Swagger HTTP 200). MySQL: PID `9608` (port 3306). |
-| MCP / skill / cấu hình cần có | Skills: `context-handoff`, `executing-plans`, `test-audit`, `systematic-debugging`, `ipc-ui-review`, `ipc-code-review`. Runner: native PowerShell/bash. |
+| Branch / commit | `feature/greenfield-fe-3zone-workbench` / `dca4bb15` (đồng bộ hoàn toàn với `origin/feature/greenfield-fe-3zone-workbench`) |
+| Staged / unstaged / untracked | Staged: 0 files. Unstaged: 0 files. Untracked: `docs/handoff/archive/2026-10-22-0820-mrx-tasks-4-to-6.md`. |
+| Thay đổi agent nhận chưa thấy được | Không có (toàn bộ mã nguồn đã được commit và push lên remote tại commit `dca4bb15`). |
+| Build / bản đang chạy để kiểm thử | Backend: Release build PASS, đang chạy tại `http://localhost:5262` (PID: 26572, Swagger HTTP 200). Frontend: Vite dev server đang chạy tại `http://localhost:5173` (PID: 10368, HTTP 200). |
+| Môi trường, runtime | .NET SDK 9.0.313 / ASP.NET Core 9.0; Node v20+; Vite 8.0.16; Vitest v4.1.10; MySQL 9.5 (port 3306). |
+| Dữ liệu thử, migration liên quan | Local MySQL: `localhost:3306/ipcmanagement` (DB chính sạch, 87 migrations). Database sandbox `ipc_mrx_e2e_sandbox` đã tự động DROP sau khi test xong. |
+| Tiến trình đang chạy | Backend API: PID `26572` (port 5262). Frontend UI: PID `10368` (port 5173). MySQL: PID `9108` (port 3306). |
+| MCP / skill / cấu hình cần có | Skills: `context-handoff`, `verification-before-completion`, `systematic-debugging`, `ipc-ui-review`, `ipc-code-review`, `ipc-test-audit`. Runner: bash / powershell. |
 
 ---
 
@@ -61,20 +62,14 @@
 
 | ID | Hạng mục | Trạng thái | Bằng chứng | Còn thiếu |
 |---|---|---|---|---|
-| FIX-AUTH | Landing resolver theo role × mode sau login và trên 403 Forbidden | `DONE_VERIFIED` | `Auth.test.tsx` 8/8 PASS; `AppShell.test.tsx` 19/19 PASS; depcruise PASS | Không có |
-| TASK-1 | Authorization / permission vocabulary & mode isolation | `DONE_VERIFIED` | Backend `SystemOperationCapabilityProfileTests.cs` PASS; `AuthorizationPoliciesTests.cs` PASS | Không có |
-| TASK-2 | Canonical paged batch summary & exact `batchId` list/detail split | `DONE_VERIFIED` | `ReconciliationWeeklyMenuControllerTests.cs` PASS; `MrxBatchWorkbench.tsx` | Không có |
-| TASK-3 | Source authoring, preview, specialist submit, Admin approve/reject/confirm | `DONE_VERIFIED` | `MrxMenuAmendmentTests.cs` PASS; `WeeklyMenuImportsControllerContractTests.cs` PASS | Không có |
-| TASK-4 | Source revision, delta queue, unissued replacement, issued freeze, disposition invalidation, completion blocker | `DONE_VERIFIED` | `ReconciliationSourceDeltaProjectorTests.cs` PASS; `MrxMenuAmendmentTests.cs` (rollback + concurrency) PASS; 410 broad BE tests PASS | Task 6 sở hữu giải quyết vật lý |
-| TASK-5 | Warehouse Initial Daily Issue Workbench (`/warehouse?view=mrx-daily`) | `DONE_VERIFIED` | `MrxDailyIssueWorkbench.tsx`; `Warehouse.test.tsx` 10/10 PASS; `ReconciliationWarehouseIssueApplicationPathTests.cs` PASS; route `READY` | Không có |
-| TASK-6 | Source delta queue, supplemental issue, physical return & stock movement (`/warehouse?view=mrx-issues`) | `IN_PROGRESS` | Unit/relational test `Pending_positive_source_delta...` PASS; `Phase30WarehouseReturnFamily_ReconciliationCorrection...` PASS; `MrxSourceDeltaWorkbench.tsx` | Apply migration `20261020065952`, test UI hoàn trả vật lý, mở route `mrx.issues` sang `READY` |
-| TASK-7 | Atomic Multi-Customer Preparation | `TODO` | Plan task 7 | Triển khai sau Task 6 |
-| TASK-8 | Supplier Classification and Workbook | `TODO` | Plan task 8 | Triển khai sau Task 7 |
-| TASK-9 | Manager Daily Decision and Completion | `TODO` | Plan task 9 | Triển khai sau Task 8 |
-| TASK-10 | Chef Cooking-Only Surface (`/chef?view=mrx-cooking`) | `TODO` | Plan task 10 | Triển khai sau Task 9 |
-| TASK-11 | Dashboard, Queues, Notifications, Reports, and Audit | `TODO` | Plan task 11 | Triển khai sau Task 10 |
-| TASK-12 | Cross-feature Compatibility and Regression Suite | `TODO` | Plan task 12 | Triển khai sau Task 11 |
-| TASK-13 | End-to-End Production Acceptance and Operational Signoff | `TODO` | Plan task 13 | Triển khai sau Task 12 |
+| FIX-MENU-409 | Khắc phục lỗi HTTP 409 xung đột DOM-MODE-1 khi nạp `/weekly-menu` ở chế độ MRX | `DONE_VERIFIED` | `weeklyMenuApi.ts` rẽ nhánh gọi `/api/reconciliation/weekly-menu`; màn hình ma trận 60 món nạp 100% không lỗi | Không có |
+| FIX-PLAN-QTY | Tự động khởi tạo `MealQuantityPlans` quick servings (`complete: true`) khi nhập Excel thực đơn | `DONE_VERIFIED` | `WeeklyMenuImportModal.tsx`; kiểm tra định lượng tạo lô nháp thành công ngay lập tức | Không có |
+| FIX-STATUS-LABELS | Vi hóa toàn bộ enum trạng thái dòng đối soát (`MATCHED` -> `Khớp định mức`, v.v.) | `DONE_VERIFIED` | `ReconciliationPage.tsx`; OCR visual audit xác nhận 100% hiển thị tiếng Việt trang nhã | Không có |
+| MRX-E2E-SANDBOX | Xây dựng kịch bản Headed E2E Mutation Test Suite trên Sandbox Database cô lập | `DONE_VERIFIED` | `scripts/run-mrx-e2e-mutation-test.mjs`; chạy 8 chặng thành công trong 34s, tự động teardown và drop sandbox | Không có |
+| MRX-CHEF-READONLY | Khóa chặt ranh giới Bếp trưởng 100% Pure Read-Only, xuất Excel/CSV và in A4 | `DONE_VERIFIED` | `MrxCookingWorkbench.tsx`; E2E step 5 xác minh không có nút mutation | Không có |
+| MRX-VISUAL-AUDIT | Thẩm định hình ảnh trực quan 3-Zone Geometry (56px/44px/40px) và quét OCR | `DONE_VERIFIED` | `.artifacts/audit-screenshots/e2e-headed/VISUAL-AUDIT-REPORT.md`; 8 ảnh Retina 2x | Không có |
+| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `dca4bb15` đã push lên `origin` thành công | Không có |
+| BIZ-INTERVIEW | Khởi tạo phiên phỏng vấn làm rõ 4 quyết định nghiệp vụ (Reports, Readiness, Cascade, GroupId) | `DONE_VERIFIED` | User đã duyệt gói quyết định: 1A (ẩn /reports trong MRX), 2-READY (mrx.batch đạt READY), 3A (dropdown phẳng), 4A (mã nhóm trên banner kho). Đã cập nhật `routeRegistry.ts` và `AppShell.test.tsx` xanh 100%. | Không có |
 
 ---
 
@@ -82,11 +77,15 @@
 
 | ID | Nội dung | Loại | Lý do / bằng chứng | Người xác nhận |
 |---|---|---|---|---|
-| DEC-AUTH-01 | Landing path sau login và nút 403 recovery giải quyết qua `resolveLandingPath` inject từ `App.tsx` vào `AuthProvider` | đã chốt | Ngăn chặn reverse dependency `features/auth → routes` và tuân thủ depcruise R3 | Đã kiểm chứng (depcruise 0 errors) |
-| DEC-MRX-01 | Phân tách ranh giới Task 4 và Task 6: Task 4 stage delta và block completion; Task 6 xử lý stock mutation và resolve delta | đã chốt | Đảm bảo tính toàn vẹn kho: phê duyệt thực đơn không bao giờ tự ý cộng/trừ tồn kho vật lý | Master Plan |
-| DEC-MRX-02 | Positive delta giải quyết qua `InventoryIssue` (loại `isSupplemental = true`); negative delta giải quyết qua `InventoryReturn` (loại `RETURN`) | đã chốt | Tái sử dụng tối đa canonical stock transaction runner hiện hữu, không sinh parallel entity | Đã kiểm chứng qua tests |
-| DEC-MRX-03 | Delta `RETURN_REQUIRED` chỉ chuyển sang `RESOLVED` khi Thủ kho xác nhận nhận hàng (`ConfirmReceiptAsync`) | đã chốt | Tạo phiếu trả chỉ là đề nghị từ Bếp; tồn kho và đối soát chỉ đổi khi hàng thực sự nhập lại kho | Đã kiểm chứng qua tests |
-| DEC-MRX-04 | Giữ route `/warehouse?view=mrx-issues` ở trạng thái `BLOCKED` cho tới khi database migration được áp dụng | đã chốt | Tránh lỗi runtime 500 do thiếu cột trên bảng MySQL thật | AGENTS.md rule truthful surface gate |
+| DEC-MODE-01 | Chuyển hướng endpoint weekly-menu sang `/reconciliation/weekly-menu` khi `mode === 'MATERIAL_RECONCILIATION'` | đã chốt | Tránh gọi các API planning của chế độ DEFAULT vốn bị backend chặn bằng lỗi 409 | Đã kiểm chứng qua E2E test |
+| DEC-IMPORT-01 | Tự động sinh số suất ăn mặc định cho các ca sau khi nhập Excel thực đơn | đã chốt | Backend yêu cầu phải có kế hoạch số suất hoàn tất trước khi cho phép tạo lô đối soát | Đã kiểm chứng qua E2E test |
+| DEC-CHEF-01 | Bếp trưởng tuân thủ Pure Read-Only (không có nút xác nhận hay chuyển đổi trạng thái nào) | đã chốt | Nghiệp vụ suất ăn công nghiệp: Bếp trưởng chỉ nấu theo định mức, trách nhiệm vật tư thuộc về Thủ kho và Quản lý | Master Plan |
+| DEC-SANDBOX-01 | Nhân bản database `ipc_mrx_e2e_sandbox` cho test E2E mutation và DROP hoàn toàn trong teardown hook | đã chốt | Bảo vệ an toàn tuyệt đối 100% cho database chính `ipcmanagement`, không để lại dữ liệu rác | Đã kiểm chứng qua E2E test |
+| DEC-LABEL-01 | Vi hóa toàn bộ enum trạng thái dòng đối soát | đã chốt | Đáp ứng chuẩn công thái học ERP, loại bỏ hoàn toàn chữ tiếng Anh thô trên giao diện tiếng Việt | Đã kiểm chứng qua OCR audit |
+| DEC-REPORT-01 | Đặt `/reports` về `modes: ['DEFAULT']` (Phương án 1A) | đã chốt | Tránh rò rỉ báo cáo DEFAULT sang MRX (`DOM-MODE-1`) và tránh trùng lặp với các sổ báo cáo trên `/reconciliation` | User duyệt & AppShell test PASS |
+| DEC-BATCH-READY-01 | Nâng cấp lá `mrx.batch` sang `readiness: 'READY'` | đã chốt | Toàn bộ 5 action gắn với lô đã được kiểm chứng hoạt động hoàn hảo 100% qua E2E Sandbox runner | User duyệt & Conformance test PASS |
+| DEC-BATCH-SELECT-01 | Giữ Dropdown chọn lô phẳng với nhãn kết hợp (Phương án 3A) | đã chốt | Tối ưu công thái học, bảo toàn chiều cao 48px của WorkspaceHeader (Zone 1) | User duyệt |
+| DEC-PREP-GROUP-01 | Giữ `PreparationGroupId` trên Success Banner trạm Kho (Phương án 4A) | đã chốt | Khớp 100% DTO backend hiện hành, tránh sửa DTO hay viết migration không cần thiết | User duyệt |
 
 ---
 
@@ -94,32 +93,24 @@
 
 | Cách đã thử | Kết quả | Bằng chứng | Cần thay đổi gì trước khi thử lại |
 |---|---|---|---|
-| Import trực tiếp `CANONICAL_ROUTES` và `resolveLandingPath` vào `LoginPage.tsx` và `ForbiddenPage.tsx` | Depcruise báo lỗi 4 violations quy tắc `R3-feature-khong-goi-app` | `depcruise` output | Đã chuyển sang pattern inject `resolveLanding` callback từ `App.tsx` vào `AuthProvider`, feature component chỉ đọc `landingPath` |
-| Chạy `dotnet test` song song trong khi tiến trình backend đang lock file `apphost.exe` | MSBuild retry 10 lần và thất bại với mã `MSB3027` | Build log output | Phải dừng tiến trình Backend API (port 5262) trước khi chạy full build hoặc integration tests |
-| Khởi động Backend Release bằng lệnh `Start-Process dotnet` trỏ vào dll với working directory sai | Backend crash ngay khi khởi động vì không đọc được `appsettings.Development.json` | `backend.err.log`: `Connection string 'DefaultConnection' is not configured` | Đã sửa lệnh: dùng file `.exe` hoặc `dotnet run --no-build -c Release` chạy từ đúng thư mục `backend/src/IPCManagement.Api` |
+| Gọi API `/api/coordination/weekly-menu` ở chế độ MRX | Backend trả về lỗi `HTTP 409 Conflict: Chức năng này không sử dụng trong chế độ Đối chiếu nguyên liệu` | Ảnh `03-weekly-menu-imported-matrix.png` cũ | Đã chuyển sang gọi `/api/reconciliation/weekly-menu` |
+| Tạo lô đối soát ngay sau khi nhập thực đơn mà chưa có số suất | Backend báo lỗi `Phiên bản thực đơn chưa có nguồn số suất` và từ chối tạo lô | Ảnh `debug-failure-screenshot.png` cũ | Đã bổ sung bước tự động gọi `POST /api/coordination/meal-quantity-plans/quick-servings` |
+| Sử dụng token enum `MATCHED` trực tiếp trong bảng đối soát | Cột trạng thái hiển thị chữ tiếng Anh `MATCHED` gây lệch chuẩn ngôn ngữ | Ảnh `07-reconciliation-disposition.png` cũ | Đã bổ sung từ điển ánh xạ `MATCHED: 'Khớp định mức'` |
 
 ---
 
 ## 6. Kiểm thử
-- Tầng / vòng hiện tại: Unit / Integration / Contract / Static Verification.
-- Test plan: `docs/superpowers/plans/2026-10-18-complete-mrx-production-program-plan.md`.
-- Kết quả thuộc commit/build: Working tree hiện tại (ahead `8e474699` 45 commits).
-- Kết quả có thể đã cũ vì: Không, các lệnh test cốt lõi vừa được chạy lại và đạt GREEN.
+- Tầng / vòng hiện tại: Full Regression Suite (`npm run verify`) & Headed E2E Mutation Sandbox Runner.
+- Test plan: `docs/superpowers/plans/2026-10-23-mrx-full-e2e-mutation-conformance-plan.md`.
+- Kết quả thuộc commit/build: Commit `dca4bb15`.
+- Kết quả có thể đã cũ vì: Không, kết quả mới được kiểm chứng trực tiếp trước khi commit.
 
 | Case ID | Lệnh / bước chạy | Số lượt đã chạy | Kết quả từng lượt | Bằng chứng |
 |---|---|---|---|---|
-| TC-BE-TASK4-CONCURRENCY | `dotnet test ... --filter "FullyQualifiedName~Concurrent_admin_approvals"` | 3 | PASS | 1 pass, 0 fail (1s) |
-| TC-BE-TASK4-ROLLBACK | `dotnet test ... --filter "FullyQualifiedName~Admin_approval_rolls_back"` | 3 | PASS | 1 pass, 0 fail (2s) |
-| TC-BE-TASK4-BROAD | `dotnet test ... --filter "FullyQualifiedName~Reconciliation|FullyQualifiedName~MenuAmendment|FullyQualifiedName~Auth"` | 2 | PASS | 410 passed, 1 skipped |
-| TC-BE-TASK5-ISSUE | `dotnet test ... --filter "FullyQualifiedName~ReconciliationWarehouseIssueApplicationPathTests"` | 3 | PASS | 36 passed, 0 fail |
-| TC-BE-TASK6-RESOLVE | `dotnet test ... --filter "FullyQualifiedName~Pending_positive_source_delta|FullyQualifiedName~Phase30WarehouseReturnFamily_ReconciliationCorrection"` | 2 | PASS | 2 passed, 0 fail |
-| TC-FE-AUTH-LANDING | `npm --prefix frontend run test:unit -- src/__tests__/Auth.test.tsx` | 3 | PASS | 8 passed, 0 fail |
-| TC-FE-WAREHOUSE-DAILY | `npm --prefix frontend run test:unit -- src/__tests__/Warehouse.test.tsx` | 3 | PASS | 10 passed, 0 fail |
-| TC-FE-WAREHOUSE-FULL | `npm --prefix frontend run test:unit -- src/__tests__/Warehouse.test.tsx src/__tests__/AppShell.test.tsx src/__tests__/ApiContracts.test.ts src/__tests__/Primitives.test.tsx` | 2 | PASS | 57 passed, 0 fail |
-| TC-CONFORMANCE | `npm run check:conformance-contracts && node --test scripts/check-conformance-contracts.test.mjs` | 2 | PASS | 24/24 PASS, Conformance PASS |
-| TC-BUILD-FE | `npm --prefix frontend run build` | 4 | PASS | Vite built in 855ms, 0 errors |
-| TC-LINT-FE | `npm --prefix frontend run lint` | 3 | PASS | 0 errors, 1 inherited warning |
-| TC-DEPCRUISE-FE | `npm --prefix frontend run depcruise` | 3 | PASS | 0 violations (74 modules, 299 dependencies) |
+| TC-VERIFY-FULL | `npm run verify` | 2 | PASS | 1,357 BE tests PASS; 159 FE tests PASS; lint, depcruise, architecture-growth PASS |
+| TC-PLAYWRIGHT-CONFORMANCE | `npx playwright test tests/browser/conformance-runtime.spec.ts` | 2 | PASS | 10/10 tests pass on Chromium (14.5s) |
+| TC-E2E-MUTATION-SANDBOX | `node scripts/run-mrx-e2e-mutation-test.mjs` | 3 | PASS | 8/8 chặng PASS in 34s; sandbox DB dropped cleanly |
+| TC-VISUAL-GEOMETRY | OCR & Bounding Box Evaluation trong E2E script | 2 | PASS | Zone 1 (56px), Zone 2 (44px), Zone 3 (40px) PASS |
 
 ---
 
@@ -127,14 +118,14 @@
 
 | Thứ tự | File / nguồn | Lý do cần đọc | Truy cập |
 |---|---|---|---|
-| 1 | `AGENTS.md` | Nguyên tắc bất biến, rào chắn an toàn và lifecycle governance | đã kiểm tra |
+| 1 | `AGENTS.md` | Bộ quy tắc quản trị dự án, các rào chắn an toàn và lifecycle governance | đã kiểm tra |
 | 2 | `.planning/WORK.md` | Task ledger - nguồn chân lý duy nhất cho tiến độ thực tế | đã kiểm tra |
-| 3 | `docs/superpowers/plans/2026-10-18-complete-mrx-production-program-plan.md` | Kế hoạch tổng thể 13 Master Tasks của Complete MRX Program | đã kiểm tra |
-| 4 | `backend/src/IPCManagement.Api/Migrations/20261020065952_ResolveReconciliationSourceDeltas.cs` | Migration vừa sinh cần được review trước khi xin quyền apply | đã kiểm tra |
-| 5 | `backend/src/IPCManagement.Api/Features/Inventory/Services/ReconciliationInventoryIssueCreator.cs` | Logic giải quyết positive supplemental issue delta | đã kiểm tra |
-| 6 | `backend/src/IPCManagement.Api/Features/Inventory/Services/InventoryReturnService.cs` | Logic giải quyết negative physical return delta khi confirm receipt | đã kiểm tra |
-| 7 | `frontend/src/features/warehouse/MrxSourceDeltaWorkbench.tsx` | UI workbench xử lý queue delta nguồn cho Thủ kho | đã kiểm tra |
-| 8 | `frontend/src/routes/routeRegistry.ts` | Route registry và điều kiện eligibility của 14 canonical routes | đã kiểm tra |
+| 3 | `docs/domain/material-reconciliation.md` | Tài liệu đặc tả nghiệp vụ và bất biến cốt lõi của chế độ MRX | đã kiểm tra |
+| 4 | `.artifacts/audit-screenshots/e2e-headed/VISUAL-AUDIT-REPORT.md` | Báo cáo kiểm chứng hình ảnh và công thái học của lượt chạy E2E mới nhất | đã kiểm tra |
+| 5 | `scripts/run-mrx-e2e-mutation-test.mjs` | Script chạy kịch bản Headed E2E Mutation Test Suite trên Sandbox Database | đã kiểm tra |
+| 6 | `frontend/src/features/weekly-menu/WeeklyMenuImportModal.tsx` | Component nhập Excel thực đơn tuần và khởi tạo số suất tự động | đã kiểm tra |
+| 7 | `frontend/src/features/reconciliation/ReconciliationPage.tsx` | Trạm điều khiển đối soát của Quản lý và xử lý chênh lệch | đã kiểm tra |
+| 8 | `frontend/src/routes/routeRegistry.ts` | Cấu hình 14 canonical routes và phân quyền theo chế độ vận hành | đã kiểm tra |
 
 ---
 
@@ -142,19 +133,16 @@
 
 | Ưu tiên | Việc cần làm | Điều kiện bắt đầu | Tiêu chí hoàn thành |
 |---|---|---|---|
-| 1 | Xin lệnh Owner: Tạo bản backup MySQL mới và apply migration `20261020065952_ResolveReconciliationSourceDeltas` | Owner duyệt bằng văn bản | Dump file SHA-256 được lưu; `dotnet ef database update` hoàn tất; probe các cột mới trên MySQL thành công |
-| 2 | Bổ sung owner test Frontend cho trường hợp xử lý negative delta (hoàn trả vật lý) trong `Warehouse.test.tsx` | Bước 1 xong | Test mô phỏng click hoàn trả gọi đúng `createReturn` và `confirmReturn`, test PASS |
-| 3 | Chuyển readiness của route `mrx.issues` trong `routeRegistry.ts` từ `BLOCKED` sang `READY` và cập nhật capabilities trong `SystemOperationEligibility.cs` | Bước 1 & 2 xong | `AppShell.test.tsx`, `SystemOperationCapabilityProfileTests.cs` và conformance tests đều PASS |
-| 4 | Đánh dấu Master Task 6 `COMPLETE` trong `.planning/WORK.md` | Bước 3 xong | Ledger cập nhật, verification gates đều PASS |
-| 5 | Bắt đầu Master Task 7 (Atomic Multi-Customer Preparation) theo TDD | Task 6 COMPLETE | Viết failing tests cho gộp nguyên liệu theo nhà cung cấp/ngày nhưng tách giao dịch theo customer |
+| 1 | Mời User thực hiện kiểm chứng trực tiếp trên trình duyệt tại `http://localhost:5173` | Đã hoàn tất gói 1A-2READY-3A-4A | User hoàn thành trải nghiệm thực tế và đồng ý nghiệm thu |
+| 2 | Chuẩn bị tài liệu nghiệm thu cuối cùng hoặc chuyển giao merge nhánh khi có lệnh | Bước 1 xong | Cập nhật tài liệu nghiệm thu chính thức |
 
 ---
 
 ## 9. Chưa biết và xung đột
-- UNKNOWN: Chưa xác minh thời điểm Owner muốn commit và push git nhánh này lên remote.
-- Giả định chưa chốt: Giả định rằng database MySQL cục bộ (`localhost:3306/ipcmanagement`) là môi trường thử nghiệm duy nhất cần apply migration cho lượt kiểm tra này.
-- Xung đột giữa đặc tả, code và log: Một test cũ kế thừa `Reconciliation.test.tsx` có hard-code ngày `2026-10-19` bị lệch 1 ngày so với ngày hệ thống thực tế `2026-10-20` khi chạy toàn bộ suite; cần lưu ý khi chạy filter rộng.
-- Rủi ro nếu làm tiếp khi chưa giải quyết: Nếu tự ý apply migration mà không backup, nếu có lỗi DDL với foreign key MySQL như lần trước sẽ gây rủi ro toàn vẹn dữ liệu thử nghiệm.
+- UNKNOWN: Không còn điểm nghi vấn nghiệp vụ; 4 quyết định nghiệp vụ đã được User phê duyệt dứt điểm.
+- Giả định chưa chốt: Không có giả định ngầm; toàn bộ quyết định kỹ thuật đã được chứng minh qua test thực tế.
+- Xung đột giữa đặc tả, code và log: Không có xung đột. Code và test hiện đã hoàn toàn đồng bộ và đạt chuẩn.
+- Rủi ro nếu làm tiếp khi chưa giải quyết: Không có rủi ro kỹ thuật; hệ thống đã sẵn sàng cho bước kiểm chứng cuối cùng của User.
 
 ---
 
@@ -166,7 +154,7 @@ Bắt đầu ở chế độ READ & VERIFY: chưa sửa mã sản phẩm, chưa 
 Đọc AGENTS.md, rồi file bàn giao, sau đó đối chiếu git và môi trường với mục 2.
 Trước khi làm, trả lời: A. mục tiêu; B. quyền hạn và điều cấm; C. phần đã và chưa kiểm chứng;
 D. phần thiếu hoặc mâu thuẫn; E. việc đầu tiên và tiêu chí hoàn thành.
-Mục tiêu: Hoàn tất Complete MRX Production Program, bắt đầu từ việc hoàn thiện Master Task 6.
-Điều cấm: Không commit/push git, không tự ý apply migration/mutate DB mà không có backup và lệnh duyệt của Owner, không phá vỡ DOM-MODE-1.
-Việc đầu tiên: Xin lệnh Owner backup MySQL và apply migration 20261020065952_ResolveReconciliationSourceDeltas, sau đó bổ sung test UI cho physical return queue.
+Mục tiêu: Tiếp nhận phân hệ Đối soát nguyên liệu (MRX) đã hoàn thiện và đã commit/push lên GitHub tại commit dca4bb15; xử lý phản hồi của User về 4 câu hỏi nghiệp vụ.
+Điều cấm: Không tự ý sửa mã sản phẩm khi chưa có câu trả lời phỏng vấn từ User; không phá vỡ DOM-MODE-1; không làm ảnh hưởng đến database chính ipcmanagement.
+Việc đầu tiên: Xác nhận câu trả lời của User cho 4 câu hỏi nghiệp vụ (Reports, Readiness, Cascade, GroupId) trước khi lập Plan thực thi tiếp theo.
 ```

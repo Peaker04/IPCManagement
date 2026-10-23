@@ -635,3 +635,31 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
 - MRX post-login denial RED→GREEN: runtime logs proved `quanly` (`MANAGER`) authenticated and loaded the MRX mode snapshot successfully with no Backend 403, but `LoginPage` always navigated to `/`, a DEFAULT-only route, so frontend `RoleGuard` redirected to `/forbidden`. Added canonical `resolveLandingPath` over the same route×role×permission×mode owner; `App.tsx` injects it into `AuthProvider` to preserve dependency direction. Login now returns and navigates to the exact eligible landing (`/reconciliation` for Manager MRX, `mrx-batch` for Coordinator/Admin MRX, `/` for eligible DEFAULT actors). Forbidden recovery uses the same injected landing instead of looping to `/`. Owner tests observed the pre-fix dashboard navigation, then pass for Manager MRX login and 403 recovery. Auth/AppShell/Primitives 41/41 PASS; build and dependency cruise PASS; lint remains 0 errors with one inherited Reconciliation hook warning.
 - Task 3 early security finding RED→GREEN: `ReconciliationWeeklyMenuController` used default `Retained` disposition, allowing its MRX source read in DEFAULT despite the canonical mode contract. Strengthened the existing policy test to require `ReconciliationOnly` and reject DEFAULT; RED observed `Retained`, GREEN 4/4 focused controller tests.
 - Task 3 ruling: quantity-import `CommitAsync` already materializes the canonical DRAFT and returns `ReconciliationBatchId`; the Coordinator UI must not call `Create` again after commit. `Create` remains an idempotent alternate seam for an already committed import. Cost if wrong: a redundant create call adds concurrency noise and obscures the canonical commit response.
+
+### Scoped Pre-Code UI Gate Block — Business Decisions 1A & 2-READY Resolution
+- Routes: `/reports`, `/weekly-menu`
+- Single Primary Work Object: `OperationalFrame` (Reports), `WeeklyMenuWorkspaceShell` & `MrxBatchWorkbench` (Weekly Menu)
+- Server Mode: Strict mode separation (`DOM-MODE-1`): `/reports` restricted to `DEFAULT`; `/weekly-menu?view=mrx-batch` dedicated to `MATERIAL_RECONCILIATION`.
+- RBAC Guards: `RoleGuard`, `isRouteEligible`, `resolveEligibleNavigation` using `allowedRoles` and `modes`.
+- 6 UI States: Preserved across existing components; no changes to state logic.
+- Primitives & Composites: Existing `routeRegistry.ts` navigation registry.
+- Compliance Pledges: D6 (>=12px), D7 (1 primary), T7 (frozen header/col), T8 (compact density 36-40px), M1.2 (1 blocking modal), N6 (nested sidebar v2).
+
+### GF-R40 — Business decisions 1A & 2-READY resolution: reports mode isolation and batch readiness
+- Resolved User-approved business decisions `1A — 2-READY — 3A — 4A`:
+  - **Decision 1A (`DOM-MODE-1`)**: Removed `MATERIAL_RECONCILIATION` from `/reports` and its 3 leaves (`reports.demand`, `reports.prices`, `reports.stock`) in `routeRegistry.ts`. In MRX mode, `/reports` is cleanly hidden from the Sidebar and rejected by `isRouteEligible`, eliminating duplicate reporting navigation and preventing DEFAULT report leakage.
+  - **Decision 2-READY**: Upgraded `mrx.batch` leaf readiness from `'PARTIAL'` to `'READY'` in `routeRegistry.ts`, reflecting verified full E2E mutation capability across Excel import, quick-servings plan generation, and warehouse transfer.
+  - **Decisions 3A & 4A**: Preserved flat batch dropdown selector on Warehouse/Chef workbenches and retained `PreparationGroupId` on the coordinated issue success banner, maintaining 100% C# DTO conformance without synthetic backend extensions.
+- Tests & Verification:
+  - Updated `AppShell.test.tsx` to assert that MRX navigation does not expose `/reports` or `/reports?view=demand`, asserts `mrx.batch` readiness is `READY`, and asserts `isRouteEligible` rejects `/reports` in MRX mode.
+  - Frontend unit tests: 18 files / 159 tests PASS.
+  - Conformance contracts checker & tests: 29/29 PASS.
+  - Frontend ESLint, dependency-cruiser (83 modules / 380 dependencies), and production Vite build: PASS (zero errors).
+  - Playwright browser conformance suite: 10/10 PASS on live Chromium (11.5s).
+  - Backend tests: 1,367 tests PASS.
+- Review gates:
+  - `ipc-test-audit; contract and navigation regression; asserted absence of DEFAULT reports in MRX and verified mrx.batch READY; yes; low noise; proved DOM-MODE-1 isolation`.
+  - `ipc-ui-review; nested sidebar navigation & mode review; verified clean disappearance of reports in MRX, 3-Zone geometry, WCAG AA compliance; yes; low noise; preserved 100% existing UI kit primitives`.
+  - `ipc-code-review; surgical navigation registry update; aligned route eligibility with verified backend capabilities; yes; low noise; zero dead code or ad-hoc styling`.
+- Final State: **`IDLE`**.
+

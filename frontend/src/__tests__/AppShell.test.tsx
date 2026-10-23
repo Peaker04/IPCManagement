@@ -169,7 +169,11 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     expect(mrxUrls).toContain('/reconciliation');
     expect(mrxUrls).not.toContain('/purchasing');
     expect(mrxUrls).not.toContain('/chef?view=plans');
-    expect(mrxUrls).toContain('/reports?view=demand');
+    expect(mrxUrls).not.toContain('/reports?view=demand');
+    expect(mrxUrls).not.toContain('/reports');
+
+    const mrxBatchLeaf = CANONICAL_ROUTES.find((r) => r.path === '/weekly-menu')?.leaves?.find((l) => l.id === 'mrx.batch');
+    expect(mrxBatchLeaf?.readiness).toBe('READY');
   });
 
   it('resolves actor-owned MRX leaves without exposing DEFAULT or Purchasing workflows', () => {
@@ -262,6 +266,8 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     expect(isRouteEligible(CANONICAL_ROUTES, '/weekly-menu', '?view=mrx-batch&customerId=c1', admin, 'MATERIAL_RECONCILIATION')).toBe(true);
 
     // 3. Disallowed/unknown view must be rejected
+    expect(isRouteEligible(CANONICAL_ROUTES, '/reports', '', admin, 'MATERIAL_RECONCILIATION')).toBe(false);
+    expect(isRouteEligible(CANONICAL_ROUTES, '/reports', '?view=demand', admin, 'MATERIAL_RECONCILIATION')).toBe(false);
     expect(isRouteEligible(CANONICAL_ROUTES, '/warehouse', '?view=unknown-view', admin, 'MATERIAL_RECONCILIATION')).toBe(false);
   });
 });

@@ -91,6 +91,38 @@ Detail policy and lineage: [MRX contract](domain/material-reconciliation.md). Sh
 - **Jobs / notifications:** MRX issue stages lifecycle events; payload-only worker consumption is not staff delivery or realtime. No new notification recipient/provider is inferred.
 - **Acceptance boundary:** Source → preview/commit/freeze/transfer → each real date's initial/supplemental/return facts → valid daily disposition where required → complete/reload, plus independent frozen cooking read. Check actor/mode/version conflicts and no DEFAULT record reuse. [DailyLineagePolicyTests](../backend/tests/IPCManagement.Api.Tests/ReconciliationDailyLineagePolicyTests.cs) own bounded status expectations; [service tests](../backend/tests/IPCManagement.Api.Tests/ReconciliationServiceTests.cs) cover daily decision targeting, stale/wrong identity, reload and completion on isolated test storage. These are not live browser/MySQL qualification.
 
+## ADMIN & REPORTING FLOWS
+
+### F8 — Quản trị danh mục nguyên liệu, món ăn và định mức BOM gốc
+
+- **Actor / trigger:** Quản trị viên (Admin) hoặc Bếp trưởng thiết lập danh mục nguyên liệu, món ăn, quy cách đơn vị tính, hoặc cập nhật định mức BOM per serving cho món ăn.
+- **Entry / permission:** `/admin-data?view=ingredients`, `/admin-data?view=dishes`. Quyền truy cập: `AdminAccess` / `CatalogReadAccess` / `CatalogWriteAccess`.
+- **Happy path / state:** Admin tra cứu danh mục nguyên vật liệu với phân trang server `pageNumber/pageSize` → Xem chi tiết định mức BOM của món ăn → Cập nhật công thức chuẩn (BOM gốc) làm căn cứ tính toán cho Thực đơn tuần và Kế hoạch sản xuất. Mọi thay đổi BOM giữ nguyên tính bất biến của các tuần thực đơn đã chốt (`BR-GLOBAL-03`).
+- **Failures:** Thiếu đơn vị tính chuẩn (UnitId), trùng mã nguyên liệu, hoặc cố gắng sửa BOM của thực đơn đã khóa sổ sẽ bị chặn tại Backend API validation.
+- **Data read / write:** Đọc danh mục `Ingredients`, `Dishes`, `DishBoms`; ghi nhận cập nhật phiên bản định mức với dấu vết kiểm toán người tạo/sửa.
+- **API / modules:** [IngredientsController](../backend/src/IPCManagement.Api/Features/Catalog/Controllers/IngredientsController.cs), [DishesController](../backend/src/IPCManagement.Api/Features/Catalog/Controllers/DishesController.cs), [AdminDataPage](../frontend/src/features/admin/AdminDataPage.tsx), [adminApi](../frontend/src/api/adminApi.ts).
+- **Expected result / acceptance:** Dữ liệu danh mục nạp đúng trang với phân trang server (`PagedResponseDto<T>`), không chứa trường nhân tạo (`categoryName` ảo); định mức BOM chính xác theo đơn vị tính chuẩn.
+
+### F9 — Cấu hình quy tắc phê duyệt vận hành đa cấp
+
+- **Actor / trigger:** Quản trị viên (Admin) cấu hình ma trận phê duyệt chứng từ (ngưỡng giá trị, vai trò duyệt, cấp bậc phê duyệt).
+- **Entry / permission:** `/settings/approval-rules`. Quyền: `AdminAccess`.
+- **Happy path / state:** Admin rà soát các quy tắc duyệt hiện hành cho Đơn mua hàng (PO), Đề xuất vật tư (PR), Phiếu xuất kho → Cấu hình ngưỡng phê duyệt và phân công vai trò (Manager / Director). Quy tắc mới có hiệu lực cho các chứng từ khởi tạo sau thời điểm lưu.
+- **Failures:** Cấu hình thiếu vai trò phê duyệt, ngưỡng giá trị âm, hoặc vi phạm nguyên tắc tách biệt nghĩa vụ (Separation of Duties - SoD: người tạo không được tự duyệt) sẽ bị từ chối.
+- **Data read / write:** Đọc và ghi các bản ghi `ApprovalRule` và `ApprovalStepDefinition`.
+- **API / modules:** [ApprovalRulesController](../backend/src/IPCManagement.Api/Features/Approvals/Controllers/ApprovalRulesController.cs), [ApprovalRulesPage](../frontend/src/features/admin/ApprovalRulesPage.tsx).
+- **Expected result / acceptance:** Hiển thị danh sách quy tắc chuẩn xác từ Backend, không dùng prompt/alert trình duyệt; cập nhật có xác nhận qua modal trợ năng.
+
+### F10 — Khai thác hệ thống báo cáo vận hành và chi phí
+
+- **Actor / trigger:** Quản lý, Kế toán, Thu mua, Thủ kho mở trạm Báo cáo để phân tích số liệu vận hành theo chu kỳ ngày/tháng.
+- **Entry / permission:** `/reports?view=demand`, `/reports?view=prices`, `/reports?view=stock`. Quyền: `ReportAccess` / `InventoryReadAccess` trong chế độ `DEFAULT`.
+- **Happy path / state:** Chọn kỳ báo cáo (tháng `YYYY-MM`) và bộ lọc đối tượng (Khách hàng) → Hệ thống nạp báo cáo tổng hợp nhu cầu vật tư (`ingredient-demand/aggregate/page`), biến động giá mua vào (`receipt-price-variance/page`), hoặc tồn kho hiện thời (`current-stock/page`) theo phân trang server 25 dòng/trang → Xuất bản dữ liệu phân tích với định dạng số chuẩn `<Num>` và ngày giờ Việt Nam (`Asia/Ho_Chi_Minh`).
+- **Failures:** Mất kết nối mạng hoặc kỳ báo cáo không có dữ liệu sẽ hiển thị `StateBoundary` với trạng thái trống (`emptyTitle`) hoặc lỗi kèm nút `[Thử lại]`.
+- **Data read / write:** Đọc dữ liệu tổng hợp (analytical projections); không phát sinh đột biến ghi sổ kho hoặc cập nhật chứng từ.
+- **API / modules:** [DemandReportsController](../backend/src/IPCManagement.Api/Features/Reports/Controllers/DemandReportsController.cs), [PriceVarianceReportsController](../backend/src/IPCManagement.Api/Features/Reports/Controllers/PriceVarianceReportsController.cs), [InventoryOperationsReportsController](../backend/src/IPCManagement.Api/Features/Reports/Controllers/InventoryOperationsReportsController.cs), [ReportsPage](../frontend/src/features/reports/ReportsPage.tsx), [reportsApi](../frontend/src/api/reportsApi.ts).
+- **Expected result / acceptance:** Tải báo cáo phân trang mượt mà không CLS, thời gian hiển thị theo chuẩn tiếng Việt, không tự suy diễn báo cáo chi phí suất ăn khi Backend chưa cung cấp hợp đồng.
+
 ## Shared asynchronous boundary
 
 [DI](../backend/src/IPCManagement.Api/DependencyInjection.cs) registers [LifecycleOutboxWorker](../backend/src/IPCManagement.Api/Infrastructure/LifecycleOutbox/LifecycleOutboxWorker.cs), [processor](../backend/src/IPCManagement.Api/Infrastructure/LifecycleOutbox/LifecycleOutboxProcessor.cs) and [LifecyclePayloadValidationConsumer](../backend/src/IPCManagement.Api/Infrastructure/LifecycleOutbox/LifecyclePayloadValidationConsumer.cs). Transactional staging, polling, aggregate ordering, leases/retries and consumer receipts are implemented. The inspected consumer only validates JSON; processed receipt is not proof of email, external integration or business effect. Active settings/runtime backlog remain UNKNOWN. RTK Query invalidation/refetch is not cross-user realtime. ARCHITECTURE/OPERATIONS own those mechanisms/signals, not a copied notification rule from an external template.

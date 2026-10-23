@@ -41,7 +41,7 @@ export const CANONICAL_ROUTES: RouteDef[] = [
       { id: 'weekly.demand', to: '/weekly-menu?view=demand', label: 'Bàn giao nguyên liệu', surfaceId: 'weekly.demand', capabilityIds: ['PLAN.DEMAND.GENERATE', 'PLAN.DEMAND.STALENESS.READ', 'PLAN.PRODUCTION.READ'], modes: ['DEFAULT'], readiness: 'READY' },
       { id: 'weekly.production', to: '/weekly-menu?view=production-plan', label: 'Kế hoạch sản xuất', surfaceId: 'weekly.production', capabilityIds: ['PLAN.PRODUCTION.READ'], modes: ['DEFAULT'], readiness: 'READY' },
       { id: 'weekly.cost', to: '/weekly-menu?view=cost', label: 'Giá vốn & Định mức BOM', surfaceId: 'weekly.cost', capabilityIds: [], modes: ['DEFAULT'], readiness: 'BLOCKED' },
-      { id: 'mrx.batch', to: '/weekly-menu?view=mrx-batch', label: 'Chuẩn bị lô đối soát', surfaceId: 'mrx.batch', capabilityIds: ['RECON.BATCH.CREATE', 'RECON.BATCH.PREVIEW_IMPORT', 'RECON.BATCH.COMMIT_IMPORT', 'RECON.BATCH.READY', 'RECON.BATCH.TRANSFER_WAREHOUSE'], allowedRoles: COORDINATOR_ROLES, permissions: ['reconciliation.source.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'PARTIAL' },
+      { id: 'mrx.batch', to: '/weekly-menu?view=mrx-batch', label: 'Chuẩn bị lô đối soát', surfaceId: 'mrx.batch', capabilityIds: ['RECON.BATCH.CREATE', 'RECON.BATCH.PREVIEW_IMPORT', 'RECON.BATCH.COMMIT_IMPORT', 'RECON.BATCH.READY', 'RECON.BATCH.TRANSFER_WAREHOUSE'], allowedRoles: COORDINATOR_ROLES, permissions: ['reconciliation.source.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
     ],
   },
   { path: '/meal-orders', title: 'Điều phối đơn', frCode: 'FR-COORD', allowedRoles: ['Admin', 'Manager', 'Coordinator', 'Quản lý', 'Điều phối'], modes: ['DEFAULT'] },
@@ -82,11 +82,11 @@ export const CANONICAL_ROUTES: RouteDef[] = [
     ],
   },
   {
-    path: '/reports', title: 'Báo cáo vận hành', frCode: 'FR-REP', allowedRoles: REPORT_ROLES, modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'],
+    path: '/reports', title: 'Báo cáo vận hành', frCode: 'FR-REP', allowedRoles: REPORT_ROLES, modes: ['DEFAULT'],
     leaves: [
-      { id: 'reports.demand', to: '/reports?view=demand', label: 'Nhu cầu nguyên liệu', surfaceId: 'reports.demand', capabilityIds: ['REP.DEMAND.READ'], modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'reports.prices', to: '/reports?view=prices', label: 'Biến động giá nhập', surfaceId: 'reports.prices', capabilityIds: ['REP.PRICE.READ'], modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'reports.stock', to: '/reports?view=stock', label: 'Tồn kho hiện tại', surfaceId: 'reports.stock', capabilityIds: ['REP.INVENTORY.READ'], modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'reports.demand', to: '/reports?view=demand', label: 'Nhu cầu nguyên liệu', surfaceId: 'reports.demand', capabilityIds: ['REP.DEMAND.READ'], modes: ['DEFAULT'], readiness: 'READY' },
+      { id: 'reports.prices', to: '/reports?view=prices', label: 'Biến động giá nhập', surfaceId: 'reports.prices', capabilityIds: ['REP.PRICE.READ'], modes: ['DEFAULT'], readiness: 'READY' },
+      { id: 'reports.stock', to: '/reports?view=stock', label: 'Tồn kho hiện tại', surfaceId: 'reports.stock', capabilityIds: ['REP.INVENTORY.READ'], modes: ['DEFAULT'], readiness: 'READY' },
     ],
   },
   {
