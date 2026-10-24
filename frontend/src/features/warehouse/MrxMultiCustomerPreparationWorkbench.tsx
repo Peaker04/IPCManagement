@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxPreparation } from '../../api/mrxApi';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -18,6 +18,7 @@ interface MrxMultiCustomerPreparationWorkbenchProps {
 }
 
 export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCustomerPreparationWorkbenchProps) {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const urlDate = searchParams.get('date');
   const [activeDate, setActiveDate] = useState(() => serviceDate || urlDate || todayInBusinessTimezone());
@@ -248,7 +249,16 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
           {successGroupId && (
             <div role="status" className="px-4 py-2.5 text-sm bg-emerald-50 text-emerald-800 border-b border-emerald-200 flex items-center justify-between">
               <span>Đã xuất kho phối hợp thành công. Mã nhóm chuẩn bị: <strong className="font-mono">{successGroupId}</strong></span>
-              <Button size="xs" variant="outline" onClick={() => setSuccessGroupId(null)}>Đóng</Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="xs"
+                  variant="default"
+                  onClick={() => navigate(`/warehouse?view=mrx-daily&date=${activeDate}`)}
+                >
+                  Xem phiếu xuất theo ngày →
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => setSuccessGroupId(null)}>Đóng</Button>
+              </div>
             </div>
           )}
 

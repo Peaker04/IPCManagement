@@ -20,6 +20,7 @@ export function MrxSourceDeltaWorkbench() {
   const [selectedDelta, setSelectedDelta] = useState<MrxSourceDelta | null>(null);
   const [actualQuantity, setActualQuantity] = useState<string>('');
   const [varianceReason, setVarianceReason] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     await Promise.resolve();
@@ -78,6 +79,7 @@ export function MrxSourceDeltaWorkbench() {
         await mrxApi.confirmReturn(created.returnId, { commandId: crypto.randomUUID(), expectedVersion: 0, hasDiscrepancy, adjustedLines: [] });
       }
       setSelectedDelta(null);
+      setSuccessMessage(`Đã xử lý thành công ${delta.workKind === 'SUPPLEMENTAL_ISSUE' ? 'xuất bổ sung' : 'hoàn trả vật lý'} cho ${delta.ingredientName || delta.ingredientCode || 'nguyên liệu'}.`);
       await load();
     } catch (cause) {
       setError(cause instanceof Error ? cause : new Error('Không thể xử lý thay đổi nguồn.'));
@@ -182,6 +184,13 @@ export function MrxSourceDeltaWorkbench() {
           </>
         }
       />
+
+      {successMessage && (
+        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
+          <span>{successMessage}</span>
+          <button type="button" onClick={() => setSuccessMessage(null)} className="underline cursor-pointer">Đóng</button>
+        </div>
+      )}
 
       <StateBoundary
         isLoading={loading}
