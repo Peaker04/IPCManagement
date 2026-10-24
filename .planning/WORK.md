@@ -734,4 +734,26 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Full `npm run verify` PASSED 100% across all 12 gates.
 - Final State: **`IDLE`**.
 
+### GF-R45 — Master 5-layer empirical measurement program, Axe-Core WCAG AA contrast remediation and multi-route verification dossier
+- **5-Layer Empirical Measurement Protocol Implemented**: Shifted from unverified console passes to quantifiable, instrumented 5-layer auditing across all 7 MRX routes under `docs/superpowers/specs/2026-10-24-mrx-5layer-empirical-measurement-design.md` and plan `docs/superpowers/plans/2026-10-24-mrx-5layer-empirical-measurement-plan.md`.
+- **Axe-Core WCAG AA Contrast Remediation**:
+  - Detected and resolved real color contrast failures:
+    - `AppShell.tsx`: Subtitle and role code upgraded from `text-slate-400` to `text-slate-600` ($\ge 4.5:1$).
+    - `ReconciliationLifecycleStrip.tsx`: Future step labels upgraded from `text-slate-400` to `text-slate-600 font-medium` ($\ge 4.5:1$).
+    - Zero Axe violations verified across all routes (`violations: 0`).
+- **5-Layer Empirical Verification Results Across 7 Routes**:
+  - **Zone 1 Header Bounding Box**: $56.0\text{px}$ (within $48\text{px}–56\text{px}$ threshold).
+  - **Zone 2 Subbar Bounding Box**: $40.0\text{px}–48.0\text{px}$ (within operational range).
+  - **Zone 3 Data Row Bounding Box**: $36\text{px}–40\text{px}$ (`Rule T8`).
+  - **Layout Shift (CLS)**: $\text{CLS} = 0.0000$ across all 7 routes ($\le 0.05$).
+  - **Text Hygiene Scan**: 0 raw UUIDs, 0 raw ISO dates, 0 unmapped English enums.
+  - **DOM-MODE-1 Mode Isolation**: 0 requests to DEFAULT APIs; 100% MRX mode authority.
+- **Dossiers Generated**: Produced individual dossiers and screenshots in `.artifacts/5layer-audits/` plus `MASTER-5LAYER-AUDIT-SUMMARY.md`.
+- **Verification Evidence**:
+  - Strict architecture growth gate: PASS (debt exact, test debt zero).
+  - Frontend unit tests: 18 files / 166 tests PASS (100%).
+  - Frontend build and lint: PASS (0 errors, 0 warnings).
+  - Full `npm run verify` PASSED 100% across all 12 gates.
+- Final State: **`IDLE`**.
+
 

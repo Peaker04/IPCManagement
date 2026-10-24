@@ -146,7 +146,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
                 <span className="text-sm font-bold tracking-tight text-slate-900 leading-none truncate">
                   IPC System
                 </span>
-                <span className="text-xs text-slate-400 font-medium leading-tight mt-1 truncate">
+                <span className="text-xs text-slate-600 font-medium leading-tight mt-1 truncate">
                   Điều hành bếp ăn
                 </span>
               </div>
@@ -303,7 +303,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
                   <p className="text-xs font-semibold text-slate-900 truncate">
                     {user?.fullName || 'Người vận hành'}
                   </p>
-                  <p className="text-xs font-mono text-slate-400 uppercase truncate">
+                  <p className="text-xs font-mono text-slate-600 uppercase truncate">
                     {user?.roleCode || 'GUEST'}
                   </p>
                 </div>

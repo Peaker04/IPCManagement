@@ -253,8 +253,7 @@ async function measureRoute(routeKey, headless) {
     console.log('[LAYER 3] Measuring Geometry Bounding Boxes (Zone 1, Zone 2, Zone 3)...');
     if (!config.isLoginRoute) {
       const headerBox = await page.locator('header').first().boundingBox();
-      const subbarBox = await page.locator('div:has(> .flex:has-text("Nguồn"), > .flex:has-text("Đang xem"), > .flex:has-text("Tiến độ"))').first().boundingBox()
-        || await page.locator('.h-10, .h-11').first().boundingBox();
+      const subbarBox = await page.locator('header + div').first().boundingBox();
       const firstRowBox = await page.locator('tbody tr').first().boundingBox().catch(() => null);
 
       dossier.layer3_geometry = {

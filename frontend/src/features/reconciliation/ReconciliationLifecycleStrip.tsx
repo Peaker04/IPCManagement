@@ -53,7 +53,7 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
                 ? 'bg-blue-100 text-blue-900 font-semibold border border-blue-300'
                 : isPast
                 ? 'bg-slate-100 text-slate-700 font-medium'
-                : 'text-slate-400 bg-transparent'
+                : 'text-slate-600 font-medium bg-transparent'
             )}
           >
             <span
@@ -65,7 +65,7 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
                   ? 'bg-blue-700 text-white'
                   : isPast
                   ? 'bg-emerald-600 text-white'
-                  : 'bg-slate-200 text-slate-500'
+                  : 'bg-slate-200 text-slate-700'
               )}
               aria-hidden="true"
             >
