@@ -78,7 +78,8 @@
 | COORD-PURCHASE-RECOVERY | Phục hồi hành động "Chốt đơn ca" trên MealOrdersPage (khóa số suất thực tế và đồng bộ ca) và hành động "Hủy đơn PO" trên PurchasingPage với modal xác nhận | `DONE_VERIFIED` | `MealOrdersPage.tsx`, `PurchasingPage.tsx`, `coordinationApi.ts`, `purchasingApi.ts`; strict architecture check PASS; 166 FE tests PASS | Không có |
 | APPROVAL-REPORT-PRINT-RECOVERY | Phục hồi dòng thời gian lịch sử phê duyệt (approval audit trail timeline) trong detail panel của ApprovalPage và nút "In báo cáo" (print action) trên ReportsPage | `DONE_VERIFIED` | `ApprovalPage.tsx`, `ReportsPage.tsx`, `approvalsApi.ts`; strict architecture check PASS; 166 FE tests PASS | Không có |
 | CATALOG-SEARCH-RECOVERY | Bổ sung thanh tìm kiếm danh mục thời gian thực trên Header của AdminDataPage cho cả nguyên liệu và món ăn; kết nối searchKeyword với backend C# | `DONE_VERIFIED` | `AdminDataPage.tsx`, `AdminData.test.tsx`, `adminApi.ts`; strict architecture check PASS; 167 FE tests PASS | Không có |
-| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `17053210` đã push lên remote thành công | Không có |
+| PREP-DELTA-CTA-RECOVERY | Bổ sung nút CTA chuyển tiếp liên trạm "Xem phiếu xuất theo ngày →" trên banner thành công của MrxMultiCustomerPreparationWorkbench và alert phản hồi thao tác trên MrxSourceDeltaWorkbench | `DONE_VERIFIED` | `MrxMultiCustomerPreparationWorkbench.tsx`, `MrxSourceDeltaWorkbench.tsx`; strict architecture check PASS (<600 lines); 167 FE tests PASS | Không có |
+| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `9bf4e17e` đã push lên remote thành công | Không có |
 
 ---
 

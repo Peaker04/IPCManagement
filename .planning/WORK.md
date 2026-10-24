@@ -877,6 +877,20 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Git commit: `17053210` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R53 — MRX Preparation cross-station navigation CTA and Source Delta reactive feedback banner
+- **Preparation Cross-Station Forward Action (`MrxMultiCustomerPreparationWorkbench.tsx`)**:
+  - Added Primary CTA button `Xem phiếu xuất theo ngày →` on success banner, navigating directly to `/warehouse?view=mrx-daily&date=${activeDate}` upon successful coordinated issue creation.
+- **Source Delta Execution Reactive Feedback (`MrxSourceDeltaWorkbench.tsx`)**:
+  - Added reactive feedback alert banner indicating executed delta action (`xuất bổ sung` or `hoàn trả vật lý`) with dismiss button.
+- **Verification Evidence**:
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Strict architecture growth check: PASS (all files < 600 lines, MrxMultiCustomerPreparationWorkbench: 317 lines, MrxSourceDeltaWorkbench: 280 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+  - Git commit: `9bf4e17e` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 
