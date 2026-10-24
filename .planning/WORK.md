@@ -777,5 +777,29 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/` optimized).
 - Final State: **`IDLE`**.
 
+### GF-R47 — Full MRX contract enforcement: material breakdown preview, Cả tuần aggregate view, auto-fill and 7 canonical issue labels
+- **MRX Business Contract Audit (`docs/domain/material-reconciliation.md`)**:
+  - Conducted deep forensic contract audit identifying 6 previously skipped core MRX requirements:
+    1. Section 4: Quantity preview previously threw away 90% of DTO facts, only showing plan codes; violated mandate to present detailed customer/week/day/shift, dish, ingredient, unit, and required quantities.
+    2. Section "Daily issue and kitchen export": Warehouse previously lacked the canonical `Cả tuần | Thứ 2 … Chủ nhật` interactive segmented view and weekly aggregate summary.
+    3. Section 6: Missing mandatory `Điền đủ toàn bộ` (Auto-fill) button to fill exact frozen required quantities into draft.
+    4. Section 6: Missing full 7 canonical issue status labels (`Chưa nhập`, `Dự kiến xuất thiếu/đủ/vượt`, `Đã xuất thiếu/đủ/vượt`).
+    5. Section 9.1: Chef workbench lacked shift filtering (Ca 1 / Ca 2) for per-shift cooking voucher print/export.
+    6. Section 8: Unissued reconciliation lines previously rendered ambiguous `—` or `0` instead of explicit `Chưa xuất` and `Chưa có phiếu xuất`.
+- **Implementation & Surgical Remediation**:
+  - **Detailed Material & Plan Preview (`MrxBatchWorkbench.tsx`)**: Implemented 2-tab preview switcher (`Phân rã nguyên liệu định lượng` aggregating ingredients, gross per serving, required kg across dishes vs `Kế hoạch món & suất theo ca` detailing shifts, dishes, servings), fulfilling Section 4 completely.
+  - **`Cả tuần` Aggregate View & Interactive Day Switcher (`MrxDailyIssueWorkbench.tsx`)**: Added interactive date switcher in TelemetrySubbar; `Cả tuần` renders read-only weekly ingredient summary (`weeklyAggregateLines`) with issue creation disabled per contract.
+  - **`Điền đủ toàn bộ` & 7 Canonical Labels (`MrxDailyIssueWorkbench.tsx`)**: Implemented `Điền đủ toàn bộ` button; implemented dynamic draft badges (`Chưa nhập`, `Dự kiến xuất thiếu`, `Dự kiến xuất đủ`, `Dự kiến xuất vượt`) and committed badges (`Đã xuất thiếu`, `Đã xuất đủ`, `Đã xuất vượt`).
+  - **Chef Shift Filter (`MrxCookingWorkbench.tsx`)**: Added `Lọc theo ca nấu` (`ALL`, `MORNING`, `AFTERNOON`), computing per-shift dish counts and servings.
+  - **Reconciliation Status Authority (`ReconciliationPage.tsx`)**: Formatted unissued lines with explicit `Chưa xuất` and badge `Chưa có phiếu xuất`.
+- **Verification Evidence**:
+  - Unit tests: `Warehouse.test.tsx` (21/21 PASS) including auto-fill, `Dự kiến xuất đủ`, and `Cả tuần` read-only mode assertions; `WeeklyMenu.test.tsx` (15/15 PASS); full suite 18 files / 166 tests PASS (100%).
+  - Linter & dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/` optimized).
+  - Headed Chromium Live: 5/5 user roles verified, zero alert popups, zero 403 pages, zero console errors.
+  - Git commits: `df6b0629` and `09ab2309` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 

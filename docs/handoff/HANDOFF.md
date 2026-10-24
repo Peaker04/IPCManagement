@@ -72,7 +72,8 @@
 | AXE-A11Y-CONTRAST | Sửa lỗi tương phản màu chữ WCAG AA trên `AppShell.tsx` và `ReconciliationLifecycleStrip.tsx` | `DONE_VERIFIED` | `AppShell.tsx`, `ReconciliationLifecycleStrip.tsx`; Axe-Core quét đạt 0 vi phạm trên cả 7 route | Không có |
 | 5LAYER-EMPIRICAL-AUDIT | Đo kiểm định lượng 5 tầng thực tế trên toàn bộ 7 route MRX bằng công cụ đo đạc không tin console pass | `DONE_VERIFIED` | `scripts/measure-route-5layers.mjs`; 7 bộ hồ sơ và ảnh chụp Retina 2x tại `.artifacts/5layer-audits/` | Không có |
 | HEADED-ROUTING-RECOVERY | Khắc phục triệt để lỗi điều hướng gốc `/`, `/warehouse`, `/chef` trong mode MRX, xóa sạch lỗi 403, lỗi 400 Bad Request, clickable logo và bổ sung micro-breadcrumbs | `DONE_VERIFIED` | `scripts/run-headed-expert-audit.mjs`; `App.tsx`, `AppShell.tsx`, `WorkspaceHeader.tsx`, `WarehousePage.tsx`, `ChefDashboardPage.tsx`; 166 FE tests PASS; 0 lỗi 403, 0 alert đỏ đo được trên Chromium headed live | Không có |
-| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `b2faff6e` đã push lên remote thành công | Không có |
+| MRX-FULL-CONTRACT-ENFORCEMENT | Phủ kín 100% hợp đồng MRX: Phân rã nguyên liệu định lượng chi tiết 2 tab, view Cả tuần aggregate, Điền đủ toàn bộ, 7 nhãn xuất kho, lọc ca trạm Bếp, nhãn Chưa xuất | `DONE_VERIFIED` | `MrxBatchWorkbench.tsx`, `MrxDailyIssueWorkbench.tsx`, `MrxCookingWorkbench.tsx`, `ReconciliationPage.tsx`; `Warehouse.test.tsx` 21/21 PASS; commit `df6b0629` và `09ab2309` đã push | Không có |
+| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `09ab2309` đã push lên remote thành công | Không có |
 
 ---
 
