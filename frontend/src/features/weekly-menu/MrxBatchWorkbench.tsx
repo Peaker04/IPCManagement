@@ -360,7 +360,7 @@ export function MrxBatchWorkbench() {
           )}
         </div>
       )}
-      <StateBoundary isLoading={isLoading} isFetching={isLoading} hasExistingData={Boolean(source || batch)} error={error}
+      <StateBoundary isLoading={isLoading} hasExistingData={Boolean(source || batch)} error={error}
         onRetry={() => loadSource()} isEmpty={!source && !batch} emptyScenario="prerequisite-blocked"
         emptyTitle="Chưa có nguồn thực đơn đã phát hành"
         emptyDescription="Hãy hoàn tất thực đơn và số suất của khách hàng trong tuần đã chọn trước khi tạo lô đối soát."

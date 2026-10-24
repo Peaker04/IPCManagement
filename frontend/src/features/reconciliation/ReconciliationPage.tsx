@@ -409,14 +409,18 @@ export function ReconciliationPage() {
               aria-label="Ngày đối soát"
               value={serviceDate}
               onChange={(date) => {
+                const currentWeek = weekStartFor(serviceDate);
+                const nextWeek = weekStartFor(date);
                 setIsLoading(true);
                 setError(null);
-                setBatchId('');
-                setSearchParams((current) => {
-                  const next = new URLSearchParams(current);
-                  next.delete('batchId');
-                  return next;
-                });
+                if (currentWeek !== nextWeek) {
+                  setBatchId('');
+                  setSearchParams((current) => {
+                    const next = new URLSearchParams(current);
+                    next.delete('batchId');
+                    return next;
+                  });
+                }
                 setServiceDate(date);
               }}
               className="h-9 w-40 font-mono text-sm"
