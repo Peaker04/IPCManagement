@@ -25,6 +25,17 @@ export interface ApprovalInboxItem {
   }>;
 }
 
+export interface ApprovalHistoryItem {
+  historyId: string;
+  documentType: string;
+  documentId: string;
+  actorId: string;
+  actorName: string;
+  action: string;
+  comment?: string;
+  createdAt: string;
+}
+
 export interface RawApprovalResponse {
   items: ApprovalInboxItem[];
   limit: number;
@@ -56,5 +67,11 @@ export const approvalsApi = {
       method: 'POST',
       body: JSON.stringify({ status, decision: status, reason }),
     });
+  },
+
+  async getHistory(documentType: string, documentId: string): Promise<ApprovalHistoryItem[]> {
+    return apiClient<ApprovalHistoryItem[]>(
+      `/approval-history/${encodeURIComponent(documentType)}/${encodeURIComponent(documentId)}`
+    ).catch(() => []);
   },
 };

@@ -96,7 +96,16 @@ export function ReportsPage() {
         {activeView !== 'stock' && <input type="month" value={period} onChange={(e) => { setPageNumber(1); setPeriod(e.target.value); }} className="h-9 rounded border border-slate-300 px-3 text-sm" aria-label="Kỳ báo cáo" />}
         {activeView === 'demand' && <Select aria-label="Chọn khách hàng báo cáo" options={customers.map((c) => ({ value: c.customerId, label: `${c.customerCode} - ${c.customerName}` }))} value={customerId} onChange={(e) => { setPageNumber(1); setCustomerId(e.target.value); }} disabled={!customers.length} className="h-9 w-60" />}
       </>}
-      actions={<Button variant="outline" size="default" onClick={reload} className="h-9 text-sm font-medium">Làm mới</Button>}
+      actions={
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="default" onClick={reload} className="h-9 text-sm font-medium">
+            Làm mới
+          </Button>
+          <Button variant="outline" size="default" onClick={() => window.print()} className="h-9 text-sm font-medium">
+            In báo cáo
+          </Button>
+        </div>
+      }
     />
     <TelemetrySubbar leftControls={<span className="text-xs font-semibold">{activeView === 'demand' ? 'Nhu cầu nguyên liệu' : activeView === 'prices' ? 'Biến động giá nhập' : 'Tồn kho hiện tại'}</span>} telemetryPills={<span className="text-slate-500">{pageInfo.totalCount} dòng số liệu</span>} />
     <StateBoundary isLoading={isLoading} isFetching={reportQuery.isFetching} loadingGeometry={{ kind: "matrix", columns: 6, rows: 8 }} hasExistingData={rows.length > 0} error={error} onRetry={reload} isEmpty={!isLoading && !error && rows.length === 0} emptyScenario="prerequisite-blocked" emptyTitle="Chưa có dữ liệu báo cáo" emptyDescription="Chưa có dữ liệu báo cáo cho phạm vi đã chọn.">

@@ -16,6 +16,7 @@ import { ActionGuard } from '../../components/ui/action-guard';
 import {
   approvalsApi,
   type ApprovalInboxItem,
+  type ApprovalHistoryItem,
 } from '../../api/approvalsApi';
 
 import { formatVietnameseDateTime } from '../../utils/dates';
@@ -25,6 +26,7 @@ export function ApprovalPage() {
   const [items, setItems] = useState<ApprovalInboxItem[]>([]);
   const [selectedType, setSelectedType] = useState('ALL');
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [history, setHistory] = useState<ApprovalHistoryItem[]>([]);
   const [decisionReason, setDecisionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -121,6 +123,19 @@ export function ApprovalPage() {
   }, [items, selectedType]);
 
   const selectedItem = items.find((i) => i.inboxItemId === selectedItemId) || filteredItems[0] || null;
+
+  useEffect(() => {
+    if (!selectedItem?.targetId || !selectedItem?.targetType) return;
+    let ignore = false;
+    approvalsApi.getHistory(selectedItem.targetType, selectedItem.targetId)
+      .then((res) => {
+        if (!ignore) setHistory(res || []);
+      })
+      .catch(() => {
+        if (!ignore) setHistory([]);
+      });
+    return () => { ignore = true; };
+  }, [selectedItem?.targetId, selectedItem?.targetType]);
 
   const TYPE_OPTIONS = [
     { value: 'ALL', label: 'Tất cả loại yêu cầu' },
@@ -368,6 +383,32 @@ export function ApprovalPage() {
                             <span className="font-mono text-slate-700">
                               <Num value={m.quantity} format="quantity" suffix={` ${m.unit === 'Kilogram' || m.unit === 'Kilograms' ? 'kg' : m.unit}`} />
                             </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {history.length > 0 && (
+                    <div className="space-y-1.5 pt-2">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                        Lịch sử phê duyệt & xử lý ({history.length} sự kiện)
+                      </h4>
+                      <div className="rounded border border-slate-200 divide-y divide-slate-100 text-xs">
+                        {history.map((h) => (
+                          <div key={h.historyId} className="p-2.5 space-y-0.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-slate-900">{h.actorName}</span>
+                              <span className="text-[11px] font-mono text-slate-500">
+                                {formatVietnameseDateTime(h.createdAt)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant={h.action === 'APPROVED' ? 'success' : h.action === 'REJECTED' ? 'danger' : 'neutral'} size="sm">
+                                {h.action === 'APPROVED' ? 'Đã duyệt' : h.action === 'REJECTED' ? 'Đã từ chối' : h.action}
+                              </Badge>
+                              {h.comment && <span className="text-slate-600 truncate">{h.comment}</span>}
+                            </div>
                           </div>
                         ))}
                       </div>
