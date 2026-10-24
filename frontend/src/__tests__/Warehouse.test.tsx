@@ -519,4 +519,29 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const suppBtn = await screen.findByRole('button', { name: 'Xuất bổ sung ca' });
     expect(suppBtn).toBeInTheDocument();
   });
+
+  it('Route 3: respects batchId and date from URL search parameters on F5 reload without falling back to first batch', async () => {
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [
+        { batchId: 'batch-default-1', customerId: 'c-1', customerName: 'Khách A', customerCode: 'KA', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 1, createdAt: '2026-10-19T00:00:00Z' },
+        { batchId: 'batch-target-2', customerId: 'c-2', customerName: 'Khách B', customerCode: 'KB', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 1, createdAt: '2026-10-19T00:00:00Z' },
+      ],
+      totalCount: 2, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false,
+    });
+    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({
+      batchId: 'batch-target-2', batchStatus: 'IN_PROGRESS', sourceVersion: 1, weeklyStatus: 'IN_PROGRESS',
+      compatibility: { canRead: true, canIssueByDate: true, reasonCode: null },
+      dates: [{
+        serviceDate: '2026-10-23', status: 'UNTOUCHED', isApplicable: true,
+        requiredQuantity: 15, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 15,
+        lines: [{ dailyLineId: 'dl-2', batchLineId: 'bl-2', ingredientId: 'i-2', ingredientName: 'Thịt gà', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 15, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 15, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+      }],
+    });
+    vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
+
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-target-2');
+
+    const batchSelect = await screen.findByRole('combobox', { name: 'Chọn lô đối soát xuất kho' });
+    expect(batchSelect).toHaveValue('batch-target-2');
+  });
 });

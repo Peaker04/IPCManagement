@@ -25,11 +25,11 @@ export function MrxDailyIssueWorkbench({
   serviceDate: propServiceDate = '',
 }: MrxDailyIssueWorkbenchProps) {
   const navigate = useNavigate();
-  const [, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [batches, setBatches] = useState<MrxBatchSummary[]>([]);
-  const [activeBatchId, setActiveBatchId] = useState(propBatchId);
-  const [activeDate, setActiveDate] = useState(() => propServiceDate || todayInBusinessTimezone());
+  const [activeBatchId, setActiveBatchId] = useState(() => propBatchId || searchParams.get('batchId') || '');
+  const [activeDate, setActiveDate] = useState(() => propServiceDate || searchParams.get('date') || todayInBusinessTimezone());
 
   const [daily, setDaily] = useState<MrxWarehouseDaily | null>(null);
   const [history, setHistory] = useState<MrxIssuePage | null>(null);
@@ -55,14 +55,20 @@ export function MrxDailyIssueWorkbench({
         if (ignore) return;
         const items = page?.items ?? [];
         setBatches(items);
-        if (!activeBatchId && items.length > 0) {
-          const preferred = items.find((b) => b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS') || items[0];
-          setActiveBatchId(preferred.batchId);
-          setSearchParams((curr) => {
-            const next = new URLSearchParams(curr);
-            next.set('batchId', preferred.batchId);
-            return next;
-          }, { replace: true });
+        if (items.length > 0) {
+          const urlBatch = propBatchId || searchParams.get('batchId');
+          const matchedBatch = urlBatch && items.find((b) => b.batchId === urlBatch);
+          if (matchedBatch) {
+            setActiveBatchId(matchedBatch.batchId);
+          } else if (!activeBatchId) {
+            const preferred = items.find((b) => b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS') || items[0];
+            setActiveBatchId(preferred.batchId);
+            setSearchParams((curr) => {
+              const next = new URLSearchParams(curr);
+              next.set('batchId', preferred.batchId);
+              return next;
+            }, { replace: true });
+          }
         }
       })
       .catch(() => {});

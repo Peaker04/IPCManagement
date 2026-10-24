@@ -24,8 +24,8 @@ export function WarehousePage() {
   const view = searchParams.get('view');
   if (view === 'mrx-daily') {
     const batchId = searchParams.get('batchId');
-    const serviceDate = searchParams.get('date');
-    if (batchId && serviceDate) {
+    const serviceDate = searchParams.get('date') || '';
+    if (batchId) {
       return <MrxDailyIssueWorkbench batchId={batchId} serviceDate={serviceDate} />;
     }
     if (serviceDate) {
@@ -34,8 +34,8 @@ export function WarehousePage() {
     return <MrxDailyIssueWorkbench batchId="" serviceDate="" />;
   }
   if (view === 'mrx-preparation') {
-    const serviceDate = searchParams.get('date');
-    return <MrxMultiCustomerPreparationWorkbench serviceDate={serviceDate || ''} />;
+    const serviceDate = searchParams.get('date') || '';
+    return <MrxMultiCustomerPreparationWorkbench serviceDate={serviceDate} />;
   }
   if (view === 'mrx-issues') return <MrxSourceDeltaWorkbench />;
   return <DefaultWarehousePage />;
