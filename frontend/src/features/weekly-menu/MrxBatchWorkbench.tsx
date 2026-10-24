@@ -12,6 +12,8 @@ import { Select } from '../../components/ui/select';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { Num } from '../../components/ui/num';
+import { IdentifierText } from '../../components/ui/identifier-text';
 import { ActionGuard } from '../../components/ui/action-guard';
 import { Input } from '../../components/ui/input';
 import { Modal } from '../../components/ui/modal';
@@ -219,11 +221,165 @@ export function MrxBatchWorkbench() {
     if (approved) await loadSource();
   });
 
-  const planColumns = useMemo<ColumnDef<MrxQuantityPreview['plans'][number]>[]>(() => [
-    { id: 'code', header: 'Kế hoạch số suất', width: '30%', cell: (row) => row.planCode },
-    { id: 'date', header: 'Ngày phục vụ', width: '25%', cell: (row) => <span className="font-mono text-xs">{toVietnameseDate(row.serviceDate)}</span> },
-    { id: 'status', header: 'Trạng thái nguồn', width: '25%', cell: (row) => <Badge variant="neutral" size="sm">{STATUS_LABELS[row.status] || row.status}</Badge> },
-    { id: 'lines', header: 'Dòng ca', width: '20%', align: 'right', cell: (row) => row.lines.length },
+  const [previewTab, setPreviewTab] = useState<'materials' | 'plans'>('materials');
+
+  const previewMaterials = useMemo(() => {
+    if (!preview?.plans) return [];
+    const map = new Map<string, {
+      key: string;
+      ingredientCode: string;
+      ingredientName: string;
+      unit: string;
+      totalRequiredQuantity: number;
+      grossPerServing: number;
+      dishes: string[];
+    }>();
+
+    for (const plan of preview.plans) {
+      for (const line of plan.lines) {
+        for (const dish of line.dishes) {
+          for (const mat of dish.materials) {
+            const key = mat.ingredientCode || mat.ingredientId;
+            const existing = map.get(key);
+            if (existing) {
+              existing.totalRequiredQuantity += mat.requiredQuantity;
+              if (!existing.dishes.includes(dish.dishName)) {
+                existing.dishes.push(dish.dishName);
+              }
+            } else {
+              map.set(key, {
+                key,
+                ingredientCode: mat.ingredientCode,
+                ingredientName: mat.ingredientName,
+                unit: mat.canonicalUnitName || mat.sourceUnitName || 'kg',
+                totalRequiredQuantity: mat.requiredQuantity,
+                grossPerServing: mat.grossQuantityPerServing,
+                dishes: [dish.dishName],
+              });
+            }
+          }
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalRequiredQuantity - a.totalRequiredQuantity);
+  }, [preview]);
+
+  const planSummaries = useMemo(() => {
+    if (!preview?.plans) return [];
+    const list: Array<{
+      id: string;
+      planCode: string;
+      serviceDate: string;
+      shift: string;
+      menuName: string;
+      servings: number;
+      dishes: string[];
+      materialsCount: number;
+    }> = [];
+    for (const plan of preview.plans) {
+      for (const line of plan.lines) {
+        list.push({
+          id: line.quantityPlanLineId,
+          planCode: plan.planCode,
+          serviceDate: plan.serviceDate,
+          shift: line.shift === 'MORNING' ? 'Ca 1 (Sáng)' : line.shift === 'AFTERNOON' ? 'Ca 2 (Chiều)' : line.shift,
+          menuName: line.menuName,
+          servings: line.finalServings,
+          dishes: line.dishes.map((d) => d.dishName),
+          materialsCount: line.dishes.reduce((sum, d) => sum + d.materials.length, 0),
+        });
+      }
+    }
+    return list;
+  }, [preview]);
+
+  const totalWeekServings = useMemo(() => {
+    return planSummaries.reduce((sum, p) => sum + p.servings, 0);
+  }, [planSummaries]);
+
+  const materialColumns = useMemo<ColumnDef<typeof previewMaterials[number]>[]>(() => [
+    {
+      id: 'code',
+      header: 'Mã nguyên liệu',
+      width: '18%',
+      cell: (row) => <IdentifierText value={row.ingredientCode} />,
+    },
+    {
+      id: 'name',
+      header: 'Tên nguyên liệu thực phẩm',
+      width: '32%',
+      cell: (row) => (
+        <div className="flex flex-col">
+          <span className="font-semibold text-slate-900 text-sm truncate">{row.ingredientName}</span>
+          <span className="text-xs text-slate-500 truncate">Món sử dụng: {row.dishes.join(', ')}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'unit',
+      header: 'ĐVT',
+      width: '12%',
+      align: 'center',
+      cell: (row) => <span className="font-mono text-xs text-slate-700">{row.unit}</span>,
+    },
+    {
+      id: 'gross',
+      header: 'Định mức / suất',
+      width: '18%',
+      align: 'right',
+      cell: (row) => <Num value={row.grossPerServing} format="quantity" decimals={4} />,
+    },
+    {
+      id: 'total',
+      header: 'Tổng lượng cần đóng băng',
+      width: '20%',
+      align: 'right',
+      cell: (row) => (
+        <Num value={row.totalRequiredQuantity} format="quantity" suffix={` ${row.unit}`} className="font-bold text-slate-900 text-sm" />
+      ),
+    },
+  ], []);
+
+  const planColumns = useMemo<ColumnDef<typeof planSummaries[number]>[]>(() => [
+    {
+      id: 'code',
+      header: 'Mã kế hoạch',
+      width: '20%',
+      cell: (row) => <IdentifierText value={row.planCode} />,
+    },
+    {
+      id: 'date',
+      header: 'Ngày phục vụ',
+      width: '16%',
+      cell: (row) => <span className="font-mono text-xs font-semibold">{toVietnameseDate(row.serviceDate)}</span>,
+    },
+    {
+      id: 'shift',
+      header: 'Ca sản xuất',
+      width: '16%',
+      cell: (row) => <span className="font-medium text-slate-800 text-sm">{row.shift}</span>,
+    },
+    {
+      id: 'servings',
+      header: 'Số suất kế hoạch',
+      width: '16%',
+      align: 'right',
+      cell: (row) => (
+        <span className="font-mono text-sm font-bold text-slate-900">
+          <Num value={row.servings} format="quantity" suffix=" suất" />
+        </span>
+      ),
+    },
+    {
+      id: 'dishes',
+      header: 'Món ăn trong ca',
+      width: '32%',
+      cell: (row) => (
+        <span className="text-sm text-slate-900 font-medium truncate block">
+          {row.dishes.join(' · ')}
+        </span>
+      ),
+    },
   ], []);
 
   const publishMenu = () => run(async () => {
@@ -375,12 +531,57 @@ export function MrxBatchWorkbench() {
         actionLabel="Nhập thực đơn ngay"
         onAction={() => setIsImportModalOpen(true)}>
         {source && <div className="flex-1 min-h-0 flex flex-col">
-          {preview?.diagnostics.length ? <div role="alert" className="mx-4 mt-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            <strong>Chưa thể tạo lô</strong>
-            <ul className="mt-1 list-disc pl-5">{preview.diagnostics.map((item) => <li key={item}>{item}</li>)}</ul>
-          </div> : null}
-          {preview ? <DataGrid data={[...preview.plans]} columns={planColumns} keyExtractor={(row) => row.quantityPlanId} />
-            : <div className="flex-1 flex items-center justify-center p-8 text-center"><p className="text-sm text-slate-600">Kiểm tra định lượng để xác nhận đầy đủ món, số suất và nguyên liệu trước khi đóng băng.</p></div>}
+          {preview?.diagnostics.length ? (
+            <div role="alert" className="mx-4 mt-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              <strong className="font-semibold block mb-1">Chưa thể tạo lô đối soát</strong>
+              <ul className="list-disc pl-5 space-y-0.5">{preview.diagnostics.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+          ) : null}
+
+          {preview ? (
+            <div className="flex-1 min-h-0 flex flex-col">
+              {/* Preview Sub-tabs */}
+              <div className="h-10 px-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewTab('materials')}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                      previewTab === 'materials'
+                        ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Phân rã nguyên liệu định lượng ({previewMaterials.length} mặt hàng)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewTab('plans')}
+                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                      previewTab === 'plans'
+                        ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Kế hoạch món & suất theo ca ({planSummaries.length} ca)
+                  </button>
+                </div>
+                <div className="text-xs text-slate-500">
+                  Tổng suất ăn tuần: <strong className="font-mono text-slate-900">{totalWeekServings.toLocaleString('vi-VN')} suất</strong>
+                </div>
+              </div>
+
+              {previewTab === 'materials' ? (
+                <DataGrid data={previewMaterials} columns={materialColumns} keyExtractor={(row) => row.key} />
+              ) : (
+                <DataGrid data={planSummaries} columns={planColumns} keyExtractor={(row) => row.id} />
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center p-8 text-center">
+              <p className="text-sm text-slate-600">Kiểm tra định lượng để xác nhận đầy đủ món, số suất và nguyên liệu trước khi đóng băng.</p>
+            </div>
+          )}
         </div>}
       </StateBoundary>
       <Modal

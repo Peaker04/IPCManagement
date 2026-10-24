@@ -539,10 +539,24 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     });
     vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
 
-    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-target-2');
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-target-2&date=2026-10-23');
 
     const batchSelect = await screen.findByRole('combobox', { name: 'Chọn lô đối soát xuất kho' });
     expect(batchSelect).toHaveValue('batch-target-2');
+
+    // Verify auto-fill button and 7 canonical labels
+    const fillAllBtn = screen.getByRole('button', { name: 'Điền đủ toàn bộ' });
+    expect(fillAllBtn).toBeInTheDocument();
+    await userEvent.click(fillAllBtn);
+    expect(screen.getByRole('spinbutton', { name: /Số lượng thực xuất Thịt gà/i })).toHaveValue(15);
+    expect(screen.getByText('Dự kiến xuất đủ')).toBeInTheDocument();
+
+    // Verify Cả tuần tab switcher
+    const allWeekBtn = screen.getByRole('button', { name: /Cả tuần \(Tổng hợp\)/i });
+    expect(allWeekBtn).toBeInTheDocument();
+    await userEvent.click(allWeekBtn);
+    expect(await screen.findByText('Chế độ xem tổng hợp tuần (Chỉ đọc)')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xác nhận xuất kho' })).not.toBeInTheDocument();
   });
 
   it('Route 4 & 5: preparation workbench respects date from URL search parameters on F5 reload', async () => {

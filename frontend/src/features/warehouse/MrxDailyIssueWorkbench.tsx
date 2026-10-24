@@ -110,7 +110,98 @@ export function MrxDailyIssueWorkbench({
   const day = daily?.dates.find((item) => item.serviceDate === activeDate);
   const lines = useMemo(() => day?.lines.filter((l) => l.requiredQuantity > 0) ?? [], [day]);
   const hasInitialIssue = lines.some((l) => (l.issuedQuantity ?? 0) > 0);
-  const canSubmit = Boolean(day?.isApplicable && lines.length > 0 && !hasInitialIssue && !saving &&
+  const isWeeklyAll = activeDate === 'ALL';
+
+  const weeklyAggregateLines = useMemo(() => {
+    if (!daily?.dates) return [];
+    const map = new Map<string, {
+      id: string;
+      ingredientCode: string;
+      ingredientName: string;
+      unitName: string;
+      requiredQuantity: number;
+      issuedQuantity: number;
+      remainingQuantity: number;
+    }>();
+
+    for (const d of daily.dates) {
+      for (const l of d.lines) {
+        const key = l.ingredientCode || l.ingredientId;
+        const existing = map.get(key);
+        if (existing) {
+          existing.requiredQuantity += l.requiredQuantity;
+          existing.issuedQuantity += (l.issuedQuantity ?? 0);
+          existing.remainingQuantity += (l.remainingQuantity ?? 0);
+        } else {
+          map.set(key, {
+            id: key,
+            ingredientCode: l.ingredientCode || l.ingredientId || '',
+            ingredientName: l.ingredientName || '—',
+            unitName: l.canonicalUnitName || 'kg',
+            requiredQuantity: l.requiredQuantity,
+            issuedQuantity: l.issuedQuantity ?? 0,
+            remainingQuantity: l.remainingQuantity ?? 0,
+          });
+        }
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.requiredQuantity - a.requiredQuantity);
+  }, [daily]);
+
+  const weeklyColumns = useMemo<ColumnDef<typeof weeklyAggregateLines[number]>[]>(() => [
+    {
+      id: 'ingredient',
+      header: 'Nguyên liệu thực phẩm',
+      width: '32%',
+      cell: (line) => (
+        <div className="flex items-center gap-2 truncate">
+          <span className="font-semibold text-slate-900 text-sm truncate">{line.ingredientName}</span>
+          {line.ingredientCode && <IdentifierText value={line.ingredientCode} />}
+        </div>
+      ),
+    },
+    {
+      id: 'unit',
+      header: 'ĐVT',
+      width: '12%',
+      align: 'center',
+      cell: (line) => <span className="font-mono text-xs text-slate-700">{line.unitName}</span>,
+    },
+    {
+      id: 'required',
+      header: 'Tổng nhu cầu tuần',
+      width: '18%',
+      align: 'right',
+      cell: (line) => <Num value={line.requiredQuantity} format="quantity" suffix={` ${line.unitName}`} className="font-bold text-slate-900 text-sm" />,
+    },
+    {
+      id: 'issued',
+      header: 'Tổng đã xuất thực tế',
+      width: '18%',
+      align: 'right',
+      cell: (line) => <Num value={line.issuedQuantity} format="quantity" suffix={` ${line.unitName}`} className="font-mono text-sm" />,
+    },
+    {
+      id: 'remaining',
+      header: 'Còn lại phải xuất',
+      width: '20%',
+      align: 'right',
+      cell: (line) => (
+        <Num
+          value={line.remainingQuantity}
+          format="quantity"
+          suffix={` ${line.unitName}`}
+          className={line.remainingQuantity > 0 ? 'text-amber-700 font-bold font-mono text-sm' : 'text-slate-600 font-mono text-sm'}
+        />
+      ),
+    },
+  ], []);
+
+  const handleFillAll = () => {
+    setQuantities(Object.fromEntries(lines.map((l) => [l.dailyLineId, String(l.requiredQuantity)])));
+  };
+
+  const canSubmit = Boolean(day?.isApplicable && lines.length > 0 && !hasInitialIssue && !saving && !isWeeklyAll &&
     lines.every((l) => {
       const issued = Number(quantities[l.dailyLineId]);
       return issued > 0 && (issued <= l.requiredQuantity || reasons[l.dailyLineId]?.trim());
@@ -244,14 +335,25 @@ export function MrxDailyIssueWorkbench({
     },
     {
       id: 'status',
-      header: 'Trạng thái',
-      width: '12%',
+      header: 'Trạng thái nghiệp vụ',
+      width: '14%',
       align: 'center',
-      cell: (line) => (
-        <Badge variant={line.quantityStatus === 'EXACT' ? 'success' : line.quantityStatus === 'OVER_ISSUED' ? 'warning' : 'neutral'} size="sm">
-          {line.quantityStatus === 'EXACT' ? 'Khớp' : line.quantityStatus === 'OVER_ISSUED' ? 'Xuất thừa' : line.quantityStatus === 'UNDER_ISSUED' ? 'Thiếu' : line.quantityStatus}
-        </Badge>
-      ),
+      cell: (line) => {
+        if (hasInitialIssue) {
+          const issued = line.issuedQuantity ?? 0;
+          const req = line.requiredQuantity;
+          if (issued === req) return <Badge variant="success" size="sm">Đã xuất đủ</Badge>;
+          if (issued < req) return <Badge variant="warning" size="sm">Đã xuất thiếu</Badge>;
+          return <Badge variant="info" size="sm">Đã xuất vượt</Badge>;
+        }
+        const val = quantities[line.dailyLineId];
+        if (val === undefined || val === '') return <Badge variant="neutral" size="sm">Chưa nhập</Badge>;
+        const numVal = Number(val);
+        const req = line.requiredQuantity;
+        if (numVal === req) return <Badge variant="success" size="sm">Dự kiến xuất đủ</Badge>;
+        if (numVal < req) return <Badge variant="warning" size="sm">Dự kiến xuất thiếu</Badge>;
+        return <Badge variant="info" size="sm">Dự kiến xuất vượt</Badge>;
+      },
     },
   ], [hasInitialIssue, quantities, reasons]);
 
@@ -303,7 +405,11 @@ export function MrxDailyIssueWorkbench({
             >
               Chuẩn bị phối hợp
             </Button>
-            {hasInitialIssue ? (
+            {isWeeklyAll ? (
+              <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center">
+                Xem tổng hợp tuần (Chỉ đọc)
+              </Badge>
+            ) : hasInitialIssue ? (
               <Button
                 variant="default"
                 size="default"
@@ -318,14 +424,24 @@ export function MrxDailyIssueWorkbench({
                 Xuất bổ sung ca
               </Button>
             ) : (
-              <Button
-                variant="default"
-                size="default"
-                onClick={() => void submit()}
-                disabled={!canSubmit}
-              >
-                {saving ? 'Đang ghi…' : 'Xác nhận xuất kho'}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={handleFillAll}
+                  disabled={lines.length === 0}
+                >
+                  Điền đủ toàn bộ
+                </Button>
+                <Button
+                  variant="default"
+                  size="default"
+                  onClick={() => void submit()}
+                  disabled={!canSubmit}
+                >
+                  {saving ? 'Đang ghi…' : 'Xác nhận xuất kho'}
+                </Button>
+              </>
             )}
           </div>
         }
@@ -333,29 +449,76 @@ export function MrxDailyIssueWorkbench({
 
       <TelemetrySubbar
         leftControls={
-          <div className="flex items-center gap-2 overflow-x-auto">
-            <span className="text-xs font-semibold text-slate-700 whitespace-nowrap">Tiến độ tuần:</span>
+          <div className="flex items-center gap-1 overflow-x-auto py-1">
+            <span className="text-xs font-semibold text-slate-700 whitespace-nowrap mr-1">Lịch xuất ca:</span>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveDate('ALL');
+                setSearchParams((curr) => {
+                  const next = new URLSearchParams(curr);
+                  next.set('date', 'ALL');
+                  return next;
+                }, { replace: true });
+              }}
+              className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                isWeeklyAll
+                  ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              Cả tuần (Tổng hợp)
+            </button>
             {daily?.dates.map((d) => (
-              <span
+              <button
                 key={d.serviceDate}
-                className={`text-[11px] rounded px-2 py-0.5 border font-mono whitespace-nowrap ${
+                type="button"
+                onClick={() => {
+                  setActiveDate(d.serviceDate);
+                  setSearchParams((curr) => {
+                    const next = new URLSearchParams(curr);
+                    next.set('date', d.serviceDate);
+                    return next;
+                  }, { replace: true });
+                }}
+                className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   d.serviceDate === activeDate
-                    ? 'bg-blue-100 text-blue-900 border-blue-300 font-bold'
-                    : 'bg-slate-100 text-slate-700 border-slate-200'
+                    ? 'bg-slate-900 text-white font-bold shadow-2xs'
+                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                {toVietnameseDate(d.serviceDate)}: {d.status}
-              </span>
+                {(() => {
+                  try {
+                    const dayNum = new Date(`${d.serviceDate}T00:00:00Z`).getUTCDay();
+                    const names = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+                    return names[dayNum] || 'Ngày';
+                  } catch {
+                    return 'Ngày';
+                  }
+                })()} ({toVietnameseDate(d.serviceDate).slice(0, 5)})
+                {d.lines.some((l) => (l.issuedQuantity ?? 0) > 0) && (
+                  <span className="ml-1 text-[10px] text-emerald-600 font-bold">✓</span>
+                )}
+              </button>
             ))}
           </div>
         }
         telemetryPills={
-          <>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Số dòng ca:</span>
-              <strong className="text-slate-900 font-mono">{lines.length}</strong>
-            </span>
-          </>
+          isWeeklyAll ? (
+            <Badge variant="neutral" size="sm">Chế độ xem tổng hợp tuần (Chỉ đọc)</Badge>
+          ) : (
+            day ? (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-500">Mặt hàng ngày:</span>
+                <strong className="font-mono text-slate-900">{lines.length}</strong>
+                <span className="text-slate-300">·</span>
+                <span className="text-slate-500">Trạng thái:</span>
+                <Badge variant={hasInitialIssue ? 'success' : 'warning'} size="sm">
+                  {hasInitialIssue ? 'Đã có phiếu xuất' : 'Chưa xuất kho'}
+                </Badge>
+              </div>
+            ) : null
+          )
         }
       />
 
@@ -373,32 +536,44 @@ export function MrxDailyIssueWorkbench({
         emptyDescription="Kiểm tra lại ngày phục vụ hoặc chuyển sang màn hình Chuẩn bị phối hợp để xem toàn bộ các lô."
       >
         <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
-          {hasInitialIssue && (
-            <div role="status" className="px-4 py-2 text-xs font-medium border-b border-blue-200 bg-blue-50 text-blue-800 flex items-center justify-between shrink-0">
-              <span>Ngày này đã có phiếu xuất ban đầu. Có thể xuất bổ sung phát sinh hoặc theo dõi chênh lệch tại Hàng đợi thay đổi nguồn.</span>
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={() => navigate('/warehouse?view=mrx-issues')}
-              >
-                Mở hàng đợi thay đổi nguồn
-              </Button>
-            </div>
-          )}
-
-          <DataGrid data={lines} columns={columns} keyExtractor={(l) => l.dailyLineId} />
-
-          {history && history.items.length > 0 && (
-            <section className="p-3 border-t border-slate-200 bg-slate-50/60 shrink-0" aria-label="Lịch sử phiếu xuất">
-              <h2 className="text-xs font-bold text-slate-700 mb-1">Phiếu xuất đã tạo cho lô:</h2>
-              <div className="flex flex-wrap gap-2 text-xs">
-                {history.items.map((issue) => (
-                  <span key={issue.issueId} className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono text-slate-800">
-                    <IdentifierText value={issue.issueCode} /> · <span>{toVietnameseDate(issue.issueDate)}</span>
-                  </span>
-                ))}
+          {isWeeklyAll ? (
+            <div className="flex-1 min-h-0 flex flex-col">
+              <div className="p-3 bg-blue-50/60 border-b border-blue-200 text-blue-900 text-xs flex items-center justify-between shrink-0">
+                <span>Bảng tổng hợp nhu cầu nguyên liệu cả tuần theo lô đã đóng băng. Chọn từng ngày cụ thể phía trên để xuất kho ca.</span>
+                <span className="font-mono font-semibold">{weeklyAggregateLines.length} mặt hàng</span>
               </div>
-            </section>
+              <DataGrid data={weeklyAggregateLines} columns={weeklyColumns} keyExtractor={(line) => line.id} />
+            </div>
+          ) : (
+            <>
+              {hasInitialIssue && (
+                <div role="status" className="px-4 py-2 text-xs font-medium border-b border-blue-200 bg-blue-50 text-blue-800 flex items-center justify-between shrink-0">
+                  <span>Ngày này đã có phiếu xuất ban đầu. Có thể xuất bổ sung phát sinh hoặc theo dõi chênh lệch tại Hàng đợi thay đổi nguồn.</span>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => navigate('/warehouse?view=mrx-issues')}
+                  >
+                    Mở hàng đợi thay đổi nguồn
+                  </Button>
+                </div>
+              )}
+
+              <DataGrid data={lines} columns={columns} keyExtractor={(l) => l.dailyLineId} />
+
+              {history && history.items.length > 0 && (
+                <section className="p-3 border-t border-slate-200 bg-slate-50/60 shrink-0" aria-label="Lịch sử phiếu xuất">
+                  <h2 className="text-xs font-bold text-slate-700 mb-1">Phiếu xuất đã tạo cho lô:</h2>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    {history.items.map((issue) => (
+                      <span key={issue.issueId} className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono text-slate-800">
+                        <IdentifierText value={issue.issueCode} /> · <span>{toVietnameseDate(issue.issueDate)}</span>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
           )}
         </div>
       </StateBoundary>
