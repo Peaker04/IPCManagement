@@ -302,8 +302,8 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
             {/* User info card */}
             <div className="flex items-center justify-between pt-1 border-t border-slate-200/60">
               <div className="flex items-center gap-2 min-w-0 pr-1">
-                <div className="h-7 w-7 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center font-bold text-xs shrink-0">
-                  {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+                <div className="h-7 w-7 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center font-bold text-xs shrink-0 leading-none select-none">
+                  <span className="pt-[1px]">{user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}</span>
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-semibold text-slate-900 truncate">

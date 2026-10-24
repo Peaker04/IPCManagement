@@ -170,9 +170,19 @@ export function MaterialDemandView({ data }: MaterialDemandViewProps) {
       />
 
       {activeSegment === 'demand' ? (
-        <DataGrid data={data.demandRows} columns={demandColumns} keyExtractor={(row) => row.materialId} />
+        <DataGrid
+          data={data.demandRows}
+          columns={demandColumns}
+          keyExtractor={(row) => row.materialId}
+          emptyMessage="Không có nhu cầu nguyên liệu cho ngày này."
+        />
       ) : (
-        <DataGrid data={data.productionPlans} columns={planColumns} keyExtractor={(row) => row.planId} />
+        <DataGrid
+          data={data.productionPlans}
+          columns={planColumns}
+          keyExtractor={(row) => row.planId}
+          emptyMessage="Không có kế hoạch sản xuất cho ngày này."
+        />
       )}
     </div>
   );

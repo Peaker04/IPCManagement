@@ -542,7 +542,7 @@ export function MrxDailyIssueWorkbench({
                 <span>Bảng tổng hợp nhu cầu nguyên liệu cả tuần theo lô đã đóng băng. Chọn từng ngày cụ thể phía trên để xuất kho ca.</span>
                 <span className="font-mono font-semibold">{weeklyAggregateLines.length} mặt hàng</span>
               </div>
-              <DataGrid data={weeklyAggregateLines} columns={weeklyColumns} keyExtractor={(line) => line.id} />
+              <DataGrid data={weeklyAggregateLines} columns={weeklyColumns} keyExtractor={(line) => line.id} emptyMessage="Chưa có dữ liệu tổng hợp nguyên liệu cả tuần." />
             </div>
           ) : (
             <>
@@ -559,7 +559,7 @@ export function MrxDailyIssueWorkbench({
                 </div>
               )}
 
-              <DataGrid data={lines} columns={columns} keyExtractor={(l) => l.dailyLineId} />
+              <DataGrid data={lines} columns={columns} keyExtractor={(l) => l.dailyLineId} emptyMessage="Ngày này không có nguyên liệu nào cần xuất kho." />
 
               {history && history.items.length > 0 && (
                 <section className="p-3 border-t border-slate-200 bg-slate-50/60 shrink-0" aria-label="Lịch sử phiếu xuất">

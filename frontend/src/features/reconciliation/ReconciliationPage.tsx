@@ -505,7 +505,12 @@ export function ReconciliationPage() {
               disposedCount={disposedCount}
               matchedCount={matchedCount}
             />
-            <DataGrid data={filteredLines} columns={columns} keyExtractor={(row) => row.dailyLineId || row.id} />
+            <DataGrid
+              data={filteredLines}
+              columns={columns}
+              keyExtractor={(row) => row.dailyLineId || row.id}
+              emptyMessage="Không có dòng đối soát nào phù hợp với bộ lọc."
+            />
           </div>
         )}
 

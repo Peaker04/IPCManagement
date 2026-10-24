@@ -56,7 +56,12 @@ export function MenuCostView({ data }: MenuCostViewProps) {
           </span>
         }
       />
-      <DataGrid data={data.dishCosts} columns={columns} keyExtractor={(row) => row.dishId} />
+      <DataGrid
+        data={data.dishCosts}
+        columns={columns}
+        keyExtractor={(row) => row.dishId}
+        emptyMessage="Chưa có số liệu phân rã chi phí món ăn."
+      />
     </div>
   );
 }

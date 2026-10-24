@@ -1012,6 +1012,31 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R60 — System-Wide Audit & Empty State / Alignment Harmonization
+- **System-Wide Scope & Mode Audit**:
+  - Conducted a comprehensive, cross-cutting audit across all 14 canonical routes in both `DEFAULT` and `MATERIAL_RECONCILIATION` operational modes.
+  - Eliminated isolated/ad-hoc empty text representations in favor of standardized Design Kit iconography.
+- **Detailed Component Enhancements**:
+  - `AppShell.tsx`: Added `leading-none select-none` and `pt-[1px]` to user avatar initial badge (`h-7 w-7 rounded-full`) for dead-center optical alignment.
+  - `ApprovalPage.tsx`: Integrated Design Kit `Inbox` icon container for unselected detail panel state (`SplitView.detail`).
+  - `PurchasingPage.tsx`: Integrated `Inbox` icon containers for both unselected PO detail panel and zero-line PO detail states.
+  - `MrxBatchDishesModal.tsx`: Replaced bare text when no frozen dishes exist with `Inbox` icon empty state container.
+  - DataGrid Filter & Segment Fallbacks: Added explicit `emptyMessage` props across:
+    - `ReconciliationPage.tsx` (MRX daily lines filter)
+    - `MrxBatchPreviewSection.tsx` (preview materials and plan summaries)
+    - `MaterialDemandView.tsx` (demand rows and KHSX source rows)
+    - `ProductionPlanView.tsx` (production plan rows)
+    - `MenuCostView.tsx` (dish cost breakdown rows)
+    - `MrxDailyIssueWorkbench.tsx` (weekly aggregate and daily issue rows)
+    - `MrxMultiCustomerPreparationWorkbench.tsx` (supplier-filtered aggregated lines)
+- **Verification Evidence**:
+  - Full frontend unit test suite: 18 files / 167 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - Strict architecture growth check: PASS (0 new debt, all files < 600 lines; `MrxDailyIssueWorkbench.tsx` at 599).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Inbox } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -71,8 +72,14 @@ export function MrxBatchDishesModal({
             Đang tải dữ liệu món ăn đông cứng…
           </div>
         ) : dishes.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-500 italic">
-            Lô đối soát này chưa có danh mục món ăn đóng băng.
+          <div className="flex flex-col items-center justify-center p-8 text-center">
+            <div
+              aria-hidden="true"
+              className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
+            >
+              <Inbox size={20} strokeWidth={1.75} />
+            </div>
+            <p className="text-xs text-slate-500 italic">Lô đối soát này chưa có danh mục món ăn đóng băng.</p>
           </div>
         ) : (
           <div className="grid grid-cols-12 gap-4 h-96">

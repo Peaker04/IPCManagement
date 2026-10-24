@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Inbox } from 'lucide-react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -454,8 +455,14 @@ export function ApprovalPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center p-8 text-center text-slate-400 text-sm">
-                Chọn một hồ sơ bên trái để xem nội dung thẩm định
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <div
+                  aria-hidden="true"
+                  className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
+                >
+                  <Inbox size={20} strokeWidth={1.75} />
+                </div>
+                <p className="text-xs text-slate-500">Chọn một hồ sơ bên trái để xem nội dung thẩm định</p>
               </div>
             )
           }

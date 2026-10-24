@@ -188,6 +188,7 @@ export function ProductionPlanView({ data }: ProductionPlanViewProps) {
         data={filteredPlans}
         columns={columns}
         keyExtractor={(row) => row.planId}
+        emptyMessage="Không có lệnh sản xuất cho phạm vi đã chọn."
       />
     </div>
   );

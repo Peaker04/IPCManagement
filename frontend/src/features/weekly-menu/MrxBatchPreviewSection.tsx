@@ -209,9 +209,19 @@ export function MrxBatchPreviewSection({ preview }: MrxBatchPreviewSectionProps)
       </div>
 
       {previewTab === 'materials' ? (
-        <DataGrid data={previewMaterials} columns={materialColumns} keyExtractor={(row) => row.key} />
+        <DataGrid
+          data={previewMaterials}
+          columns={materialColumns}
+          keyExtractor={(row) => row.key}
+          emptyMessage="Chưa có dữ liệu phân rã nguyên liệu định lượng."
+        />
       ) : (
-        <DataGrid data={planSummaries} columns={planColumns} keyExtractor={(row) => row.id} />
+        <DataGrid
+          data={planSummaries}
+          columns={planColumns}
+          keyExtractor={(row) => row.id}
+          emptyMessage="Chưa có dữ liệu kế hoạch món và suất ăn."
+        />
       )}
     </div>
   );

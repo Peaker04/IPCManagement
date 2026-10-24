@@ -308,7 +308,12 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
 
           {/* Aggregated materials table */}
           <div className="flex-1 min-h-0 flex flex-col">
-            <DataGrid data={filteredAggregatedLines} columns={prepColumns} keyExtractor={(line) => line.ingredientId} />
+            <DataGrid
+              data={filteredAggregatedLines}
+              columns={prepColumns}
+              keyExtractor={(line) => line.ingredientId}
+              emptyMessage="Không có mặt hàng nào phù hợp với bộ lọc nhà cung cấp."
+            />
           </div>
         </div>
       </StateBoundary>

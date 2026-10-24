@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Inbox } from 'lucide-react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -313,8 +314,14 @@ export function PurchasingPage() {
 
                 <div className="flex-1 min-h-0 overflow-auto">
                   {selectedPo.lines.length === 0 ? (
-                    <div className="flex-1 h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 text-xs">
-                      Đơn PO này chưa có dòng nguyên liệu chi tiết.
+                    <div className="flex-1 h-full flex flex-col items-center justify-center p-8 text-center">
+                      <div
+                        aria-hidden="true"
+                        className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2 text-slate-400"
+                      >
+                        <Inbox size={20} strokeWidth={1.75} />
+                      </div>
+                      <p className="text-xs text-slate-500">Đơn PO này chưa có dòng nguyên liệu chi tiết.</p>
                     </div>
                   ) : (
                     <table className="w-full text-left text-sm border-collapse table-fixed">
@@ -368,8 +375,14 @@ export function PurchasingPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center p-8 text-center text-slate-400 text-sm">
-                Chọn một đơn PO bên trái để xem phân rã chi tiết
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                <div
+                  aria-hidden="true"
+                  className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
+                >
+                  <Inbox size={20} strokeWidth={1.75} />
+                </div>
+                <p className="text-xs text-slate-500">Chọn một đơn PO bên trái để xem phân rã chi tiết</p>
               </div>
             )
           }
