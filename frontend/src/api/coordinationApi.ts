@@ -68,4 +68,16 @@ export const coordinationApi = {
       orders,
     };
   },
+
+  async lockOrderPlan(request: {
+    serviceDate: string;
+    shiftName: string;
+    scope?: string;
+    lines: Array<{ quantityPlanLineId?: string; orderId?: string; actualQuantity?: number }>;
+  }): Promise<unknown> {
+    return apiClient('/coordination/orders/lock', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
 };

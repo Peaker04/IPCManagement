@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
+import { Modal } from '../../components/ui/modal';
 import {
   purchasingApi,
   type PurchaseOrderItem,
@@ -35,8 +36,27 @@ export function PurchasingPage() {
   const [selectedSupplierId, setSelectedSupplierId] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelSuccess, setCancelSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+
+  const handleCancelPo = async () => {
+    if (!selectedPo) return;
+    setIsCancelling(true);
+    setError(null);
+    try {
+      await purchasingApi.cancelPurchaseOrder(selectedPo.id);
+      setCancelSuccess(`Đã hủy đơn mua hàng ${selectedPo.code} thành công.`);
+      setIsCancelModalOpen(false);
+      await loadData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err : new Error('Không thể hủy đơn mua hàng.'));
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -329,10 +349,22 @@ export function PurchasingPage() {
                 </div>
 
                 <div className="h-11 px-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0 font-medium text-sm">
-                  <span className="text-slate-600">Tổng cộng đơn PO:</span>
-                  <strong className="text-emerald-700 font-mono font-bold text-base">
-                    {selectedPo.totalAmount.toLocaleString('vi-VN')} ₫
-                  </strong>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600">Tổng cộng:</span>
+                    <strong className="text-emerald-700 font-mono font-bold text-base">
+                      {selectedPo.totalAmount.toLocaleString('vi-VN')} ₫
+                    </strong>
+                  </div>
+                  {selectedPo.status !== 'CANCELLED' && selectedPo.status !== 'RECEIVED' && (
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => setIsCancelModalOpen(true)}
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                    >
+                      Hủy đơn PO
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -343,6 +375,34 @@ export function PurchasingPage() {
           }
         />
       </StateBoundary>
+
+      {cancelSuccess && (
+        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
+          <span>{cancelSuccess}</span>
+          <button type="button" onClick={() => setCancelSuccess(null)} className="underline cursor-pointer">Đóng</button>
+        </div>
+      )}
+
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        title={`Xác nhận hủy đơn mua hàng: ${selectedPo?.code ?? ''}`}
+        description={`Nhà cung cấp: ${selectedPo?.supplierName ?? ''} · Tổng giá trị: ${selectedPo ? selectedPo.totalAmount.toLocaleString('vi-VN') : 0} ₫`}
+        footer={
+          <>
+            <Button variant="outline" size="sm" disabled={isCancelling} onClick={() => setIsCancelModalOpen(false)}>
+              Quay lại
+            </Button>
+            <Button variant="destructive" size="sm" disabled={isCancelling} onClick={() => void handleCancelPo()}>
+              {isCancelling ? 'Đang hủy…' : 'Xác nhận hủy đơn PO'}
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-700">
+          Bạn có chắc chắn muốn hủy đơn mua hàng này? Đơn mua hàng đã hủy sẽ không thể tạo phiếu nhập kho được nữa.
+        </p>
+      </Modal>
     </div>
   );
 }

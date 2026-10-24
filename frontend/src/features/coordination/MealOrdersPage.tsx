@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { Tabs } from '../../components/ui/tabs';
+import { Modal } from '../../components/ui/modal';
 import { coordinationApi, type CoordinationOrderItem, type CoordinationShiftSummary } from '../../api/coordinationApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
@@ -35,7 +36,35 @@ export function MealOrdersPage() {
   const [data, setData] = useState<CoordinationShiftSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [isLocking, setIsLocking] = useState(false);
+  const [lockSuccess, setLockSuccess] = useState<string | null>(null);
   const requestSequence = useRef(0);
+
+  const handleLock = async () => {
+    if (!data || data.orders.length === 0) return;
+    setIsLocking(true);
+    setError(null);
+    try {
+      await coordinationApi.lockOrderPlan({
+        serviceDate,
+        shiftName,
+        scope: 'FULLDAY',
+        lines: data.orders.map((o) => ({
+          quantityPlanLineId: o.quantityPlanLineId,
+          orderId: o.id,
+          actualQuantity: o.actualQuantity,
+        })),
+      });
+      setLockSuccess(`Đã chốt đơn suất ăn cho ${data.customerCode} ${shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : 'Ca 2 (Chiều)'} thành công.`);
+      setIsLockModalOpen(false);
+      await loadOrders();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err : new Error('Không thể chốt đơn kế hoạch suất ăn.'));
+    } finally {
+      setIsLocking(false);
+    }
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -174,11 +203,31 @@ export function MealOrdersPage() {
           </>
         }
         actions={
-          <Button variant="outline" size="default" onClick={loadOrders} className="h-9 text-sm font-medium">
-            Làm mới
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="default" onClick={loadOrders} className="h-9 text-sm font-medium">
+              Làm mới
+            </Button>
+            {data && data.orders.length > 0 && (
+              <Button
+                variant="default"
+                size="default"
+                disabled={isLocking}
+                onClick={() => setIsLockModalOpen(true)}
+                className="h-9 text-sm font-medium bg-slate-900 text-white hover:bg-slate-800"
+              >
+                Chốt đơn ca
+              </Button>
+            )}
+          </div>
         }
       />
+
+      {lockSuccess && (
+        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
+          <span>{lockSuccess}</span>
+          <button type="button" onClick={() => setLockSuccess(null)} className="underline cursor-pointer">Đóng</button>
+        </div>
+      )}
 
       <TelemetrySubbar
         leftControls={
@@ -215,6 +264,34 @@ export function MealOrdersPage() {
       >
         {data && <DataGrid data={data.orders} columns={columns} keyExtractor={(row) => row.quantityPlanLineId} />}
       </StateBoundary>
+
+      <Modal
+        isOpen={isLockModalOpen}
+        onClose={() => setIsLockModalOpen(false)}
+        title="Xác nhận chốt đơn suất ăn ca phục vụ"
+        description={`Khách hàng: ${data?.customerCode ?? ''} · Ngày: ${serviceDate} · Ca: ${shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : 'Ca 2 (Chiều)'}`}
+        footer={
+          <>
+            <Button variant="outline" size="sm" disabled={isLocking} onClick={() => setIsLockModalOpen(false)}>
+              Hủy
+            </Button>
+            <Button variant="default" size="sm" disabled={isLocking} onClick={() => void handleLock()}>
+              {isLocking ? 'Đang chốt…' : 'Xác nhận chốt đơn'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm text-slate-700">
+          <p>
+            Bạn có chắc chắn muốn chốt số lượng suất ăn cho ca này? Sau khi chốt, số suất thực tế sẽ được khóa và đồng bộ sang Bếp trưởng và Kho vận.
+          </p>
+          <div className="p-3 rounded bg-slate-50 border border-slate-200 text-xs space-y-1 font-mono">
+            <div>Tổng suất dự kiến: <strong>{data?.registeredServings} suất</strong></div>
+            <div>Tổng suất thực tế: <strong className="text-slate-900 font-bold">{data?.actualServings} suất</strong></div>
+            <div>Chênh lệch: <strong className={data && data.varianceServings !== 0 ? 'text-amber-700 font-bold' : ''}>{data?.varianceServings} suất</strong></div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -122,4 +122,10 @@ export const purchasingApi = {
       };
     });
   },
+
+  async cancelPurchaseOrder(orderId: string): Promise<unknown> {
+    return apiClient(`/purchase-orders/${encodeURIComponent(orderId)}/cancel`, {
+      method: 'POST',
+    });
+  },
 };
