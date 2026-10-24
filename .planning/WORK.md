@@ -864,6 +864,20 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Git commit: `cb524bc1` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R52 — Catalog real-time search recovery for ingredients and dishes
+- **Catalog Search Filtering (`AdminDataPage.tsx`)**:
+  - Added dedicated search input in WorkspaceHeader contextSelectors for both `ingredients` and `dishes` views.
+  - Connected `searchKeyword` query parameter to `adminApi.getIngredients` and `adminApi.getDishes` with reactive query debouncing/resets.
+  - Added regression test `AdminData.test.tsx` verifying server-side search parameter forwarding.
+- **Verification Evidence**:
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Strict architecture growth check: PASS (AdminDataPage: 318 lines < 600).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+  - Git commit: `17053210` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 

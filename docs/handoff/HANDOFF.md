@@ -77,7 +77,8 @@
 | WAREHOUSE-CHEF-RECOVERY | Phục hồi modal xem chi tiết dòng phiếu xuất và phiếu nhập kho (Mã NL, Tên NL, ĐVT, Yêu cầu, Thực xuất, Thực nhận, Đơn giá); bổ sung nút hành động "Nhận hàng" cho Bếp trưởng xác nhận bàn giao vật tư từ Kho | `DONE_VERIFIED` | `WarehousePage.tsx`, `ChefDashboardPage.tsx`; strict architecture check PASS (<600 lines); 166 FE tests PASS | Không có |
 | COORD-PURCHASE-RECOVERY | Phục hồi hành động "Chốt đơn ca" trên MealOrdersPage (khóa số suất thực tế và đồng bộ ca) và hành động "Hủy đơn PO" trên PurchasingPage với modal xác nhận | `DONE_VERIFIED` | `MealOrdersPage.tsx`, `PurchasingPage.tsx`, `coordinationApi.ts`, `purchasingApi.ts`; strict architecture check PASS; 166 FE tests PASS | Không có |
 | APPROVAL-REPORT-PRINT-RECOVERY | Phục hồi dòng thời gian lịch sử phê duyệt (approval audit trail timeline) trong detail panel của ApprovalPage và nút "In báo cáo" (print action) trên ReportsPage | `DONE_VERIFIED` | `ApprovalPage.tsx`, `ReportsPage.tsx`, `approvalsApi.ts`; strict architecture check PASS; 166 FE tests PASS | Không có |
-| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `cb524bc1` đã push lên remote thành công | Không có |
+| CATALOG-SEARCH-RECOVERY | Bổ sung thanh tìm kiếm danh mục thời gian thực trên Header của AdminDataPage cho cả nguyên liệu và món ăn; kết nối searchKeyword với backend C# | `DONE_VERIFIED` | `AdminDataPage.tsx`, `AdminData.test.tsx`, `adminApi.ts`; strict architecture check PASS; 167 FE tests PASS | Không có |
+| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `17053210` đã push lên remote thành công | Không có |
 
 ---
 
