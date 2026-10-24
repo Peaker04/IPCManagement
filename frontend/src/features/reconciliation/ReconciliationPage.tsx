@@ -1,16 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
-import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
+import { DataGrid } from '../../components/workbench/DataGrid';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
-import { Num } from '../../components/ui/num';
-import { IdentifierText } from '../../components/ui/identifier-text';
 import { ActionGuard } from '../../components/ui/action-guard';
 import { ApiError } from '../../api/client';
 import { ReconciliationBlockerStrip } from './ReconciliationBlockerStrip';
@@ -20,6 +18,7 @@ import { ReconciliationQueueCards } from './ReconciliationQueueCards';
 import { ReconciliationLifecycleStrip } from './ReconciliationLifecycleStrip';
 import { ReconciliationLinesFilterToolbar, type LineStatusFilter } from './ReconciliationLinesFilterToolbar';
 import { ReconciliationCompletionModal } from './ReconciliationCompletionModal';
+import { useReconciliationColumns } from './reconciliationColumns';
 import {
   reconciliationApi,
   type ReconciliationBatchSummary,
@@ -68,8 +67,20 @@ export function ReconciliationPage() {
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [customerCode, setCustomerCode] = useState('');
   const [batches, setBatches] = useState<MrxBatchSummary[]>([]);
-  const [batchId, setBatchId] = useState(() => searchParams.get('batchId') || '');
-  const [serviceDate, setServiceDate] = useState(todayInBusinessTimezone);
+
+  const [internalBatchId, setInternalBatchId] = useState('');
+  const [internalDate, setInternalDate] = useState(todayInBusinessTimezone);
+  const batchId = searchParams.get('batchId') || internalBatchId;
+  const serviceDate = searchParams.get('date') || internalDate;
+
+  const setBatchId = useCallback((id: string) => {
+    setInternalBatchId(id);
+  }, []);
+
+  const setServiceDate = useCallback((date: string) => {
+    setInternalDate(date);
+  }, []);
+
   const [data, setData] = useState<ReconciliationBatchSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -208,13 +219,20 @@ export function ReconciliationPage() {
         if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách lô đối soát.'));
       });
     return () => { ignore = true; };
-  }, [batchId, customerCode, customers, serviceDate, setSearchParams]);
+  }, [batchId, customerCode, customers, serviceDate, setSearchParams, setBatchId]);
 
   useEffect(() => {
     if (!batchId) return;
     let ignore = false;
     reconciliationApi.getReconciliationSummary(batchId, serviceDate)
-      .then((result) => { if (!ignore) setData(result); })
+      .then((result) => {
+        if (!ignore) {
+          setData(result);
+          if (result.customerCode && !customerCode) {
+            setCustomerCode(result.customerCode);
+          }
+        }
+      })
       .catch((cause: unknown) => {
         if (ignore) return;
         setData(null);
@@ -222,7 +240,7 @@ export function ReconciliationPage() {
       })
       .finally(() => { if (!ignore) setIsLoading(false); });
     return () => { ignore = true; };
-  }, [batchId, serviceDate]);
+  }, [batchId, serviceDate, customerCode]);
 
   const canComplete = data?.status === 'IN_PROGRESS' && data.weeklyStatus === 'WEEK_COMPLETE';
 
@@ -253,101 +271,12 @@ export function ReconciliationPage() {
     label: `${batch.customerCode || batch.customerName || 'Khách hàng'} · ${batch.status} · ${batch.batchId.slice(0, 8)}`,
   }));
 
-  const columns = useMemo<ColumnDef<ReconciliationLineItem>[]>(() => [
-    {
-      id: 'code',
-      header: 'Mã nguyên liệu',
-      width: '16%',
-      cell: (row) => <IdentifierText value={row.materialCode} />,
-    },
-    {
-      id: 'name',
-      header: 'Tên nguyên liệu thực phẩm',
-      width: '28%',
-      cell: (row) => <span className="font-semibold text-slate-900 text-sm truncate">{row.materialName}</span>,
-    },
-    {
-      id: 'unit',
-      header: 'ĐVT',
-      width: '10%',
-      align: 'center',
-      cell: (row) => <span className="font-mono text-xs text-slate-600">{row.unit}</span>,
-    },
-    {
-      id: 'required',
-      header: 'Nhu cầu đã khóa',
-      width: '14%',
-      align: 'right',
-      cell: (row) => <Num value={row.requiredQuantity} format="quantity" />,
-    },
-    {
-      id: 'issued',
-      header: 'Đã xuất theo sổ',
-      width: '14%',
-      align: 'right',
-      cell: (row) => row.issuedQuantity == null ? <span className="text-slate-400 font-mono text-xs">Chưa xuất</span> : <Num value={row.issuedQuantity} format="quantity" />,
-    },
-    {
-      id: 'difference',
-      header: 'Chênh lệch xuất',
-      width: '14%',
-      align: 'right',
-      cell: (row) => row.issuedRequiredDifference == null ? <span className="text-slate-400 font-mono text-xs">—</span> : (
-        <Num
-          value={row.issuedRequiredDifference}
-          format="quantity"
-          prefix={row.issuedRequiredDifference > 0 ? '+' : ''}
-          className={row.issuedRequiredDifference === 0 ? 'text-slate-600' : 'text-amber-700 font-semibold'}
-        />
-      ),
-    },
-    {
-      id: 'status',
-      header: 'Trạng thái dòng',
-      width: '14%',
-      align: 'center',
-      cell: (row) => (
-        <Badge variant={row.disposition ? 'success' : row.triggers.length > 0 ? 'warning' : 'neutral'} size="sm">
-          {row.issuedQuantity == null ? 'Chưa có phiếu xuất' : (STATUS_LABELS[row.status] || row.status)}
-        </Badge>
-      ),
-    },
-    {
-      id: 'action',
-      header: 'Thao tác',
-      width: '14%',
-      align: 'right',
-      cell: (row) => {
-        const isCompleted = data?.status === 'COMPLETED';
-        if (row.disposition) {
-          return (
-            <Button
-              variant="outline"
-              size="xs"
-              onClick={() => setSelectedDispositionLine(row)}
-              aria-label={`Xem hướng xử lý ${row.materialName}`}
-            >
-              Xem hướng xử lý
-            </Button>
-          );
-        }
-        if (row.issuedRequiredDifference != null && row.issuedRequiredDifference !== 0) {
-          return (
-            <Button
-              variant="default"
-              size="xs"
-              onClick={() => setSelectedDispositionLine(row)}
-              aria-label={`Xử lý chênh lệch ${row.materialName}`}
-              disabled={isCompleted}
-            >
-              Xử lý chênh lệch
-            </Button>
-          );
-        }
-        return <span className="text-xs text-slate-400">—</span>;
-      },
-    },
-  ], [data?.status]);
+  const isCompleted = data?.status === 'COMPLETED';
+  const columns = useReconciliationColumns({
+    statusLabels: STATUS_LABELS,
+    isCompleted,
+    onSelectDispositionLine: setSelectedDispositionLine,
+  });
 
   const isForbidden = error instanceof ApiError && error.status === 403;
   const isModeConflict = error instanceof ApiError && error.status === 409 && (
@@ -439,7 +368,7 @@ export function ReconciliationPage() {
               <ActionGuard
                 capabilityId="RECON.BATCH.COMPLETE"
                 roles={['ADMIN', 'MANAGER', 'Quản lý']}
-                permissions="ReconciliationWriteAccess"
+                permissions={['ReconciliationWriteAccess', 'reconciliation.complete', 'reconciliation.read']}
                 allowedModes={['MATERIAL_RECONCILIATION']}
                 mode="disable"
                 reason="Chỉ khả dụng trong chế độ đối soát nguyên liệu."
