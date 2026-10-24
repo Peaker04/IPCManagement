@@ -101,7 +101,7 @@ export function MrxBatchWorkbench() {
       setError(null);
       try {
         const [sourceResult, batchPage] = await Promise.all([
-          mrxApi.getWeeklySource(customerId, weekStartDate).catch(() => null),
+          mrxApi.getWeeklySource(customerId, weekStartDate),
           mrxApi.getBatchPage({ customerId, weekStartDate, pageSize: 1 }).catch(() => null),
         ]);
         if (ignore) return;

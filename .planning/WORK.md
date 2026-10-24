@@ -701,4 +701,20 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Headed E2E Mutation Sandbox runner: 8/8 stages PASS in 34s on `ipc_mrx_e2e_sandbox` with clean DB drop.
 - Final State: **`IDLE`**.
 
+### GF-R43 — Visual state matrix audit, 5-group architectural consolidation and error-swallow elimination
+- **Architectural Reconciliation**: Documented the canonical mapping in `docs/UI-KIT.md` and `docs/superpowers/specs/2026-10-24-visual-state-matrix-audit-design.md` formally reconciling the historical 5-group `components/common/` (45 files) into the 3-Zone Flat Workbench (`components/workbench/` + `components/ui/` + domain feature components).
+- **Error Swallow Defect Repaired**: Discovered and eliminated `.catch(() => null)` in `MrxBatchWorkbench.tsx` that previously swallowed HTTP 500/403 errors and falsely rendered an empty state instead of the designated error boundary.
+- **Visual State Matrix Runner (`scripts/audit-route-states.mjs`)**: Built an automated Playwright Chromium runner systematically forcing and capturing 6 distinct states on real Chromium:
+  1. `01-loading-skeleton.png` (delayed response, zero CLS)
+  2. `02-empty-state.png` (prerequisite blocked, CTA button verified)
+  3. `03-error-retry.png` (HTTP 500 error alert, retry button verified)
+  4. `04-permission-denied.png` (HTTP 403 access restriction)
+  5. `05-conflict-reload.png` (HTTP 409 concurrency conflict alert)
+  6. `06-active-workbench.png` (active DataGrid table with full DTO columns)
+- **Ground Truth Evidence**: Captured 6 Retina 2x screenshots (172KB–190KB) into `.artifacts/visual-state-audits/weekly-menu-mrx-batch/` with `AUDIT-REPORT.md`.
+- **Verification Evidence**:
+  - Full `npm run verify` PASSED 100% across all 12 gates (1,360 BE tests CI + 49 App tests, 166 FE tests across 18 files, strict architecture growth clean with zero debt, ESLint 0 errors).
+  - Visual state matrix capture for Route 2: 6/6 states verified.
+- Final State: **`IDLE`**.
+
 
