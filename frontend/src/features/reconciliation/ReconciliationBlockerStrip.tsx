@@ -3,11 +3,13 @@ import { Button } from '../../components/ui/button';
 interface ReconciliationBlockerStripProps {
   needsReviewCount: number;
   onFilterNeedsReview: () => void;
+  onNavigateWarehouse?: () => void;
 }
 
 export function ReconciliationBlockerStrip({
   needsReviewCount,
   onFilterNeedsReview,
+  onNavigateWarehouse,
 }: ReconciliationBlockerStripProps) {
   return (
     <div
@@ -20,11 +22,15 @@ export function ReconciliationBlockerStrip({
           ? `Còn ${needsReviewCount} dòng chênh lệch cần giải trình trước khi chốt sổ tuần.`
           : 'Còn ngày trong tuần chưa xuất kho hoàn tất. Hãy kiểm tra lại tiến độ các ngày.'}
       </span>
-      {needsReviewCount > 0 && (
+      {needsReviewCount > 0 ? (
         <Button variant="outline" size="xs" onClick={onFilterNeedsReview}>
           Lọc dòng cần xử lý ({needsReviewCount})
         </Button>
-      )}
+      ) : onNavigateWarehouse ? (
+        <Button variant="outline" size="xs" onClick={onNavigateWarehouse}>
+          Mở trạm Kho xuất ngày →
+        </Button>
+      ) : null}
     </div>
   );
 }

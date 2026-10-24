@@ -460,6 +460,7 @@ export function ReconciliationPage() {
         <ReconciliationBlockerStrip
           needsReviewCount={needsReviewCount}
           onFilterNeedsReview={() => setLineStatusFilter('NEEDS_REVIEW')}
+          onNavigateWarehouse={() => navigate(`/warehouse?view=mrx-daily&batchId=${data.batchId}`)}
         />
       )}
 
