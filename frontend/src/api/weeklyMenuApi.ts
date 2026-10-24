@@ -105,6 +105,44 @@ function mapDemandStatus(item: RawDemandAggregateItem): MaterialDemandItem['stat
   return 'missing';
 }
 
+export interface WeeklyMenuSlotUpdateItem {
+  serviceDate: string;
+  shiftName: string;
+  slotType: string;
+  dishId: string;
+}
+
+export interface BulkUpdateWeeklyMenuPayload {
+  customerId: string;
+  slots: WeeklyMenuSlotUpdateItem[];
+}
+
+export interface UpsertQuickServingsPayload {
+  customerId: string;
+  serviceDate: string;
+  shiftName: string;
+  servings: number;
+  complete?: boolean;
+}
+
+export interface WeeklyMenuImportHistoryItem {
+  menuVersionId: string;
+  customerId: string;
+  customerCode: string;
+  customerName: string;
+  weekStartDate: string;
+  versionNo: number;
+  status: string;
+  sourceFileName?: string;
+  createdByName?: string;
+  createdAt: string;
+  successRowCount: number;
+  errorRowCount: number;
+  warningRowCount: number;
+  canRollback: boolean;
+  cannotRollbackReason?: string;
+}
+
 export const weeklyMenuApi = {
   async getCustomers(): Promise<CustomerOption[]> {
     return apiClient<CustomerOption[]>('/coordination/customers');
@@ -287,5 +325,31 @@ export const weeklyMenuApi = {
         body: JSON.stringify({ status: 'ACTIVE', reason }),
       }
     );
+  },
+
+  async bulkUpdateWeeklyMenu(payload: BulkUpdateWeeklyMenuPayload): Promise<string[]> {
+    return apiClient<string[]>('/coordination/weekly-menu/bulk-update', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async upsertQuickServings(payload: UpsertQuickServingsPayload): Promise<unknown> {
+    return apiClient('/coordination/meal-quantity-plans/quick-servings', {
+      method: 'POST',
+      body: JSON.stringify({ complete: true, ...payload }),
+    });
+  },
+
+  async getImportHistory(customerId?: string, pageNumber = 1, pageSize = 20): Promise<{ items: WeeklyMenuImportHistoryItem[]; totalCount: number }> {
+    const params = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
+    if (customerId) params.set('customerId', customerId);
+    return apiClient<{ items: WeeklyMenuImportHistoryItem[]; totalCount: number }>(`/coordination/weekly-menu/import-history?${params.toString()}`);
+  },
+
+  async rollbackImport(menuVersionId: string): Promise<{ menuVersionId: string; menuSchedulesRemoved: number }> {
+    return apiClient<{ menuVersionId: string; menuSchedulesRemoved: number }>(`/coordination/weekly-menu/import/${encodeURIComponent(menuVersionId)}/rollback`, {
+      method: 'POST',
+    });
   },
 };

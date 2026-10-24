@@ -800,6 +800,24 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Git commits: `df6b0629` and `09ab2309` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R48 — Weekly Menu full interactive recovery: schedule & serving editor, import history & rollback, and strict <600 line architecture
+- **Interactive Feature Recovery from Old Frontend Reference (`features/projects/weekly-menu/`)**:
+  - **`WeeklyScheduleEditorModal.tsx`**: Built comprehensive modal allowing Coordinators to edit dish assignments per slot (`PUT /api/coordination/weekly-menu/bulk-update`) and adjust/confirm quick servings per shift/day (`POST /api/coordination/meal-quantity-plans/quick-servings`).
+  - **Quick Servings Row (`WeeklyScheduleView.tsx`)**: Rendered persistent servings row under day column headers (`Ca 1: {sáng} · Ca 2: {chiều}`) so operators can see planned meal volumes directly in the matrix.
+  - **Direct Menu Publication (`WeeklyMenuPage.tsx`)**: Added Header action to directly publish DRAFT weekly menus (`PATCH /api/coordination/menu-schedules/{id}/version`) to activate downstream KHSX and Material Demand.
+  - **Import History & Rollback (`WeeklyMenuImportModal.tsx`)**: Added `Lịch sử import & Khôi phục` tab querying `GET /api/coordination/weekly-menu/import-history` and executing version rollback via `POST /api/coordination/weekly-menu/import/{menuVersionId}/rollback` with user confirmation.
+- **Strict Architectural Decomposition (<600 Lines Threshold)**:
+  - Decomposed `MrxBatchWorkbench.tsx` (434 lines < 600) by extracting `MrxSourceChangeModal.tsx` (modals) and `MrxBatchPreviewSection.tsx` (material breakdown preview).
+  - Decomposed `MrxDailyIssueWorkbench.tsx` (599 lines < 600) by extracting `MrxSupplementalIssueModal.tsx`.
+- **Verification Evidence**:
+  - Strict architecture growth check: PASS (zero new debt, zero test debt, all frontend files < 600 lines).
+  - Full frontend unit suite: 18 files / 166 tests PASS (100%).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations across 89 modules and 408 dependencies.
+  - Production Vite build: PASS in 713ms (`dist/`).
+  - Headed Chromium live audit: 5/5 user roles verified with zero alerts and zero 403 pages.
+- Final State: **`IDLE`**.
+
+
 
 
 

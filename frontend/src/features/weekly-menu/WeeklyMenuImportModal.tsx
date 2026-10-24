@@ -1,13 +1,13 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/select';
 import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
-import { weeklyMenuApi } from '../../api/weeklyMenuApi';
+import { weeklyMenuApi, type WeeklyMenuImportHistoryItem } from '../../api/weeklyMenuApi';
 import { apiClient } from '../../api/client';
-import { toIsoDate } from '../../utils/dates';
+import { toIsoDate, toVietnameseDate } from '../../utils/dates';
 import type { CustomerOption } from '../../types';
 import type { paths } from '../../shared/api/contracts/schema';
 
@@ -38,7 +38,41 @@ export function WeeklyMenuImportModal({
   const [previewResult, setPreviewResult] = useState<ImportResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeModalTab, setActiveModalTab] = useState<'upload' | 'history'>('upload');
+  const [historyItems, setHistoryItems] = useState<WeeklyMenuImportHistoryItem[]>([]);
+  const [isRollingBack, setIsRollingBack] = useState(false);
+  const [rollbackSuccess, setRollbackSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load history when tab is switched to history
+  useEffect(() => {
+    if (activeModalTab !== 'history' || !isOpen) return;
+    let ignore = false;
+    weeklyMenuApi.getImportHistory(selectedCustomerId)
+      .then((res) => {
+        if (!ignore) setHistoryItems(res.items || []);
+      })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, [activeModalTab, selectedCustomerId, isOpen]);
+
+  const handleRollback = async (menuVersionId: string) => {
+    if (!window.confirm('Bạn có chắc chắn muốn hủy phiên import này? Các lịch thực đơn tương ứng sẽ bị gỡ bỏ.')) return;
+    setIsRollingBack(true);
+    setError(null);
+    try {
+      const res = await weeklyMenuApi.rollbackImport(menuVersionId);
+      setRollbackSuccess(`Đã hủy phiên import thành công (gỡ bỏ ${res.menuSchedulesRemoved} lịch thực đơn).`);
+      // Reload history
+      const historyRes = await weeklyMenuApi.getImportHistory(selectedCustomerId);
+      setHistoryItems(historyRes.items || []);
+      onImportSuccess();
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : 'Không thể hủy phiên import.');
+    } finally {
+      setIsRollingBack(false);
+    }
+  };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0] || null;
@@ -136,51 +170,155 @@ export function WeeklyMenuImportModal({
       description="Tải lên file Excel thực đơn 7 ngày của khách hàng để bắt đầu quy trình kế hoạch và đối soát."
       footer={
         <div className="flex items-center justify-between w-full">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadTemplate}
-          >
-            Tải file mẫu Excel
-          </Button>
-          <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
-              Hủy
+          {activeModalTab === 'upload' ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadTemplate}
+            >
+              Tải file mẫu Excel
             </Button>
-            {!previewResult ? (
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                disabled={isLoading || !file || !selectedCustomerId || !weekStartDate}
-                onClick={() => void handlePreview()}
-              >
-                {isLoading ? 'Đang phân tích…' : 'Xem trước'}
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                variant="default"
-                size="sm"
-                disabled={isLoading || hasErrors}
-                onClick={() => void handleCommit()}
-              >
-                {isLoading ? 'Đang lưu…' : 'Xác nhận nhập'}
-              </Button>
+          ) : (
+            <span className="text-xs text-slate-500">Các phiên đã chốt đối soát không thể hủy</span>
+          )}
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isLoading || isRollingBack}>
+              Đóng
+            </Button>
+            {activeModalTab === 'upload' && (
+              !previewResult ? (
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  disabled={isLoading || !file || !selectedCustomerId || !weekStartDate}
+                  onClick={() => void handlePreview()}
+                >
+                  {isLoading ? 'Đang phân tích…' : 'Xem trước'}
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  disabled={isLoading || hasErrors}
+                  onClick={() => void handleCommit()}
+                >
+                  {isLoading ? 'Đang lưu…' : 'Xác nhận nhập'}
+                </Button>
+              )
             )}
           </div>
         </div>
       }
     >
       <div className="space-y-4 text-sm text-slate-700 py-1">
+        {/* Tab switcher */}
+        <div className="flex border-b border-slate-200">
+          <button
+            type="button"
+            onClick={() => { setActiveModalTab('upload'); setError(null); }}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
+              activeModalTab === 'upload'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Nhập file Excel
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveModalTab('history'); setError(null); }}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 cursor-pointer transition-colors ${
+              activeModalTab === 'history'
+                ? 'border-slate-900 text-slate-900'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Lịch sử import & Khôi phục ({historyItems.length})
+          </button>
+        </div>
+
+        {rollbackSuccess && (
+          <div role="status" className="p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
+            <span>{rollbackSuccess}</span>
+            <button type="button" onClick={() => setRollbackSuccess(null)} className="text-xs font-bold underline ml-2">Đóng</button>
+          </div>
+        )}
+
         {error && (
           <div role="alert" className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-800 text-xs leading-relaxed">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        {activeModalTab === 'history' ? (
+          <div className="space-y-3">
+            <p className="text-xs text-slate-600">
+              Danh sách các phiên nhập thực đơn gần đây của khách hàng. Có thể hủy phiên import nếu chưa chốt đối soát.
+            </p>
+            <div className="border border-slate-200 rounded overflow-hidden max-h-72 overflow-y-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 sticky top-0">
+                  <tr>
+                    <th className="p-2.5">Phiên bản / File</th>
+                    <th className="p-2.5">Tuần bắt đầu</th>
+                    <th className="p-2.5">Thời gian tải</th>
+                    <th className="p-2.5 text-center">Dòng hợp lệ</th>
+                    <th className="p-2.5 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {historyItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-slate-500 italic">
+                        Chưa có lịch sử import cho khách hàng này.
+                      </td>
+                    </tr>
+                  ) : (
+                    historyItems.map((item) => (
+                      <tr key={item.menuVersionId} className="hover:bg-slate-50/50">
+                        <td className="p-2.5 font-medium text-slate-900">
+                          <span className="font-bold">v{item.versionNo}</span>
+                          <span className="block text-slate-500 font-mono text-[11px] truncate max-w-44">
+                            {item.sourceFileName || 'weekly-menu.xlsx'}
+                          </span>
+                        </td>
+                        <td className="p-2.5 font-mono text-slate-700">
+                          {toVietnameseDate(item.weekStartDate)}
+                        </td>
+                        <td className="p-2.5 text-slate-600">
+                          {new Date(item.createdAt).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="p-2.5 text-center font-mono font-bold text-slate-800">
+                          {item.successRowCount}
+                        </td>
+                        <td className="p-2.5 text-right">
+                          {item.canRollback ? (
+                            <Button
+                              variant="outline"
+                              size="xs"
+                              disabled={isRollingBack}
+                              onClick={() => void handleRollback(item.menuVersionId)}
+                              className="text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                            >
+                              Hủy phiên
+                            </Button>
+                          ) : (
+                            <span className="text-slate-400 italic text-[11px]">Không thể hủy</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
           <div>
             <label htmlFor="import-customer-select" className="block text-xs font-semibold text-slate-700 mb-1">
               Khách hàng <span className="text-rose-600">*</span>
@@ -286,7 +424,9 @@ export function WeeklyMenuImportModal({
             )}
           </div>
         )}
-      </div>
-    </Modal>
+      </>
+    )}
+  </div>
+</Modal>
   );
 }

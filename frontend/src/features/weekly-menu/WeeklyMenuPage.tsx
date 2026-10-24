@@ -14,6 +14,7 @@ import { ProductionPlanView } from './views/ProductionPlanView';
 import { MenuCostView } from './views/MenuCostView';
 import { MrxBatchWorkbench } from './MrxBatchWorkbench';
 import { WeeklyMenuImportModal } from './WeeklyMenuImportModal';
+import { WeeklyScheduleEditorModal } from './WeeklyScheduleEditorModal';
 
 function currentWeekStart(): string {
   const now = new Date();
@@ -48,8 +49,29 @@ function DefaultWeeklyMenuPage() {
   const [data, setData] = useState<WeeklyMenuData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isEditorModalOpen, setIsEditorModalOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const requestSequence = useRef(0);
+
+  const handlePublish = async () => {
+    const matchedCustomer = customers.find((c) => c.customerCode === customerCode);
+    if (!matchedCustomer) return;
+    setIsPublishing(true);
+    setError(null);
+    try {
+      const schedules = await weeklyMenuApi.getMenuSchedules(matchedCustomer.customerId, weekStartDate);
+      if (schedules.length === 0) throw new Error('Không tìm thấy lịch thực đơn để xuất bản.');
+      await weeklyMenuApi.publishMenuSchedule(schedules[0].menuScheduleId, 'Xuất bản thực đơn tuần');
+      setPublishSuccess('Đã xuất bản thực đơn tuần thành công.');
+      await handleRefresh();
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause : new Error('Không thể xuất bản thực đơn.'));
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   useEffect(() => {
     let ignore = false;
@@ -183,19 +205,47 @@ function DefaultWeeklyMenuPage() {
         actions={
           <div className="flex items-center gap-2">
             <Button
-              variant="default"
+              variant="outline"
               size="default"
               onClick={() => setIsImportModalOpen(true)}
               className="h-9 text-sm font-medium"
             >
               Nhập thực đơn Excel
             </Button>
+            {data && data.matrixRows.length > 0 && (
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setIsEditorModalOpen(true)}
+                className="h-9 text-sm font-medium"
+              >
+                Chỉnh sửa lịch tuần
+              </Button>
+            )}
+            {data && data.matrixRows.length > 0 && (
+              <Button
+                variant="default"
+                size="default"
+                disabled={isPublishing}
+                onClick={() => void handlePublish()}
+                className="h-9 text-sm font-medium bg-slate-900 hover:bg-slate-800 text-white"
+              >
+                {isPublishing ? 'Đang xuất bản…' : 'Xuất bản thực đơn'}
+              </Button>
+            )}
             <Button variant="outline" size="default" onClick={handleRefresh} className="h-9 text-sm font-medium">
               Làm mới
             </Button>
           </div>
         }
       />
+
+      {publishSuccess && (
+        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
+          <span>{publishSuccess}</span>
+          <button type="button" onClick={() => setPublishSuccess(null)} className="underline cursor-pointer">Đóng</button>
+        </div>
+      )}
 
       <StateBoundary
         isLoading={isLoading}
@@ -224,6 +274,15 @@ function DefaultWeeklyMenuPage() {
         initialWeekStartDate={weekStartDate}
         onImportSuccess={handleRefresh}
       />
+
+      {data && (
+        <WeeklyScheduleEditorModal
+          isOpen={isEditorModalOpen}
+          onClose={() => setIsEditorModalOpen(false)}
+          data={data}
+          onSaveSuccess={() => { void handleRefresh(); }}
+        />
+      )}
     </div>
   );
 }

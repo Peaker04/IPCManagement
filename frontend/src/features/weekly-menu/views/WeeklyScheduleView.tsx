@@ -77,6 +77,26 @@ export function WeeklyScheduleView({ data }: WeeklyScheduleViewProps) {
                 </th>
               ))}
             </tr>
+            {/* Servings Row per Shift */}
+            <tr className="bg-slate-50 border-b border-slate-200 text-xs">
+              <th className="px-4 py-1.5 text-xs font-bold text-slate-600 uppercase bg-slate-50">
+                Số suất ăn ca
+              </th>
+              {data.scheduleDays.map((day, dIdx) => {
+                const isoDate = Object.keys(data.matrixRows[0]?.days || {})[dIdx] || '';
+                const morningPlan = data.productionPlans.find((p) => (p.serviceDate === isoDate || p.serviceDate === day.dateStr) && (p.shiftName === 'MORNING' || p.shiftName.includes('Sáng') || p.shiftName.includes('Ca 1')));
+                const afternoonPlan = data.productionPlans.find((p) => (p.serviceDate === isoDate || p.serviceDate === day.dateStr) && (p.shiftName === 'AFTERNOON' || p.shiftName.includes('Chiều') || p.shiftName.includes('Ca 2')));
+
+                return (
+                  <td key={day.dayName} className="px-3 py-1 border-l border-slate-200 bg-slate-50/80">
+                    <div className="flex items-center justify-between font-mono text-[11px] text-slate-700">
+                      <span>Ca 1: <strong className="text-slate-900">{morningPlan?.plannedServings ?? 100}</strong></span>
+                      <span>Ca 2: <strong className="text-slate-900">{afternoonPlan?.plannedServings ?? 0}</strong></span>
+                    </div>
+                  </td>
+                );
+              })}
+            </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {sections.map((sectionTitle) => {

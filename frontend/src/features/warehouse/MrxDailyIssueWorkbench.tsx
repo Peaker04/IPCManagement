@@ -8,12 +8,12 @@ import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
-import { Modal } from '../../components/ui/modal';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { todayInBusinessTimezone, toVietnameseDate } from '../../utils/dates';
+import { MrxSupplementalIssueModal } from './MrxSupplementalIssueModal';
 
 interface MrxDailyIssueWorkbenchProps {
   batchId?: string;
@@ -578,103 +578,22 @@ export function MrxDailyIssueWorkbench({
         </div>
       </StateBoundary>
 
-      {/* Supplemental Issue Modal (RULE-MRX-03) */}
-      <Modal
+      <MrxSupplementalIssueModal
         isOpen={isSupplementalOpen}
-        onClose={() => { if (!isSubmittingSupp) setIsSupplementalOpen(false); }}
-        title="Xuất kho bổ sung trong ca"
-        description={`Lô: ${activeBatchId.slice(0, 8)} · Ngày phục vụ: ${toVietnameseDate(activeDate)}`}
-        footer={
-          <>
-            <Button variant="outline" size="sm" disabled={isSubmittingSupp} onClick={() => setIsSupplementalOpen(false)}>
-              Hủy bỏ
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              disabled={isSubmittingSupp || !suppMaterialId || Number(suppQuantity) <= 0 || !suppReason.trim()}
-              onClick={() => void handleSupplementalSubmit()}
-            >
-              {isSubmittingSupp ? 'Đang xử lý...' : 'Xác nhận xuất bổ sung'}
-            </Button>
-          </>
-        }
-      >
-        <div className="space-y-3 text-sm text-slate-700">
-          {suppError && (
-            <div role="alert" className="p-2.5 rounded bg-rose-50 text-rose-800 border border-rose-200 text-xs">
-              {suppError}
-            </div>
-          )}
-          <div>
-            <label htmlFor="supp-ingredient" className="text-xs font-semibold text-slate-700 block mb-1">
-              Chọn nguyên liệu bổ sung:
-            </label>
-            <select
-              id="supp-ingredient"
-              aria-label="Chọn nguyên liệu bổ sung"
-              value={suppMaterialId}
-              onChange={(e) => setSuppMaterialId(e.target.value)}
-              className="w-full h-9 rounded border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
-            >
-              {lines.map((l) => (
-                <option key={l.dailyLineId} value={l.dailyLineId}>
-                  {l.ingredientName} (Đã xuất: {l.issuedQuantity ?? 0} {l.canonicalUnitName})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="supp-qty" className="text-xs font-semibold text-slate-700 block mb-1">
-              Số lượng xuất thêm ({lines.find((l) => l.dailyLineId === suppMaterialId)?.canonicalUnitName || 'đơn vị'}):
-            </label>
-            <Input
-              id="supp-qty"
-              aria-label="Số lượng xuất thêm"
-              type="number"
-              step="any"
-              min="0.001"
-              value={suppQuantity}
-              onChange={(e) => setSuppQuantity(e.target.value)}
-              placeholder="Nhập số lượng xuất bổ sung dương..."
-              className="h-9 text-sm font-mono"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="supp-reason" className="text-xs font-semibold text-slate-700 block mb-1">
-              Lý do xuất bổ sung (bắt buộc):
-            </label>
-            <Input
-              id="supp-reason"
-              aria-label="Lý do xuất bổ sung"
-              value={suppReason}
-              onChange={(e) => setSuppReason(e.target.value)}
-              placeholder="Nhập lý do xuất bổ sung..."
-              className="h-9 text-sm"
-            />
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {[
-                'Phát sinh suất ăn đột xuất',
-                'Bếp làm hỏng/cháy trong lúc chế biến',
-                'Hao hụt rã đông cao hơn thực tế',
-                'Bổ sung gia vị theo khẩu vị khách',
-              ].map((preset) => (
-                <Button
-                  key={preset}
-                  type="button"
-                  variant="outline"
-                  size="xs"
-                  onClick={() => setSuppReason(preset)}
-                >
-                  {preset}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Modal>
+        onClose={() => setIsSupplementalOpen(false)}
+        activeBatchId={activeBatchId}
+        activeDate={activeDate}
+        lines={lines}
+        suppMaterialId={suppMaterialId}
+        onSuppMaterialIdChange={setSuppMaterialId}
+        suppQuantity={suppQuantity}
+        onSuppQuantityChange={setSuppQuantity}
+        suppReason={suppReason}
+        onSuppReasonChange={setSuppReason}
+        suppError={suppError}
+        isSubmittingSupp={isSubmittingSupp}
+        onSubmit={() => void handleSupplementalSubmit()}
+      />
     </div>
   );
 }
