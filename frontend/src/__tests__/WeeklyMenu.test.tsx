@@ -165,6 +165,15 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(await screen.findByText('Đã bàn giao lô đối soát sang Kho nguyên liệu thành công.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mở trạm Kho xuất ngày' })).toBeInTheDocument();
     expect(screen.getByText('Đã chuyển Kho')).toBeInTheDocument();
+
+    // Verify Lifecycle Strip displays 5 steps
+    expect(screen.getByRole('navigation', { name: 'Tiến trình vòng đời lô đối soát' })).toBeInTheDocument();
+
+    // Verify RULE-MRX-NAV-01: Header Primary CTA button navigates seamlessly to Warehouse
+    const warehouseCta = screen.getByRole('button', { name: 'Đi đến Trạm Kho nguyên liệu →' });
+    expect(warehouseCta).toBeInTheDocument();
+    await userEvent.click(warehouseCta);
+    expect(await screen.findByText('/warehouse?view=mrx-daily&batchId=batch-1&date=2026-10-19')).toBeInTheDocument();
   });
 
   it('opens WeeklyMenuImportModal, downloads template, and previews excel upload', async () => {

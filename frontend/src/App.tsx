@@ -33,6 +33,24 @@ function WorkbenchLoadingFallback() {
 
 const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
 
+function RootLandingRoute() {
+  const { user, operationalMode, operationalModeVersion } = useAuth();
+  if (operationalModeVersion === null) {
+    return <WorkbenchLoadingFallback />;
+  }
+  if (operationalMode === 'MATERIAL_RECONCILIATION') {
+    const landingPath = resolveLandingPath(CANONICAL_ROUTES, user ?? {}, operationalMode);
+    return <Navigate to={landingPath} replace />;
+  }
+  return (
+    <RoleGuard roles={getRouteRoles('/')}>
+      <Suspense fallback={<WorkbenchLoadingFallback />}>
+        <DashboardPage />
+      </Suspense>
+    </RoleGuard>
+  );
+}
+
 function AuthorizedAppShell() {
   const { user, operationalMode, operationalModeVersion } = useAuth();
   const eligibleRoutes = resolveEligibleNavigation(
@@ -40,7 +58,10 @@ function AuthorizedAppShell() {
     user ?? {},
     operationalModeVersion === null ? null : operationalMode
   );
-  return <AppShell navigation={eligibleRoutes} />;
+  const homePath = operationalMode === 'MATERIAL_RECONCILIATION'
+    ? resolveLandingPath(CANONICAL_ROUTES, user ?? {}, operationalMode)
+    : '/';
+  return <AppShell navigation={eligibleRoutes} homePath={homePath} />;
 }
 
 export function App() {
@@ -56,16 +77,7 @@ export function App() {
           {/* Protected routes wrapped in AppShell with RoleGuard — 100% Real Canonical Routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<AuthorizedAppShell />}>
-              <Route
-                path="/"
-                element={
-                  <RoleGuard roles={getRouteRoles('/')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <DashboardPage />
-                    </Suspense>
-                  </RoleGuard>
-                }
-              />
+              <Route path="/" element={<RootLandingRoute />} />
               <Route
                 path="/weekly-menu"
                 element={

@@ -4,6 +4,7 @@ import { twMerge } from 'tailwind-merge';
 
 export interface WorkspaceHeaderProps {
   title: string;
+  breadcrumb?: string;
   contextSelectors?: ReactNode;
   actions?: ReactNode;
   className?: string;
@@ -16,6 +17,7 @@ export interface WorkspaceHeaderProps {
  */
 export function WorkspaceHeader({
   title,
+  breadcrumb,
   contextSelectors,
   actions,
   className,
@@ -31,9 +33,16 @@ export function WorkspaceHeader({
     >
       {/* Left: Title + Inline Context Selectors */}
       <div className="flex items-center gap-3.5 min-w-0">
-        <h1 className="text-base font-semibold text-slate-900 tracking-tight whitespace-nowrap shrink-0">
-          {title}
-        </h1>
+        <div className="flex flex-col min-w-0">
+          {breadcrumb && (
+            <span className="text-[11px] font-semibold text-slate-600 tracking-wide uppercase truncate leading-none mb-0.5">
+              {breadcrumb}
+            </span>
+          )}
+          <h1 className="text-base font-semibold text-slate-900 tracking-tight whitespace-nowrap shrink-0 leading-tight">
+            {title}
+          </h1>
+        </div>
 
         {contextSelectors && (
           <>

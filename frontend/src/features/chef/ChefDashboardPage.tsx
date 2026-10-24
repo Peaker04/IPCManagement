@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
+import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -33,8 +34,19 @@ function todayInBusinessTimezone(): string {
 const ISSUE_PAGE_SIZE = 25;
 
 export function ChefDashboardPage() {
+  const { operationalMode } = useAuth();
   const [searchParams] = useSearchParams();
-  if (searchParams.get('view') === 'mrx-cooking') {
+  const view = searchParams.get('view');
+
+  if (!view && operationalMode === 'MATERIAL_RECONCILIATION') {
+    const batchId = searchParams.get('batchId');
+    const params = new URLSearchParams();
+    params.set('view', 'mrx-cooking');
+    if (batchId) params.set('batchId', batchId);
+    return <Navigate to={`/chef?${params.toString()}`} replace />;
+  }
+
+  if (view === 'mrx-cooking') {
     return <MrxCookingWorkbench />;
   }
   return <DefaultChefDashboardPage />;

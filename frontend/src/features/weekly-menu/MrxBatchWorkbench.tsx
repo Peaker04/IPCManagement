@@ -7,6 +7,7 @@ import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
+import { ReconciliationLifecycleStrip } from '../../components/workbench/ReconciliationLifecycleStrip';
 import { Select } from '../../components/ui/select';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
@@ -243,8 +244,16 @@ export function MrxBatchWorkbench() {
         }),
       }).catch(() => null);
     }
-    setChangeMessage('Đã xuất bản thực đơn tuần thành công. Sẵn sàng kiểm tra định lượng.');
-    await loadSource();
+    setChangeMessage('Đã xuất bản thực đơn tuần thành công và hoàn tất tính toán định lượng. Sẵn sàng tạo lô nháp.');
+    const updatedSource = await mrxApi.getWeeklySource(customerId, weekStartDate);
+    setSource(updatedSource);
+    if (updatedSource?.menuVersionId) {
+      const previewData = await mrxApi.previewQuantityImport({
+        menuVersionId: updatedSource.menuVersionId,
+        sourceLabel: `Tuần ${updatedSource.weekStartDate ?? weekStartDate}`,
+      });
+      setPreview(previewData);
+    }
   });
 
   const isDraftMenu = Boolean(source && source.menuVersionStatus === 'DRAFT');
@@ -256,12 +265,23 @@ export function MrxBatchWorkbench() {
         : !batch ? { label: 'Tạo lô nháp', action: commitDraft, capability: 'RECON.BATCH.COMMIT_IMPORT' }
           : batch.status === 'DRAFT' ? { label: 'Đóng băng lô', action: markReady, capability: 'RECON.BATCH.READY' }
             : batch.status === 'READY' ? { label: 'Chuyển sang Kho', action: transfer, capability: 'RECON.BATCH.TRANSFER_WAREHOUSE' }
-              : null;
+              : (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') ? {
+                  label: 'Đi đến Trạm Kho nguyên liệu →',
+                  action: () => navigate(`/warehouse?view=mrx-daily&batchId=${encodeURIComponent(batch.batchId)}&date=${encodeURIComponent(weekStartDate)}`),
+                  capability: 'RECON.BATCH.READ',
+                }
+                : batch.status === 'COMPLETED' ? {
+                    label: 'Xem hồ sơ đối soát tuần →',
+                    action: () => navigate(`/reconciliation?batchId=${encodeURIComponent(batch.batchId)}`),
+                    capability: 'RECON.BATCH.READ',
+                  }
+                  : null;
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <WorkspaceHeader
         title="Chuẩn bị lô đối soát"
+        breadcrumb="Đối soát MRX · Trạm Điều phối"
         contextSelectors={<>
           <Select aria-label="Chọn khách hàng MRX" value={customerId} disabled={customers.length === 0}
             options={customers.map((item) => ({ value: item.customerId, label: `${item.customerCode} - ${item.customerName}` }))}
@@ -313,8 +333,27 @@ export function MrxBatchWorkbench() {
           </ActionGuard>}
         </>}
       />
-      <TelemetrySubbar leftControls={<span className="text-xs font-semibold text-slate-700">Nguồn thực đơn và số suất đã phát hành</span>}
-        telemetryPills={source ? <span>Phiên bản thực đơn: <strong>{source.menuVersionNo ?? '—'}</strong></span> : null} />
+      <TelemetrySubbar
+        leftControls={
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-slate-700">Vòng đời lô:</span>
+            <ReconciliationLifecycleStrip status={batch?.status ?? 'DRAFT'} />
+          </div>
+        }
+        telemetryPills={
+          source ? (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-500">Phiên bản nguồn:</span>
+              <strong className="font-mono text-slate-900">v{source.menuVersionNo ?? '—'}</strong>
+              <span className="text-slate-300">·</span>
+              <span className="text-slate-500">Trạng thái:</span>
+              <Badge variant={source.menuVersionStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">
+                {source.menuVersionStatus === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp'}
+              </Badge>
+            </div>
+          ) : null
+        }
+      />
       {changeMessage && (
         <div role="status" className="px-4 py-2 text-sm border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
           <span>{changeMessage}</span>
@@ -350,7 +389,9 @@ export function MrxBatchWorkbench() {
         title="Điều chỉnh nguồn MRX"
         description="Xem ảnh hưởng trước khi gửi Admin duyệt hoặc xác nhận trực tiếp."
         footer={<>
-          <Button variant="outline" size="sm" onClick={() => setIsChangeOpen(false)}>Quay lại</Button>
+          <Button variant="outline" size="sm" onClick={() => changePreview ? setChangePreview(null) : setIsChangeOpen(false)}>
+            {changePreview ? 'Chỉnh sửa lại' : 'Hủy thay đổi'}
+          </Button>
           {!changePreview ? <Button variant="default" size="sm" disabled={isSubmitting || !buildSourceChange()} onClick={previewSourceChange}>Xem ảnh hưởng</Button>
             : <Button variant="default" size="sm" disabled={isSubmitting} onClick={saveSourceChange}>{isAdmin ? 'Xác nhận áp dụng' : 'Gửi Admin duyệt'}</Button>}
         </>}
@@ -388,8 +429,24 @@ export function MrxBatchWorkbench() {
         title="Duyệt thay đổi nguồn MRX"
         description={reviewRequest ? `${reviewRequest.customerName} · tuần ${reviewRequest.weekStartDate}` : undefined}
         footer={<>
-          <Button variant="outline" size="sm" disabled={isSubmitting || !rejectionReason.trim()} onClick={() => decideSourceChange(false)}>Từ chối</Button>
-          <Button variant="default" size="sm" disabled={isSubmitting} onClick={() => decideSourceChange(true)}>Phê duyệt thay đổi</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isSubmitting || !rejectionReason.trim()}
+            onClick={() => decideSourceChange(false)}
+            className="text-red-700 hover:bg-red-50 hover:text-red-800 border-red-200"
+          >
+            Từ chối
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            disabled={isSubmitting}
+            onClick={() => decideSourceChange(true)}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white"
+          >
+            Phê duyệt thay đổi
+          </Button>
         </>}
       >
         {reviewRequest && <div className="space-y-3 text-sm text-slate-700">
@@ -406,8 +463,9 @@ export function MrxBatchWorkbench() {
             {line.serviceDate} · {line.shiftName}: <strong>{line.currentServings} → {line.newServings} suất</strong>
           </p>)}
           <p>Lô MRX bị ảnh hưởng: <strong>{reviewRequest.affectedReconciliationBatchIds.length}</strong></p>
-          <label className="block font-medium text-slate-700">Lý do từ chối
+          <label className="block font-medium text-slate-700">Lý do từ chối (bắt buộc khi từ chối)
             <Input aria-label="Lý do từ chối thay đổi nguồn" className="mt-1" value={rejectionReason}
+              placeholder="Nhập lý do từ chối yêu cầu..."
               onChange={(event) => setRejectionReason(event.target.value)} />
           </label>
         </div>}

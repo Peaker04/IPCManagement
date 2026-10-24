@@ -160,6 +160,7 @@ export function MrxSourceDeltaWorkbench() {
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <WorkspaceHeader
         title="Thay đổi nguồn chờ Kho xử lý"
+        breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
         actions={<Button variant="outline" size="sm" onClick={() => void load()}>Làm mới</Button>}
       />
 

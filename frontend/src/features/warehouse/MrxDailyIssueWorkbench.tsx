@@ -259,6 +259,7 @@ export function MrxDailyIssueWorkbench({
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <WorkspaceHeader
         title="Xuất kho nguyên liệu theo ngày"
+        breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
         contextSelectors={
           <>
             {batches.length > 0 && (

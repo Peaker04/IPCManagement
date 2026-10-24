@@ -79,6 +79,7 @@ function toNavigationMenu(routes: AppShellNavigationRoute[]): NavigationEntry[] 
 export interface AppShellProps {
   children?: ReactNode;
   navigation: AppShellNavigationRoute[];
+  homePath?: string;
 }
 
 /**
@@ -86,7 +87,7 @@ export interface AppShellProps {
  * Left Sidebar: w-60 (240px) with hamburger toggle, real Lucide icons, nested tree with vertical guide line
  * Right Frame: flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40
  */
-export function AppShell({ children, navigation }: AppShellProps) {
+export function AppShell({ children, navigation, homePath = '/' }: AppShellProps) {
   const { user, logout, operationalMode, hasRole } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -137,7 +138,12 @@ export function AppShell({ children, navigation }: AppShellProps) {
       >
         {/* Brand / Logo + Hamburger Toggle */}
         <div className="h-14 border-b border-slate-200 px-3.5 flex items-center justify-between shrink-0 bg-white">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <NavLink
+            to={homePath}
+            onClick={(event) => handleNavigation(event, homePath)}
+            className="flex items-center gap-2.5 min-w-0 hover:opacity-85 transition-opacity"
+            title="Về trang làm việc chính"
+          >
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white shadow-2xs shrink-0">
               <ChefHat size={18} />
             </span>
@@ -151,7 +157,7 @@ export function AppShell({ children, navigation }: AppShellProps) {
                 </span>
               </div>
             )}
-          </div>
+          </NavLink>
           <button
             type="button"
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}

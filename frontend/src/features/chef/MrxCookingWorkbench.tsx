@@ -41,7 +41,10 @@ export function MrxCookingWorkbench() {
         const items = page?.items ?? [];
         setBatches(items);
         if (!urlBatchId && items.length > 0) {
-          const preferred = items.find((b) => b.status === 'IN_PROGRESS') || items[0];
+          const preferred =
+            items.find((b) => b.status === 'READY') ||
+            items.find((b) => b.status === 'IN_PROGRESS') ||
+            items[0];
           const first = preferred.batchId;
           setBatchId(first);
           setSearchParams((curr) => {
@@ -81,10 +84,17 @@ export function MrxCookingWorkbench() {
     }
   }, [batchId, loadCookingData]);
 
-  const batchOptions = (batches ?? []).map((b) => ({
-    value: b.batchId,
-    label: `${b.customerCode ?? b.customerName ?? 'Lô'} · ${b.status} · ${b.batchId.slice(0, 8)}`,
-  }));
+  const batchOptions = (batches ?? []).map((b) => {
+    const statusLabel =
+      b.status === 'IN_PROGRESS' ? 'Đang thực hiện' :
+      b.status === 'READY' ? 'Sẵn sàng' :
+      b.status === 'COMPLETED' ? 'Hoàn tất' :
+      b.status === 'INITIALIZED' ? 'Khởi tạo' : b.status;
+    return {
+      value: b.batchId,
+      label: `${b.customerCode ?? b.customerName ?? 'Lô'} · ${statusLabel} · ${b.batchId.slice(0, 8)}`,
+    };
+  });
 
   const errorMessage = error?.message || '';
   const isLegacyLineageMissing = (error instanceof ApiError && error.status === 409) ||
@@ -129,6 +139,7 @@ export function MrxCookingWorkbench() {
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <WorkspaceHeader
         title="Phiếu nấu theo lô"
+        breadcrumb="Đối soát MRX · Trạm Bếp trưởng"
         contextSelectors={
           <>
             {batches.length > 0 && (
@@ -213,24 +224,15 @@ export function MrxCookingWorkbench() {
         ) : null}
       />
 
-      {isLegacyLineageMissing && (
-        <div role="status" className="m-4 p-4 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
-          <div>
-            <span className="font-semibold block mb-0.5">Lô đối soát lịch sử (chưa phân rã ngày)</span>
-            <span>Lô đối soát này được tạo ở phiên bản cũ chưa có cấu trúc phân rã phiếu nấu theo ngày (KITCHEN_FROZEN_LINEAGE_MISSING). Vui lòng chọn lô đối soát mới hơn để xem phiếu nấu.</span>
-          </div>
-        </div>
-      )}
-
       <StateBoundary
         isLoading={isLoading}
         error={displayedError}
         onRetry={() => { if (batchId) void loadCookingData(batchId); }}
         hasExistingData={Boolean(data && data.rows.length > 0)}
-        isEmpty={!isLoading && !displayedError && !isLegacyLineageMissing && (!data || data.rows.length === 0)}
+        isEmpty={!isLoading && !displayedError && (!data || data.rows.length === 0)}
         emptyScenario="filter-empty"
-        emptyTitle="Không có dòng phiếu nấu cho lô đã chọn"
-        emptyDescription="Lô đối soát cần có lịch món, số suất và BOM định mức đã đóng băng."
+        emptyTitle={isLegacyLineageMissing ? "Lô đối soát chưa có phân rã phiếu nấu theo ca" : "Không có dòng phiếu nấu cho lô đã chọn"}
+        emptyDescription={isLegacyLineageMissing ? "Lô này chưa phân rã phiếu nấu theo ngày hoặc được tạo từ phiên bản trước (KITCHEN_FROZEN_LINEAGE_MISSING). Vui lòng chọn lô đối soát khác trong danh sách phía trên." : "Lô đối soát cần có lịch món, số suất và BOM định mức đã đóng băng."}
       >
         <div className="flex-1 min-h-0 overflow-auto p-4 space-y-4 bg-slate-50/50">
           {dishGroups.map((group) => (

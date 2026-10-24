@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Navigate } from 'react-router-dom';
+import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -20,8 +21,20 @@ import { MrxMultiCustomerPreparationWorkbench } from './MrxMultiCustomerPreparat
 import { MrxSourceDeltaWorkbench } from './MrxSourceDeltaWorkbench';
 
 export function WarehousePage() {
+  const { operationalMode } = useAuth();
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
+
+  if (!view && operationalMode === 'MATERIAL_RECONCILIATION') {
+    const batchId = searchParams.get('batchId');
+    const serviceDate = searchParams.get('date');
+    const params = new URLSearchParams();
+    params.set('view', 'mrx-daily');
+    if (batchId) params.set('batchId', batchId);
+    if (serviceDate) params.set('date', serviceDate);
+    return <Navigate to={`/warehouse?${params.toString()}`} replace />;
+  }
+
   if (view === 'mrx-daily') {
     const batchId = searchParams.get('batchId');
     const serviceDate = searchParams.get('date') || '';

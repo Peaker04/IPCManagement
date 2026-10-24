@@ -756,4 +756,26 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Full `npm run verify` PASSED 100% across all 12 gates.
 - Final State: **`IDLE`**.
 
+### GF-R46 — Real-browser headed routing recovery, zero-403 landing resolution, context-aware MRX defaults and breadcrumb hierarchy
+- **Root-Cause Investigation (Systematic Debugging via Headed Chromium)**:
+  - Built an automated headed test runner (`scripts/run-headed-expert-audit.mjs`) probing all 5 real user roles (`admin`, `quanly`, `dieuphoi`, `thukho`, `beptruong`) across real navigation clicks and direct URL access.
+  - Detected critical unhandled routing defects previously hidden by synthetic mock-testing:
+    1. Direct access to `/` or brand logo in MRX mode previously threw HTTP 403 Forbidden because `/` was locked to `DEFAULT` mode.
+    2. Direct access to `/warehouse` and `/chef` without query parameters fell through to DEFAULT page implementations, immediately firing off illegal DEFAULT API calls that triggered backend 400 Bad Request (`Nguồn phiếu xuất kho không thuộc chế độ vận hành hiện tại.`) and displayed jarring error alert dialogs.
+    3. Trạm Bếp `/chef?view=mrx-cooking` on legacy batches threw HTTP 409 Conflict (`LEGACY_DAILY_LINEAGE_MISSING`) resulting in an empty white box with no actionable empty state.
+- **Surgical Implementation & Ergonomic Remediation**:
+  - **Smart Root Landing Resolution (`App.tsx`)**: Installed `RootLandingRoute` at `/` that dynamically resolves to the actor's primary operational workbench via `resolveLandingPath(CANONICAL_ROUTES, user, operationalMode)` in MRX mode, eliminating 403 Forbidden entirely.
+  - **Clickable Brand Logo (`AppShell.tsx`)**: Replaced inert brand container with `<NavLink to={homePath}>`, routing users seamlessly back to their primary workbench.
+  - **Context-Aware Default Resolution (`WarehousePage.tsx` & `ChefDashboardPage.tsx`)**: When in MRX mode and `!view`, automatically redirect to `/warehouse?view=mrx-daily` and `/chef?view=mrx-cooking` without ever mounting DEFAULT components or sending illegal DEFAULT API requests (100% strict `DOM-MODE-1` conformance).
+  - **Actionable Empty State & Localized Statuses (`MrxCookingWorkbench.tsx`)**: Connected `StateBoundary` to render clean, informative empty-state guidance on legacy batches missing kitchen daily lineage; translated batch selector dropdown statuses to clear Vietnamese (`Đang thực hiện`, `Sẵn sàng`, `Khởi tạo`, `Hoàn tất`).
+  - **Micro-Breadcrumb Visual Hierarchy (`WorkspaceHeader.tsx`)**: Added `breadcrumb?: string` prop to Zone 1 header, displaying clear operational station context across all MRX workbenches (`Đối soát MRX · Trạm Điều phối`, `Trạm Kho`, `Trạm Bếp`, `Bàn điều khiển Giám sát`) adhering to Rule D6/T7/T8.
+- **Verification Evidence**:
+  - Headed browser audit (`scripts/run-headed-expert-audit.mjs`): 5/5 user roles verified; direct `/`, `/warehouse`, `/chef` access completely resolved with 0 alert popups and 0 403 pages.
+  - Full frontend unit tests: 18 files / 166 tests PASS (100%).
+  - Conformance checker and architecture growth baseline: PASS (zero debt growth).
+  - ESLint and dependency cruiser: PASS (0 errors, 0 warnings, 0 violations).
+  - Production Vite build: PASS (`dist/` optimized).
+- Final State: **`IDLE`**.
+
+
 
