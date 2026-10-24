@@ -155,4 +155,14 @@ describe('Auth Feature (FR-AUTH)', () => {
     expect(screen.getByRole('button', { name: 'Quay lại' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Về bàn điều hành' })).toBeInTheDocument();
   });
+
+  it('Route 1: resolves exact MRX landing page for Coordinator, Warehouse, and Chef', () => {
+    const coordinator = { roleCode: 'Coordinator', permissions: ['reconciliation.source.read'] };
+    const warehouse = { roleCode: 'WarehouseStaff', permissions: ['reconciliation.warehouse.read'] };
+    const chef = { roleCode: 'Chef', permissions: ['reconciliation.kitchen.read'] };
+
+    expect(resolveLandingPath(CANONICAL_ROUTES, coordinator, 'MATERIAL_RECONCILIATION')).toBe('/weekly-menu?view=mrx-batch');
+    expect(resolveLandingPath(CANONICAL_ROUTES, warehouse, 'MATERIAL_RECONCILIATION')).toBe('/warehouse?view=mrx-daily');
+    expect(resolveLandingPath(CANONICAL_ROUTES, chef, 'MATERIAL_RECONCILIATION')).toBe('/chef?view=mrx-cooking');
+  });
 });
