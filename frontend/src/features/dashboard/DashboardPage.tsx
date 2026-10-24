@@ -299,7 +299,7 @@ export function DashboardPage() {
                           <div className="flex items-center gap-2">
                             <span
                               className={clsx(
-                                'h-5 w-5 rounded-full flex items-center justify-center font-bold text-xs shrink-0 leading-none select-none',
+                                'h-5 w-5 rounded-full flex items-center justify-center font-semibold text-[11px] font-sans shrink-0 leading-none select-none tabular-nums',
                                 isCompleted
                                   ? 'bg-emerald-100 text-emerald-800'
                                   : isInProgress
@@ -307,7 +307,7 @@ export function DashboardPage() {
                                   : 'bg-slate-200 text-slate-600'
                               )}
                             >
-                              {isCompleted ? <Check className="size-3 stroke-[3]" aria-hidden="true" /> : <span className="pt-[1px]">{stage.stageNumber}</span>}
+                              {isCompleted ? <Check className="size-3 stroke-[2.5]" aria-hidden="true" /> : stage.stageNumber}
                             </span>
                             <span className="text-sm font-bold text-slate-900">
                               {stage.stageName}

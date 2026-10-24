@@ -1037,6 +1037,24 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R61 — Typography Research & Definitive Optical Centering of Stepper Badges
+- **Expert Typographical Research & Root Cause**:
+  - Investigated the exact optical and mathematical alignment across modern design systems (Tailwind UI, Radix UI, GitHub Primer, Shopify Polaris, Material Design M3).
+  - Identified that using `font-mono` (`Consolas` on Windows) was the core reason digits `1, 2, 3, 4, 5` appeared skewed/off-center in circular badges: monospace fonts feature large fixed-pitch bounding boxes, deep bracket-descender allowances, and wide angular serifs that concentrate optical mass at the base and push glyphs upwards against circle tops.
+  - Furthermore, `18px` circles with `10px` mono numbers provided insufficient padding, making subpixel rasterization artifacts obvious at 100% zoom.
+- **Definitive Solution**:
+  - `ReconciliationLifecycleStrip.tsx` & `DashboardPage.tsx`: Standardized on `size-5` (`w-5 h-5` / `20px x 20px`) with `text-[11px] font-semibold font-sans leading-none select-none tabular-nums`.
+  - Replaced `font-mono` with the project's primary `font-sans` (`Inter Variable`). In Inter, digits have symmetrical optical vertical weight, matched cap-height/ascender metrics, and proportional spacing that centers naturally in circular containers without ad-hoc padding hacks.
+  - Replaced `<Check className="size-2.5 stroke-[3]">` with `<Check className="size-3 stroke-[2.5]">`, perfectly filling the 20px container.
+- **Verification Evidence**:
+  - Live browser headless capture on Vite server confirmed pixel-perfect vertical and horizontal centering.
+  - Full frontend unit test suite: 18 files / 167 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - Architecture growth check: PASS (strict baseline, all files < 600 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

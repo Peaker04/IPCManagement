@@ -59,7 +59,7 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
           >
             <span
               className={clsx(
-                'inline-flex items-center justify-center w-[18px] h-[18px] rounded-full text-[10px] font-bold font-mono leading-none shrink-0 select-none',
+                'inline-flex items-center justify-center size-5 rounded-full text-[11px] font-semibold font-sans leading-none shrink-0 select-none tabular-nums',
                 isCurrent && isCompleted
                   ? 'bg-emerald-700 text-white'
                   : isCurrent
@@ -71,9 +71,9 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
               aria-hidden="true"
             >
               {isPast && !isCurrent ? (
-                <Check className="size-2.5 stroke-[3]" aria-hidden="true" />
+                <Check className="size-3 stroke-[2.5]" aria-hidden="true" />
               ) : (
-                <span className="pt-[1px]">{step.step}</span>
+                step.step
               )}
             </span>
             <span className="truncate">{step.label}</span>
