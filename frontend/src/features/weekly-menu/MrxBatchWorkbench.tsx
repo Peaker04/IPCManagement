@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { mrxApi, type MrxBatch, type MrxMenuChangeInboxItem, type MrxMenuChangeRequest, type MrxMenuChangeResult, type MrxQuantityPreview, type MrxWeeklySource } from '../../api/mrxApi';
+import { mrxApi, type MrxBatch, type MrxMenuChangeInboxItem, type MrxMenuChangeRequest, type MrxMenuChangeResult, type MrxQuantityPreview, type MrxWeeklySource, type MrxDraftSource } from '../../api/mrxApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import { apiClient } from '../../api/client';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
@@ -18,6 +18,7 @@ import { toIsoDate } from '../../utils/dates';
 import { WeeklyMenuImportModal } from './WeeklyMenuImportModal';
 import { MrxSourceChangeModal, MrxReviewChangeModal } from './MrxSourceChangeModal';
 import { MrxBatchPreviewSection } from './MrxBatchPreviewSection';
+import { MrxBatchDishesModal } from '../../components/workbench/MrxBatchDishesModal';
 
 function currentWeekStart(): string {
   const value = new Date(`${new Intl.DateTimeFormat('en-CA', {
@@ -60,6 +61,16 @@ export function MrxBatchWorkbench() {
   const [changeInbox, setChangeInbox] = useState<MrxMenuChangeInboxItem[]>([]);
   const [reviewRequest, setReviewRequest] = useState<MrxMenuChangeInboxItem | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [isDishesModalOpen, setIsDishesModalOpen] = useState(false);
+  const [draftSources, setDraftSources] = useState<MrxDraftSource[]>([]);
+
+  useEffect(() => {
+    let ignore = false;
+    mrxApi.getDraftSources()
+      .then((items) => { if (!ignore) setDraftSources(items || []); })
+      .catch(() => {});
+    return () => { ignore = true; };
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -306,6 +317,17 @@ export function MrxBatchWorkbench() {
             Nhập thực đơn Excel
           </Button>
           <Button variant="outline" size="default" disabled={isSubmitting} onClick={() => loadSource()}>Làm mới</Button>
+          {batch && (
+            <Button
+              variant="outline"
+              size="default"
+              disabled={isSubmitting}
+              onClick={() => setIsDishesModalOpen(true)}
+              className="h-9 text-sm font-medium"
+            >
+              Món ăn trong lô
+            </Button>
+          )}
           {isAdmin && changeInbox.length > 0 && <Button variant="outline" size="default" disabled={isSubmitting}
             onClick={() => { setIsChangeOpen(false); setReviewRequest(changeInbox[0]); }}>
             Yêu cầu chờ duyệt ({changeInbox.length})
@@ -366,6 +388,32 @@ export function MrxBatchWorkbench() {
         emptyDescription="Hãy hoàn tất thực đơn và số suất của khách hàng trong tuần đã chọn trước khi tạo lô đối soát."
         actionLabel="Nhập thực đơn ngay"
         onAction={() => setIsImportModalOpen(true)}>
+        {!source && !batch && draftSources.length > 0 && (
+          <div className="p-4 bg-blue-50/70 border-b border-blue-200 text-xs">
+            <span className="font-semibold text-blue-900 block mb-2">
+              Các tuần thực đơn đã sẵn sàng để lập lô ({draftSources.length} tuần):
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {draftSources.map((ds) => (
+                <button
+                  key={ds.menuVersionId}
+                  type="button"
+                  onClick={() => {
+                    const match = ds.menuLabel.match(/(\d{2}\/\d{2}\/\d{4})/);
+                    if (match) {
+                      const iso = match[1].split('/').reverse().join('-');
+                      setWeekStartDate(iso);
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded bg-white border border-blue-200 text-blue-900 hover:border-blue-400 hover:shadow-2xs cursor-pointer font-medium flex items-center gap-1.5"
+                >
+                  <span>{ds.menuLabel}</span>
+                  <span className="font-mono text-[10px] text-blue-600">({ds.importBatchLabel})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {source && <div className="flex-1 min-h-0 flex flex-col">
           {preview?.diagnostics.length ? (
             <div role="alert" className="mx-4 mt-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -416,6 +464,13 @@ export function MrxBatchWorkbench() {
         onRejectionReasonChange={setRejectionReason}
         isSubmitting={isSubmitting}
         onDecide={decideSourceChange}
+      />
+
+      <MrxBatchDishesModal
+        isOpen={isDishesModalOpen}
+        onClose={() => setIsDishesModalOpen(false)}
+        batchId={batch?.batchId ?? ''}
+        customerName={source?.customerName}
       />
 
       <WeeklyMenuImportModal

@@ -947,6 +947,33 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Database sandbox dropped cleanly; git commit `e41a6705` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R57 — MRX Subsystem Capability Completion & Operational Polish
+- **Uncommitted Draft Sources Direct Loading**:
+  - Connected `GET /api/reconciliation/batches/draft-sources` (`mrxApi.getDraftSources`) in `MrxBatchWorkbench.tsx`.
+  - Added suggestion chips in the empty state so coordinators can 1-click load uncommitted menu weeks without manual date typing.
+- **Batch Dishes Inspection Modal (`MrxBatchDishesModal.tsx`)**:
+  - Connected `GET /api/reconciliation/batches/{id}/dishes` (`mrxApi.getBatchDishes`) in `MrxBatchWorkbench.tsx` and `ReconciliationPage.tsx`.
+  - Added "Món ăn trong lô" header action displaying frozen dishes, service shifts/dates, planned servings, and component ingredient BOM breakdown with exact gross quantities.
+- **Audit Trail Source Changes Log (`ReconciliationReportTables.tsx`)**:
+  - Connected `GET /api/reconciliation/batches/{id}/source-changes` (`mrxApi.getSourceChanges`) in `ReconciliationPage.tsx`.
+  - Enhanced the Audit tab with dual sub-tabs: "Kho" (warehouse/system transactions) and "Nguồn & BOM" (dish servings adjustments and BOM amendments), displaying timestamp, actor, entity, and change details.
+- **Smart Supplemental Issuing by Dish/Servings (`MrxSupplementalIssueModal.tsx`)**:
+  - Upgraded modal to support dual modes: direct ingredient input or automatic BOM-based calculation from frozen dish recipe and extra servings count.
+  - Automatically calculates additional ingredient quantities based on frozen BOM gross amounts per serving and populates standard justification reasons.
+- **Kitchen Cooking Sheet Exports (`MrxCookingWorkbench.tsx`)**:
+  - Maintained CSV and XLSX exports with clean endpoints and verified chef station sanitization.
+- **Architectural Compliance**:
+  - All touched frontend files strictly conform to the <600 lines baseline check (`ReconciliationPage.tsx`: 552 lines, `MrxBatchWorkbench.tsx`: 486 lines, `ReconciliationReportTables.tsx`: 410 lines, `MrxSupplementalIssueModal.tsx`: 279 lines, `MrxBatchDishesModal.tsx`: 175 lines).
+  - Single styling authority preserved in `frontend/src/styles/index.css` with zero inline colors or forbidden tokens.
+- **Verification Evidence**:
+  - Full frontend unit test suite: 18 files / 167 tests PASS (100%).
+  - Playwright runtime conformance test suite: 10/10 tests PASS (100%).
+  - Full-path 7-day 4-actor operational lifecycle test on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 5/5 phases PASS in 1m32s (`MRX-FULL-PATH-REPORT.json`).
+  - Strict architecture growth check: PASS (0 new debt, 0 test debt).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations across 91 modules and 428 cruised dependencies.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

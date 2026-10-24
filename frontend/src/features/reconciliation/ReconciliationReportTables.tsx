@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '../../components/ui/button';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Num } from '../../components/ui/num';
@@ -9,6 +9,7 @@ import type {
   MrxTransactionHistoryReport,
   MrxAuditTrailReport,
   MrxCompletedRegisterReport,
+  MrxSourceChangeItem,
 } from '../../api/mrxApi';
 
 interface ReconciliationReportTablesProps {
@@ -18,6 +19,7 @@ interface ReconciliationReportTablesProps {
   transactionsReport: MrxTransactionHistoryReport | null;
   auditReport: MrxAuditTrailReport | null;
   completedReport?: MrxCompletedRegisterReport | null;
+  sourceChanges?: MrxSourceChangeItem[] | null;
 }
 
 export function ReconciliationReportTables({
@@ -27,7 +29,9 @@ export function ReconciliationReportTables({
   transactionsReport,
   auditReport,
   completedReport,
+  sourceChanges,
 }: ReconciliationReportTablesProps) {
+  const [auditSubTab, setAuditSubTab] = useState<'warehouse' | 'source'>('warehouse');
   const varianceColumns = useMemo<ColumnDef<MrxVarianceRegisterReport['rows'][number]>[]>(() => [
     {
       id: 'date',
@@ -166,6 +170,55 @@ export function ReconciliationReportTables({
     },
   ], []);
 
+  const sourceChangeColumns = useMemo<ColumnDef<MrxSourceChangeItem>[]>(() => [
+    {
+      id: 'time',
+      header: 'Thời gian',
+      width: '16%',
+      cell: (row) => <span className="font-mono text-xs text-slate-700">{formatVietnameseDateTime(row.changedAt)}</span>,
+    },
+    {
+      id: 'actor',
+      header: 'Người sửa',
+      width: '14%',
+      cell: (row) => <span className="text-xs font-medium text-slate-900">{row.actor || '—'}</span>,
+    },
+    {
+      id: 'area',
+      header: 'Phân hệ',
+      width: '12%',
+      cell: (row) => <span className="text-xs font-mono text-slate-600">{row.businessArea}</span>,
+    },
+    {
+      id: 'entity',
+      header: 'Thực thể / Trường',
+      width: '18%',
+      cell: (row) => (
+        <div className="flex flex-col text-xs">
+          <span className="font-semibold text-slate-900">{row.entityName}</span>
+          <span className="text-slate-500 font-mono text-[11px]">{row.fieldName || '—'}</span>
+        </div>
+      ),
+    },
+    {
+      id: 'values',
+      header: 'Biến động giá trị',
+      width: '20%',
+      cell: (row) => (
+        <span className="text-xs font-mono text-slate-800">
+          <span className="line-through text-slate-400 mr-1">{row.oldValue || '—'}</span>
+          <span>→ <strong>{row.newValue || '—'}</strong></span>
+        </span>
+      ),
+    },
+    {
+      id: 'reason',
+      header: 'Lý do',
+      width: '20%',
+      cell: (row) => <span className="text-xs text-slate-700 truncate block" title={row.reason ?? ''}>{row.reason ?? '—'}</span>,
+    },
+  ], []);
+
   const completedColumns = useMemo<ColumnDef<NonNullable<MrxCompletedRegisterReport>['rows'][number]>[]>(() => [
     {
       id: 'batchId',
@@ -274,7 +327,33 @@ export function ReconciliationReportTables({
     return (
       <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
         <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs font-semibold text-slate-700">Nhật ký kiểm toán đối soát nguyên liệu (Audit Trail)</span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold text-slate-700">Nhật ký kiểm toán đối soát nguyên liệu (Audit Trail)</span>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setAuditSubTab('warehouse')}
+                className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                  auditSubTab === 'warehouse'
+                    ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Kho ({auditReport?.rows?.length ?? 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuditSubTab('source')}
+                className={`px-2.5 py-0.5 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                  auditSubTab === 'source'
+                    ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Nguồn & BOM ({sourceChanges?.length ?? 0})
+              </button>
+            </div>
+          </div>
           <Button
             variant="outline"
             size="xs"
@@ -284,12 +363,22 @@ export function ReconciliationReportTables({
             Tải CSV Nhật ký
           </Button>
         </div>
-        <DataGrid
-          data={auditReport?.rows ?? []}
-          columns={auditColumns}
-          keyExtractor={(row, idx) => row.auditId || `audit-${idx}`}
-          emptyMessage="Chưa có nhật ký kiểm toán nào cho phạm vi này."
-        />
+
+        {auditSubTab === 'warehouse' ? (
+          <DataGrid
+            data={auditReport?.rows ?? []}
+            columns={auditColumns}
+            keyExtractor={(row, idx) => row.auditId || `audit-${idx}`}
+            emptyMessage="Chưa có nhật ký kiểm toán nào cho phạm vi này."
+          />
+        ) : (
+          <DataGrid
+            data={sourceChanges ?? []}
+            columns={sourceChangeColumns}
+            keyExtractor={(row, idx) => row.changeId || `sc-${idx}`}
+            emptyMessage="Lô đối soát chưa có ghi nhận thay đổi nguồn hay điều chỉnh BOM nào."
+          />
+        )}
       </div>
     );
   }

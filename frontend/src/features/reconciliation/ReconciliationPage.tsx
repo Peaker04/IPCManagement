@@ -19,6 +19,7 @@ import { ReconciliationLifecycleStrip } from './ReconciliationLifecycleStrip';
 import { ReconciliationLinesFilterToolbar, type LineStatusFilter } from './ReconciliationLinesFilterToolbar';
 import { ReconciliationCompletionModal } from './ReconciliationCompletionModal';
 import { useReconciliationColumns } from './reconciliationColumns';
+import { MrxBatchDishesModal } from '../../components/workbench/MrxBatchDishesModal';
 import {
   reconciliationApi,
   type ReconciliationBatchSummary,
@@ -32,6 +33,7 @@ import {
   type MrxTransactionHistoryReport,
   type MrxAuditTrailReport,
   type MrxCompletedRegisterReport,
+  type MrxSourceChangeItem,
 } from '../../api/mrxApi';
 import { todayInBusinessTimezone } from '../../utils/dates';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
@@ -99,7 +101,9 @@ export function ReconciliationPage() {
   const [transactionsReport, setTransactionsReport] = useState<MrxTransactionHistoryReport | null>(null);
   const [auditReport, setAuditReport] = useState<MrxAuditTrailReport | null>(null);
   const [completedReport, setCompletedReport] = useState<MrxCompletedRegisterReport | null>(null);
+  const [sourceChanges, setSourceChanges] = useState<MrxSourceChangeItem[] | null>(null);
   const [operationalSummary, setOperationalSummary] = useState<MrxOperationalSummary | null>(null);
+  const [isDishesModalOpen, setIsDishesModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [lineStatusFilter, setLineStatusFilter] = useState<LineStatusFilter>('ALL');
 
@@ -157,6 +161,9 @@ export function ReconciliationPage() {
       mrxApi.getAuditTrail(batchId)
         .then(setAuditReport)
         .catch(() => setAuditReport(null));
+      mrxApi.getSourceChanges(batchId)
+        .then(setSourceChanges)
+        .catch(() => setSourceChanges(null));
     }
   }, [batchId, activeReportTab, serviceDate]);
 
@@ -364,6 +371,16 @@ export function ReconciliationPage() {
             <Button variant="outline" size="default" onClick={() => loadData()} className="h-9 text-sm font-medium">
               Làm mới
             </Button>
+            {batchId && (
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setIsDishesModalOpen(true)}
+                className="h-9 text-sm font-medium"
+              >
+                Món ăn trong lô
+              </Button>
+            )}
             {canComplete ? (
               <ActionGuard
                 capabilityId="RECON.BATCH.COMPLETE"
@@ -500,9 +517,17 @@ export function ReconciliationPage() {
             transactionsReport={transactionsReport}
             auditReport={auditReport}
             completedReport={completedReport}
+            sourceChanges={sourceChanges}
           />
         )}
       </StateBoundary>
+
+      <MrxBatchDishesModal
+        isOpen={isDishesModalOpen}
+        onClose={() => setIsDishesModalOpen(false)}
+        batchId={batchId}
+        customerName={data?.customerName}
+      />
 
       <ReconciliationCompletionModal
         isOpen={isCompleteOpen}

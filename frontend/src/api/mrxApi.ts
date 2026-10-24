@@ -121,6 +121,9 @@ function batchPath(batchId: string, suffix = ''): string {
   return `/reconciliation/batches/${encodeURIComponent(batchId)}${suffix}`;
 }
 
+export type MrxBatchDishSummary = Schema['ReconciliationBatchDishSummaryDto'];
+export type MrxSourceChangeItem = Schema['ReconciliationSourceChangeDto'];
+
 export const mrxApi = {
   getBatchPage: (filters: MrxBatchPageQuery = {}) => {
     const query = new URLSearchParams();
@@ -305,5 +308,24 @@ export const mrxApi = {
     const params = new URLSearchParams({ pageNumber: String(pageNumber), pageSize: String(pageSize) });
     if (batchId) params.set('batchId', batchId);
     return apiClient<MrxAuditTrailReport>(`/reconciliation/reports/audit-trail?${params}`);
+  },
+
+  getBatchDishes: (batchId: string) =>
+    apiClient<MrxBatchDishSummary[]>(`/reconciliation/batches/${encodeURIComponent(batchId)}/dishes`),
+
+  getSourceChanges: (batchId: string) =>
+    apiClient<MrxSourceChangeItem[]>(`/reconciliation/batches/${encodeURIComponent(batchId)}/source-changes`),
+
+  async downloadKitchenCookingBlob(batchId: string, format: 'csv' | 'xlsx'): Promise<Blob> {
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('ipc_v3_token') : null;
+    const res = await fetch(`/api/reconciliation/batches/${encodeURIComponent(batchId)}/kitchen-cooking/${format}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(`Tải file thất bại (HTTP ${res.status})`);
+    }
+    return res.blob();
   },
 };
