@@ -432,4 +432,85 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát xuất kho' })).toBeInTheDocument();
     expect(screen.queryByText('Thiếu định danh lô hoặc ngày phục vụ')).not.toBeInTheDocument();
   });
+
+  it('allows warehouse staff to trigger supplemental issue when initial issue is completed (RULE-MRX-03)', async () => {
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [{
+        batchId: 'batch-in-progress-1',
+        customerId: 'c-1',
+        customerName: 'Khách A',
+        customerCode: 'KA',
+        weekStartDate: '2026-10-19',
+        weekEndDate: '2026-10-25',
+        status: 'IN_PROGRESS',
+        version: 2,
+        createdAt: '2026-10-19T00:00:00Z',
+      }],
+      totalCount: 1,
+      pageNumber: 1,
+      pageSize: 50,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({
+      batchId: 'batch-in-progress-1',
+      batchStatus: 'IN_PROGRESS',
+      sourceVersion: 2,
+      weeklyStatus: 'IN_PROGRESS',
+      compatibility: { canRead: true, canIssueByDate: true, reasonCode: null },
+      dates: [{
+        serviceDate: '2026-10-19',
+        status: 'COMPLETE',
+        isApplicable: true,
+        requiredQuantity: 10,
+        issuedQuantity: 10,
+        returnedQuantity: 0,
+        remainingQuantity: 0,
+        lines: [{
+          dailyLineId: 'dl-1',
+          batchLineId: 'bl-1',
+          ingredientId: 'i-1',
+          ingredientName: 'Thịt bò',
+          canonicalUnitId: 'u-1',
+          canonicalUnitName: 'kg',
+          requiredQuantity: 10,
+          issuedQuantity: 10,
+          returnedQuantity: 0,
+          remainingQuantity: 0,
+          quantityStatus: 'EXACT',
+          hasValidDisposition: false,
+        }],
+      }],
+    });
+    vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({
+      items: [{
+        issueId: 'iss-1',
+        issueCode: 'PX-001',
+        issueDate: '2026-10-19',
+        lines: [{
+          issueLineId: 'il-1',
+          ingredientId: 'i-1',
+          unitId: 'u-1',
+          reconciliationBatchDailyLineId: 'dl-1',
+          issuedQty: 10,
+        }],
+      }],
+      totalCount: 1,
+      pageNumber: 1,
+      pageSize: 25,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    });
+    const createIssueSpy = vi.spyOn(mrxApi, 'createIssue').mockResolvedValue({
+      issueId: 'iss-supp-1',
+      issueCode: 'PX-SUPP-001',
+    });
+
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-in-progress-1&date=2026-10-19');
+
+    const suppBtn = await screen.findByRole('button', { name: 'Xuất bổ sung ca' });
+    expect(suppBtn).toBeInTheDocument();
+  });
 });
