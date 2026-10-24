@@ -330,7 +330,7 @@ export function ReconciliationPage() {
             </Button>
           );
         }
-        if (row.issuedRequiredDifference != null && row.issuedRequiredDifference > 0) {
+        if (row.issuedRequiredDifference != null && row.issuedRequiredDifference !== 0) {
           return (
             <Button
               variant="default"
@@ -342,9 +342,6 @@ export function ReconciliationPage() {
               Xử lý chênh lệch
             </Button>
           );
-        }
-        if (row.issuedRequiredDifference != null && row.issuedRequiredDifference < 0) {
-          return <span className="text-xs text-amber-700 font-medium">Chờ Kho xuất đủ</span>;
         }
         return <span className="text-xs text-slate-400">—</span>;
       },
@@ -435,7 +432,7 @@ export function ReconciliationPage() {
             <Button variant="outline" size="default" onClick={() => loadData()} className="h-9 text-sm font-medium">
               Làm mới
             </Button>
-            {canComplete && (
+            {canComplete ? (
               <ActionGuard
                 capabilityId="RECON.BATCH.COMPLETE"
                 roles={['ADMIN', 'MANAGER', 'Quản lý']}
@@ -448,10 +445,32 @@ export function ReconciliationPage() {
                   Chốt đối soát tuần
                 </Button>
               </ActionGuard>
-            )}
+            ) : data && data.status === 'IN_PROGRESS' ? (
+              <span className="text-xs text-slate-500 font-medium">
+                {needsReviewCount > 0
+                  ? `Còn ${needsReviewCount} dòng chênh lệch cần xử lý`
+                  : 'Chờ hoàn tất xuất kho các ngày'}
+              </span>
+            ) : null}
           </>
         }
       />
+
+      {/* Blocker Resolution Strip (Rule UXR-02 & BR-GLOBAL-04) */}
+      {data && data.status === 'IN_PROGRESS' && data.weeklyStatus !== 'WEEK_COMPLETE' && (
+        <div role="status" className="px-4 py-2 text-xs font-medium border-b border-amber-200 bg-amber-50 text-amber-900 flex items-center justify-between shrink-0">
+          <span>
+            <strong>Chưa thể chốt đối soát:</strong> {needsReviewCount > 0
+              ? `Còn ${needsReviewCount} dòng chênh lệch cần giải trình trước khi chốt sổ tuần.`
+              : 'Còn ngày trong tuần chưa xuất kho hoàn tất. Hãy kiểm tra lại tiến độ các ngày.'}
+          </span>
+          {needsReviewCount > 0 && (
+            <Button variant="outline" size="xs" onClick={() => setLineStatusFilter('NEEDS_REVIEW')}>
+              Lọc dòng cần xử lý ({needsReviewCount})
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* 5 Operational Queue Metric Cards (Rule D7 / Control Tower) */}
       <ReconciliationQueueCards

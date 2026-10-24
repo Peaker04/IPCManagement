@@ -166,12 +166,17 @@ export function ReconciliationDispositionModal({
                 className="h-9 text-sm"
               />
               <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Gợi ý lý do xử lý">
-                {[
+                {(selectedLine.issuedRequiredDifference != null && selectedLine.issuedRequiredDifference < 0 ? [
+                  'Tiết kiệm định lượng tại bếp',
+                  'Hao hụt thực tế thấp hơn định mức',
+                  'Xác nhận theo thực tế sử dụng',
+                  'Bếp trưởng xác nhận nấu đủ suất',
+                ] : [
                   'Chấp nhận hao hụt thực tế',
                   'Điều chỉnh định lượng BOM kỳ tới',
                   'Đã xuất bù thực tế trong ca',
                   'Sai số đo lường lúc xuất kho',
-                ].map((preset) => (
+                ]).map((preset) => (
                   <Button
                     key={preset}
                     type="button"

@@ -260,7 +260,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(await screen.findByText('Hướng xử lý theo ngày đã thay đổi.')).toBeInTheDocument();
   });
 
-  it('displays Chờ Kho xuất đủ for under-issued lines instead of an un-waivable disposition button', async () => {
+  it('enables disposition button for under-issued lines and supports resolving shortages (RULE-MRX-01)', async () => {
     vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue({
       ...MOCK_RECONCILIATION,
       lines: [{
@@ -274,8 +274,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     renderReconciliation();
 
-    expect(await screen.findByText('Chờ Kho xuất đủ')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Xử lý chênh lệch Thịt đùi heo tươi' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Xử lý chênh lệch Thịt đùi heo tươi' })).toBeInTheDocument();
   });
 
   it('switches between daily lines, variance register, transaction history, and audit trail tabs', async () => {
