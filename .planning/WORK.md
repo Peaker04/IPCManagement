@@ -834,6 +834,23 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Git commit: `6be55f51` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R50 — Coordination meal order locking and Purchasing purchase order cancellation recovery
+- **Meal Order Locking Action (`MealOrdersPage.tsx`)**:
+  - Restored interactive "Chốt đơn ca" Primary action button on Header.
+  - Connected `handleLock` calling backend API `POST /api/coordination/orders/lock` (`coordinationApi.lockOrderPlan`), locking actual meal servings for the shift and synchronizing with downstream logistics.
+  - Added confirmation modal displaying planned vs actual servings and net variance before locking.
+- **Purchase Order Cancellation Action (`PurchasingPage.tsx`)**:
+  - Restored "Hủy đơn PO" action button in PO detail panel footer for unfulfilled orders (`status !== 'CANCELLED' && status !== 'RECEIVED'`).
+  - Connected `handleCancelPo` calling backend API `POST /api/purchase-orders/{id}/cancel` (`purchasingApi.cancelPurchaseOrder`), with accessible confirmation modal.
+- **Verification Evidence**:
+  - Strict architecture growth check: PASS (all files < 600 lines, PurchasingPage: 408 lines, MealOrdersPage: 248 lines).
+  - Full frontend unit suite: 18 files / 166 tests PASS (100%).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+  - Git commit: `8ba25d76` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 
