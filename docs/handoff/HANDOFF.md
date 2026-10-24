@@ -80,7 +80,8 @@
 | CATALOG-SEARCH-RECOVERY | Bổ sung thanh tìm kiếm danh mục thời gian thực trên Header của AdminDataPage cho cả nguyên liệu và món ăn; kết nối searchKeyword với backend C# | `DONE_VERIFIED` | `AdminDataPage.tsx`, `AdminData.test.tsx`, `adminApi.ts`; strict architecture check PASS; 167 FE tests PASS | Không có |
 | PREP-DELTA-CTA-RECOVERY | Bổ sung nút CTA chuyển tiếp liên trạm "Xem phiếu xuất theo ngày →" trên banner thành công của MrxMultiCustomerPreparationWorkbench và alert phản hồi thao tác trên MrxSourceDeltaWorkbench | `DONE_VERIFIED` | `MrxMultiCustomerPreparationWorkbench.tsx`, `MrxSourceDeltaWorkbench.tsx`; strict architecture check PASS (<600 lines); 167 FE tests PASS | Không có |
 | RECON-BLOCKER-CTA-RECOVERY | Bổ sung nút CTA "Mở trạm Kho xuất ngày →" trên ReconciliationBlockerStrip khi lô bị kẹt do ngày chưa xuất kho hoàn tất, điều hướng thẳng sang trạm Kho | `DONE_VERIFIED` | `ReconciliationBlockerStrip.tsx`, `ReconciliationPage.tsx`; strict architecture check PASS (<600 lines); 167 FE tests PASS | Không có |
-| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `1dad95a2` đã push lên remote thành công | Không có |
+| EXHAUSTIVE-SANDBOX-TEST | Kiểm thử đột biến toàn diện 8 kịch bản (happy path, xuất vượt không lý do bị chặn, xuất thiếu bếp tiết kiệm, xuất bổ sung, lọc ca bếp, giải trình chênh lệch 2 chiều, CTA dẫn đường) trên database cô lập ipc_mrx_e2e_sandbox | `DONE_VERIFIED` | `scripts/run-mrx-exhaustive-scenarios-test.mjs`; 8/8 kịch bản PASS 100% trong 49s; sandbox DB dropped cleanly; git commit `214a520c` | Không có |
+| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `214a520c` đã push lên remote thành công | Không có |
 
 ---
 

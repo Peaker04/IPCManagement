@@ -904,6 +904,30 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Git commit: `1dad95a2` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R55 — Exhaustive MRX operational verification on isolated database (happy path, worst cases & edge cases)
+- **Isolated Sandbox Testing Protocol (`scripts/run-mrx-exhaustive-scenarios-test.mjs`)**:
+  - Provisioned temporary isolated MySQL database `ipc_mrx_e2e_sandbox` on port 3306; launched dedicated Kestrel (port 5263) and Vite (port 5174); zero impact on main production DB `ipcmanagement`.
+  - Executed 8 exhaustive operational scenarios via headed Playwright Chromium:
+    1. *Auth & Mode Confirmation*: Verified JWT login and `MATERIAL_RECONCILIATION` mode initialization.
+    2. *Weekly Menu Import & 2-Tab Material Breakdown*: Verified Excel parsing, 2-tab preview (`Phân rã nguyên liệu định lượng` vs `Kế hoạch món & suất theo ca`), batch creation, freezing, and handover.
+    3. *Warehouse Cả tuần & Điền đủ toàn bộ*: Verified read-only weekly aggregate summary, `Điền đủ toàn bộ` auto-fill, and 19 lines receiving canonical `Dự kiến xuất đủ` badge.
+    4. *Worst Case A (Over-Issue Without Reason)*: Verified that exceeding required quantity without reason strictly disables `Xác nhận xuất kho` button; entering mandatory reason re-enables submission.
+    5. *Worst Case B (Under-Issue / Kitchen Savings)*: Verified issuing less than required (2.65kg -> 1kg) commits cleanly and transitions date to `IN_PROGRESS`.
+    6. *Supplemental Issue in Shift (`RULE-MRX-03`)*: Verified issuing additional 3.5kg with preset chip `Phát sinh suất ăn đột xuất` creates supplemental slip.
+    7. *Chef Cooking Station & Shift Filter*: Verified per-shift filtering (Ca 1 / Ca 2 / Tất cả) and sanitized read-only projection with zero price/supplier leakage.
+    8. *Reconciliation Control Tower & Two-Way Accepted Variance*: Verified resolving both overage and kitchen savings with `ACCEPTED_VARIANCE`.
+    9. *Blocker Strip Cross-Station Navigation CTA*: Verified cross-station navigation CTA `Mở trạm Kho xuất ngày →` routing supervisor to unissued warehouse dates.
+- **Verification Evidence**:
+  - Headed Chromium Live on Sandbox DB: 8/8 scenarios PASS in 49s (`EXHAUSTIVE-MRX-TEST-REPORT.json`).
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Playwright runtime conformance suite: 10/10 tests PASS (100%).
+  - Strict architecture growth check: PASS (0 new debt, 0 test debt).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations across 89 modules and 413 dependencies.
+  - Production Vite build: PASS (`dist/`).
+  - Database sandbox dropped cleanly; git commit `214a520c` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 
