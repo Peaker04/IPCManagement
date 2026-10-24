@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Inbox } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -42,7 +43,17 @@ export function DataGrid<T>({
   if (data.length === 0 && (emptyState || emptyMessage)) {
     return (
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 bg-white text-center">
-        {emptyState || <p className="text-xs text-slate-500">{emptyMessage}</p>}
+        {emptyState || (
+          <div className="flex flex-col items-center justify-center">
+            <div
+              aria-hidden="true"
+              className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
+            >
+              <Inbox size={20} strokeWidth={1.75} />
+            </div>
+            <p className="text-xs text-slate-500 max-w-sm leading-relaxed">{emptyMessage}</p>
+          </div>
+        )}
       </div>
     );
   }

@@ -996,6 +996,22 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R59 — Subpixel Circle Number Centering & DataGrid Empty State Icon Integration
+- **Root-Cause Analysis of Visual Feedback**:
+  1. *Optical Number Misalignment in Circles*: In `ReconciliationLifecycleStrip` and `DashboardPage`, `size-4` (16px) circular badges lacked `leading-none` and digit cap-height compensation. The inherited `line-height` included reserved descender space (which digits don't have), causing numbers to float upwards by ~1px at 100% zoom (while appearing normal when zoomed in due to subpixel antialiasing).
+  2. *Bare Empty State Void in DataGrid*: When `DataGrid` received `emptyMessage` (such as in `ReconciliationReportTables.tsx` variance/transaction/audit reports), it only rendered a raw `<p>` in a vast empty whitespace without an icon container, creating the impression of a blank or broken page.
+- **Remediation**:
+  - `ReconciliationLifecycleStrip.tsx`: Upgraded circle container to `w-[18px] h-[18px]` with `leading-none shrink-0 select-none` and applied `pt-[1px]` to digits for dead-center optical alignment at 100% DPI/zoom.
+  - `DashboardPage.tsx`: Applied `leading-none select-none` and `pt-[1px]` to stage numbers.
+  - `DataGrid.tsx`: Integrated design-kit `Inbox` icon within a structured `w-10 h-10 rounded-lg bg-slate-100 border border-slate-200` container for all `emptyMessage` fallback states, perfectly harmonizing with `StateBoundary.tsx`.
+- **Verification Evidence**:
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - Architecture growth check: PASS (all files < 600 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 
