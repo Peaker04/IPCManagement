@@ -163,6 +163,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     await userEvent.click(await screen.findByRole('button', { name: 'Chuyển sang Kho' }));
     expect(mrxApi.transferToWarehouse).toHaveBeenCalledWith('batch-1', 2);
     expect(await screen.findByText('Đã bàn giao lô đối soát sang Kho nguyên liệu thành công.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mở trạm Kho xuất ngày' })).toBeInTheDocument();
     expect(screen.getByText('Đã chuyển Kho')).toBeInTheDocument();
   });
 

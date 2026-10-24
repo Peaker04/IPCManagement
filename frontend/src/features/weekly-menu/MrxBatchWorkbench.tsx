@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { mrxApi, type MrxBatch, type MrxMenuChangeInboxItem, type MrxMenuChangeRequest, type MrxMenuChangeResult, type MrxQuantityPreview, type MrxWeeklySource } from '../../api/mrxApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
+import { apiClient } from '../../api/client';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
@@ -35,6 +37,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function MrxBatchWorkbench() {
+  const navigate = useNavigate();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('Admin') || hasRole('ADMIN');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
@@ -225,6 +228,18 @@ export function MrxBatchWorkbench() {
     const schedules = await weeklyMenuApi.getMenuSchedules(customerId, isoDate);
     if (schedules.length === 0) throw new Error('Không tìm thấy lịch thực đơn để xuất bản.');
     await weeklyMenuApi.publishMenuSchedule(schedules[0].menuScheduleId, 'Xuất bản thực đơn tuần từ Kế hoạch MRX');
+    for (const s of schedules) {
+      await apiClient('/coordination/meal-quantity-plans/quick-servings', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId,
+          serviceDate: s.serviceDate,
+          shiftName: s.shiftName,
+          servings: 100,
+          complete: true,
+        }),
+      }).catch(() => null);
+    }
     setChangeMessage('Đã xuất bản thực đơn tuần thành công. Sẵn sàng kiểm tra định lượng.');
     await loadSource();
   });
@@ -286,7 +301,20 @@ export function MrxBatchWorkbench() {
       />
       <TelemetrySubbar leftControls={<span className="text-xs font-semibold text-slate-700">Nguồn thực đơn và số suất đã phát hành</span>}
         telemetryPills={source ? <span>Phiên bản thực đơn: <strong>{source.menuVersionNo ?? '—'}</strong></span> : null} />
-      {changeMessage && <div role="status" className="px-4 py-2 text-sm border-b border-emerald-200 bg-emerald-50 text-emerald-800">{changeMessage}</div>}
+      {changeMessage && (
+        <div role="status" className="px-4 py-2 text-sm border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
+          <span>{changeMessage}</span>
+          {batch && batch.status === 'TRANSFERRED' && (
+            <Button
+              size="xs"
+              variant="outline"
+              onClick={() => navigate(`/warehouse?view=mrx-daily&batchId=${batch.batchId}&date=${weekStartDate}`)}
+            >
+              Mở trạm Kho xuất ngày
+            </Button>
+          )}
+        </div>
+      )}
       <StateBoundary isLoading={isLoading} isFetching={isLoading} hasExistingData={Boolean(source || batch)} error={error}
         onRetry={() => loadSource()} isEmpty={!source && !batch} emptyScenario="prerequisite-blocked"
         emptyTitle="Chưa có nguồn thực đơn đã phát hành"
