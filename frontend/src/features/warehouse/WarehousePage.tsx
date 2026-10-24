@@ -9,6 +9,8 @@ import { Select } from '../../components/ui/select';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { IdentifierText } from '../../components/ui/identifier-text';
+import { Modal } from '../../components/ui/modal';
+import { Num } from '../../components/ui/num';
 import {
   warehouseApi,
   type WarehouseItem,
@@ -65,6 +67,8 @@ function DefaultWarehousePage() {
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('ALL');
   const [issues, setIssues] = useState<InventoryIssueItem[]>([]);
   const [receipts, setReceipts] = useState<InventoryReceiptItem[]>([]);
+  const [selectedIssue, setSelectedIssue] = useState<InventoryIssueItem | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<InventoryReceiptItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -160,14 +164,14 @@ function DefaultWarehousePage() {
     {
       id: 'items',
       header: 'Số mặt hàng',
-      width: '12%',
+      width: '10%',
       align: 'center',
       cell: (row) => <span className="font-mono text-xs">{row.itemsCount} dòng</span>,
     },
     {
       id: 'status',
       header: 'Trạng thái',
-      width: '12%',
+      width: '10%',
       align: 'center',
       cell: (row) => (
         <Badge
@@ -176,6 +180,22 @@ function DefaultWarehousePage() {
         >
           {row.status === 'ISSUED' ? 'Đã xuất kho' : row.status === 'CONFIRMED' ? 'Đã nhận đủ' : 'Dự thảo'}
         </Badge>
+      ),
+    },
+    {
+      id: 'action',
+      header: 'Thao tác',
+      width: '10%',
+      align: 'right',
+      cell: (row) => (
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={() => setSelectedIssue(row)}
+          className="h-6 px-2 text-xs"
+        >
+          Chi tiết
+        </Button>
       ),
     },
   ];
@@ -229,6 +249,22 @@ function DefaultWarehousePage() {
         >
           {row.status === 'POSTED' ? 'Đã nhập kho' : row.status === 'APPROVED' ? 'Đã duyệt' : 'Dự thảo'}
         </Badge>
+      ),
+    },
+    {
+      id: 'action',
+      header: 'Thao tác',
+      width: '10%',
+      align: 'right',
+      cell: (row) => (
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={() => setSelectedReceipt(row)}
+          className="h-6 px-2 text-xs"
+        >
+          Chi tiết
+        </Button>
       ),
     },
   ];
@@ -342,6 +378,98 @@ function DefaultWarehousePage() {
           </StateBoundary>
         )}
       </StateBoundary>
+
+      {/* Issue Detail Modal */}
+      <Modal
+        isOpen={Boolean(selectedIssue)}
+        onClose={() => setSelectedIssue(null)}
+        title={`Chi tiết phiếu xuất: ${selectedIssue?.issueCode ?? ''}`}
+        description={`Kho: ${selectedIssue?.warehouseName ?? ''} · Ngày xuất: ${selectedIssue ? formatVietnameseDate(selectedIssue.issueDate) : ''} · Ca: ${selectedIssue?.shiftName ?? ''}`}
+        footer={<Button variant="outline" size="sm" onClick={() => setSelectedIssue(null)}>Đóng</Button>}
+      >
+        {selectedIssue && (
+          <div className="space-y-3">
+            <div className="border border-slate-200 rounded overflow-hidden max-h-72 overflow-y-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 sticky top-0">
+                  <tr>
+                    <th className="p-2.5">Mã nguyên liệu</th>
+                    <th className="p-2.5">Tên nguyên liệu</th>
+                    <th className="p-2.5 text-center">ĐVT</th>
+                    <th className="p-2.5 text-right">Yêu cầu</th>
+                    <th className="p-2.5 text-right">Thực xuất</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {selectedIssue.lines.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-slate-500 italic">
+                        Phiếu xuất không có dòng chi tiết.
+                      </td>
+                    </tr>
+                  ) : (
+                    selectedIssue.lines.map((l) => (
+                      <tr key={l.lineId} className="hover:bg-slate-50/50">
+                        <td className="p-2.5 font-mono text-slate-600"><IdentifierText value={l.ingredientCode} /></td>
+                        <td className="p-2.5 font-medium text-slate-900">{l.ingredientName}</td>
+                        <td className="p-2.5 text-center font-mono text-slate-700">{l.unit}</td>
+                        <td className="p-2.5 text-right font-mono"><Num value={l.requestedQty} format="quantity" /></td>
+                        <td className="p-2.5 text-right font-mono font-bold text-slate-900"><Num value={l.issuedQty} format="quantity" /></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Receipt Detail Modal */}
+      <Modal
+        isOpen={Boolean(selectedReceipt)}
+        onClose={() => setSelectedReceipt(null)}
+        title={`Chi tiết phiếu nhập: ${selectedReceipt?.receiptCode ?? ''}`}
+        description={`Nhà cung cấp: ${selectedReceipt?.supplierName ?? ''} · Ngày nhập: ${selectedReceipt ? formatVietnameseDate(selectedReceipt.receiptDate) : ''} · Kho: ${selectedReceipt?.warehouseName ?? ''}`}
+        footer={<Button variant="outline" size="sm" onClick={() => setSelectedReceipt(null)}>Đóng</Button>}
+      >
+        {selectedReceipt && (
+          <div className="space-y-3">
+            <div className="border border-slate-200 rounded overflow-hidden max-h-72 overflow-y-auto">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 sticky top-0">
+                  <tr>
+                    <th className="p-2.5">Mã nguyên liệu</th>
+                    <th className="p-2.5">Tên nguyên liệu</th>
+                    <th className="p-2.5 text-center">ĐVT</th>
+                    <th className="p-2.5 text-right">Thực nhận</th>
+                    <th className="p-2.5 text-right">Đơn giá</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {selectedReceipt.lines.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="p-4 text-center text-slate-500 italic">
+                        Phiếu nhập không có dòng chi tiết.
+                      </td>
+                    </tr>
+                  ) : (
+                    selectedReceipt.lines.map((l) => (
+                      <tr key={l.lineId} className="hover:bg-slate-50/50">
+                        <td className="p-2.5 font-mono text-slate-600"><IdentifierText value={l.ingredientCode} /></td>
+                        <td className="p-2.5 font-medium text-slate-900">{l.ingredientName}</td>
+                        <td className="p-2.5 text-center font-mono text-slate-700">{l.unit}</td>
+                        <td className="p-2.5 text-right font-mono font-bold text-slate-900"><Num value={l.receivedQty} format="quantity" /></td>
+                        <td className="p-2.5 text-right font-mono">{l.unitPrice ? <Num value={l.unitPrice} format="currency" /> : '—'}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

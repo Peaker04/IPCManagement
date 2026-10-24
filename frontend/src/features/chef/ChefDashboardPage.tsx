@@ -118,6 +118,15 @@ function DefaultChefDashboardPage() {
       });
   };
 
+  const handleConfirmReceipt = async (issueId: string) => {
+    try {
+      await chefApi.confirmIssueReceipt(issueId, false);
+      reload();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err : new Error('Không thể xác nhận nhận hàng tại bếp.'));
+    }
+  };
+
   const planColumns: ColumnDef<ChefPlanLineItem>[] = [
     { id: 'code', header: 'Mã KHSX', width: '16%', cell: (row) => <IdentifierText value={row.planCode} /> },
     { id: 'dish', header: 'Tên món ăn', width: '30%', cell: (row) => <span className="font-semibold text-slate-900">{row.dishName}</span> },
@@ -128,12 +137,31 @@ function DefaultChefDashboardPage() {
   ];
 
   const issueColumns: ColumnDef<ChefIssueItem>[] = [
-    { id: 'code', header: 'Mã phiếu xuất', width: '18%', cell: (row) => <IdentifierText value={row.issueCode} /> },
-    { id: 'date', header: 'Ngày xuất', width: '14%', cell: (row) => <span className="font-mono text-xs">{formatVietnameseDate(row.issueDate)}</span> },
-    { id: 'warehouse', header: 'Kho xuất', width: '24%', cell: (row) => <span>{row.warehouseName}</span> },
-    { id: 'lines', header: 'Dòng vật tư', width: '14%', align: 'right', cell: (row) => <Num value={row.lines.length} format="quantity" suffix=" dòng" /> },
-    { id: 'quantity', header: 'Tổng thực xuất', width: '15%', align: 'right', cell: (row) => <Num value={row.lines.reduce((sum, line) => sum + line.issuedQty, 0)} format="quantity" /> },
-    { id: 'received', header: 'Bếp xác nhận', width: '15%', align: 'center', cell: (row) => <Badge variant={row.receivedAt ? 'success' : 'warning'} size="sm">{row.receivedAt ? 'Đã nhận' : 'Chờ xác nhận'}</Badge> },
+    { id: 'code', header: 'Mã phiếu xuất', width: '16%', cell: (row) => <IdentifierText value={row.issueCode} /> },
+    { id: 'date', header: 'Ngày xuất', width: '13%', cell: (row) => <span className="font-mono text-xs">{formatVietnameseDate(row.issueDate)}</span> },
+    { id: 'warehouse', header: 'Kho xuất', width: '22%', cell: (row) => <span>{row.warehouseName}</span> },
+    { id: 'lines', header: 'Dòng vật tư', width: '13%', align: 'right', cell: (row) => <Num value={row.lines.length} format="quantity" suffix=" dòng" /> },
+    { id: 'quantity', header: 'Tổng thực xuất', width: '14%', align: 'right', cell: (row) => <Num value={row.lines.reduce((sum, line) => sum + line.issuedQty, 0)} format="quantity" /> },
+    { id: 'received', header: 'Bếp xác nhận', width: '10%', align: 'center', cell: (row) => <Badge variant={row.receivedAt ? 'success' : 'warning'} size="sm">{row.receivedAt ? 'Đã nhận' : 'Chờ xác nhận'}</Badge> },
+    {
+      id: 'action',
+      header: 'Thao tác',
+      width: '12%',
+      align: 'right',
+      cell: (row) =>
+        row.receivedAt ? (
+          <span className="text-emerald-700 text-xs font-semibold">✓ Đã nhận</span>
+        ) : (
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => void handleConfirmReceipt(row.issueId)}
+            className="h-6 px-2 text-xs"
+          >
+            Nhận hàng
+          </Button>
+        ),
+    },
   ];
 
   const activeData = activeView === 'issues' ? data?.issues || [] : data?.plans || [];
