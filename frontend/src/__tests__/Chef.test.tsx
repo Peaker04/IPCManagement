@@ -157,4 +157,22 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
 
     expect(await screen.findByText(/KITCHEN_FROZEN_LINEAGE_MISSING/)).toBeInTheDocument();
   });
+
+  it('Route 6: respects batchId from URL on F5 reload without falling back to preferred batch', async () => {
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [
+        { batchId: 'batch-first', customerId: 'c-1', customerName: 'Khách A', customerCode: 'KA', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 1, createdAt: '2026-10-19T00:00:00Z' },
+        { batchId: 'batch-target', customerId: 'c-2', customerName: 'Khách B', customerCode: 'KB', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 1, createdAt: '2026-10-19T00:00:00Z' },
+      ],
+      totalCount: 2, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false,
+    });
+    vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
+      batchId: 'batch-target', sourceVersion: 1, rows: [],
+    });
+
+    renderChef('/chef?view=mrx-cooking&batchId=batch-target');
+
+    const select = await screen.findByRole('combobox', { name: 'Chọn lô đối soát nấu' });
+    expect(select).toHaveValue('batch-target');
+  });
 });
