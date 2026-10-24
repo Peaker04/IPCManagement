@@ -817,6 +817,24 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Headed Chromium live audit: 5/5 user roles verified with zero alerts and zero 403 pages.
 - Final State: **`IDLE`**.
 
+### GF-R49 — Warehouse line detail inspection and Chef kitchen receipt handover confirmation
+- **Warehouse Line Detail Modals (`WarehousePage.tsx`)**:
+  - Added line item inspection modals for both Warehouse Issues and Warehouse Receipts:
+    - `SelectedIssue`: Displays issue code, warehouse name, date, shift, and tabular lines (`ingredientCode`, `ingredientName`, `unit`, `requestedQty`, `issuedQty`).
+    - `SelectedReceipt`: Displays receipt code, supplier name, date, warehouse, and tabular lines (`ingredientCode`, `ingredientName`, `unit`, `receivedQty`, `unitPrice`).
+  - Added explicit "Chi tiết" outline action buttons on both DataGrid tables.
+- **Kitchen Handover Confirmation Action (`ChefDashboardPage.tsx`)**:
+  - In `DefaultChefDashboardPage` issues view, added interactive "Nhận hàng" action button for lines where `receivedAt` is null.
+  - Connected `handleConfirmReceipt` calling authoritative backend API `POST /api/inventory-issues/{id}/confirm-receipt` via `chefApi.confirmIssueReceipt(issueId, false)`, closing the warehouse $\leftrightarrow$ kitchen handover loop.
+- **Verification Evidence**:
+  - Strict architecture growth check: PASS (zero new debt, zero test debt, all files < 600 lines).
+  - Full frontend unit suite: 18 files / 166 tests PASS (100%).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+  - Git commit: `6be55f51` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 
