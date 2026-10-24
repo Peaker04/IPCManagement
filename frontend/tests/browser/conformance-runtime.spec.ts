@@ -26,7 +26,20 @@ test.describe('Phase 4: Runtime Browser Acceptance & Conformance Suite', () => {
     }
   });
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, request }) => {
+    if (!authToken) {
+      try {
+        const res = await request.post('http://127.0.0.1:5262/api/auth/login', {
+          data: { username: 'admin', password: 'Admin@123456' },
+        });
+        const json = await res.json();
+        if (json.success && json.data?.accessToken) {
+          authToken = json.data.accessToken;
+        }
+      } catch {
+        // Retry fallback
+      }
+    }
     await page.addInitScript(({ token, mode }) => {
       localStorage.setItem('ipc_v3_token', token || 'mock-admin-token');
       localStorage.setItem(
@@ -125,7 +138,7 @@ test.describe('Phase 4: Runtime Browser Acceptance & Conformance Suite', () => {
 
   // Trụ cột 5: Operational Mode Isolation (DOM-MODE-1)
   test('DOM-MODE-1: Default-only routes redirect to /forbidden when mode is MATERIAL_RECONCILIATION', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/reports');
     await page.waitForTimeout(1000);
     expect(page.url()).toContain('/forbidden');
   });
