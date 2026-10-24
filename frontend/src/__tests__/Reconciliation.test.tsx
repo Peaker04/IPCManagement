@@ -277,6 +277,27 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(await screen.findByRole('button', { name: 'Xử lý chênh lệch Thịt đùi heo tươi' })).toBeInTheDocument();
   });
 
+  it('Route 7: renders blocker resolution strip when batch is in progress but week is not complete', async () => {
+    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue({
+      ...MOCK_RECONCILIATION,
+      status: 'IN_PROGRESS',
+      weeklyStatus: 'IN_PROGRESS',
+      lines: [{
+        ...MOCK_RECONCILIATION.lines[0],
+        requiredQuantity: 100,
+        issuedQuantity: 110,
+        issuedRequiredDifference: 10,
+        disposition: undefined,
+      }],
+    });
+
+    renderReconciliation();
+
+    expect(await screen.findByText(/Chưa thể chốt đối soát:/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Lọc dòng cần xử lý/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chốt đối soát tuần' })).not.toBeInTheDocument();
+  });
+
   it('switches between daily lines, variance register, transaction history, and audit trail tabs', async () => {
     vi.spyOn(mrxApi, 'getVarianceRegister').mockResolvedValue({
       rows: [{
