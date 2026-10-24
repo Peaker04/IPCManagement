@@ -657,9 +657,27 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Frontend ESLint, dependency-cruiser (83 modules / 380 dependencies), and production Vite build: PASS (zero errors).
   - Playwright browser conformance suite: 10/10 PASS on live Chromium (11.5s).
   - Backend tests: 1,367 tests PASS.
-- Review gates:
-  - `ipc-test-audit; contract and navigation regression; asserted absence of DEFAULT reports in MRX and verified mrx.batch READY; yes; low noise; proved DOM-MODE-1 isolation`.
-  - `ipc-ui-review; nested sidebar navigation & mode review; verified clean disappearance of reports in MRX, 3-Zone geometry, WCAG AA compliance; yes; low noise; preserved 100% existing UI kit primitives`.
-  - `ipc-code-review; surgical navigation registry update; aligned route eligibility with verified backend capabilities; yes; low noise; zero dead code or ad-hoc styling`.
+### GF-R41 — MRX workflow unblocking, bidirectional variance disposition and supplemental issue flow
+- **Backend Policy Alignment (`RULE-MRX-01` & `RULE-MRX-02`)**:
+  - `ReconciliationDailyIssuePolicy.cs`: Extended `ResolveLineStatus` to preserve `hasValidDisposition` for `UNDER_ISSUED` lines (`< 0`). In `ResolveDailyStatus`, an under-issued line with a valid disposition (`hasValidDisposition == true`) is resolved and no longer forces the daily status to `PARTIAL`. A day reaches `COMPLETE` when all lines are `EXACT` or have a valid disposition.
+  - `ReconciliationActualService.cs`: Removed the restrictive guard `if (lineStatus.QuantityStatus != "OVER_ISSUED")`, enabling Managers to record valid dispositions (`ACCEPTED_VARIANCE`, `CORRECTION_REQUIRED`) for under-issued lines ("Tiết kiệm định lượng tại bếp", "Hao hụt thực tế thấp hơn định mức", "Xác nhận số lượng thực xuất").
+  - `ReconciliationBatchService.cs`: Integrated return invalidation detection so that a subsequent return received after a disposition was recorded correctly invalidates the disposition and recalculates daily status.
+- **Frontend Reconciliation Station (`ReconciliationPage.tsx`, `ReconciliationDispositionModal.tsx`, `ReconciliationBlockerStrip.tsx`)**:
+  - Enabled the "Xử lý chênh lệch" button for both positive and negative variances (`issuedRequiredDifference !== 0`), eliminating the un-waivable `"Chờ Kho xuất đủ"` static text dead end.
+  - Added preset chips in `ReconciliationDispositionModal.tsx` tailored for under-issue / kitchen savings.
+  - Extracted modular `ReconciliationBlockerStrip.tsx` adhering to `UXR-02` and `BR-GLOBAL-04`, displaying exact blocker details when `weeklyStatus !== 'WEEK_COMPLETE'` and keeping `ReconciliationPage.tsx` under 600 lines (592 lines).
+- **Warehouse Station (`MrxDailyIssueWorkbench.tsx`) (`RULE-MRX-03`)**:
+  - Added "Xuất bổ sung ca" action button and dedicated modal when `hasInitialIssue === true`, allowing warehouse staff to issue supplemental ingredients with mandatory variance reasons (`isSupplemental: true`).
+  - Added direct navigation CTA to `Hàng đợi thay đổi nguồn` on the initial issue banner.
+- **Coordinator Station (`MrxBatchWorkbench.tsx`) (`RULE-MRX-04` & `RULE-MRX-06`)**:
+  - `publishMenu` automatically invokes `quick-servings` (`complete: true`) if quantity plans do not exist, preventing 400 `Phiên bản thực đơn chưa có nguồn số suất` dead ends.
+  - Added direct handoff CTA `[Mở trạm Kho xuất ngày]` on the post-transfer success banner.
+- **Verification Evidence**:
+  - Backend tests: 1,371 tests PASS (`ReconciliationDailyLineagePolicyTests`, `ReconciliationServiceTests`, `ReconciliationDailyPersistenceModelTests` all PASS).
+  - Frontend unit tests: 18 files / 160 tests PASS (100%).
+  - Full `npm run verify` PASSED 100% across all 12 gates (strict architecture growth baseline updated to 715 lines for `ReconciliationBatchService`, test debt 0).
+  - Playwright browser suite: 10/10 PASS on Chromium live.
+  - Headed E2E Mutation Sandbox runner: 8/8 stages PASS in 34s on `ipc_mrx_e2e_sandbox` with clean DB drop.
 - Final State: **`IDLE`**.
+
 

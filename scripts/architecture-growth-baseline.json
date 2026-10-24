@@ -38,7 +38,7 @@
       "files": [
         "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
       ],
-      "lines": 726,
+      "lines": 715,
       "level": "WARNING"
     },
     {

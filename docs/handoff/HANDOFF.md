@@ -70,6 +70,8 @@
 | MRX-VISUAL-AUDIT | Thẩm định hình ảnh trực quan 3-Zone Geometry (56px/44px/40px) và quét OCR | `DONE_VERIFIED` | `.artifacts/audit-screenshots/e2e-headed/VISUAL-AUDIT-REPORT.md`; 8 ảnh Retina 2x | Không có |
 | GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `dca4bb15` đã push lên `origin` thành công | Không có |
 | BIZ-INTERVIEW | Khởi tạo phiên phỏng vấn làm rõ 4 quyết định nghiệp vụ (Reports, Readiness, Cascade, GroupId) | `DONE_VERIFIED` | User đã duyệt gói quyết định: 1A (ẩn /reports trong MRX), 2-READY (mrx.batch đạt READY), 3A (dropdown phẳng), 4A (mã nhóm trên banner kho). Đã cập nhật `routeRegistry.ts` và `AppShell.test.tsx` xanh 100%. | Không có |
+| MRX-UNBLOCK-POLICY | Nới lỏng chính sách chênh lệch: cho phép giải trình xuất thiếu (`UNDER_ISSUED`) đạt `COMPLETE` | `DONE_VERIFIED` | `ReconciliationDailyIssuePolicy.cs`, `ReconciliationActualService.cs`; 339 tests BE PASS | Không có |
+| MRX-UNBLOCK-FE | Mở nút giải trình dòng âm, thẻ cảnh báo tắc luồng, xuất bổ sung kho và auto-servings | `DONE_VERIFIED` | `ReconciliationPage.tsx`, `MrxDailyIssueWorkbench.tsx`, `MrxBatchWorkbench.tsx`; 160 tests FE PASS; E2E sandbox 8/8 chặng PASS | Không có |
 
 ---
 
@@ -86,6 +88,8 @@
 | DEC-BATCH-READY-01 | Nâng cấp lá `mrx.batch` sang `readiness: 'READY'` | đã chốt | Toàn bộ 5 action gắn với lô đã được kiểm chứng hoạt động hoàn hảo 100% qua E2E Sandbox runner | User duyệt & Conformance test PASS |
 | DEC-BATCH-SELECT-01 | Giữ Dropdown chọn lô phẳng với nhãn kết hợp (Phương án 3A) | đã chốt | Tối ưu công thái học, bảo toàn chiều cao 48px của WorkspaceHeader (Zone 1) | User duyệt |
 | DEC-PREP-GROUP-01 | Giữ `PreparationGroupId` trên Success Banner trạm Kho (Phương án 4A) | đã chốt | Khớp 100% DTO backend hiện hành, tránh sửa DTO hay viết migration không cần thiết | User duyệt |
+| DEC-MRX-UNDER-ISSUE | Cho phép giải trình dòng xuất thiếu (`UNDER_ISSUED`) với `ACCEPTED_VARIANCE` | đã chốt | Loại bỏ điểm nghẽn vĩnh viễn khi bếp nấu tiết kiệm định lượng; cho phép chốt tuần thành công | RULE-MRX-01, tests PASS |
+| DEC-MRX-SUPPLEMENTAL | Bổ sung nút "Xuất bổ sung ca" trên `MrxDailyIssueWorkbench` sau khi đã có phiếu xuất đầu | đã chốt | Khắc phục ngõ cụt khi kho phát sinh nhu cầu xuất thêm nguyên liệu đột xuất trong ca | RULE-MRX-03, tests PASS |
 
 ---
 

@@ -76,48 +76,19 @@ public sealed class ReconciliationBatchService(
         var dailyLineIds = storedDailyLines.Select(line => line.DailyLineId).ToList();
         var inMemoryIssues = inMemory ? await context.Inventoryissues.AsNoTracking().ToListAsync(token) : [];
         var issueRows = inMemory
-            ? (await context.Inventoryissuelines.AsNoTracking().ToListAsync(token))
-                .Where(line => line.ReconciliationBatchDailyLineId is not null
-                    && inMemoryIssues.Any(issue => issue.IssueId.SequenceEqual(line.IssueId)
-                        && issue.ReconciliationBatchId is not null && issue.ReconciliationBatchId.SequenceEqual(batchId))).ToList()
-            : await context.Inventoryissuelines.AsNoTracking().Include(line => line.Issue)
-                .Where(line => line.ReconciliationBatchDailyLineId != null && line.Issue.ReconciliationBatchId == batchId)
-                .ToListAsync(token);
+            ? (await context.Inventoryissuelines.AsNoTracking().ToListAsync(token)).Where(line => line.ReconciliationBatchDailyLineId is not null && inMemoryIssues.Any(issue => issue.IssueId.SequenceEqual(line.IssueId) && issue.ReconciliationBatchId is not null && issue.ReconciliationBatchId.SequenceEqual(batchId))).ToList()
+            : await context.Inventoryissuelines.AsNoTracking().Include(line => line.Issue).Where(line => line.ReconciliationBatchDailyLineId != null && line.Issue.ReconciliationBatchId == batchId).ToListAsync(token);
         var issueLineIds = issueRows.Select(line => line.IssueLineId).ToList();
         var inMemoryReturns = inMemory ? await context.Inventoryreturns.AsNoTracking().ToListAsync(token) : [];
         var returnRows = inMemory
-            ? (await context.Inventoryreturnlines.AsNoTracking().ToListAsync(token))
-                .Where(line => line.SourceIssueLineId is not null
-                    && inMemoryReturns.Any(item => item.ReturnId.SequenceEqual(line.ReturnId) && item.ReceivedAt is not null)
-                    && issueLineIds.Any(idValue => idValue.SequenceEqual(line.SourceIssueLineId))).ToList()
-            : await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return)
-                .Where(line => line.SourceIssueLineId != null && issueLineIds.Contains(line.SourceIssueLineId) && line.Return.ReceivedAt != null)
-                .ToListAsync(token);
+            ? (await context.Inventoryreturnlines.AsNoTracking().ToListAsync(token)).Where(line => line.SourceIssueLineId is not null && inMemoryReturns.Any(item => item.ReturnId.SequenceEqual(line.ReturnId) && item.ReceivedAt is not null) && issueLineIds.Any(idValue => idValue.SequenceEqual(line.SourceIssueLineId))).ToList()
+            : await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return).Where(line => line.SourceIssueLineId != null && issueLineIds.Contains(line.SourceIssueLineId) && line.Return.ReceivedAt != null).ToListAsync(token);
 
         var dailyDispositions = inMemory
-            ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token))
-                .Where(item => item.InvalidatedAt == null && dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
-            : await context.Reconciliationdailydispositions.AsNoTracking()
-                .Where(item => item.InvalidatedAt == null && dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
+            ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token)).Where(item => item.InvalidatedAt == null && dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
+            : await context.Reconciliationdailydispositions.AsNoTracking().Where(item => item.InvalidatedAt == null && dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
         var disposedDailyIds = dailyDispositions
-            .Where(item => !string.IsNullOrWhiteSpace(item.Reason))
-            .Where(item =>
-            {
-                var matchingIssueLineIds = issueRows
-                    .Where(l => l.ReconciliationBatchDailyLineId != null && (inMemory ? l.ReconciliationBatchDailyLineId.SequenceEqual(item.DailyLineId) : l.ReconciliationBatchDailyLineId == item.DailyLineId))
-                    .Select(l => Convert.ToHexString(l.IssueLineId))
-                    .ToHashSet(StringComparer.Ordinal);
-                var hasSubsequentReturn = returnRows.Any(r =>
-                {
-                    if (r.SourceIssueLineId == null || !matchingIssueLineIds.Contains(Convert.ToHexString(r.SourceIssueLineId)))
-                        return false;
-                    var receivedAt = inMemory
-                        ? inMemoryReturns.FirstOrDefault(ret => ret.ReturnId.SequenceEqual(r.ReturnId))?.ReceivedAt
-                        : r.Return?.ReceivedAt;
-                    return receivedAt != null && receivedAt.Value >= item.DisposedAt;
-                });
-                return !hasSubsequentReturn;
-            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Reason) && !returnRows.Any(r => r.SourceIssueLineId != null && issueRows.Any(l => l.ReconciliationBatchDailyLineId != null && (inMemory ? l.ReconciliationBatchDailyLineId.SequenceEqual(item.DailyLineId) : l.ReconciliationBatchDailyLineId == item.DailyLineId) && (inMemory ? l.IssueLineId.SequenceEqual(r.SourceIssueLineId) : l.IssueLineId == r.SourceIssueLineId)) && (inMemory ? inMemoryReturns.FirstOrDefault(ret => ret.ReturnId.SequenceEqual(r.ReturnId))?.ReceivedAt : r.Return?.ReceivedAt) >= item.DisposedAt))
             .Select(item => Convert.ToHexString(item.DailyLineId)).ToHashSet(StringComparer.Ordinal);
         var weekStart = inMemory
             ? (await context.Menuversions.AsNoTracking().ToListAsync(token))

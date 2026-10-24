@@ -488,11 +488,16 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
         issueId: 'iss-1',
         issueCode: 'PX-001',
         issueDate: '2026-10-19',
+        warehouseId: 'wh-1',
+        sourceFamily: 'MATERIAL_RECONCILIATION',
+        issuedBy: 'user-1',
+        createdAt: '2026-10-19T00:00:00Z',
         lines: [{
           issueLineId: 'il-1',
           ingredientId: 'i-1',
           unitId: 'u-1',
           reconciliationBatchDailyLineId: 'dl-1',
+          requestedQty: 10,
           issuedQty: 10,
         }],
       }],
@@ -503,9 +508,10 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       hasPrev: false,
       hasNext: false,
     });
-    const createIssueSpy = vi.spyOn(mrxApi, 'createIssue').mockResolvedValue({
+    vi.spyOn(mrxApi, 'createIssue').mockResolvedValue({
       issueId: 'iss-supp-1',
       issueCode: 'PX-SUPP-001',
+      concurrencyVersion: 1,
     });
 
     renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-in-progress-1&date=2026-10-19');

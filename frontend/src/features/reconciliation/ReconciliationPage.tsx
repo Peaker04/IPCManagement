@@ -13,6 +13,7 @@ import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { ActionGuard } from '../../components/ui/action-guard';
 import { ApiError } from '../../api/client';
+import { ReconciliationBlockerStrip } from './ReconciliationBlockerStrip';
 import { ReconciliationReportTables } from './ReconciliationReportTables';
 import { ReconciliationDispositionModal } from './ReconciliationDispositionModal';
 import { ReconciliationQueueCards } from './ReconciliationQueueCards';
@@ -350,10 +351,7 @@ export function ReconciliationPage() {
 
   const isForbidden = error instanceof ApiError && error.status === 403;
   const isModeConflict = error instanceof ApiError && error.status === 409 && (
-    error.message.includes('chế độ') ||
-    error.message.includes('Đối chiếu') ||
-    error.message.includes('MRX') ||
-    error.message.includes('DEFAULT')
+    error.message.includes('chế độ') || error.message.includes('Đối chiếu') || error.message.includes('MRX') || error.message.includes('DEFAULT')
   );
   const isConflict = error instanceof ApiError && error.status === 409 && !isModeConflict;
   const displayedError = isForbidden || isConflict || isModeConflict ? null : error;
@@ -458,18 +456,10 @@ export function ReconciliationPage() {
 
       {/* Blocker Resolution Strip (Rule UXR-02 & BR-GLOBAL-04) */}
       {data && data.status === 'IN_PROGRESS' && data.weeklyStatus !== 'WEEK_COMPLETE' && (
-        <div role="status" className="px-4 py-2 text-xs font-medium border-b border-amber-200 bg-amber-50 text-amber-900 flex items-center justify-between shrink-0">
-          <span>
-            <strong>Chưa thể chốt đối soát:</strong> {needsReviewCount > 0
-              ? `Còn ${needsReviewCount} dòng chênh lệch cần giải trình trước khi chốt sổ tuần.`
-              : 'Còn ngày trong tuần chưa xuất kho hoàn tất. Hãy kiểm tra lại tiến độ các ngày.'}
-          </span>
-          {needsReviewCount > 0 && (
-            <Button variant="outline" size="xs" onClick={() => setLineStatusFilter('NEEDS_REVIEW')}>
-              Lọc dòng cần xử lý ({needsReviewCount})
-            </Button>
-          )}
-        </div>
+        <ReconciliationBlockerStrip
+          needsReviewCount={needsReviewCount}
+          onFilterNeedsReview={() => setLineStatusFilter('NEEDS_REVIEW')}
+        />
       )}
 
       {/* 5 Operational Queue Metric Cards (Rule D7 / Control Tower) */}
@@ -488,23 +478,10 @@ export function ReconciliationPage() {
         }}
         onFilterAwaitingWarehouse={() => selectBatch(batches.find((b) => b.status === 'READY' || b.status === 'TRANSFERRED'))}
         onNavigateDeltas={() => {
-          if (isAdmin || hasRole('WarehouseStaff') || hasRole('Thủ kho')) {
-            navigate('/warehouse?view=mrx-issues');
-          } else {
-            setSearchParams((curr) => {
-              const next = new URLSearchParams(curr);
-              next.set('view', 'transactions');
-              return next;
-            });
-          }
+          if (isAdmin || hasRole('WarehouseStaff') || hasRole('Thủ kho')) navigate('/warehouse?view=mrx-issues');
+          else setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('view', 'transactions'); return next; });
         }}
-        onFilterVariances={() => {
-          setSearchParams((curr) => {
-            const next = new URLSearchParams(curr);
-            next.set('view', 'variances');
-            return next;
-          });
-        }}
+        onFilterVariances={() => setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('view', 'variances'); return next; })}
         onFilterReadyCompletion={() => selectBatch(batches.find((b) => b.status === 'IN_PROGRESS'))}
       />
 
