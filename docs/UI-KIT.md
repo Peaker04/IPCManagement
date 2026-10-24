@@ -13,6 +13,18 @@ Hệ thống vận hành công nghiệp loại bỏ hoàn toàn mô hình giao d
 2. **Luật 2 (`85% Viewport for Data`)**: Dành trọn tối thiểu 85% chiều cao khung nhìn (`calc(100dvh - 88px)`) cho bảng dữ liệu chính với duy nhất 1 thanh cuộn dọc mượt mà.
 3. **Luật 3 (`Compact Operational Density`)**: Dòng bảng cao `36px–40px` (`Rule T8`), số liệu dùng font `tabular-nums` căn phải, mã đối tượng dùng font monospace có nút copy nhanh.
 
+### 1.1. Bảng Ánh Xạ Hợp Nhất 5 Nhóm Component Cũ Sang 3-Zone Flat Workbench
+
+Toàn bộ 45+ file rời rạc trước đây trong thư mục `components/common/` đã được tái cấu trúc triệt để thành mô hình 3-Zone Flat Workbench và UI Primitives chuẩn:
+
+| Nhóm chức năng cũ trong `common/` | Thành phần cũ | Thành phần thay thế chuẩn hóa (3-Zone) | Vị trí thư mục chuẩn |
+| :--- | :--- | :--- | :--- |
+| **Nhóm A: Layout & Shell** (9 components) | `OperationalFrame`, `CommandBar`, `PageBanner`, `ContextStrip`, `SectionPanel`, `DocumentRail`, `SideRail`, `PageStepper` | `AppShell`<br>`WorkspaceHeader` (Zone 1: h-12 / 48px)<br>`TelemetrySubbar` (Zone 2: h-10 / 40px) | `frontend/src/components/workbench/` |
+| **Nhóm B: Table & Pagination** (8 components) | `TableViewport`, `PaginatedTableFrame`, `PaginationBar`, `CursorPaginationBar`, `TablePreferencesControl`, `TableSkeleton`, `SkeletonTableRow`, `TableEmptyState` | `DataGrid` (Zone 3: sticky header, inline pagination)<br>`SplitView` (Master-Detail)<br>`WorkbenchSkeleton` | `frontend/src/components/workbench/` |
+| **Nhóm C: State & Feedback** (9 components) | `QueryViewBoundary`, `QueryErrorAlert`, `EmptyState`, `InlineAlert`, `InfoNote`, `FieldError`, `ToastProvider`, `ServiceRunBlockerPanel`, `DiagnosticPanel` | `StateBoundary` (quản trị đủ 6 trạng thái UI)<br>`ReconciliationBlockerStrip` | `frontend/src/components/workbench/`<br>`frontend/src/features/reconciliation/` |
+| **Nhóm D: Formatting & Guards** (9 components) | `Num`, `IdentifierText`, `StatusBadge`, `NotificationBadge`, `ActionGuard`, `ActionAvailability`, `SearchField`, `FieldRow`, `ViewSwitcher`, `KeepAliveTabPanel`, `RefreshStatus` | 10 UI Primitives chuẩn WCAG AA: `Button`, `Input`, `Select`, `Badge`, `Checkbox`, `Num`, `IdentifierText`, `VietnameseDateInput`, `Modal`, `Tabs`, `ActionGuard` | `frontend/src/components/ui/` |
+| **Nhóm E: Domain Components** (5 components đặt nhầm) | `StockMovementTable`<br>`DemandSummary`<br>`ApprovalQueue`<br>`RoleInbox`<br>`ExceptionLane` | Chuyển về đúng phân hệ nghiệp vụ sở hữu | `features/warehouse/`<br>`features/weekly-menu/views/`<br>`features/approvals/`<br>`features/dashboard/`<br>`features/reconciliation/` |
+
 ---
 
 ## 2. 10 UI Primitives (`frontend/src/components/ui/`)
