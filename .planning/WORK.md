@@ -890,6 +890,21 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Git commit: `9bf4e17e` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R54 — Reconciliation cross-station unissued warehouse blocker resolution
+- **Cross-Station Navigation on Blocker Strip (`ReconciliationBlockerStrip.tsx` & `ReconciliationPage.tsx`)**:
+  - Enhanced `ReconciliationBlockerStrip` with context-aware CTA routing:
+    - When `needsReviewCount > 0`: Displays filter action button `Lọc dòng cần xử lý ({needsReviewCount})`.
+    - When `needsReviewCount === 0` but `weeklyStatus !== 'WEEK_COMPLETE'`: Automatically displays Primary CTA `Mở trạm Kho xuất ngày →`, navigating directly to `/warehouse?view=mrx-daily&batchId=${data.batchId}` so the supervisor/manager can immediately inspect unissued warehouse dates.
+- **Verification Evidence**:
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Strict architecture growth check: PASS (ReconciliationPage: 594 lines < 600, ReconciliationBlockerStrip: 34 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+  - Headed Chromium Live: 5/5 user roles verified, zero alert popups, zero 403 pages, zero console errors.
+  - Git commit: `1dad95a2` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 
