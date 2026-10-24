@@ -183,4 +183,19 @@ describe('AdminDataPage — Conformance & Behavioral Audit', () => {
     expect(await screen.findByText('Gạo tẻ ST25')).toBeInTheDocument();
     expect(getIngsSpy).toHaveBeenCalledTimes(2);
   });
+
+  // Kịch bản 5: Search Filter Input
+  it('searches ingredients by keyword using server-side search parameter', async () => {
+    const user = userEvent.setup();
+    const getIngsSpy = vi.spyOn(adminApi, 'getIngredients').mockResolvedValue(mockIngredientsPage1);
+
+    renderPage('/admin-data?view=ingredients');
+
+    const searchInput = await screen.findByRole('searchbox', { name: 'Tìm kiếm danh mục' });
+    expect(searchInput).toBeInTheDocument();
+
+    await user.type(searchInput, 'Gạo');
+
+    expect(getIngsSpy).toHaveBeenLastCalledWith(expect.objectContaining({ searchKeyword: 'Gạo' }));
+  });
 });

@@ -5,6 +5,7 @@ import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
@@ -18,6 +19,7 @@ export function AdminDataPage() {
   const [searchParams] = useSearchParams();
   const activeView = searchParams.get('view') === 'dishes' ? 'dishes' : 'ingredients';
   const [pageNumber, setPageNumber] = useState(1);
+  const [searchKeyword, setSearchKeyword] = useState('');
   const [prevView, setPrevView] = useState(activeView);
 
   // Synchronize pageNumber on view change without effect cascading render
@@ -43,12 +45,13 @@ export function AdminDataPage() {
     setIsLoading(true);
     setError(null);
     try {
+      const keyword = searchKeyword.trim() || undefined;
       if (activeView === 'ingredients') {
-        const result = await adminApi.getIngredients({ pageNumber, pageSize: 25 });
+        const result = await adminApi.getIngredients({ pageNumber, pageSize: 25, searchKeyword: keyword });
         setIngredients(result.items);
         setPageInfo(result);
       } else {
-        const result = await adminApi.getDishes({ pageNumber, pageSize: 25 });
+        const result = await adminApi.getDishes({ pageNumber, pageSize: 25, searchKeyword: keyword });
         setDishes(result.items);
         setPageInfo(result);
       }
@@ -57,14 +60,15 @@ export function AdminDataPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeView, pageNumber]);
+  }, [activeView, pageNumber, searchKeyword]);
 
   useEffect(() => {
     let ignore = false;
+    const keyword = searchKeyword.trim() || undefined;
 
     const request = activeView === 'ingredients'
-      ? adminApi.getIngredients({ pageNumber, pageSize: 25 })
-      : adminApi.getDishes({ pageNumber, pageSize: 25 });
+      ? adminApi.getIngredients({ pageNumber, pageSize: 25, searchKeyword: keyword })
+      : adminApi.getDishes({ pageNumber, pageSize: 25, searchKeyword: keyword });
 
     request
       .then((result) => {
@@ -91,7 +95,7 @@ export function AdminDataPage() {
     return () => {
       ignore = true;
     };
-  }, [activeView, pageNumber]);
+  }, [activeView, pageNumber, searchKeyword]);
 
   const ingredientColumns: ColumnDef<IngredientItem>[] = [
     {
@@ -210,9 +214,22 @@ export function AdminDataPage() {
       <WorkspaceHeader
         title="Quản trị dữ liệu & Danh mục"
         contextSelectors={
-          <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-medium flex items-center">
-            {pageInfo.totalCount} {activeView === 'ingredients' ? 'nguyên liệu danh mục' : 'món ăn tiêu chuẩn'}
-          </Badge>
+          <>
+            <Input
+              type="search"
+              aria-label="Tìm kiếm danh mục"
+              placeholder={activeView === 'ingredients' ? 'Tìm mã, tên nguyên liệu...' : 'Tìm mã, tên món ăn...'}
+              value={searchKeyword}
+              onChange={(e) => {
+                setSearchKeyword(e.target.value);
+                setPageNumber(1);
+              }}
+              className="h-9 w-60 text-sm"
+            />
+            <Badge variant="neutral" size="default" className="h-9 px-3 text-sm font-medium flex items-center whitespace-nowrap">
+              {pageInfo.totalCount} {activeView === 'ingredients' ? 'nguyên liệu' : 'món ăn'}
+            </Badge>
+          </>
         }
         actions={
           <Button variant="outline" size="default" onClick={loadData} className="h-9 text-sm font-medium">
