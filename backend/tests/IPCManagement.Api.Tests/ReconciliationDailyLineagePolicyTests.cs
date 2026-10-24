@@ -30,18 +30,30 @@ public sealed class ReconciliationDailyLineagePolicyTests
             hasValidDisposition);
 
         Assert.Equal(expected, status.QuantityStatus);
-        Assert.Equal(hasValidDisposition && netIssuedQuantity > 10m, status.HasValidDisposition);
+        Assert.Equal(hasValidDisposition && netIssuedQuantity != 10m && netIssuedQuantity != null, status.HasValidDisposition);
     }
 
     public static TheoryData<decimal?, bool, string> LineStatusCases => new()
     {
         { null, false, "UNTOUCHED" },
         { 4m, false, "UNDER_ISSUED" },
+        { 4m, true, "UNDER_ISSUED" },
         { 10m, false, "EXACT" },
         { 12m, false, "OVER_ISSUED" },
         { 10m, true, "EXACT" },
         { 12m, true, "OVER_ISSUED" },
     };
+
+    [Fact]
+    public void UnderIssued_Line_With_Valid_Disposition_Allows_Daily_Complete()
+    {
+        var underIssuedResolved = ReconciliationDailyIssuePolicy.ResolveLineStatus(50m, 45m, hasValidDisposition: true);
+        Assert.Equal("UNDER_ISSUED", underIssuedResolved.QuantityStatus);
+        Assert.True(underIssuedResolved.HasValidDisposition);
+
+        var dailyStatus = ReconciliationDailyIssuePolicy.ResolveDailyStatus(new[] { underIssuedResolved });
+        Assert.Equal("COMPLETE", dailyStatus);
+    }
 
     [Fact]
     public void Confirmed_return_can_move_a_line_from_over_to_exact_or_under()
@@ -64,6 +76,7 @@ public sealed class ReconciliationDailyLineagePolicyTests
         { [Line("UNTOUCHED")], "UNTOUCHED" },
         { [Line("UNTOUCHED"), Line("EXACT")], "PARTIAL" },
         { [Line("UNDER_ISSUED"), Line("EXACT")], "PARTIAL" },
+        { [Line("UNDER_ISSUED", true), Line("EXACT")], "COMPLETE" },
         { [Line("EXACT"), Line("EXACT")], "COMPLETE" },
         { [Line("OVER_ISSUED"), Line("EXACT")], "OVERAGE_REQUIRES_RESOLUTION" },
         { [Line("OVER_ISSUED", true), Line("EXACT")], "COMPLETE" },

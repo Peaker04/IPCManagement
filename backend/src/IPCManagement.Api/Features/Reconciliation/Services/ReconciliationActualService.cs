@@ -126,8 +126,8 @@ public sealed class ReconciliationActualService(
                     .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity), StringComparer.Ordinal);
                 var netIssued = issueRows.Sum(line => line.IssuedQty - returnedByIssueLine.GetValueOrDefault(Convert.ToHexString(line.IssueLineId)));
                 var lineStatus = ReconciliationDailyIssuePolicy.ResolveLineStatus(dailyLine.RequiredQuantity, netIssued, false);
-                if (lineStatus.QuantityStatus != "OVER_ISSUED")
-                    throw new InvalidOperationException("Chỉ dòng xuất vượt theo ngày mới cần hướng xử lý hoàn tất.");
+                if (lineStatus.QuantityStatus == "EXACT")
+                    throw new InvalidOperationException("Dòng xuất đúng định mức không cần xử lý chênh lệch.");
 
                 var current = inMemory
                     ? (await context.Reconciliationdailydispositions.ToListAsync(operationToken))

@@ -755,10 +755,19 @@ public sealed partial class ReconciliationServiceTests
         }
         if (secondIssued < 5)
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => actuals.SetDailyDispositionAsync(
-                GuidHelper.ToGuidString(second.DailyLineId), new("ACCEPTED_VARIANCE", "Cannot waive shortage", null), actor));
-            await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(batchId, new(1), actor));
+            // Before disposition, shortage blocks weekly completion
             Assert.NotEqual("WEEK_COMPLETE", (await batches.GetAsync(batchId))!.DailyReview!.WeeklyStatus);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(batchId, new(1), actor));
+
+            // Under RULE-MRX-01: shortage can be disposed with valid reason
+            await actuals.SetDailyDispositionAsync(
+                GuidHelper.ToGuidString(second.DailyLineId), new("ACCEPTED_VARIANCE", "Shortage resolved due to kitchen savings", null), actor);
+            context.ChangeTracker.Clear();
+
+            Assert.Equal("WEEK_COMPLETE", (await batches.GetAsync(batchId))!.DailyReview!.WeeklyStatus);
+            await completion.CompleteAsync(batchId, new(1), actor);
+            context.ChangeTracker.Clear();
+            Assert.Equal("COMPLETED", (await batches.GetAsync(batchId))!.Status);
         }
         else
         {

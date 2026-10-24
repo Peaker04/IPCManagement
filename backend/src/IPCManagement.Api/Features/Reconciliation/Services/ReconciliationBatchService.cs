@@ -74,23 +74,6 @@ public sealed class ReconciliationBatchService(
             Weekly: weeklyById[Convert.ToHexString(daily.BatchLineId)])).ToList();
         var compatibility = ReconciliationDailyIssuePolicy.ResolveCompatibility(dailyLines.Count > 0, batch.Status);
         var dailyLineIds = storedDailyLines.Select(line => line.DailyLineId).ToList();
-        var dailyDispositions = inMemory
-            ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token))
-                .Where(item => item.InvalidatedAt == null && dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
-            : await context.Reconciliationdailydispositions.AsNoTracking()
-                .Where(item => item.InvalidatedAt == null && dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
-        var disposedDailyIds = dailyDispositions
-            .Where(item => !string.IsNullOrWhiteSpace(item.Reason))
-            .Select(item => Convert.ToHexString(item.DailyLineId)).ToHashSet(StringComparer.Ordinal);
-        var weekStart = inMemory
-            ? (await context.Menuversions.AsNoTracking().ToListAsync(token))
-                .SingleOrDefault(item => item.MenuVersionId.SequenceEqual(batch.MenuVersionId))?.WeekStartDate
-            : await context.Menuversions.AsNoTracking()
-                .Where(item => item.MenuVersionId == batch.MenuVersionId)
-                .Select(item => (DateOnly?)item.WeekStartDate)
-                .SingleOrDefaultAsync(token);
-        weekStart ??= dailyLines.Count == 0 ? null : StartOfWeek(dailyLines.Min(item => item.Daily.ServiceDate));
-
         var inMemoryIssues = inMemory ? await context.Inventoryissues.AsNoTracking().ToListAsync(token) : [];
         var issueRows = inMemory
             ? (await context.Inventoryissuelines.AsNoTracking().ToListAsync(token))
@@ -110,6 +93,41 @@ public sealed class ReconciliationBatchService(
             : await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return)
                 .Where(line => line.SourceIssueLineId != null && issueLineIds.Contains(line.SourceIssueLineId) && line.Return.ReceivedAt != null)
                 .ToListAsync(token);
+
+        var dailyDispositions = inMemory
+            ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token))
+                .Where(item => item.InvalidatedAt == null && dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
+            : await context.Reconciliationdailydispositions.AsNoTracking()
+                .Where(item => item.InvalidatedAt == null && dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
+        var disposedDailyIds = dailyDispositions
+            .Where(item => !string.IsNullOrWhiteSpace(item.Reason))
+            .Where(item =>
+            {
+                var matchingIssueLineIds = issueRows
+                    .Where(l => l.ReconciliationBatchDailyLineId != null && (inMemory ? l.ReconciliationBatchDailyLineId.SequenceEqual(item.DailyLineId) : l.ReconciliationBatchDailyLineId == item.DailyLineId))
+                    .Select(l => Convert.ToHexString(l.IssueLineId))
+                    .ToHashSet(StringComparer.Ordinal);
+                var hasSubsequentReturn = returnRows.Any(r =>
+                {
+                    if (r.SourceIssueLineId == null || !matchingIssueLineIds.Contains(Convert.ToHexString(r.SourceIssueLineId)))
+                        return false;
+                    var receivedAt = inMemory
+                        ? inMemoryReturns.FirstOrDefault(ret => ret.ReturnId.SequenceEqual(r.ReturnId))?.ReceivedAt
+                        : r.Return?.ReceivedAt;
+                    return receivedAt != null && receivedAt.Value >= item.DisposedAt;
+                });
+                return !hasSubsequentReturn;
+            })
+            .Select(item => Convert.ToHexString(item.DailyLineId)).ToHashSet(StringComparer.Ordinal);
+        var weekStart = inMemory
+            ? (await context.Menuversions.AsNoTracking().ToListAsync(token))
+                .SingleOrDefault(item => item.MenuVersionId.SequenceEqual(batch.MenuVersionId))?.WeekStartDate
+            : await context.Menuversions.AsNoTracking()
+                .Where(item => item.MenuVersionId == batch.MenuVersionId)
+                .Select(item => (DateOnly?)item.WeekStartDate)
+                .SingleOrDefaultAsync(token);
+        weekStart ??= dailyLines.Count == 0 ? null : StartOfWeek(dailyLines.Min(item => item.Daily.ServiceDate));
+
         var returnedByIssueLine = returnRows
             .GroupBy(line => Convert.ToHexString(line.SourceIssueLineId!))
             .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity), StringComparer.Ordinal);

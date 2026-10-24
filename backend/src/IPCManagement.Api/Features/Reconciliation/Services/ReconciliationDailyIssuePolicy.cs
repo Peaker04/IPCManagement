@@ -39,7 +39,7 @@ public static class ReconciliationDailyIssuePolicy
         var difference = Normalize(netIssuedQuantity.Value - requiredQuantity);
         return difference switch
         {
-            < 0 => new("UNDER_ISSUED"),
+            < 0 => new("UNDER_ISSUED", hasValidDisposition),
             > 0 => new("OVER_ISSUED", hasValidDisposition),
             _ => new("EXACT")
         };
@@ -49,7 +49,9 @@ public static class ReconciliationDailyIssuePolicy
     {
         if (lines.Count == 0) return "NO_REQUIREMENT";
         if (lines.All(line => line.QuantityStatus == "UNTOUCHED")) return "UNTOUCHED";
-        if (lines.Any(line => line.QuantityStatus is "UNTOUCHED" or "UNDER_ISSUED")) return "PARTIAL";
+        if (lines.Any(line => line.QuantityStatus == "UNTOUCHED")) return "PARTIAL";
+        if (lines.Any(line => line.QuantityStatus == "UNDER_ISSUED" && !line.HasValidDisposition))
+            return "PARTIAL";
         if (lines.Any(line => line.QuantityStatus == "OVER_ISSUED" && !line.HasValidDisposition))
             return "OVERAGE_REQUIRES_RESOLUTION";
         return "COMPLETE";
