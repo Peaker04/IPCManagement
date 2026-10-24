@@ -285,14 +285,14 @@ export function ReconciliationPage() {
       header: 'Đã xuất theo sổ',
       width: '14%',
       align: 'right',
-      cell: (row) => row.issuedQuantity == null ? <span>—</span> : <Num value={row.issuedQuantity} format="quantity" />,
+      cell: (row) => row.issuedQuantity == null ? <span className="text-slate-400 font-mono text-xs">Chưa xuất</span> : <Num value={row.issuedQuantity} format="quantity" />,
     },
     {
       id: 'difference',
       header: 'Chênh lệch xuất',
       width: '14%',
       align: 'right',
-      cell: (row) => row.issuedRequiredDifference == null ? <span>—</span> : (
+      cell: (row) => row.issuedRequiredDifference == null ? <span className="text-slate-400 font-mono text-xs">—</span> : (
         <Num
           value={row.issuedRequiredDifference}
           format="quantity"
@@ -308,7 +308,7 @@ export function ReconciliationPage() {
       align: 'center',
       cell: (row) => (
         <Badge variant={row.disposition ? 'success' : row.triggers.length > 0 ? 'warning' : 'neutral'} size="sm">
-          {STATUS_LABELS[row.status] || row.status}
+          {row.issuedQuantity == null ? 'Chưa có phiếu xuất' : (STATUS_LABELS[row.status] || row.status)}
         </Badge>
       ),
     },

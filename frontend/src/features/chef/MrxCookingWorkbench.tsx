@@ -29,6 +29,7 @@ export function MrxCookingWorkbench() {
 
   const [batches, setBatches] = useState<MrxBatchSummary[]>([]);
   const [batchId, setBatchId] = useState(urlBatchId);
+  const [selectedShift, setSelectedShift] = useState<'ALL' | 'MORNING' | 'AFTERNOON'>('ALL');
   const [data, setData] = useState<MrxKitchenCooking | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -128,9 +129,19 @@ export function MrxCookingWorkbench() {
     return Array.from(map.values());
   }, [data]);
 
-  const totalServings = useMemo(() => {
-    return dishGroups.reduce((acc, g) => acc + g.servings, 0);
-  }, [dishGroups]);
+  const filteredDishGroups = useMemo(() => {
+    if (selectedShift === 'ALL') return dishGroups;
+    return dishGroups.filter((g) => {
+      const shiftUpper = g.shiftName.toUpperCase();
+      if (selectedShift === 'MORNING') return shiftUpper.includes('MORNING') || shiftUpper.includes('SÁNG') || shiftUpper.includes('CA 1');
+      if (selectedShift === 'AFTERNOON') return shiftUpper.includes('AFTERNOON') || shiftUpper.includes('CHIỀU') || shiftUpper.includes('CA 2');
+      return true;
+    });
+  }, [dishGroups, selectedShift]);
+
+  const totalFilteredServings = useMemo(() => {
+    return filteredDishGroups.reduce((acc, g) => acc + g.servings, 0);
+  }, [filteredDishGroups]);
 
   const csvUrl = batchId ? `/api/reconciliation/batches/${encodeURIComponent(batchId)}/kitchen-cooking/csv` : '';
   const xlsxUrl = batchId ? `/api/reconciliation/batches/${encodeURIComponent(batchId)}/kitchen-cooking/xlsx` : '';
@@ -160,9 +171,22 @@ export function MrxCookingWorkbench() {
               />
             )}
             {data && (
-              <Badge variant="neutral" size="default" className="h-9 px-3 text-xs font-mono flex items-center">
-                Phiên bản nguồn: v{data.sourceVersion}
-              </Badge>
+              <>
+                <Select
+                  aria-label="Lọc theo ca nấu"
+                  value={selectedShift}
+                  onChange={(e) => setSelectedShift(e.target.value as 'ALL' | 'MORNING' | 'AFTERNOON')}
+                  options={[
+                    { value: 'ALL', label: 'Tất cả các ca' },
+                    { value: 'MORNING', label: 'Ca 1 (Sáng)' },
+                    { value: 'AFTERNOON', label: 'Ca 2 (Chiều)' },
+                  ]}
+                  className="h-9 w-40 font-medium text-sm"
+                />
+                <Badge variant="neutral" size="default" className="h-9 px-3 text-xs font-mono flex items-center">
+                  Phiên bản: v{data.sourceVersion}
+                </Badge>
+              </>
             )}
           </>
         }
@@ -208,17 +232,19 @@ export function MrxCookingWorkbench() {
           <>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Số món:</span>
-              <strong className="text-slate-900 font-mono">{dishGroups.length}</strong>
+              <strong className="text-slate-900 font-mono">{filteredDishGroups.length}</strong>
             </span>
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Tổng suất:</span>
-              <strong className="text-slate-900 font-mono">{totalServings} suất</strong>
+              <strong className="text-slate-900 font-mono">{totalFilteredServings} suất</strong>
             </span>
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Dòng nguyên liệu:</span>
-              <strong className="text-slate-900 font-mono">{data.rows.length}</strong>
+              <strong className="text-slate-900 font-mono">
+                {filteredDishGroups.reduce((sum, g) => sum + g.rows.length, 0)}
+              </strong>
             </span>
           </>
         ) : null}
@@ -235,7 +261,7 @@ export function MrxCookingWorkbench() {
         emptyDescription={isLegacyLineageMissing ? "Lô này chưa phân rã phiếu nấu theo ngày hoặc được tạo từ phiên bản trước (KITCHEN_FROZEN_LINEAGE_MISSING). Vui lòng chọn lô đối soát khác trong danh sách phía trên." : "Lô đối soát cần có lịch món, số suất và BOM định mức đã đóng băng."}
       >
         <div className="flex-1 min-h-0 overflow-auto p-4 space-y-4 bg-slate-50/50">
-          {dishGroups.map((group) => (
+          {filteredDishGroups.map((group) => (
             <section
               key={group.key}
               aria-label={`Món ${group.dishName}`}
