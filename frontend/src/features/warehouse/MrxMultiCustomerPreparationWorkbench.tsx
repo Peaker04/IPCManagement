@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxPreparation } from '../../api/mrxApi';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -7,7 +8,7 @@ import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
-import { toVietnameseDate } from '../../utils/dates';
+import { toVietnameseDate, todayInBusinessTimezone } from '../../utils/dates';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
@@ -17,7 +18,9 @@ interface MrxMultiCustomerPreparationWorkbenchProps {
 }
 
 export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCustomerPreparationWorkbenchProps) {
-  const [activeDate, setActiveDate] = useState(() => serviceDate || '2026-10-22');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlDate = searchParams.get('date');
+  const [activeDate, setActiveDate] = useState(() => serviceDate || urlDate || todayInBusinessTimezone());
   const [data, setData] = useState<MrxPreparation | null>(null);
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
   const [supplierFilter, setSupplierFilter] = useState('');
@@ -56,7 +59,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
   );
 
   const filteredAggregatedLines = useMemo(() => {
-    if (!data) return [];
+    if (!data || !data.aggregatedLines) return [];
     return data.aggregatedLines
       .map((line) => {
         const filteredAllocs = line.allocations.filter((a) => selectedBatchIds.includes(a.batchId));
@@ -175,6 +178,11 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
               value={activeDate}
               onChange={(newDate) => {
                 setActiveDate(newDate);
+                setSearchParams((curr) => {
+                  const next = new URLSearchParams(curr);
+                  next.set('date', newDate);
+                  return next;
+                }, { replace: true });
               }}
               className="h-9 w-40 font-mono text-sm"
             />

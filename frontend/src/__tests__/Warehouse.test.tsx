@@ -544,4 +544,18 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const batchSelect = await screen.findByRole('combobox', { name: 'Chọn lô đối soát xuất kho' });
     expect(batchSelect).toHaveValue('batch-target-2');
   });
+
+  it('Route 4 & 5: preparation workbench respects date from URL search parameters on F5 reload', async () => {
+    vi.spyOn(mrxApi, 'getPreparation').mockResolvedValue({
+      serviceDate: '2026-11-05',
+      batches: [],
+      suppliers: [],
+    });
+
+    renderWarehouse('/warehouse?view=mrx-preparation&date=2026-11-05');
+
+    const dateInput = await screen.findByRole('textbox', { name: 'Ngày chuẩn bị' });
+    expect(dateInput).toHaveValue('05/11/2026');
+    expect(mrxApi.getPreparation).toHaveBeenCalledWith('2026-11-05');
+  });
 });
