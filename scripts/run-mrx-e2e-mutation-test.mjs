@@ -106,6 +106,7 @@ async function main() {
     log(`Starting backend Kestrel on port ${KESTREL_PORT}...`);
     kestrelProcess = spawn('dotnet', [
       'run',
+      '--no-build',
       '--project', 'backend/src/IPCManagement.Api',
       '--urls', `http://127.0.0.1:${KESTREL_PORT}`,
       '--ConnectionStrings:DefaultConnection', `server=localhost;port=3306;database=${SANDBOX_DB};user=root;password=123456789;`,
@@ -113,6 +114,7 @@ async function main() {
       cwd: REPO_ROOT,
       stdio: 'pipe',
     });
+    kestrelProcess.stderr.on('data', (d) => process.stderr.write(`[Kestrel-ERR] ${d}`));
 
     await waitForHttp(`${API_URL}/swagger/v1/swagger.json`, 25000);
     log(`Backend Kestrel is live at ${API_URL}`);
