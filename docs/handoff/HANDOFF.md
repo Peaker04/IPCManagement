@@ -81,7 +81,8 @@
 | PREP-DELTA-CTA-RECOVERY | Bổ sung nút CTA chuyển tiếp liên trạm "Xem phiếu xuất theo ngày →" trên banner thành công của MrxMultiCustomerPreparationWorkbench và alert phản hồi thao tác trên MrxSourceDeltaWorkbench | `DONE_VERIFIED` | `MrxMultiCustomerPreparationWorkbench.tsx`, `MrxSourceDeltaWorkbench.tsx`; strict architecture check PASS (<600 lines); 167 FE tests PASS | Không có |
 | RECON-BLOCKER-CTA-RECOVERY | Bổ sung nút CTA "Mở trạm Kho xuất ngày →" trên ReconciliationBlockerStrip khi lô bị kẹt do ngày chưa xuất kho hoàn tất, điều hướng thẳng sang trạm Kho | `DONE_VERIFIED` | `ReconciliationBlockerStrip.tsx`, `ReconciliationPage.tsx`; strict architecture check PASS (<600 lines); 167 FE tests PASS | Không có |
 | EXHAUSTIVE-SANDBOX-TEST | Kiểm thử đột biến toàn diện 8 kịch bản (happy path, xuất vượt không lý do bị chặn, xuất thiếu bếp tiết kiệm, xuất bổ sung, lọc ca bếp, giải trình chênh lệch 2 chiều, CTA dẫn đường) trên database cô lập ipc_mrx_e2e_sandbox | `DONE_VERIFIED` | `scripts/run-mrx-exhaustive-scenarios-test.mjs`; 8/8 kịch bản PASS 100% trong 49s; sandbox DB dropped cleanly; git commit `214a520c` | Không có |
-| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `214a520c` đã push lên remote thành công | Không có |
+| FULL-PATH-7DAY-4ACTOR-TEST | Kiểm thử trọn vẹn 100% chu kỳ vận hành 7 ngày cả tuần với 4 vai trò thật (dieuphoi -> thukho -> beptruong -> quanly) từ nhập template đến xuất 6 ngày, giải trình sai lệch, đạt WEEK_COMPLETE, chốt đối soát tuần COMPLETED | `DONE_VERIFIED` | `scripts/run-mrx-full-path-lifecycle-test.mjs`; 5/5 phases PASS 100% trong 1m30s; batch hoàn tất vĩnh viễn; git commit `e41a6705` | Không có |
+| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `e41a6705` đã push lên remote thành công | Không có |
 
 ---
 

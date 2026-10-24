@@ -927,6 +927,27 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Database sandbox dropped cleanly; git commit `214a520c` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R56 — Complete 7-day 4-actor full-path MRX operational lifecycle verification to final weekly completion
+- **Full Operational Week Lifecycle Testing (`scripts/run-mrx-full-path-lifecycle-test.mjs`)**:
+  - Executed true full-path end-to-end lifecycle across the entire 7-day operational week on isolated sandbox database `ipc_mrx_e2e_sandbox`:
+    1. *Phase 1 (Coordinator `dieuphoi`)*: Imported weekly menu from Excel template, verified 2-tab preview (`Phân rã nguyên liệu định lượng` & `Kế hoạch món & suất theo ca`), published menu, created draft batch, froze batch (`READY`), and transferred to warehouse.
+    2. *Phase 2 (Warehouse `thukho`)*: Inspected `Cả tuần (Tổng hợp)` read-only view; issued all 6 applicable days (Monday through Saturday) with realistic operations: Monday over-issue with mandatory reason + supplemental issue; Tuesday exact match via `Điền đủ toàn bộ`; Wednesday kitchen savings under-issue; Thursday exact match; Friday over-issue; Saturday exact match.
+    3. *Phase 3 (Chef `beptruong`)*: Inspected cooking vouchers, verified per-shift filtering (`Ca 1 / Ca 2`), and asserted sanitized read-only projection with 0 price/supplier leakage.
+    4. *Phase 4 (Manager `quanly`)*: Verified `ActionGuard permissions` for `reconciliation.complete` and `reconciliation.read`; resolved all variances across all days with `ACCEPTED_VARIANCE`; verified that authoritative `weeklyStatus` reached **`WEEK_COMPLETE`**; clicked **`Chốt đối soát tuần`**; confirmed completion modal; locked batch to **`COMPLETED`**.
+    5. *Phase 5 (Report Ledgers)*: Verified Sổ theo dõi chênh lệch (`variances`), Lịch sử giao dịch kho (`transactions`, 139 records), and Danh bạ lô hoàn tất (`completed`, batch listed as `COMPLETED`).
+- **Architectural Refinement**:
+  - Extracted `reconciliationColumns.tsx` from `ReconciliationPage.tsx`, maintaining file size at 531 lines (< 600 threshold).
+- **Verification Evidence**:
+  - Headed Chromium Live: 5/5 phases PASS in 1m30s (`MRX-FULL-PATH-REPORT.json`).
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Playwright runtime suite: 10/10 tests PASS (100%).
+  - Strict architecture growth check: PASS (all files < 600 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations across 90 modules and 418 dependencies.
+  - Production Vite build: PASS (`dist/`).
+  - Database sandbox dropped cleanly; git commit `e41a6705` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 
