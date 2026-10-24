@@ -680,4 +680,25 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Headed E2E Mutation Sandbox runner: 8/8 stages PASS in 34s on `ipc_mrx_e2e_sandbox` with clean DB drop.
 - Final State: **`IDLE`**.
 
+### GF-R42 — Single-route deep dive verification, URL parameter persistence and multi-customer aggregation hardening
+- **Single-Route Deep Dive Protocol Implemented**: Shifted from broad batch verification to granular, route-by-route 6-dimension evaluation (Actions, 6 States, URL State & F5 Persistence, Dirty Draft, RBAC & Mode, Next CTA) under `docs/superpowers/specs/2026-10-24-mrx-route-by-route-audit-and-remediation-design.md` and plan `docs/superpowers/plans/2026-10-24-mrx-route-by-route-audit-and-remediation-plan.md`.
+- **Route 2 (`/weekly-menu?view=mrx-batch`) Hardening**:
+  - `MrxBatchWorkbench.tsx`: Connected `useSearchParams` to read `customerId` and `weekStartDate` from URL on mount and synchronize on changes, fixing the bug where F5 reload dropped query state and defaulted to the first customer.
+- **Route 3 (`/warehouse?view=mrx-daily`) Hardening**:
+  - `WarehousePage.tsx`: Removed the fragile `batchId && serviceDate` coupling that previously misrouted single-parameter visits; `/warehouse?view=mrx-daily&batchId=...` now directly renders `MrxDailyIssueWorkbench` retaining the URL batch ID.
+  - `MrxDailyIssueWorkbench.tsx`: Preserves `batchId` and `date` from URL parameters, eliminating fallback to the default batch on page refresh.
+- **Route 4 & 5 (`/warehouse?view=mrx-preparation` & `mrx-issues`) Hardening**:
+  - `MrxMultiCustomerPreparationWorkbench.tsx`: Synchronizes `date` with URL query parameters and adds safe navigation on `data?.aggregatedLines`, preventing uncaught TypeError crashes when preparation lines are empty.
+- **Route 6 (`/chef?view=mrx-cooking`) Verification**:
+  - Confirmed URL persistence for `batchId`, verified `@media print` A4 clean styling, and proved zero-mutation pure read-only boundary via `Chef.test.tsx`.
+- **Route 7 (`/reconciliation`) Verification**:
+  - Confirmed view-level tab synchronization via `?view=`, verified `ReconciliationBlockerStrip` presence when week is incomplete, and asserted CSV export endpoints.
+- **Route 1 (`/login`) Verification**:
+  - Validated role × mode landing path resolution for Coordinator, Warehouse, Chef, and Manager without DEFAULT dashboard fallback loops.
+- **Verification Evidence**:
+  - Full `npm run verify` PASSED 100% across all 12 gates (1,360 BE tests CI + 49 App tests, 166 FE tests across 18 files, strict architecture growth gate clean with zero debt, ESLint 0 errors / 0 warnings).
+  - Playwright browser suite: 10/10 PASS on Chromium live (12.5s).
+  - Headed E2E Mutation Sandbox runner: 8/8 stages PASS in 34s on `ipc_mrx_e2e_sandbox` with clean DB drop.
+- Final State: **`IDLE`**.
+
 

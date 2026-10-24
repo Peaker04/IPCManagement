@@ -77,7 +77,7 @@ export function MrxBatchWorkbench() {
       }
     });
     return () => { ignore = true; };
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!isAdmin) return;

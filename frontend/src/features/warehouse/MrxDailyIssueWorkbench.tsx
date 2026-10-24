@@ -73,7 +73,7 @@ export function MrxDailyIssueWorkbench({
       })
       .catch(() => {});
     return () => { ignore = true; };
-  }, [activeBatchId, setSearchParams]);
+  }, [activeBatchId, propBatchId, searchParams, setSearchParams]);
 
   const load = useCallback(async (targetBatchId = activeBatchId, targetDate = activeDate) => {
     if (!targetBatchId) {

@@ -549,7 +549,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     vi.spyOn(mrxApi, 'getPreparation').mockResolvedValue({
       serviceDate: '2026-11-05',
       batches: [],
-      suppliers: [],
+      aggregatedLines: [],
     });
 
     renderWarehouse('/warehouse?view=mrx-preparation&date=2026-11-05');
