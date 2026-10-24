@@ -346,4 +346,21 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     expect(await screen.findByText('Thực đơn & KHSX tuần')).toBeInTheDocument();
   });
+
+  it('Route 2: persists customerId and weekStartDate in URL search params on change and F5 reload', async () => {
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
+      { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
+      { customerId: 'cust-2', customerCode: 'C2', customerName: 'Khách Hai' },
+    ]);
+    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
+      customerId: 'cust-2', customerCode: 'C2', customerName: 'Khách Hai', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
+      menuVersionId: 'mv-2', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [],
+      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
+    });
+
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-2&weekStartDate=2026-11-02');
+
+    const customerSelect = await screen.findByRole('combobox', { name: 'Chọn khách hàng MRX' });
+    expect(customerSelect).toHaveValue('cust-2');
+  });
 });

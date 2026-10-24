@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxBatch, type MrxMenuChangeInboxItem, type MrxMenuChangeRequest, type MrxMenuChangeResult, type MrxQuantityPreview, type MrxWeeklySource } from '../../api/mrxApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import { apiClient } from '../../api/client';
@@ -38,11 +38,12 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function MrxBatchWorkbench() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('Admin') || hasRole('ADMIN');
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
-  const [customerId, setCustomerId] = useState('');
-  const [weekStartDate, setWeekStartDate] = useState(currentWeekStart);
+  const [customerId, setCustomerId] = useState(() => searchParams.get('customerId') || '');
+  const [weekStartDate, setWeekStartDate] = useState(() => searchParams.get('weekStartDate') || currentWeekStart());
   const [source, setSource] = useState<MrxWeeklySource | null>(null);
   const [preview, setPreview] = useState<MrxQuantityPreview | null>(null);
   const [batch, setBatch] = useState<MrxBatch | null>(null);
@@ -65,7 +66,9 @@ export function MrxBatchWorkbench() {
     weeklyMenuApi.getCustomers().then((items) => {
       if (ignore) return;
       setCustomers(items);
-      setCustomerId((current) => current || items[0]?.customerId || '');
+      const urlCustId = searchParams.get('customerId');
+      const resolvedCustId = (urlCustId && items.some((i) => i.customerId === urlCustId)) ? urlCustId : (items[0]?.customerId || '');
+      setCustomerId((current) => current || resolvedCustId);
       if (items.length === 0) setIsLoading(false);
     }).catch((cause: unknown) => {
       if (!ignore) {
@@ -263,15 +266,26 @@ export function MrxBatchWorkbench() {
           <Select aria-label="Chọn khách hàng MRX" value={customerId} disabled={customers.length === 0}
             options={customers.map((item) => ({ value: item.customerId, label: `${item.customerCode} - ${item.customerName}` }))}
             onChange={(event) => {
+              const nextId = event.target.value;
               setIsLoading(true);
               setError(null);
-              setCustomerId(event.target.value);
+              setCustomerId(nextId);
+              setSearchParams((curr) => {
+                const next = new URLSearchParams(curr);
+                next.set('customerId', nextId);
+                return next;
+              }, { replace: true });
             }} className="h-9 w-64 font-medium text-sm" />
           <VietnameseDateInput aria-label="Tuần MRX bắt đầu" value={weekStartDate}
             onChange={(date) => {
               setIsLoading(true);
               setError(null);
               setWeekStartDate(date);
+              setSearchParams((curr) => {
+                const next = new URLSearchParams(curr);
+                next.set('weekStartDate', date);
+                return next;
+              }, { replace: true });
             }} className="h-9 w-40 font-mono text-sm" />
           {batch && <Badge variant="info" size="default">{STATUS_LABELS[batch.status] ?? batch.status}</Badge>}
         </>}
