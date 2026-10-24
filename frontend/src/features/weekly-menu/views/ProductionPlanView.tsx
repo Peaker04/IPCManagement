@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TelemetrySubbar } from '../../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
 import { Select } from '../../../components/ui/select';
@@ -121,9 +122,10 @@ export function ProductionPlanView({ data }: ProductionPlanViewProps) {
                 onClick={() => setDayIndex((prev) => Math.max(0, prev - 1))}
                 disabled={dayIndex === 0}
                 className="h-6 w-5 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
+                aria-label="Ngày trước"
                 title="Ngày trước"
               >
-                ‹
+                <ChevronLeft className="size-3.5" aria-hidden="true" />
               </button>
               <span className="text-xs font-semibold text-slate-900 px-1 whitespace-nowrap">
                 {currentDay.dayName}, {currentDay.dateStr}
@@ -133,9 +135,10 @@ export function ProductionPlanView({ data }: ProductionPlanViewProps) {
                 onClick={() => setDayIndex((prev) => Math.min(data.scheduleDays.length - 1, prev + 1))}
                 disabled={dayIndex === data.scheduleDays.length - 1}
                 className="h-6 w-5 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
+                aria-label="Ngày sau"
                 title="Ngày sau"
               >
-                ›
+                <ChevronRight className="size-3.5" aria-hidden="true" />
               </button>
             </div>
 

@@ -974,6 +974,28 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R58 — UI Kit Icon Modernization & Complete AI-Slop / Emoji Elimination
+- **Audited & Eliminated Raw Unicode Symbols & Slop**:
+  - Replaced raw text symbols (`▼`, `✓`, `⧉`, `←`, `‹`, `›`) across all frontend primitives, workbench composites, and views with canonical `lucide-react` icons matching the project's design system (`docs/UI-KIT.md`).
+- **Standardized UI Kit Iconography**:
+  - `Select` (`components/ui/select.tsx`): Replaced raw text `▼` with `<ChevronDown className="pointer-events-none absolute right-2.5 size-4 text-slate-400" />`.
+  - `IdentifierText` (`components/ui/identifier-text.tsx`): Replaced raw `✓` and `⧉` with `<Check>` and `<Copy>` from `lucide-react`.
+  - `ReconciliationLifecycleStrip` (`components/workbench/ReconciliationLifecycleStrip.tsx`): Replaced raw `✓` with `<Check className="size-2.5 stroke-[3]" />`.
+  - `SplitView` (`components/workbench/SplitView.tsx`): Replaced `← Quay lại` with `<ArrowLeft className="size-3.5" />` and clean label.
+  - `StateBoundary` (`components/workbench/StateBoundary.tsx`): Added standard Lucide icons for 403 (`ShieldAlert`), 409 conflict (`AlertTriangle`), and error state (`AlertCircle`) alongside existing empty state (`Inbox`).
+  - `ForbiddenPage` (`features/auth/ForbiddenPage.tsx`): Replaced bare 403 circle with `<ShieldAlert>` icon accompanied by a semantic code badge.
+  - `ChefDashboardPage` (`features/chef/ChefDashboardPage.tsx`): Replaced `✓ Đã nhận` with `<Check>` icon plus accessible status text.
+  - `DashboardPage` (`features/dashboard/DashboardPage.tsx`): Replaced `✓` stage check with `<Check>` and raw `→` with `<ArrowRight>`.
+  - `MrxDailyIssueWorkbench` (`features/warehouse/MrxDailyIssueWorkbench.tsx`): Replaced raw `✓` with `<Check>` icon.
+  - `MaterialDemandView` & `ProductionPlanView` (`features/weekly-menu/views/`): Replaced raw `‹` and `›` with `<ChevronLeft>` and `<ChevronRight>` with full `aria-label` support.
+- **Verification Evidence**:
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - Architecture growth check: PASS (strict baseline, 0 new debt, `MrxDailyIssueWorkbench.tsx` 599 < 600).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

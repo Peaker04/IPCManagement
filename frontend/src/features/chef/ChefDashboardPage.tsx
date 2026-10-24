@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Check } from 'lucide-react';
 import { useSearchParams, Navigate } from 'react-router-dom';
 import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
@@ -150,7 +151,10 @@ function DefaultChefDashboardPage() {
       align: 'right',
       cell: (row) =>
         row.receivedAt ? (
-          <span className="text-emerald-700 text-xs font-semibold">✓ Đã nhận</span>
+          <span className="inline-flex items-center gap-1 text-emerald-700 text-xs font-semibold">
+            <Check className="size-3.5 text-emerald-600" aria-hidden="true" />
+            <span>Đã nhận</span>
+          </span>
         ) : (
           <Button
             variant="outline"

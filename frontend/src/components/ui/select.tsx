@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -40,9 +41,10 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
               ))
             : children}
         </select>
-        <span className="pointer-events-none absolute right-2.5 text-slate-400 text-xs">
-          ▼
-        </span>
+        <ChevronDown
+          className="pointer-events-none absolute right-2.5 size-4 text-slate-400"
+          aria-hidden="true"
+        />
       </div>
     );
   }

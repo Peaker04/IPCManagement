@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Button } from '../ui/button';
@@ -65,8 +66,10 @@ export function SplitView({
               size="xs"
               onClick={onBackToMaster}
               aria-label="Quay lại danh sách"
+              className="inline-flex items-center gap-1.5"
             >
-              ← Quay lại danh sách
+              <ArrowLeft className="size-3.5" aria-hidden="true" />
+              <span>Quay lại danh sách</span>
             </Button>
           </div>
         )}

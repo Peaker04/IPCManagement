@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Check } from 'lucide-react';
 import { mrxApi, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary } from '../../api/mrxApi';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -30,7 +31,6 @@ export function MrxDailyIssueWorkbench({
   const [batches, setBatches] = useState<MrxBatchSummary[]>([]);
   const [activeBatchId, setActiveBatchId] = useState(() => propBatchId || searchParams.get('batchId') || '');
   const [activeDate, setActiveDate] = useState(() => propServiceDate || searchParams.get('date') || todayInBusinessTimezone());
-
   const [daily, setDaily] = useState<MrxWarehouseDaily | null>(null);
   const [history, setHistory] = useState<MrxIssuePage | null>(null);
   const [quantities, setQuantities] = useState<Record<string, string>>({});
@@ -497,7 +497,7 @@ export function MrxDailyIssueWorkbench({
                   }
                 })()} ({toVietnameseDate(d.serviceDate).slice(0, 5)})
                 {d.lines.some((l) => (l.issuedQuantity ?? 0) > 0) && (
-                  <span className="ml-1 text-[10px] text-emerald-600 font-bold">✓</span>
+                  <Check className="size-3 text-emerald-600 inline ml-1" aria-hidden="true" />
                 )}
               </button>
             ))}

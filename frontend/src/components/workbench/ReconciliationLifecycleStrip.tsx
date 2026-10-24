@@ -1,4 +1,5 @@
 import { clsx } from 'clsx';
+import { Check } from 'lucide-react';
 
 export type ReconciliationLifecycleStatus = 'DRAFT' | 'READY' | 'TRANSFERRED' | 'IN_PROGRESS' | 'COMPLETED';
 
@@ -69,7 +70,11 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
               )}
               aria-hidden="true"
             >
-              {isPast && !isCurrent ? '✓' : step.step}
+              {isPast && !isCurrent ? (
+                <Check className="size-2.5 stroke-[3]" aria-hidden="true" />
+              ) : (
+                step.step
+              )}
             </span>
             <span className="truncate">{step.label}</span>
           </div>

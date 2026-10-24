@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Check, ArrowRight } from 'lucide-react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { SplitView } from '../../components/workbench/SplitView';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
@@ -306,7 +307,7 @@ export function DashboardPage() {
                                   : 'bg-slate-200 text-slate-600'
                               )}
                             >
-                              {isCompleted ? '✓' : stage.stageNumber}
+                              {isCompleted ? <Check className="size-3 stroke-[3]" aria-hidden="true" /> : stage.stageNumber}
                             </span>
                             <span className="text-sm font-bold text-slate-900">
                               {stage.stageName}
@@ -343,9 +344,10 @@ export function DashboardPage() {
                               variant="link"
                               size="sm"
                               onClick={() => navigate(stage.actionRoute!)}
-                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1"
                             >
-                              {stage.actionLabel} →
+                              <span>{stage.actionLabel}</span>
+                              <ArrowRight className="size-3" aria-hidden="true" />
                             </Button>
                           )}
                         </div>

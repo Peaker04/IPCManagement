@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { Check, Copy } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -47,11 +48,11 @@ export function IdentifierText({
       {copyable && (
         <span
           className={clsx(
-            'text-xs text-slate-400 group-hover:text-slate-700 transition-opacity',
-            copied ? 'text-emerald-600 font-semibold' : 'opacity-0 group-hover:opacity-100'
+            'inline-flex items-center justify-center size-3.5 transition-opacity',
+            copied ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-700 opacity-0 group-hover:opacity-100'
           )}
         >
-          {copied ? '✓' : '⧉'}
+          {copied ? <Check className="size-3" aria-hidden="true" /> : <Copy className="size-3" aria-hidden="true" />}
         </span>
       )}
     </span>

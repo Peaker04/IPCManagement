@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { TelemetrySubbar } from '../../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
 import { Tabs } from '../../../components/ui/tabs';
@@ -123,7 +124,7 @@ export function MaterialDemandView({ data }: MaterialDemandViewProps) {
                   className="h-6 w-6 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
                   aria-label="Ngày trước"
                 >
-                  ‹
+                  <ChevronLeft className="size-3.5" aria-hidden="true" />
                 </button>
                 <span className="text-xs font-semibold text-slate-900 px-1 whitespace-nowrap">
                   {currentDay.dayName}, {currentDay.dateStr} ({dayIndex + 1}/{data.scheduleDays.length})
@@ -135,7 +136,7 @@ export function MaterialDemandView({ data }: MaterialDemandViewProps) {
                   className="h-6 w-6 flex items-center justify-center rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer text-xs font-bold"
                   aria-label="Ngày sau"
                 >
-                  ›
+                  <ChevronRight className="size-3.5" aria-hidden="true" />
                 </button>
               </div>
             )}

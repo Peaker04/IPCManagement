@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { clsx } from 'clsx';
-import { Inbox } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Inbox, ShieldAlert } from 'lucide-react';
 import { Button } from '../ui/button';
 import { WorkbenchSkeleton, type SkeletonGeometry } from './WorkbenchSkeleton';
 
@@ -122,6 +122,9 @@ export function StateBoundary({
   if (showForbidden) {
     return (
       <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
+        <div aria-hidden="true" className="w-12 h-12 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center mb-3 text-amber-600">
+          <ShieldAlert size={24} strokeWidth={1.75} />
+        </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Truy cập bị hạn chế</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">Bạn không có quyền xem hoặc thực hiện thao tác trên phân hệ này.</p>
         {onRetry && (
@@ -137,8 +140,8 @@ export function StateBoundary({
   if (isModeConflict) {
     return (
       <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
-        <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm mb-3">
-          MRX
+        <div aria-hidden="true" className="w-12 h-12 rounded-lg bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mb-3">
+          <AlertTriangle size={24} strokeWidth={1.75} />
         </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Phân hệ yêu cầu Chế độ MRX</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">
@@ -157,8 +160,8 @@ export function StateBoundary({
   if (showConflict) {
     return (
       <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
-        <div className="w-10 h-10 rounded-full bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-sm mb-3">
-          409
+        <div aria-hidden="true" className="w-12 h-12 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center mb-3">
+          <AlertTriangle size={24} strokeWidth={1.75} />
         </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Xung đột dữ liệu đồng thời</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">
@@ -199,6 +202,9 @@ export function StateBoundary({
 
     return (
       <div role="alert" className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
+        <div aria-hidden="true" className="w-12 h-12 rounded-lg bg-rose-50 border border-rose-200 flex items-center justify-center mb-3 text-rose-500">
+          <AlertCircle size={24} strokeWidth={1.75} />
+        </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">Không thể tải dữ liệu</h3>
         <p className="text-xs text-slate-500 max-w-md mb-4">{message}</p>
         {onRetry && (
