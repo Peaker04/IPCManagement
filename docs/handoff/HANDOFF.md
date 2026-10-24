@@ -76,7 +76,8 @@
 | WEEKLY-MENU-FULL-RECOVERY | Phục hồi toàn diện các tính năng thao tác của Weekly Menu từ FE cũ: Modal chỉnh sửa món & số suất ca (bulk-update & quick-servings), hiển thị số suất theo ca trên ma trận, nút xuất bản trực tiếp, tab lịch sử import & rollback | `DONE_VERIFIED` | `WeeklyScheduleEditorModal.tsx`, `WeeklyMenuImportModal.tsx`, `WeeklyScheduleView.tsx`, `WeeklyMenuPage.tsx`, `MrxBatchPreviewSection.tsx`, `MrxSupplementalIssueModal.tsx`; strict architecture check PASS (<600 lines); 166 FE tests PASS | Không có |
 | WAREHOUSE-CHEF-RECOVERY | Phục hồi modal xem chi tiết dòng phiếu xuất và phiếu nhập kho (Mã NL, Tên NL, ĐVT, Yêu cầu, Thực xuất, Thực nhận, Đơn giá); bổ sung nút hành động "Nhận hàng" cho Bếp trưởng xác nhận bàn giao vật tư từ Kho | `DONE_VERIFIED` | `WarehousePage.tsx`, `ChefDashboardPage.tsx`; strict architecture check PASS (<600 lines); 166 FE tests PASS | Không có |
 | COORD-PURCHASE-RECOVERY | Phục hồi hành động "Chốt đơn ca" trên MealOrdersPage (khóa số suất thực tế và đồng bộ ca) và hành động "Hủy đơn PO" trên PurchasingPage với modal xác nhận | `DONE_VERIFIED` | `MealOrdersPage.tsx`, `PurchasingPage.tsx`, `coordinationApi.ts`, `purchasingApi.ts`; strict architecture check PASS; 166 FE tests PASS | Không có |
-| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `8ba25d76` đã push lên remote thành công | Không có |
+| APPROVAL-REPORT-PRINT-RECOVERY | Phục hồi dòng thời gian lịch sử phê duyệt (approval audit trail timeline) trong detail panel của ApprovalPage và nút "In báo cáo" (print action) trên ReportsPage | `DONE_VERIFIED` | `ApprovalPage.tsx`, `ReportsPage.tsx`, `approvalsApi.ts`; strict architecture check PASS; 166 FE tests PASS | Không có |
+| GIT-COMMIT-PUSH | Commit và push toàn bộ mã nguồn lên nhánh `feature/greenfield-fe-3zone-workbench` | `DONE_VERIFIED` | Git commit `cb524bc1` đã push lên remote thành công | Không có |
 
 ---
 

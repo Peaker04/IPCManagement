@@ -850,6 +850,21 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Git commit: `8ba25d76` pushed to remote.
 - Final State: **`IDLE`**.
 
+### GF-R51 — Approval history audit trail recovery and Operational reports print capability
+- **Approval History Audit Trail (`ApprovalPage.tsx`)**:
+  - Added `getHistory` API client querying `GET /api/approval-history/{documentType}/{documentId}`.
+  - When selecting an approval inbox item, automatically fetches and displays the chronological approval audit trail (`Lịch sử phê duyệt & xử lý`) in the detail panel showing actor, timestamp, decision badge (`Đã duyệt` / `Đã từ chối`), and audit comments.
+- **Reports Operational Print Action (`ReportsPage.tsx`)**:
+  - Added "In báo cáo" action button invoking browser print with print media CSS formatting across Demand, Price Variance, and Current Stock report views.
+- **Verification Evidence**:
+  - Strict architecture growth check: PASS (all files < 600 lines, ApprovalPage: 541 lines, ReportsPage: 124 lines).
+  - Full frontend unit suite: 18 files / 166 tests PASS (100%).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+  - Git commit: `cb524bc1` pushed to remote.
+- Final State: **`IDLE`**.
+
+
 
 
 
