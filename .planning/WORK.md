@@ -717,4 +717,21 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Visual state matrix capture for Route 2: 6/6 states verified.
 - Final State: **`IDLE`**.
 
+### GF-R44 — 4-Tier state and feedback architecture, zero-CLS layout stability, and data-nulling elimination
+- **Architectural Feedback Gating (`RULE-FEEDBACK-01..04`)**:
+  - Formalized in `docs/DESIGN.md` Section 8 the **4-Tier State & Feedback Architecture** eliminating strobe effects and skeleton over-usage:
+    - *Tier 1 (Initial Fresh Mount)*: Geometric Skeleton (`WorkbenchSkeleton`) ONLY when cache is empty (`!hasExistingData && isLoading`), maintaining CLS $\le 0.05$.
+    - *Tier 2 (Pagination)*: Strict ban on full skeletons. Enforces Stale-While-Revalidate (Keep Previous Data): retains existing table rows, dims `<tbody>` with `opacity-70 transition-opacity duration-150`, activates top micro-progress bar `h-0.5 bg-blue-600/80 animate-pulse`, and executes Instant Swap upon response.
+    - *Tier 3 (In-Page Filter / Scope Change)*: Strict ban on calling `setData(null)` or emptying arrays. Retains existing view so user continues reading, surfaces micro-indicator on `TelemetrySubbar`, and updates smoothly.
+    - *Tier 4 (Mutations & Writes)*: Local Button Busy State with 14px spinner, disables duplicate submit, retains modal input state on 409 conflict.
+- **Eliminated Anti-Pattern Data Nulling Across Feature Pages**:
+  - `ChefDashboardPage.tsx`: Removed `setData(null)` from date, shift, and pagination handlers.
+  - `WeeklyMenuPage.tsx`: Removed `setData(null)` from customer select and week date picker.
+  - `MrxDailyIssueWorkbench.tsx`: Expanded `hasExistingData` to retain table during date switches without unmounting the DataGrid.
+- **Verification Evidence**:
+  - Strict architecture growth gate: PASS (debt exact, test debt zero, all frontend files < 600 lines).
+  - Frontend unit tests: 18 files / 166 tests PASS (100%).
+  - Full `npm run verify` PASSED 100% across all 12 gates.
+- Final State: **`IDLE`**.
+
 

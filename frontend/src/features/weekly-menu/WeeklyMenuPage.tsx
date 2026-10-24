@@ -158,7 +158,6 @@ function DefaultWeeklyMenuPage() {
               onChange={(event) => {
                 setIsLoading(true);
                 setError(null);
-                setData(null);
                 setCustomerCode(event.target.value);
               }}
               disabled={customers.length === 0}
@@ -170,7 +169,6 @@ function DefaultWeeklyMenuPage() {
               onChange={(date) => {
                 setIsLoading(true);
                 setError(null);
-                setData(null);
                 setWeekStartDate(date);
               }}
               className="h-9 w-40 font-mono text-sm"

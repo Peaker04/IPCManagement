@@ -136,12 +136,12 @@ function DefaultChefDashboardPage() {
               aria-label="Chọn khách hàng"
               options={customers.map((customer) => ({ value: customer.customerId, label: `${customer.customerCode} - ${customer.customerName}` }))}
               value={customerId}
-              onChange={(event) => { setIsLoading(true); setError(null); setData(null); setIssuePageNumber(1); setCustomerId(event.target.value); }}
+              onChange={(event) => { setIsLoading(true); setError(null); setIssuePageNumber(1); setCustomerId(event.target.value); }}
               disabled={customers.length === 0}
               className="h-9 w-64 font-medium text-sm"
             />
-            <VietnameseDateInput aria-label="Ngày phục vụ" value={serviceDate} onChange={(date) => { setIsLoading(true); setError(null); setData(null); setIssuePageNumber(1); setServiceDate(date); }} className="h-9 w-40 font-mono text-sm" />
-            <Select aria-label="Chọn ca sản xuất" options={SHIFT_OPTIONS} value={shiftName} onChange={(event) => { setIsLoading(true); setError(null); setData(null); setIssuePageNumber(1); setShiftName(event.target.value as 'MORNING' | 'AFTERNOON'); }} className="h-9 w-36 font-medium text-sm" />
+            <VietnameseDateInput aria-label="Ngày phục vụ" value={serviceDate} onChange={(date) => { setIsLoading(true); setError(null); setIssuePageNumber(1); setServiceDate(date); }} className="h-9 w-40 font-mono text-sm" />
+            <Select aria-label="Chọn ca sản xuất" options={SHIFT_OPTIONS} value={shiftName} onChange={(event) => { setIsLoading(true); setError(null); setIssuePageNumber(1); setShiftName(event.target.value as 'MORNING' | 'AFTERNOON'); }} className="h-9 w-36 font-medium text-sm" />
           </>
         }
         actions={<Button variant="outline" size="default" onClick={reload} className="h-9 text-sm font-medium">Làm mới</Button>}

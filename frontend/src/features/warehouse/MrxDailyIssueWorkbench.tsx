@@ -360,9 +360,10 @@ export function MrxDailyIssueWorkbench({
 
       <StateBoundary
         isLoading={loading}
+        isFetching={loading}
+        hasExistingData={Boolean(day || (daily && daily.dates.some((d) => d.lines.length > 0)))}
         error={error}
         onRetry={() => void load()}
-        hasExistingData={Boolean(day)}
         isPartial={Boolean(daily && (!daily.compatibility.canRead || !daily.compatibility.canIssueByDate))}
         partialMessage={daily?.compatibility.reasonCode ?? undefined}
         isEmpty={!loading && !error && !day}

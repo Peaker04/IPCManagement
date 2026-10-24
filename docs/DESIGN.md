@@ -115,3 +115,14 @@ Read only the relevant section, then actual source/primitives and rendered tests
 | `E1–E8` | 6 UI States | Thể hiện tường minh 6 trạng thái: Đang tải, Trống, Lỗi, Từ chối quyền, Một phần, Đối soát ghi. Loading chỉ kết thúc thành đúng một trạng thái đã phân giải: `empty`, `error`, `permission-denied`, `partial`, `write-reconciliation`, hoặc dữ liệu thành công; thông báo lỗi kèm hướng xử lý. | Cấm hiển thị màn hình trắng trơn, nuốt lỗi âm thầm, hoặc chuyển loading thẳng sang khung dữ liệu giả khi API thất bại. |
 | `A1–A4` | Accessibility | Đảm bảo đầy đủ phím điều hướng Tab, Shift+Tab, Enter, Escape; độ tương phản đạt WCAG 2.2 AA; có aria-live cho cập nhật động. | Cấm bẫy phím (keyboard trap) ngoài modal; cấm vô hiệu hóa chuột mà không chặn phím tương ứng. |
 | `V1–V10` | Visual Hierarchy | Bố cục theo thứ tự: Tiêu đề/Ngữ cảnh → Bộ lọc/Lệnh → Trạng thái/Khung làm việc chính; không dùng flex-grow vô nghĩa. | Cấm nút thao tác chính bị trôi dạt xuống cuối trang hoặc bị che khuất bởi các thanh nổi. |
+
+---
+
+## 8. Bốn Cấp Độ Phản Hồi Trạng Thái (4-Tier State & Feedback Architecture)
+
+Nhằm triệt tiêu hoàn toàn hiện tượng nháy giật layout shift (CLS) và chớp mành skeleton vô lý:
+
+1. **Cấp độ 1 — Initial Fresh Load (Lần đầu mở trang / F5 khi cache trống)**: Render `WorkbenchSkeleton` giữ đúng kích thước hình học Zone 3 (CLS <= 0.05).
+2. **Cấp độ 2 — Phân trang (Pagination Next/Prev Page)**: **CẤM HIỆN SKELETON**. Bắt buộc dùng cơ chế Stale-While-Revalidate (Keep Previous Data): giữ nguyên bảng trang cũ, phủ lớp làm mờ nhẹ (`opacity-70 transition-opacity duration-150`) và thanh tiến trình mỏng 2px ở đỉnh bảng (`top-0 z-20 animate-pulse`); thay thế tức thì (Instant Swap) khi dữ liệu mới nạp xong.
+3. **Cấp độ 3 — Đổi bộ lọc / Đổi ngày / Đổi phạm vi trong trang**: **CẤM gọi `setData(null)`**. Giữ nguyên nội dung cũ để người dùng tiếp tục đọc, hiển thị micro-indicator trên `TelemetrySubbar`, cập nhật mượt mà khi API mới phản hồi.
+4. **Cấp độ 4 — Ghi dữ liệu & Mutations (Submit form, Xuất kho, Chốt sổ)**: **CẤM skeleton toàn trang**. Nút bấm chuyển sang `disabled` + icon spinner xoay nhẹ + nhãn `"Đang xử lý..."`. Gặp lỗi 409 xung đột thì giữ nguyên modal/form và hiển thị cảnh báo đối soát ngay tại chỗ.
