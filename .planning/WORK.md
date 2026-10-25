@@ -1208,6 +1208,22 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R70 — Final Security Audit & Complete Elimination of Unauthenticated File Downloads
+- **Exhaustive Codebase Verification against Spec & Plan**:
+  - Located the final unauthenticated `window.open` call in `WeeklyMenuImportModal.tsx:86` (Excel template download requiring `AuthorizationPolicies.CoordinationAccess`).
+  - Replaced it with `downloadAuthenticatedFile(url, 'weekly-menu-template.xlsx')`.
+  - Audited full codebase: confirmed **0 raw `window.open` calls remain across `frontend/src`** outside of the centralized authenticated utility.
+  - Verified that all 18 unit test suites, 10 Playwright runtime tests, 30 responsive configurations, and 5-phase full-path lifecycle test pass 100%.
+- **Verification Evidence**:
+  - Full frontend unit test suite: 18 files / 170 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - 5-viewport automated responsive probe (1920, 1440, 1366, 1280, 1024): 0 horizontal window overflow across all 30 configurations.
+  - Full-path 7-day 4-actor operational lifecycle test on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 5/5 phases PASS in 1m28s (`MRX-FULL-PATH-REPORT.json`).
+  - Architecture growth check: PASS (strict baseline, all files < 600 lines; `WeeklyMenuImportModal.tsx` at 433 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

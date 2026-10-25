@@ -8,6 +8,7 @@ import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { weeklyMenuApi, type WeeklyMenuImportHistoryItem } from '../../api/weeklyMenuApi';
 import { apiClient } from '../../api/client';
 import { toIsoDate, toVietnameseDate } from '../../utils/dates';
+import { downloadAuthenticatedFile } from '../../utils/fileDownload';
 import type { CustomerOption } from '../../types';
 import type { paths } from '../../shared/api/contracts/schema';
 
@@ -83,7 +84,7 @@ export function WeeklyMenuImportModal({
 
   const handleDownloadTemplate = () => {
     const url = weeklyMenuApi.getWeeklyMenuTemplateUrl(selectedCustomerId, toIsoDate(weekStartDate));
-    window.open(url, '_blank');
+    void downloadAuthenticatedFile(url, 'weekly-menu-template.xlsx');
   };
 
   const handlePreview = async () => {
