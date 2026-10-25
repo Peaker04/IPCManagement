@@ -12,6 +12,7 @@ interface ReconciliationLinesFilterToolbarProps {
   needsReviewCount: number;
   disposedCount: number;
   matchedCount: number;
+  onBulkDisposition?: () => void;
 }
 
 export function ReconciliationLinesFilterToolbar({
@@ -23,6 +24,7 @@ export function ReconciliationLinesFilterToolbar({
   needsReviewCount,
   disposedCount,
   matchedCount,
+  onBulkDisposition,
 }: ReconciliationLinesFilterToolbarProps) {
   return (
     <div className="h-10 px-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
@@ -68,6 +70,17 @@ export function ReconciliationLinesFilterToolbar({
         >
           Khớp định mức ({matchedCount})
         </Button>
+        {onBulkDisposition && needsReviewCount > 1 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            onClick={onBulkDisposition}
+            className="text-amber-800 border-amber-300 hover:bg-amber-100 font-semibold ml-1"
+          >
+            Giải trình hàng loạt ({needsReviewCount})
+          </Button>
+        )}
       </div>
     </div>
   );

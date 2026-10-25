@@ -40,6 +40,7 @@ export type MrxWarehouseTransfer = Schema['ReconciliationWarehouseTransferDto'];
 export type MrxWarehouseDaily = Schema['ReconciliationWarehouseDailyDto'];
 export type MrxDispositionCategory = Schema['ReconciliationDispositionCategoryDto'];
 export type MrxKitchenCooking = Schema['ReconciliationKitchenCookingExportDto'];
+export type MrxInventoryIssueDetail = Schema['InventoryIssueDto'];
 export type MrxWeeklySource = Pick<Schema['WeeklyMenuImportResultDto'],
   'customerId' | 'customerCode' | 'customerName' | 'weekStartDate' | 'weekEndDate' |
   'menuVersionId' | 'menuVersionNo' | 'menuVersionStatus' | 'warnings' | 'validation'>;
@@ -213,6 +214,9 @@ export const mrxApi = {
     });
     return apiClient<MrxIssuePage>(`/inventory-issues?${query}`);
   },
+
+  getIssueById: (issueId: string, sourceFamily = 'MATERIAL_RECONCILIATION') =>
+    apiClient<MrxInventoryIssueDetail>(`/inventory-issues/${encodeURIComponent(issueId)}?sourceFamily=${encodeURIComponent(sourceFamily)}`),
 
   createIssue: (request: CreateMrxIssueRequest) =>
     apiClient<MrxIssueCreated>('/inventory-issues', {

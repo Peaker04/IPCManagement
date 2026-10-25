@@ -4,6 +4,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { Num } from '../../components/ui/num';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { toVietnameseDate, formatVietnameseDateTime } from '../../utils/dates';
+import { ReconciliationIssueDetailModal } from '../../components/workbench/ReconciliationIssueDetailModal';
 import type {
   MrxVarianceRegisterReport,
   MrxTransactionHistoryReport,
@@ -32,6 +33,7 @@ export function ReconciliationReportTables({
   sourceChanges,
 }: ReconciliationReportTablesProps) {
   const [auditSubTab, setAuditSubTab] = useState<'warehouse' | 'source'>('warehouse');
+  const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
   const varianceColumns = useMemo<ColumnDef<MrxVarianceRegisterReport['rows'][number]>[]>(() => [
     {
       id: 'date',
@@ -102,7 +104,16 @@ export function ReconciliationReportTables({
       id: 'doc',
       header: 'Mã chứng từ',
       width: '16%',
-      cell: (row) => <IdentifierText value={row.documentCode} />,
+      cell: (row) => (
+        <button
+          type="button"
+          onClick={() => setInspectedIssueId(row.documentCode)}
+          className="inline-flex items-center text-left hover:underline cursor-pointer text-blue-700 font-mono text-xs"
+          title="Bấm để xem chi tiết phiếu xuất kho"
+        >
+          <IdentifierText value={row.documentCode} />
+        </button>
+      ),
     },
     {
       id: 'date',
@@ -324,6 +335,11 @@ export function ReconciliationReportTables({
           columns={transactionColumns}
           keyExtractor={(row, idx) => row.documentCode || `tx-${idx}`}
           emptyMessage="Chưa có giao dịch kho nào cho lô này."
+        />
+        <ReconciliationIssueDetailModal
+          isOpen={Boolean(inspectedIssueId)}
+          onClose={() => setInspectedIssueId(null)}
+          issueId={inspectedIssueId}
         />
       </div>
     );

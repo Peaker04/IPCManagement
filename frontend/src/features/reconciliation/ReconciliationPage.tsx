@@ -90,6 +90,7 @@ export function ReconciliationPage() {
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedDispositionLine, setSelectedDispositionLine] = useState<ReconciliationLineItem | null>(null);
+  const [bulkLines, setBulkLines] = useState<ReconciliationLineItem[] | null>(null);
 
   const viewParam = searchParams.get('view');
   const activeReportTab: 'lines' | 'variances' | 'transactions' | 'audit' | 'completed' =
@@ -510,6 +511,19 @@ export function ReconciliationPage() {
               needsReviewCount={needsReviewCount}
               disposedCount={disposedCount}
               matchedCount={matchedCount}
+              onBulkDisposition={
+                needsReviewCount > 1
+                  ? () => {
+                      const unresolved = data.lines.filter(
+                        (l) => l.status === 'NEEDS_REVIEW' && !l.disposition
+                      );
+                      if (unresolved.length > 0) {
+                        setBulkLines(unresolved);
+                        setSelectedDispositionLine(unresolved[0]);
+                      }
+                    }
+                  : undefined
+              }
             />
             <DataGrid
               data={filteredLines}
@@ -551,10 +565,14 @@ export function ReconciliationPage() {
       />
 
       <ReconciliationDispositionModal
-        key={selectedDispositionLine?.dailyLineId ?? 'empty'}
+        key={selectedDispositionLine?.dailyLineId ?? (bulkLines ? 'bulk' : 'empty')}
         selectedLine={selectedDispositionLine}
-        isOpen={Boolean(selectedDispositionLine)}
-        onClose={() => setSelectedDispositionLine(null)}
+        selectedLines={bulkLines ?? undefined}
+        isOpen={Boolean(selectedDispositionLine || bulkLines)}
+        onClose={() => {
+          setSelectedDispositionLine(null);
+          setBulkLines(null);
+        }}
         onSaved={loadData}
         isCompleted={data?.status === 'COMPLETED'}
       />

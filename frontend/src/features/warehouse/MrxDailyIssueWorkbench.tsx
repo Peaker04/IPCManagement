@@ -15,6 +15,7 @@ import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { todayInBusinessTimezone, toVietnameseDate } from '../../utils/dates';
 import { MrxSupplementalIssueModal } from './MrxSupplementalIssueModal';
+import { ReconciliationIssueDetailModal } from '../../components/workbench/ReconciliationIssueDetailModal';
 
 interface MrxDailyIssueWorkbenchProps {
   batchId?: string;
@@ -46,6 +47,7 @@ export function MrxDailyIssueWorkbench({
   const [suppReason, setSuppReason] = useState('');
   const [isSubmittingSupp, setIsSubmittingSupp] = useState(false);
   const [suppError, setSuppError] = useState<string | null>(null);
+  const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
 
   // Load available batches for selector
   useEffect(() => {
@@ -219,12 +221,9 @@ export function MrxDailyIssueWorkbench({
         reconciliationBatchId: activeBatchId,
         isSupplemental: false,
         lines: lines.map((l) => ({
-          reconciliationBatchLineId: l.batchLineId,
-          reconciliationBatchDailyLineId: l.dailyLineId,
-          ingredientId: l.ingredientId,
-          unitId: l.canonicalUnitId,
-          requestedQty: l.requiredQuantity,
-          issuedQty: Number(quantities[l.dailyLineId]),
+          reconciliationBatchLineId: l.batchLineId, reconciliationBatchDailyLineId: l.dailyLineId,
+          ingredientId: l.ingredientId, unitId: l.canonicalUnitId,
+          requestedQty: l.requiredQuantity, issuedQty: Number(quantities[l.dailyLineId]),
           varianceReason: reasons[l.dailyLineId]?.trim() || undefined,
         })),
       });
@@ -251,12 +250,9 @@ export function MrxDailyIssueWorkbench({
         reconciliationBatchId: activeBatchId,
         isSupplemental: true,
         lines: [{
-          reconciliationBatchLineId: targetLine.batchLineId,
-          reconciliationBatchDailyLineId: targetLine.dailyLineId,
-          ingredientId: targetLine.ingredientId,
-          unitId: targetLine.canonicalUnitId,
-          requestedQty: Number(suppQuantity),
-          issuedQty: Number(suppQuantity),
+          reconciliationBatchLineId: targetLine.batchLineId, reconciliationBatchDailyLineId: targetLine.dailyLineId,
+          ingredientId: targetLine.ingredientId, unitId: targetLine.canonicalUnitId,
+          requestedQty: Number(suppQuantity), issuedQty: Number(suppQuantity),
           varianceReason: suppReason.trim(),
         }],
       });
@@ -340,19 +336,15 @@ export function MrxDailyIssueWorkbench({
       align: 'center',
       cell: (line) => {
         if (hasInitialIssue) {
-          const issued = line.issuedQuantity ?? 0;
-          const req = line.requiredQuantity;
+          const issued = line.issuedQuantity ?? 0, req = line.requiredQuantity;
           if (issued === req) return <Badge variant="success" size="sm">Đã xuất đủ</Badge>;
-          if (issued < req) return <Badge variant="warning" size="sm">Đã xuất thiếu</Badge>;
-          return <Badge variant="info" size="sm">Đã xuất vượt</Badge>;
+          return <Badge variant={issued < req ? 'warning' : 'info'} size="sm">{issued < req ? 'Đã xuất thiếu' : 'Đã xuất vượt'}</Badge>;
         }
         const val = quantities[line.dailyLineId];
         if (val === undefined || val === '') return <Badge variant="neutral" size="sm">Chưa nhập</Badge>;
-        const numVal = Number(val);
-        const req = line.requiredQuantity;
+        const numVal = Number(val), req = line.requiredQuantity;
         if (numVal === req) return <Badge variant="success" size="sm">Dự kiến xuất đủ</Badge>;
-        if (numVal < req) return <Badge variant="warning" size="sm">Dự kiến xuất thiếu</Badge>;
-        return <Badge variant="info" size="sm">Dự kiến xuất vượt</Badge>;
+        return <Badge variant={numVal < req ? 'warning' : 'info'} size="sm">{numVal < req ? 'Dự kiến xuất thiếu' : 'Dự kiến xuất vượt'}</Badge>;
       },
     },
   ], [hasInitialIssue, quantities, reasons]);
@@ -561,9 +553,15 @@ export function MrxDailyIssueWorkbench({
                   <h2 className="text-xs font-bold text-slate-700 mb-1">Phiếu xuất đã tạo cho lô:</h2>
                   <div className="flex flex-wrap gap-2 text-xs">
                     {history.items.map((issue) => (
-                      <span key={issue.issueId} className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono text-slate-800">
+                      <button
+                        key={issue.issueId}
+                        type="button"
+                        onClick={() => setInspectedIssueId(issue.issueId)}
+                        className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono text-slate-800 hover:border-blue-400 hover:text-blue-700 cursor-pointer text-xs"
+                        title="Bấm để xem chi tiết các dòng nguyên liệu trong phiếu xuất"
+                      >
                         <IdentifierText value={issue.issueCode} /> · <span>{toVietnameseDate(issue.issueDate)}</span>
-                      </span>
+                      </button>
                     ))}
                   </div>
                 </section>
@@ -588,6 +586,12 @@ export function MrxDailyIssueWorkbench({
         suppError={suppError}
         isSubmittingSupp={isSubmittingSupp}
         onSubmit={() => void handleSupplementalSubmit()}
+      />
+
+      <ReconciliationIssueDetailModal
+        isOpen={Boolean(inspectedIssueId)}
+        onClose={() => setInspectedIssueId(null)}
+        issueId={inspectedIssueId}
       />
     </div>
   );

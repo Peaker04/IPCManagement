@@ -1071,6 +1071,21 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R63 — MRX Operational Enhancement Recovery: Issue Detail Modal & Bulk Disposition
+- **Recovered from Legacy FE Backup (`D:\ki7\PRN222 Doanh Nghiệp\IPCManagement-fe-legacy-backup`)**:
+  - `ReconciliationIssueDetailModal.tsx`: Built standalone WCAG AA modal connected to `GET /api/inventory-issues/{id}?sourceFamily=MATERIAL_RECONCILIATION`. Displays issue code, service date, warehouse, issuer, recipient confirmation status, and full line item breakdown (ingredient, unit, requested quantity, issued quantity).
+  - Linked to issue code buttons in `MrxDailyIssueWorkbench.tsx` (history section) and `ReconciliationReportTables.tsx` (transactions history tab).
+  - `ReconciliationDispositionModal.tsx`: Upgraded to support dual modes: single line resolution vs Bulk Disposition mode (`selectedLines: ReconciliationLineItem[]`).
+  - `ReconciliationLinesFilterToolbar.tsx` & `ReconciliationPage.tsx`: Added `"Giải trình hàng loạt (X)"` button allowing managers to apply one disposition category and reason to all unresolved discrepancy lines simultaneously.
+- **Verification Evidence**:
+  - Full-path 7-day 4-actor operational lifecycle test on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 5/5 phases PASS in 1m27s (`MRX-FULL-PATH-REPORT.json`).
+  - Full frontend unit test suite: 18 files / 167 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - Architecture growth check: PASS (strict baseline, all files < 600 lines; `MrxDailyIssueWorkbench.tsx` at 598 lines, `ReconciliationPage.tsx` at 581 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 
