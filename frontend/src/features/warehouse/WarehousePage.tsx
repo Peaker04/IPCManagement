@@ -38,16 +38,11 @@ export function WarehousePage() {
   }
 
   if (view === 'mrx-daily') {
-    const batchId = searchParams.get('batchId');
+    const batchId = searchParams.get('batchId') || '';
     const serviceDate = searchParams.get('date') || '';
-    if (batchId) {
-      return <MrxDailyIssueWorkbench batchId={batchId} serviceDate={serviceDate} />;
-    }
-    if (serviceDate) {
-      return <MrxMultiCustomerPreparationWorkbench serviceDate={serviceDate} />;
-    }
-    return <MrxDailyIssueWorkbench batchId="" serviceDate="" />;
+    return <MrxDailyIssueWorkbench batchId={batchId} serviceDate={serviceDate} />;
   }
+
   if (view === 'mrx-preparation') {
     const serviceDate = searchParams.get('date') || '';
     return <MrxMultiCustomerPreparationWorkbench serviceDate={serviceDate} />;

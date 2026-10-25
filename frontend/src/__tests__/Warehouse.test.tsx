@@ -263,7 +263,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       idempotentReplay: false
     });
 
-    renderWarehouse('/warehouse?view=mrx-daily&date=2026-06-15');
+    renderWarehouse('/warehouse?view=mrx-preparation&date=2026-06-15');
 
     expect(await screen.findByRole('heading', { name: 'Chuẩn bị nguyên liệu phối hợp đa khách hàng' })).toBeInTheDocument();
     expect(await screen.findByText('Khách A')).toBeInTheDocument();
@@ -292,7 +292,7 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     });
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-    renderWarehouse('/warehouse?view=mrx-daily&date=2026-06-15');
+    renderWarehouse('/warehouse?view=mrx-preparation&date=2026-06-15');
 
     expect(await screen.findByRole('heading', { name: 'Chuẩn bị nguyên liệu phối hợp đa khách hàng' })).toBeInTheDocument();
     const supplierInput = await screen.findByRole('textbox', { name: 'Lọc theo tên nhà cung cấp' });
@@ -571,5 +571,54 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const dateInput = await screen.findByRole('textbox', { name: 'Ngày chuẩn bị' });
     expect(dateInput).toHaveValue('05/11/2026');
     expect(mrxApi.getPreparation).toHaveBeenCalledWith('2026-11-05');
+  });
+
+  it('resets quantities cleanly when switching service dates in daily issue workbench (State Isolation)', async () => {
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [
+        { batchId: 'batch-target-2', customerId: 'c-2', customerName: 'Khách B', customerCode: 'KB', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 1, createdAt: '2026-10-19T00:00:00Z' },
+      ],
+      totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false,
+    });
+    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({
+      batchId: 'batch-target-2', batchStatus: 'IN_PROGRESS', sourceVersion: 1, weeklyStatus: 'IN_PROGRESS',
+      compatibility: { canRead: true, canIssueByDate: true, reasonCode: null },
+      dates: [
+        {
+          serviceDate: '2026-10-19', status: 'UNTOUCHED', isApplicable: true,
+          requiredQuantity: 20, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 20,
+          lines: [{ dailyLineId: 'dl-mon', batchLineId: 'bl-mon', ingredientId: 'i-1', ingredientName: 'Thịt heo', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 20, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 20, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+        },
+        {
+          serviceDate: '2026-10-20', status: 'UNTOUCHED', isApplicable: true,
+          requiredQuantity: 35, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 35,
+          lines: [{ dailyLineId: 'dl-tue', batchLineId: 'bl-tue', ingredientId: 'i-2', ingredientName: 'Cá hồi', canonicalUnitId: 'u-1', canonicalUnitName: 'kg', requiredQuantity: 35, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 35, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+        },
+      ],
+    });
+    vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
+
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-target-2&date=2026-10-19');
+
+    // Monday line has 0 initially
+    expect(await screen.findByRole('heading', { name: 'Xuất kho nguyên liệu theo ngày' })).toBeInTheDocument();
+    expect(await screen.findByText('Thịt heo')).toBeInTheDocument();
+    const monInput = screen.getByRole('spinbutton', { name: /Số lượng thực xuất Thịt heo/i });
+    expect(monInput).toHaveValue(0);
+
+    // Type 18 for Monday
+    await userEvent.clear(monInput);
+    await userEvent.type(monInput, '18');
+    expect(monInput).toHaveValue(18);
+
+    // Click Tuesday button (T3)
+    const tueBtn = screen.getByRole('button', { name: /T3/i });
+    await userEvent.click(tueBtn);
+
+    // Tuesday line renders cleanly without Monday's input leaking
+    expect(await screen.findByText('Cá hồi')).toBeInTheDocument();
+    expect(screen.queryByText('Thịt heo')).not.toBeInTheDocument();
+    const tueInput = screen.getByRole('spinbutton', { name: /Số lượng thực xuất Cá hồi/i });
+    expect(tueInput).toHaveValue(0);
   });
 });
