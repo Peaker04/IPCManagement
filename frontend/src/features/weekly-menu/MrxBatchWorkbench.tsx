@@ -298,7 +298,7 @@ export function MrxBatchWorkbench() {
                 next.set('customerId', nextId);
                 return next;
               }, { replace: true });
-            }} className="h-9 w-64 font-medium text-sm" />
+            }} className="h-9 w-44 sm:w-56 lg:w-64 font-medium text-sm" />
           <VietnameseDateInput aria-label="Tuần MRX bắt đầu" value={weekStartDate}
             onChange={(date) => {
               setIsLoading(true);
@@ -309,7 +309,7 @@ export function MrxBatchWorkbench() {
                 next.set('weekStartDate', date);
                 return next;
               }, { replace: true });
-            }} className="h-9 w-40 font-mono text-sm" />
+            }} className="h-9 w-32 sm:w-36 lg:w-40 font-mono text-sm" />
           {batch && <Badge variant="info" size="default">{STATUS_LABELS[batch.status] ?? batch.status}</Badge>}
         </>}
         actions={<>

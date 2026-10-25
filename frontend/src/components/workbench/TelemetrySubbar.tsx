@@ -24,13 +24,13 @@ export function TelemetrySubbar({
     <div
       className={twMerge(
         clsx(
-          'h-11 shrink-0 border-b border-slate-200 bg-slate-50 px-5 flex items-center justify-between gap-4 text-sm text-slate-700 select-none z-10',
+          'h-11 min-h-11 shrink-0 border-b border-slate-200 bg-slate-50 px-4 sm:px-5 flex items-center justify-between gap-3 sm:gap-4 text-sm text-slate-700 select-none z-10',
           className
         )
       )}
     >
       {/* Left controls: Segmented tabs, day switcher, scope dropdown */}
-      <div className="flex items-center gap-2.5 min-w-0 overflow-x-auto py-1 no-scrollbar">
+      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-wrap sm:flex-nowrap">
         {leftControls}
       </div>
 

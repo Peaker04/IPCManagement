@@ -1107,6 +1107,29 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R65 — Native Execution of MRX Operational & Responsive Recovery (Chef Preserved)
+- **Approved Design Contract & Plan**:
+  - Spec: `docs/superpowers/specs/2026-10-24-mrx-operational-recovery-spec.md`
+  - Plan: `docs/superpowers/plans/2026-10-24-mrx-operational-recovery-plan.md`
+  - Invariant adhered: Chef station (`MrxCookingWorkbench.tsx`) strictly preserved as read-only sanitized cooking sheet with CSV/XLSX exports.
+- **Line-Level Deep Inspection (`ReconciliationLineDetailModal.tsx`)**:
+  - Recreated legacy dialog in `frontend/src/components/workbench/ReconciliationLineDetailModal.tsx`.
+  - Shows full line facts: BOM required quantity, actual issued quantity, variance difference with +/- color highlighting, tolerance, warehouse notes, and existing disposition.
+  - Direct Action CTA: If line has variance and is uncompleted, provides an immediate button `"Xử lý chênh lệch"` / `"Cập nhật giải trình"` seamlessly opening `ReconciliationDispositionModal`.
+  - Wired into `reconciliationColumns.tsx`: Clicking any ingredient name opens the inspection modal; added a `"Chi tiết"` ghost button for matched lines.
+- **Enhanced Frozen Dish & BOM Inspection (`MrxBatchDishesModal.tsx`)**:
+  - Added real-time search input for dish name and dish code.
+  - Added shift filter toolbar: `Tất cả`, `Ca 1 (Sáng)`, `Ca 2 (Chiều)` dynamically filtering dishes and their service scopes.
+  - Renders per-serving BOM ingredient quantities with 4-decimal precision.
+- **Verification Evidence**:
+  - Full-path 7-day 4-actor operational lifecycle test on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 5/5 phases PASS in 1m28s (`MRX-FULL-PATH-REPORT.json`).
+  - Full frontend unit test suite: 18 files / 167 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - Architecture growth check: PASS (strict baseline, all files < 600 lines; `ReconciliationPage.tsx` at 592 lines, `MrxBatchDishesModal.tsx` at 250 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

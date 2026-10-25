@@ -20,6 +20,7 @@ import { ReconciliationLinesFilterToolbar, type LineStatusFilter } from './Recon
 import { ReconciliationCompletionModal } from './ReconciliationCompletionModal';
 import { useReconciliationColumns } from './reconciliationColumns';
 import { MrxBatchDishesModal } from '../../components/workbench/MrxBatchDishesModal';
+import { ReconciliationLineDetailModal } from '../../components/workbench/ReconciliationLineDetailModal';
 import {
   reconciliationApi,
   type ReconciliationBatchSummary,
@@ -90,6 +91,7 @@ export function ReconciliationPage() {
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedDispositionLine, setSelectedDispositionLine] = useState<ReconciliationLineItem | null>(null);
+  const [inspectedDetailLine, setInspectedDetailLine] = useState<ReconciliationLineItem | null>(null);
   const [bulkLines, setBulkLines] = useState<ReconciliationLineItem[] | null>(null);
 
   const viewParam = searchParams.get('view');
@@ -284,6 +286,7 @@ export function ReconciliationPage() {
     statusLabels: STATUS_LABELS,
     isCompleted,
     onSelectDispositionLine: setSelectedDispositionLine,
+    onSelectDetailLine: setInspectedDetailLine,
   });
 
   const isForbidden = error instanceof ApiError && error.status === 403;
@@ -574,6 +577,14 @@ export function ReconciliationPage() {
           setBulkLines(null);
         }}
         onSaved={loadData}
+        isCompleted={data?.status === 'COMPLETED'}
+      />
+
+      <ReconciliationLineDetailModal
+        isOpen={Boolean(inspectedDetailLine)}
+        onClose={() => setInspectedDetailLine(null)}
+        line={inspectedDetailLine}
+        onOpenDisposition={(line) => setSelectedDispositionLine(line)}
         isCompleted={data?.status === 'COMPLETED'}
       />
     </div>

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Inbox } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Num } from '../ui/num';
 import { IdentifierText } from '../ui/identifier-text';
@@ -25,6 +26,8 @@ export function MrxBatchDishesModal({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
+  const [shiftFilter, setShiftFilter] = useState<'ALL' | 'MORNING' | 'AFTERNOON'>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!isOpen || !batchId) return;
@@ -49,7 +52,25 @@ export function MrxBatchDishesModal({
     return () => { ignore = true; };
   }, [isOpen, batchId]);
 
-  const selectedDish = dishes.find((d) => d.dishId === selectedDishId) || dishes[0] || null;
+  const filteredDishes = useMemo(() => {
+    return dishes.filter((d) => {
+      if (shiftFilter !== 'ALL') {
+        const hasShift = (d.scopes ?? []).some((s) =>
+          shiftFilter === 'MORNING'
+            ? s.shiftName.toLowerCase().includes('sáng') || s.shiftName.toUpperCase().includes('MORNING') || s.shiftName.includes('1')
+            : s.shiftName.toLowerCase().includes('chiều') || s.shiftName.toUpperCase().includes('AFTERNOON') || s.shiftName.includes('2')
+        );
+        if (!hasShift) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return d.dishName.toLowerCase().includes(q) || d.dishCode.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [dishes, shiftFilter, searchQuery]);
+
+  const selectedDish = filteredDishes.find((d) => d.dishId === selectedDishId) || filteredDishes[0] || null;
 
   return (
     <Modal
@@ -83,38 +104,85 @@ export function MrxBatchDishesModal({
           </div>
         ) : (
           <div className="grid grid-cols-12 gap-4 h-96">
-            {/* Left: Dish list (5 cols) */}
-            <div className="col-span-5 border border-slate-200 rounded overflow-y-auto divide-y divide-slate-100 bg-white">
-              {dishes.map((dish) => {
-                const isSelected = selectedDish?.dishId === dish.dishId;
-                const scopes = dish.scopes ?? [];
-                const totalServings = scopes.reduce((sum, s) => sum + (s.frozenServings ?? 0), 0);
-
-                return (
+            {/* Left: Dish list (5 cols) with search & shift filter */}
+            <div className="col-span-5 border border-slate-200 rounded overflow-hidden flex flex-col bg-white">
+              <div className="p-2 border-b border-slate-200 bg-slate-50 space-y-1.5 shrink-0">
+                <Input
+                  aria-label="Tìm món ăn"
+                  placeholder="Tìm theo tên hoặc mã món..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-7 text-xs"
+                />
+                <div className="flex gap-1" role="toolbar" aria-label="Lọc theo ca">
                   <button
-                    key={dish.dishId}
                     type="button"
-                    onClick={() => setSelectedDishId(dish.dishId)}
-                    className={`w-full text-left p-3 transition-colors cursor-pointer block ${
-                      isSelected ? 'bg-blue-50/80 border-l-4 border-l-blue-600' : 'hover:bg-slate-50'
+                    onClick={() => setShiftFilter('ALL')}
+                    className={`flex-1 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                      shiftFilter === 'ALL' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm text-slate-900 truncate block">
-                        {dish.dishName}
-                      </span>
-                      <IdentifierText value={dish.dishCode} />
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-mono">
-                      <span>{scopes.length} ca</span>
-                      <span>·</span>
-                      <span>{totalServings.toLocaleString('vi-VN')} suất</span>
-                      <span>·</span>
-                      <span>{dish.materials.length} loại NL</span>
-                    </div>
+                    Tất cả
                   </button>
-                );
-              })}
+                  <button
+                    type="button"
+                    onClick={() => setShiftFilter('MORNING')}
+                    className={`flex-1 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                      shiftFilter === 'MORNING' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    Ca 1 (Sáng)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShiftFilter('AFTERNOON')}
+                    className={`flex-1 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                      shiftFilter === 'AFTERNOON' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    Ca 2 (Chiều)
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                {filteredDishes.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-400">
+                    Không tìm thấy món phù hợp với bộ lọc.
+                  </div>
+                ) : (
+                  filteredDishes.map((dish) => {
+                    const isSelected = selectedDish?.dishId === dish.dishId;
+                    const scopes = dish.scopes ?? [];
+                    const totalServings = scopes.reduce((sum, s) => sum + (s.frozenServings ?? 0), 0);
+
+                    return (
+                      <button
+                        key={dish.dishId}
+                        type="button"
+                        onClick={() => setSelectedDishId(dish.dishId)}
+                        className={`w-full text-left p-3 transition-colors cursor-pointer block ${
+                          isSelected ? 'bg-blue-50/80 border-l-4 border-l-blue-600' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-sm text-slate-900 truncate block">
+                            {dish.dishName}
+                          </span>
+                          <IdentifierText value={dish.dishCode} />
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-mono">
+                          <span>{scopes.length} ca</span>
+                          <span>·</span>
+                          <span>{totalServings.toLocaleString('vi-VN')} suất</span>
+                          <span>·</span>
+                          <span>{dish.materials.length} loại NL</span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
             </div>
 
             {/* Right: Dish Detail (7 cols) */}

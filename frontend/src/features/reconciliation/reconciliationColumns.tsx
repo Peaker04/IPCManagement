@@ -10,10 +10,12 @@ export function useReconciliationColumns({
   statusLabels,
   isCompleted,
   onSelectDispositionLine,
+  onSelectDetailLine,
 }: {
   statusLabels: Record<string, string>;
   isCompleted: boolean;
   onSelectDispositionLine: (row: ReconciliationLineItem) => void;
+  onSelectDetailLine?: (row: ReconciliationLineItem) => void;
 }): ColumnDef<ReconciliationLineItem>[] {
   return useMemo<ColumnDef<ReconciliationLineItem>[]>(() => [
     {
@@ -26,7 +28,16 @@ export function useReconciliationColumns({
       id: 'name',
       header: 'Tên nguyên liệu thực phẩm',
       width: '28%',
-      cell: (row) => <span className="font-semibold text-slate-900 text-sm truncate">{row.materialName}</span>,
+      cell: (row) => (
+        <button
+          type="button"
+          onClick={() => onSelectDetailLine?.(row)}
+          className="font-semibold text-slate-900 text-sm truncate hover:text-blue-600 hover:underline cursor-pointer text-left block w-full"
+          title="Bấm để xem chi tiết đối soát của nguyên liệu này"
+        >
+          {row.materialName}
+        </button>
+      ),
     },
     {
       id: 'unit',
@@ -105,8 +116,18 @@ export function useReconciliationColumns({
             </Button>
           );
         }
-        return <span className="text-xs text-slate-400">—</span>;
+        return (
+          <Button
+            variant="ghost"
+            size="xs"
+            onClick={() => onSelectDetailLine?.(row)}
+            aria-label={`Xem chi tiết ${row.materialName}`}
+            className="text-xs text-slate-500 hover:text-slate-800"
+          >
+            Chi tiết
+          </Button>
+        );
       },
     },
-  ], [statusLabels, isCompleted, onSelectDispositionLine]);
+  ], [statusLabels, isCompleted, onSelectDispositionLine, onSelectDetailLine]);
 }
