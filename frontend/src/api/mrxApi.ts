@@ -41,6 +41,78 @@ export type MrxWarehouseDaily = Schema['ReconciliationWarehouseDailyDto'];
 export type MrxDispositionCategory = Schema['ReconciliationDispositionCategoryDto'];
 export type MrxKitchenCooking = Schema['ReconciliationKitchenCookingExportDto'];
 export type MrxInventoryIssueDetail = Schema['InventoryIssueDto'];
+export type MrxBatchLine = Schema['ReconciliationLineDto'];
+export type MrxDailyReview = Schema['ReconciliationDailyReviewDto'];
+export type MrxDisposition = Schema['ReconciliationDispositionDto'];
+
+export interface ReconciliationLineItem {
+  id: string;
+  dailyLineId?: string;
+  serviceDate?: string;
+  ingredientId: string;
+  materialCode: string;
+  materialName: string;
+  unitId: string;
+  unit: string;
+  requiredQuantity: number;
+  issuedQuantity?: number;
+  issuedRequiredDifference?: number;
+  status: string;
+  version: number;
+  triggers: string[];
+  disposition?: MrxDisposition;
+  notes: string[];
+}
+
+export interface ReconciliationBatchSummary {
+  batchId: string;
+  customerId?: string;
+  customerCode: string;
+  customerName: string;
+  weekStartDate?: string;
+  weekEndDate?: string;
+  status: string;
+  version: number;
+  weeklyStatus?: string;
+  lines: ReconciliationLineItem[];
+}
+
+export function mapBatchDtoToSummary(batch: MrxBatch, serviceDate?: string): ReconciliationBatchSummary {
+  const sourceLines = batch.dailyReview?.lines || batch.lines || [];
+  const lines = serviceDate
+    ? sourceLines.filter((line) => line.serviceDate === serviceDate)
+    : sourceLines;
+
+  return {
+    batchId: batch.batchId,
+    customerId: batch.customerId || undefined,
+    customerCode: batch.customerCode || '—',
+    customerName: batch.customerName || '—',
+    weekStartDate: batch.weekStartDate || undefined,
+    weekEndDate: batch.weekEndDate || undefined,
+    status: batch.status,
+    version: batch.version,
+    weeklyStatus: batch.dailyReview?.weeklyStatus,
+    lines: lines.map((line) => ({
+      id: line.batchLineId,
+      dailyLineId: line.dailyLineId || undefined,
+      serviceDate: line.serviceDate || undefined,
+      ingredientId: line.ingredientId,
+      materialCode: line.ingredientCode || line.ingredientId,
+      materialName: line.ingredientName || '—',
+      unitId: line.canonicalUnitId,
+      unit: line.canonicalUnitName || '—',
+      requiredQuantity: line.requiredQuantity,
+      issuedQuantity: line.issuedQuantity != null ? line.issuedQuantity : undefined,
+      issuedRequiredDifference: line.issuedRequiredDifference != null ? line.issuedRequiredDifference : undefined,
+      status: line.status,
+      version: line.version,
+      triggers: Array.from(line.triggers || []),
+      disposition: line.disposition || undefined,
+      notes: Array.from(line.issueNotes || []),
+    })),
+  };
+}
 export type MrxWeeklySource = Pick<Schema['WeeklyMenuImportResultDto'],
   'customerId' | 'customerCode' | 'customerName' | 'weekStartDate' | 'weekEndDate' |
   'menuVersionId' | 'menuVersionNo' | 'menuVersionStatus' | 'warnings' | 'validation'>;
@@ -189,6 +261,11 @@ export const mrxApi = {
     }),
 
   getBatch: (batchId: string) => apiClient<MrxBatch>(batchPath(batchId)),
+
+  getBatchSummary: async (batchId: string, serviceDate?: string): Promise<ReconciliationBatchSummary> => {
+    const batch = await mrxApi.getBatch(batchId);
+    return mapBatchDtoToSummary(batch, serviceDate);
+  },
 
   markReady: (batchId: string, expectedVersion: number) =>
     apiClient<MrxBatch>(batchPath(batchId, '/ready'), {

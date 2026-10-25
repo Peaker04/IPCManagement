@@ -67,7 +67,7 @@ export function DataGrid<T>({
         )
       )}
     >
-      <table className={twMerge('w-full text-left text-sm text-slate-800 border-collapse table-fixed', minWidth ?? 'min-w-[800px]')}>
+      <table className={twMerge('w-full text-left text-sm text-slate-800 border-collapse table-fixed', minWidth ?? 'min-w-full')}>
         <thead className="sticky top-0 z-10 bg-slate-100/95 backdrop-blur-xs border-b border-slate-200">
           <tr>
             {columns.map((col, colIdx) => (

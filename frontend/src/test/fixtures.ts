@@ -5,7 +5,11 @@ import type { ChefDashboardData } from '../api/chefApi';
 import type { PurchaseOrderItem, SupplierItem } from '../api/purchasingApi';
 import type { WarehouseItem, InventoryReceiptItem, InventoryIssueItem } from '../api/warehouseApi';
 import type { ApprovalInboxItem } from '../api/approvalsApi';
-import type { ReconciliationBatchSummary } from '../api/reconciliationApi';
+import {
+  type MrxBatch,
+  type ReconciliationBatchSummary,
+  mapBatchDtoToSummary,
+} from '../api/mrxApi';
 
 export const MOCK_WEEKLY_MENU_DATA: WeeklyMenuData = {
   customerId: 'c6c0b2f4-1567-4c62-b687-e50d3e93f348',
@@ -310,32 +314,75 @@ export const MOCK_APPROVALS: ApprovalInboxItem[] = [
   },
 ];
 
-export const MOCK_RECONCILIATION: ReconciliationBatchSummary = {
+export const MOCK_RECONCILIATION_BATCH_DTO: MrxBatch = {
   batchId: 'recon-batch-20260921-01',
+  menuVersionId: 'menu-v1',
+  quantityImportBatchId: 'import-batch-1',
+  customerId: 'customer-1',
   customerCode: 'DAV',
   customerName: 'Công ty TNHH Draxlmaier Automotive',
   weekStartDate: '2026-09-21',
   weekEndDate: '2026-09-27',
   status: 'IN_PROGRESS',
   version: 7,
-  weeklyStatus: 'WEEK_COMPLETE',
+  createdAt: '2026-09-20T08:00:00Z',
+  readyAt: '2026-09-20T09:00:00Z',
+  completedAt: null,
   lines: [
     {
-      id: 'rl-1',
+      batchLineId: 'batch-line-1',
       dailyLineId: 'daily-1',
       serviceDate: '2026-09-21',
       ingredientId: 'ingredient-1',
-      materialCode: 'NL-THIT-01',
-      materialName: 'Thịt đùi heo tươi',
-      unitId: 'unit-kg',
-      unit: 'Kilogram',
+      ingredientCode: 'NL-THIT-01',
+      ingredientName: 'Thịt đùi heo tươi',
+      canonicalUnitId: 'unit-kg',
+      canonicalUnitName: 'Kilogram',
       requiredQuantity: 72,
       issuedQuantity: 72.5,
       issuedRequiredDifference: 0.5,
-      status: 'WEEK_COMPLETE',
-      version: 3,
-      triggers: [],
-      notes: [],
+      frozenTolerance: 0,
+      purchasedQuantity: null,
+      purchasedVersion: null,
+      issuedVersion: 1,
+      purchasedRequiredDifference: null,
+      purchasedIssuedDifference: null,
+      status: 'NEEDS_REVIEW',
+      version: 1,
+      triggers: ['TRIGGER_VARIANCE'],
+      disposition: undefined,
+      issueNotes: ['Xuất vượt định mức do chia gói'],
     },
   ],
+  dailyReview: {
+    weeklyStatus: 'WEEK_COMPLETE',
+    lines: [
+      {
+        batchLineId: 'batch-line-1',
+        dailyLineId: 'daily-1',
+        serviceDate: '2026-09-21',
+        ingredientId: 'ingredient-1',
+        ingredientCode: 'NL-THIT-01',
+        ingredientName: 'Thịt đùi heo tươi',
+        canonicalUnitId: 'unit-kg',
+        canonicalUnitName: 'Kilogram',
+        requiredQuantity: 72,
+        issuedQuantity: 72.5,
+        issuedRequiredDifference: 0.5,
+        frozenTolerance: 0,
+        purchasedQuantity: null,
+        purchasedVersion: null,
+        issuedVersion: 1,
+        purchasedRequiredDifference: null,
+        purchasedIssuedDifference: null,
+        status: 'NEEDS_REVIEW',
+        version: 1,
+        triggers: ['TRIGGER_VARIANCE'],
+        disposition: undefined,
+        issueNotes: ['Xuất vượt định mức do chia gói'],
+      },
+    ],
+  },
 };
+
+export const MOCK_RECONCILIATION: ReconciliationBatchSummary = mapBatchDtoToSummary(MOCK_RECONCILIATION_BATCH_DTO);

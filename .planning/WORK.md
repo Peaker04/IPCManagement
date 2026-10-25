@@ -1130,6 +1130,30 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R66 — Test-Audit Enforcement, Platform Invariant Unification & Responsive Hardening
+- **Spec & Plan Created via `writing-plans`**:
+  - Spec: `docs/superpowers/specs/2026-10-24-mrx-test-audit-and-platform-hardening-spec.md`
+  - Plan: `docs/superpowers/plans/2026-10-24-mrx-test-audit-and-platform-hardening-plan.md`
+- **Platform Invariants & API Consolidation (P0)**:
+  - Unified reconciliation query & mutation authority into `frontend/src/api/mrxApi.ts`. `reconciliationApi.ts` now cleanly delegates to `mrxApi`, eliminating duplicate API surfaces and ungrounded custom shapes.
+  - Resolved cross-date state contamination in `MrxDailyIssueWorkbench.tsx`: resetting quantities cleanly to each date's `requiredQuantity` when switching service dates.
+  - Enforced Zero-CLS (`RULE-FEEDBACK-01..04`) in `ReconciliationPage.tsx`: removed `setData(null)` on query failure, keeping existing table state visible with `isFetching` and `opacity-70`.
+- **Strict Test-Audit Enforcement (P1 - Rules TA-1 to TA-5)**:
+  - Enforced Rule TA-1: Updated `frontend/src/test/fixtures.ts` with `MOCK_RECONCILIATION_BATCH_DTO` directly matching C# `ReconciliationBatchDto` (`batchLineId`, `ingredientCode`, `ingredientName`, `canonicalUnitName`, `frozenTolerance`, `issueNotes`).
+  - Enforced Rule TA-2: Rewrote `Reconciliation.test.tsx` to mock at the `apiClient` network boundary rather than mocking internal client transforms.
+  - Enforced Rule TA-4: Added explicit behavioral coverage for Scenario 2 (Prerequisite-blocked empty state when no batch exists) and Scenario 4 (RBAC 403 authorization denial with alert banner).
+- **Responsive Architecture (P2)**:
+  - Replaced hardcoded `min-w-[800px]` in `DataGrid.tsx` with responsive `min-w-full` default, eliminating forced scrollbars in narrower panels.
+- **Verification Evidence**:
+  - Full frontend unit test suite: 18 files / 169 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - 5-viewport automated responsive probe (1920, 1440, 1366, 1280, 1024): 0 horizontal window overflow across all 30 configurations.
+  - Full-path 7-day 4-actor operational lifecycle test on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 5/5 phases PASS in 1m26s (`MRX-FULL-PATH-REPORT.json`).
+  - Strict architecture growth check: PASS (all files < 600 lines; `ReconciliationPage.tsx` at 596 lines, `MrxDailyIssueWorkbench.tsx` at 599 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

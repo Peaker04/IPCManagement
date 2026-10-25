@@ -22,12 +22,8 @@ import { useReconciliationColumns } from './reconciliationColumns';
 import { MrxBatchDishesModal } from '../../components/workbench/MrxBatchDishesModal';
 import { ReconciliationLineDetailModal } from '../../components/workbench/ReconciliationLineDetailModal';
 import {
-  reconciliationApi,
-  type ReconciliationBatchSummary,
-  type ReconciliationLineItem,
-} from '../../api/reconciliationApi';
-import {
   mrxApi,
+  mapBatchDtoToSummary,
   type MrxBatchSummary,
   type MrxOperationalSummary,
   type MrxVarianceRegisterReport,
@@ -35,6 +31,8 @@ import {
   type MrxAuditTrailReport,
   type MrxCompletedRegisterReport,
   type MrxSourceChangeItem,
+  type ReconciliationBatchSummary,
+  type ReconciliationLineItem,
 } from '../../api/mrxApi';
 import { todayInBusinessTimezone } from '../../utils/dates';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
@@ -86,6 +84,7 @@ export function ReconciliationPage() {
 
   const [data, setData] = useState<ReconciliationBatchSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [mutationError, setMutationError] = useState<Error | null>(null);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
@@ -193,15 +192,15 @@ export function ReconciliationPage() {
       setIsLoading(false);
       return;
     }
-    setIsLoading(true);
+    if (data) setIsFetching(true); else setIsLoading(true);
     setError(null);
     try {
-      setData(await reconciliationApi.getReconciliationSummary(id, date));
+      setData(await mrxApi.getBatchSummary(id, date));
     } catch (cause: unknown) {
-      setData(null);
       setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
     } finally {
       setIsLoading(false);
+      setIsFetching(false);
     }
   };
 
@@ -234,21 +233,27 @@ export function ReconciliationPage() {
   useEffect(() => {
     if (!batchId) return;
     let ignore = false;
-    reconciliationApi.getReconciliationSummary(batchId, serviceDate)
+    mrxApi.getBatchSummary(batchId, serviceDate)
       .then((result) => {
         if (!ignore) {
           setData(result);
+          setError(null);
           if (result.customerCode && !customerCode) {
             setCustomerCode(result.customerCode);
           }
         }
       })
       .catch((cause: unknown) => {
-        if (ignore) return;
-        setData(null);
-        setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
+        if (!ignore) {
+          setError(cause instanceof Error ? cause : new Error('Không thể tải lô đối soát nguyên liệu.'));
+        }
       })
-      .finally(() => { if (!ignore) setIsLoading(false); });
+      .finally(() => {
+        if (!ignore) {
+          setIsLoading(false);
+          setIsFetching(false);
+        }
+      });
     return () => { ignore = true; };
   }, [batchId, serviceDate, customerCode]);
 
@@ -259,8 +264,8 @@ export function ReconciliationPage() {
     setIsSubmitting(true);
     setMutationError(null);
     try {
-      const completed = await reconciliationApi.completeReconciliation(data.batchId, data.version);
-      setData(completed);
+      const completed = await mrxApi.completeBatch(data.batchId, data.version);
+      setData(mapBatchDtoToSummary(completed, serviceDate));
       setMutationError(null);
       setIsCompleteOpen(false);
     } catch (cause: unknown) {
@@ -483,8 +488,8 @@ export function ReconciliationPage() {
       )}
 
       <StateBoundary
-        isLoading={isLoading}
-        isFetching={isLoading}
+        isLoading={isLoading && !data}
+        isFetching={isFetching && Boolean(data)}
         loadingGeometry={{ kind: 'table', columns: 8, rows: 10, columnWidths: ['16%', '28%', '10%', '14%', '14%', '14%', '14%', '14%'] }}
         hasExistingData={activeReportTab === 'lines' ? Boolean(data && data.lines.length > 0) : true}
         error={displayedError}

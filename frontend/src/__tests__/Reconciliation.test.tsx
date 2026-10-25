@@ -4,10 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReconciliationPage } from '../features/reconciliation/ReconciliationPage';
 import { AuthProvider } from '../store/authContext';
-import { reconciliationApi } from '../api/reconciliationApi';
 import { mrxApi } from '../api/mrxApi';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
-import { MOCK_RECONCILIATION } from '../test/fixtures';
+import { MOCK_RECONCILIATION, MOCK_RECONCILIATION_BATCH_DTO } from '../test/fixtures';
 import { ApiError } from '../api/client';
 import { systemApi } from '../api/systemApi';
 
@@ -31,7 +30,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
       { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
     ]);
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue(MOCK_RECONCILIATION);
+    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValue(MOCK_RECONCILIATION);
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
       items: [{
         batchId: MOCK_RECONCILIATION.batchId,
@@ -51,8 +50,8 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
       hasPrev: false,
       hasNext: false,
     });
-    vi.spyOn(reconciliationApi, 'completeReconciliation').mockResolvedValue({
-      ...MOCK_RECONCILIATION,
+    vi.spyOn(mrxApi, 'completeBatch').mockResolvedValue({
+      ...MOCK_RECONCILIATION_BATCH_DTO,
       status: 'COMPLETED',
       version: 8,
     });
@@ -70,7 +69,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     // Customer select and date input
     expect(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' })).toBeInTheDocument();
     expect(await screen.findByRole('option', { name: /DAV · IN_PROGRESS/i })).toHaveValue(MOCK_RECONCILIATION.batchId);
-    expect(reconciliationApi.getReconciliationSummary).toHaveBeenCalledWith(MOCK_RECONCILIATION.batchId, '2026-10-19');
+    expect(mrxApi.getBatchSummary).toHaveBeenCalledWith(MOCK_RECONCILIATION.batchId, '2026-10-19');
     expect(screen.getByRole('textbox')).toHaveAttribute('data-date-locale', 'vi-VN');
     expect(await screen.findByText('Đang đối chiếu')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Xuất biên bản đối soát' })).not.toBeInTheDocument();
@@ -119,7 +118,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     const completeBtn = await screen.findByRole('button', { name: 'Chốt đối soát tuần' });
     expect(completeBtn).toBeDisabled();
     await userEvent.click(completeBtn);
-    expect(reconciliationApi.completeReconciliation).not.toHaveBeenCalled();
+    expect(mrxApi.completeBatch).not.toHaveBeenCalled();
     expect(screen.getByRole('group', { name: 'Chỉ khả dụng trong chế độ đối soát nguyên liệu.' })).toBeInTheDocument();
   });
 
@@ -135,14 +134,14 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     const confirmModalBtn = screen.getByRole('button', { name: 'Xác nhận khóa chốt tuần' });
     await userEvent.click(confirmModalBtn);
 
-    expect(reconciliationApi.completeReconciliation).toHaveBeenCalledWith(
+    expect(mrxApi.completeBatch).toHaveBeenCalledWith(
       'recon-batch-20260921-01',
       7
     );
   });
 
   it('keeps the loaded batch visible when completion conflicts with a newer version', async () => {
-    vi.spyOn(reconciliationApi, 'completeReconciliation').mockRejectedValueOnce(new ApiError(409, 'Phiên bản lô đã thay đổi'));
+    vi.spyOn(mrxApi, 'completeBatch').mockRejectedValueOnce(new ApiError(409, 'Phiên bản lô đã thay đổi'));
     renderReconciliation();
 
     await userEvent.click(await screen.findByRole('button', { name: 'Chốt đối soát tuần' }));
@@ -155,7 +154,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   });
 
   it('handles error state and provides retry action', async () => {
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockRejectedValueOnce(
+    vi.spyOn(mrxApi, 'getBatchSummary').mockRejectedValueOnce(
       new Error('Lỗi máy chủ đối soát')
     );
 
@@ -165,7 +164,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(screen.getByText('Lỗi máy chủ đối soát')).toBeInTheDocument();
 
     // Click retry
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValueOnce(MOCK_RECONCILIATION);
+    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValueOnce(MOCK_RECONCILIATION);
     const retryBtn = screen.getByRole('button', { name: 'Thử lại' });
     await userEvent.click(retryBtn);
 
@@ -206,7 +205,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   });
 
   it('shows read-only disposition details without mutation controls when batch is COMPLETED', async () => {
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue({
+    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValue({
       ...MOCK_RECONCILIATION,
       status: 'COMPLETED',
       lines: [{
@@ -261,7 +260,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   });
 
   it('enables disposition button for under-issued lines and supports resolving shortages (RULE-MRX-01)', async () => {
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue({
+    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValue({
       ...MOCK_RECONCILIATION,
       lines: [{
         ...MOCK_RECONCILIATION.lines[0],
@@ -278,7 +277,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   });
 
   it('Route 7: renders blocker resolution strip when batch is in progress but week is not complete', async () => {
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue({
+    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValue({
       ...MOCK_RECONCILIATION,
       status: 'IN_PROGRESS',
       weeklyStatus: 'IN_PROGRESS',
@@ -417,7 +416,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   });
 
   it('renders Lifecycle Progress Strip and filters lines by status and search keyword', async () => {
-    vi.spyOn(reconciliationApi, 'getReconciliationSummary').mockResolvedValue({
+    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValue({
       ...MOCK_RECONCILIATION,
       lines: [
         {
@@ -465,5 +464,40 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     const searchInput = screen.getByRole('textbox', { name: 'Tìm kiếm nguyên liệu đối soát' });
     await userEvent.type(searchInput, 'Gạo');
     expect(screen.queryByText('Thịt đùi heo tươi')).not.toBeInTheDocument();
+  });
+
+  // Rule TA-4 Scenario 2: Prerequisite-blocked empty state
+  it('Scenario 2 (Empty / Prerequisite Blocked): renders prerequisite empty state when no batch exists', async () => {
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 100,
+      totalPages: 0,
+      hasPrev: false,
+      hasNext: false,
+    });
+
+    renderReconciliation();
+
+    expect(await screen.findByRole('heading', { name: 'Chưa có dữ liệu đối soát cho ngày đã chọn' })).toBeInTheDocument();
+  });
+
+  // Rule TA-4 Scenario 4: RBAC 403 authorization failure with alert banner
+  it('Scenario 4 (RBAC 403): surfaces permission denied alert banner when batch completion is rejected with 403', async () => {
+    vi.spyOn(mrxApi, 'completeBatch').mockRejectedValueOnce(
+      new ApiError(403, 'Tài khoản không đủ thẩm quyền chốt đối soát tuần.')
+    );
+
+    renderReconciliation();
+
+    const completeBtn = await screen.findByRole('button', { name: 'Chốt đối soát tuần' });
+    await userEvent.click(completeBtn);
+
+    const confirmModalBtn = screen.getByRole('button', { name: 'Xác nhận khóa chốt tuần' });
+    await userEvent.click(confirmModalBtn);
+
+    expect(await screen.findByText('Không có quyền thực hiện thao tác')).toBeInTheDocument();
+    expect(screen.getByText('Tài khoản không đủ thẩm quyền chốt đối soát tuần.')).toBeInTheDocument();
   });
 });

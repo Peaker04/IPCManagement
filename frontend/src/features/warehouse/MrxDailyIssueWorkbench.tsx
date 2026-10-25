@@ -92,9 +92,10 @@ export function MrxDailyIssueWorkbench({
       setDaily(nextDaily);
       setHistory(nextHistory);
       const selected = nextDaily.dates.find((d) => d.serviceDate === targetDate);
-      setQuantities((current) => Object.keys(current).length > 0 ? current : Object.fromEntries(
-        (selected?.lines ?? []).map((l) => [l.dailyLineId, String(l.requiredQuantity)]),
+      setQuantities(Object.fromEntries(
+        (selected?.lines ?? []).map((l) => [l.dailyLineId, l.issuedQuantity != null ? String(l.issuedQuantity) : String(l.requiredQuantity)]),
       ));
+      setReasons({});
     } catch (cause) {
       setError(cause instanceof Error ? cause : new Error('Không thể tải định lượng xuất kho theo ngày.'));
     } finally {
