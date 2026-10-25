@@ -360,10 +360,15 @@ export function MrxBatchWorkbench() {
               <span className="text-slate-500">Phiên bản nguồn:</span>
               <strong className="font-mono text-slate-900">v{source.menuVersionNo ?? '—'}</strong>
               <span className="text-slate-300">·</span>
-              <span className="text-slate-500">Trạng thái:</span>
               <Badge variant={source.menuVersionStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">
                 {source.menuVersionStatus === 'PUBLISHED' ? 'Đã xuất bản' : 'Bản nháp'}
               </Badge>
+              {batch?.status === 'DRAFT' && (
+                <span className="text-slate-500 hidden xl:inline">· Kiểm tra phân rã định lượng rồi bấm "Đóng băng lô"</span>
+              )}
+              {batch?.status === 'READY' && (
+                <span className="text-slate-500 hidden xl:inline">· Lô đã đóng băng, bấm "Chuyển sang Kho" để bắt đầu xuất</span>
+              )}
             </div>
           ) : null
         }

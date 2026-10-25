@@ -279,7 +279,10 @@ export function ReconciliationReportTables({
     return (
       <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
         <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs font-semibold text-slate-700">Sổ theo dõi chênh lệch & quyết định xử lý tuần</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-800">Sổ theo dõi chênh lệch & quyết định xử lý tuần</span>
+            <span className="text-[11px] text-slate-500 hidden md:inline">· Quản lý cần phê duyệt giải trình để đạt trạng thái WEEK_COMPLETE</span>
+          </div>
           <Button
             variant="outline"
             size="xs"
@@ -303,7 +306,10 @@ export function ReconciliationReportTables({
     return (
       <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
         <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs font-semibold text-slate-700">Lịch sử giao dịch kho (Xuất ban đầu, Xuất bổ sung & Hoàn trả)</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-800">Lịch sử giao dịch kho (Xuất ban đầu, Xuất bổ sung & Hoàn trả)</span>
+            <span className="text-[11px] text-slate-500 hidden md:inline">· Nhật ký append-only ghi nhận từng lần kho xuất và bếp hoàn trả</span>
+          </div>
           <Button
             variant="outline"
             size="xs"
@@ -387,7 +393,10 @@ export function ReconciliationReportTables({
     return (
       <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
         <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <span className="text-xs font-semibold text-slate-700">Danh bạ lô đối soát đã hoàn tất</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-800">Danh bạ lô đối soát đã hoàn tất</span>
+            <span className="text-[11px] text-slate-500 hidden md:inline">· Hồ sơ đã đóng băng vĩnh viễn, lưu trữ số liệu quyết toán và kiểm toán</span>
+          </div>
           <Button
             variant="outline"
             size="xs"

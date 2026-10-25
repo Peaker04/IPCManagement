@@ -1055,6 +1055,22 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R62 — MRX Mode Exclusive Microcopy & Contextual Guidance Blueprint
+- **Scope Restriction**: Restricted purely to the `MATERIAL_RECONCILIATION` subsystem across all 5 operational stations (`ReconciliationPage`, `MrxBatchWorkbench`, `MrxDailyIssueWorkbench`, `MrxCookingWorkbench`, `ReconciliationReportTables`).
+- **Contextual Note & Guidance Additions**:
+  - `ReconciliationReportTables.tsx`: Added descriptive guidance subtitles for Variances (`Sổ theo dõi chênh lệch`), Transactions (`Lịch sử giao dịch kho`), and Completed Register (`Danh bạ hoàn tất`) clarifying managerial purpose and ledger append-only facts.
+  - `MrxBatchWorkbench.tsx`: Added reactive stage hints in TelemetrySubbar dynamically steering coordinators across the 5 lifecycle steps (`DRAFT`, `READY`, `TRANSFERRED`).
+  - `MrxDailyIssueWorkbench.tsx`: Added inline guidance notes in TelemetrySubbar guiding warehouse staff between weekly aggregate read-only overview and concrete date issuing.
+  - `MrxCookingWorkbench.tsx`: Added sanitization assurance note in TelemetrySubbar confirming frozen BOM pricing and supplier data concealment.
+  - `ReconciliationPage.tsx`: Added dynamic readiness pill indicators in TelemetrySubbar reflecting week completion and unresolved variance tallies.
+- **Verification Evidence**:
+  - Full-path 7-day 4-actor operational lifecycle test on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 5/5 phases PASS in 1m31s (`MRX-FULL-PATH-REPORT.json`).
+  - Full frontend unit suite: 18 files / 167 tests PASS (100%).
+  - Architecture growth check: PASS (strict baseline, all files < 600 lines; `MrxDailyIssueWorkbench.tsx` at 594 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

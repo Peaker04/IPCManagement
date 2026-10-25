@@ -455,11 +455,7 @@ export function MrxDailyIssueWorkbench({
               type="button"
               onClick={() => {
                 setActiveDate('ALL');
-                setSearchParams((curr) => {
-                  const next = new URLSearchParams(curr);
-                  next.set('date', 'ALL');
-                  return next;
-                }, { replace: true });
+                setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('date', 'ALL'); return next; }, { replace: true });
               }}
               className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 isWeeklyAll
@@ -475,11 +471,7 @@ export function MrxDailyIssueWorkbench({
                 type="button"
                 onClick={() => {
                   setActiveDate(d.serviceDate);
-                  setSearchParams((curr) => {
-                    const next = new URLSearchParams(curr);
-                    next.set('date', d.serviceDate);
-                    return next;
-                  }, { replace: true });
+                  setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('date', d.serviceDate); return next; }, { replace: true });
                 }}
                 className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   d.serviceDate === activeDate
@@ -505,17 +497,20 @@ export function MrxDailyIssueWorkbench({
         }
         telemetryPills={
           isWeeklyAll ? (
-            <Badge variant="neutral" size="sm">Chế độ xem tổng hợp tuần (Chỉ đọc)</Badge>
+            <div className="flex items-center gap-2 text-xs">
+              <Badge variant="neutral" size="sm">Chế độ xem tổng hợp tuần (Chỉ đọc)</Badge>
+              <span className="text-slate-500 hidden md:inline">· Chọn từng ngày (T2–T7) để xuất kho</span>
+            </div>
           ) : (
             day ? (
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500">Mặt hàng ngày:</span>
+                <span className="text-slate-500">Mặt hàng:</span>
                 <strong className="font-mono text-slate-900">{lines.length}</strong>
                 <span className="text-slate-300">·</span>
-                <span className="text-slate-500">Trạng thái:</span>
                 <Badge variant={hasInitialIssue ? 'success' : 'warning'} size="sm">
-                  {hasInitialIssue ? 'Đã có phiếu xuất' : 'Chưa xuất kho'}
+                  {hasInitialIssue ? 'Đã xuất kho' : 'Chưa xuất'}
                 </Badge>
+                <span className="text-slate-500 hidden lg:inline">· {hasInitialIssue ? 'Có thể xuất bổ sung trong ca' : 'Bấm "Điền đủ toàn bộ" nếu xuất đúng định mức'}</span>
               </div>
             ) : null
           )

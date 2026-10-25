@@ -226,7 +226,10 @@ export function MrxCookingWorkbench() {
 
       <TelemetrySubbar
         leftControls={
-          <span className="text-xs font-semibold text-slate-700">Phiếu nấu theo từng món ăn trong ca</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-700">Phiếu nấu theo từng món ăn trong ca</span>
+            <span className="text-[11px] text-slate-500 hidden md:inline">· Định mức đóng băng, kiểm duyệt an toàn không lộ giá</span>
+          </div>
         }
         telemetryPills={data ? (
           <>

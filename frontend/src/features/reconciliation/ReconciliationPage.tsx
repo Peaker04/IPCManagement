@@ -450,6 +450,12 @@ export function ReconciliationPage() {
               <span className="text-slate-500">Trạng thái tuần:</span>
               <strong className="text-slate-900">{STATUS_LABELS[data.weeklyStatus || ''] || data.weeklyStatus || '—'}</strong>
             </span>
+            {data.weeklyStatus === 'WEEK_COMPLETE' && (
+              <span className="text-emerald-700 font-semibold text-xs hidden lg:inline">· Đủ điều kiện chốt sổ tuần</span>
+            )}
+            {needsReviewCount > 0 && (
+              <span className="text-amber-700 font-semibold text-xs hidden lg:inline">· Còn {needsReviewCount} dòng cần giải trình</span>
+            )}
             <span className="text-slate-300">·</span>
             <span className="inline-flex items-center gap-1">
               <span className="text-slate-500">Dòng ngày:</span>
