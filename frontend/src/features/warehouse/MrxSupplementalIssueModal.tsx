@@ -26,7 +26,7 @@ interface MrxSupplementalIssueModalProps {
   onSuppReasonChange: (val: string) => void;
   suppError: string | null;
   isSubmittingSupp: boolean;
-  onSubmit: () => void;
+  onSubmit: (customLines?: Array<{ dailyLineId: string; quantity: number; reason: string }>) => void;
 }
 
 const PRESET_REASONS = [
@@ -94,7 +94,7 @@ export function MrxSupplementalIssueModal({
             variant="default"
             size="sm"
             disabled={!canSubmit}
-            onClick={onSubmit}
+            onClick={() => onSubmit()}
           >
             {isSubmittingSupp ? 'Đang xử lý...' : 'Xác nhận xuất bổ sung'}
           </Button>
@@ -173,7 +173,35 @@ export function MrxSupplementalIssueModal({
 
             {selectedDish && Number(extraServings) > 0 && (
               <div className="mt-2 border-t border-blue-200 pt-2">
-                <span className="text-slate-600 block mb-1">Chọn nguyên liệu cần xuất bổ sung:</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-slate-700 font-semibold text-xs">Các nguyên liệu cấu thành ({selectedDish.materials.length}):</span>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="xs"
+                    disabled={isSubmittingSupp}
+                    onClick={() => {
+                      const allLines = selectedDish.materials
+                        .map((m) => {
+                          const lineMatch = lines.find((l) => l.dailyLineId === m.dailyLineId);
+                          if (!lineMatch) return null;
+                          const calculatedQty = Number((Number(extraServings) * m.grossQtyPerServing).toFixed(3));
+                          return {
+                            dailyLineId: lineMatch.dailyLineId,
+                            quantity: calculatedQty,
+                            reason: `Phát sinh ${extraServings} suất món ${selectedDish.dishName}`,
+                          };
+                        })
+                        .filter((item): item is { dailyLineId: string; quantity: number; reason: string } => item !== null && item.quantity > 0);
+                      if (allLines.length > 0) {
+                        onSubmit(allLines);
+                      }
+                    }}
+                    className="h-6 px-2 text-xs font-semibold"
+                  >
+                    Xuất trọn gói cả món ({selectedDish.materials.length} NL)
+                  </Button>
+                </div>
                 <div className="space-y-1 max-h-32 overflow-y-auto">
                   {selectedDish.materials.map((m, idx) => {
                     const lineMatch = lines.find((l) => l.dailyLineId === m.dailyLineId);

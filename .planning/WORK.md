@@ -1154,6 +1154,20 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R67 — Multi-Line Supplemental Packages & Full Plan Closure
+- **Completed Task 4 (Multi-Line Supplemental Issuing - P3)**:
+  - Upgraded `MrxSupplementalIssueModal.tsx` and `MrxDailyIssueWorkbench.tsx` to support atomic multi-line supplemental issuing.
+  - In "Theo món" mode: Selecting a dish and extra servings auto-calculates all component ingredients from frozen BOM and presents a 1-click `"Xuất trọn gói cả món (X NL)"` action.
+  - `handleSupplementalSubmit` submits all staged lines atomically via `mrxApi.createIssue`, matching contract Section 7 of `material-reconciliation.md`.
+- **Verification Evidence**:
+  - Full-path 7-day 4-actor operational lifecycle test on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 5/5 phases PASS in 1m29s (`MRX-FULL-PATH-REPORT.json`).
+  - Full frontend unit test suite: 18 files / 169 tests PASS (100%).
+  - Playwright browser runtime suite: 10/10 tests PASS (100%).
+  - Architecture growth check: PASS (strict baseline, all files < 600 lines; `MrxDailyIssueWorkbench.tsx` at 599 lines, `MrxSupplementalIssueModal.tsx` at 307 lines).
+  - ESLint and dependency cruiser: 0 errors, 0 warnings, 0 violations.
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

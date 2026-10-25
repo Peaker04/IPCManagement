@@ -237,29 +237,29 @@ export function MrxDailyIssueWorkbench({
     }
   };
 
-  const handleSupplementalSubmit = async () => {
-    if (!daily || !activeBatchId || !suppMaterialId || Number(suppQuantity) <= 0 || !suppReason.trim()) return;
-    const targetLine = lines.find((l) => l.dailyLineId === suppMaterialId);
-    if (!targetLine) return;
+  const handleSupplementalSubmit = async (customLines?: Array<{ dailyLineId: string; quantity: number; reason: string }>) => {
+    if (!daily || !activeBatchId) return;
+    const items = customLines?.length ? customLines : (!suppMaterialId || Number(suppQuantity) <= 0 || !suppReason.trim() ? [] : [{
+      dailyLineId: suppMaterialId, quantity: Number(suppQuantity), reason: suppReason.trim(),
+    }]);
+    if (items.length === 0) return;
     setIsSubmittingSupp(true);
     setSuppError(null);
     try {
-      await mrxApi.createIssue({
-        commandId: crypto.randomUUID(),
-        expectedVersion: daily.sourceVersion,
-        issueDate: activeDate,
-        reconciliationBatchId: activeBatchId,
-        isSupplemental: true,
-        lines: [{
-          reconciliationBatchLineId: targetLine.batchLineId, reconciliationBatchDailyLineId: targetLine.dailyLineId,
-          ingredientId: targetLine.ingredientId, unitId: targetLine.canonicalUnitId,
-          requestedQty: Number(suppQuantity), issuedQty: Number(suppQuantity),
-          varianceReason: suppReason.trim(),
-        }],
+      const issueLines = items.map((item) => {
+        const target = lines.find((l) => l.dailyLineId === item.dailyLineId);
+        if (!target) throw new Error(`Không tìm thấy nguyên liệu.`);
+        return {
+          reconciliationBatchLineId: target.batchLineId, reconciliationBatchDailyLineId: target.dailyLineId,
+          ingredientId: target.ingredientId, unitId: target.canonicalUnitId,
+          requestedQty: item.quantity, issuedQty: item.quantity, varianceReason: item.reason,
+        };
       });
-      setIsSupplementalOpen(false);
-      setSuppQuantity('');
-      setSuppReason('');
+      await mrxApi.createIssue({
+        commandId: crypto.randomUUID(), expectedVersion: daily.sourceVersion, issueDate: activeDate,
+        reconciliationBatchId: activeBatchId, isSupplemental: true, lines: issueLines,
+      });
+      setIsSupplementalOpen(false); setSuppQuantity(''); setSuppReason('');
       await load(activeBatchId, activeDate);
     } catch (cause) {
       setSuppError(cause instanceof Error ? cause.message : 'Không thể thực hiện xuất bổ sung.');
@@ -586,7 +586,7 @@ export function MrxDailyIssueWorkbench({
         onSuppReasonChange={setSuppReason}
         suppError={suppError}
         isSubmittingSupp={isSubmittingSupp}
-        onSubmit={() => void handleSupplementalSubmit()}
+        onSubmit={(items) => void handleSupplementalSubmit(items)}
       />
 
       <ReconciliationIssueDetailModal
