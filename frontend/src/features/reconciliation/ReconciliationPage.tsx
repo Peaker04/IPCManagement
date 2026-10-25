@@ -105,6 +105,7 @@ export function ReconciliationPage() {
   const [completedReport, setCompletedReport] = useState<MrxCompletedRegisterReport | null>(null);
   const [sourceChanges, setSourceChanges] = useState<MrxSourceChangeItem[] | null>(null);
   const [operationalSummary, setOperationalSummary] = useState<MrxOperationalSummary | null>(null);
+  const [isReportLoading, setIsReportLoading] = useState(false);
   const [isDishesModalOpen, setIsDishesModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [lineStatusFilter, setLineStatusFilter] = useState<LineStatusFilter>('ALL');
@@ -144,29 +145,40 @@ export function ReconciliationPage() {
   }, []);
 
   useEffect(() => {
-    if (activeReportTab === 'completed') {
-      mrxApi.getCompletedRegister()
-        .then(setCompletedReport)
-        .catch(() => setCompletedReport(null));
-      return;
-    }
-    if (!batchId) return;
-    if (activeReportTab === 'variances') {
-      mrxApi.getVarianceRegister(batchId, weekStartFor(serviceDate))
-        .then(setVariancesReport)
-        .catch(() => setVariancesReport(null));
-    } else if (activeReportTab === 'transactions') {
-      mrxApi.getTransactionsHistory(batchId)
-        .then(setTransactionsReport)
-        .catch(() => setTransactionsReport(null));
-    } else if (activeReportTab === 'audit') {
-      mrxApi.getAuditTrail(batchId)
-        .then(setAuditReport)
-        .catch(() => setAuditReport(null));
-      mrxApi.getSourceChanges(batchId)
-        .then(setSourceChanges)
-        .catch(() => setSourceChanges(null));
-    }
+    if (activeReportTab === 'lines') return;
+    let ignore = false;
+    setIsReportLoading(true);
+    const fetchReport = async () => {
+      try {
+        if (activeReportTab === 'completed') {
+          const res = await mrxApi.getCompletedRegister();
+          if (!ignore) setCompletedReport(res);
+        } else if (batchId) {
+          if (activeReportTab === 'variances') {
+            const res = await mrxApi.getVarianceRegister(batchId, weekStartFor(serviceDate));
+            if (!ignore) setVariancesReport(res);
+          } else if (activeReportTab === 'transactions') {
+            const res = await mrxApi.getTransactionsHistory(batchId);
+            if (!ignore) setTransactionsReport(res);
+          } else if (activeReportTab === 'audit') {
+            const [audit, sources] = await Promise.all([
+              mrxApi.getAuditTrail(batchId),
+              mrxApi.getSourceChanges(batchId),
+            ]);
+            if (!ignore) {
+              setAuditReport(audit);
+              setSourceChanges(sources);
+            }
+          }
+        }
+      } catch {
+        // preserve previous data on failure
+      } finally {
+        if (!ignore) setIsReportLoading(false);
+      }
+    };
+    void fetchReport();
+    return () => { ignore = true; };
   }, [batchId, activeReportTab, serviceDate]);
 
   useEffect(() => {
@@ -318,16 +330,10 @@ export function ReconciliationPage() {
               aria-label="Chọn khách hàng đối soát"
               options={customerOptions}
               value={customerCode}
-              onChange={(event) => {
-                setIsLoading(true);
-                setError(null);
-                setBatchId('');
-                setSearchParams((current) => {
-                  const next = new URLSearchParams(current);
-                  next.delete('batchId');
-                  return next;
-                });
-                setCustomerCode(event.target.value);
+              onChange={(e) => {
+                setIsLoading(true); setError(null); setBatchId('');
+                setSearchParams((curr) => { const next = new URLSearchParams(curr); next.delete('batchId'); return next; });
+                setCustomerCode(e.target.value);
               }}
               className="h-9 w-44 sm:w-56 lg:w-64 font-medium text-sm"
               disabled={customers.length === 0}
@@ -336,16 +342,9 @@ export function ReconciliationPage() {
               aria-label="Chọn lô đối soát"
               options={batchOptions}
               value={batchId}
-              onChange={(event) => {
-                const selected = event.target.value;
-                setIsLoading(true);
-                setError(null);
-                setBatchId(selected);
-                setSearchParams((current) => {
-                  const next = new URLSearchParams(current);
-                  next.set('batchId', selected);
-                  return next;
-                });
+              onChange={(e) => {
+                setIsLoading(true); setError(null); setBatchId(e.target.value);
+                setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('batchId', e.target.value); return next; });
               }}
               className="h-9 w-52 sm:w-60 lg:w-72 font-medium text-sm"
               disabled={batches.length === 0}
@@ -354,17 +353,11 @@ export function ReconciliationPage() {
               aria-label="Ngày đối soát"
               value={serviceDate}
               onChange={(date) => {
-                const currentWeek = weekStartFor(serviceDate);
-                const nextWeek = weekStartFor(date);
-                setIsLoading(true);
-                setError(null);
+                const currentWeek = weekStartFor(serviceDate), nextWeek = weekStartFor(date);
+                setIsLoading(true); setError(null);
                 if (currentWeek !== nextWeek) {
                   setBatchId('');
-                  setSearchParams((current) => {
-                    const next = new URLSearchParams(current);
-                    next.delete('batchId');
-                    return next;
-                  });
+                  setSearchParams((curr) => { const next = new URLSearchParams(curr); next.delete('batchId'); return next; });
                 }
                 setServiceDate(date);
               }}
@@ -427,15 +420,8 @@ export function ReconciliationPage() {
       <ReconciliationQueueCards
         operationalSummary={operationalSummary}
         onNavigateBatchPrep={() => {
-          if (isAdmin || hasRole('Coordinator') || hasRole('COORDINATOR') || hasRole('Điều phối')) {
-            navigate('/weekly-menu?view=mrx-batch');
-          } else {
-            setSearchParams((curr) => {
-              const next = new URLSearchParams(curr);
-              next.set('view', 'audit');
-              return next;
-            });
-          }
+          if (isAdmin || hasRole('Coordinator') || hasRole('COORDINATOR') || hasRole('Điều phối')) navigate('/weekly-menu?view=mrx-batch');
+          else setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('view', 'audit'); return next; });
         }}
         onFilterAwaitingWarehouse={() => selectBatch(batches.find((b) => b.status === 'READY' || b.status === 'TRANSFERRED'))}
         onNavigateDeltas={() => {
@@ -546,6 +532,7 @@ export function ReconciliationPage() {
           <ReconciliationReportTables
             activeTab={activeReportTab}
             batchId={batchId}
+            isReportLoading={isReportLoading}
             variancesReport={variancesReport}
             transactionsReport={transactionsReport}
             auditReport={auditReport}

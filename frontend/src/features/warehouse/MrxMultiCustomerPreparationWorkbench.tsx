@@ -12,6 +12,7 @@ import { toVietnameseDate, todayInBusinessTimezone } from '../../utils/dates';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
+import { downloadAuthenticatedFile } from '../../utils/fileDownload';
 
 interface MrxMultiCustomerPreparationWorkbenchProps {
   serviceDate: string;
@@ -201,7 +202,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
                   batchIds: selectedBatchIds,
                   supplierName: supplierFilter.trim() || undefined,
                 });
-                window.open(url, '_blank');
+                void downloadAuthenticatedFile(url, `bang-chuan-bi-${activeDate}.xlsx`);
               }}
             >
               Xuất Excel chuẩn bị

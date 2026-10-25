@@ -129,6 +129,12 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(defaultQuery).not.toHaveBeenCalled();
   });
 
+  it('renders mrx-batch view when accessing /weekly-menu?view=mrx-batch', async () => {
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch');
+
+    expect(await screen.findByRole('heading', { name: 'Chuẩn bị lô đối soát' })).toBeInTheDocument();
+  });
+
   it('commits one canonical draft then readies and transfers that batch to Warehouse', async () => {
     const source: MrxWeeklySource = {
       customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',

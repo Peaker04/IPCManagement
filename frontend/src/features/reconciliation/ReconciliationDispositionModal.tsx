@@ -31,6 +31,7 @@ export function ReconciliationDispositionModal({
   const [reason, setReason] = useState(primaryLine?.disposition?.reason || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [succeededLineIds, setSucceededLineIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     let ignore = false;
@@ -54,12 +55,13 @@ export function ReconciliationDispositionModal({
     setError(null);
     try {
       for (const line of targetLines) {
-        if (line.dailyLineId) {
+        if (line.dailyLineId && !succeededLineIds.has(line.dailyLineId)) {
           await mrxApi.setDailyDisposition(line.dailyLineId, {
             category,
             reason: reason.trim(),
             expectedVersion: line.disposition?.version,
           });
+          setSucceededLineIds((prev) => new Set(prev).add(line.dailyLineId!));
         }
       }
       onClose();

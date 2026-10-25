@@ -29,13 +29,13 @@ export function ReconciliationQueueCards({
       <button
         type="button"
         onClick={onNavigateBatchPrep}
-        className="flex items-center justify-between px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
+        className="flex items-center justify-between px-2.5 sm:px-3 lg:px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <span className={clsx('h-2 w-2 rounded-full shrink-0', pendingSource > 0 ? 'bg-rose-500 animate-pulse' : 'bg-slate-300')} aria-hidden="true" />
-          <span className="text-xs text-slate-600 font-medium truncate">Đổi nguồn chờ duyệt</span>
+          <span className="text-[11px] sm:text-xs text-slate-600 font-medium truncate">Đổi nguồn chờ duyệt</span>
         </div>
-        <span className={clsx('text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-2', pendingSource > 0 ? 'text-rose-600' : 'text-slate-900')}>
+        <span className={clsx('text-sm sm:text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-1 sm:ml-2', pendingSource > 0 ? 'text-rose-600' : 'text-slate-900')}>
           {pendingSource}
         </span>
       </button>
@@ -43,13 +43,13 @@ export function ReconciliationQueueCards({
       <button
         type="button"
         onClick={onFilterAwaitingWarehouse}
-        className="flex items-center justify-between px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
+        className="flex items-center justify-between px-2.5 sm:px-3 lg:px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <span className={clsx('h-2 w-2 rounded-full shrink-0', awaitingWarehouse > 0 ? 'bg-blue-500' : 'bg-slate-300')} aria-hidden="true" />
-          <span className="text-xs text-slate-600 font-medium truncate">Lô chờ xuất kho</span>
+          <span className="text-[11px] sm:text-xs text-slate-600 font-medium truncate">Lô chờ xuất kho</span>
         </div>
-        <span className={clsx('text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-2', awaitingWarehouse > 0 ? 'text-blue-600' : 'text-slate-900')}>
+        <span className={clsx('text-sm sm:text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-1 sm:ml-2', awaitingWarehouse > 0 ? 'text-blue-600' : 'text-slate-900')}>
           {awaitingWarehouse}
         </span>
       </button>
@@ -57,13 +57,13 @@ export function ReconciliationQueueCards({
       <button
         type="button"
         onClick={onNavigateDeltas}
-        className="flex items-center justify-between px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
+        className="flex items-center justify-between px-2.5 sm:px-3 lg:px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <span className={clsx('h-2 w-2 rounded-full shrink-0', pendingDeltas > 0 ? 'bg-amber-500' : 'bg-slate-300')} aria-hidden="true" />
-          <span className="text-xs text-slate-600 font-medium truncate">Hàng đợi bù/trả</span>
+          <span className="text-[11px] sm:text-xs text-slate-600 font-medium truncate">Hàng đợi bù/trả</span>
         </div>
-        <span className={clsx('text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-2', pendingDeltas > 0 ? 'text-amber-700' : 'text-slate-900')}>
+        <span className={clsx('text-sm sm:text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-1 sm:ml-2', pendingDeltas > 0 ? 'text-amber-700' : 'text-slate-900')}>
           {pendingDeltas}
         </span>
       </button>
@@ -71,13 +71,13 @@ export function ReconciliationQueueCards({
       <button
         type="button"
         onClick={onFilterVariances}
-        className="flex items-center justify-between px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
+        className="flex items-center justify-between px-2.5 sm:px-3 lg:px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <span className={clsx('h-2 w-2 rounded-full shrink-0', unresolvedVariances > 0 ? 'bg-rose-500 animate-pulse' : 'bg-slate-300')} aria-hidden="true" />
-          <span className="text-xs text-slate-600 font-medium truncate">Sai lệch chưa giải trình</span>
+          <span className="text-[11px] sm:text-xs text-slate-600 font-medium truncate">Sai lệch chưa giải trình</span>
         </div>
-        <span className={clsx('text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-2', unresolvedVariances > 0 ? 'text-rose-600' : 'text-slate-900')}>
+        <span className={clsx('text-sm sm:text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-1 sm:ml-2', unresolvedVariances > 0 ? 'text-rose-600' : 'text-slate-900')}>
           {unresolvedVariances}
         </span>
       </button>
@@ -85,13 +85,13 @@ export function ReconciliationQueueCards({
       <button
         type="button"
         onClick={onFilterReadyCompletion}
-        className="flex items-center justify-between px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
+        className="flex items-center justify-between px-2.5 sm:px-3 lg:px-4 transition-colors text-left cursor-pointer hover:bg-slate-50"
       >
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <span className={clsx('h-2 w-2 rounded-full shrink-0', completionReady > 0 ? 'bg-emerald-500' : 'bg-slate-300')} aria-hidden="true" />
-          <span className="text-xs text-slate-600 font-medium truncate">Lô sẵn sàng chốt</span>
+          <span className="text-[11px] sm:text-xs text-slate-600 font-medium truncate">Lô sẵn sàng chốt</span>
         </div>
-        <span className={clsx('text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-2', completionReady > 0 ? 'text-emerald-700' : 'text-slate-900')}>
+        <span className={clsx('text-sm sm:text-base font-bold font-mono tracking-tight tabular-nums shrink-0 ml-1 sm:ml-2', completionReady > 0 ? 'text-emerald-700' : 'text-slate-900')}>
           {completionReady}
         </span>
       </button>

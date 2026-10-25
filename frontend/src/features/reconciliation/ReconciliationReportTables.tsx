@@ -5,6 +5,7 @@ import { Num } from '../../components/ui/num';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { toVietnameseDate, formatVietnameseDateTime } from '../../utils/dates';
 import { ReconciliationIssueDetailModal } from '../../components/workbench/ReconciliationIssueDetailModal';
+import { downloadAuthenticatedFile } from '../../utils/fileDownload';
 import type {
   MrxVarianceRegisterReport,
   MrxTransactionHistoryReport,
@@ -16,6 +17,7 @@ import type {
 interface ReconciliationReportTablesProps {
   activeTab: 'variances' | 'transactions' | 'audit' | 'completed';
   batchId: string;
+  isReportLoading?: boolean;
   variancesReport: MrxVarianceRegisterReport | null;
   transactionsReport: MrxTransactionHistoryReport | null;
   auditReport: MrxAuditTrailReport | null;
@@ -26,6 +28,7 @@ interface ReconciliationReportTablesProps {
 export function ReconciliationReportTables({
   activeTab,
   batchId,
+  isReportLoading = false,
   variancesReport,
   transactionsReport,
   auditReport,
@@ -34,6 +37,7 @@ export function ReconciliationReportTables({
 }: ReconciliationReportTablesProps) {
   const [auditSubTab, setAuditSubTab] = useState<'warehouse' | 'source'>('warehouse');
   const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
+
   const varianceColumns = useMemo<ColumnDef<MrxVarianceRegisterReport['rows'][number]>[]>(() => [
     {
       id: 'date',
@@ -286,6 +290,17 @@ export function ReconciliationReportTables({
     },
   ], []);
 
+  if (isReportLoading) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 bg-white text-center">
+        <div className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400 animate-pulse">
+          <span className="text-xs font-mono font-bold">...</span>
+        </div>
+        <p className="text-xs text-slate-500 animate-pulse">Đang tải số liệu báo cáo đối soát...</p>
+      </div>
+    );
+  }
+
   if (activeTab === 'variances') {
     return (
       <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
@@ -298,7 +313,7 @@ export function ReconciliationReportTables({
             variant="outline"
             size="xs"
             disabled={!batchId}
-            onClick={() => window.open(`/api/reconciliation/reports/variance-register/csv?batchId=${batchId}`, '_blank')}
+            onClick={() => void downloadAuthenticatedFile(`/api/reconciliation/reports/variance-register/csv?batchId=${batchId}`, `so-chenh-lech-${batchId.slice(0, 8)}.csv`)}
           >
             Tải CSV Sổ chênh lệch
           </Button>
@@ -325,7 +340,7 @@ export function ReconciliationReportTables({
             variant="outline"
             size="xs"
             disabled={!batchId}
-            onClick={() => window.open(`/api/reconciliation/reports/transactions-history/csv?batchId=${batchId}`, '_blank')}
+            onClick={() => void downloadAuthenticatedFile(`/api/reconciliation/reports/transactions-history/csv?batchId=${batchId}`, `lich-su-kho-${batchId.slice(0, 8)}.csv`)}
           >
             Tải CSV Lịch sử kho
           </Button>
@@ -380,7 +395,7 @@ export function ReconciliationReportTables({
             variant="outline"
             size="xs"
             disabled={!batchId}
-            onClick={() => window.open(`/api/reconciliation/reports/audit-trail/csv?batchId=${batchId}`, '_blank')}
+            onClick={() => void downloadAuthenticatedFile(`/api/reconciliation/reports/audit-trail/csv?batchId=${batchId}`, `audit-trail-${batchId.slice(0, 8)}.csv`)}
           >
             Tải CSV Nhật ký
           </Button>
@@ -416,7 +431,7 @@ export function ReconciliationReportTables({
           <Button
             variant="outline"
             size="xs"
-            onClick={() => window.open('/api/reconciliation/reports/completed-register/csv', '_blank')}
+            onClick={() => void downloadAuthenticatedFile('/api/reconciliation/reports/completed-register/csv', 'danh-ba-hoan-tat.csv')}
           >
             Tải CSV Danh bạ hoàn tất
           </Button>

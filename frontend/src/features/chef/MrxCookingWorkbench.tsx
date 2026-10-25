@@ -11,6 +11,7 @@ import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { ApiError } from '../../api/client';
 import { toVietnameseDate } from '../../utils/dates';
+import { downloadAuthenticatedFile } from '../../utils/fileDownload';
 
 interface DishGroup {
   key: string;
@@ -197,7 +198,7 @@ export function MrxCookingWorkbench() {
               size="sm"
               disabled={!data || data.rows.length === 0}
               onClick={() => {
-                if (csvUrl) window.open(csvUrl, '_blank');
+                if (csvUrl) void downloadAuthenticatedFile(csvUrl, `phieu-nau-${batchId.slice(0, 8)}.csv`);
               }}
             >
               Tải CSV
@@ -207,7 +208,7 @@ export function MrxCookingWorkbench() {
               size="sm"
               disabled={!data || data.rows.length === 0}
               onClick={() => {
-                if (xlsxUrl) window.open(xlsxUrl, '_blank');
+                if (xlsxUrl) void downloadAuthenticatedFile(xlsxUrl, `phieu-nau-${batchId.slice(0, 8)}.xlsx`);
               }}
             >
               Tải Excel

@@ -110,6 +110,7 @@ export function MrxBatchWorkbench() {
     const fetchSource = async () => {
       setIsLoading(true);
       setError(null);
+      setPreview(null); // Invalidate any stale preview token when customer or week changes!
       try {
         const [sourceResult, batchPage] = await Promise.all([
           mrxApi.getWeeklySource(customerId, weekStartDate),
