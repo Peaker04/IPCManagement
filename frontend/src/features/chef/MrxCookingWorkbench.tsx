@@ -255,7 +255,8 @@ export function MrxCookingWorkbench() {
       />
 
       <StateBoundary
-        isLoading={isLoading}
+        isLoading={isLoading && !data}
+        isFetching={isLoading && Boolean(data)}
         error={displayedError}
         onRetry={() => { if (batchId) void loadCookingData(batchId); }}
         hasExistingData={Boolean(data && data.rows.length > 0)}

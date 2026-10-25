@@ -291,7 +291,7 @@ export function MrxBatchWorkbench() {
             options={customers.map((item) => ({ value: item.customerId, label: `${item.customerCode} - ${item.customerName}` }))}
             onChange={(event) => {
               const nextId = event.target.value;
-              setIsLoading(true);
+              if (nextId === customerId) return;
               setError(null);
               setCustomerId(nextId);
               setSearchParams((curr) => {
@@ -302,7 +302,7 @@ export function MrxBatchWorkbench() {
             }} className="h-9 w-44 sm:w-56 lg:w-64 font-medium text-sm" />
           <VietnameseDateInput aria-label="Tuần MRX bắt đầu" value={weekStartDate}
             onChange={(date) => {
-              setIsLoading(true);
+              if (date === weekStartDate) return;
               setError(null);
               setWeekStartDate(date);
               setSearchParams((curr) => {
@@ -388,12 +388,20 @@ export function MrxBatchWorkbench() {
           )}
         </div>
       )}
-      <StateBoundary isLoading={isLoading} hasExistingData={Boolean(source || batch)} error={error}
-        onRetry={() => loadSource()} isEmpty={!source && !batch} emptyScenario="prerequisite-blocked"
+      <StateBoundary
+        isLoading={isLoading && !source && !batch}
+        isFetching={isLoading && Boolean(source || batch)}
+        hasExistingData={Boolean(source || batch)}
+        error={error}
+        onRetry={() => loadSource()}
+        onResolveConflict={() => loadSource()}
+        isEmpty={!source && !batch}
+        emptyScenario="prerequisite-blocked"
         emptyTitle="Chưa có nguồn thực đơn đã phát hành"
         emptyDescription="Hãy hoàn tất thực đơn và số suất của khách hàng trong tuần đã chọn trước khi tạo lô đối soát."
         actionLabel="Nhập thực đơn ngay"
-        onAction={() => setIsImportModalOpen(true)}>
+        onAction={() => setIsImportModalOpen(true)}
+      >
         {!source && !batch && draftSources.length > 0 && (
           <div className="p-4 bg-blue-50/70 border-b border-blue-200 text-xs">
             <span className="font-semibold text-blue-900 block mb-2">

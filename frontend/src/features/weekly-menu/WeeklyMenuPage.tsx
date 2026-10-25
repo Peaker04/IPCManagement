@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { useSearchParams, Navigate } from 'react-router-dom';
-import { useAuth } from '../../store/useAuth';
+import { useSearchParams } from 'react-router-dom';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';

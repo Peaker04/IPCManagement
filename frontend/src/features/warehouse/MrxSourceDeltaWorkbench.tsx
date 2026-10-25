@@ -193,11 +193,14 @@ export function MrxSourceDeltaWorkbench() {
       )}
 
       <StateBoundary
-        isLoading={loading}
+        isLoading={loading && items.length === 0}
+        isFetching={loading && items.length > 0}
         error={error}
         onRetry={() => void load()}
+        onResolveConflict={() => void load()}
         hasExistingData={items.length > 0}
         isEmpty={!loading && !error && items.length === 0}
+        emptyScenario="filter-empty"
         emptyTitle="Không có thay đổi nguồn đang chờ"
         emptyDescription="Các thay đổi đã xử lý vẫn được giữ trong lịch sử phiếu xuất, phiếu trả và stock movement."
       >

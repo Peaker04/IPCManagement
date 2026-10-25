@@ -105,7 +105,6 @@ export function ReconciliationPage() {
   const [completedReport, setCompletedReport] = useState<MrxCompletedRegisterReport | null>(null);
   const [sourceChanges, setSourceChanges] = useState<MrxSourceChangeItem[] | null>(null);
   const [operationalSummary, setOperationalSummary] = useState<MrxOperationalSummary | null>(null);
-  const [isReportLoading, setIsReportLoading] = useState(false);
   const [isDishesModalOpen, setIsDishesModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [lineStatusFilter, setLineStatusFilter] = useState<LineStatusFilter>('ALL');
@@ -144,10 +143,16 @@ export function ReconciliationPage() {
     return () => { ignore = true; };
   }, []);
 
+  const isReportLoading = Boolean(
+    (activeReportTab === 'completed' && !completedReport) ||
+    (activeReportTab === 'variances' && !variancesReport) ||
+    (activeReportTab === 'transactions' && !transactionsReport) ||
+    (activeReportTab === 'audit' && (!auditReport || !sourceChanges))
+  );
+
   useEffect(() => {
     if (activeReportTab === 'lines') return;
     let ignore = false;
-    setIsReportLoading(true);
     const fetchReport = async () => {
       try {
         if (activeReportTab === 'completed') {
@@ -173,8 +178,6 @@ export function ReconciliationPage() {
         }
       } catch {
         // preserve previous data on failure
-      } finally {
-        if (!ignore) setIsReportLoading(false);
       }
     };
     void fetchReport();

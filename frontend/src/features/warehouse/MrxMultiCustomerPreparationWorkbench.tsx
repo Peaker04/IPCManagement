@@ -237,7 +237,8 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
         ) : null}
       />
       <StateBoundary
-        isLoading={loading}
+        isLoading={loading && !data}
+        isFetching={loading && Boolean(data)}
         error={error}
         onRetry={() => void load()}
         hasExistingData={Boolean(data && data.batches.length > 0)}
