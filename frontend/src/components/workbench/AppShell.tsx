@@ -169,7 +169,7 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
         </div>
 
         {/* Navigation Items with Real Lucide Icons */}
-        <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5 no-scrollbar">
           {visibleNavigation.map((entry) => {
             const Icon = entry.icon;
 

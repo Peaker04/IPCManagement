@@ -89,6 +89,15 @@ html, body {
   background: #94a3b8;
 }
 
+/* Hide scrollbar for compact toolbars, subbars, and overflow strips */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reduced motion accessibility (NFR-UI-05 & WCAG 2.2 AA) */
 @media (prefers-reduced-motion: reduce) {
   *,

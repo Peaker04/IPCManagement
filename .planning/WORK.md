@@ -1086,6 +1086,27 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R64 — Full Responsive Geometry Stabilization & Issue Code Lookup Extension
+- **Multi-Viewport Responsive Diagnostics (1920x1080, 1440x900, 1366x768, 1280x800, 1024x768)**:
+  - Discovered that horizontal scrollbars on Windows were caused by `overflow-x-auto` in `WorkspaceHeader`, `TelemetrySubbar`, and `MrxDailyIssueWorkbench` date selector without scrollbar suppression. On 96 DPI Windows, thick 16px scrollbars took up vertical space, causing accidental vertical scrollbars as well.
+  - Sidebar `<nav>` in `AppShell` had 624px content on 616px clientHeight at 768px height, causing an 8px vertical scrollbar.
+- **Remediation**:
+  - Added `.no-scrollbar` utility to `frontend/src/styles/index.css` (`scrollbar-width: none; -ms-overflow-style: none; ::-webkit-scrollbar: display: none`).
+  - Applied `.no-scrollbar` to `WorkspaceHeader.tsx`, `TelemetrySubbar.tsx`, and `MrxDailyIssueWorkbench.tsx`.
+  - Tightened sidebar vertical spacing (`py-2 space-y-0.5 no-scrollbar`) eliminating the 8px overflow scrollbar completely.
+  - Added responsive scaling to context selectors in `ReconciliationPage.tsx` (`w-44 sm:w-56 lg:w-64`, `w-52 sm:w-60 lg:w-72`, `w-32 sm:w-36 lg:w-40`).
+  - Automated Playwright probe across all 5 viewports confirmed **0 unexpected scrollbars and 0 window horizontal overflow**.
+- **Backend Issue Lookup Extension**:
+  - Extended `InventoryIssueRepository.cs` and `InventoryIssueService.cs` with `GetByCodeWithLinesAsync(code, sourceFamily)`.
+  - Now `GET /api/inventory-issues/{id}` resolves both GUIDs and human-readable Issue Codes (e.g. `ISS-20261019-01`) seamlessly, allowing 1-click modal inspection from transaction tables.
+- **Verification Evidence**:
+  - Multi-viewport Playwright probe: 5 viewports x 6 routes = 30 configurations inspected, 0 defects.
+  - Full frontend unit test suite: 18 files / 167 tests PASS (100%).
+  - Backend compilation: 0 warnings, 0 errors.
+  - Architecture growth check: PASS (strict baseline, all files < 600 lines).
+  - Production Vite build: PASS (`dist/`).
+- Final State: **`IDLE`**.
+
 
 
 

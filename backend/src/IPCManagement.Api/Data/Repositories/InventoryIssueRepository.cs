@@ -99,6 +99,25 @@ public class InventoryIssueRepository : GenericRepository<InventoryIssue>, IInve
         return await query.FirstOrDefaultAsync(issue => issue.IssueId == id);
     }
 
+    public async Task<InventoryIssue?> GetByCodeWithLinesAsync(
+        string code,
+        string? sourceFamily = null)
+    {
+        var query = _context.Inventoryissues
+            .AsNoTracking()
+            .Include(issue => issue.Warehouse)
+            .Include(issue => issue.IssuedByNavigation)
+            .Include(issue => issue.ReceivedByNavigation)
+            .Include(issue => issue.Inventoryissuelines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(issue => issue.Inventoryissuelines)
+                .ThenInclude(line => line.Unit)
+            .AsQueryable();
+        if (!string.IsNullOrWhiteSpace(sourceFamily))
+            query = ApplyExactSourceFamily(query, sourceFamily);
+        return await query.FirstOrDefaultAsync(issue => issue.IssueCode == code);
+    }
+
     private static IQueryable<InventoryIssue> ApplyExactSourceFamily(
         IQueryable<InventoryIssue> query,
         string sourceFamily)

@@ -321,7 +321,7 @@ export function ReconciliationPage() {
                 });
                 setCustomerCode(event.target.value);
               }}
-              className="h-9 w-64 font-medium text-sm"
+              className="h-9 w-44 sm:w-56 lg:w-64 font-medium text-sm"
               disabled={customers.length === 0}
             />
             <Select
@@ -339,7 +339,7 @@ export function ReconciliationPage() {
                   return next;
                 });
               }}
-              className="h-9 w-72 font-medium text-sm"
+              className="h-9 w-52 sm:w-60 lg:w-72 font-medium text-sm"
               disabled={batches.length === 0}
             />
             <VietnameseDateInput
@@ -360,7 +360,7 @@ export function ReconciliationPage() {
                 }
                 setServiceDate(date);
               }}
-              className="h-9 w-40 font-mono text-sm"
+              className="h-9 w-32 sm:w-36 lg:w-40 font-mono text-sm"
             />
             <Badge variant={data?.status === 'COMPLETED' ? 'success' : 'info'} size="default" className="h-9 px-3 text-sm font-medium flex items-center">
               {data ? STATUS_LABELS[data.status] || data.status : 'Chưa chọn lô'}

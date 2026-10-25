@@ -47,7 +47,7 @@ export function WorkspaceHeader({
         {contextSelectors && (
           <>
             <div className="h-5 w-px bg-slate-200 shrink-0" aria-hidden="true" />
-            <div className="flex items-center gap-2.5 min-w-0 overflow-x-auto py-1">
+            <div className="flex items-center gap-2.5 min-w-0 overflow-x-auto py-1 no-scrollbar">
               {contextSelectors}
             </div>
           </>

@@ -30,7 +30,7 @@ export function TelemetrySubbar({
       )}
     >
       {/* Left controls: Segmented tabs, day switcher, scope dropdown */}
-      <div className="flex items-center gap-2.5 min-w-0 overflow-x-auto py-1">
+      <div className="flex items-center gap-2.5 min-w-0 overflow-x-auto py-1 no-scrollbar">
         {leftControls}
       </div>
 

@@ -441,7 +441,7 @@ export function MrxDailyIssueWorkbench({
 
       <TelemetrySubbar
         leftControls={
-          <div className="flex items-center gap-1 overflow-x-auto py-1">
+          <div className="flex items-center gap-1 overflow-x-auto py-1 no-scrollbar">
             <span className="text-xs font-semibold text-slate-700 whitespace-nowrap mr-1">Lịch xuất ca:</span>
             <button
               type="button"

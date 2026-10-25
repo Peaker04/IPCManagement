@@ -88,9 +88,9 @@ public class InventoryIssueService : IInventoryIssueService
         string sourceFamily = InventoryIssueSourceFamilies.Default)
     {
         var bytes = GuidHelper.ParseGuidString(id);
-        if (bytes is null) return null;
-
-        var issue = await _issueRepository.GetByIdWithLinesAsync(bytes, sourceFamily);
+        var issue = bytes is not null
+            ? await _issueRepository.GetByIdWithLinesAsync(bytes, sourceFamily)
+            : await _issueRepository.GetByCodeWithLinesAsync(id, sourceFamily);
         return issue is null ? null : InventoryMapper.MapIssue(issue, includeLines: true);
     }
 
