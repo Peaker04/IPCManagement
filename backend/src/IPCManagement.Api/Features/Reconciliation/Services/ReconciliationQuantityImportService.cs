@@ -21,7 +21,7 @@ public sealed class ReconciliationQuantityImportService(
     IMemoryCache cache,
     ReconciliationBatchService batchService)
 {
-    internal const int CurrentFingerprintFormatVersion = 2;
+    internal const int CurrentFingerprintFormatVersion = 3;
     private static readonly TimeSpan PreviewLifetime = TimeSpan.FromMinutes(15);
     private const string TicketPrefix = "ReconciliationQuantityImport:";
 
@@ -150,7 +150,7 @@ public sealed class ReconciliationQuantityImportService(
 
     private static string Fingerprint(CanonicalSnapshot snapshot)
     {
-        var builder = new StringBuilder().Append("v2|").Append(GuidHelper.ToGuidString(snapshot.MenuVersionId));
+        var builder = new StringBuilder().Append("v3|").Append(GuidHelper.ToGuidString(snapshot.MenuVersionId));
         foreach (var plan in snapshot.Plans)
         {
             builder.Append("|p:").Append(GuidHelper.ToGuidString(plan.Entity.QuantityPlanId)).Append(':')
@@ -164,13 +164,16 @@ public sealed class ReconciliationQuantityImportService(
                     .Append(GuidHelper.ToGuidString(line.MenuScheduleId)).Append(':').Append(GuidHelper.ToGuidString(line.CustomerId)).Append(':')
                     .Append(GuidHelper.ToGuidString(line.MenuId)).Append(':').Append(line.ShiftName).Append(':')
                     .Append(line.FinalServings.ToString(CultureInfo.InvariantCulture)).Append(':')
+                    .Append(line.SavoryServings?.ToString(CultureInfo.InvariantCulture)).Append(':')
+                    .Append(line.VegetarianServings?.ToString(CultureInfo.InvariantCulture)).Append(':')
                     .Append(line.MenuSchedule.MenuPrice.ToString(CultureInfo.InvariantCulture)).Append(':')
                     .Append(line.MenuSchedule.ServiceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                 foreach (var dish in projectedLine.Dishes)
                 {
                     var item = dish.MenuItem;
                     builder.Append("|d:").Append(GuidHelper.ToGuidString(item.MenuItemId)).Append(':')
-                        .Append(GuidHelper.ToGuidString(item.DishId)).Append(':').Append(item.DisplayOrder).Append(':').Append(item.DishSlot);
+                        .Append(GuidHelper.ToGuidString(item.DishId)).Append(':').Append(item.DisplayOrder).Append(':').Append(item.DishSlot).Append(':')
+                        .Append(dish.MenuVariant).Append(':').Append(dish.Servings.ToString(CultureInfo.InvariantCulture));
                     foreach (var material in dish.Materials)
                     {
                         var bom = material.Bom;

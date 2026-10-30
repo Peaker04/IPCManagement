@@ -349,7 +349,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             var menuVersion = new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
             var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, Menu = menu, MenuVersionId = menuVersionId, MenuVersion = menuVersion, MenuPrice = 25000m, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
             var plan = new MealQuantityPlan { QuantityPlanId = planId, PlanCode = "QTY-1", ServiceDate = schedule.ServiceDate, Status = "COMPLETED", CompletedAt = DateTime.UtcNow, RowVersion = DateTime.UtcNow };
-            var line = new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, Menu = menu, ShiftName = "MORNING", ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, UpdatedAt = DateTime.UtcNow };
+            var line = new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, Menu = menu, ShiftName = "MORNING", ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, SavoryServings = 10, VegetarianServings = 0, UpdatedAt = DateTime.UtcNow };
             context.AddRange(unit, alternateUnit, customer, ingredient, dish, menu, menuItem, bom, tolerance, menuVersion, schedule, plan, line);
             await context.SaveChangesAsync();
 
@@ -431,7 +431,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             {
                 QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan,
                 MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = existingLine.CustomerId, MenuId = existingLine.MenuId,
-                ShiftName = existingLine.ShiftName, ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, UpdatedAt = DateTime.UtcNow
+                ShiftName = existingLine.ShiftName, ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, SavoryServings = 10, VegetarianServings = 0, UpdatedAt = DateTime.UtcNow
             };
             Context.AddRange(version, schedule, plan, line);
             await Context.SaveChangesAsync();

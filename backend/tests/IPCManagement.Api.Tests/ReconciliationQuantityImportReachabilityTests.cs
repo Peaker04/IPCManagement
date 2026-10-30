@@ -389,6 +389,14 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                     Complete = true
                 }));
             Assert.Equal("COMPLETED", quantity.Status);
+            // BR-MRX-SERV-1: projection MRX cần số suất Mặn/Chay. Quick-servings chưa nhận hai số này
+            // (Task 4 sẽ bổ sung), nên tách toàn bộ số suất vào Mặn để giữ nguyên định lượng mong đợi.
+            foreach (var sourceLine in await Context.Mealquantityplanlines.Where(line => line.MenuScheduleId == schedule.MenuScheduleId).ToListAsync())
+            {
+                sourceLine.SavoryServings = sourceLine.FinalServings;
+                sourceLine.VegetarianServings = 0;
+            }
+            await Context.SaveChangesAsync();
 
             var sourceLabel = $"{sourceMarker}-{committedMenu.SourceChecksum}";
             Assert.False(string.IsNullOrWhiteSpace(committedMenu.MenuVersionId));

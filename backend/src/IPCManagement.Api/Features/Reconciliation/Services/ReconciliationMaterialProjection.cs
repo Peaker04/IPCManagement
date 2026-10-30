@@ -1,4 +1,5 @@
 using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 
@@ -28,12 +29,20 @@ internal static class ReconciliationMaterialProjection
 
     private static ProjectedSourceLine ProjectLine(MealQuantityPlanLine source, ICollection<string> diagnostics)
     {
+        if (source.SavoryServings is not int savoryServings || source.VegetarianServings is not int vegetarianServings)
+            throw new MrxSourceChangeException(
+                MrxErrorCodes.ServingsSplitRequired,
+                StatusCodes.Status422UnprocessableEntity,
+                $"{source.QuantityPlan.ServiceDate:dd/MM/yyyy} · {ShiftLabel(source.ShiftName)}: chưa nhập đủ số suất Mặn và Chay. Cần nhập cả hai số suất trước khi tính định lượng.");
+
         var dishes = new List<ProjectedDish>();
-        foreach (var menuItem in source.Menu.Menuitems
+        foreach (var (menuItem, variant) in source.Menu.Menuitems
                      .OrderBy(item => item.DisplayOrder)
                      .ThenBy(item => Convert.ToHexString(item.MenuItemId), StringComparer.Ordinal)
-                     .DistinctBy(item => Convert.ToHexString(item.DishId)))
+                     .Select(item => (Item: item, Variant: MenuVariantOf(item)))
+                     .DistinctBy(entry => (entry.Variant, Convert.ToHexString(entry.Item.DishId))))
         {
+            var servings = variant == VegetarianVariant ? vegetarianServings : savoryServings;
             var boms = BomSelectionResolver.Resolve(
                 menuItem.Dish.Dishboms,
                 source.CustomerId,
@@ -42,7 +51,7 @@ internal static class ReconciliationMaterialProjection
             if (boms.Count == 0)
             {
                 diagnostics.Add($"{source.QuantityPlan.ServiceDate:dd/MM/yyyy} · {ShiftLabel(source.ShiftName)} · món '{menuItem.Dish.DishName}' chưa có định mức nguyên liệu phù hợp.");
-                dishes.Add(new ProjectedDish(menuItem, []));
+                dishes.Add(new ProjectedDish(menuItem, variant, servings, []));
                 continue;
             }
 
@@ -50,7 +59,7 @@ internal static class ReconciliationMaterialProjection
             foreach (var bom in boms.OrderBy(item => Convert.ToHexString(item.BomId), StringComparer.Ordinal))
             {
                 var converted = ReconciliationBatchService.ConvertToCanonical(
-                    bom.GrossQtyPerServing * source.FinalServings,
+                    bom.GrossQtyPerServing * servings,
                     bom.Unit,
                     bom.Ingredient.Unit);
                 var persistedQuantity = decimal.Round(converted, 6, MidpointRounding.AwayFromZero);
@@ -62,15 +71,24 @@ internal static class ReconciliationMaterialProjection
                 if (persistedQuantity <= 0) continue;
                 materials.Add(new ProjectedMaterial(bom, persistedQuantity));
             }
-            dishes.Add(new ProjectedDish(menuItem, materials));
+            dishes.Add(new ProjectedDish(menuItem, variant, servings, materials));
         }
         return new ProjectedSourceLine(source, dishes);
     }
+
+    internal const string SavoryVariant = "savory";
+    internal const string VegetarianVariant = "vegetarian";
+
+    /// <summary>BR-MRX-SERV-1: slot <c>vegetarian-*</c> thuộc thực đơn chay; mọi slot khác thuộc thực đơn mặn.</summary>
+    internal static string MenuVariantOf(MenuItem item) =>
+        WeeklyMenuImportProjection.ParsePersistedDishSlot(item.DishSlot).VariantKey == VegetarianVariant
+            ? VegetarianVariant
+            : SavoryVariant;
 
     private static string ShiftLabel(string shift) => shift.Equals("MORNING", StringComparison.OrdinalIgnoreCase) ? "Ca sáng" : shift.Equals("AFTERNOON", StringComparison.OrdinalIgnoreCase) ? "Ca chiều" : shift;
 }
 
 internal sealed record ReconciliationMaterialProjectionResult(IReadOnlyList<ProjectedSourceLine> Lines, IReadOnlyList<string> Diagnostics);
 internal sealed record ProjectedSourceLine(MealQuantityPlanLine Source, IReadOnlyList<ProjectedDish> Dishes);
-internal sealed record ProjectedDish(MenuItem MenuItem, IReadOnlyList<ProjectedMaterial> Materials);
+internal sealed record ProjectedDish(MenuItem MenuItem, string MenuVariant, int Servings, IReadOnlyList<ProjectedMaterial> Materials);
 internal sealed record ProjectedMaterial(DishBom Bom, decimal RequiredQuantity);

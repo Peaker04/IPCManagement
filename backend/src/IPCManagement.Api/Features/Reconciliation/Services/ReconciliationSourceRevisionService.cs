@@ -268,7 +268,7 @@ public sealed class ReconciliationSourceRevisionService(IpcManagementContext con
                     GuidHelper.ToGuidString(material.Bom.BomId),
                     GuidHelper.ToGuidString(dish.MenuItem.DishId!),
                     source.Source.ShiftName, dish.MenuItem.Dish.DishCode, dish.MenuItem.Dish.DishName,
-                    source.Source.FinalServings, material.Bom.GrossQtyPerServing,
+                    dish.Servings, material.Bom.GrossQtyPerServing,
                     material.Bom.WasteRatePercent, material.RequiredQuantity)]))))
             .GroupBy(item => new { item.ServiceDate, item.IngredientId, item.CanonicalUnitId })
             .Select(group => new ReconciliationRevisionMaterialFact(

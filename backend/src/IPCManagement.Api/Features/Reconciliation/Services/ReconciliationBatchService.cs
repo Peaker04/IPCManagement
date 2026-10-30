@@ -432,7 +432,8 @@ public sealed class ReconciliationBatchService(
                         FrozenShiftName = projectedSource.Source.ShiftName,
                         FrozenDishCode = dish.MenuItem.Dish.DishCode,
                         FrozenDishName = dish.MenuItem.Dish.DishName,
-                        FrozenServings = projectedSource.Source.FinalServings,
+                        FrozenMenuVariant = dish.MenuVariant,
+                        FrozenServings = dish.Servings,
                         FrozenBomQuantityPerServing = bom.GrossQtyPerServing,
                         FrozenWasteRatePercent = bom.WasteRatePercent,
                         SourceQuantity = material.RequiredQuantity

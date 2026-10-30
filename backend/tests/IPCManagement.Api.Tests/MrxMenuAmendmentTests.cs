@@ -52,6 +52,8 @@ public partial class WorkflowGenerationTests
         var schedule = await context.Menuschedules.Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).ThenInclude(item => item.Dish)
             .SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
         var sourceLine = await context.Mealquantityplanlines.SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
+        sourceLine.SavoryServings = sourceLine.FinalServings; // BR-MRX-SERV-1: món slot mặn nhân số suất mặn.
+        sourceLine.VegetarianServings = 0;
         var bom = await context.Dishboms.Include(item => item.Ingredient).ThenInclude(item => item.Unit)
             .Include(item => item.Unit).SingleAsync(item => item.DishId == schedule.Menu.Menuitems.Single().DishId);
         var replacementDish = await context.Dishes.SingleAsync(item => item.DishId != schedule.Menu.Menuitems.Single().DishId && item.IsActive == true);
@@ -229,6 +231,8 @@ public partial class WorkflowGenerationTests
         var schedule = await context.Menuschedules.SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
         var sourceLine = await context.Mealquantityplanlines.SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
         var originalServings = sourceLine.FinalServings;
+        sourceLine.SavoryServings = sourceLine.FinalServings; // BR-MRX-SERV-1: món slot mặn nhân số suất mặn.
+        sourceLine.VegetarianServings = 0;
         var baseVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = schedule.CustomerId, WeekStartDate = schedule.WeekStartDate, VersionNo = 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         context.Menuversions.Add(baseVersion);
         schedule.MenuVersionId = baseVersion.MenuVersionId;
