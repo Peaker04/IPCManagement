@@ -6759,15 +6759,15 @@
     {
       "id": "RECON.SOURCE_CHANGE.DECIDE",
       "frCode": "FR-RECON",
-      "name": "Confirm or decide MRX source change",
+      "name": "Directly apply or decide MRX source change",
       "operation": "update",
       "mode": "MATERIAL_RECONCILIATION",
-      "actors": ["Admin"],
+      "actors": ["Admin", "Manager"],
       "permissionTokens": ["reconciliation.source.read"],
       "grain": "source change decision",
       "prerequisites": ["current impact preview or pending specialist request"],
       "sourceLineage": ["Admin actor to source revision and audit"],
-      "actionIds": ["WeeklyMenuImports.ConfirmMrxMenuAmendment", "WeeklyMenuImports.DecideMrxMenuAmendment"],
+      "actionIds": ["WeeklyMenuImports.ApplyMrxMenuAmendment", "WeeklyMenuImports.DecideMrxMenuAmendment"],
       "backend": {
         "controller": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
         "policy": "backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs"

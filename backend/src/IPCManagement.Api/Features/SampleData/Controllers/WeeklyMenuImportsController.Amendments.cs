@@ -62,22 +62,23 @@ public sealed partial class WeeklyMenuImportsController
                 _currentUserService.GetUserId(User),
                 cancellationToken)));
 
-    [HttpPost("weekly-menu/amendments/admin-confirm")]
-    [SystemOperation("reconciliation.source-change.confirm", OperationDisposition.ReconciliationOnly)]
-    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [HttpPost("weekly-menu/amendments/mrx-apply")]
+    [SystemOperation("reconciliation.source-change.apply", OperationDisposition.ReconciliationOnly)]
+    [Authorize(Policy = AuthorizationPolicies.ReconciliationSourceEditAccess)]
     [ProducesResponseType(typeof(ApiResponse<MenuAmendmentResultDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ConfirmMrxMenuAmendmentAsync(
+    public async Task<IActionResult> ApplyMrxMenuAmendmentAsync(
         [FromBody] CreateMenuAmendmentRequest request,
         CancellationToken cancellationToken)
         => Ok(ApiResponse<MenuAmendmentResultDto>.SuccessResult(
-            await _menuAmendmentService.ConfirmMrxAsync(
+            await _menuAmendmentService.ApplyMrxAsync(
                 request,
                 _currentUserService.GetUserId(User),
+                _currentUserService.GetRoleNames(User),
                 cancellationToken)));
 
     [HttpPost("weekly-menu/amendments/{amendmentId}/mrx-decision")]
     [SystemOperation("reconciliation.source-change.decide", OperationDisposition.ReconciliationOnly)]
-    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [Authorize(Policy = AuthorizationPolicies.ReconciliationSourceEditAccess)]
     [ProducesResponseType(typeof(ApiResponse<MenuAmendmentResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> DecideMrxMenuAmendmentAsync(
         string amendmentId,
@@ -88,6 +89,7 @@ public sealed partial class WeeklyMenuImportsController
                 amendmentId,
                 request,
                 _currentUserService.GetUserId(User),
+                _currentUserService.GetRoleNames(User),
                 cancellationToken)));
 
     [HttpPost("weekly-menu/amendments/{amendmentId}/review")]
@@ -186,7 +188,7 @@ public sealed partial class WeeklyMenuImportsController
 
     [HttpGet("weekly-menu/amendments/mrx-inbox")]
     [SystemOperation("reconciliation.source-change.inbox", OperationDisposition.ReconciliationOnly)]
-    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [Authorize(Policy = AuthorizationPolicies.ReconciliationSourceEditAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MenuAmendmentInboxItemDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMrxMenuAmendmentInboxAsync(CancellationToken cancellationToken)
         => Ok(ApiResponse<IReadOnlyList<MenuAmendmentInboxItemDto>>.SuccessResult(

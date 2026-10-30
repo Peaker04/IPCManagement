@@ -83,6 +83,11 @@ public sealed class WeeklyMenuImportsControllerContractTests
         new(AuthorizationPolicies.AdminAccess, null)
     ];
 
+    private static readonly AuthorizationContract[] SourceEditPolicy =
+    [
+        new(AuthorizationPolicies.ReconciliationSourceEditAccess, null)
+    ];
+
     private static readonly AuthorizationContract[] SourceReadPolicy =
     [
         new(AuthorizationPolicies.ReconciliationSourceReadAccess, null)
@@ -100,12 +105,12 @@ public sealed class WeeklyMenuImportsControllerContractTests
 
     private static readonly ActionContract[] ExpectedActions =
     [
+        new(nameof(WeeklyMenuImportsController.ApplyMrxMenuAmendmentAsync), "POST", "weekly-menu/amendments/mrx-apply", SourceEditPolicy),
         new(nameof(WeeklyMenuImportsController.BreakGlassExecuteMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/break-glass-execute", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.BulkUpdateWeeklyMenuAsync), "PUT", "weekly-menu/bulk-update", []),
         new(nameof(WeeklyMenuImportsController.CommitWeeklyMenuImportAsync), "POST", "weekly-menu/import/commit", []),
-        new(nameof(WeeklyMenuImportsController.ConfirmMrxMenuAmendmentAsync), "POST", "weekly-menu/amendments/admin-confirm", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.CreateMenuAmendmentAsync), "POST", "weekly-menu/amendments", []),
-        new(nameof(WeeklyMenuImportsController.DecideMrxMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/mrx-decision", AdminPolicy),
+        new(nameof(WeeklyMenuImportsController.DecideMrxMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/mrx-decision", SourceEditPolicy),
         new(nameof(WeeklyMenuImportsController.DownloadWeeklyMenuTemplateAsync), "GET", "weekly-menu/template", []),
         new(nameof(WeeklyMenuImportsController.ExecuteMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/execute", AdminRoles),
         new(nameof(WeeklyMenuImportsController.ExecuteMenuAmendmentDecisionAsync), "POST", "weekly-menu/amendments/decisions/{decisionItemId}/commands", AdminPolicy),
@@ -113,7 +118,7 @@ public sealed class WeeklyMenuImportsControllerContractTests
         new(nameof(WeeklyMenuImportsController.GetCustomersAsync), "GET", "customers", []),
         new(nameof(WeeklyMenuImportsController.GetMenuAmendmentDecisionPageAsync), "GET", "weekly-menu/amendments/decisions", []),
         new(nameof(WeeklyMenuImportsController.GetMenuAmendmentsAsync), "GET", "weekly-menu/amendments", []),
-        new(nameof(WeeklyMenuImportsController.GetMrxMenuAmendmentInboxAsync), "GET", "weekly-menu/amendments/mrx-inbox", AdminPolicy),
+        new(nameof(WeeklyMenuImportsController.GetMrxMenuAmendmentInboxAsync), "GET", "weekly-menu/amendments/mrx-inbox", SourceEditPolicy),
         new(nameof(WeeklyMenuImportsController.GetWeeklyMenuAsync), "GET", "weekly-menu", []),
         new(nameof(WeeklyMenuImportsController.GetWeeklyMenuImportHistoryAsync), "GET", "weekly-menu/import-history", []),
         new(nameof(WeeklyMenuImportsController.ImportWeeklyMenuAsync), "POST", "weekly-menu/import", []),

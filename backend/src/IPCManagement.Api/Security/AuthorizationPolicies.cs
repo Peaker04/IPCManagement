@@ -23,6 +23,7 @@ public static class AuthorizationPolicies
     public const string ReportAccess = "ReportAccess";
     public const string ReconciliationReadAccess = "ReconciliationReadAccess";
     public const string ReconciliationSourceReadAccess = "ReconciliationSourceReadAccess";
+    public const string ReconciliationSourceEditAccess = "ReconciliationSourceEditAccess";
     public const string ReconciliationWarehouseReadAccess = "ReconciliationWarehouseReadAccess";
     public const string ReconciliationKitchenAccess = "ReconciliationKitchenAccess";
     public const string ReconciliationDispositionAccess = "ReconciliationDispositionAccess";
@@ -109,6 +110,9 @@ public static class AuthorizationPolicies
         "Admin", "ADMIN", "Quản trị",
         "Manager", "MANAGER", "Quản lý"
     ];
+
+    /// <summary>BR-MRX-EDIT-1: áp dụng trực tiếp và duyệt thay đổi nguồn MRX = Admin + Quản lý (cùng alias với quyết định đối chiếu).</summary>
+    public static readonly string[] ReconciliationSourceEditRoles = ReconciliationDecisionRoles;
 
     public static readonly string[] ReconciliationWarehouseIssueRoles = AdminRoles
         .Concat([

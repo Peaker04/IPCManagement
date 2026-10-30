@@ -3,6 +3,7 @@ using System.Text.Json;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
@@ -87,7 +88,7 @@ internal sealed class MenuAmendmentService(
         return ExecuteCoreAsync(amendmentId, actorUserId, request.Reason.Trim(), cancellationToken);
     }
 
-    private async Task<MenuAmendmentResultDto> ExecuteCoreAsync(string amendmentId, string? actorUserId, string? breakGlassReason, CancellationToken cancellationToken, bool directAdminApproval = false)
+    private async Task<MenuAmendmentResultDto> ExecuteCoreAsync(string amendmentId, string? actorUserId, string? breakGlassReason, CancellationToken cancellationToken)
     {
         var id = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã yêu cầu thay đổi không hợp lệ.");
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người thực thi.");
@@ -98,7 +99,7 @@ internal sealed class MenuAmendmentService(
             throw new BusinessRuleException("Break-glass chỉ áp dụng cho yêu cầu chưa có chứng từ vật lý và chưa bị đối soát.");
         if (!isBreakGlass && (amendment.ReviewedBy is null || amendment.ReviewedAt is null))
             throw new BusinessRuleException("Yêu cầu thay đổi chưa có hậu kiểm hợp lệ.");
-        if (!isBreakGlass && !directAdminApproval && (actorId.SequenceEqual(amendment.CreatedBy) || actorId.SequenceEqual(amendment.ReviewedBy!)))
+        if (!isBreakGlass && (actorId.SequenceEqual(amendment.CreatedBy) || actorId.SequenceEqual(amendment.ReviewedBy!)))
             throw new BusinessRuleException("Người tạo hoặc người hậu kiểm không được tự thực thi thay đổi thực đơn.");
         var demands = await context.Materialrequests.Include(item => item.Plan).Where(item => item.RequestDate >= amendment.WeekStartDate && item.RequestDate < amendment.WeekStartDate.AddDays(7) && item.Plan.Productionplanlines.Any(line => line.CustomerId.SequenceEqual(amendment.CustomerId))).ToListAsync(cancellationToken);
         var purchases = await context.Purchaserequests.Where(item => item.PurchaseForDate >= amendment.WeekStartDate && item.PurchaseForDate < amendment.WeekStartDate.AddDays(7) && item.Purchaserequestlines.Any(line => line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(amendment.CustomerId))).ToListAsync(cancellationToken);
@@ -200,16 +201,13 @@ internal sealed class MenuAmendmentService(
     }
 
     private MrxMenuAmendmentCoordinator CreateMrxCoordinator()
-        => new(context, transactionRunner, operationContext,
-            CreateAsync,
-            (amendmentId, actorUserId, breakGlassReason, token, directApproval) => ExecuteCoreAsync(amendmentId, actorUserId, breakGlassReason, token, directApproval),
-            PreviewAsync);
+        => new(context, transactionRunner, operationContext, CreateAsync, PreviewAsync);
 
-    public Task<MenuAmendmentResultDto> ConfirmMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
-        => CreateMrxCoordinator().ConfirmMrxAsync(request, actorUserId, cancellationToken);
+    public Task<MenuAmendmentResultDto> ApplyMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, IReadOnlyCollection<string> actorRoles, CancellationToken cancellationToken = default)
+        => CreateMrxCoordinator().ApplyMrxAsync(request, actorUserId, actorRoles, cancellationToken);
 
-    public Task<MenuAmendmentResultDto> DecideMrxAsync(string amendmentId, ReviewMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
-        => CreateMrxCoordinator().DecideMrxAsync(amendmentId, request, actorUserId, cancellationToken);
+    public Task<MenuAmendmentResultDto> DecideMrxAsync(string amendmentId, ReviewMenuAmendmentRequest request, string? actorUserId, IReadOnlyCollection<string> actorRoles, CancellationToken cancellationToken = default)
+        => CreateMrxCoordinator().DecideMrxAsync(amendmentId, request, actorUserId, actorRoles, cancellationToken);
 
     public Task<MenuAmendmentResultDto> PreviewMrxAsync(CreateMenuAmendmentRequest request, CancellationToken cancellationToken = default)
         => CreateMrxCoordinator().PreviewMrxAsync(request, cancellationToken);
@@ -241,6 +239,9 @@ internal sealed class MenuAmendmentService(
 
     public async Task<MenuAmendmentResultDto> PreviewAsync(CreateMenuAmendmentRequest request, CancellationToken cancellationToken = default)
     {
+        // MRX (có phiên bản gốc): so với nguồn hiện tại, ngày khóa, định lượng trước/sau — cùng logic với đường ghi duy nhất.
+        if (!string.IsNullOrWhiteSpace(request.ExpectedBaseMenuVersionId))
+            return await new MrxSourceChangeApplier(context, transactionRunner, operationContext).PreviewAsync(request, cancellationToken);
         var customerId = GuidHelper.ParseGuidString(request.CustomerId) ?? throw new ArgumentException("CustomerId không hợp lệ.");
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Lines.Count == 0)
             throw new BusinessRuleException("Thay đổi thực đơn cần lý do và ít nhất một dòng thay đổi.");
@@ -251,12 +252,6 @@ internal sealed class MenuAmendmentService(
             .Where(item => item.CustomerId.SequenceEqual(customerId) && item.WeekStartDate == request.WeekStartDate)
             .ToListAsync(cancellationToken);
         if (schedules.Count == 0) throw new BusinessRuleException("Không tìm thấy lịch thực đơn trong phạm vi thay đổi.");
-        if (!string.IsNullOrWhiteSpace(request.ExpectedBaseMenuVersionId))
-        {
-            var expectedVersionId = GuidHelper.ParseGuidString(request.ExpectedBaseMenuVersionId) ?? throw new ArgumentException("ExpectedBaseMenuVersionId không hợp lệ.");
-            if (schedules.Any(item => item.MenuVersionId is null || !item.MenuVersionId.SequenceEqual(expectedVersionId)))
-                throw new BusinessRuleException("Nguồn thực đơn đã thay đổi. Vui lòng tải lại trước khi xác nhận.");
-        }
 
         var scheduleIds = schedules.Select(item => item.MenuScheduleId).ToList();
         var quantityLines = await context.Mealquantityplanlines.AsNoTracking()
@@ -279,8 +274,6 @@ internal sealed class MenuAmendmentService(
             var quantityLine = quantityLines.FirstOrDefault(item => item.MenuScheduleId.SequenceEqual(schedule.MenuScheduleId));
             var currentServings = quantityLine?.FinalServings ?? 0;
             var newServings = line.NewServings ?? currentServings;
-            if (!string.IsNullOrWhiteSpace(request.ExpectedBaseMenuVersionId) && newDishId.SequenceEqual(oldDishId) && newServings == currentServings)
-                throw new BusinessRuleException("Dòng thay đổi phải đổi món hoặc số suất.");
             if (!string.IsNullOrWhiteSpace(line.NewDishId))
             {
                 var hasBom = await context.Dishboms.AsNoTracking().AnyAsync(item =>
@@ -300,20 +293,9 @@ internal sealed class MenuAmendmentService(
             });
         }
 
-        var affectedBatchIds = new List<byte[]>();
-        if (!string.IsNullOrWhiteSpace(request.ExpectedBaseMenuVersionId))
-        {
-            affectedBatchIds = await (
-                from batch in context.Reconciliationbatches.AsNoTracking()
-                join version in context.Menuversions.AsNoTracking() on batch.MenuVersionId equals version.MenuVersionId
-                where version.CustomerId.SequenceEqual(customerId) && version.WeekStartDate == request.WeekStartDate
-                select batch.BatchId)
-                .ToListAsync(cancellationToken);
-        }
         return new MenuAmendmentResultDto
         {
             Status = "PREVIEW",
-            AffectedReconciliationBatchIds = affectedBatchIds.Select(GuidHelper.ToGuidString).ToArray(),
             ImpactLines = impactLines
         };
     }
@@ -331,7 +313,9 @@ internal sealed class MenuAmendmentService(
         var schedules = await context.Menuschedules.Include(item => item.Menu).ThenInclude(menu => menu.Menuitems)
             .Where(item => item.CustomerId.SequenceEqual(customerId) && item.WeekStartDate == request.WeekStartDate)
             .ToListAsync(cancellationToken);
-        var baseVersionId = schedules.Select(item => item.MenuVersionId).FirstOrDefault(item => item is not null);
+        // MRX: phiên bản gốc là phiên bản người gửi đã xem (đã được preview kiểm tra là phiên bản hiện tại).
+        var baseVersionId = GuidHelper.ParseGuidString(request.ExpectedBaseMenuVersionId)
+            ?? schedules.Select(item => item.MenuVersionId).FirstOrDefault(item => item is not null);
         var mappedLines = new List<MenuAmendmentLine>();
         foreach (var line in request.Lines)
         {

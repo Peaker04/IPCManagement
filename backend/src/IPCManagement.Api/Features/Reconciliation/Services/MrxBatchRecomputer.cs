@@ -46,16 +46,20 @@ public sealed class MrxBatchRecomputer(IpcManagementContext context)
         var scheduleIds = menuScheduleIds.ToList();
         // Cùng quy tắc chọn nguồn với tạo lô (ReconciliationBatchService.MaterializeDraftAsync):
         // chỉ dòng số suất thuộc đợt nhập của lô, để tuần có nhiều đợt nhập không bị cộng trùng.
-        var sources = await ctx.Mealquantityplanlines
+        var sources = await SourceLinesQuery(ctx.Mealquantityplanlines)
             .Where(item => item.QuantityPlan.ImportBatchId == quantityImportBatchId && scheduleIds.Contains(item.MenuScheduleId))
+            .ToListAsync(ct);
+        return BuildRequirements(ReconciliationMaterialProjection.Project(sources));
+    }
+
+    /// <summary>Dòng số suất kèm lịch, thực đơn, món, BOM và đơn vị đủ cho <see cref="ReconciliationMaterialProjection"/>.</summary>
+    internal static IQueryable<MealQuantityPlanLine> SourceLinesQuery(IQueryable<MealQuantityPlanLine> lines)
+        => lines
             .Include(item => item.QuantityPlan)
             .Include(item => item.MenuSchedule)
             .Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).ThenInclude(item => item.Dish).ThenInclude(dish => dish.Dishboms).ThenInclude(bom => bom.Unit)
             .Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).ThenInclude(item => item.Dish).ThenInclude(dish => dish.Dishboms).ThenInclude(bom => bom.Ingredient).ThenInclude(ingredient => ingredient.Unit)
-            .AsSplitQuery()
-            .ToListAsync(ct);
-        return BuildRequirements(ReconciliationMaterialProjection.Project(sources));
-    }
+            .AsSplitQuery();
 
     internal static IReadOnlyList<ReconciliationRevisionMaterialFact> BuildRequirements(IReadOnlyList<ProjectedSourceLine> projected)
         => projected

@@ -5,6 +5,8 @@ public sealed class CreateMenuAmendmentRequest
     public string CustomerId { get; set; } = string.Empty;
     public DateOnly WeekStartDate { get; set; }
     public string? ExpectedBaseMenuVersionId { get; set; }
+    /// <summary>MRX: version lô đối soát mà người sửa đã xem; lệch → MRX_SOURCE_STALE.</summary>
+    public long? ExpectedBatchVersion { get; set; }
     public string Reason { get; set; } = string.Empty;
     public List<CreateMenuAmendmentLineRequest> Lines { get; set; } = [];
 }
@@ -15,7 +17,12 @@ public sealed class CreateMenuAmendmentLineRequest
     public string ShiftName { get; set; } = string.Empty;
     public string DishSlot { get; set; } = string.Empty;
     public string? NewDishId { get; set; }
+    /// <summary>DEFAULT: tổng số suất mới. MRX từ chối trường này (dùng Mặn/Chay).</summary>
     public int? NewServings { get; set; }
+    /// <summary>MRX (BR-MRX-SERV-1): số suất mặn mới của căn tin × ngày × ca.</summary>
+    public int? NewSavoryServings { get; set; }
+    /// <summary>MRX (BR-MRX-SERV-1): số suất chay mới của căn tin × ngày × ca.</summary>
+    public int? NewVegetarianServings { get; set; }
 }
 
 public sealed class MenuAmendmentImpactLineDto
@@ -27,7 +34,20 @@ public sealed class MenuAmendmentImpactLineDto
     public string NewDishId { get; set; } = string.Empty;
     public int CurrentServings { get; set; }
     public int NewServings { get; set; }
+    public int? CurrentSavoryServings { get; set; }
+    public int? CurrentVegetarianServings { get; set; }
+    public int? NewSavoryServings { get; set; }
+    public int? NewVegetarianServings { get; set; }
 }
+
+/// <summary>MRX: định lượng trước/sau theo ngày × nguyên liệu của một thay đổi nguồn (chỉ ngày chưa khóa).</summary>
+public sealed record MrxMaterialImpactDto(
+    DateOnly ServiceDate,
+    string IngredientCode,
+    string IngredientName,
+    string UnitName,
+    decimal PreviousQuantity,
+    decimal NewQuantity);
 
 public sealed class MenuAmendmentResultDto
 {
@@ -46,6 +66,10 @@ public sealed class MenuAmendmentResultDto
     public IReadOnlyList<string> AffectedReconciliationBatchIds { get; set; } = [];
     public IReadOnlyList<MenuAmendmentImpactLineDto> ImpactLines { get; set; } = [];
     public IReadOnlyList<MenuAmendmentDecisionScopeDto> DecisionScopes { get; set; } = [];
+    /// <summary>MRX: các ngày phục vụ đã có phiếu xuất của lô (BR-MRX-EDIT-3).</summary>
+    public List<DateOnly> LockedDates { get; set; } = [];
+    /// <summary>MRX: chênh lệch định lượng theo ngày × nguyên liệu trên các ngày chưa khóa.</summary>
+    public List<MrxMaterialImpactDto> MaterialImpact { get; set; } = [];
 }
 
 public sealed class ReviewMenuAmendmentRequest

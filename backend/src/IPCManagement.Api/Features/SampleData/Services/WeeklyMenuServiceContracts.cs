@@ -123,15 +123,18 @@ public interface IMenuAmendmentService
         string? actorUserId,
         CancellationToken cancellationToken = default);
 
-    Task<MenuAmendmentResultDto> ConfirmMrxAsync(
+    /// <summary>MRX: Admin/Quản lý áp dụng trực tiếp (BR-MRX-EDIT-1); vai trò lấy từ claims người dùng hiện tại.</summary>
+    Task<MenuAmendmentResultDto> ApplyMrxAsync(
         CreateMenuAmendmentRequest request,
         string? actorUserId,
+        IReadOnlyCollection<string> actorRoles,
         CancellationToken cancellationToken = default);
 
     Task<MenuAmendmentResultDto> DecideMrxAsync(
         string amendmentId,
         ReviewMenuAmendmentRequest request,
         string? actorUserId,
+        IReadOnlyCollection<string> actorRoles,
         CancellationToken cancellationToken = default);
 
     Task<MenuAmendmentResultDto> ReviewAsync(string amendmentId, ReviewMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default);

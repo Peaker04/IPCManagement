@@ -3783,6 +3783,24 @@
       ]
     },
     {
+      "actionId": "WeeklyMenuImports.ApplyMrxMenuAmendment",
+      "controller": "WeeklyMenuImportsController",
+      "sourceMethod": "ApplyMrxMenuAmendmentAsync",
+      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
+      "httpMethod": "POST",
+      "route": "api/coordination/weekly-menu/amendments/mrx-apply",
+      "policies": [
+        "CoordinationAccess",
+        "ReconciliationSourceEditAccess"
+      ],
+      "requestTypes": [
+        "CreateMenuAmendmentRequest"
+      ],
+      "responseTypes": [
+        "MenuAmendmentResultDto"
+      ]
+    },
+    {
       "actionId": "WeeklyMenuImports.BreakGlassExecuteMenuAmendment",
       "controller": "WeeklyMenuImportsController",
       "sourceMethod": "BreakGlassExecuteMenuAmendmentAsync",
@@ -3829,24 +3847,6 @@
       ]
     },
     {
-      "actionId": "WeeklyMenuImports.ConfirmMrxMenuAmendment",
-      "controller": "WeeklyMenuImportsController",
-      "sourceMethod": "ConfirmMrxMenuAmendmentAsync",
-      "source": "backend/src/IPCManagement.Api/Features/SampleData/Controllers/WeeklyMenuImportsController.Amendments.cs",
-      "httpMethod": "POST",
-      "route": "api/coordination/weekly-menu/amendments/admin-confirm",
-      "policies": [
-        "CoordinationAccess",
-        "AdminAccess"
-      ],
-      "requestTypes": [
-        "CreateMenuAmendmentRequest"
-      ],
-      "responseTypes": [
-        "MenuAmendmentResultDto"
-      ]
-    },
-    {
       "actionId": "WeeklyMenuImports.CreateMenuAmendment",
       "controller": "WeeklyMenuImportsController",
       "sourceMethod": "CreateMenuAmendmentAsync",
@@ -3872,7 +3872,7 @@
       "route": "api/coordination/weekly-menu/amendments/{amendmentId}/mrx-decision",
       "policies": [
         "CoordinationAccess",
-        "AdminAccess"
+        "ReconciliationSourceEditAccess"
       ],
       "requestTypes": [
         "ReviewMenuAmendmentRequest"
@@ -3989,7 +3989,7 @@
       "route": "api/coordination/weekly-menu/amendments/mrx-inbox",
       "policies": [
         "CoordinationAccess",
-        "AdminAccess"
+        "ReconciliationSourceEditAccess"
       ],
       "requestTypes": [],
       "responseTypes": [

@@ -21,29 +21,26 @@ public partial class WorkflowGenerationTests
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await using var context = fixture.CreateContext();
-        var schedule = await context.Menuschedules.Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
-        var currentVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = schedule.CustomerId, WeekStartDate = schedule.WeekStartDate, VersionNo = 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        context.Menuversions.Add(currentVersion);
-        schedule.MenuVersionId = currentVersion.MenuVersionId;
-        await context.SaveChangesAsync();
-        var sourceLine = await context.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
+        await EnsureMrxRevisionSchemaAsync(context);
+        var (schedule, _, sourceLine) = await AttachMrxBaseVersionAsync(context);
         var request = new CreateMenuAmendmentRequest
         {
             CustomerId = fixture.CustomerIdString,
             WeekStartDate = schedule.WeekStartDate,
             ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(GuidHelper.NewId()),
             Reason = "Preview đã cũ.",
-            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewServings = sourceLine.FinalServings + 1 }]
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewSavoryServings = sourceLine.FinalServings + 1, NewVegetarianServings = 0 }]
         };
 
         Func<Task> action = () => new MenuAmendmentService(context).PreviewAsync(request);
 
-        await action.Should().ThrowAsync<BusinessRuleException>().WithMessage("*đã thay đổi*");
+        // Spec §4.4: nguồn đã đổi phiên bản trả mã có cấu trúc MRX_SOURCE_STALE (409), không còn lỗi 400 chung.
+        (await action.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.SourceStale);
         context.ChangeTracker.Entries<MenuAmendment>().Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Admin_approval_of_issued_batch_keeps_locked_day_frozen_without_pending_delta()
+    public async Task Admin_approval_touching_issued_day_is_rejected_and_keeps_locked_day_frozen()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -140,41 +137,36 @@ public partial class WorkflowGenerationTests
             Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewDishId = GuidHelper.ToGuidString(replacementDish.DishId) }]
         }, fixture.UserIdString);
 
-        var result = await service.DecideMrxAsync(request.MenuAmendmentId,
-            new ReviewMenuAmendmentRequest { Approved = true }, adminId);
+        Func<Task> approval = () => service.DecideMrxAsync(request.MenuAmendmentId,
+            new ReviewMenuAmendmentRequest { Approved = true }, adminId, ["ADMIN"]);
 
-        result.Status.Should().Be("EXECUTED");
-        var revision = await context.Reconciliationsourcerevisions.Include(item => item.Deltas).SingleAsync();
-        revision.MenuAmendmentId.Should().Equal(GuidHelper.ParseGuidString(request.MenuAmendmentId)!);
-        revision.AppliedMenuVersionId.Should().Equal(GuidHelper.ParseGuidString(result.AppliedMenuVersionId)!);
-        revision.Status.Should().Be("APPLIED");
-        revision.AppliedByRole.Should().Be("ADMIN");
-        revision.ApplyMode.Should().Be("APPROVED_REQUEST");
-        // BR-MRX-EDIT-3/7: 2026-06-15 đã có phiếu xuất nên là ngày khóa; không xuất thêm/trả hàng, không đổi số đóng băng.
-        revision.Deltas.Should().BeEmpty();
-        daily.RequiredQuantity.Should().Be(required);
-        daily.Version.Should().Be(1);
+        // BR-MRX-EDIT-4/9: 2026-06-15 đã có phiếu xuất nên là ngày khóa; dòng đổi món chạm ngày khóa bị từ chối toàn bộ,
+        // yêu cầu chuyển CORRECTION_REQUIRED, không ghi revision/delta, không đổi số đóng băng.
+        var error = (await approval.Should().ThrowAsync<MrxSourceChangeException>()).Which;
+        error.Code.Should().Be(MrxErrorCodes.DayLocked);
+        error.LockedDates.Should().Equal(schedule.ServiceDate);
+        context.ChangeTracker.Clear();
+        (await context.Menuamendments.SingleAsync()).Status.Should().Be("CORRECTION_REQUIRED");
+        (await context.Reconciliationsourcerevisions.CountAsync()).Should().Be(0);
+        (await context.Reconciliationsourcedeltas.CountAsync()).Should().Be(0);
+        var storedDaily = await context.Reconciliationbatchdailylines.SingleAsync();
+        storedDaily.RequiredQuantity.Should().Be(required);
+        storedDaily.Version.Should().Be(1);
         (await context.Reconciliationbatchdailylines.AnyAsync(item => item.IngredientId == replacementIngredient.IngredientId)).Should().BeFalse();
-        (await context.Reconciliationsourcedeltas.AnyAsync(item => item.Status == "PENDING")).Should().BeFalse();
         (await context.Reconciliationbatchcontributors.SingleAsync()).DishBomId.Should().Equal(bom.BomId);
         (await context.Reconciliationdailydispositions.SingleAsync()).InvalidatedAt.Should().BeNull();
-        // P2: lô luôn trỏ phiên bản mới để lần sửa sau vẫn tìm thấy lô theo căn tin × tuần.
-        batch.MenuVersionId.Should().Equal(GuidHelper.ParseGuidString(result.AppliedMenuVersionId)!);
+        (await context.Reconciliationbatches.SingleAsync()).MenuVersionId.Should().Equal(baseVersion.MenuVersionId);
+        (await context.Menuversions.CountAsync()).Should().Be(1);
     }
 
     [Fact]
-    public async Task Admin_direct_confirmation_applies_previewed_change_with_same_actor()
+    public async Task Admin_direct_apply_applies_previewed_change_with_same_actor()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await using var context = fixture.CreateContext();
         await EnsureMrxRevisionSchemaAsync(context);
-        var schedule = await context.Menuschedules.SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
-        var currentVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = schedule.CustomerId, WeekStartDate = schedule.WeekStartDate, VersionNo = 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        context.Menuversions.Add(currentVersion);
-        schedule.MenuVersionId = currentVersion.MenuVersionId;
-        await context.SaveChangesAsync();
-        var sourceLine = await context.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
+        var (schedule, currentVersion, sourceLine) = await AttachMrxBaseVersionAsync(context);
         var adminId = await CreateApprovalActorAsync(context, "mrx-admin-direct");
         var service = new MenuAmendmentService(context);
         var command = new CreateMenuAmendmentRequest
@@ -182,17 +174,19 @@ public partial class WorkflowGenerationTests
             CustomerId = fixture.CustomerIdString,
             WeekStartDate = schedule.WeekStartDate,
             ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(currentVersion.MenuVersionId),
-            Reason = "Admin xác nhận trực tiếp sau preview.",
-            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewServings = sourceLine.FinalServings + 10 }]
+            Reason = "Admin áp dụng trực tiếp sau preview.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewSavoryServings = sourceLine.FinalServings + 10, NewVegetarianServings = 0 }]
         };
         (await service.PreviewMrxAsync(command)).Status.Should().Be("PREVIEW");
 
-        var result = await service.ConfirmMrxAsync(command, adminId);
+        var result = await service.ApplyMrxAsync(command, adminId, ["ADMIN"]);
 
         result.Status.Should().Be("EXECUTED");
+        context.ChangeTracker.Clear();
         (await context.Menuamendments.SingleAsync()).CreatedBy.Should().Equal(GuidHelper.ParseGuidString(adminId)!);
         (await context.Menuamendments.SingleAsync()).ExecutedBy.Should().Equal(GuidHelper.ParseGuidString(adminId)!);
         (await context.Quantityadjustments.CountAsync()).Should().Be(1);
+        (await context.Mealquantityplanlines.SingleAsync()).FinalServings.Should().Be(sourceLine.FinalServings + 10);
     }
 
     [Fact]
@@ -201,31 +195,34 @@ public partial class WorkflowGenerationTests
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await using var context = fixture.CreateContext();
-        var schedule = await context.Menuschedules.AsNoTracking().SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
-        var sourceLine = await context.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
+        await EnsureMrxRevisionSchemaAsync(context);
+        var (schedule, baseVersion, sourceLine) = await AttachMrxBaseVersionAsync(context);
         var requestedServings = sourceLine.FinalServings + 30;
         var service = new MenuAmendmentService(context);
-        var request = await service.CreateAsync(new CreateMenuAmendmentRequest
+        var request = await service.SubmitMrxAsync(new CreateMenuAmendmentRequest
         {
             CustomerId = fixture.CustomerIdString,
             WeekStartDate = schedule.WeekStartDate,
+            ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(baseVersion.MenuVersionId),
             Reason = "Chuyên viên đề nghị tăng số suất.",
-            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewServings = requestedServings }]
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewSavoryServings = requestedServings, NewVegetarianServings = 0 }]
         }, fixture.UserIdString);
         var adminId = await CreateApprovalActorAsync(context, "mrx-admin-approve");
 
-        var result = await service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true, Reason = "Đã xác nhận với khách hàng." }, adminId);
+        var result = await service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true, Reason = "Đã xác nhận với khách hàng." }, adminId, ["ADMIN"]);
 
         result.Status.Should().Be("EXECUTED");
         (await context.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.QuantityPlanLineId == sourceLine.QuantityPlanLineId)).FinalServings.Should().Be(requestedServings);
-        (await context.Menuversions.CountAsync()).Should().Be(1);
+        // Phiên bản gốc + đúng một phiên bản nguồn mới.
+        (await context.Menuversions.CountAsync()).Should().Be(2);
         var revision = await context.Quantityadjustments.AsNoTracking().SingleAsync();
         revision.OldServings.Should().Be(sourceLine.FinalServings);
         revision.NewServings.Should().Be(requestedServings);
         (await context.Auditlogs.AnyAsync(item => item.EntityName == nameof(MealQuantityPlanLine) && item.FieldName == nameof(MealQuantityPlanLine.FinalServings) && item.ChangedBy.SequenceEqual(GuidHelper.ParseGuidString(adminId)!))).Should().BeTrue();
-        Func<Task> duplicateApproval = () => service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId);
+        (await context.Auditlogs.AnyAsync(item => item.EntityName == nameof(MealQuantityPlanLine) && item.FieldName == nameof(MealQuantityPlanLine.SavoryServings) && item.NewValue == requestedServings.ToString())).Should().BeTrue();
+        Func<Task> duplicateApproval = () => service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId, ["ADMIN"]);
         await duplicateApproval.Should().ThrowAsync<BusinessRuleException>().WithMessage("*không còn chờ*");
-        (await context.Menuversions.CountAsync()).Should().Be(1);
+        (await context.Menuversions.CountAsync()).Should().Be(2);
     }
 
     [Fact]
@@ -261,15 +258,16 @@ public partial class WorkflowGenerationTests
         context.Reconciliationbatches.Add(new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = importBatchId, Status = "DRAFT", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow });
         context.Reconciliationtolerances.Add(new ReconciliationTolerance { ToleranceId = GuidHelper.NewId(), ScopeKind = "SYSTEM_DEFAULT", Value = 0.5m, Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow });
         await context.SaveChangesAsync();
-        var request = await new MenuAmendmentService(context).CreateAsync(new CreateMenuAmendmentRequest
+        var request = await new MenuAmendmentService(context).SubmitMrxAsync(new CreateMenuAmendmentRequest
         {
             CustomerId = fixture.CustomerIdString, WeekStartDate = schedule.WeekStartDate, Reason = "Kiểm tra rollback sau staging.",
+            ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(baseVersion.MenuVersionId),
             Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewDishId = GuidHelper.ToGuidString(replacementDish.DishId) }]
         }, fixture.UserIdString);
         var adminId = await CreateApprovalActorAsync(context, "mrx-admin-rollback");
         var service = new MenuAmendmentService(context, new FailAfterOperationTransactionRunner(context), new ReconciliationSourceRevisionService(context));
 
-        Func<Task> approval = () => service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId);
+        Func<Task> approval = () => service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId, ["ADMIN"]);
 
         await approval.Should().ThrowAsync<InvalidOperationException>().WithMessage("forced failure after staging");
         context.ChangeTracker.Clear();
@@ -289,14 +287,15 @@ public partial class WorkflowGenerationTests
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await using var setupContext = fixture.CreateContext();
-        var schedule = await setupContext.Menuschedules.AsNoTracking().SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
-        var sourceLine = await setupContext.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
-        var request = await new MenuAmendmentService(setupContext).CreateAsync(new CreateMenuAmendmentRequest
+        await EnsureMrxRevisionSchemaAsync(setupContext);
+        var (schedule, baseVersion, sourceLine) = await AttachMrxBaseVersionAsync(setupContext);
+        var request = await new MenuAmendmentService(setupContext).SubmitMrxAsync(new CreateMenuAmendmentRequest
         {
             CustomerId = fixture.CustomerIdString,
             WeekStartDate = schedule.WeekStartDate,
+            ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(baseVersion.MenuVersionId),
             Reason = "Kiểm tra hàng rào phê duyệt đồng thời.",
-            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewServings = sourceLine.FinalServings + 15 }]
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewSavoryServings = sourceLine.FinalServings + 15, NewVegetarianServings = 0 }]
         }, fixture.UserIdString);
         var adminId = await CreateApprovalActorAsync(setupContext, "mrx-admin-concurrent");
 
@@ -319,13 +318,13 @@ public partial class WorkflowGenerationTests
             {
                 await gate.Task;
                 return await Record.ExceptionAsync(() => new MenuAmendmentService(firstContext).DecideMrxAsync(
-                    request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId));
+                    request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId, ["ADMIN"]));
             });
             var second = Task.Run(async () =>
             {
                 await gate.Task;
                 return await Record.ExceptionAsync(() => new MenuAmendmentService(secondContext).DecideMrxAsync(
-                    request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId));
+                    request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = true }, adminId, ["ADMIN"]));
             });
             gate.SetResult();
             var outcomes = await Task.WhenAll(first, second);
@@ -334,7 +333,8 @@ public partial class WorkflowGenerationTests
             outcomes.OfType<BusinessRuleException>().Should().ContainSingle()
                 .Which.Message.Should().Contain("không còn chờ");
             await using var verifyContext = new IpcManagementContext(options);
-            (await verifyContext.Menuversions.CountAsync()).Should().Be(1);
+            // Phiên bản gốc + đúng một phiên bản nguồn mới.
+            (await verifyContext.Menuversions.CountAsync()).Should().Be(2);
             (await verifyContext.Quantityadjustments.CountAsync()).Should().Be(1);
             (await verifyContext.Menuamendments.SingleAsync()).Status.Should().Be("EXECUTED");
         }
@@ -351,26 +351,55 @@ public partial class WorkflowGenerationTests
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await using var context = fixture.CreateContext();
-        var schedule = await context.Menuschedules.AsNoTracking().Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
-        var sourceLine = await context.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
+        await EnsureMrxRevisionSchemaAsync(context);
+        var (schedule, baseVersion, sourceLine) = await AttachMrxBaseVersionAsync(context);
         var service = new MenuAmendmentService(context);
-        var request = await service.CreateAsync(new CreateMenuAmendmentRequest
+        var request = await service.SubmitMrxAsync(new CreateMenuAmendmentRequest
         {
             CustomerId = fixture.CustomerIdString,
             WeekStartDate = schedule.WeekStartDate,
+            ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(baseVersion.MenuVersionId),
             Reason = "Chuyên viên đề nghị tăng số suất.",
-            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewServings = sourceLine.FinalServings + 20 }]
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewSavoryServings = sourceLine.FinalServings + 20, NewVegetarianServings = 0 }]
         }, fixture.UserIdString);
         var adminId = await CreateApprovalActorAsync(context, "mrx-admin-reject");
         var inboxItem = (await service.GetMrxInboxAsync()).Should().ContainSingle().Subject;
         inboxItem.ImpactLines.Should().ContainSingle().Which.NewServings.Should().Be(sourceLine.FinalServings + 20);
+        inboxItem.ImpactLines.Single().NewSavoryServings.Should().Be(sourceLine.FinalServings + 20);
 
-        var result = await service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = false, Reason = "Khách hàng không xác nhận." }, adminId);
+        var result = await service.DecideMrxAsync(request.MenuAmendmentId, new ReviewMenuAmendmentRequest { Approved = false, Reason = "Khách hàng không xác nhận." }, adminId, ["ADMIN"]);
 
         result.Status.Should().Be("REJECTED");
         (await context.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.QuantityPlanLineId == sourceLine.QuantityPlanLineId)).FinalServings.Should().Be(sourceLine.FinalServings);
-        (await context.Menuversions.CountAsync()).Should().Be(0);
+        (await context.Menuversions.CountAsync()).Should().Be(1);
         (await context.Auditlogs.SingleAsync(item => item.EntityName == nameof(MenuAmendment) && item.NewValue == "REJECTED")).ChangedBy.Should().Equal(GuidHelper.ParseGuidString(adminId)!);
+    }
+
+    [Fact]
+    public async Task Mrx_request_with_total_servings_is_rejected_at_preview_submit_and_apply()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        await EnsureMrxRevisionSchemaAsync(context);
+        var (schedule, baseVersion, sourceLine) = await AttachMrxBaseVersionAsync(context);
+        var adminId = await CreateApprovalActorAsync(context, "mrx-admin-total");
+        var request = new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString,
+            WeekStartDate = schedule.WeekStartDate,
+            ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(baseVersion.MenuVersionId),
+            Reason = "Gửi tổng số suất như luồng cũ.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewServings = sourceLine.FinalServings + 5 }]
+        };
+        var service = new MenuAmendmentService(context);
+
+        // Spec §3.7: ở MRX, NewServings bị từ chối (400) ngay khi xem trước/tạo, không đợi tới lúc duyệt.
+        await service.Invoking(item => item.PreviewMrxAsync(request)).Should().ThrowAsync<BusinessRuleException>().WithMessage("*Mặn*Chay*");
+        await service.Invoking(item => item.SubmitMrxAsync(request, fixture.UserIdString)).Should().ThrowAsync<BusinessRuleException>();
+        await service.Invoking(item => item.ApplyMrxAsync(request, adminId, ["ADMIN"])).Should().ThrowAsync<BusinessRuleException>();
+        (await context.Menuamendments.CountAsync()).Should().Be(0);
+        (await context.Menuversions.CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -460,6 +489,21 @@ public partial class WorkflowGenerationTests
 
         public Task<TResult> ExecuteProtectedAsync<TResult>(string operationKey, long expectedModeVersion, Func<CancellationToken, Task<TResult>> operation, Func<CancellationToken, Task<bool>> verifySucceeded, IsolationLevel isolationLevel = IsolationLevel.ReadCommitted, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
+    }
+
+    /// <summary>Gắn phiên bản thực đơn gốc cho lịch 2026-06-15 và tách số suất (toàn bộ là suất mặn) như dữ liệu MRX hợp lệ.</summary>
+    private static async Task<(MenuSchedule Schedule, MenuVersion Version, MealQuantityPlanLine SourceLine)> AttachMrxBaseVersionAsync(IpcManagementContext context)
+    {
+        var schedule = await context.Menuschedules.SingleAsync(item => item.ServiceDate == new DateOnly(2026, 6, 15));
+        var version = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = schedule.CustomerId, WeekStartDate = schedule.WeekStartDate, VersionNo = 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        context.Menuversions.Add(version);
+        schedule.MenuVersionId = version.MenuVersionId;
+        var sourceLine = await context.Mealquantityplanlines.SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
+        sourceLine.SavoryServings = sourceLine.FinalServings;
+        sourceLine.VegetarianServings = 0;
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        return (schedule, version, sourceLine);
     }
 
     internal static Task EnsureMrxRevisionSchemaAsync(IpcManagementContext context) => context.Database.ExecuteSqlRawAsync("""
