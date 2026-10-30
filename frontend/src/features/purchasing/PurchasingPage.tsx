@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Inbox } from 'lucide-react';
+import { Truck, ShoppingCart } from 'lucide-react';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -12,6 +12,7 @@ import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import {
   purchasingApi,
   type PurchaseOrderItem,
@@ -19,6 +20,7 @@ import {
   type SupplierItem,
 } from '../../api/purchasingApi';
 import { formatVietnameseDate } from '../../utils/dates';
+import { serverStateCache } from '../../store/serverStateCache';
 
 const PO_STATUS_CONFIG: Record<string, { label: string; variant: 'neutral' | 'info' | 'warning' | 'success' | 'danger' }> = {
   DRAFT: { label: 'Dự thảo', variant: 'neutral' },
@@ -31,36 +33,61 @@ const PO_STATUS_CONFIG: Record<string, { label: string; variant: 'neutral' | 'in
   CANCELLED: { label: 'Đã hủy', variant: 'danger' },
 };
 
+interface PurchasingSnapshot {
+  pos: PurchaseOrderItem[];
+  sups: SupplierItem[];
+  selectedSupplierId: string;
+  statusFilter: string;
+  selectedPoId: string | null;
+}
+
 export function PurchasingPage() {
-  const [orders, setOrders] = useState<PurchaseOrderItem[]>([]);
-  const [suppliers, setSuppliers] = useState<SupplierItem[]>([]);
-  const [selectedSupplierId, setSelectedSupplierId] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
+  const snapshot = serverStateCache.get<PurchasingSnapshot>('snapshot:purchasing')?.data;
+  const cachedPurchasing = snapshot ? { pos: snapshot.pos, sups: snapshot.sups } : serverStateCache.get<{ pos: PurchaseOrderItem[]; sups: SupplierItem[] }>('purchasing_data')?.data;
+  const [orders, setOrders] = useState<PurchaseOrderItem[]>(() => cachedPurchasing?.pos ?? []);
+  const [suppliers, setSuppliers] = useState<SupplierItem[]>(() => cachedPurchasing?.sups ?? []);
+  const [selectedSupplierId, setSelectedSupplierId] = useState(() => snapshot?.selectedSupplierId || 'ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(() => snapshot?.statusFilter || 'ALL');
+  const [selectedPoId, setSelectedPoId] = useState<string | null>(() => snapshot?.selectedPoId ?? (cachedPurchasing?.pos?.[0]?.id ?? null));
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelSuccess, setCancelSuccess] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [cancelError, setCancelError] = useState<Error | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(() => Boolean(cachedPurchasing));
+  const [isLoading, setIsLoading] = useState<boolean>(() => !cachedPurchasing);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
   const handleCancelPo = async () => {
     if (!selectedPo) return;
     setIsCancelling(true);
-    setError(null);
+    setCancelError(null);
     try {
       await purchasingApi.cancelPurchaseOrder(selectedPo.id);
       setCancelSuccess(`Đã hủy đơn mua hàng ${selectedPo.code} thành công.`);
       setIsCancelModalOpen(false);
+      setCancelError(null);
+      serverStateCache.delete('purchasing_data');
       await loadData();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error('Không thể hủy đơn mua hàng.'));
+      setCancelError(err instanceof Error ? err : new Error('Không thể hủy đơn mua hàng.'));
     } finally {
       setIsCancelling(false);
     }
   };
 
   const loadData = async () => {
-    setIsLoading(true);
+    const cached = serverStateCache.get<{ pos: PurchaseOrderItem[]; sups: SupplierItem[] }>('purchasing_data')?.data;
+    if (cached) {
+      setOrders(cached.pos);
+      setSuppliers(cached.sups);
+      setIsLoading(false);
+      setIsFetching(true);
+    } else if (!hasLoadedOnce) {
+      setIsLoading(true);
+    } else {
+      setIsFetching(true);
+    }
     setError(null);
     try {
       const [pos, sups] = await Promise.all([
@@ -69,6 +96,9 @@ export function PurchasingPage() {
       ]);
       setOrders(pos);
       setSuppliers(sups);
+      setHasLoadedOnce(true);
+      serverStateCache.set('purchasing_data', { pos, sups });
+      serverStateCache.set('snapshot:purchasing', { pos, sups, selectedSupplierId, statusFilter, selectedPoId: selectedPoId || pos[0]?.id || null });
       if (pos.length > 0 && !selectedPoId) {
         setSelectedPoId(pos[0].id);
       }
@@ -76,36 +106,12 @@ export function PurchasingPage() {
       setError(err instanceof Error ? err : new Error('Không thể tải danh sách đơn mua hàng PO.'));
     } finally {
       setIsLoading(false);
+      setIsFetching(false);
     }
   };
 
   useEffect(() => {
-    let ignore = false;
-    async function fetchData() {
-      try {
-        const [pos, sups] = await Promise.all([
-          purchasingApi.getPurchaseOrders(),
-          purchasingApi.getSuppliers(),
-        ]);
-        if (!ignore) {
-          setOrders(pos);
-          setSuppliers(sups);
-          if (pos.length > 0) setSelectedPoId(pos[0].id);
-          setIsLoading(false);
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          setError(err instanceof Error ? err : new Error('Không thể tải danh sách đơn mua hàng PO.'));
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchData();
-
-    return () => {
-      ignore = true;
-    };
+    void loadData();
   }, []);
 
   const filteredOrders = useMemo(() => {
@@ -116,7 +122,7 @@ export function PurchasingPage() {
     });
   }, [orders, selectedSupplierId, statusFilter]);
 
-  const selectedPo = orders.find((p) => p.id === selectedPoId) || filteredOrders[0] || null;
+  const selectedPo = orders.find((p) => p.id === selectedPoId) || filteredOrders.find((p) => p.linesCount > 0) || filteredOrders[0] || null;
 
   const totalAmount = useMemo(() => {
     return filteredOrders.reduce((sum, po) => sum + po.totalAmount, 0);
@@ -209,6 +215,7 @@ export function PurchasingPage() {
       {/* Zone 1: WorkspaceHeader (56px / h-14) */}
       <WorkspaceHeader
         title="Thu mua & Đề xuất PO"
+        breadcrumb="Thu mua · Đơn hàng PO"
         contextSelectors={
           <>
             <Select
@@ -224,7 +231,10 @@ export function PurchasingPage() {
           </>
         }
         actions={
-          <>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 hidden sm:inline">
+              PO chỉ được tạo từ đề xuất mua hàng đã duyệt.
+            </span>
             <Button
               variant="outline"
               size="default"
@@ -233,10 +243,7 @@ export function PurchasingPage() {
             >
               Làm mới
             </Button>
-            <span className="text-xs text-slate-500 max-w-72">
-              PO chỉ được tạo từ đề xuất mua hàng đã duyệt.
-            </span>
-          </>
+          </div>
         }
       />
 
@@ -274,12 +281,23 @@ export function PurchasingPage() {
 
       {/* Zone 3: SplitView (Master 7 cols PO list | Detail 5 cols PO lines) */}
       <StateBoundary
-        isLoading={isLoading}
-        isFetching={isLoading}
-        hasExistingData={orders.length > 0}
+        isLoading={isLoading && !hasLoadedOnce}
+        isFetching={isFetching || (isLoading && hasLoadedOnce)}
+        hasExistingData={hasLoadedOnce || Boolean(cachedPurchasing)}
         error={error}
         onRetry={loadData}
-        isEmpty={filteredOrders.length === 0}
+        isEmpty={!isLoading && !isFetching && filteredOrders.length === 0}
+        emptyScenario={selectedSupplierId !== 'ALL' || statusFilter !== 'ALL' ? 'filter-empty' : 'true-empty'}
+        onResetFilters={() => {
+          setSelectedSupplierId('ALL');
+          setStatusFilter('ALL');
+        }}
+        actionLabel={selectedSupplierId !== 'ALL' || statusFilter !== 'ALL' ? 'Xóa bộ lọc PO' : 'Làm mới đơn mua hàng'}
+        onAction={selectedSupplierId !== 'ALL' || statusFilter !== 'ALL' ? () => {
+          setSelectedSupplierId('ALL');
+          setStatusFilter('ALL');
+        } : loadData}
+        contextDomain="purchasing"
         emptyTitle="Không tìm thấy đơn mua hàng"
         emptyDescription="Không có đơn PO nào khớp với điều kiện tìm kiếm hoặc trạng thái đã chọn. PO mới phải được tạo từ một đề xuất mua hàng đã duyệt."
       >
@@ -319,7 +337,7 @@ export function PurchasingPage() {
                         aria-hidden="true"
                         className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2 text-slate-400"
                       >
-                        <Inbox size={20} strokeWidth={1.75} />
+                        <ShoppingCart size={20} strokeWidth={1.75} />
                       </div>
                       <p className="text-xs text-slate-500">Đơn PO này chưa có dòng nguyên liệu chi tiết.</p>
                     </div>
@@ -380,7 +398,7 @@ export function PurchasingPage() {
                   aria-hidden="true"
                   className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
                 >
-                  <Inbox size={20} strokeWidth={1.75} />
+                  <Truck size={20} strokeWidth={1.75} />
                 </div>
                 <p className="text-xs text-slate-500">Chọn một đơn PO bên trái để xem phân rã chi tiết</p>
               </div>
@@ -390,20 +408,32 @@ export function PurchasingPage() {
       </StateBoundary>
 
       {cancelSuccess && (
-        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
-          <span>{cancelSuccess}</span>
-          <button type="button" onClick={() => setCancelSuccess(null)} className="underline cursor-pointer">Đóng</button>
-        </div>
+        <InlineBanner variant="success" onClose={() => setCancelSuccess(null)} className="shrink-0">
+          {cancelSuccess}
+        </InlineBanner>
       )}
 
       <Modal
         isOpen={isCancelModalOpen}
-        onClose={() => setIsCancelModalOpen(false)}
+        onClose={() => {
+          if (!isCancelling) {
+            setIsCancelModalOpen(false);
+            setCancelError(null);
+          }
+        }}
         title={`Xác nhận hủy đơn mua hàng: ${selectedPo?.code ?? ''}`}
         description={`Nhà cung cấp: ${selectedPo?.supplierName ?? ''} · Tổng giá trị: ${selectedPo ? selectedPo.totalAmount.toLocaleString('vi-VN') : 0} ₫`}
         footer={
           <>
-            <Button variant="outline" size="sm" disabled={isCancelling} onClick={() => setIsCancelModalOpen(false)}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={isCancelling}
+              onClick={() => {
+                setIsCancelModalOpen(false);
+                setCancelError(null);
+              }}
+            >
               Quay lại
             </Button>
             <Button variant="destructive" size="sm" disabled={isCancelling} onClick={() => void handleCancelPo()}>
@@ -412,9 +442,16 @@ export function PurchasingPage() {
           </>
         }
       >
-        <p className="text-sm text-slate-700">
-          Bạn có chắc chắn muốn hủy đơn mua hàng này? Đơn mua hàng đã hủy sẽ không thể tạo phiếu nhập kho được nữa.
-        </p>
+        <div className="space-y-3">
+          {cancelError && (
+            <InlineBanner variant="error" onClose={() => setCancelError(null)}>
+              {cancelError.message}
+            </InlineBanner>
+          )}
+          <p className="text-sm text-slate-700">
+            Bạn có chắc chắn muốn hủy đơn mua hàng này? Đơn mua hàng đã hủy sẽ không thể tạo phiếu nhập kho được nữa.
+          </p>
+        </div>
       </Modal>
     </div>
   );

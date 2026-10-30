@@ -15,22 +15,14 @@ import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { chefApi, type ChefDashboardData, type ChefIssueItem, type ChefPlanLineItem } from '../../api/chefApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
-import { formatVietnameseDate } from '../../utils/dates';
+import { formatVietnameseDate, todayInBusinessTimezone } from '../../utils/dates';
+import { serverStateCache } from '../../store/serverStateCache';
 import { MrxCookingWorkbench } from './MrxCookingWorkbench';
 
 const SHIFT_OPTIONS = [
   { value: 'MORNING', label: 'Ca 1 (Sáng)' },
   { value: 'AFTERNOON', label: 'Ca 2 (Chiều)' },
 ];
-
-function todayInBusinessTimezone(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-}
 
 const ISSUE_PAGE_SIZE = 25;
 
@@ -53,16 +45,33 @@ export function ChefDashboardPage() {
   return <DefaultChefDashboardPage />;
 }
 
+interface ChefSnapshot {
+  customerId: string;
+  serviceDate: string;
+  shiftName: 'MORNING' | 'AFTERNOON';
+  issuePageNumber: number;
+  data: ChefDashboardData | null;
+}
+
 function DefaultChefDashboardPage() {
   const [searchParams] = useSearchParams();
   const activeView = searchParams.get('view') === 'issues' ? 'issues' : 'plans';
-  const [customers, setCustomers] = useState<CustomerOption[]>([]);
-  const [customerId, setCustomerId] = useState('');
-  const [serviceDate, setServiceDate] = useState(todayInBusinessTimezone);
-  const [shiftName, setShiftName] = useState<'MORNING' | 'AFTERNOON'>('MORNING');
-  const [issuePageNumber, setIssuePageNumber] = useState(1);
-  const [data, setData] = useState<ChefDashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const snapshot = serverStateCache.get<ChefSnapshot>('snapshot:chef')?.data;
+  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
+  const initialCustomerId = snapshot?.customerId || cachedCustomers?.[0]?.customerId || '';
+  const [customerId, setCustomerId] = useState(() => initialCustomerId);
+  const [serviceDate, setServiceDate] = useState(() => snapshot?.serviceDate || todayInBusinessTimezone());
+  const [shiftName, setShiftName] = useState<'MORNING' | 'AFTERNOON'>(() => snapshot?.shiftName || 'MORNING');
+  const [issuePageNumber, setIssuePageNumber] = useState(() => snapshot?.issuePageNumber || 1);
+
+  const chefKey = `chef_${initialCustomerId}_${snapshot?.serviceDate || todayInBusinessTimezone()}_${snapshot?.shiftName || 'MORNING'}_${snapshot?.issuePageNumber || 1}`;
+  const cachedChef = snapshot?.data ?? (initialCustomerId ? serverStateCache.get<ChefDashboardData>(chefKey)?.data : null);
+
+  const [data, setData] = useState<ChefDashboardData | null>(() => cachedChef ?? null);
+  const [hasCustomersLoaded, setHasCustomersLoaded] = useState(() => Boolean(cachedCustomers && cachedCustomers.length > 0));
+  const [isLoading, setIsLoading] = useState<boolean>(() => !cachedChef);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
   const requestSequence = useRef(0);
 
@@ -72,11 +81,16 @@ function DefaultChefDashboardPage() {
       .then((list) => {
         if (ignore) return;
         setCustomers(list);
+        setHasCustomersLoaded(true);
+        serverStateCache.set('catalog_customers', list);
+        const existing = customerId && list.find((c) => c.customerId === customerId);
+        if (existing) return;
         setCustomerId((current) => current || list[0]?.customerId || '');
         if (list.length === 0) setIsLoading(false);
       })
       .catch((cause: unknown) => {
         if (!ignore) {
+          setHasCustomersLoaded(true);
           setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
           setIsLoading(false);
         }
@@ -86,10 +100,23 @@ function DefaultChefDashboardPage() {
 
   useEffect(() => {
     if (!customerId) return;
+    const key = `chef_${customerId}_${serviceDate}_${shiftName}_${issuePageNumber}`;
+    const cached = serverStateCache.get<ChefDashboardData>(key)?.data;
+    if (cached) {
+      setData(cached);
+      setIsLoading(false);
+      setIsFetching(true);
+    } else if (!data) {
+      setIsLoading(true);
+    }
     const sequence = ++requestSequence.current;
     chefApi.getChefDashboardData(serviceDate, shiftName, customerId, issuePageNumber, ISSUE_PAGE_SIZE)
       .then((result) => {
-        if (sequence === requestSequence.current) setData(result);
+        if (sequence === requestSequence.current) {
+          setData(result);
+          serverStateCache.set(key, result);
+          serverStateCache.set('snapshot:chef', { customerId, serviceDate, shiftName, issuePageNumber, data: result });
+        }
       })
       .catch((cause: unknown) => {
         if (sequence === requestSequence.current) {
@@ -98,21 +125,33 @@ function DefaultChefDashboardPage() {
         }
       })
       .finally(() => {
-        if (sequence === requestSequence.current) setIsLoading(false);
+        if (sequence === requestSequence.current) {
+          setIsLoading(false);
+          setIsFetching(false);
+        }
       });
   }, [serviceDate, shiftName, customerId, issuePageNumber]);
 
   const reload = () => {
     if (!customerId) return;
+    const key = `chef_${customerId}_${serviceDate}_${shiftName}_${issuePageNumber}`;
+    serverStateCache.delete(key);
     const sequence = ++requestSequence.current;
     setIsLoading(true);
     setError(null);
     chefApi.getChefDashboardData(serviceDate, shiftName, customerId, issuePageNumber, ISSUE_PAGE_SIZE)
       .then((result) => {
-        if (sequence === requestSequence.current) setData(result);
+        if (sequence === requestSequence.current) {
+          setData(result);
+          serverStateCache.set(key, result);
+          serverStateCache.set('snapshot:chef', { customerId, serviceDate, shiftName, issuePageNumber, data: result });
+        }
       })
       .catch((cause: unknown) => {
-        if (sequence === requestSequence.current) setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu bàn giao Bếp.'));
+        if (sequence === requestSequence.current) {
+          setData(null);
+          setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu bàn giao Bếp.'));
+        }
       })
       .finally(() => {
         if (sequence === requestSequence.current) setIsLoading(false);
@@ -174,6 +213,7 @@ function DefaultChefDashboardPage() {
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <WorkspaceHeader
         title="Bếp trưởng & Bàn giao ca"
+        breadcrumb="Bếp ăn · Bàn giao ca"
         contextSelectors={
           <>
             <Select
@@ -205,15 +245,22 @@ function DefaultChefDashboardPage() {
       />
 
       <StateBoundary
-        isLoading={isLoading}
-        isFetching={isLoading}
-        hasExistingData={Boolean(data && activeData.length > 0)}
+        isLoading={isLoading && !data}
+        isFetching={isFetching || (isLoading && Boolean(data))}
+        hasExistingData={Boolean(data || snapshot?.data)}
         error={error}
         onRetry={reload}
-        isEmpty={Boolean(data && activeData.length === 0)}
-        emptyScenario="prerequisite-blocked"
-        emptyTitle={activeView === 'issues' ? 'Chưa có phiếu xuất bàn giao' : 'Chưa có kế hoạch sản xuất'}
-        emptyDescription={activeView === 'issues' ? 'Kho chưa phát hành phiếu xuất cho ngày, ca và khách hàng đã chọn.' : 'Chưa có KHSX được duyệt cho ngày, ca và khách hàng đã chọn.'}
+        isEmpty={!isLoading && !isFetching && hasCustomersLoaded && (!data || activeData.length === 0 || customers.length === 0)}
+        emptyScenario={customers.length === 0 ? 'prerequisite-blocked' : 'filter-empty'}
+        prerequisiteLabel="Khách hàng & Hợp đồng"
+        onNavigatePrerequisite={() => { window.location.href = '/admin-data?view=customers'; }}
+        onResetFilters={() => {
+          setServiceDate(todayInBusinessTimezone());
+          setShiftName('MORNING');
+        }}
+        contextDomain="chef"
+        emptyTitle={customers.length === 0 ? 'Chưa có dữ liệu Khách hàng' : activeView === 'issues' ? 'Chưa có phiếu xuất bàn giao' : 'Chưa có kế hoạch sản xuất'}
+        emptyDescription={customers.length === 0 ? 'Hệ thống chưa có khách hàng nào. Vui lòng tạo khách hàng trước.' : activeView === 'issues' ? 'Kho chưa phát hành phiếu xuất cho ngày, ca và khách hàng đã chọn.' : 'Chưa có KHSX được duyệt cho ngày, ca và khách hàng đã chọn.'}
       >
         {data && activeView === 'plans' && <DataGrid data={data.plans} columns={planColumns} keyExtractor={(row) => row.planLineId} />}
         {data && activeView === 'issues' && <DataGrid data={data.issues} columns={issueColumns} keyExtractor={(row) => row.issueId} />}

@@ -46,3 +46,19 @@ export function formatVietnameseDate(val: string | Date | null | undefined): str
   }
   return toVietnameseDate(String(val));
 }
+
+export function weekStartFor(isoDate: string): string {
+  if (!isoDate) return '';
+  const match = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return isoDate;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  const day = date.getUTCDay();
+  date.setUTCDate(date.getUTCDate() - (day === 0 ? 6 : day - 1));
+  return date.toISOString().slice(0, 10);
+}
+
+export function currentWeekStart(now: Date = new Date()): string {
+  const businessIso = todayInBusinessTimezone(now);
+  return weekStartFor(businessIso);
+}
+

@@ -3,8 +3,10 @@ import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Select } from '../../components/ui/select';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import { weeklyMenuApi, type WeeklyMenuData } from '../../api/weeklyMenuApi';
 import { adminApi, type DishItem } from '../../api/adminApi';
+import { toIsoDate } from '../../utils/dates';
 
 interface WeeklyScheduleEditorModalProps {
   isOpen: boolean;
@@ -77,8 +79,8 @@ export function WeeklyScheduleEditorModal({
     try {
       // Loop through all schedule days and shifts to save
       for (const day of data.scheduleDays) {
-        // Find raw date from data
-        const isoDate = Object.keys(data.matrixRows[0]?.days || {})[data.scheduleDays.indexOf(day)] || day.dateStr;
+        // Robust ISO date derivation
+        const isoDate = toIsoDate(day.dateStr);
         const morningKey = `${day.dateStr}|MORNING`;
         const afternoonKey = `${day.dateStr}|AFTERNOON`;
 
@@ -122,9 +124,7 @@ export function WeeklyScheduleEditorModal({
     setIsSubmitting(true);
     setFeedback(null);
     try {
-      const dayObj = data.scheduleDays.find((d) => d.dateStr === selectedDate);
-      const dayIdx = dayObj ? data.scheduleDays.indexOf(dayObj) : 0;
-      const isoDate = Object.keys(data.matrixRows[0]?.days || {})[dayIdx] || selectedDate;
+      const isoDate = toIsoDate(selectedDate);
 
       await weeklyMenuApi.bulkUpdateWeeklyMenu({
         customerId: data.customerId,
@@ -204,17 +204,12 @@ export function WeeklyScheduleEditorModal({
         </div>
 
         {feedback && (
-          <div
-            role="status"
-            className={`p-3 rounded text-xs flex items-center justify-between ${
-              feedback.type === 'success'
-                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
+          <InlineBanner
+            variant={feedback.type === 'success' ? 'success' : 'error'}
+            onClose={() => setFeedback(null)}
           >
-            <span>{feedback.message}</span>
-            <button type="button" onClick={() => setFeedback(null)} className="text-xs font-bold underline ml-2">Đóng</button>
-          </div>
+            {feedback.message}
+          </InlineBanner>
         )}
 
         {activeTab === 'servings' && (

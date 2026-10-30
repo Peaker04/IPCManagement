@@ -198,4 +198,10 @@ describe('AdminDataPage — Conformance & Behavioral Audit', () => {
 
     expect(getIngsSpy).toHaveBeenLastCalledWith(expect.objectContaining({ searchKeyword: 'Gạo' }));
   });
+
+  // Kịch bản 6: Tab view=bom renders BOM coverage workbench
+  it('renders AdminBomBranch when navigating to /admin-data?view=bom', async () => {
+    renderPage('/admin-data?view=bom');
+    expect(await screen.findByText('Hệ thống · Quản trị dữ liệu · Định mức BOM')).toBeInTheDocument();
+  });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Inbox } from 'lucide-react';
+import { Utensils } from 'lucide-react';
 import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,6 +8,7 @@ import { Num } from '../ui/num';
 import { IdentifierText } from '../ui/identifier-text';
 import { mrxApi, type MrxBatchDishSummary } from '../../api/mrxApi';
 import { toVietnameseDate } from '../../utils/dates';
+import { DishBomEditorModal } from '../../features/admin/DishBomEditorModal';
 
 export interface MrxBatchDishesModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function MrxBatchDishesModal({
   const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
   const [shiftFilter, setShiftFilter] = useState<'ALL' | 'MORNING' | 'AFTERNOON'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [editingBomDish, setEditingBomDish] = useState<{ dishId: string; dishCode: string; dishName: string } | null>(null);
 
   useEffect(() => {
     if (!isOpen || !batchId) return;
@@ -73,18 +75,21 @@ export function MrxBatchDishesModal({
   const selectedDish = filteredDishes.find((d) => d.dishId === selectedDishId) || filteredDishes[0] || null;
 
   return (
-    <Modal
+    <>
+      <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Danh mục món ăn & định mức đông cứng trong lô"
-      description={`Lô: ${batchId.slice(0, 8)} ${customerName ? `· ${customerName}` : ''} · ${dishes.length} món ăn`}
+      description={`Lô: ${(batchId || '').slice(0, 8)} ${customerName ? `· ${customerName}` : ''} · ${dishes.length} món ăn`}
       maxWidth="max-w-4xl"
       footer={<Button variant="outline" size="sm" onClick={onClose}>Đóng</Button>}
     >
       <div className="space-y-4">
         {error && (
-          <div role="alert" className="p-3 rounded bg-rose-50 text-rose-800 border border-rose-200 text-xs">
-            {error.message}
+          <div role="alert" className="p-3 rounded bg-amber-50 text-amber-900 border border-amber-200 text-xs">
+            {error.message.includes('KITCHEN_FROZEN_LINEAGE_MISSING') || error.message.includes('LEGACY_')
+              ? 'Lô đối soát này chưa có danh mục món ăn đóng băng theo ca từ hệ thống thực đơn.'
+              : error.message}
           </div>
         )}
 
@@ -98,7 +103,7 @@ export function MrxBatchDishesModal({
               aria-hidden="true"
               className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
             >
-              <Inbox size={20} strokeWidth={1.75} />
+              <Utensils size={20} strokeWidth={1.75} />
             </div>
             <p className="text-xs text-slate-500 italic">Lô đối soát này chưa có danh mục món ăn đóng băng.</p>
           </div>
@@ -192,7 +197,21 @@ export function MrxBatchDishesModal({
                   <div className="bg-white p-3 rounded border border-slate-200">
                     <div className="flex items-center justify-between">
                       <h3 className="font-bold text-base text-slate-900">{selectedDish.dishName}</h3>
-                      <Badge variant="neutral" size="sm">{selectedDish.dishCode}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="neutral" size="sm">{selectedDish.dishCode}</Badge>
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => setEditingBomDish({
+                            dishId: selectedDish.dishId,
+                            dishCode: selectedDish.dishCode,
+                            dishName: selectedDish.dishName,
+                          })}
+                          className="h-7 text-xs font-medium"
+                        >
+                          Chỉnh sửa BOM
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Scopes: Service dates & shifts */}
@@ -246,5 +265,12 @@ export function MrxBatchDishesModal({
         )}
       </div>
     </Modal>
+
+    <DishBomEditorModal
+      isOpen={Boolean(editingBomDish)}
+      onClose={() => setEditingBomDish(null)}
+      dish={editingBomDish}
+    />
+  </>
   );
 }

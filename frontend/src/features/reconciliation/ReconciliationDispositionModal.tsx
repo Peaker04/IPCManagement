@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Select } from '../../components/ui/select';
+import { InlineBanner } from '../../components/ui/inline-banner';
+import { executeSafeMutation } from '../../hooks/useOperationalRecovery';
+import { ApiError } from '../../api/client';
 import { mrxApi, type MrxDispositionCategory } from '../../api/mrxApi';
 import type { ReconciliationLineItem } from '../../api/reconciliationApi';
 
@@ -34,6 +38,15 @@ export function ReconciliationDispositionModal({
   const [succeededLineIds, setSucceededLineIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
+    if (isOpen && primaryLine) {
+      setCategory(primaryLine.disposition?.category || 'ACCEPTED_VARIANCE');
+      setReason(primaryLine.disposition?.reason || '');
+      setError(null);
+      setSucceededLineIds(new Set());
+    }
+  }, [isOpen, primaryLine?.id, primaryLine?.dailyLineId]);
+
+  useEffect(() => {
     let ignore = false;
     mrxApi.getDispositionCategories()
       .then((data) => { if (!ignore) setCategories(data); })
@@ -53,24 +66,44 @@ export function ReconciliationDispositionModal({
     if (targetLines.length === 0 || !reason.trim()) return;
     setIsSubmitting(true);
     setError(null);
-    try {
-      for (const line of targetLines) {
-        if (line.dailyLineId && !succeededLineIds.has(line.dailyLineId)) {
-          await mrxApi.setDailyDisposition(line.dailyLineId, {
-            category,
-            reason: reason.trim(),
-            expectedVersion: line.disposition?.version,
-          });
-          setSucceededLineIds((prev) => new Set(prev).add(line.dailyLineId!));
+
+    await executeSafeMutation({
+      mutationFn: async () => {
+        for (const line of targetLines) {
+          const lineKey = line.dailyLineId || line.id;
+          if (lineKey && !succeededLineIds.has(lineKey)) {
+            if (line.dailyLineId) {
+              await mrxApi.setDailyDisposition(line.dailyLineId, {
+                category,
+                reason: reason.trim(),
+                expectedVersion: line.disposition?.version,
+              });
+            } else if (line.id) {
+              await mrxApi.setLineDisposition(line.id, {
+                category,
+                reason: reason.trim(),
+                expectedVersion: line.disposition?.version,
+              });
+            }
+            setSucceededLineIds((prev) => new Set(prev).add(lineKey));
+          }
         }
-      }
-      onClose();
-      await onSaved();
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause : new Error('Không thể lưu hướng xử lý chênh lệch.'));
-    } finally {
-      setIsSubmitting(false);
-    }
+        return true;
+      },
+      payload: { category, reason: reason.trim() },
+      onSuccess: async () => {
+        onClose();
+        await onSaved();
+      },
+      onConflict: (err) => {
+        setError(err);
+      },
+      onError: (err) => {
+        setError(err);
+      },
+    });
+
+    setIsSubmitting(false);
   };
 
   if (!primaryLine) return null;
@@ -111,9 +144,15 @@ export function ReconciliationDispositionModal({
     >
       <div className="space-y-4 text-sm text-slate-700">
         {error && (
-          <div role="alert" className="p-2.5 rounded bg-rose-50 text-rose-800 border border-rose-200 text-xs">
+          <InlineBanner
+            variant={error instanceof ApiError && error.status === 409 ? 'conflict' : 'error'}
+            title={error instanceof ApiError && error.status === 409 ? 'Xung đột dữ liệu đồng thời' : undefined}
+            actionLabel={error instanceof ApiError && error.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
+            onAction={error instanceof ApiError && error.status === 409 ? async () => { setError(null); await onSaved(); } : undefined}
+            onClose={() => setError(null)}
+          >
             {error.message}
-          </div>
+          </InlineBanner>
         )}
 
         {isBulk ? (
@@ -160,6 +199,13 @@ export function ReconciliationDispositionModal({
           </div>
         )}
 
+        {primaryLine.disposition && !isCompleted && (
+          <div className="p-2.5 bg-blue-50/60 rounded border border-blue-200 text-xs text-blue-900 flex flex-col gap-1">
+            <span className="font-semibold text-blue-800">Giải trình hiện tại (Phiên bản v{primaryLine.disposition.version ?? 1}):</span>
+            <span className="text-slate-700">Lý do: <strong className="font-mono">{primaryLine.disposition.reason || '—'}</strong></span>
+          </div>
+        )}
+
         {isCompleted ? (
           <div className="space-y-2 pt-2 border-t border-slate-200">
             <div>
@@ -179,17 +225,14 @@ export function ReconciliationDispositionModal({
               <label htmlFor="disposition-category" className="text-xs font-semibold text-slate-700 block mb-1">
                 Danh mục xử lý chênh lệch:
               </label>
-              <select
+              <Select
                 id="disposition-category"
                 aria-label="Danh mục xử lý chênh lệch"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full h-9 rounded border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
-              >
-                {categories.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
-                ))}
-              </select>
+                options={categories}
+                className="w-full h-9 text-sm"
+              />
             </div>
             <div>
               <label htmlFor="disposition-reason" className="text-xs font-semibold text-slate-700 block mb-1">

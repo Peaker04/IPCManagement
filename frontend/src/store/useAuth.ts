@@ -22,6 +22,8 @@ export interface AuthContextType {
   setOperationalMode: (mode: OperationalMode, reason?: string) => Promise<void>;
   hasPermission: (permission: string) => boolean;
   hasRole: (roleCode: string | string[]) => boolean;
+  isSessionExpired?: boolean;
+  triggerSessionExpired?: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -32,39 +32,61 @@ test.describe('Responsive Design System & Visual Audit', () => {
   let authToken = '';
 
   test.beforeAll(async ({ request }) => {
-    try {
-      const res = await request.post('http://localhost:5262/api/auth/login', {
-        data: { username: 'admin', password: 'Admin@123456' },
-      });
-      const json = await res.json();
-      if (json.success && json.data?.accessToken) {
-        authToken = json.data.accessToken;
+    let attempts = 0;
+    while (attempts < 3 && (!authToken || !authToken.startsWith('ey'))) {
+      try {
+        const res = await request.post('http://127.0.0.1:5262/api/auth/login', {
+          data: { username: 'admin', password: 'Admin@123456' },
+        });
+        const json = await res.json();
+        if (json.success && json.data?.accessToken) {
+          authToken = json.data.accessToken;
+          break;
+        }
+      } catch (e) {
+        console.warn('Backend login error:', e);
       }
-    } catch (e) {
-      console.warn('Backend login error:', e);
+      attempts++;
+      if (!authToken) await new Promise((r) => setTimeout(r, 500));
     }
   });
 
-  test.beforeEach(async ({ page }) => {
-    if (authToken) {
-      await page.addInitScript((token) => {
-        localStorage.setItem('ipc_v3_token', token);
-        localStorage.setItem(
-          'ipc_v3_user',
-          JSON.stringify({
-            userId: '10000000-0000-0000-0000-000000000001',
-            username: 'admin',
-            fullName: 'Admin User',
-            roleCode: 'ADMIN',
-            roleName: 'Admin',
-            isActive: true,
-            isAdminFullAccess: true,
-            permissions: ['*'],
-          })
-        );
-        localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-      }, authToken);
+  test.beforeEach(async ({ page, request }) => {
+    if (!authToken || !authToken.startsWith('ey')) {
+      let attempts = 0;
+      while (attempts < 3 && (!authToken || !authToken.startsWith('ey'))) {
+        try {
+          const res = await request.post('http://127.0.0.1:5262/api/auth/login', {
+            data: { username: 'admin', password: 'Admin@123456' },
+          });
+          const json = await res.json();
+          if (json.success && json.data?.accessToken) {
+            authToken = json.data.accessToken;
+            break;
+          }
+        } catch {}
+        attempts++;
+        if (!authToken) await new Promise((r) => setTimeout(r, 300));
+      }
     }
+    await page.addInitScript((tok) => {
+      localStorage.setItem('ipc_v3_token', tok);
+      localStorage.setItem(
+        'ipc_v3_user',
+        JSON.stringify({
+          userId: '10000000-0000-0000-0000-000000000001',
+          username: 'admin',
+          fullName: 'Admin User',
+          roleCode: 'ADMIN',
+          roleName: 'Admin',
+          isActive: true,
+          isAdminFullAccess: true,
+          permissions: ['*'],
+        })
+      );
+      localStorage.setItem('ipc_v3_mode', 'DEFAULT');
+      localStorage.setItem('ipc_v3_mode_version', '1');
+    }, authToken);
   });
 
   // Test 1: Geometry Audit across viewports

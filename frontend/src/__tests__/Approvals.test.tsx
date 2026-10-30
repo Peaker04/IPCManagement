@@ -148,4 +148,24 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
 
     expect(screen.getByText(/Vui lòng nhập lý do từ chối hồ sơ/i)).toBeInTheDocument();
   });
+
+  it('preserves rejection reason inside modal when rejection API call fails', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(approvalsApi, 'decide').mockRejectedValueOnce(new Error('Lỗi máy chủ khi từ chối'));
+    renderApprovals();
+
+    const rejectBtns = await screen.findAllByRole('button', { name: 'Từ chối hồ sơ' });
+    await user.click(rejectBtns[0]);
+
+    const reasonInput = screen.getByPlaceholderText(/Nhập lý do từ chối/i);
+    await user.type(reasonInput, 'Hồ sơ thiếu báo giá của bên thứ ba');
+
+    const confirmRejectBtn = screen.getByRole('button', { name: 'Xác nhận từ chối' });
+    await user.click(confirmRejectBtn);
+
+    // Modal stays open, reason is preserved, and error banner is displayed
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getAllByDisplayValue('Hồ sơ thiếu báo giá của bên thứ ba').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Lỗi máy chủ khi từ chối/i)).toBeInTheDocument();
+  });
 });

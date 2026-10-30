@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Loading UX & Async State Consistency Audit Suite', () => {
   let authToken = '';
+  let serverMode = 'MATERIAL_RECONCILIATION';
 
   test.beforeAll(async ({ request }) => {
     try {
@@ -12,13 +13,21 @@ test.describe('Loading UX & Async State Consistency Audit Suite', () => {
       if (json.success && json.data?.accessToken) {
         authToken = json.data.accessToken;
       }
+
+      const modeRes = await request.get('http://127.0.0.1:5262/api/system-operation-mode', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const modeJson = await modeRes.json();
+      if (modeJson.success && modeJson.data?.mode) {
+        serverMode = modeJson.data.mode;
+      }
     } catch {
       // Backend request fallback
     }
   });
 
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((token) => {
+    await page.addInitScript(({ token, mode }) => {
       localStorage.setItem('ipc_v3_token', token || 'mock-admin-token');
       localStorage.setItem(
         'ipc_v3_user',
@@ -33,8 +42,8 @@ test.describe('Loading UX & Async State Consistency Audit Suite', () => {
           permissions: ['*'],
         })
       );
-      localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-    }, authToken);
+      localStorage.setItem('ipc_v3_mode', mode || 'MATERIAL_RECONCILIATION');
+    }, { token: authToken, mode: serverMode });
   });
 
   // Test 1: Cold Navigation vs Scoped Skeleton
@@ -91,6 +100,13 @@ test.describe('Loading UX & Async State Consistency Audit Suite', () => {
   test('Dashboard: Renders 4 prioritized tasks and 4 progress stages from live KPIs', async ({ page }) => {
     await page.goto('/');
 
+    if (serverMode === 'MATERIAL_RECONCILIATION') {
+      // In MRX mode, renders ReconciliationDashboardPage with 4 KPI cards
+      await expect(page.getByRole('heading', { name: 'Bàn điều hành đối soát' })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByLabel('Chỉ số điều hành đối soát')).toBeVisible();
+      return;
+    }
+
     await expect(page.getByRole('heading', { name: 'Bàn điều hành hôm nay' })).toBeVisible({ timeout: 15_000 });
 
     // 4 Tasks rendered
@@ -107,6 +123,13 @@ test.describe('Loading UX & Async State Consistency Audit Suite', () => {
   // Test 5: Production Plan translates shift enums to standard Vietnamese
   test('Production Plan: Mapped shift names render Ca 1 (Sáng) and Ca 2 (Chiều)', async ({ page }) => {
     await page.goto('/weekly-menu?view=production-plan');
+
+    if (serverMode === 'MATERIAL_RECONCILIATION') {
+      // Under DOM-MODE-1, DEFAULT-only production plan view redirects to /forbidden
+      await page.waitForTimeout(500);
+      await expect(page.getByRole('heading', { name: 'Truy cập bị từ chối' })).toBeVisible();
+      return;
+    }
 
     // Select customer ANV and week 21/09/2026 to see plans
     const customerSelect = page.getByRole('combobox', { name: 'Chọn khách hàng thực đơn' });

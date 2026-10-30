@@ -1,15 +1,23 @@
 import { useMemo, useState } from 'react';
+import { Tabs } from '../../components/ui/tabs';
+import { Button } from '../../components/ui/button';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Num } from '../../components/ui/num';
 import { toVietnameseDate } from '../../utils/dates';
 import type { MrxQuantityPreview } from '../../api/mrxApi';
+import type { WeeklyMenuData } from '../../api/weeklyMenuApi';
+import type { ScheduleDayColumn, WeeklyScheduleMatrixRow, ProductionPlanItem } from '../../types';
+import { WeeklyScheduleView } from './views/WeeklyScheduleView';
+import { MrxShiftDishesModal } from './MrxShiftDishesModal';
 
-interface MrxBatchPreviewSectionProps {
+export interface MrxBatchPreviewSectionProps {
   preview: MrxQuantityPreview;
+  customerCode?: string;
+  customerName?: string;
 }
 
-interface PreviewMaterialItem {
+export interface PreviewMaterialItem {
   key: string;
   ingredientCode: string;
   ingredientName: string;
@@ -19,7 +27,22 @@ interface PreviewMaterialItem {
   dishes: string[];
 }
 
-interface PlanSummaryItem {
+export interface ShiftDishDetail {
+  dishId: string;
+  dishCode: string;
+  dishName: string;
+  dishSlot?: string | null;
+  displayOrder: number;
+  materials: Array<{
+    ingredientCode: string;
+    ingredientName: string;
+    canonicalUnitName: string;
+    grossQuantityPerServing: number;
+    requiredQuantity: number;
+  }>;
+}
+
+export interface PlanSummaryItem {
   id: string;
   planCode: string;
   serviceDate: string;
@@ -27,11 +50,100 @@ interface PlanSummaryItem {
   menuName: string;
   servings: number;
   dishes: string[];
+  dishesDetails: ShiftDishDetail[];
   materialsCount: number;
 }
 
-export function MrxBatchPreviewSection({ preview }: MrxBatchPreviewSectionProps) {
-  const [previewTab, setPreviewTab] = useState<'materials' | 'plans'>('materials');
+function resolveSlotLabel(slot?: string | null): string {
+  if (!slot) return 'Món mặn';
+  const s = slot.toLowerCase();
+  if (s.includes('soup') || s.includes('canh')) return 'Món canh';
+  if (s.includes('veg') || s.includes('xào') || s.includes('rau')) return 'Món xào';
+  if (s.includes('fruit') || s.includes('dessert') || s.includes('trái')) return 'Tráng miệng / Trái cây';
+  if (s.includes('side') || s.includes('phụ')) return 'Món phụ';
+  return 'Món mặn';
+}
+
+function buildWeeklyMenuDataFromPreview(
+  preview: MrxQuantityPreview,
+  customerCode: string,
+  customerName: string
+): WeeklyMenuData {
+  const plans = preview.plans || [];
+  const dates = Array.from(new Set(plans.map((p) => p.serviceDate))).sort();
+  const scheduleDays: ScheduleDayColumn[] = dates.map((date, index) => {
+    const d = new Date(`${date}T00:00:00Z`);
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    return {
+      dayName: dayNames[d.getUTCDay()] || `Ngày ${index + 1}`,
+      dateStr: toVietnameseDate(date),
+      cells: [],
+    };
+  });
+
+  const matrixMap = new Map<string, WeeklyScheduleMatrixRow>();
+  for (const plan of plans) {
+    for (const line of plan.lines) {
+      const shiftLabel = line.shift === 'MORNING' ? 'CA SÁNG' : line.shift === 'AFTERNOON' ? 'CA CHIỀU' : line.shift;
+      for (const dish of line.dishes) {
+        const isVegetarian = Boolean(
+          (dish.dishSlot && (dish.dishSlot.toLowerCase().includes('veg') || dish.dishSlot.toLowerCase().includes('chay'))) ||
+          dish.dishName.toLowerCase().includes('chay')
+        );
+        const variantLabel = isVegetarian ? 'CHAY' : 'MẶN';
+        const sectionTitle = `MENU ${variantLabel} ${shiftLabel}`;
+        const slotLabel = resolveSlotLabel(dish.dishSlot);
+        const rowKey = `${sectionTitle} - ${slotLabel}`;
+        const existing = matrixMap.get(rowKey) || {
+          sectionTitle,
+          slotLabel,
+          days: {},
+        };
+        existing.days[plan.serviceDate] = dish.dishName;
+        matrixMap.set(rowKey, existing);
+      }
+    }
+  }
+
+  const productionPlans: ProductionPlanItem[] = [];
+  for (const plan of plans) {
+    for (const line of plan.lines) {
+      productionPlans.push({
+        planId: line.quantityPlanLineId,
+        planCode: plan.planCode,
+        dishId: line.dishes[0]?.dishId || '',
+        dishName: line.dishes[0]?.dishName || '',
+        shiftName: line.shift,
+        plannedServings: line.finalServings,
+        serviceDate: plan.serviceDate,
+        status: 'completed',
+      });
+    }
+  }
+
+  return {
+    customerId: '',
+    customerCode,
+    customerName,
+    weekStartDate: dates[0] || '',
+    mealTargetPrice: 0,
+    scheduleDays,
+    matrixRows: Array.from(matrixMap.values()),
+    demandRows: [],
+    productionPlans,
+    dishCosts: [],
+    dailyMaterials: [],
+  };
+}
+
+export function MrxBatchPreviewSection({ preview, customerCode, customerName }: MrxBatchPreviewSectionProps) {
+  const [previewTab, setPreviewTab] = useState<'schedule' | 'materials' | 'plans'>('schedule');
+  const [selectedShiftPlan, setSelectedShiftPlan] = useState<PlanSummaryItem | null>(null);
+
+  const weeklyMenuData = useMemo<WeeklyMenuData | null>(() => {
+    if (!preview?.plans || preview.plans.length === 0) return null;
+    return buildWeeklyMenuDataFromPreview(preview, customerCode || '—', customerName || 'Khách hàng');
+  }, [preview, customerCode, customerName]);
 
   const previewMaterials = useMemo<PreviewMaterialItem[]>(() => {
     if (!preview?.plans) return [];
@@ -79,6 +191,20 @@ export function MrxBatchPreviewSection({ preview }: MrxBatchPreviewSectionProps)
           menuName: line.menuName,
           servings: line.finalServings,
           dishes: line.dishes.map((d) => d.dishName),
+          dishesDetails: line.dishes.map((d) => ({
+            dishId: d.dishId,
+            dishCode: d.dishCode,
+            dishName: d.dishName,
+            dishSlot: d.dishSlot,
+            displayOrder: d.displayOrder,
+            materials: d.materials.map((m) => ({
+              ingredientCode: m.ingredientCode,
+              ingredientName: m.ingredientName,
+              canonicalUnitName: m.canonicalUnitName || m.sourceUnitName || 'kg',
+              grossQuantityPerServing: m.grossQuantityPerServing,
+              requiredQuantity: m.requiredQuantity,
+            })),
+          })),
           materialsCount: line.dishes.reduce((sum, d) => sum + d.materials.length, 0),
         });
       }
@@ -167,10 +293,16 @@ export function MrxBatchPreviewSection({ preview }: MrxBatchPreviewSectionProps)
       id: 'dishes',
       header: 'Món ăn trong ca',
       width: '32%',
+      align: 'center',
       cell: (row) => (
-        <span className="text-sm text-slate-900 font-medium truncate block">
-          {row.dishes.join(' · ')}
-        </span>
+        <Button
+          variant="outline"
+          size="xs"
+          onClick={() => setSelectedShiftPlan(row)}
+          className="h-7 px-3 text-xs font-semibold flex items-center gap-1.5 hover:bg-slate-100 border-slate-300"
+        >
+          <span>Xem ma trận món ({row.dishesDetails.length} món)</span>
+        </Button>
       ),
     },
   ], []);
@@ -178,37 +310,31 @@ export function MrxBatchPreviewSection({ preview }: MrxBatchPreviewSectionProps)
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       {/* Preview Sub-tabs */}
-      <div className="h-10 px-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setPreviewTab('materials')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
-              previewTab === 'materials'
-                ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Phân rã nguyên liệu định lượng ({previewMaterials.length} mặt hàng)
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreviewTab('plans')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
-              previewTab === 'plans'
-                ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            Kế hoạch món & suất theo ca ({planSummaries.length} ca)
-          </button>
-        </div>
+      <div className="h-11 px-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+        <Tabs
+          items={[
+            { id: 'schedule', label: 'Thực đơn tuần' },
+            { id: 'materials', label: 'Định lượng nguyên liệu' },
+            { id: 'plans', label: 'Kế hoạch theo ca' },
+          ]}
+          activeId={previewTab}
+          onChange={(id) => setPreviewTab(id as 'schedule' | 'materials' | 'plans')}
+          size="sm"
+        />
         <div className="text-xs text-slate-500">
           Tổng suất ăn tuần: <strong className="font-mono text-slate-900">{totalWeekServings.toLocaleString('vi-VN')} suất</strong>
         </div>
       </div>
 
-      {previewTab === 'materials' ? (
+      {previewTab === 'schedule' ? (
+        weeklyMenuData ? (
+          <WeeklyScheduleView data={weeklyMenuData} showSubbar={false} />
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500">
+            <p className="text-xs">Đang tải ma trận thực đơn tuần…</p>
+          </div>
+        )
+      ) : previewTab === 'materials' ? (
         <DataGrid
           data={previewMaterials}
           columns={materialColumns}
@@ -223,6 +349,12 @@ export function MrxBatchPreviewSection({ preview }: MrxBatchPreviewSectionProps)
           emptyMessage="Chưa có dữ liệu kế hoạch món và suất ăn."
         />
       )}
+
+      <MrxShiftDishesModal
+        isOpen={Boolean(selectedShiftPlan)}
+        onClose={() => setSelectedShiftPlan(null)}
+        plan={selectedShiftPlan}
+      />
     </div>
   );
 }

@@ -1,18 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxPreparation } from '../../api/mrxApi';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Badge } from '../../components/ui/badge';
-import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
-import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
+import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { toVietnameseDate, todayInBusinessTimezone } from '../../utils/dates';
-import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
+import { type ColumnDef } from '../../components/workbench/DataGrid';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
-import { downloadAuthenticatedFile } from '../../utils/fileDownload';
+import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
+import { workspaceSessionStore } from '../../store/workspaceSessionStore';
+import { MrxPrepHeaderBranch } from './branches/MrxPrepHeaderBranch';
+import { MrxPrepAllocationsBranch } from './branches/MrxPrepAllocationsBranch';
 
 interface MrxMultiCustomerPreparationWorkbenchProps {
   serviceDate: string;
@@ -21,50 +20,48 @@ interface MrxMultiCustomerPreparationWorkbenchProps {
 export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCustomerPreparationWorkbenchProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const sessionScope = workspaceSessionStore.getScope();
   const urlDate = searchParams.get('date');
-  const [activeDate, setActiveDate] = useState(() => serviceDate || urlDate || todayInBusinessTimezone());
-  const [data, setData] = useState<MrxPreparation | null>(null);
-  const [selectedBatchIds, setSelectedBatchIds] = useState<string[]>([]);
+  const initialDate = serviceDate || urlDate || sessionScope.serviceDate || todayInBusinessTimezone();
+  const [activeDate, setActiveDate] = useState(() => initialDate);
+
+  const {
+    data,
+    stateProps,
+    refetch: load,
+  } = useWorkbenchQuery<MrxPreparation>({
+    scopeKey: 'mrx_preparation',
+    cacheKey: `mrx_preparation_${activeDate}`,
+    snapshotKey: 'snapshot:mrx_preparation',
+    scopeId: activeDate,
+    queryFn: () => mrxApi.getPreparation(activeDate),
+    isDatasetEmpty: (res) => !res || res.batches.length === 0,
+    emptyTitle: 'Không có lô đối soát cho ngày đã chọn',
+    emptyDescription: 'Các lô đối soát cần được Điều phối chuyển sang Kho ở trạng thái Sẵn sàng xuất kho.',
+    emptyScenario: 'filter-empty',
+  });
+
+  const [selectedBatchIds, setSelectedBatchIds] = useState<string[] | null>(null);
   const [supplierFilter, setSupplierFilter] = useState('');
-  const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
+  const [actionError, setActionError] = useState<Error | null>(null);
   const [successGroupId, setSuccessGroupId] = useState<string | null>(null);
 
-  const load = useCallback(async (dateToLoad = activeDate) => {
-    if (!dateToLoad) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await mrxApi.getPreparation(dateToLoad);
-      setData(result);
-      setSelectedBatchIds((curr) =>
-        curr.length > 0
-          ? curr
-          : result.batches.filter((b) => b.isApplicable && !b.hasExistingIssue).map((b) => b.batchId)
-      );
-    } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu chuẩn bị nguyên liệu phối hợp.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [activeDate]);
-
-  useEffect(() => {
-    const request = window.setTimeout(() => { void load(activeDate); }, 0);
-    return () => window.clearTimeout(request);
-  }, [load, activeDate]);
+  const activeSelectedBatchIds = useMemo(() => {
+    if (selectedBatchIds !== null) return selectedBatchIds;
+    return data?.batches.filter((b) => b.isApplicable && !b.hasExistingIssue).map((b) => b.batchId) ?? [];
+  }, [data, selectedBatchIds]);
 
   const activeBatches = useMemo(
-    () => data?.batches.filter((b) => selectedBatchIds.includes(b.batchId)) ?? [],
-    [data, selectedBatchIds]
+    () => data?.batches.filter((b) => activeSelectedBatchIds.includes(b.batchId)) ?? [],
+    [data, activeSelectedBatchIds]
   );
 
   const filteredAggregatedLines = useMemo(() => {
     if (!data || !data.aggregatedLines) return [];
     return data.aggregatedLines
       .map((line) => {
-        const filteredAllocs = line.allocations.filter((a) => selectedBatchIds.includes(a.batchId));
+        const filteredAllocs = line.allocations.filter((a) => activeSelectedBatchIds.includes(a.batchId));
         return {
           ...line,
           allocations: filteredAllocs,
@@ -72,12 +69,19 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
           filteredRemaining: filteredAllocs.reduce((sum, a) => sum + a.remainingQuantity, 0),
         };
       })
-      .filter((line) => line.filteredRequired > 0);
-  }, [data, selectedBatchIds]);
+      .filter((l) => l.filteredRequired > 0);
+  }, [data, activeSelectedBatchIds]);
 
-  const canSubmit = activeBatches.length > 0 && !issuing && activeBatches.every((b) => b.isApplicable && !b.hasExistingIssue);
+  const toggleBatch = (batchId: string) => {
+    setSelectedBatchIds((prev) => {
+      const current = prev !== null ? prev : activeSelectedBatchIds;
+      return current.includes(batchId)
+        ? current.filter((id) => id !== batchId)
+        : [...current, batchId];
+    });
+  };
 
-  const prepColumns = useMemo<ColumnDef<typeof filteredAggregatedLines[number]>[]>(() => [
+  const columns = useMemo<ColumnDef<typeof filteredAggregatedLines[number]>[]>(() => [
     {
       id: 'ingredient',
       header: 'Nguyên liệu',
@@ -98,7 +102,12 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
       width: '20%',
       align: 'right',
       cell: (line) => (
-        <Num value={line.filteredRequired} format="quantity" suffix={line.canonicalUnitName ? ` ${line.canonicalUnitName}` : ''} className="font-bold text-slate-900" />
+        <Num
+          value={line.filteredRequired}
+          format="quantity"
+          suffix={line.canonicalUnitName ? ` ${line.canonicalUnitName}` : ''}
+          className="font-bold text-slate-900"
+        />
       ),
     },
     {
@@ -119,12 +128,14 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
         </div>
       ),
     },
-  ], []);
+  ], [filteredAggregatedLines]);
+
+  const canSubmit = activeBatches.length > 0 && !issuing && activeBatches.every((b) => b.isApplicable && !b.hasExistingIssue);
 
   const submitCoordinatedIssue = async () => {
     if (!data || !canSubmit) return;
     setIssuing(true);
-    setError(null);
+    setActionError(null);
     setSuccessGroupId(null);
     try {
       const batchesRequest = activeBatches.map((b) => {
@@ -157,65 +168,37 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
       setSuccessGroupId(result.preparationGroupId);
       await load();
     } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error('Không thể thực hiện xuất kho phối hợp.'));
+      setActionError(cause instanceof Error ? cause : new Error('Không thể thực hiện xuất kho phối hợp.'));
     } finally {
       setIssuing(false);
     }
   };
 
-  const toggleBatch = (batchId: string) => {
-    setSelectedBatchIds((curr) =>
-      curr.includes(batchId) ? curr.filter((id) => id !== batchId) : [...curr, batchId]
-    );
-  };
-
   return (
-    <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
-      <WorkspaceHeader
-        title="Chuẩn bị nguyên liệu phối hợp đa khách hàng"
-        breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
-        contextSelectors={
-          <div className="flex items-center gap-2">
-            <VietnameseDateInput
-              aria-label="Ngày chuẩn bị"
-              value={activeDate}
-              onChange={(newDate) => {
-                setActiveDate(newDate);
-                setSearchParams((curr) => {
-                  const next = new URLSearchParams(curr);
-                  next.set('date', newDate);
-                  return next;
-                }, { replace: true });
-              }}
-              className="h-9 w-40 font-mono text-sm"
-            />
-          </div>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const url = mrxApi.getPreparationWorkbookExportUrl({
-                  serviceDate: activeDate,
-                  batchIds: selectedBatchIds,
-                  supplierName: supplierFilter.trim() || undefined,
-                });
-                void downloadAuthenticatedFile(url, `bang-chuan-bi-${activeDate}.xlsx`);
-              }}
-            >
-              Xuất Excel chuẩn bị
-            </Button>
-            <Button
-              variant={canSubmit ? 'default' : 'outline'}
-              onClick={() => void submitCoordinatedIssue()}
-              disabled={!canSubmit}
-            >
-              {issuing ? 'Đang xuất…' : `Xác nhận xuất phối hợp (${activeBatches.length} lô)`}
-            </Button>
-          </div>
-        }
+    <WorkspaceFrame.Root className="select-text">
+      <MrxPrepHeaderBranch
+        activeDate={activeDate}
+        onSelectDate={(newDate) => {
+          setActiveDate(newDate);
+          setSearchParams((curr) => {
+            const next = new URLSearchParams(curr);
+            next.set('date', newDate);
+            return next;
+          }, { replace: true });
+        }}
+        hasData={Boolean(data && data.aggregatedLines.length > 0)}
+        canIssueBatchGroup={canSubmit}
+        activeBatchesCount={activeBatches.length}
+        issuing={issuing}
+        onDownloadXlsx={() => {
+          const url = mrxApi.getPreparationWorkbookExportUrl({
+            serviceDate: activeDate,
+            batchIds: activeSelectedBatchIds,
+            supplierName: supplierFilter.trim() || undefined,
+          });
+          window.open(url, '_blank');
+        }}
+        onIssueBatchGroup={submitCoordinatedIssue}
       />
 
       <TelemetrySubbar
@@ -236,89 +219,30 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
           </>
         ) : null}
       />
-      <StateBoundary
-        isLoading={loading && !data}
-        isFetching={loading && Boolean(data)}
-        error={error}
-        onRetry={() => void load()}
-        hasExistingData={Boolean(data && data.batches.length > 0)}
-        isEmpty={!loading && !error && (!data || data.batches.length === 0)}
-        emptyScenario="filter-empty"
-        emptyTitle="Không có lô đối soát cho ngày đã chọn"
-        emptyDescription="Các lô đối soát cần được Điều phối chuyển sang Kho ở trạng thái Sẵn sàng xuất kho."
-      >
-        <div className="flex-1 min-h-0 overflow-auto flex flex-col">
-          {successGroupId && (
-            <div role="status" className="px-4 py-2.5 text-sm bg-emerald-50 text-emerald-800 border-b border-emerald-200 flex items-center justify-between">
-              <span>Đã xuất kho phối hợp thành công. Mã nhóm chuẩn bị: <strong className="font-mono">{successGroupId}</strong></span>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="xs"
-                  variant="default"
-                  onClick={() => navigate(`/warehouse?view=mrx-daily&date=${activeDate}`)}
-                >
-                  Xem phiếu xuất theo ngày →
-                </Button>
-                <Button size="xs" variant="outline" onClick={() => setSuccessGroupId(null)}>Đóng</Button>
-              </div>
-            </div>
-          )}
 
-          {/* Batches selector and supplier filter bar */}
-          <section aria-label="Bộ lọc chuẩn bị nguyên liệu" className="p-4 border-b border-slate-200 bg-slate-50 shrink-0 space-y-3">
-            <div>
-              <h2 className="text-xs font-semibold uppercase text-slate-500 tracking-wider mb-2">
-                Các khách hàng có lịch ngày {toVietnameseDate(activeDate)}
-              </h2>
-              <div className="flex flex-wrap gap-3">
-                {data?.batches.map((b) => (
-                  <label
-                    key={b.batchId}
-                    className={`inline-flex items-center gap-2 p-2.5 rounded border text-sm cursor-pointer transition-colors ${
-                      selectedBatchIds.includes(b.batchId)
-                        ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 font-medium'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="rounded text-indigo-600 focus:ring-indigo-500"
-                      checked={selectedBatchIds.includes(b.batchId)}
-                      onChange={() => toggleBatch(b.batchId)}
-                      disabled={!b.isApplicable || b.hasExistingIssue}
-                    />
-                    <span>{b.customerName ?? b.customerCode ?? b.customerId}</span>
-                    <Badge variant={b.hasExistingIssue ? 'success' : b.isApplicable ? 'neutral' : 'warning'} size="sm">
-                      {b.hasExistingIssue ? 'Đã xuất' : b.isApplicable ? `${b.requiredQuantity} đl` : b.batchStatus}
-                    </Badge>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 max-w-sm">
-              <label htmlFor="supplier-filter" className="text-xs font-medium text-slate-600 whitespace-nowrap">Lọc nhà cung cấp:</label>
-              <Input
-                id="supplier-filter"
-                aria-label="Lọc theo tên nhà cung cấp"
-                placeholder="Tất cả hoặc tên NCC..."
-                value={supplierFilter}
-                onChange={(e) => setSupplierFilter(e.target.value)}
-                className="h-8 text-xs"
-              />
-            </div>
-          </section>
-
-          {/* Aggregated materials table */}
-          <div className="flex-1 min-h-0 flex flex-col">
-            <DataGrid
-              data={filteredAggregatedLines}
-              columns={prepColumns}
-              keyExtractor={(line) => line.ingredientId}
-              emptyMessage="Không có mặt hàng nào phù hợp với bộ lọc nhà cung cấp."
-            />
-          </div>
-        </div>
-      </StateBoundary>
-    </div>
+      <WorkspaceFrame.Body>
+        <StateBoundary
+          {...stateProps}
+          error={stateProps.error || actionError}
+          onRetry={() => void load(true)}
+          actionLabel="Chuyển sang Trạm xuất kho ngày →"
+          onAction={() => navigate(`/warehouse?view=mrx-daily&date=${activeDate}`)}
+        >
+          <MrxPrepAllocationsBranch
+            data={data}
+            activeDate={activeDate}
+            activeSelectedBatchIds={activeSelectedBatchIds}
+            onToggleBatch={toggleBatch}
+            supplierFilter={supplierFilter}
+            onSupplierFilterChange={setSupplierFilter}
+            filteredAggregatedLines={filteredAggregatedLines}
+            columns={columns}
+            successGroupId={successGroupId}
+            onClearSuccessGroup={() => setSuccessGroupId(null)}
+            onNavigateDaily={() => navigate(`/warehouse?view=mrx-daily&date=${activeDate}`)}
+          />
+        </StateBoundary>
+      </WorkspaceFrame.Body>
+    </WorkspaceFrame.Root>
   );
 }

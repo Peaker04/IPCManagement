@@ -6,6 +6,7 @@ import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
+import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Num } from '../../components/ui/num';
@@ -13,6 +14,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import { reportsApi, type ReportPage, type DemandReportItem, type PriceVarianceReportItem, type CurrentStockReportItem } from '../../api/reportsApi';
 import { formatVietnameseDateTime } from '../../utils/dates';
+import { serverStateCache } from '../../store/serverStateCache';
 import type { CustomerOption } from '../../types';
 
 function currentPeriod(): string {
@@ -22,21 +24,35 @@ function currentPeriod(): string {
 
 const PAGE_SIZE = 25;
 
+interface ReportsSnapshot {
+  activeView: string;
+  period: string;
+  customerId: string;
+  pageNumber: number;
+}
+
 export function ReportsPage() {
   const [searchParams] = useSearchParams();
+  const snapshot = serverStateCache.get<ReportsSnapshot>('snapshot:reports')?.data;
   const view = searchParams.get('view');
-  const activeView = view === 'prices' || view === 'stock' ? view : 'demand';
-  const [period, setPeriod] = useState(currentPeriod);
-  const [customers, setCustomers] = useState<CustomerOption[]>([]);
-  const [customerId, setCustomerId] = useState('');
-  const [pageNumber, setPageNumber] = useState(1);
+  const activeView = view === 'prices' || view === 'stock' ? view : (snapshot?.activeView || 'demand');
+  const [period, setPeriod] = useState(() => snapshot?.period || currentPeriod());
+  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
+  const [customerId, setCustomerId] = useState(() => snapshot?.customerId || cachedCustomers?.[0]?.customerId || '');
+  const [pageNumber, setPageNumber] = useState(() => snapshot?.pageNumber || 1);
   const [customerError, setCustomerError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    setPageNumber(1);
+  }, [activeView, period, customerId]);
 
   useEffect(() => {
     let ignore = false;
     weeklyMenuApi.getCustomers().then((items) => {
       if (ignore) return;
       setCustomers(items);
+      serverStateCache.set('catalog_customers', items);
       setCustomerId((curr) => curr || items[0]?.customerId || "");
     }).catch((cause: unknown) => {
       if (!ignore && activeView === "demand") {
@@ -61,8 +77,15 @@ export function ReportsPage() {
   const demand = activeView === "demand" ? (reportQuery.data?.items as DemandReportItem[] ?? []) : [];
   const prices = activeView === "prices" ? (reportQuery.data?.items as PriceVarianceReportItem[] ?? []) : [];
   const stocks = activeView === "stock" ? (reportQuery.data?.items as CurrentStockReportItem[] ?? []) : [];
-  const isLoading = reportQuery.isInitialLoading;
+  const hasData = Boolean(reportQuery.data || snapshot);
+  const isLoading = reportQuery.isInitialLoading && !hasData;
   const error = customerError || reportQuery.error;
+
+  useEffect(() => {
+    if (reportQuery.data) {
+      serverStateCache.set('snapshot:reports', { activeView, period, customerId, pageNumber });
+    }
+  }, [reportQuery.data, activeView, period, customerId, pageNumber]);
   const reload = () => reportQuery.refetch();
 
     const demandColumns: ColumnDef<DemandReportItem>[] = [
@@ -92,8 +115,9 @@ export function ReportsPage() {
   return <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
     <WorkspaceHeader
       title="Báo cáo vận hành"
+      breadcrumb="Báo cáo · Thống kê vận hành"
       contextSelectors={<>
-        {activeView !== 'stock' && <input type="month" value={period} onChange={(e) => { setPageNumber(1); setPeriod(e.target.value); }} className="h-9 rounded border border-slate-300 px-3 text-sm" aria-label="Kỳ báo cáo" />}
+        {activeView !== 'stock' && <Input type="month" value={period} onChange={(e) => { setPageNumber(1); setPeriod(e.target.value); }} className="h-9 w-40 text-sm font-mono" aria-label="Kỳ báo cáo" />}
         {activeView === 'demand' && <Select aria-label="Chọn khách hàng báo cáo" options={customers.map((c) => ({ value: c.customerId, label: `${c.customerCode} - ${c.customerName}` }))} value={customerId} onChange={(e) => { setPageNumber(1); setCustomerId(e.target.value); }} disabled={!customers.length} className="h-9 w-60" />}
       </>}
       actions={
@@ -108,7 +132,20 @@ export function ReportsPage() {
       }
     />
     <TelemetrySubbar leftControls={<span className="text-xs font-semibold">{activeView === 'demand' ? 'Nhu cầu nguyên liệu' : activeView === 'prices' ? 'Biến động giá nhập' : 'Tồn kho hiện tại'}</span>} telemetryPills={<span className="text-slate-500">{pageInfo.totalCount} dòng số liệu</span>} />
-    <StateBoundary isLoading={isLoading} isFetching={reportQuery.isFetching} loadingGeometry={{ kind: "matrix", columns: 6, rows: 8 }} hasExistingData={rows.length > 0} error={error} onRetry={reload} isEmpty={!isLoading && !error && rows.length === 0} emptyScenario="prerequisite-blocked" emptyTitle="Chưa có dữ liệu báo cáo" emptyDescription="Chưa có dữ liệu báo cáo cho phạm vi đã chọn.">
+    <StateBoundary
+      isLoading={isLoading}
+      isFetching={reportQuery.isFetching}
+      loadingGeometry={{ kind: "matrix", columns: 6, rows: 8 }}
+      hasExistingData={hasData}
+      error={error}
+      onRetry={reload}
+      isEmpty={!isLoading && !error && rows.length === 0}
+      emptyScenario={period !== currentPeriod() ? "filter-empty" : "prerequisite-blocked"}
+      onResetFilters={() => setPeriod(currentPeriod())}
+      contextDomain="reports"
+      emptyTitle="Chưa có dữ liệu báo cáo"
+      emptyDescription="Chưa có dữ liệu báo cáo cho phạm vi đã chọn."
+    >
       {activeView === 'demand' && <DataGrid data={demand} columns={demandColumns} keyExtractor={(r) => `${r.requestDate}-${r.ingredientId}-${r.unitId}`} />}
       {activeView === 'prices' && <DataGrid data={prices} columns={priceColumns} keyExtractor={(r) => r.receiptLineId} />}
       {activeView === 'stock' && <DataGrid data={stocks} columns={stockColumns} keyExtractor={(r) => `${r.warehouseId}-${r.ingredientId}-${r.unitId}`} />}

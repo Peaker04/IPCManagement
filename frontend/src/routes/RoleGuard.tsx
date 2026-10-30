@@ -11,15 +11,11 @@ export interface RoleGuardProps {
 }
 
 export function RoleGuard({ roles, permissions, children }: RoleGuardProps) {
-  const { user, hasRole, hasPermission, operationalMode, operationalModeVersion } = useAuth();
+  const { user, hasRole, hasPermission, operationalMode } = useAuth();
   const location = useLocation();
 
   if (!user) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (operationalModeVersion === null) {
-    return null;
   }
 
   if (!isRouteEligible(CANONICAL_ROUTES, location.pathname, location.search, user, operationalMode)) {

@@ -7,10 +7,20 @@
   --bg-subtle: #f1f5f9;
   --bg-hover: #f1f5f9;
   --bg-active: #e2e8f0;
+  --bg-dragging: #f8fafc;
+  --opacity-dragging: 0.5;
+  --border-drop-target: #2563eb;
+  --bg-drop-target: #eff6ff;
 
   --border-subtle: #e2e8f0;
   --border-default: #cbd5e1;
   --border-strong: #94a3b8;
+  --border-hover: #94a3b8;
+  --border-focus: #2563eb;
+
+  --focus-ring: #2563eb;
+  --focus-ring-offset: 2px;
+  --focus-ring-width: 2px;
 
   --text-main: #0f172a;
   --text-body: #1e293b;
@@ -22,24 +32,145 @@
   --primary-accent: #2563eb;
   --primary-accent-hover: #1d4ed8;
 
+  /* SAP Fiori Standard Value States (Ergonomic pastel backgrounds + WCAG AAA high contrast borders/text) */
   --status-success-bg: #f0fdf4;
   --status-success-border: #bbf7d0;
   --status-success-text: #166534;
+  --status-success-icon: #16a34a;
 
   --status-warning-bg: #fffbeb;
   --status-warning-border: #fde68a;
   --status-warning-text: #92400e;
+  --status-warning-icon: #d97706;
 
   --status-danger-bg: #fef2f2;
   --status-danger-border: #fecaca;
   --status-danger-text: #991b1b;
+  --status-danger-icon: #dc2626;
+
+  --status-error-bg: #fef2f2;
+  --status-error-border: #fecaca;
+  --status-error-text: #991b1b;
+  --status-error-icon: #dc2626;
 
   --status-info-bg: #eff6ff;
   --status-info-border: #bfdbfe;
   --status-info-text: #1e40af;
+  --status-info-icon: #2563eb;
+
+  /* Read-only vs Disabled Semantics */
+  --readonly-bg: #f8fafc;
+  --readonly-border: #cbd5e1;
+  --readonly-text: #0f172a;
+
+  --disabled-bg: #f1f5f9;
+  --disabled-border: #e2e8f0;
+  --disabled-text: #94a3b8;
+  --disabled-opacity: 0.6;
+
+  /* Density Default: Cozy (36px control / 40px row) */
+  --density-control-height: 2.25rem;
+  --density-row-height: 2.5rem;
+  --density-padding-x: 0.75rem;
+  --density-padding-y: 0.375rem;
+  --density-font-size: 0.875rem;
+  --density-hit-target: 2.25rem;
 
   --font-sans: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+/* Density Modes for High-Density Enterprise ERP & Field Operations */
+[data-density="compact"] {
+  --density-control-height: 2rem; /* 32px */
+  --density-row-height: 2.125rem; /* 34px */
+  --density-padding-x: 0.5rem; /* 8px */
+  --density-padding-y: 0.25rem; /* 4px */
+  --density-font-size: 0.8125rem; /* 13px */
+  --density-hit-target: 2rem; /* 32px */
+}
+
+[data-density="cozy"] {
+  --density-control-height: 2.25rem; /* 36px */
+  --density-row-height: 2.5rem; /* 40px */
+  --density-padding-x: 0.75rem; /* 12px */
+  --density-padding-y: 0.375rem; /* 6px */
+  --density-font-size: 0.875rem; /* 14px */
+  --density-hit-target: 2.25rem; /* 36px */
+}
+
+[data-density="touch"] {
+  --density-control-height: 2.75rem; /* 44px */
+  --density-row-height: 3rem; /* 48px */
+  --density-padding-x: 1rem; /* 16px */
+  --density-padding-y: 0.625rem; /* 10px */
+  --density-font-size: 0.9375rem; /* 15px */
+  --density-hit-target: 2.75rem; /* 44px */
+}
+
+/* Value States Semantic Helper Classes */
+.state-info {
+  background-color: var(--status-info-bg);
+  border-color: var(--status-info-border);
+  color: var(--status-info-text);
+}
+.state-success {
+  background-color: var(--status-success-bg);
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+}
+.state-warning {
+  background-color: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
+}
+.state-error {
+  background-color: var(--status-error-bg);
+  border-color: var(--status-error-border);
+  color: var(--status-error-text);
+}
+
+/* Read-only field styling - 100% contrast, focusable, selectable */
+.form-control-readonly {
+  background-color: var(--readonly-bg);
+  border-color: var(--readonly-border);
+  border-style: dashed;
+  color: var(--readonly-text);
+  cursor: default;
+  user-select: text;
+}
+.form-control-readonly:focus-visible {
+  outline: none;
+  border-style: solid;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 1px var(--focus-ring);
+}
+
+/* Drag & Drop Visual Indication */
+.is-dragging {
+  opacity: var(--opacity-dragging);
+  background-color: var(--bg-dragging);
+}
+.is-drop-target {
+  border-color: var(--border-drop-target) !important;
+  background-color: var(--bg-drop-target) !important;
+  outline: 2px dashed var(--border-drop-target);
+}
+
+/* Realtime Row Highlight Flash Animation (Rule L4-DATA-04) */
+@keyframes row-highlight-flash {
+  0% {
+    background-color: var(--status-info-bg);
+  }
+  50% {
+    background-color: var(--status-info-bg);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.animate-row-flash {
+  animation: row-highlight-flash 2s ease-out;
 }
 
 *, *::before, *::after {
@@ -52,6 +183,7 @@ html, body {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  scrollbar-gutter: stable;
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;

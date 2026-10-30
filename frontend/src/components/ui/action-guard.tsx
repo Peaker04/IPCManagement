@@ -7,6 +7,8 @@ export interface ActionGuardProps {
   roles?: string | string[];
   permissions?: string | string[];
   allowedModes?: OperationalMode[];
+  allowedActions?: string[];
+  requiredAction?: string;
   children: ReactNode;
   fallback?: ReactNode;
   mode?: 'hide' | 'disable';
@@ -22,6 +24,8 @@ export function ActionGuard({
   roles,
   permissions,
   allowedModes,
+  allowedActions,
+  requiredAction,
   children,
   fallback = null,
   mode = 'hide',
@@ -42,6 +46,10 @@ export function ActionGuard({
   if (isAllowed && permissions) {
     const perms = Array.isArray(permissions) ? permissions : [permissions];
     isAllowed = perms.some((p) => hasPermission(p));
+  }
+
+  if (isAllowed && requiredAction && allowedActions) {
+    isAllowed = allowedActions.map((a) => a.toUpperCase()).includes(requiredAction.toUpperCase());
   }
 
   const isModeAllowed = !allowedModes?.length || allowedModes.includes(operationalMode);

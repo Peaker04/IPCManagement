@@ -621,4 +621,54 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     const tueInput = screen.getByRole('spinbutton', { name: /Số lượng thực xuất Cá hồi/i });
     expect(tueInput).toHaveValue(0);
   });
+
+  it('renders variance badges (Xuất vượt / Tiết kiệm) in ReconciliationIssueDetailModal', async () => {
+    vi.spyOn(mrxApi, 'getIssueById').mockResolvedValue({
+      issueId: 'issue-test-1',
+      issueCode: 'ISS-20261019-01',
+      issueDate: '2026-10-19',
+      warehouseId: 'wh-1',
+      warehouseName: 'Kho chính',
+      issuedByName: 'Thủ kho A',
+      issuedBy: 'user-1',
+      createdAt: '2026-10-19T07:30:00Z',
+      sourceFamily: 'MATERIAL_RECONCILIATION',
+      receivedAt: '2026-10-19T08:00:00Z',
+      lines: [
+        {
+          issueLineId: 'line-1',
+          ingredientId: 'ing-1',
+          ingredientName: 'Thịt đùi heo',
+          unitId: 'u-1',
+          unitName: 'kg',
+          requestedQty: 10,
+          issuedQty: 15,
+        },
+        {
+          issueLineId: 'line-2',
+          ingredientId: 'ing-2',
+          ingredientName: 'Rau cải ngọt',
+          unitId: 'u-1',
+          unitName: 'kg',
+          requestedQty: 8,
+          issuedQty: 6,
+        },
+      ],
+    });
+
+    const { ReconciliationIssueDetailModal } = await import('../components/workbench/ReconciliationIssueDetailModal');
+    render(
+      <ReconciliationIssueDetailModal
+        isOpen={true}
+        onClose={vi.fn()}
+        issueId="issue-test-1"
+      />
+    );
+
+    expect(await screen.findByText('Chi tiết phiếu xuất kho: ISS-20261019-01')).toBeInTheDocument();
+    expect(screen.getByText('Thịt đùi heo')).toBeInTheDocument();
+    expect(screen.getByText(/Xuất vượt/)).toBeInTheDocument();
+    expect(screen.getByText('Rau cải ngọt')).toBeInTheDocument();
+    expect(screen.getByText(/Tiết kiệm/)).toBeInTheDocument();
+  });
 });

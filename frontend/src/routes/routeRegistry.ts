@@ -33,7 +33,7 @@ const ADMIN_MANAGER_ROLES = ['Admin', 'Manager', 'Quản lý'];
 const COORDINATOR_ROLES = ['Admin', 'Manager', 'Coordinator', 'Quản lý', 'Điều phối'];
 
 export const CANONICAL_ROUTES: RouteDef[] = [
-  { path: '/', title: 'Tổng quan điều hành', navigationLabel: 'Tổng quan', frCode: 'FR-DASH', allowedRoles: ALL_OPERATIONAL_ROLES, modes: ['DEFAULT'] },
+  { path: '/', title: 'Tổng quan điều hành', navigationLabel: 'Tổng quan', frCode: 'FR-DASH', allowedRoles: ALL_OPERATIONAL_ROLES, modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'] },
   {
     path: '/weekly-menu', title: 'Thực đơn tuần', frCode: 'FR-MENU', allowedRoles: MENU_ROLES, modes: ['DEFAULT', 'MATERIAL_RECONCILIATION'],
     leaves: [
@@ -53,9 +53,9 @@ export const CANONICAL_ROUTES: RouteDef[] = [
       { id: 'warehouse.issues', to: '/warehouse?view=issues', label: 'Phiếu xuất kho', surfaceId: 'warehouse.issues', capabilityIds: ['WH.ISSUE.READ'], modes: ['DEFAULT'], readiness: 'READY' },
       { id: 'warehouse.receipts', to: '/warehouse?view=receipts', label: 'Phiếu nhập kho', surfaceId: 'warehouse.receipts', capabilityIds: ['WH.RECEIPT.READ'], modes: ['DEFAULT'], readiness: 'READY' },
       { id: 'warehouse.stock', to: '/warehouse?view=stock', label: 'Tồn kho hiện tại', surfaceId: 'warehouse.stock', capabilityIds: ['WH.CATALOG.READ', 'REP.INVENTORY.READ'], modes: ['DEFAULT'], readiness: 'READY' },
-      { id: 'mrx.daily', to: '/warehouse?view=mrx-daily', label: 'Định lượng xuất theo ngày', surfaceId: 'mrx.daily', capabilityIds: ['RECON.BATCH.READ', 'WH.ISSUE.CREATE'], allowedRoles: WAREHOUSE_ROLES, permissions: ['reconciliation.warehouse.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'mrx.preparation', to: '/warehouse?view=mrx-preparation', label: 'Chuẩn bị xuất phối hợp', surfaceId: 'mrx.daily', capabilityIds: ['RECON.PREPARATION.READ', 'RECON.PREPARATION.ISSUE'], allowedRoles: WAREHOUSE_ROLES, permissions: ['reconciliation.warehouse.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'mrx.issues', to: '/warehouse?view=mrx-issues', label: 'Thay đổi nguồn chờ xử lý', surfaceId: 'mrx.issues', capabilityIds: ['WH.ISSUE.READ', 'WH.ISSUE.CREATE'], allowedRoles: WAREHOUSE_ROLES, permissions: ['reconciliation.warehouse.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'mrx.daily', to: '/warehouse?view=mrx-daily', label: 'Xuất kho định lượng ngày', surfaceId: 'mrx.daily', capabilityIds: ['RECON.BATCH.READ', 'WH.ISSUE.CREATE'], allowedRoles: WAREHOUSE_ROLES, permissions: ['reconciliation.warehouse.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'mrx.preparation', to: '/warehouse?view=mrx-preparation', label: 'Xuất phối hợp đa khách', surfaceId: 'mrx.daily', capabilityIds: ['RECON.PREPARATION.READ', 'RECON.PREPARATION.ISSUE'], allowedRoles: WAREHOUSE_ROLES, permissions: ['reconciliation.warehouse.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'mrx.issues', to: '/warehouse?view=mrx-issues', label: 'Xử lý biến động nguồn', surfaceId: 'mrx.issues', capabilityIds: ['WH.ISSUE.READ', 'WH.ISSUE.CREATE'], allowedRoles: WAREHOUSE_ROLES, permissions: ['reconciliation.warehouse.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
     ],
   },
   {
@@ -63,7 +63,7 @@ export const CANONICAL_ROUTES: RouteDef[] = [
     leaves: [
       { id: 'chef.plans', to: '/chef?view=plans', label: 'Kế hoạch sản xuất', surfaceId: 'chef.plans', capabilityIds: ['PLAN.PRODUCTION.READ'], modes: ['DEFAULT'], readiness: 'READY' },
       { id: 'chef.issues', to: '/chef?view=issues', label: 'Phiếu xuất bàn giao', surfaceId: 'chef.issues', capabilityIds: ['WH.ISSUE.READ'], modes: ['DEFAULT'], readiness: 'READY' },
-      { id: 'mrx.cooking', to: '/chef?view=mrx-cooking', label: 'Phiếu nấu theo lô', surfaceId: 'mrx.cooking', capabilityIds: ['RECON.KITCHEN_REPORT.READ'], allowedRoles: CHEF_ROLES, permissions: ['reconciliation.kitchen.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'mrx.cooking', to: '/chef?view=mrx-cooking', label: 'Phiếu nấu theo lô & ca', surfaceId: 'mrx.cooking', capabilityIds: ['RECON.KITCHEN_REPORT.READ'], allowedRoles: CHEF_ROLES, permissions: ['reconciliation.kitchen.read'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
     ],
   },
   {
@@ -78,7 +78,7 @@ export const CANONICAL_ROUTES: RouteDef[] = [
       { id: 'reconciliation.variances', to: '/reconciliation?view=variances', label: 'Sổ theo dõi chênh lệch', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
       { id: 'reconciliation.transactions', to: '/reconciliation?view=transactions', label: 'Lịch sử giao dịch kho', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
       { id: 'reconciliation.audit', to: '/reconciliation?view=audit', label: 'Nhật ký kiểm toán', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
-      { id: 'reconciliation.completed', to: '/reconciliation?view=completed', label: 'Danh bạ lô hoàn tất', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
+      { id: 'reconciliation.completed', to: '/reconciliation?view=completed', label: 'Danh bạ hồ sơ hoàn tất', surfaceId: 'reconciliation.batch', capabilityIds: ['RECON.BATCH.READ'], modes: ['MATERIAL_RECONCILIATION'], readiness: 'READY' },
     ],
   },
   {
@@ -94,6 +94,8 @@ export const CANONICAL_ROUTES: RouteDef[] = [
     leaves: [
       { id: 'admin.ingredients', to: '/admin-data?view=ingredients', label: 'Danh mục nguyên liệu', surfaceId: 'admin.ingredients', capabilityIds: ['CAT.INGREDIENT.READ', 'CAT.UNIT.READ'], modes: ['SHARED'], readiness: 'READY' },
       { id: 'admin.dishes', to: '/admin-data?view=dishes', label: 'Danh mục món ăn', surfaceId: 'admin.dishes', capabilityIds: ['CAT.DISH.READ'], modes: ['SHARED'], readiness: 'READY' },
+      { id: 'admin.bom', to: '/admin-data?view=bom', label: 'Định mức & Độ phủ BOM', surfaceId: 'admin.bom', capabilityIds: ['CAT.DISH.READ'], modes: ['SHARED'], readiness: 'READY' },
+      { id: 'admin.customers', to: '/admin-data?view=customers', label: 'Khách hàng & Hợp đồng', surfaceId: 'admin.customers', capabilityIds: ['COORD.MENU_SCHEDULE.READ'], modes: ['DEFAULT'], readiness: 'READY' },
     ],
   },
   { path: '/settings/approval-rules', title: 'Thiết lập quy trình duyệt', navigationLabel: 'Quy trình phê duyệt', frCode: 'FR-ADMIN', allowedRoles: ADMIN_MANAGER_ROLES, modes: ['DEFAULT'] },

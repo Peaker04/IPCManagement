@@ -155,7 +155,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
 
     renderChef('/chef?view=mrx-cooking&batchId=batch-legacy');
 
-    expect(await screen.findByText(/KITCHEN_FROZEN_LINEAGE_MISSING/)).toBeInTheDocument();
+    expect(await screen.findByText(/Lô đối soát chưa có phân rã phiếu nấu theo ca/)).toBeInTheDocument();
   });
 
   it('Route 6: respects batchId from URL on F5 reload without falling back to preferred batch', async () => {

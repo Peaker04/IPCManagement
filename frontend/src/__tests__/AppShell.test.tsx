@@ -49,10 +49,14 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     expect(screen.getByRole('link', { name: 'Điều phối đơn' })).toHaveAttribute('href', '/meal-orders');
     expect(screen.getByRole('link', { name: 'Duyệt vận hành' })).toHaveAttribute('href', '/approvals');
     expect(screen.getByRole('link', { name: 'Thu mua' })).toHaveAttribute('href', '/purchasing');
-    expect(screen.getByRole('button', { name: 'Kho nguyên liệu' })).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByRole('button', { name: 'Bếp trưởng' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Kho nguyên liệu' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Bếp trưởng' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('link', { name: 'Đối soát nguyên liệu' })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Báo cáo vận hành' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Báo cáo vận hành' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Quản trị hệ thống' })).toHaveAttribute('aria-expanded', 'false');
+
+    // Click to expand Quản trị hệ thống
+    await userEvent.click(screen.getByRole('button', { name: 'Quản trị hệ thống' }));
     expect(screen.getByRole('button', { name: 'Quản trị hệ thống' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('link', { name: 'Danh mục nguyên liệu' })).toHaveAttribute('href', '/admin-data?view=ingredients');
     expect(screen.getByRole('link', { name: 'Quy trình phê duyệt' })).toHaveAttribute('href', '/settings/approval-rules');

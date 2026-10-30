@@ -56,7 +56,7 @@ export function ReconciliationLineDetailModal({
       }
     >
       <div className="space-y-4 text-sm text-slate-700">
-        <div className="grid grid-cols-3 gap-3 p-3.5 bg-slate-50 rounded-lg border border-slate-200 text-xs">
+        <div aria-label="Thông số đối soát của dòng nguyên liệu" className="grid grid-cols-3 gap-3 p-3.5 bg-slate-50 rounded-lg border border-slate-200 text-xs">
           <div>
             <span className="text-slate-500 block mb-0.5">Nhu cầu BOM đã khóa:</span>
             <strong className="font-mono text-sm text-slate-900">

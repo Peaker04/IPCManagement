@@ -48,10 +48,8 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
             title={`${step.label} · Phụ trách: ${step.owner}`}
             className={clsx(
               'h-7 px-2 rounded flex items-center gap-1.5 text-xs transition-colors',
-              isCurrent && isCompleted
-                ? 'bg-emerald-100 text-emerald-900 font-semibold border border-emerald-300'
-                : isCurrent
-                ? 'bg-blue-100 text-blue-900 font-semibold border border-blue-300'
+              isCurrent
+                ? 'bg-slate-900 text-white font-semibold shadow-2xs'
                 : isPast
                 ? 'bg-slate-100 text-slate-700 font-medium'
                 : 'text-slate-600 font-medium bg-transparent'
@@ -59,11 +57,9 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
           >
             <span
               className={clsx(
-                'inline-flex items-center justify-center size-5 rounded-full text-[11px] font-semibold font-sans leading-none shrink-0 select-none tabular-nums',
-                isCurrent && isCompleted
-                  ? 'bg-emerald-700 text-white'
-                  : isCurrent
-                  ? 'bg-blue-700 text-white'
+                'inline-flex items-center justify-center size-5 rounded-full text-xs font-semibold font-sans leading-none shrink-0 select-none tabular-nums',
+                isCurrent
+                  ? 'bg-white text-slate-900'
                   : isPast
                   ? 'bg-emerald-600 text-white'
                   : 'bg-slate-200 text-slate-700'
@@ -76,7 +72,7 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
                 step.step
               )}
             </span>
-            <span className="truncate">{step.label}</span>
+            <span className={clsx('truncate whitespace-nowrap', !isCurrent && 'hidden 2xl:inline')}>{step.label}</span>
           </div>
         );
       })}

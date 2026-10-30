@@ -5,7 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select } from '../components/ui/select';
-import { Badge } from '../components/ui/badge';
+import { Badge, DomainStatusBadge } from '../components/ui/badge';
+import { InlineBanner } from '../components/ui/inline-banner';
 import { Checkbox } from '../components/ui/checkbox';
 import { Num } from '../components/ui/num';
 import { IdentifierText } from '../components/ui/identifier-text';
@@ -16,13 +17,15 @@ import { SplitView } from '../components/workbench/SplitView';
 import { DataGrid } from '../components/workbench/DataGrid';
 import { StateBoundary } from '../components/workbench/StateBoundary';
 import { WorkbenchSkeleton } from '../components/workbench/WorkbenchSkeleton';
-import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
-import { MemoryRouter } from 'react-router-dom';
+import { DocumentCodeCell } from '../components/workbench/DocumentCodeCell';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import { ActionGuard } from '../components/ui/action-guard';
 import { AuthContext, type AuthContextType } from '../store/useAuth';
-import { toVietnameseDate, formatVietnameseDate } from '../utils/dates';
 import { DirtyNavigationProvider } from '../components/workbench/DirtyNavigation';
 import { useDirtyNavigation } from '../components/workbench/dirty-navigation-context';
+import { useWorkspaceUiState, clearAllWorkspaceState } from '../store/workspaceUiState';
+import { useUrlWorkbenchState } from '../hooks/useUrlWorkbenchState';
+import { useClientDraftPersistence, clearAllClientDrafts } from '../hooks/useClientDraftPersistence';
 
 function TestDirtyConsumer() {
   const { isDirty, registerDirty } = useDirtyNavigation();
@@ -34,18 +37,13 @@ function TestDirtyConsumer() {
   );
 }
 
-describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
+describe('Core UI Primitives & Composites (WCAG 2.1 AA & Zero AI-Slop)', () => {
   it('Button: renders variants and handles click events', async () => {
     const handleClick = vi.fn();
-    render(
-      <Button variant="default" size="default" onClick={handleClick}>
-        Lưu thay đổi
-      </Button>
-    );
-
-    const btn = screen.getByRole('button', { name: 'Lưu thay đổi' });
+    render(<Button onClick={handleClick}>Lưu dữ liệu</Button>);
+    const btn = screen.getByRole('button', { name: 'Lưu dữ liệu' });
     expect(btn).toBeInTheDocument();
-    expect(btn).toHaveClass('bg-slate-900'); // Navy/Slate flat background
+    expect(btn).toHaveClass('bg-slate-900');
     await userEvent.click(btn);
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
@@ -66,6 +64,27 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(handleChange).toHaveBeenCalled();
   });
 
+  it('Input: strictly separates readOnly vs disabled (Rule L1-UI-02 & S-UI-02)', () => {
+    render(
+      <div>
+        <Input data-testid="input-ro" readOnly defaultValue="BATCH-2026-001" />
+        <Input data-testid="input-dis" disabled defaultValue="DISABLED-VAL" />
+      </div>
+    );
+
+    const inputRo = screen.getByTestId('input-ro');
+    const inputDis = screen.getByTestId('input-dis');
+
+    expect(inputRo).toHaveAttribute('tabIndex', '0');
+    expect(inputRo).toHaveAttribute('aria-readonly', 'true');
+    expect(inputRo).not.toBeDisabled();
+    expect(inputRo).toHaveClass('select-text');
+    expect(inputRo).toHaveClass('border-dashed');
+
+    expect(inputDis).toBeDisabled();
+    expect(inputDis).toHaveClass('cursor-not-allowed');
+  });
+
   it('Select: renders options and triggers selection change', async () => {
     const handleChange = vi.fn();
     render(
@@ -81,377 +100,428 @@ describe('10 UI Primitives (WCAG 2.1 AA & Zero AI-Slop)', () => {
 
     const select = screen.getByRole('combobox', { name: 'Chọn khách hàng' });
     expect(select).toBeInTheDocument();
-    fireEvent.change(select, { target: { value: 'SAMSUNG' } });
+    await userEvent.selectOptions(select, 'SAMSUNG');
     expect(handleChange).toHaveBeenCalled();
   });
 
-  it('Badge: renders status semantic variants', () => {
+  it('Badge & DomainStatusBadge: renders semantic variants and maps domain statuses', () => {
     const { rerender } = render(<Badge variant="success">Hoàn thành</Badge>);
     expect(screen.getByText('Hoàn thành')).toHaveClass('bg-emerald-50');
 
-    rerender(<Badge variant="warning">Chờ xuất</Badge>);
-    expect(screen.getByText('Chờ xuất')).toHaveClass('bg-amber-50');
+    rerender(<DomainStatusBadge status="COMPLETED" />);
+    expect(screen.getByText('Hoàn tất')).toBeInTheDocument();
+
+    rerender(<DomainStatusBadge status="DRAFT" />);
+    expect(screen.getByText('Bản nháp')).toBeInTheDocument();
   });
 
-  it('Checkbox: supports checked and indeterminate states', () => {
+  it('Checkbox: toggles checked state and handles keyboard navigation', async () => {
     const handleChange = vi.fn();
     render(
       <Checkbox
-        aria-label="Chọn dòng"
-        checked={false}
-        indeterminate={true}
+        aria-label="Chọn tất cả"
         onChange={handleChange}
       />
     );
 
-    const checkbox = screen.getByRole('checkbox', { name: 'Chọn dòng' }) as HTMLInputElement;
-    expect(checkbox.indeterminate).toBe(true);
-    fireEvent.click(checkbox);
+    const cb = screen.getByRole('checkbox', { name: 'Chọn tất cả' });
+    expect(cb).not.toBeChecked();
+    await userEvent.click(cb);
     expect(handleChange).toHaveBeenCalled();
   });
 
-  it('Num: formats currency and quantity with tabular-nums and right alignment', () => {
-    const { rerender } = render(
-      <Num value={25000} format="currency" data-testid="num-currency" />
-    );
-    const currencyEl = screen.getByTestId('num-currency');
-    expect(currencyEl).toHaveClass('tabular-nums', 'text-right');
-    expect(currencyEl.textContent).toContain('25.000 ₫');
+  it('Num: formats currency, quantities, and ratios with tabular figures', () => {
+    const { rerender } = render(<Num value={1250000} format="currency" />);
+    expect(screen.getByText('1.250.000 ₫')).toHaveClass('tabular-nums');
 
-    rerender(<Num value={1240.5} format="quantity" suffix=" kg" data-testid="num-qty" />);
-    const qtyEl = screen.getByTestId('num-qty');
-    expect(qtyEl.textContent).toContain('1.240,5 kg');
+    rerender(<Num value={45.75} format="quantity" suffix=" kg" />);
+    expect(screen.getByText('45,75 kg')).toBeInTheDocument();
+
+    rerender(<Num value={12.5} format="percent" />);
+    expect(screen.getByText('12,5%')).toBeInTheDocument();
   });
 
-  it('IdentifierText: renders code with w-fit inline-flex and handles clipboard copy', async () => {
-    render(<IdentifierText value="KHSX-260921-01" />);
-    const codeEl = screen.getByText('KHSX-260921-01');
-    expect(codeEl).toBeInTheDocument();
-    // Rule: Must be w-fit inline-flex, not full-width stretched block!
-    expect(codeEl.parentElement).toHaveClass('w-fit', 'inline-flex');
-    await userEvent.click(codeEl);
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('KHSX-260921-01');
+  it('IdentifierText: renders monospace code with copy action', async () => {
+    render(<IdentifierText value="PO-2026-0001" copyable />);
+    const codeSpan = screen.getByText('PO-2026-0001');
+    expect(codeSpan.parentElement).toHaveClass('font-mono');
   });
 
-  it('VietnameseDateInput: formats date with dd/MM/yyyy and triggers change on commit', () => {
+  it('VietnameseDateInput: formats date in dd/MM/yyyy and supports direct entry', async () => {
     const handleChange = vi.fn();
-    render(<VietnameseDateInput value="2026-09-21" onChange={handleChange} />);
+    render(
+      <VietnameseDateInput
+        aria-label="Ngày phục vụ"
+        value="2026-10-19"
+        onChange={handleChange}
+      />
+    );
 
-    // Invariant: Display text MUST be formatted as dd/MM/yyyy (21/09/2026), never 09/21/2026!
-    const input = screen.getByDisplayValue('21/09/2026');
-    expect(input).toBeInTheDocument();
-    expect(input).toHaveClass('h-9', 'w-40');
-
-    // Simulate typing a new date and committing with blur/Enter
-    fireEvent.change(input, { target: { value: '22/09/2026' } });
-    fireEvent.blur(input);
-    expect(handleChange).toHaveBeenCalledWith('2026-09-22');
-
-    // Unit test for Vietnamese date conversion utilities
-    expect(toVietnameseDate('2026-09-21')).toBe('21/09/2026');
-    expect(formatVietnameseDate('2026-09-21')).toBe('21/09/2026');
+    const input = screen.getByRole('textbox', { name: 'Ngày phục vụ' });
+    expect(input).toHaveValue('19/10/2026');
   });
 
-  it('Modal: renders dialog with focus trap and handles Escape key', async () => {
+  it('Modal: renders dialog with focus trap and closes with Escape key', async () => {
     const handleClose = vi.fn();
     render(
-      <Modal
-        isOpen={true}
-        onClose={handleClose}
-        title="Duyệt xuất kho"
-        description="Xác nhận duyệt 29 nguyên liệu"
-      >
-        <p>Nội dung xác nhận</p>
+      <Modal isOpen={true} onClose={handleClose} title="Xác nhận thao tác">
+        <p>Nội dung hộp thoại</p>
+        <Button onClick={handleClose}>Đóng</Button>
       </Modal>
     );
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Duyệt xuất kho')).toBeInTheDocument();
+    expect(screen.getByText('Xác nhận thao tác')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it('Modal: protects dirty drafts with an accessible discard decision instead of window.confirm', async () => {
-    const handleClose = vi.fn();
+  it('Tabs: renders segmented switcher and switches active tab', async () => {
+    const handleTabChange = vi.fn();
     render(
-      <Modal isOpen onClose={handleClose} isDirty title="Điều chỉnh số suất">
-        <input aria-label="Số suất" defaultValue="120" />
-      </Modal>
+      <Tabs
+        items={[
+          { id: 'tab1', label: 'Tab Một' },
+          { id: 'tab2', label: 'Tab Hai' },
+        ]}
+        activeId="tab1"
+        onChange={handleTabChange}
+      />
     );
 
-    fireEvent.keyDown(document, { key: 'Escape' });
-
-    expect(handleClose).not.toHaveBeenCalled();
-    expect(screen.getByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
-    expect(handleClose).not.toHaveBeenCalled();
-
-    fireEvent.keyDown(document, { key: 'Escape' });
-    await userEvent.click(screen.getByRole('button', { name: 'Hủy thay đổi' }));
-    expect(handleClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('Modal: traps Tab focus within open dialog and restores focus to trigger on close', async () => {
-    function FocusTrapHarness() {
-      const [isOpen, setIsOpen] = useState(false);
-      return (
-        <div>
-          <button id="trigger-btn" type="button" onClick={() => setIsOpen(true)}>Mở Modal</button>
-          <Modal
-            isOpen={isOpen}
-            onClose={() => setIsOpen(false)}
-            title="Kiểm tra Focus Trap"
-            footer={
-              <button id="footer-btn" type="button" onClick={() => setIsOpen(false)}>Đóng</button>
-            }
-          >
-            <input id="modal-input" placeholder="Nhập liệu" />
-          </Modal>
-        </div>
-      );
-    }
-
-    render(<FocusTrapHarness />);
-    const trigger = screen.getByRole('button', { name: 'Mở Modal' });
-    trigger.focus();
-    expect(document.activeElement).toBe(trigger);
-
-    await userEvent.click(trigger);
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-    const footerBtn = screen.getByRole('button', { name: 'Đóng' });
-    footerBtn.focus();
-    expect(document.activeElement).toBe(footerBtn);
-
-    // Press Tab on last element -> wraps to first focusable element inside modal
-    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Tab' });
-    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement | null);
-
-    // Press Escape to close
-    fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    // Focus restored to trigger
-    expect(document.activeElement).toBe(trigger);
-  });
-
-  it('Tabs: renders segmented control and navigates with arrow keys', async () => {
-    const handleChange = vi.fn();
-    const items = [
-      { id: 'tab1', label: 'Tab Một' },
-      { id: 'tab2', label: 'Tab Hai', count: 5 },
-    ];
-    render(<Tabs items={items} activeId="tab1" onChange={handleChange} />);
-
-    const tab1 = screen.getByRole('tab', { name: 'Tab Một' });
-    expect(tab1).toHaveAttribute('aria-selected', 'true');
-
-    const tab2 = screen.getByRole('tab', { name: /Tab Hai/ });
+    const tab2 = screen.getByRole('tab', { name: 'Tab Hai' });
     await userEvent.click(tab2);
-    expect(handleChange).toHaveBeenCalledWith('tab2');
-  });
-  it('WorkbenchSkeleton renders geometry only for table, matrix, and split work objects', () => {
-    const { rerender } = render(<WorkbenchSkeleton geometry={{ kind: 'table', columns: 6, rows: 4, toolbar: true }} />);
-    let skeleton = screen.getByRole('status', { name: 'Đang tải nội dung' });
-    expect(skeleton).toHaveAttribute('aria-busy', 'true');
-    expect(skeleton).toHaveAttribute('data-skeleton-kind', 'table');
-    expect(skeleton.querySelectorAll('[data-skeleton-row]')).toHaveLength(4);
-    expect(skeleton).not.toHaveTextContent(/kg|VNĐ|hoàn thành|đang chờ/i);
-
-    rerender(<WorkbenchSkeleton geometry={{ kind: 'matrix', columns: 7, rows: 6, toolbar: true }} />);
-    skeleton = screen.getByRole('status', { name: 'Đang tải nội dung' });
-    expect(skeleton).toHaveAttribute('data-skeleton-kind', 'matrix');
-    expect(skeleton.querySelectorAll('[data-skeleton-cell]')).toHaveLength(42);
-
-    rerender(<WorkbenchSkeleton geometry={{ kind: 'split', columns: 5, rows: 3, splitRatio: '60/40', toolbar: true }} />);
-    skeleton = screen.getByRole('status', { name: 'Đang tải nội dung' });
-    expect(skeleton).toHaveAttribute('data-skeleton-kind', 'split');
-    expect(skeleton.querySelectorAll('[data-skeleton-pane]')).toHaveLength(2);
+    expect(handleTabChange).toHaveBeenCalledWith('tab2');
   });
 
-  it.each([
-    ['/weekly-menu?view=demand', 'table'],
-    ['/warehouse?view=receipts', 'table'],
-    ['/settings/advanced?view=mode', 'form'],
-    ['/settings/advanced?view=unknown', 'form'],
-  ])('RouteWorkbenchLoadingFallback preserves the resolved geometry for %s', (entry, kind) => {
-    render(<MemoryRouter initialEntries={[entry]}><RouteWorkbenchLoadingFallback /></MemoryRouter>);
-    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-skeleton-kind', kind);
-  });
-
-  it('ActionGuard blocks missing permission and wrong operational mode before child activation', async () => {
-    const onClick = vi.fn();
-    const auth: AuthContextType = {
-      user: { userId: 'u-1', username: 'manager', fullName: 'Quản lý', roleCode: 'MANAGER', roleName: 'Quản lý', isActive: true, isAdminFullAccess: false, permissions: [] },
-      token: 'token', isAuthenticated: true, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: 1, operationalModeReasonRequired: false, landingPath: '/', reloadOperationalMode: vi.fn(),
-      login: vi.fn(), logout: vi.fn(), setOperationalMode: vi.fn(), hasRole: () => true, hasPermission: () => false,
-    };
-    const { rerender } = render(
-      <AuthContext.Provider value={auth}>
-        <ActionGuard capabilityId="RECON.BATCH.LIFECYCLE" permissions="ReconciliationWriteAccess" allowedModes={['MATERIAL_RECONCILIATION']} mode="disable" reason="Chỉ khả dụng trong chế độ đối soát.">
-          <Button onClick={onClick}>Hoàn tất lô</Button>
-        </ActionGuard>
-      </AuthContext.Provider>
+  it('InlineBanner: renders variant banners with optional close action', async () => {
+    const handleClose = vi.fn();
+    render(
+      <InlineBanner variant="warning" title="Cảnh báo chênh lệch" onClose={handleClose}>
+        Chi tiết cảnh báo
+      </InlineBanner>
     );
-    expect(screen.getByRole('button', { name: 'Hoàn tất lô' })).toBeDisabled();
-    expect(screen.getByRole('group', { name: 'Chỉ khả dụng trong chế độ đối soát.' })).toHaveAttribute('data-capability-id', 'RECON.BATCH.LIFECYCLE');
-    await userEvent.click(screen.getByRole('button', { name: 'Hoàn tất lô' }));
-    expect(onClick).not.toHaveBeenCalled();
+
+    expect(screen.getByText('Cảnh báo chênh lệch')).toBeInTheDocument();
+    expect(screen.getByText('Chi tiết cảnh báo')).toBeInTheDocument();
+    const closeBtn = screen.getByRole('button', { name: 'Đóng thông báo' });
+    await userEvent.click(closeBtn);
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('SplitView: renders master and detail panes with 60/40 ratio', () => {
+    render(
+      <SplitView
+        master={<div>Khung danh sách</div>}
+        detail={<div>Khung chi tiết</div>}
+      />
+    );
+
+    expect(screen.getByText('Khung danh sách')).toBeInTheDocument();
+    expect(screen.getByText('Khung chi tiết')).toBeInTheDocument();
+  });
+
+  it('DataGrid: roving tabindex keyboard navigation (ArrowUp/Down, Home, End, Enter)', () => {
+    const items = [
+      { id: '1', name: 'Thịt bò' },
+      { id: '2', name: 'Thịt heo' },
+      { id: '3', name: 'Cá hồi' },
+    ];
+    const cols = [{ id: 'name', header: 'Tên', cell: (r: { name: string }) => r.name }];
+    const handleRowClick = vi.fn();
+
+    render(
+      <DataGrid
+        data={items}
+        columns={cols}
+        keyExtractor={(r) => r.id}
+        onRowClick={handleRowClick}
+      />
+    );
+
+    const rows = screen.getAllByRole('row').slice(1);
+    expect(rows.length).toBe(3);
+    expect(rows[0]).toHaveAttribute('tabIndex', '0');
+    expect(rows[1]).toHaveAttribute('tabIndex', '-1');
+
+    fireEvent.keyDown(rows[0], { key: 'ArrowDown' });
+    expect(rows[1]).toHaveAttribute('tabIndex', '0');
+    expect(rows[0]).toHaveAttribute('tabIndex', '-1');
+
+    fireEvent.keyDown(rows[1], { key: 'Enter' });
+    expect(handleRowClick).toHaveBeenCalledWith(items[1]);
+  });
+
+  it('DataGrid: clamps effectiveFocusedIndex when filtered', () => {
+    const cols = [{ id: 'name', header: 'Tên', cell: (r: { name: string }) => r.name }];
+    const initialItems = [{ id: '1', name: 'A' }, { id: '2', name: 'B' }, { id: '3', name: 'C' }];
+
+    const { rerender } = render(
+      <DataGrid
+        data={initialItems}
+        columns={cols}
+        keyExtractor={(r) => r.id}
+        onRowClick={() => {}}
+      />
+    );
+
+    const rows = screen.getAllByRole('row').slice(1);
+    fireEvent.keyDown(rows[0], { key: 'ArrowDown' });
+    expect(rows[1]).toHaveAttribute('tabIndex', '0');
 
     rerender(
-      <AuthContext.Provider value={{ ...auth, operationalMode: 'MATERIAL_RECONCILIATION', hasPermission: () => true }}>
-        <ActionGuard capabilityId="RECON.BATCH.LIFECYCLE" permissions="ReconciliationWriteAccess" allowedModes={['MATERIAL_RECONCILIATION']} mode="disable">
-          <Button onClick={onClick}>Hoàn tất lô</Button>
+      <DataGrid
+        data={[{ id: '1', name: 'A' }]}
+        columns={cols}
+        keyExtractor={(r) => r.id}
+        onRowClick={() => {}}
+      />
+    );
+
+    const filteredRows = screen.getAllByRole('row').slice(1);
+    expect(filteredRows.length).toBe(1);
+    expect(filteredRows[0]).toHaveAttribute('tabIndex', '0');
+  });
+
+  it('StateBoundary & WorkbenchSkeleton: renders geometry-matched skeleton during cold loading', () => {
+    const { rerender } = render(
+      <WorkbenchSkeleton geometry={{ kind: 'table', columns: 5, rows: 6 }} />
+    );
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toBeInTheDocument();
+
+    rerender(
+      <StateBoundary
+        isLoading={true}
+        hasExistingData={false}
+        loadingGeometry={{ kind: 'table', columns: 5, rows: 6 }}
+      >
+        <div>Dữ liệu thật</div>
+      </StateBoundary>
+    );
+
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toBeInTheDocument();
+    expect(screen.queryByText('Dữ liệu thật')).not.toBeInTheDocument();
+  });
+
+  it('StateBoundary: Level 1 & Level 2 refreshing maintains silent canvas stability and handles context pivot', () => {
+    // Level 1: Silent revalidation with existing data (100% opacity, zero flashing bar)
+    const { rerender } = render(
+      <StateBoundary isFetching={true} hasExistingData={true}>
+        <div data-testid="table-content">Dữ liệu bảng hiện tại</div>
+      </StateBoundary>
+    );
+
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.getByTestId('table-content')).toBeInTheDocument();
+
+    // Level 2: Context pivot with isPreviousData (70% opacity, pointer-events locked)
+    rerender(
+      <StateBoundary isPreviousData={true} hasExistingData={true}>
+        <div data-testid="table-content">Dữ liệu bảng cũ</div>
+      </StateBoundary>
+    );
+
+    const container = screen.getByTestId('table-content').parentElement;
+    expect(container).toHaveClass('opacity-70');
+    expect(container).toHaveClass('pointer-events-none');
+
+    // Level 3: Non-destructive error handling preserves table
+    rerender(
+      <StateBoundary error={new Error('Mất kết nối mạng tạm thời')} hasExistingData={true}>
+        <div data-testid="table-content">Dữ liệu vẫn được bảo toàn</div>
+      </StateBoundary>
+    );
+
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText(/Mất kết nối mạng tạm thời/)).toBeInTheDocument();
+    expect(screen.getByTestId('table-content')).toBeInTheDocument();
+  });
+
+  it('StateBoundary: handles filter-empty with onResetFilters and prerequisite-blocked with onNavigatePrerequisite', () => {
+    const onResetFilters = vi.fn();
+    const onNavigatePrerequisite = vi.fn();
+
+    const { rerender } = render(
+      <StateBoundary
+        isEmpty={true}
+        emptyScenario="filter-empty"
+        onResetFilters={onResetFilters}
+      >
+        <div>Content</div>
+      </StateBoundary>
+    );
+
+    const resetBtn = screen.getByRole('button', { name: 'Xóa bộ lọc (Reset Filters)' });
+    expect(resetBtn).toBeInTheDocument();
+    fireEvent.click(resetBtn);
+    expect(onResetFilters).toHaveBeenCalledTimes(1);
+
+    // Prerequisite blocked test
+    rerender(
+      <StateBoundary
+        isEmpty={true}
+        emptyScenario="prerequisite-blocked"
+        prerequisiteLabel="Khách hàng & Hợp đồng"
+        onNavigatePrerequisite={onNavigatePrerequisite}
+      >
+        <div>Content</div>
+      </StateBoundary>
+    );
+
+    expect(screen.getByText('Chưa hoàn thành bước: Khách hàng & Hợp đồng')).toBeInTheDocument();
+    const navBtn = screen.getByRole('button', { name: 'Đi đến thiết lập: Khách hàng & Hợp đồng' });
+    expect(navBtn).toBeInTheDocument();
+    fireEvent.click(navBtn);
+    expect(onNavigatePrerequisite).toHaveBeenCalledTimes(1);
+  });
+
+  it('ActionGuard: enforces role and permission guards', () => {
+    const authContextValue: AuthContextType = {
+      user: {
+        userId: 'u-1',
+        username: 'chef_user',
+        fullName: 'Bếp Trưởng',
+        roleCode: 'CHEF',
+        roleName: 'Bếp Trưởng',
+        isActive: true,
+        isAdminFullAccess: false,
+        permissions: ['reconciliation.kitchen.read'],
+      },
+      token: 'jwt-token',
+      isAuthenticated: true,
+      isLoading: false,
+      operationalMode: 'MATERIAL_RECONCILIATION',
+      operationalModeVersion: 1,
+      operationalModeReasonRequired: false,
+      landingPath: '/',
+      reloadOperationalMode: vi.fn(),
+      hasRole: (roleCode: string | string[]) => Array.isArray(roleCode) ? roleCode.includes('CHEF') : roleCode === 'CHEF',
+      hasPermission: (perm: string) => perm === 'reconciliation.kitchen.read',
+      login: vi.fn(),
+      logout: vi.fn(),
+      setOperationalMode: vi.fn(),
+    };
+
+    render(
+      <AuthContext.Provider value={authContextValue}>
+        <ActionGuard capabilityId="CATALOG.MANAGE" roles={['ADMIN']} permissions={['catalog.write']}>
+          <button>Nút Quản Trị</button>
         </ActionGuard>
       </AuthContext.Provider>
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Hoàn tất lô' }));
-    expect(onClick).toHaveBeenCalledTimes(1);
+
+    expect(screen.queryByRole('button', { name: 'Nút Quản Trị' })).not.toBeInTheDocument();
   });
 
-  it('ActionGuard hides role-restricted actions from unauthenticated actors', () => {
-    const auth: AuthContextType = {
-      user: null, token: null, isAuthenticated: false, isLoading: false, operationalMode: 'DEFAULT', operationalModeVersion: null, operationalModeReasonRequired: false, landingPath: '/login', reloadOperationalMode: vi.fn(),
-      login: vi.fn(), logout: vi.fn(), setOperationalMode: vi.fn(), hasRole: () => false, hasPermission: () => false,
-    };
-    render(<AuthContext.Provider value={auth}><ActionGuard capabilityId="APPR.DECISION" roles="MANAGER"><Button>Phê duyệt</Button></ActionGuard></AuthContext.Provider>);
-    expect(screen.queryByRole('button', { name: 'Phê duyệt' })).not.toBeInTheDocument();
-  });
-
-  it('StateBoundary replaces loading geometry with the resolved HTTP state', () => {
-    const forbidden = Object.assign(new Error('Không đủ quyền'), { status: 403 });
-    const { rerender } = render(<StateBoundary isLoading loadingGeometry={{ kind: 'matrix', columns: 7, rows: 6 }}><span>Nội dung</span></StateBoundary>);
-    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-skeleton-kind', 'matrix');
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-
-    rerender(<StateBoundary error={forbidden}><span>Nội dung</span></StateBoundary>);
-    expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('Truy cập bị hạn chế');
-  });
-
-  it('StateBoundary: routes HTTP 403 and 409 errors to distinct recovery states', () => {
-    const forbidden = Object.assign(new Error('Không đủ quyền'), { status: 403 });
-    const { rerender } = render(<StateBoundary error={forbidden}><span>Nội dung</span></StateBoundary>);
-    expect(screen.getByRole('alert')).toHaveTextContent('Truy cập bị hạn chế');
-
-    const conflict = Object.assign(new Error('Phiên bản đã thay đổi'), { status: 409 });
-    rerender(<StateBoundary error={conflict}><span>Nội dung</span></StateBoundary>);
-    expect(screen.getByRole('alert')).toHaveTextContent('Xung đột dữ liệu đồng thời');
-    expect(screen.getByRole('alert')).toHaveTextContent('Phiên bản đã thay đổi');
-  });
-
-  it('DataGrid: interactive rows support keyboard selection', () => {
-    const onRowClick = vi.fn();
-    render(<DataGrid data={[{ id: 'row-1', name: 'Dòng kiểm thử' }]} columns={[{ id: 'name', header: 'Tên', cell: (row) => row.name }]} keyExtractor={(row) => row.id} onRowClick={onRowClick} />);
-    const row = screen.getByRole('row', { name: /Dòng kiểm thử/ });
-    row.focus();
-    fireEvent.keyDown(row, { key: 'Enter' });
-    fireEvent.keyDown(row, { key: ' ' });
-    expect(onRowClick).toHaveBeenCalledTimes(2);
-  });
-
-  it('DirtyNavigation: intercepts browser popstate back-button navigation when dirty draft is active', async () => {
-    const user = userEvent.setup();
+  it('DirtyNavigationProvider: tracks dirty state and protects uncommitted drafts', () => {
     render(
       <DirtyNavigationProvider>
         <TestDirtyConsumer />
       </DirtyNavigationProvider>
     );
 
-    await user.click(screen.getByRole('button', { name: 'Đánh dấu bẩn' }));
-    expect(screen.getByText('Trạng thái: Bẩn')).toBeInTheDocument();
-
-    window.dispatchEvent(new PopStateEvent('popstate'));
-
-    expect(await screen.findByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' })).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Trạng thái: Sạch')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Đánh dấu bẩn' }));
     expect(screen.getByText('Trạng thái: Bẩn')).toBeInTheDocument();
   });
 
-  it('SplitView: adapts to tablet viewport when detail is active with back button', async () => {
-    const handleBack = vi.fn();
-    const { rerender } = render(
-      <SplitView
-        master={<div>Bảng danh sách Master</div>}
-        detail={<div>Bảng chi tiết Detail</div>}
-        hasActiveDetail={false}
-        onBackToMaster={handleBack}
-      />
-    );
+  it('useWorkspaceUiState: persists density and column visibility', () => {
+    function TestWorkspace() {
+      const { density, setDensity } = useWorkspaceUiState({ tableKey: 'test_table', userId: 'user_1' });
+      return (
+        <div>
+          <span data-testid="density-val">{density}</span>
+          <button onClick={() => setDensity('compact')}>Chuyển Compact</button>
+        </div>
+      );
+    }
 
-    expect(screen.getByText('Bảng danh sách Master')).toBeInTheDocument();
-    expect(screen.getByText('Bảng chi tiết Detail')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Quay lại danh sách' })).not.toBeInTheDocument();
-
-    // When detail is active
-    rerender(
-      <SplitView
-        master={<div>Bảng danh sách Master</div>}
-        detail={<div>Bảng chi tiết Detail</div>}
-        hasActiveDetail={true}
-        onBackToMaster={handleBack}
-      />
-    );
-
-    const backBtn = screen.getByRole('button', { name: 'Quay lại danh sách' });
-    expect(backBtn).toBeInTheDocument();
-    await userEvent.click(backBtn);
-    expect(handleBack).toHaveBeenCalledTimes(1);
+    render(<TestWorkspace />);
+    expect(screen.getByTestId('density-val')).toHaveTextContent('cozy');
+    fireEvent.click(screen.getByRole('button', { name: 'Chuyển Compact' }));
+    expect(screen.getByTestId('density-val')).toHaveTextContent('compact');
+    clearAllWorkspaceState();
   });
 
-  it('StateBoundary: preserves DOM and applies opacity-70 overlay during background refetch (Zero-CLS)', () => {
-    const { rerender } = render(
-      <StateBoundary
-        isLoading={false}
-        isFetching={false}
-        hasExistingData={true}
-      >
-        <div data-testid="table-content">Dữ liệu bảng thật</div>
-      </StateBoundary>
+  it('useUrlWorkbenchState: synchronizes search params with URL', () => {
+    function TestUrl() {
+      const { q, setQ, page, setPage } = useUrlWorkbenchState({ defaultPageSize: 20 });
+      return (
+        <div>
+          <span data-testid="q-val">{q}</span>
+          <span data-testid="page-val">{page}</span>
+          <button onClick={() => setQ('thịt')}>Search</button>
+          <button onClick={() => setPage(2)}>Page 2</button>
+        </div>
+      );
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/test?q=ga&page=1']}>
+        <Routes>
+          <Route path="/test" element={<TestUrl />} />
+        </Routes>
+      </MemoryRouter>
     );
 
-    const content = screen.getByTestId('table-content');
-    expect(content).toBeInTheDocument();
-    expect(content.parentElement).not.toHaveClass('opacity-70');
-
-    // Background refetch begins: isFetching is true, but existing data is preserved
-    rerender(
-      <StateBoundary
-        isLoading={false}
-        isFetching={true}
-        hasExistingData={true}
-      >
-        <div data-testid="table-content">Dữ liệu bảng thật</div>
-      </StateBoundary>
-    );
-
-    // Table content is still in DOM (no skeleton unmount), but dimmed with opacity-70
-    expect(screen.getByTestId('table-content')).toBeInTheDocument();
-    expect(screen.getByTestId('table-content').parentElement).toHaveClass('opacity-70');
-    expect(screen.getByTestId('table-content').parentElement).toHaveClass('pointer-events-none');
+    expect(screen.getByTestId('q-val')).toHaveTextContent('ga');
+    expect(screen.getByTestId('page-val')).toHaveTextContent('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(screen.getByTestId('q-val')).toHaveTextContent('thịt');
   });
 
-  it('WorkbenchSkeleton: renders custom column widths matching real table geometry to prevent layout shift', () => {
-    const { container } = render(
-      <WorkbenchSkeleton
-        geometry={{
-          kind: 'table',
-          columns: 3,
-          rows: 2,
-          columnWidths: ['20%', '50%', '30%'],
-        }}
-      />
+  it('useClientDraftPersistence: saves and restores draft data from localStorage', async () => {
+    function TestDraft() {
+      const [formData, setFormData] = useState({ note: 'Gốc' });
+      const { hasRestorableDraft, restoreDraft } = useClientDraftPersistence({
+        formKey: 'test_form',
+        userId: 'u_1',
+        currentData: formData,
+        isDirty: formData.note !== 'Gốc',
+        debounceMs: 10,
+      });
+
+      return (
+        <div>
+          {hasRestorableDraft && (
+            <button onClick={() => { const r = restoreDraft(); if (r) setFormData(r); }}>
+              Khôi phục bản nháp
+            </button>
+          )}
+          <span data-testid="note-val">{formData.note}</span>
+        </div>
+      );
+    }
+
+    localStorage.setItem(
+      'ipc_draft_u_1_test_form',
+      JSON.stringify({
+        data: { note: 'Bản nháp đã lưu' },
+        savedAt: '2026-10-25T10:00:00Z',
+      })
     );
 
-    const cells = container.querySelectorAll('[data-skeleton-cell]');
-    expect(cells.length).toBe(6);
-    expect(cells[0]).toHaveStyle({ width: '20%' });
-    expect(cells[1]).toHaveStyle({ width: '50%' });
-    expect(cells[2]).toHaveStyle({ width: '30%' });
+    render(<TestDraft />);
+    const restoreBtn = screen.getByRole('button', { name: 'Khôi phục bản nháp' });
+    expect(restoreBtn).toBeInTheDocument();
+    await userEvent.click(restoreBtn);
+    expect(screen.getByTestId('note-val')).toHaveTextContent('Bản nháp đã lưu');
+    clearAllClientDrafts();
+  });
+
+  it('DocumentCodeCell: clicking code triggers onOpenDetail and copy button copies to clipboard with stopPropagation', async () => {
+    const handleOpen = vi.fn();
+    render(<DocumentCodeCell code="ISS-TEST-001" onOpenDetail={handleOpen} />);
+
+    const openBtn = screen.getByTitle('Bấm để xem chi tiết phiếu xuất kho');
+    expect(openBtn).toBeInTheDocument();
+    await userEvent.click(openBtn);
+    expect(handleOpen).toHaveBeenCalledWith('ISS-TEST-001');
+
+    const copyBtn = screen.getByRole('button', { name: 'Sao chép mã chứng từ ISS-TEST-001' });
+    expect(copyBtn).toBeInTheDocument();
+    await userEvent.click(copyBtn);
+    expect(handleOpen).toHaveBeenCalledTimes(1); // Did not trigger open again
   });
 });

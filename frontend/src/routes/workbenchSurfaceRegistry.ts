@@ -31,6 +31,8 @@ export const WORKBENCH_SURFACES: WorkbenchSurfaceDefinition[] = [
   { id: 'reports.stock', route: '/reports', view: 'stock', geometry: { kind: 'table', columns: 6, rows: 8, toolbar: true } },
   { id: 'admin.ingredients', route: '/admin-data', view: 'ingredients', geometry: { kind: 'table', columns: 6, rows: 8, toolbar: true } },
   { id: 'admin.dishes', route: '/admin-data', view: 'dishes', geometry: { kind: 'table', columns: 6, rows: 8, toolbar: true } },
+  { id: 'admin.bom', route: '/admin-data', view: 'bom', geometry: { kind: 'table', columns: 6, rows: 8, toolbar: true } },
+  { id: 'admin.customers', route: '/admin-data', view: 'customers', geometry: { kind: 'table', columns: 5, rows: 8, toolbar: true } },
   { id: 'admin.approval-rules', route: '/settings/approval-rules', geometry: { kind: 'table', columns: 5, rows: 6, toolbar: true } },
   { id: 'admin.mode', route: '/settings/advanced', view: 'mode', geometry: { kind: 'form', rows: 4, toolbar: true } },
 ];

@@ -6,6 +6,7 @@ import { SplitView } from '../../components/workbench/SplitView';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { serverStateCache } from '../../store/serverStateCache';
 import { dashboardApi, type DashboardData } from '../../api/dashboardApi';
 import type { DashboardTask } from '../../types';
 import { clsx } from 'clsx';
@@ -17,19 +18,28 @@ function todayInVietnamese(): string {
   return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${dateStr}`;
 }
 
+interface DashboardSnapshot {
+  data: DashboardData | null;
+  selectedMetricId: string | null;
+}
+
 export function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const snapshot = serverStateCache.get<DashboardSnapshot>('snapshot:dashboard')?.data;
+  const cachedDashboard = snapshot?.data ?? serverStateCache.get<DashboardData>('dashboard_today')?.data;
+  const [data, setData] = useState<DashboardData | null>(() => cachedDashboard || null);
+  const [isLoading, setIsLoading] = useState(!cachedDashboard);
   const [error, setError] = useState<Error | null>(null);
-  const [selectedMetricId, setSelectedMetricId] = useState<string | null>(null);
+  const [selectedMetricId, setSelectedMetricId] = useState<string | null>(() => snapshot?.selectedMetricId || null);
   const navigate = useNavigate();
 
   const handleRefresh = async () => {
-    setIsLoading(true);
+    if (!data) setIsLoading(true);
     setError(null);
     try {
       const resp = await dashboardApi.getDashboardData();
       setData(resp);
+      serverStateCache.set('dashboard_today', resp);
+      serverStateCache.set('snapshot:dashboard', { data: resp, selectedMetricId });
     } catch (err: unknown) {
       setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
     } finally {
@@ -38,27 +48,7 @@ export function DashboardPage() {
   };
 
   useEffect(() => {
-    let ignore = false;
-    async function fetchInitialData() {
-      try {
-        const resp = await dashboardApi.getDashboardData();
-        if (!ignore) {
-          setData(resp);
-          setIsLoading(false);
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchInitialData();
-
-    return () => {
-      ignore = true;
-    };
+    void handleRefresh();
   }, []);
 
   const filteredTasks = useMemo(() => {
@@ -75,6 +65,7 @@ export function DashboardPage() {
       {/* Zone 1: Workspace Header (56px / h-14) */}
       <WorkspaceHeader
         title="Bàn điều hành hôm nay"
+        breadcrumb="Tổng quan · Điều hành hôm nay"
         contextSelectors={
           <>
             <span className="text-sm text-slate-700 font-medium">
@@ -171,7 +162,7 @@ export function DashboardPage() {
         hasExistingData={Boolean(data && data.metrics.length > 0)}
         error={error}
         onRetry={handleRefresh}
-        isEmpty={!data || data.tasks.length === 0}
+        isEmpty={!isLoading && (!data || data.tasks.length === 0)}
         emptyTitle="Hôm nay không có nhiệm vụ tồn đọng"
         emptyDescription="Mọi công đoạn ca hôm nay đã hoàn thành hoặc chưa đến giờ kích hoạt."
         actionLabel="Mở bàn giao ca"

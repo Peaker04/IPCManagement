@@ -79,7 +79,8 @@ export interface ReconciliationBatchSummary {
 
 export function mapBatchDtoToSummary(batch: MrxBatch, serviceDate?: string): ReconciliationBatchSummary {
   const sourceLines = batch.dailyReview?.lines || batch.lines || [];
-  const lines = serviceDate
+  const hasDailyDate = sourceLines.some((line) => Boolean(line.serviceDate));
+  const lines = serviceDate && hasDailyDate
     ? sourceLines.filter((line) => line.serviceDate === serviceDate)
     : sourceLines;
 
@@ -317,6 +318,12 @@ export const mrxApi = {
 
   setDailyDisposition: (dailyLineId: string, request: SetMrxDispositionRequest) =>
     apiClient<void>(`/reconciliation/daily-lines/${encodeURIComponent(dailyLineId)}/disposition`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    }),
+
+  setLineDisposition: (lineId: string, request: SetMrxDispositionRequest) =>
+    apiClient<void>(`/reconciliation/lines/${encodeURIComponent(lineId)}/disposition`, {
       method: 'PUT',
       body: JSON.stringify(request),
     }),

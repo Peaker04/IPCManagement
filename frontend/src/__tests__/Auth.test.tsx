@@ -90,11 +90,11 @@ describe('Auth Feature (FR-AUTH)', () => {
     await userEvent.type(screen.getByLabelText('Mật khẩu'), 'password-from-test-only');
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' }));
 
-    expect(await screen.findByTestId('mrx-batch-target')).toBeInTheDocument();
+    expect(await screen.findByTestId('dashboard-target')).toBeInTheDocument();
     await vi.waitFor(() => expect(mode).toHaveBeenCalledTimes(2));
   });
 
-  it('LoginPage: sends a Manager in MRX mode to reconciliation instead of the DEFAULT dashboard', async () => {
+  it('LoginPage: sends a Manager in MRX mode to the dashboard', async () => {
     vi.spyOn(systemApi, 'getOperationalMode')
       .mockRejectedValueOnce(new Error('401 before login'))
       .mockResolvedValueOnce({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát MRX', version: 9, updatedAt: '2026-10-20T00:00:00Z', reasonRequired: false, capabilities: { navigation: ['reconciliation'], pageTabs: {} } });
@@ -108,7 +108,7 @@ describe('Auth Feature (FR-AUTH)', () => {
     await userEvent.type(screen.getByLabelText('Mật khẩu'), 'password-from-test-only');
     await userEvent.click(screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' }));
 
-    expect(await screen.findByTestId('reconciliation-target')).toBeInTheDocument();
+    expect(await screen.findByTestId('dashboard-target')).toBeInTheDocument();
   });
 
   it('LoginPage: displays clear error feedback when authentication fails', async () => {
@@ -143,7 +143,7 @@ describe('Auth Feature (FR-AUTH)', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Về bàn điều hành' }));
 
-    expect(await screen.findByTestId('reconciliation-target')).toBeInTheDocument();
+    expect(await screen.findByTestId('dashboard-target')).toBeInTheDocument();
     localStorage.clear();
   });
 

@@ -5,7 +5,8 @@ import { useAuth } from '../../store/useAuth';
 
 export function ForbiddenPage() {
   const navigate = useNavigate();
-  const { landingPath } = useAuth();
+  const { landingPath, operationalMode, hasRole } = useAuth();
+  const isAdmin = hasRole(['Admin', 'ADMIN', 'Quản trị viên']);
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center p-8 text-center bg-white">
@@ -19,12 +20,17 @@ export function ForbiddenPage() {
       </div>
       <h1 className="text-base font-bold text-slate-900 mb-1">Truy cập bị từ chối</h1>
       <p className="text-xs text-slate-500 max-w-sm mb-6 leading-relaxed">
-        Tài khoản của bạn không có đủ thẩm quyền truy cập vào phân hệ này. Vui lòng liên hệ quản trị viên nếu cần cấp quyền.
+        Tài khoản của bạn không có đủ thẩm quyền truy cập vào phân hệ này, hoặc phân hệ không thuộc chế độ vận hành hiện tại. Hiện đang ở chế độ: <strong className="text-slate-700">{operationalMode === 'MATERIAL_RECONCILIATION' ? 'Đối soát MRX' : 'Mặc định (DEFAULT)'}</strong>.
       </p>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
           Quay lại
         </Button>
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={() => navigate('/settings/advanced?view=mode')}>
+            Cấu hình chế độ vận hành
+          </Button>
+        )}
         <Button variant="default" size="sm" onClick={() => navigate(landingPath)}>
           Về bàn điều hành
         </Button>

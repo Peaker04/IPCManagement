@@ -2,8 +2,9 @@ import { useState, useRef, useEffect, type ChangeEvent } from 'react';
 import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/select';
-import { Input } from '../../components/ui/input';
 import { Badge } from '../../components/ui/badge';
+import { Checkbox } from '../../components/ui/checkbox';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { weeklyMenuApi, type WeeklyMenuImportHistoryItem } from '../../api/weeklyMenuApi';
 import { apiClient } from '../../api/client';
@@ -26,14 +27,14 @@ interface WeeklyMenuImportModalProps {
 export function WeeklyMenuImportModal({
   isOpen,
   onClose,
-  customers,
+  customers = [],
   initialCustomerId = '',
   initialWeekStartDate = '',
   onImportSuccess,
 }: WeeklyMenuImportModalProps) {
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId || customers[0]?.customerId || '');
   const [weekStartDate, setWeekStartDate] = useState(initialWeekStartDate);
-  const [priceTier, setPriceTier] = useState('');
+  const [priceTier, setPriceTier] = useState('25000');
   const [autoPublish, setAutoPublish] = useState(true);
   const [file, setFile] = useState<File | null>(null);
   const [previewResult, setPreviewResult] = useState<ImportResult | null>(null);
@@ -42,6 +43,7 @@ export function WeeklyMenuImportModal({
   const [activeModalTab, setActiveModalTab] = useState<'upload' | 'history'>('upload');
   const [historyItems, setHistoryItems] = useState<WeeklyMenuImportHistoryItem[]>([]);
   const [isRollingBack, setIsRollingBack] = useState(false);
+  const [confirmRollbackId, setConfirmRollbackId] = useState<string | null>(null);
   const [rollbackSuccess, setRollbackSuccess] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,10 +59,10 @@ export function WeeklyMenuImportModal({
     return () => { ignore = true; };
   }, [activeModalTab, selectedCustomerId, isOpen]);
 
-  const handleRollback = async (menuVersionId: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy phiên import này? Các lịch thực đơn tương ứng sẽ bị gỡ bỏ.')) return;
+  const executeRollback = async (menuVersionId: string) => {
     setIsRollingBack(true);
     setError(null);
+    setConfirmRollbackId(null);
     try {
       const res = await weeklyMenuApi.rollbackImport(menuVersionId);
       setRollbackSuccess(`Đã hủy phiên import thành công (gỡ bỏ ${res.menuSchedulesRemoved} lịch thực đơn).`);
@@ -73,6 +75,10 @@ export function WeeklyMenuImportModal({
     } finally {
       setIsRollingBack(false);
     }
+  };
+
+  const handleRollback = (menuVersionId: string) => {
+    setConfirmRollbackId(menuVersionId);
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -169,6 +175,7 @@ export function WeeklyMenuImportModal({
       onClose={onClose}
       title="Nhập thực đơn tuần từ file Excel"
       description="Tải lên file Excel thực đơn 7 ngày của khách hàng để bắt đầu quy trình kế hoạch và đối soát."
+      maxWidth="max-w-5xl"
       footer={
         <div className="flex items-center justify-between w-full">
           {activeModalTab === 'upload' ? (
@@ -242,16 +249,15 @@ export function WeeklyMenuImportModal({
         </div>
 
         {rollbackSuccess && (
-          <div role="status" className="p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
-            <span>{rollbackSuccess}</span>
-            <button type="button" onClick={() => setRollbackSuccess(null)} className="text-xs font-bold underline ml-2">Đóng</button>
-          </div>
+          <InlineBanner variant="success" onClose={() => setRollbackSuccess(null)}>
+            {rollbackSuccess}
+          </InlineBanner>
         )}
 
         {error && (
-          <div role="alert" className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-800 text-xs leading-relaxed">
+          <InlineBanner variant="error">
             {error}
-          </div>
+          </InlineBanner>
         )}
 
         {activeModalTab === 'history' ? (
@@ -297,15 +303,38 @@ export function WeeklyMenuImportModal({
                         </td>
                         <td className="p-2.5 text-right">
                           {item.canRollback ? (
-                            <Button
-                              variant="outline"
-                              size="xs"
-                              disabled={isRollingBack}
-                              onClick={() => void handleRollback(item.menuVersionId)}
-                              className="text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                            >
-                              Hủy phiên
-                            </Button>
+                            confirmRollbackId === item.menuVersionId ? (
+                              <div className="inline-flex items-center gap-1 justify-end">
+                                <Button
+                                  variant="destructive"
+                                  size="xs"
+                                  disabled={isRollingBack}
+                                  onClick={() => void executeRollback(item.menuVersionId)}
+                                  className="h-6 px-2 text-[11px]"
+                                >
+                                  Xác nhận hủy
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="xs"
+                                  disabled={isRollingBack}
+                                  onClick={() => setConfirmRollbackId(null)}
+                                  className="h-6 px-1.5 text-[11px]"
+                                >
+                                  Quay lại
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                disabled={isRollingBack}
+                                onClick={() => handleRollback(item.menuVersionId)}
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                              >
+                                Hủy phiên
+                              </Button>
+                            )
                           ) : (
                             <span className="text-slate-400 italic text-[11px]">Không thể hủy</span>
                           )}
@@ -355,19 +384,33 @@ export function WeeklyMenuImportModal({
         </div>
 
         <div>
-          <label htmlFor="price-tier-input" className="block text-xs font-semibold text-slate-700 mb-1">
-            Mức giá suất ăn dự kiến (VNĐ)
-          </label>
-          <Input
-            id="price-tier-input"
-            type="number"
-            step="1000"
-            aria-label="Mức giá suất ăn"
-            value={priceTier}
-            onChange={(e) => setPriceTier(e.target.value)}
-            className="w-full h-9 text-sm font-mono"
-            placeholder="25000"
-          />
+          <span className="block text-xs font-semibold text-slate-700 mb-1.5">
+            Mốc giá suất ăn chuẩn (BOM Tier) <span className="text-rose-600">*</span>
+          </span>
+          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Mốc giá suất ăn">
+            {[25000, 30000, 34000].map((tier) => {
+              const isSelected = Number(priceTier) === tier;
+              return (
+                <button
+                  key={tier}
+                  type="button"
+                  role="radio"
+                  aria-checked={isSelected}
+                  onClick={() => setPriceTier(String(tier))}
+                  className={`p-2 rounded border text-center transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50'
+                  }`}
+                >
+                  <span className="block text-xs font-mono">{tier.toLocaleString('vi-VN')} ₫</span>
+                  <span className={`block text-[10px] ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
+                    Tier {tier / 1000}k chuẩn
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div>
@@ -386,11 +429,9 @@ export function WeeklyMenuImportModal({
 
         <div className="pt-1">
           <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={autoPublish}
               onChange={(e) => setAutoPublish(e.target.checked)}
-              className="rounded text-indigo-600 focus:ring-indigo-500"
             />
             <span>Tự động xuất bản thực đơn sau khi nhập (Để sẵn sàng lập lô MRX)</span>
           </label>

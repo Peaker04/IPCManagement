@@ -247,11 +247,11 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 var apiPermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:ApiPermitLimit") ?? 100;
 builder.Services.AddRateLimiter(opts =>
 {
-    // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force)
+    // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force; nới lỏng khi Development/Testing)
     opts.AddPolicy("auth-strict", context =>
         RateLimitPartition.GetFixedWindowLimiter(GetRateLimitPartitionKey(context), _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 5,
+            PermitLimit = builder.Environment.IsDevelopment() ? 10000 : 5,
             Window = TimeSpan.FromMinutes(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0

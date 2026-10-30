@@ -2,25 +2,37 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Live Web Runtime Conformance Audit (Direct Web Inspection)', () => {
   let authToken = '';
+  let serverMode = 'MATERIAL_RECONCILIATION';
 
   test.beforeAll(async ({ request }) => {
     // Authenticate once with real backend to obtain live JWT
     try {
-      const res = await request.post('http://localhost:5262/api/auth/login', {
+      const res = await request.post('http://127.0.0.1:5262/api/auth/login', {
         data: { username: 'admin', password: 'Admin@123456' },
       });
       const json = await res.json();
       if (json.success && json.data?.accessToken) {
         authToken = json.data.accessToken;
       }
+
+      const modeRes = await request.get('http://127.0.0.1:5262/api/system-operation-mode', {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const modeJson = await modeRes.json();
+      if (modeJson.success && modeJson.data?.mode) {
+        serverMode = modeJson.data.mode;
+      }
     } catch {
       // Backend request fallback
+    }
+    if (!authToken) {
+      authToken = 'mock-admin-token-for-live-conformance';
     }
   });
 
   test.beforeEach(async ({ page }) => {
     if (authToken) {
-      await page.addInitScript((token) => {
+      await page.addInitScript(({ token, mode }) => {
         localStorage.setItem('ipc_v3_token', token);
         localStorage.setItem(
           'ipc_v3_user',
@@ -35,8 +47,8 @@ test.describe('Live Web Runtime Conformance Audit (Direct Web Inspection)', () =
             permissions: ['*'],
           })
         );
-        localStorage.setItem('ipc_v3_mode', 'DEFAULT');
-      }, authToken);
+        localStorage.setItem('ipc_v3_mode', mode || 'MATERIAL_RECONCILIATION');
+      }, { token: authToken, mode: serverMode });
     }
   });
 
@@ -68,8 +80,13 @@ test.describe('Live Web Runtime Conformance Audit (Direct Web Inspection)', () =
       // Rate limit or temporary lockout
       await expect(alert).toBeVisible();
     } else {
-      await expect(page).toHaveURL('/', { timeout: 15_000 });
-      await expect(page.getByRole('heading', { name: 'Bàn điều hành hôm nay' })).toBeVisible();
+      if (serverMode === 'MATERIAL_RECONCILIATION') {
+        await expect(page).toHaveURL('/', { timeout: 15_000 });
+        await expect(page.getByRole('heading', { name: 'Bàn điều hành đối soát' })).toBeVisible();
+      } else {
+        await expect(page).toHaveURL('/', { timeout: 15_000 });
+        await expect(page.getByRole('heading', { name: 'Bàn điều hành hôm nay' })).toBeVisible();
+      }
 
       const token = await page.evaluate(() => localStorage.getItem('ipc_v3_token'));
       expect(token).toBeTruthy();
@@ -115,12 +132,12 @@ test.describe('Live Web Runtime Conformance Audit (Direct Web Inspection)', () =
     // Go to Advanced Settings Mode View
     await page.goto('/settings/advanced?view=mode');
     await expect(page.getByRole('heading', { name: 'Cấu hình hệ thống & Vận hành' })).toBeVisible();
-    await expect(page.getByText('Thiết lập Chế độ Vận hành (Rule DOM-MODE-1)')).toBeVisible();
+    await expect(page.getByText('Thiết lập Chế độ Vận hành')).toBeVisible();
   });
 
   // Test 4: Live Popstate Dirty Navigation Trap
   test('Live Popstate: Browser Back navigation is intercepted when draft is dirty', async ({ page }) => {
-    await page.goto('/settings/advanced?view=cache');
+    await page.goto('/settings/advanced?view=mode');
     await expect(page.getByRole('heading', { name: 'Cấu hình hệ thống & Vận hành' })).toBeVisible();
 
     // Trigger popstate while on the page
@@ -131,24 +148,40 @@ test.describe('Live Web Runtime Conformance Audit (Direct Web Inspection)', () =
 
   // Test 5: Live Primary Work Object vs Sub-Tab Navigation Audit
   test('Live Navigation: Primary work objects possess unique URL leaves on Sidebar v2', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'Bàn điều hành hôm nay' })).toBeVisible();
+    const landing = serverMode === 'MATERIAL_RECONCILIATION' ? '/weekly-menu?view=mrx-batch' : '/';
+    await page.goto(landing);
 
     const sidebar = page.locator('aside');
     await expect(sidebar).toBeVisible();
 
-    // Check Weekly Menu leaves
-    await expect(sidebar.getByRole('link', { name: 'Kế hoạch tuần' })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: 'Bàn giao nguyên liệu' })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: 'Kế hoạch sản xuất' }).first()).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: 'Giá vốn & Định mức BOM' })).toBeVisible();
+    if (serverMode === 'MATERIAL_RECONCILIATION') {
+      // Check MRX Weekly Menu leaves (auto-expanded since we are on weekly-menu)
+      await expect(sidebar.getByRole('link', { name: 'Chuẩn bị lô đối soát' })).toBeVisible();
 
-    // Check Warehouse leaves
-    await expect(sidebar.getByRole('link', { name: 'Phiếu xuất kho' })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: 'Phiếu nhập kho' })).toBeVisible();
-    await expect(sidebar.getByRole('link', { name: 'Tồn kho hiện tại' }).first()).toBeVisible();
+      // Expand and check MRX Warehouse leaves
+      await sidebar.getByRole('button', { name: 'Kho nguyên liệu' }).click();
+      await expect(sidebar.getByRole('link', { name: /Xuất kho định lượng ngày|Định lượng xuất theo ngày/ })).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: /Xuất phối hợp đa khách|Chuẩn bị xuất phối hợp/ })).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: /Xử lý biến động nguồn|Thay đổi nguồn chờ xử lý/ })).toBeVisible();
 
-    // Check Admin leaves
+      // Expand and check Reconciliation leaves
+      await sidebar.getByRole('button', { name: 'Đối soát nguyên liệu' }).click();
+      await expect(sidebar.getByRole('link', { name: 'Rà soát dòng ngày' })).toBeVisible();
+    } else {
+      // Check Weekly Menu leaves
+      await expect(sidebar.getByRole('link', { name: 'Kế hoạch tuần' })).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: 'Bàn giao nguyên liệu' })).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: 'Kế hoạch sản xuất' }).first()).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: 'Giá vốn & Định mức BOM' })).toBeVisible();
+
+      // Check Warehouse leaves
+      await expect(sidebar.getByRole('link', { name: 'Phiếu xuất kho' })).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: 'Phiếu nhập kho' })).toBeVisible();
+      await expect(sidebar.getByRole('link', { name: 'Tồn kho hiện tại' }).first()).toBeVisible();
+    }
+
+    // Check Admin leaves (always SHARED)
+    await sidebar.getByRole('button', { name: 'Quản trị hệ thống' }).click();
     await expect(sidebar.getByRole('link', { name: 'Danh mục nguyên liệu' })).toBeVisible();
     await expect(sidebar.getByRole('link', { name: 'Danh mục món ăn' })).toBeVisible();
   });

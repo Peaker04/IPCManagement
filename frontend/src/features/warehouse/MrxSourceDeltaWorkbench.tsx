@@ -1,43 +1,55 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { mrxApi, type MrxSourceDelta } from '../../api/mrxApi';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
-import { Input } from '../../components/ui/input';
-import { Modal } from '../../components/ui/modal';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
-import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
+import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
-import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
+import { type ColumnDef } from '../../components/workbench/DataGrid';
 import { toVietnameseDate } from '../../utils/dates';
+import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
+import { MrxDeltaHeaderBranch } from './branches/MrxDeltaHeaderBranch';
+import { MrxDeltaTableBranch } from './branches/MrxDeltaTableBranch';
 
 export function MrxSourceDeltaWorkbench() {
-  const [items, setItems] = useState<readonly MrxSourceDelta[]>([]);
+  const navigate = useNavigate();
+
+  const {
+    data: items,
+    stateProps,
+    refetch: load,
+  } = useWorkbenchQuery<readonly MrxSourceDelta[]>({
+    scopeKey: 'mrx_source_deltas',
+    cacheKey: 'mrx_source_deltas',
+    snapshotKey: 'snapshot:mrx_source_deltas',
+    queryFn: async () => (await mrxApi.getSourceDeltas()).items,
+    isDatasetEmpty: (deltas) => !deltas || deltas.length === 0,
+    emptyTitle: 'Không có thay đổi nguồn đang chờ',
+    emptyDescription: 'Các thay đổi đã xử lý được lưu trữ đầy đủ trong lịch sử phiếu xuất, phiếu trả và biến động tồn kho.',
+    emptyScenario: 'filter-empty',
+  });
+
+  const deltaItems = items ?? [];
   const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedDelta, setSelectedDelta] = useState<MrxSourceDelta | null>(null);
   const [actualQuantity, setActualQuantity] = useState<string>('');
   const [varianceReason, setVarianceReason] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
-    await Promise.resolve();
-    setError(null);
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
     try {
-      setItems((await mrxApi.getSourceDeltas()).items);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error('Không thể tải hàng đợi thay đổi nguồn.'));
+      await load(true);
     } finally {
-      setLoading(false);
+      setIsRefreshing(false);
     }
-  }, []);
-
-  useEffect(() => {
-    const request = window.setTimeout(() => { void load(); }, 0);
-    return () => window.clearTimeout(request);
-  }, [load]);
+  };
 
   const openProcessModal = (delta: MrxSourceDelta) => {
     setSelectedDelta(delta);
@@ -59,37 +71,68 @@ export function MrxSourceDeltaWorkbench() {
         const line = daily.dates.flatMap((day) => day.lines).find((item) => item.dailyLineId === delta.dailyLineId);
         if (!line) throw new Error('Không tìm thấy dòng định lượng theo ngày của delta.');
         await mrxApi.createIssue({
-          commandId: crypto.randomUUID(), expectedVersion: daily.sourceVersion,
-          issueDate: delta.serviceDate, reconciliationBatchId: delta.batchId,
-          reconciliationSourceDeltaId: delta.sourceDeltaId, expectedSourceDeltaVersion: delta.version,
+          commandId: crypto.randomUUID(),
+          expectedVersion: daily.sourceVersion,
+          issueDate: delta.serviceDate,
+          reconciliationBatchId: delta.batchId,
+          reconciliationSourceDeltaId: delta.sourceDeltaId,
+          expectedSourceDeltaVersion: delta.version,
           isSupplemental: true,
-          lines: [{ reconciliationBatchLineId: line.batchLineId, reconciliationBatchDailyLineId: line.dailyLineId, ingredientId: delta.ingredientId, unitId: delta.canonicalUnitId, requestedQty: delta.deltaQuantity, issuedQty: qty, varianceReason: reasonText || 'Xuất bổ sung theo thay đổi nguồn đã duyệt' }],
+          lines: [{
+            reconciliationBatchLineId: line.batchLineId,
+            reconciliationBatchDailyLineId: line.dailyLineId,
+            ingredientId: delta.ingredientId,
+            unitId: delta.canonicalUnitId,
+            requestedQty: delta.deltaQuantity,
+            issuedQty: qty,
+            varianceReason: reasonText || 'Xuất bổ sung theo thay đổi nguồn đã duyệt',
+          }],
         });
       } else {
         const issuePage = await mrxApi.getIssues(delta.batchId);
-        const source = issuePage.items.flatMap((issue) => issue.lines.map((line) => ({ issue, line })))
-          .find(({ line }) => line.reconciliationBatchDailyLineId === delta.dailyLineId && line.ingredientId === delta.ingredientId && line.unitId === delta.canonicalUnitId);
-        if (!source) throw new Error('Chưa tìm thấy phiếu xuất gốc có lineage phù hợp để hoàn trả.');
+        const candidateLines = issuePage.items.flatMap((issue) => issue.lines.map((line) => ({ issue, line })))
+          .filter(({ line }) =>
+            line.reconciliationBatchDailyLineId === delta.dailyLineId &&
+            line.ingredientId === delta.ingredientId &&
+            line.issuedQty > 0
+          );
+        const source = candidateLines.find(({ line }) => line.issuedQty >= qty) || candidateLines[0];
+        if (!source) throw new Error(`Chưa tìm thấy phiếu xuất gốc của nguyên liệu ${delta.ingredientName || delta.ingredientCode || ''} để hoàn trả.`);
         const created = await mrxApi.createReturn({
-          commandId: crypto.randomUUID(), returnDate: delta.serviceDate, returnType: 'RETURN',
-          issueId: source.issue.issueId, reconciliationSourceDeltaId: delta.sourceDeltaId,
-          expectedSourceDeltaVersion: delta.version, reason: reasonText || 'Hoàn trả vật lý theo thay đổi nguồn đã duyệt',
-          lines: [{ sourceIssueLineId: source.line.issueLineId, ingredientId: delta.ingredientId, unitId: delta.canonicalUnitId, quantity: qty }],
+          commandId: crypto.randomUUID(),
+          returnDate: delta.serviceDate,
+          returnType: 'RETURN',
+          issueId: source.issue.issueId,
+          reconciliationSourceDeltaId: delta.sourceDeltaId,
+          expectedSourceDeltaVersion: delta.version,
+          reason: reasonText || 'Hoàn trả vật lý theo thay đổi nguồn đã duyệt',
+          lines: [{
+            sourceIssueLineId: source.line.issueLineId,
+            ingredientId: delta.ingredientId,
+            unitId: delta.canonicalUnitId,
+            quantity: qty,
+          }],
         });
-        await mrxApi.confirmReturn(created.returnId, { commandId: crypto.randomUUID(), expectedVersion: 0, hasDiscrepancy, adjustedLines: [] });
+        await mrxApi.confirmReturn(created.returnId, {
+          commandId: crypto.randomUUID(),
+          expectedVersion: 0,
+          hasDiscrepancy,
+          adjustedLines: [],
+        });
       }
+
+      setSuccessMessage(delta.workKind === 'SUPPLEMENTAL_ISSUE' ? 'Đã tạo phiếu xuất bổ sung thành công.' : 'Đã tạo phiếu hoàn trả kho thành công.');
       setSelectedDelta(null);
-      setSuccessMessage(`Đã xử lý thành công ${delta.workKind === 'SUPPLEMENTAL_ISSUE' ? 'xuất bổ sung' : 'hoàn trả vật lý'} cho ${delta.ingredientName || delta.ingredientCode || 'nguyên liệu'}.`);
-      await load();
+      await load(true);
     } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error('Không thể xử lý thay đổi nguồn.'));
+      setError(cause instanceof Error ? cause : new Error('Thao tác xử lý thay đổi nguồn thất bại.'));
     } finally {
       setProcessingId(null);
     }
   };
 
-  const supplementalCount = useMemo(() => items.filter((d) => d.workKind === 'SUPPLEMENTAL_ISSUE').length, [items]);
-  const returnCount = useMemo(() => items.filter((d) => d.workKind !== 'SUPPLEMENTAL_ISSUE').length, [items]);
+  const supplementalCount = useMemo(() => deltaItems.filter((d) => d.workKind === 'SUPPLEMENTAL_ISSUE').length, [deltaItems]);
+  const returnCount = useMemo(() => deltaItems.filter((d) => d.workKind === 'RETURN').length, [deltaItems]);
 
   const columns = useMemo<ColumnDef<MrxSourceDelta>[]>(() => [
     {
@@ -159,11 +202,11 @@ export function MrxSourceDeltaWorkbench() {
   ], [processingId]);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-      <WorkspaceHeader
-        title="Thay đổi nguồn chờ Kho xử lý"
-        breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
-        actions={<Button variant="outline" size="sm" onClick={() => void load()}>Làm mới</Button>}
+    <WorkspaceFrame.Root className="select-text">
+      <MrxDeltaHeaderBranch
+        onNavigateDaily={() => navigate('/warehouse?view=mrx-daily')}
+        isRefreshing={isRefreshing}
+        onRefresh={handleRefresh}
       />
 
       <TelemetrySubbar
@@ -186,98 +229,36 @@ export function MrxSourceDeltaWorkbench() {
       />
 
       {successMessage && (
-        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
-          <span>{successMessage}</span>
-          <button type="button" onClick={() => setSuccessMessage(null)} className="underline cursor-pointer">Đóng</button>
-        </div>
+        <InlineBanner variant="success" onClose={() => setSuccessMessage(null)} className="shrink-0">
+          {successMessage}
+        </InlineBanner>
       )}
 
-      <StateBoundary
-        isLoading={loading && items.length === 0}
-        isFetching={loading && items.length > 0}
-        error={error}
-        onRetry={() => void load()}
-        onResolveConflict={() => void load()}
-        hasExistingData={items.length > 0}
-        isEmpty={!loading && !error && items.length === 0}
-        emptyScenario="filter-empty"
-        emptyTitle="Không có thay đổi nguồn đang chờ"
-        emptyDescription="Các thay đổi đã xử lý vẫn được giữ trong lịch sử phiếu xuất, phiếu trả và stock movement."
-      >
-        <DataGrid data={items} columns={columns} keyExtractor={(delta) => delta.sourceDeltaId} />
-      </StateBoundary>
-
-      <Modal
-        isOpen={Boolean(selectedDelta)}
-        onClose={() => setSelectedDelta(null)}
-        title="Xác nhận xử lý thay đổi nguồn"
-        description={selectedDelta ? `${selectedDelta.workKind === 'SUPPLEMENTAL_ISSUE' ? 'Xuất bổ sung' : 'Hoàn trả vật lý'} cho ${selectedDelta.ingredientName ?? selectedDelta.ingredientCode ?? selectedDelta.ingredientId}` : ''}
-        footer={
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => setSelectedDelta(null)}>Quay lại</Button>
-            <Button
-              size="sm"
-              disabled={processingId !== null || !canConfirm || Number(actualQuantity) <= 0}
-              onClick={() => {
-                if (selectedDelta) void handleExecute(selectedDelta);
-              }}
-            >
-              {processingId ? 'Đang xử lý...' : 'Xác nhận xử lý'}
-            </Button>
-          </div>
-        }
-      >
-        {selectedDelta && (
-          <div className="space-y-4 py-2">
-            <div>
-              <label htmlFor="actual-quantity-input" className="block text-xs font-semibold text-slate-700 mb-1">
-                Số lượng thực tế ({selectedDelta.canonicalUnitName ?? 'ĐVT'})
-              </label>
-              <Input
-                id="actual-quantity-input"
-                type="number"
-                step="any"
-                aria-label="Số lượng thực tế"
-                value={actualQuantity}
-                onChange={(e) => setActualQuantity(e.target.value)}
-              />
-            </div>
-            {hasDiscrepancy && (
-              <div>
-                <label htmlFor="variance-reason-input" className="block text-xs font-semibold text-slate-700 mb-1">
-                  Lý do chênh lệch thực tế <span className="text-rose-600">*</span>
-                </label>
-                <Input
-                  id="variance-reason-input"
-                  type="text"
-                  aria-label="Lý do chênh lệch thực tế"
-                  placeholder="Nêu lý do thực xuất/thực nhận lệch số lượng delta..."
-                  value={varianceReason}
-                  onChange={(e) => setVarianceReason(e.target.value)}
-                />
-                <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Gợi ý lý do chênh lệch cửa kho">
-                  {[
-                    'Hao hụt rã đông/rơi vãi',
-                    'Bếp giữ lại dùng ca sau',
-                    'Sai lệch bao bì cân đong',
-                    'Giao thiếu so với phiếu',
-                  ].map((preset) => (
-                    <Button
-                      key={preset}
-                      type="button"
-                      variant="outline"
-                      size="xs"
-                      onClick={() => setVarianceReason(preset)}
-                    >
-                      {preset}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </Modal>
-    </div>
+      <WorkspaceFrame.Body>
+        <StateBoundary
+          {...stateProps}
+          error={stateProps.error || error}
+          onRetry={() => void load(true)}
+          onResolveConflict={() => void load(true)}
+          actionLabel="Đi đến Trạm xuất kho theo ngày →"
+          onAction={() => navigate('/warehouse?view=mrx-daily')}
+        >
+          <MrxDeltaTableBranch
+            items={deltaItems}
+            columns={columns}
+            selectedDelta={selectedDelta}
+            onCloseModal={() => setSelectedDelta(null)}
+            processingId={processingId}
+            actualQuantity={actualQuantity}
+            onChangeActualQuantity={setActualQuantity}
+            varianceReason={varianceReason}
+            onChangeVarianceReason={setVarianceReason}
+            hasDiscrepancy={hasDiscrepancy}
+            canConfirm={canConfirm}
+            onExecute={handleExecute}
+          />
+        </StateBoundary>
+      </WorkspaceFrame.Body>
+    </WorkspaceFrame.Root>
   );
 }

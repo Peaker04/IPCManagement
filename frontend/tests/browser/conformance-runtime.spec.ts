@@ -113,12 +113,9 @@ test.describe('Phase 4: Runtime Browser Acceptance & Conformance Suite', () => {
     await page.goto('/reconciliation');
     await expect(page.getByRole('heading', { name: 'Đối soát nguyên liệu' })).toBeVisible();
 
-    // 5 queue buttons must be visible
-    expect(await page.getByRole('button', { name: /Đổi nguồn chờ duyệt/i })).toBeVisible();
-    expect(await page.getByRole('button', { name: /Lô chờ xuất kho/i })).toBeVisible();
-    expect(await page.getByRole('button', { name: /Hàng đợi bù\/trả/i })).toBeVisible();
-    expect(await page.getByRole('button', { name: /Sai lệch chưa giải trình/i })).toBeVisible();
-    expect(await page.getByRole('button', { name: /Lô sẵn sàng chốt/i })).toBeVisible();
+    // 5 queue buttons are permanently removed to eliminate clutter
+    expect(await page.getByRole('button', { name: /Đổi nguồn chờ duyệt/i }).count()).toBe(0);
+    expect(await page.getByRole('button', { name: /Lô chờ xuất kho/i }).count()).toBe(0);
 
     // Click 'Danh bạ hoàn tất' on Nested Sidebar (Rule N6)
     await page.getByRole('link', { name: /Danh bạ.*hoàn tất/i }).click();

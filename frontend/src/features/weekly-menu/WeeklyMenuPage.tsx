@@ -1,12 +1,15 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Navigate } from 'react-router-dom';
+import { useAuth } from '../../store/useAuth';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { Select } from '../../components/ui/select';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import { weeklyMenuApi, type WeeklyMenuData } from '../../api/weeklyMenuApi';
+import { serverStateCache } from '../../store/serverStateCache';
 import type { CustomerOption } from '../../types';
 import { WeeklyScheduleView } from './views/WeeklyScheduleView';
 import { MaterialDemandView } from './views/MaterialDemandView';
@@ -15,6 +18,7 @@ import { MenuCostView } from './views/MenuCostView';
 import { MrxBatchWorkbench } from './MrxBatchWorkbench';
 import { WeeklyMenuImportModal } from './WeeklyMenuImportModal';
 import { WeeklyScheduleEditorModal } from './WeeklyScheduleEditorModal';
+import { weekStartFor } from '../../utils/dates';
 
 function currentWeekStart(): string {
   const now = new Date();
@@ -32,8 +36,28 @@ function currentWeekStart(): string {
 }
 
 export function WeeklyMenuPage() {
+  const { operationalMode } = useAuth();
   const [searchParams] = useSearchParams();
-  return searchParams.get('view') === 'mrx-batch' ? <MrxBatchWorkbench /> : <DefaultWeeklyMenuPage />;
+  const view = searchParams.get('view');
+
+  // DOM-MODE-1: In MRX mode, any non-mrx-batch URL must automatically canonicalize to ?view=mrx-batch
+  if (operationalMode === 'MATERIAL_RECONCILIATION' && view !== 'mrx-batch') {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('view', 'mrx-batch');
+    return <Navigate to={`/weekly-menu?${nextParams.toString()}`} replace />;
+  }
+
+  if (view === 'mrx-batch') {
+    return <MrxBatchWorkbench />;
+  }
+
+  return <DefaultWeeklyMenuPage />;
+}
+
+interface WeeklyMenuSnapshot {
+  customerCode: string;
+  weekStartDate: string;
+  data: WeeklyMenuData | null;
 }
 
 function DefaultWeeklyMenuPage() {
@@ -43,11 +67,20 @@ function DefaultWeeklyMenuPage() {
     ? requestedView
     : 'schedule';
 
-  const [customers, setCustomers] = useState<CustomerOption[]>([]);
-  const [customerCode, setCustomerCode] = useState('');
-  const [weekStartDate, setWeekStartDate] = useState(currentWeekStart);
-  const [data, setData] = useState<WeeklyMenuData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const snapshot = serverStateCache.get<WeeklyMenuSnapshot>('snapshot:weekly_menu')?.data;
+  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
+  const initialCustomerCode = snapshot?.customerCode || cachedCustomers?.[0]?.customerCode || '';
+  const initialWeek = snapshot?.weekStartDate || currentWeekStart();
+  const [customerCode, setCustomerCode] = useState(() => initialCustomerCode);
+  const [weekStartDate, setWeekStartDate] = useState(() => initialWeek);
+
+  const menuKey = `weekly_menu_${initialCustomerCode}_${initialWeek}`;
+  const cachedMenu = snapshot?.data ?? (initialCustomerCode ? serverStateCache.get<WeeklyMenuData>(menuKey)?.data : null);
+  const [data, setData] = useState<WeeklyMenuData | null>(() => cachedMenu ?? null);
+  const [hasCustomersLoaded, setHasCustomersLoaded] = useState(() => Boolean(cachedCustomers && cachedCustomers.length > 0));
+  const [isLoading, setIsLoading] = useState<boolean>(() => !cachedMenu);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEditorModalOpen, setIsEditorModalOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -80,11 +113,16 @@ function DefaultWeeklyMenuPage() {
       .then((list) => {
         if (ignore) return;
         setCustomers(list);
+        setHasCustomersLoaded(true);
+        serverStateCache.set('catalog_customers', list);
+        const existing = customerCode && list.find((c) => c.customerCode === customerCode);
+        if (existing) return;
         setCustomerCode((current) => current || list[0]?.customerCode || '');
         if (list.length === 0) setIsLoading(false);
       })
       .catch((cause: unknown) => {
         if (!ignore) {
+          setHasCustomersLoaded(true);
           setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
           setIsLoading(false);
         }
@@ -96,11 +134,24 @@ function DefaultWeeklyMenuPage() {
 
   useEffect(() => {
     if (!customerCode) return;
+    const key = `weekly_menu_${customerCode}_${weekStartDate}`;
+    const cached = serverStateCache.get<WeeklyMenuData>(key)?.data;
+    if (cached) {
+      setData(cached);
+      setIsLoading(false);
+      setIsFetching(true);
+    } else if (!data) {
+      setIsLoading(true);
+    }
     const sequence = ++requestSequence.current;
     weeklyMenuApi
       .getWeeklyMenuData(customerCode, weekStartDate)
       .then((response) => {
-        if (sequence === requestSequence.current) setData(response);
+        if (sequence === requestSequence.current) {
+          setData(response);
+          serverStateCache.set(key, response);
+          serverStateCache.set('snapshot:weekly_menu', { customerCode, weekStartDate, data: response });
+        }
       })
       .catch((cause: unknown) => {
         if (sequence === requestSequence.current) {
@@ -109,18 +160,26 @@ function DefaultWeeklyMenuPage() {
         }
       })
       .finally(() => {
-        if (sequence === requestSequence.current) setIsLoading(false);
+        if (sequence === requestSequence.current) {
+          setIsLoading(false);
+          setIsFetching(false);
+        }
       });
   }, [customerCode, weekStartDate]);
 
   const handleRefresh = async () => {
     if (!customerCode) return;
+    const key = `weekly_menu_${customerCode}_${weekStartDate}`;
+    serverStateCache.delete(key);
     const sequence = ++requestSequence.current;
     setIsLoading(true);
     setError(null);
     try {
       const response = await weeklyMenuApi.getWeeklyMenuData(customerCode, weekStartDate);
-      if (sequence === requestSequence.current) setData(response);
+      if (sequence === requestSequence.current) {
+        setData(response);
+        serverStateCache.set(key, response);
+      }
     } catch (cause: unknown) {
       if (sequence === requestSequence.current) {
         setData(null);
@@ -168,6 +227,7 @@ function DefaultWeeklyMenuPage() {
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <WorkspaceHeader
         title="Thực đơn & KHSX tuần"
+        breadcrumb="Kế hoạch · Thực đơn & KHSX"
         contextSelectors={
           <>
             <Select
@@ -189,9 +249,10 @@ function DefaultWeeklyMenuPage() {
               aria-label="Tuần bắt đầu"
               value={weekStartDate}
               onChange={(date) => {
+                const monday = weekStartFor(date);
                 setIsLoading(true);
                 setError(null);
-                setWeekStartDate(date);
+                setWeekStartDate(monday);
               }}
               className="h-9 w-40 font-mono text-sm"
             />
@@ -241,19 +302,18 @@ function DefaultWeeklyMenuPage() {
       />
 
       {publishSuccess && (
-        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
-          <span>{publishSuccess}</span>
-          <button type="button" onClick={() => setPublishSuccess(null)} className="underline cursor-pointer">Đóng</button>
-        </div>
+        <InlineBanner variant="success" onClose={() => setPublishSuccess(null)} className="shrink-0">
+          {publishSuccess}
+        </InlineBanner>
       )}
 
       <StateBoundary
-        isLoading={isLoading}
-        isFetching={isLoading}
-        hasExistingData={Boolean(data && (data.matrixRows.length > 0 || data.demandRows.length > 0 || data.productionPlans.length > 0))}
+        isLoading={isLoading && !data}
+        isFetching={isFetching || (isLoading && Boolean(data))}
+        hasExistingData={Boolean(data || snapshot?.data)}
         error={error}
         onRetry={handleRefresh}
-        isEmpty={isViewEmpty}
+        isEmpty={!isLoading && !isFetching && hasCustomersLoaded && isViewEmpty}
         emptyScenario="prerequisite-blocked"
         emptyTitle={emptyContext.title}
         emptyDescription={emptyContext.desc}

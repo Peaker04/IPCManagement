@@ -14,7 +14,7 @@ const child = spawn(
     stdio: 'inherit',
     env: {
       ...process.env,
-      NODE_OPTIONS: '--max-old-space-size=1024',
+      NODE_OPTIONS: '--max-old-space-size=4096',
       CI: process.env.CI ?? 'true',
     },
   },

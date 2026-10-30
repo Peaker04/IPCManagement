@@ -15,10 +15,11 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:5262',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://127.0.0.1:5262',
         changeOrigin: true,
       },
     },
@@ -26,7 +27,7 @@ export default defineConfig({
   preview: {
     proxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:5262',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://127.0.0.1:5262',
         changeOrigin: true,
       },
     },
@@ -34,6 +35,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 15000,
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/dist/**'],
     coverage: {

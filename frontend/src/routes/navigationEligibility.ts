@@ -54,8 +54,11 @@ export function resolveLandingPath(
   actor: NavigationActor,
   mode: OperationalMode
 ): string {
+  if (actor.isAdminFullAccess || actor.roleCode?.toUpperCase() === 'ADMIN' || actor.roleCode?.toUpperCase() === 'MANAGER') {
+    return '/';
+  }
   const destination = resolveEligibleNavigation(routes, actor, mode)
-    .find((route) => route.path !== '/login' && route.path !== '/forbidden');
+    .find((route) => route.path !== '/login' && route.path !== '/forbidden' && (mode !== 'MATERIAL_RECONCILIATION' || route.path !== '/'));
   return destination?.leaves?.[0]?.to ?? destination?.path ?? '/forbidden';
 }
 

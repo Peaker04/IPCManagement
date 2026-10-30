@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, type ReactNode } from 'react';
+import { useState, useEffect, startTransition, type MouseEvent, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   CalendarDays,
@@ -22,6 +22,8 @@ import { useAuth } from '../../store/useAuth';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { useDirtyNavigation } from './dirty-navigation-context';
+import { NetworkConnectivityBanner } from './NetworkConnectivityBanner';
+import { useWorkspaceUiState } from '../../store/workspaceUiState';
 
 interface NavLeafItem {
   to: string;
@@ -92,16 +94,46 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
   const location = useLocation();
   const navigate = useNavigate();
   const { requestNavigation } = useDirtyNavigation();
-
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({
-    'weekly-menu': true,
-    warehouse: true,
-    chef: true,
-    reconciliation: true,
-    reports: true,
-    administration: true,
+  const { density } = useWorkspaceUiState({
+    tableKey: 'global_app_shell',
+    userId: user?.userId,
   });
+
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined' && window.innerWidth > 0 && window.innerWidth < 768 && process.env.NODE_ENV !== 'test') {
+      return true;
+    }
+    return false;
+  });
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(() => {
+    const currentPath = typeof window !== 'undefined' ? location.pathname : '';
+    return {
+      'weekly-menu': currentPath.startsWith('/weekly-menu'),
+      warehouse: currentPath.startsWith('/warehouse'),
+      chef: currentPath.startsWith('/chef'),
+      reconciliation: currentPath.startsWith('/reconciliation'),
+      reports: currentPath.startsWith('/reports'),
+      administration: currentPath.startsWith('/admin-data') || currentPath.startsWith('/settings'),
+    };
+  });
+
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const activeKey =
+      currentPath.startsWith('/weekly-menu') ? 'weekly-menu' :
+      currentPath.startsWith('/warehouse') ? 'warehouse' :
+      currentPath.startsWith('/chef') ? 'chef' :
+      currentPath.startsWith('/reconciliation') ? 'reconciliation' :
+      currentPath.startsWith('/reports') ? 'reports' :
+      (currentPath.startsWith('/admin-data') || currentPath.startsWith('/settings')) ? 'administration' : null;
+
+    if (activeKey) {
+      setExpandedParents((prev) => ({
+        ...prev,
+        [activeKey]: true,
+      }));
+    }
+  }, [location.pathname]);
 
   const toggleParent = (parentId: string) => {
     setExpandedParents((prev) => ({
@@ -115,23 +147,57 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
   const handleNavigation = (event: MouseEvent<HTMLAnchorElement>, to: string) => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     if (typeof window !== 'undefined' && window.innerWidth < 768) setIsSidebarCollapsed(true);
-    if (!requestNavigation(() => navigate(to))) event.preventDefault();
+    if (!requestNavigation(() => startTransition(() => navigate(to)))) event.preventDefault();
   };
 
   const isCurrentSubview = (subviewUrl: string) => {
-    const [path, query = ''] = subviewUrl.split('?');
-    if (location.pathname !== path) return false;
-    if (!query) return !location.search;
-    return location.search === `?${query}`;
+    const [targetPath, targetQueryString = ''] = subviewUrl.split('?');
+    if (location.pathname !== targetPath) return false;
+
+    const currentParams = new URLSearchParams(location.search);
+    const targetParams = new URLSearchParams(targetQueryString);
+
+    const targetView = targetParams.get('view');
+    const currentView = currentParams.get('view');
+
+    if (targetView) {
+      return currentView === targetView;
+    }
+
+    return !currentView || currentView === 'lines' || currentView === 'schedule';
   };
 
   return (
-    <div className="flex h-dvh w-screen overflow-hidden bg-slate-50 text-slate-800">
+    <div
+      data-density={density}
+      className="flex h-dvh w-screen overflow-hidden bg-slate-50 text-slate-800"
+    >
+      {/* Mobile Drawer Backdrop */}
+      {!isSidebarCollapsed && (
+        <div
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-2xs z-25 md:hidden"
+          onClick={() => setIsSidebarCollapsed(true)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Floating Trigger when Collapsed */}
+      {isSidebarCollapsed && (
+        <button
+          type="button"
+          onClick={() => setIsSidebarCollapsed(false)}
+          aria-label="Mở menu điều hướng"
+          className="fixed bottom-4 left-4 z-40 h-10 w-10 flex items-center justify-center rounded-full bg-slate-900 text-white shadow-lg md:hidden cursor-pointer hover:bg-slate-800 transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+      )}
+
       {/* Left Sidebar (w-60 / 240px shrink-0 or collapsed w-16) */}
       <aside
         className={clsx(
           'shrink-0 border-r border-slate-200 bg-white flex flex-col h-dvh select-none z-30 transition-all duration-150 ease-out',
-          isSidebarCollapsed ? 'w-16' : 'w-60',
+          isSidebarCollapsed ? 'w-16 max-md:hidden' : 'w-60',
           !isSidebarCollapsed && 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:shadow-2xl'
         )}
         aria-label="Thanh điều hướng chính"
@@ -329,17 +395,9 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
         )}
       </aside>
 
-      {/* Mobile Backdrop when sidebar is expanded on small screens */}
-      {!isSidebarCollapsed && (
-        <div
-          role="presentation"
-          onClick={() => setIsSidebarCollapsed(true)}
-          className="fixed inset-0 bg-slate-900/30 backdrop-blur-2xs z-20 md:hidden"
-        />
-      )}
-
       {/* Right Workbench Frame */}
       <main className="flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40">
+        <NetworkConnectivityBanner />
         {children || <Outlet />}
       </main>
     </div>

@@ -1,21 +1,22 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Check } from 'lucide-react';
-import { mrxApi, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary } from '../../api/mrxApi';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { Badge } from '../../components/ui/badge';
-import { Num } from '../../components/ui/num';
-import { IdentifierText } from '../../components/ui/identifier-text';
-import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
+import { clsx } from 'clsx';
+import { Boxes } from 'lucide-react';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
-import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
+import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
-import { todayInBusinessTimezone, toVietnameseDate } from '../../utils/dates';
+import { DocumentCodeCell } from '../../components/workbench/DocumentCodeCell';
+import { weekStartFor, toVietnameseDate } from '../../utils/dates';
 import { MrxSupplementalIssueModal } from './MrxSupplementalIssueModal';
 import { ReconciliationIssueDetailModal } from '../../components/workbench/ReconciliationIssueDetailModal';
+import { MrxDailyDateTabsBranch } from './branches/MrxDailyDateTabsBranch';
+import { MrxDailyHeaderBranch } from './branches/MrxDailyHeaderBranch';
+import { MrxDailyLinesBranch } from './branches/MrxDailyLinesBranch';
+import { serverStateCache } from '../../store/serverStateCache';
+import { workspaceSessionStore } from '../../store/workspaceSessionStore';
+import { useMrxDailyWorkspace } from './hooks/useMrxDailyWorkspace';
+import type { MrxWarehouseDaily, MrxIssuePage } from '../../api/mrxApi';
 
 interface MrxDailyIssueWorkbenchProps {
   batchId?: string;
@@ -27,550 +28,253 @@ export function MrxDailyIssueWorkbench({
   serviceDate: propServiceDate = '',
 }: MrxDailyIssueWorkbenchProps) {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
 
-  const [batches, setBatches] = useState<MrxBatchSummary[]>([]);
-  const [activeBatchId, setActiveBatchId] = useState(() => propBatchId || searchParams.get('batchId') || '');
-  const [activeDate, setActiveDate] = useState(() => propServiceDate || searchParams.get('date') || todayInBusinessTimezone());
-  const [daily, setDaily] = useState<MrxWarehouseDaily | null>(null);
-  const [history, setHistory] = useState<MrxIssuePage | null>(null);
-  const [quantities, setQuantities] = useState<Record<string, string>>({});
-  const [reasons, setReasons] = useState<Record<string, string>>({});
-  const [error, setError] = useState<Error | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const {
+    batches,
+    activeBatchId,
+    setActiveBatchId,
+    activeDate,
+    setActiveDate,
+    isWeeklyAll,
+    daily,
+    day,
+    history,
+    lines,
+    weeklyAggregateLines,
+    hasInitialIssue,
+    isLegacyMissing,
+    stateProps,
+    load,
+    quantities,
+    setQuantities,
+    reasons,
+    setReasons,
+    saving,
+    mutationError,
+    setMutationError,
+    isSupplementalOpen,
+    setIsSupplementalOpen,
+    suppMaterialId,
+    setSuppMaterialId,
+    suppQuantity,
+    setSuppQuantity,
+    suppReason,
+    setSuppReason,
+    isSubmittingSupp,
+    suppError,
+    setSuppError,
+    inspectedIssueId,
+    setInspectedIssueId,
+    handleFillAll,
+    canSubmit,
+    submit,
+    handleSupplementalSubmit,
+  } = useMrxDailyWorkspace({ batchId: propBatchId, serviceDate: propServiceDate });
 
-  // Supplemental issue state (RULE-MRX-03)
-  const [isSupplementalOpen, setIsSupplementalOpen] = useState(false);
-  const [suppMaterialId, setSuppMaterialId] = useState('');
-  const [suppQuantity, setSuppQuantity] = useState('');
-  const [suppReason, setSuppReason] = useState('');
-  const [isSubmittingSupp, setIsSubmittingSupp] = useState(false);
-  const [suppError, setSuppError] = useState<string | null>(null);
-  const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'demand' | 'history'>('demand');
 
-  // Load available batches for selector
-  useEffect(() => {
-    let ignore = false;
-    mrxApi.getBatchPage({ pageSize: 50 })
-      .then((page) => {
-        if (ignore) return;
-        const items = page?.items ?? [];
-        setBatches(items);
-        if (items.length > 0) {
-          const urlBatch = propBatchId || searchParams.get('batchId');
-          const matchedBatch = urlBatch && items.find((b) => b.batchId === urlBatch);
-          if (matchedBatch) {
-            setActiveBatchId(matchedBatch.batchId);
-          } else if (!activeBatchId) {
-            const preferred = items.find((b) => b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS') || items[0];
-            setActiveBatchId(preferred.batchId);
-            setSearchParams((curr) => {
-              const next = new URLSearchParams(curr);
-              next.set('batchId', preferred.batchId);
-              return next;
-            }, { replace: true });
-          }
-        }
-      })
-      .catch(() => {});
-    return () => { ignore = true; };
-  }, [activeBatchId, propBatchId, searchParams, setSearchParams]);
-
-  const load = useCallback(async (targetBatchId = activeBatchId, targetDate = activeDate) => {
-    if (!targetBatchId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const [nextDaily, nextHistory] = await Promise.all([
-        mrxApi.getWarehouseDaily(targetBatchId),
-        mrxApi.getIssues(targetBatchId),
-      ]);
-      setDaily(nextDaily);
-      setHistory(nextHistory);
-      const selected = nextDaily.dates.find((d) => d.serviceDate === targetDate);
-      setQuantities(Object.fromEntries(
-        (selected?.lines ?? []).map((l) => [l.dailyLineId, l.issuedQuantity != null ? String(l.issuedQuantity) : String(l.requiredQuantity)]),
-      ));
-      setReasons({});
-    } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error('Không thể tải định lượng xuất kho theo ngày.'));
-    } finally {
-      setLoading(false);
-    }
-  }, [activeBatchId, activeDate]);
-
-  useEffect(() => {
-    if (activeBatchId) {
-      const request = window.setTimeout(() => { void load(activeBatchId, activeDate); }, 0);
-      return () => window.clearTimeout(request);
-    }
-  }, [activeBatchId, activeDate, load]);
-
-  const day = daily?.dates.find((item) => item.serviceDate === activeDate);
-  const lines = useMemo(() => day?.lines.filter((l) => l.requiredQuantity > 0) ?? [], [day]);
-  const hasInitialIssue = lines.some((l) => (l.issuedQuantity ?? 0) > 0);
-  const isWeeklyAll = activeDate === 'ALL';
-
-  const weeklyAggregateLines = useMemo(() => {
-    if (!daily?.dates) return [];
-    const map = new Map<string, {
-      id: string;
-      ingredientCode: string;
-      ingredientName: string;
-      unitName: string;
-      requiredQuantity: number;
-      issuedQuantity: number;
-      remainingQuantity: number;
-    }>();
-
-    for (const d of daily.dates) {
-      for (const l of d.lines) {
-        const key = l.ingredientCode || l.ingredientId;
-        const existing = map.get(key);
-        if (existing) {
-          existing.requiredQuantity += l.requiredQuantity;
-          existing.issuedQuantity += (l.issuedQuantity ?? 0);
-          existing.remainingQuantity += (l.remainingQuantity ?? 0);
-        } else {
-          map.set(key, {
-            id: key,
-            ingredientCode: l.ingredientCode || l.ingredientId || '',
-            ingredientName: l.ingredientName || '—',
-            unitName: l.canonicalUnitName || 'kg',
-            requiredQuantity: l.requiredQuantity,
-            issuedQuantity: l.issuedQuantity ?? 0,
-            remainingQuantity: l.remainingQuantity ?? 0,
-          });
-        }
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => b.requiredQuantity - a.requiredQuantity);
-  }, [daily]);
-
-  const weeklyColumns = useMemo<ColumnDef<typeof weeklyAggregateLines[number]>[]>(() => [
+  const historyColumns = useMemo<ColumnDef<any>[]>(() => [
     {
-      id: 'ingredient',
-      header: 'Nguyên liệu thực phẩm',
-      width: '32%',
-      cell: (line) => (
-        <div className="flex items-center gap-2 truncate">
-          <span className="font-semibold text-slate-900 text-sm truncate">{line.ingredientName}</span>
-          {line.ingredientCode && <IdentifierText value={line.ingredientCode} />}
-        </div>
-      ),
-    },
-    {
-      id: 'unit',
-      header: 'ĐVT',
-      width: '12%',
-      align: 'center',
-      cell: (line) => <span className="font-mono text-xs text-slate-700">{line.unitName}</span>,
-    },
-    {
-      id: 'required',
-      header: 'Tổng nhu cầu tuần',
-      width: '18%',
-      align: 'right',
-      cell: (line) => <Num value={line.requiredQuantity} format="quantity" suffix={` ${line.unitName}`} className="font-bold text-slate-900 text-sm" />,
-    },
-    {
-      id: 'issued',
-      header: 'Tổng đã xuất thực tế',
-      width: '18%',
-      align: 'right',
-      cell: (line) => <Num value={line.issuedQuantity} format="quantity" suffix={` ${line.unitName}`} className="font-mono text-sm" />,
-    },
-    {
-      id: 'remaining',
-      header: 'Còn lại phải xuất',
-      width: '20%',
-      align: 'right',
-      cell: (line) => (
-        <Num
-          value={line.remainingQuantity}
-          format="quantity"
-          suffix={` ${line.unitName}`}
-          className={line.remainingQuantity > 0 ? 'text-amber-700 font-bold font-mono text-sm' : 'text-slate-600 font-mono text-sm'}
-        />
-      ),
-    },
-  ], []);
-
-  const handleFillAll = () => {
-    setQuantities(Object.fromEntries(lines.map((l) => [l.dailyLineId, String(l.requiredQuantity)])));
-  };
-
-  const canSubmit = Boolean(day?.isApplicable && lines.length > 0 && !hasInitialIssue && !saving && !isWeeklyAll &&
-    lines.every((l) => {
-      const issued = Number(quantities[l.dailyLineId]);
-      return issued > 0 && (issued <= l.requiredQuantity || reasons[l.dailyLineId]?.trim());
-    }));
-
-  const submit = async () => {
-    if (!daily || !day || !canSubmit || !activeBatchId) return;
-    setSaving(true);
-    setError(null);
-    try {
-      await mrxApi.createIssue({
-        commandId: crypto.randomUUID(),
-        expectedVersion: daily.sourceVersion,
-        issueDate: activeDate,
-        reconciliationBatchId: activeBatchId,
-        isSupplemental: false,
-        lines: lines.map((l) => ({
-          reconciliationBatchLineId: l.batchLineId, reconciliationBatchDailyLineId: l.dailyLineId,
-          ingredientId: l.ingredientId, unitId: l.canonicalUnitId,
-          requestedQty: l.requiredQuantity, issuedQty: Number(quantities[l.dailyLineId]),
-          varianceReason: reasons[l.dailyLineId]?.trim() || undefined,
-        })),
-      });
-      setQuantities({});
-      await load(activeBatchId, activeDate);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause : new Error('Không thể xác nhận xuất kho.'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSupplementalSubmit = async (customLines?: Array<{ dailyLineId: string; quantity: number; reason: string }>) => {
-    if (!daily || !activeBatchId) return;
-    const items = customLines?.length ? customLines : (!suppMaterialId || Number(suppQuantity) <= 0 || !suppReason.trim() ? [] : [{
-      dailyLineId: suppMaterialId, quantity: Number(suppQuantity), reason: suppReason.trim(),
-    }]);
-    if (items.length === 0) return;
-    setIsSubmittingSupp(true);
-    setSuppError(null);
-    try {
-      const issueLines = items.map((item) => {
-        const target = lines.find((l) => l.dailyLineId === item.dailyLineId);
-        if (!target) throw new Error(`Không tìm thấy nguyên liệu.`);
-        return {
-          reconciliationBatchLineId: target.batchLineId, reconciliationBatchDailyLineId: target.dailyLineId,
-          ingredientId: target.ingredientId, unitId: target.canonicalUnitId,
-          requestedQty: item.quantity, issuedQty: item.quantity, varianceReason: item.reason,
-        };
-      });
-      await mrxApi.createIssue({
-        commandId: crypto.randomUUID(), expectedVersion: daily.sourceVersion, issueDate: activeDate,
-        reconciliationBatchId: activeBatchId, isSupplemental: true, lines: issueLines,
-      });
-      setIsSupplementalOpen(false); setSuppQuantity(''); setSuppReason('');
-      await load(activeBatchId, activeDate);
-    } catch (cause) {
-      setSuppError(cause instanceof Error ? cause.message : 'Không thể thực hiện xuất bổ sung.');
-    } finally {
-      setIsSubmittingSupp(false);
-    }
-  };
-
-  const batchOptions = batches.map((b) => ({
-    value: b.batchId,
-    label: `${b.customerCode || b.customerName || 'Lô'} · ${b.status} · ${b.batchId.slice(0, 8)}`,
-  }));
-
-  const columns = useMemo<ColumnDef<typeof lines[number]>[]>(() => [
-    {
-      id: 'ingredient',
-      header: 'Nguyên liệu thực phẩm',
-      width: '28%',
-      cell: (line) => (
-        <div className="flex items-center gap-2 truncate">
-          <span className="font-semibold text-slate-900 text-sm truncate">{line.ingredientName}</span>
-          {line.ingredientCode && <IdentifierText value={line.ingredientCode} />}
-        </div>
-      ),
-    },
-    {
-      id: 'required',
-      header: 'Nhu cầu ca',
-      width: '16%',
-      align: 'right',
-      cell: (line) => (
-        <Num value={line.requiredQuantity} format="quantity" suffix={line.canonicalUnitName ? ` ${line.canonicalUnitName}` : ''} />
-      ),
-    },
-    {
-      id: 'issued',
-      header: 'Thực xuất cửa kho',
-      width: '20%',
-      cell: (line) => (
-        <Input
-          type="number"
-          min="0.000001"
-          step="any"
-          aria-label={`Số lượng thực xuất ${line.ingredientName ?? line.ingredientCode ?? line.ingredientId}`}
-          value={quantities[line.dailyLineId] ?? ''}
-          disabled={hasInitialIssue}
-          onChange={(e) => setQuantities((current) => ({ ...current, [line.dailyLineId]: e.target.value }))}
-          className="h-8 font-mono text-sm"
-        />
-      ),
-    },
-    {
-      id: 'reason',
-      header: 'Lý do chênh lệch (nếu vượt)',
+      id: 'code',
+      header: 'Mã phiếu xuất',
       width: '24%',
-      cell: (line) => {
-        const issued = Number(quantities[line.dailyLineId]);
-        const isOver = issued > line.requiredQuantity;
-        return (
-          <Input
-            aria-label={`Lý do chênh lệch ${line.ingredientName ?? line.ingredientCode ?? line.ingredientId}`}
-            placeholder={isOver ? 'Bắt buộc nhập lý do xuất vượt...' : 'Ghi chú (nếu có)...'}
-            value={reasons[line.dailyLineId] ?? ''}
-            disabled={hasInitialIssue}
-            onChange={(e) => setReasons((current) => ({ ...current, [line.dailyLineId]: e.target.value }))}
-            className={`h-8 text-xs ${isOver && !reasons[line.dailyLineId]?.trim() ? 'border-amber-400 bg-amber-50/40' : ''}`}
-          />
-        );
-      },
+      minWidth: '220px',
+      cell: (row) => <DocumentCodeCell code={row.issueCode} onOpenDetail={setInspectedIssueId} />,
     },
     {
-      id: 'status',
-      header: 'Trạng thái nghiệp vụ',
-      width: '14%',
-      align: 'center',
-      cell: (line) => {
-        if (hasInitialIssue) {
-          const issued = line.issuedQuantity ?? 0, req = line.requiredQuantity;
-          if (issued === req) return <Badge variant="success" size="sm">Đã xuất đủ</Badge>;
-          return <Badge variant={issued < req ? 'warning' : 'info'} size="sm">{issued < req ? 'Đã xuất thiếu' : 'Đã xuất vượt'}</Badge>;
-        }
-        const val = quantities[line.dailyLineId];
-        if (val === undefined || val === '') return <Badge variant="neutral" size="sm">Chưa nhập</Badge>;
-        const numVal = Number(val), req = line.requiredQuantity;
-        if (numVal === req) return <Badge variant="success" size="sm">Dự kiến xuất đủ</Badge>;
-        return <Badge variant={numVal < req ? 'warning' : 'info'} size="sm">{numVal < req ? 'Dự kiến xuất thiếu' : 'Dự kiến xuất vượt'}</Badge>;
-      },
+      id: 'date',
+      header: 'Ngày xuất',
+      width: '18%',
+      minWidth: '120px',
+      cell: (row) => <span className="font-mono text-xs">{toVietnameseDate(row.issueDate)}</span>,
     },
-  ], [hasInitialIssue, quantities, reasons]);
+    {
+      id: 'shift',
+      header: 'Ca',
+      width: '16%',
+      minWidth: '100px',
+      cell: (row) => <span className="text-xs font-medium">{row.shiftName || '—'}</span>,
+    },
+    {
+      id: 'items',
+      header: 'Số mặt hàng',
+      width: '18%',
+      minWidth: '110px',
+      align: 'right',
+      cell: (row) => <span className="font-mono text-xs font-semibold">{row.lines?.length ?? 0} mặt hàng</span>,
+    },
+    {
+      id: 'actor',
+      header: 'Thủ kho xuất',
+      width: '24%',
+      minWidth: '140px',
+      cell: (row) => <span className="text-xs text-slate-700">{row.issuedByName || 'Thủ kho'}</span>,
+    },
+  ], [setInspectedIssueId]);
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-      <WorkspaceHeader
-        title="Xuất kho nguyên liệu theo ngày"
-        breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
-        contextSelectors={
-          <>
-            {batches.length > 0 && (
-              <Select
-                aria-label="Chọn lô đối soát xuất kho"
-                options={batchOptions}
-                value={activeBatchId}
-                onChange={(e) => {
-                  const newId = e.target.value;
-                  setActiveBatchId(newId);
-                  setSearchParams((curr) => {
-                    const next = new URLSearchParams(curr);
-                    next.set('batchId', newId);
-                    return next;
-                  }, { replace: true });
-                }}
-                className="h-9 w-72 font-medium text-sm"
-              />
-            )}
-            <VietnameseDateInput
-              aria-label="Ngày xuất kho"
-              value={activeDate}
-              onChange={(newDate) => {
-                setActiveDate(newDate);
-                setSearchParams((curr) => {
-                  const next = new URLSearchParams(curr);
-                  next.set('date', newDate);
-                  return next;
-                }, { replace: true });
-              }}
-              className="h-9 w-40 font-mono text-sm"
-            />
-          </>
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="default"
-              onClick={() => navigate(`/warehouse?view=mrx-preparation&date=${activeDate}`)}
-            >
-              Chuẩn bị phối hợp
-            </Button>
-            {isWeeklyAll ? (
-              <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center">
-                Xem tổng hợp tuần (Chỉ đọc)
-              </Badge>
-            ) : hasInitialIssue ? (
-              <Button
-                variant="default"
-                size="default"
-                onClick={() => {
-                  setSuppMaterialId(lines[0]?.dailyLineId || '');
-                  setSuppQuantity('');
-                  setSuppReason('');
-                  setSuppError(null);
-                  setIsSupplementalOpen(true);
-                }}
-              >
-                Xuất bổ sung ca
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="default"
-                  onClick={handleFillAll}
-                  disabled={lines.length === 0}
-                >
-                  Điền đủ toàn bộ
-                </Button>
-                <Button
-                  variant="default"
-                  size="default"
-                  onClick={() => void submit()}
-                  disabled={!canSubmit}
-                >
-                  {saving ? 'Đang ghi…' : 'Xác nhận xuất kho'}
-                </Button>
-              </>
-            )}
-          </div>
-        }
+    <WorkspaceFrame.Root className="select-text">
+      <MrxDailyHeaderBranch
+        batches={batches}
+        activeBatchId={activeBatchId}
+        onSelectBatch={(newId) => {
+          const b = batches.find((item) => item.batchId === newId);
+          setActiveBatchId(newId);
+          if (b) {
+            workspaceSessionStore.setScope({
+              batchId: newId,
+              customerId: b.customerId,
+              customerCode: b.customerCode || '',
+              customerName: b.customerName || '',
+              weekStartDate: b.weekStartDate || '',
+            });
+          }
+          const cachedForNew = serverStateCache.get<{ daily: MrxWarehouseDaily | null; history: MrxIssuePage | null }>(`mrx_daily_${newId}`)?.data;
+          const newDate = cachedForNew?.daily?.dates[0]?.serviceDate || b?.weekStartDate || activeDate;
+          setActiveDate(newDate);
+          serverStateCache.set('snapshot:mrx_daily', { activeBatchId: newId, activeDate: newDate, daily: cachedForNew?.daily || null, history: cachedForNew?.history || null });
+          setSearchParams((curr) => {
+            const next = new URLSearchParams(curr);
+            next.set('batchId', newId);
+            next.set('date', newDate);
+            return next;
+          }, { replace: true });
+        }}
+        activeDate={activeDate}
+        onSelectDate={(newDate) => {
+          setActiveDate(newDate);
+          serverStateCache.set('snapshot:mrx_daily', { activeBatchId, activeDate: newDate, daily, history });
+          workspaceSessionStore.setScope({ serviceDate: newDate, weekStartDate: weekStartFor(newDate) });
+          setSearchParams((curr) => {
+            const next = new URLSearchParams(curr);
+            next.set('date', newDate);
+            return next;
+          }, { replace: true });
+        }}
+        onNavigatePreparation={() => navigate(`/warehouse?view=mrx-preparation&date=${activeDate}`)}
+        onNavigateTransactions={() => navigate('/reconciliation?view=transactions')}
+        isWeeklyAll={isWeeklyAll}
+        hasInitialIssue={hasInitialIssue}
+        onOpenSupplemental={() => {
+          setSuppMaterialId(lines[0]?.dailyLineId || '');
+          setSuppQuantity('');
+          setSuppReason('');
+          setSuppError(null);
+          setIsSupplementalOpen(true);
+        }}
+        onFillAll={handleFillAll}
+        onSubmit={submit}
+        canSubmit={canSubmit}
+        saving={saving}
+        linesCount={lines.length}
       />
 
       <TelemetrySubbar
         leftControls={
-          <div className="flex items-center gap-1 overflow-x-auto py-1 no-scrollbar">
-            <span className="text-xs font-semibold text-slate-700 whitespace-nowrap mr-1">Lịch xuất ca:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveDate('ALL');
-                setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('date', 'ALL'); return next; }, { replace: true });
-              }}
-              className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                isWeeklyAll
-                  ? 'bg-slate-900 text-white font-bold shadow-2xs'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              Cả tuần (Tổng hợp)
-            </button>
-            {daily?.dates.map((d) => (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded">
               <button
-                key={d.serviceDate}
                 type="button"
-                onClick={() => {
-                  setActiveDate(d.serviceDate);
-                  setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('date', d.serviceDate); return next; }, { replace: true });
-                }}
-                className={`text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  d.serviceDate === activeDate
-                    ? 'bg-slate-900 text-white font-bold shadow-2xs'
-                    : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
-                }`}
+                onClick={() => setActiveTab('demand')}
+                className={clsx('px-2.5 py-1 text-xs font-semibold rounded cursor-pointer transition-colors', activeTab === 'demand' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900')}
               >
-                {(() => {
-                  try {
-                    const dayNum = new Date(`${d.serviceDate}T00:00:00Z`).getUTCDay();
-                    const names = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-                    return names[dayNum] || 'Ngày';
-                  } catch {
-                    return 'Ngày';
-                  }
-                })()} ({toVietnameseDate(d.serviceDate).slice(0, 5)})
-                {d.lines.some((l) => (l.issuedQuantity ?? 0) > 0) && (
-                  <Check className="size-3 text-emerald-600 inline ml-1" aria-hidden="true" />
-                )}
+                Định lượng xuất ca
               </button>
-            ))}
+              <button
+                type="button"
+                onClick={() => setActiveTab('history')}
+                className={clsx('px-2.5 py-1 text-xs font-semibold rounded cursor-pointer transition-colors', activeTab === 'history' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-600 hover:text-slate-900')}
+              >
+                Lịch sử phiếu ({history?.items?.length ?? 0})
+              </button>
+            </div>
+            {activeTab === 'demand' && (
+              <MrxDailyDateTabsBranch
+                dates={daily?.dates}
+                activeDate={activeDate}
+                onSelectDate={(newDate) => {
+                  setActiveDate(newDate);
+                  setSearchParams((curr) => {
+                    const next = new URLSearchParams(curr);
+                    next.set('date', newDate);
+                    return next;
+                  }, { replace: true });
+                }}
+                isWeeklyAll={isWeeklyAll}
+              />
+            )}
           </div>
         }
         telemetryPills={
           isWeeklyAll ? (
             <div className="flex items-center gap-2 text-xs">
-              <Badge variant="neutral" size="sm">Chế độ xem tổng hợp tuần (Chỉ đọc)</Badge>
-              <span className="text-slate-500 hidden md:inline">· Chọn từng ngày (T2–T7) để xuất kho</span>
+              <span className="text-slate-500">Mã lô:</span>
+              <strong className="font-mono text-slate-900">{daily?.batchId ? daily.batchId.slice(0, 8) : '—'}</strong>
+              <span className="text-slate-300">·</span>
+              <span className="text-slate-500">Tổng nguyên liệu:</span>
+              <strong className="font-mono text-slate-900">{weeklyAggregateLines.length}</strong>
             </div>
           ) : (
-            day ? (
+            day && (
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500">Mặt hàng:</span>
-                <strong className="font-mono text-slate-900">{lines.length}</strong>
+                <span className="text-slate-500">Phiên bản:</span>
+                <strong className="font-mono text-slate-900">v{daily?.sourceVersion ?? '—'}</strong>
                 <span className="text-slate-300">·</span>
-                <Badge variant={hasInitialIssue ? 'success' : 'warning'} size="sm">
-                  {hasInitialIssue ? 'Đã xuất kho' : 'Chưa xuất'}
-                </Badge>
-                <span className="text-slate-500 hidden lg:inline">· {hasInitialIssue ? 'Có thể xuất bổ sung trong ca' : 'Bấm "Điền đủ toàn bộ" nếu xuất đúng định mức'}</span>
+                <span className="text-slate-500">Mặt hàng ca:</span>
+                <strong className="font-mono text-slate-900">{lines.length}</strong>
               </div>
-            ) : null
+            )
           )
         }
       />
 
-      <StateBoundary
-        isLoading={loading}
-        isFetching={loading}
-        hasExistingData={Boolean(day || (daily && daily.dates.some((d) => d.lines.length > 0)))}
-        error={error}
-        onRetry={() => void load()}
-        isPartial={Boolean(daily && (!daily.compatibility.canRead || !daily.compatibility.canIssueByDate))}
-        partialMessage={daily?.compatibility.reasonCode ?? undefined}
-        isEmpty={!loading && !error && !day}
-        emptyScenario="filter-empty"
-        emptyTitle="Không có định lượng cho ngày đã chọn"
-        emptyDescription="Kiểm tra lại ngày phục vụ hoặc chuyển sang màn hình Chuẩn bị phối hợp để xem toàn bộ các lô."
-      >
-        <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
-          {isWeeklyAll ? (
-            <div className="flex-1 min-h-0 flex flex-col">
-              <div className="p-3 bg-blue-50/60 border-b border-blue-200 text-blue-900 text-xs flex items-center justify-between shrink-0">
-                <span>Bảng tổng hợp nhu cầu nguyên liệu cả tuần theo lô đã đóng băng. Chọn từng ngày cụ thể phía trên để xuất kho ca.</span>
-                <span className="font-mono font-semibold">{weeklyAggregateLines.length} mặt hàng</span>
-              </div>
-              <DataGrid data={weeklyAggregateLines} columns={weeklyColumns} keyExtractor={(line) => line.id} emptyMessage="Chưa có dữ liệu tổng hợp nguyên liệu cả tuần." />
+      {mutationError && (
+        <div role="alert" className="p-3 bg-rose-50 border-b border-rose-200 text-xs text-rose-800 flex justify-between items-center">
+          <span>{mutationError.message}</span>
+          <button type="button" onClick={() => setMutationError(null)} className="font-bold underline ml-2">Đóng</button>
+        </div>
+      )}
+
+      <WorkspaceFrame.Body>
+        <StateBoundary
+          {...stateProps}
+          onRetry={() => load(true)}
+          loadingVariant="table"
+          emptyIcon={Boxes}
+          isEmpty={stateProps.isEmpty || isLegacyMissing}
+          emptyTitle={isLegacyMissing ? "Lô đối soát chưa có phân rã định lượng theo ngày" : (!isWeeklyAll && lines.length === 0 ? "Không có định lượng cần xuất cho ngày đã chọn" : stateProps.emptyTitle)}
+          emptyDescription={isLegacyMissing ? "Lô đối soát này được tạo từ phiên bản trước khi áp dụng tính năng phân rã theo ngày. Vui lòng chọn lô đối soát khác trong danh sách phía trên." : (!isWeeklyAll && lines.length === 0 ? "Ngày này không phát sinh định mức nguyên liệu cần xuất kho." : stateProps.emptyDescription)}
+          isPartial={isLegacyMissing}
+          partialMessage="Lô này thiếu liên kết định lượng ca chi tiết từ hệ thống thực đơn gốc. Chỉ có thể xem danh mục tổng hợp."
+          actionLabel={isLegacyMissing ? 'Xem màn hình Điều phối lô' : (!activeBatchId || batches.length === 0 ? 'Xem tiến độ tại Bàn điều hành' : undefined)}
+          onAction={isLegacyMissing ? () => navigate(`/weekly-menu?view=mrx-batch&batchId=${activeBatchId}`) : (!activeBatchId || batches.length === 0 ? () => navigate('/') : undefined)}
+        >
+          {activeTab === 'demand' ? (
+            <div className="flex-1 min-h-0 flex flex-col bg-white">
+              <MrxDailyLinesBranch
+                isWeeklyAll={isWeeklyAll}
+                weeklyAggregateLines={weeklyAggregateLines}
+                lines={lines}
+                quantities={quantities}
+                setQuantities={setQuantities}
+                reasons={reasons}
+                setReasons={setReasons}
+                hasInitialIssue={hasInitialIssue}
+              />
             </div>
           ) : (
-            <>
-              {hasInitialIssue && (
-                <div role="status" className="px-4 py-2 text-xs font-medium border-b border-blue-200 bg-blue-50 text-blue-800 flex items-center justify-between shrink-0">
-                  <span>Ngày này đã có phiếu xuất ban đầu. Có thể xuất bổ sung phát sinh hoặc theo dõi chênh lệch tại Hàng đợi thay đổi nguồn.</span>
-                  <Button
-                    variant="outline"
-                    size="xs"
-                    onClick={() => navigate('/warehouse?view=mrx-issues')}
-                  >
-                    Mở hàng đợi thay đổi nguồn
-                  </Button>
-                </div>
-              )}
-
-              <DataGrid data={lines} columns={columns} keyExtractor={(l) => l.dailyLineId} emptyMessage="Ngày này không có nguyên liệu nào cần xuất kho." />
-
-              {history && history.items.length > 0 && (
-                <section className="p-3 border-t border-slate-200 bg-slate-50/60 shrink-0" aria-label="Lịch sử phiếu xuất">
-                  <h2 className="text-xs font-bold text-slate-700 mb-1">Phiếu xuất đã tạo cho lô:</h2>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {history.items.map((issue) => (
-                      <button
-                        key={issue.issueId}
-                        type="button"
-                        onClick={() => setInspectedIssueId(issue.issueId)}
-                        className="inline-flex items-center gap-1 bg-white border border-slate-200 rounded px-2 py-0.5 font-mono text-slate-800 hover:border-blue-400 hover:text-blue-700 cursor-pointer text-xs"
-                        title="Bấm để xem chi tiết các dòng nguyên liệu trong phiếu xuất"
-                      >
-                        <IdentifierText value={issue.issueCode} /> · <span>{toVietnameseDate(issue.issueDate)}</span>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
+            <div className="flex-1 min-h-0 flex flex-col bg-white">
+              <DataGrid
+                data={history?.items ?? []}
+                columns={historyColumns}
+                keyExtractor={(row) => row.issueId}
+                emptyMessage="Chưa có phiếu xuất kho nào cho lô này."
+              />
+            </div>
           )}
-        </div>
-      </StateBoundary>
+        </StateBoundary>
+      </WorkspaceFrame.Body>
 
       <MrxSupplementalIssueModal
         isOpen={isSupplementalOpen}
@@ -586,7 +290,7 @@ export function MrxDailyIssueWorkbench({
         onSuppReasonChange={setSuppReason}
         suppError={suppError}
         isSubmittingSupp={isSubmittingSupp}
-        onSubmit={(items) => void handleSupplementalSubmit(items)}
+        onSubmit={handleSupplementalSubmit}
       />
 
       <ReconciliationIssueDetailModal
@@ -594,6 +298,6 @@ export function MrxDailyIssueWorkbench({
         onClose={() => setInspectedIssueId(null)}
         issueId={inspectedIssueId}
       />
-    </div>
+    </WorkspaceFrame.Root>
   );
 }

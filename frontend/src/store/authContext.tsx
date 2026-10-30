@@ -2,11 +2,20 @@ import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import type { UserInfo, OperationalMode } from '../types';
 import { authApi } from '../api/authApi';
 import { systemApi } from '../api/systemApi';
+import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { AuthContext } from './useAuth';
+import { clearAllWorkspaceState } from './workspaceUiState';
+import { workspaceSessionStore } from './workspaceSessionStore';
+import { clearAllClientDrafts } from '../hooks/useClientDraftPersistence';
+import { serverStateCache, clearAllServerCache } from './serverStateCache';
+import { clearAllOfflineQueue } from './offlineMutationQueue';
+import { idempotencyManager } from '../utils/idempotencyKey';
+import { SessionExpiredModal } from '../components/workbench/SessionExpiredModal';
 
 const TOKEN_KEY = 'ipc_v3_token';
 const USER_KEY = 'ipc_v3_user';
 const MODE_KEY = 'ipc_v3_mode';
+const MODE_VERSION_KEY = 'ipc_v3_mode_version';
 
 export function AuthProvider({ children, resolveLanding = () => '/' }: {
   children: ReactNode;
@@ -26,14 +35,33 @@ export function AuthProvider({ children, resolveLanding = () => '/' }: {
   const [operationalMode, setModeState] = useState<OperationalMode>(() => {
     return (localStorage.getItem(MODE_KEY) as OperationalMode) || 'DEFAULT';
   });
-  const [operationalModeVersion, setOperationalModeVersion] = useState<number | null>(null);
+  const [operationalModeVersion, setOperationalModeVersion] = useState<number | null>(() => {
+    try {
+      const stored = localStorage.getItem(MODE_VERSION_KEY);
+      return stored ? Number(stored) : (token && user ? 1 : null);
+    } catch {
+      return token && user ? 1 : null;
+    }
+  });
   const [operationalModeReasonRequired, setOperationalModeReasonRequired] = useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  useEffect(() => {
+    const handleExpiredEvent = () => {
+      if (token && user) {
+        setIsSessionExpired(true);
+      }
+    };
+    window.addEventListener('ipc:session-expired', handleExpiredEvent);
+    return () => window.removeEventListener('ipc:session-expired', handleExpiredEvent);
+  }, [token, user]);
 
   const applyModeSnapshot = useCallback((snapshot: Awaited<ReturnType<typeof systemApi.getOperationalMode>>) => {
     setModeState(snapshot.mode);
     setOperationalModeVersion(snapshot.version);
     setOperationalModeReasonRequired(snapshot.reasonRequired);
     localStorage.setItem(MODE_KEY, snapshot.mode);
+    localStorage.setItem(MODE_VERSION_KEY, String(snapshot.version));
   }, []);
 
   const reloadOperationalMode = useCallback(async () => {
@@ -43,6 +71,16 @@ export function AuthProvider({ children, resolveLanding = () => '/' }: {
   useEffect(() => {
     systemApi.getOperationalMode().then(applyModeSnapshot).catch(() => {});
   }, [applyModeSnapshot]);
+
+  useEffect(() => {
+    if (!token || !user || process.env.NODE_ENV === 'test') return;
+    const cached = serverStateCache.get('catalog_customers')?.data;
+    if (cached) return;
+    weeklyMenuApi.getCustomers().then((list) => {
+      serverStateCache.set('catalog_customers', list);
+      serverStateCache.set('snapshot:catalog_customers', list);
+    }).catch(() => {});
+  }, [token, user]);
 
   const login = useCallback(async (username: string, password: string) => {
     setIsLoading(true);
@@ -72,6 +110,14 @@ export function AuthProvider({ children, resolveLanding = () => '/' }: {
     } finally {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(MODE_VERSION_KEY);
+      clearAllWorkspaceState();
+      workspaceSessionStore.clearScope();
+      clearAllClientDrafts();
+      clearAllServerCache();
+      clearAllOfflineQueue();
+      idempotencyManager.clearAll();
+      setIsSessionExpired(false);
       setToken(null);
       setUser(null);
     }
@@ -96,6 +142,18 @@ export function AuthProvider({ children, resolveLanding = () => '/' }: {
     const userRoleName = user.roleName?.toUpperCase() || '';
     return allowed.includes(userRoleCode) || allowed.includes(userRoleName);
   }, [user]);
+
+  const handleSessionRestored = useCallback((newToken: string) => {
+    localStorage.setItem(TOKEN_KEY, newToken);
+    setToken(newToken);
+    setIsSessionExpired(false);
+  }, []);
+
+  const handleSessionCancel = useCallback(() => {
+    setIsSessionExpired(false);
+    logout();
+  }, [logout]);
+
   const landingPath = user ? resolveLanding(user, operationalMode) : '/login';
 
   return (
@@ -109,6 +167,8 @@ export function AuthProvider({ children, resolveLanding = () => '/' }: {
         operationalModeVersion,
         operationalModeReasonRequired,
         landingPath,
+        isSessionExpired,
+        triggerSessionExpired: () => setIsSessionExpired(true),
         reloadOperationalMode,
         login,
         logout,
@@ -118,6 +178,14 @@ export function AuthProvider({ children, resolveLanding = () => '/' }: {
       }}
     >
       {children}
+      {isSessionExpired && user && (
+        <SessionExpiredModal
+          isOpen={isSessionExpired}
+          username={user.username}
+          onSuccess={handleSessionRestored}
+          onCancel={handleSessionCancel}
+        />
+      )}
     </AuthContext.Provider>
   );
 }

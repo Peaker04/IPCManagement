@@ -75,7 +75,7 @@ export const VietnameseDateInput = React.forwardRef<HTMLInputElement, Vietnamese
 
     return (
       <Popover.Root>
-        <div className="relative inline-flex items-center min-w-0">
+        <div className="relative inline-flex items-center shrink-0 w-40 min-w-[160px]">
           <input
             {...props}
             ref={ref}
@@ -93,7 +93,7 @@ export const VietnameseDateInput = React.forwardRef<HTMLInputElement, Vietnamese
             }}
             className={twMerge(
               clsx(
-                'h-9 w-40 rounded border bg-white pl-3 pr-8 py-1.5 text-sm text-slate-900 font-mono tracking-tight tabular-nums transition-colors',
+                'h-9 w-40 min-w-[160px] shrink-0 rounded border bg-white pl-3 pr-9 py-1.5 text-sm text-slate-900 font-mono tracking-tight tabular-nums transition-colors',
                 'focus-visible:outline-none focus-visible:ring-1',
                 error
                   ? 'border-red-500 focus-visible:ring-red-400'
@@ -107,7 +107,7 @@ export const VietnameseDateInput = React.forwardRef<HTMLInputElement, Vietnamese
             type="button"
             disabled={disabled}
             aria-label="Mở lịch chọn ngày"
-            className="absolute right-2 text-slate-400 hover:text-slate-700 cursor-pointer disabled:cursor-not-allowed transition-colors"
+            className="absolute right-2.5 text-slate-400 hover:text-slate-700 cursor-pointer disabled:cursor-not-allowed transition-colors"
           >
             <CalendarDays className="size-4" aria-hidden="true" />
           </Popover.Trigger>

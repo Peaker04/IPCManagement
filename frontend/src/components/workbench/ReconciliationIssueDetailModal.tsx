@@ -4,6 +4,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Num } from '../ui/num';
 import { IdentifierText } from '../ui/identifier-text';
+import { InlineBanner } from '../ui/inline-banner';
 import { mrxApi, type MrxInventoryIssueDetail } from '../../api/mrxApi';
 import { toVietnameseDate, formatVietnameseDateTime } from '../../utils/dates';
 
@@ -60,9 +61,9 @@ export function ReconciliationIssueDetailModal({
     >
       <div className="space-y-4 text-sm text-slate-700">
         {error && (
-          <div role="alert" className="p-3 rounded bg-rose-50 text-rose-800 border border-rose-200 text-xs">
+          <InlineBanner variant="error">
             {error.message}
-          </div>
+          </InlineBanner>
         )}
 
         {isLoading ? (
@@ -85,7 +86,7 @@ export function ReconciliationIssueDetailModal({
             </div>
 
             <div className="border border-slate-200 rounded overflow-hidden max-h-80 overflow-y-auto">
-              <table className="w-full text-left text-xs border-collapse">
+              <table aria-label="Danh sách nguyên liệu của phiếu xuất kho" className="w-full text-left text-xs border-collapse">
                 <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 sticky top-0 font-semibold">
                   <tr>
                     <th className="p-2.5">Mã NL</th>
@@ -113,7 +114,21 @@ export function ReconciliationIssueDetailModal({
                           <td className="p-2.5 font-mono text-slate-600">
                             <IdentifierText value={line.ingredientId.slice(0, 8)} />
                           </td>
-                          <td className="p-2.5 font-medium text-slate-900">{line.ingredientName || '—'}</td>
+                          <td className="p-2.5 font-medium text-slate-900">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span>{line.ingredientName || '—'}</span>
+                              {isOver && (
+                                <Badge variant="warning" size="sm">
+                                  Xuất vượt (+{(diff).toFixed(3)})
+                                </Badge>
+                              )}
+                              {isUnder && (
+                                <Badge variant="neutral" size="sm">
+                                  Tiết kiệm ({(diff).toFixed(3)})
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
                           <td className="p-2.5 text-center font-mono text-slate-600">{line.unitName || 'kg'}</td>
                           <td className="p-2.5 text-right font-mono text-slate-700">
                             <Num value={line.requestedQty} format="quantity" decimals={3} />

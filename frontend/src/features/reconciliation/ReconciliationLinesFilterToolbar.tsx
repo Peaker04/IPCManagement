@@ -27,13 +27,13 @@ export function ReconciliationLinesFilterToolbar({
   onBulkDisposition,
 }: ReconciliationLinesFilterToolbarProps) {
   return (
-    <div className="h-10 px-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between gap-3 shrink-0">
+    <div className="h-9 px-4 border-b border-slate-100 bg-white flex items-center justify-between gap-3 shrink-0">
       <Input
         aria-label="Tìm kiếm nguyên liệu đối soát"
         placeholder="Tìm theo tên hoặc mã nguyên liệu..."
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
-        className="h-7 w-64 text-xs"
+        className="h-7 w-52 sm:w-64 text-xs"
       />
       <div className="flex items-center gap-1.5" role="toolbar" aria-label="Lọc trạng thái dòng">
         <Button

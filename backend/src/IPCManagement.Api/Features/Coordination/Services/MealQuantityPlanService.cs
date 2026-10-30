@@ -156,6 +156,8 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
                         "Hãy phát hành phiên bản thực đơn trước khi tiếp tục.");
                 }
 
+                await EnsureNoActiveReconBatchAsync(schedules[0].WeekStartDate, customerId, cancellationToken);
+
                 var customerCode = schedules.First().Customer.CustomerCode;
                 var planCode = MealQuantityPlanPolicy.BuildQuickServingPlanCode(serviceDate, shiftName, customerCode);
                 var plan = await _context.Mealquantityplans
@@ -299,5 +301,29 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
             NewValue = newValue,
             Reason = reason
         });
+    }
+
+    private async Task EnsureNoActiveReconBatchAsync(DateOnly weekStartDate, byte[] customerId, CancellationToken cancellationToken)
+    {
+        var activeMenuVersionIds = await _context.Menuversions
+            .AsNoTracking()
+            .Where(mv => mv.CustomerId == customerId && mv.WeekStartDate == weekStartDate)
+            .Select(mv => mv.MenuVersionId)
+            .ToListAsync(cancellationToken);
+
+        if (activeMenuVersionIds.Count > 0)
+        {
+            var hasActiveReconBatch = await _context.Reconciliationbatches
+                .AsNoTracking()
+                .AnyAsync(batch =>
+                    activeMenuVersionIds.Contains(batch.MenuVersionId) &&
+                    (batch.Status == "TRANSFERRED" || batch.Status == "IN_PROGRESS" || batch.Status == "COMPLETED"),
+                    cancellationToken);
+
+            if (hasActiveReconBatch)
+            {
+                throw new BusinessRuleException("Lô đối soát cho tuần này đã bàn giao sang Kho hoặc đang đối chiếu. Không thể sửa trực tiếp số suất KHSX. Vui lòng gửi yêu cầu 'Điều chỉnh nguồn MRX'.");
+            }
+        }
     }
 }

@@ -30,12 +30,12 @@ function renderWeeklyMenu(initialEntry = '/weekly-menu') {
 describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    localStorage.setItem('ipc_v3_mode', 'DEFAULT');
     localStorage.setItem('ipc_v3_user', JSON.stringify({
       userId: 'coordinator-1', fullName: 'Điều phối viên', username: 'coord', roleCode: 'Coordinator', roleName: 'Điều phối',
       isActive: true, isAdminFullAccess: false, permissions: ['reconciliation.source.read'],
     }));
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
       { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
     ]);
@@ -44,6 +44,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     });
   });
   it('lets Admin review exact pending impact and approve it from the MRX inbox', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     localStorage.setItem('ipc_v3_user', JSON.stringify({
       userId: 'admin-1', fullName: 'Quản trị viên', username: 'admin', roleCode: 'ADMIN', roleName: 'Admin',
       isActive: true, isAdminFullAccess: true, permissions: ['reconciliation.source.read'],
@@ -70,6 +72,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
   });
 
   it('previews a serving change then submits the exact versioned request for Admin review', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     const source: MrxWeeklySource = {
       customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',
       weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', menuVersionId: 'menu-v1', menuVersionNo: 3,
@@ -88,7 +92,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     vi.spyOn(mrxApi, 'previewSourceChange').mockResolvedValue(sourceImpact);
     vi.spyOn(mrxApi, 'submitSourceChange').mockResolvedValue({ ...sourceImpact, menuAmendmentId: 'amendment-1', status: 'PENDING_REVIEW' });
 
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch');
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&weekStartDate=2026-10-19');
     await userEvent.click(await screen.findByRole('button', { name: 'Kiểm tra định lượng' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Điều chỉnh nguồn' }));
     fireEvent.change(screen.getByRole('spinbutton', { name: 'Số suất mới' }), { target: { value: '120' } });
@@ -105,6 +109,8 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
   });
 
   it('keeps MRX source diagnostics visible and blocks commit until the source is valid', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     const source: MrxWeeklySource = {
       customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',
       weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', menuVersionId: 'menu-v1', menuVersionNo: 3,
@@ -130,12 +136,25 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
   });
 
   it('renders mrx-batch view when accessing /weekly-menu?view=mrx-batch', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     renderWeeklyMenu('/weekly-menu?view=mrx-batch');
 
     expect(await screen.findByRole('heading', { name: 'Chuẩn bị lô đối soát' })).toBeInTheDocument();
   });
 
+  it('automatically redirects naked /weekly-menu to /weekly-menu?view=mrx-batch in MATERIAL_RECONCILIATION mode (DOM-MODE-1)', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    renderWeeklyMenu('/weekly-menu');
+
+    expect(await screen.findByRole('heading', { name: 'Chuẩn bị lô đối soát' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Thực đơn & KHSX tuần' })).not.toBeInTheDocument();
+  });
+
   it('commits one canonical draft then readies and transfers that batch to Warehouse', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     const source: MrxWeeklySource = {
       customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',
       weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', menuVersionId: 'menu-v1', menuVersionNo: 3,
@@ -158,7 +177,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     vi.spyOn(mrxApi, 'markReady').mockResolvedValue({ ...draft, status: 'READY', version: 2 });
     vi.spyOn(mrxApi, 'transferToWarehouse').mockResolvedValue({ batchId: 'batch-1', status: 'TRANSFERRED', sourceVersion: 3, lines: [] });
 
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch');
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&weekStartDate=2026-10-19');
     await userEvent.click(await screen.findByRole('button', { name: 'Kiểm tra định lượng' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Tạo lô nháp' }));
     expect(mrxApi.commitQuantityImport).toHaveBeenCalledTimes(1);
@@ -377,5 +396,49 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     const customerSelect = await screen.findByRole('combobox', { name: 'Chọn khách hàng MRX' });
     expect(customerSelect).toHaveValue('cust-2');
+  });
+
+  it('renders Chỉnh sửa lịch tuần button on MRX Batch when source exists', async () => {
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
+      { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
+    ]);
+    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
+      customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
+      menuVersionId: 'mv-1', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [],
+      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
+    });
+
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
+
+    const editBtn = await screen.findByRole('button', { name: 'Chỉnh sửa lịch tuần' });
+    expect(editBtn).toBeInTheDocument();
+  });
+
+  it('disables Chỉnh sửa lịch tuần button with explanatory title when batch has progressed beyond DRAFT', async () => {
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
+      { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
+    ]);
+    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
+      customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
+      menuVersionId: 'mv-1', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [],
+      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
+    });
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [{
+        batchId: 'batch-transferred-1', customerId: 'cust-1', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08', status: 'TRANSFERRED',
+        version: 3, createdAt: '2026-11-01T00:00:00Z',
+      }],
+      totalCount: 1, pageNumber: 1, pageSize: 1, totalPages: 1, hasPrev: false, hasNext: false,
+    });
+    vi.spyOn(mrxApi, 'getBatch').mockResolvedValue({
+      batchId: 'batch-transferred-1', customerId: 'cust-1', weekStartDate: '2026-11-02', status: 'TRANSFERRED',
+      version: 3, lines: [],
+    } as unknown as MrxBatch);
+
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
+
+    const editBtn = await screen.findByRole('button', { name: 'Chỉnh sửa lịch tuần' });
+    expect(editBtn).toBeDisabled();
+    expect(editBtn).toHaveAttribute('title', expect.stringContaining('Lô đối soát đã bàn giao sang Kho'));
   });
 });

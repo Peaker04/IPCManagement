@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import { useOperationalRecovery, executeSafeMutation } from '../../hooks/useOperationalRecovery';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
@@ -10,8 +11,11 @@ import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { Tabs } from '../../components/ui/tabs';
 import { Modal } from '../../components/ui/modal';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import { coordinationApi, type CoordinationOrderItem, type CoordinationShiftSummary } from '../../api/coordinationApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
+import { todayInBusinessTimezone } from '../../utils/dates';
+import { serverStateCache } from '../../store/serverStateCache';
 import type { CustomerOption } from '../../types';
 
 const SHIFT_TABS = [
@@ -19,34 +23,81 @@ const SHIFT_TABS = [
   { id: 'AFTERNOON', label: 'Ca 2 (Chiều)' },
 ];
 
-function todayInBusinessTimezone(): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+interface MealOrdersSnapshot {
+  customerCode: string;
+  serviceDate: string;
+  shiftName: 'MORNING' | 'AFTERNOON';
+  data: CoordinationShiftSummary | null;
 }
 
 export function MealOrdersPage() {
-  const [customers, setCustomers] = useState<CustomerOption[]>([]);
-  const [customerCode, setCustomerCode] = useState('');
-  const [serviceDate, setServiceDate] = useState(todayInBusinessTimezone);
-  const [shiftName, setShiftName] = useState<'MORNING' | 'AFTERNOON'>('MORNING');
-  const [data, setData] = useState<CoordinationShiftSummary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const snapshot = serverStateCache.get<MealOrdersSnapshot>('snapshot:meal_orders')?.data;
+  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
+  const initialCustomerCode = snapshot?.customerCode || cachedCustomers?.[0]?.customerCode || '';
+  const [customerCode, setCustomerCode] = useState(() => initialCustomerCode);
+  const [serviceDate, setServiceDate] = useState(() => snapshot?.serviceDate || todayInBusinessTimezone());
+  const [shiftName, setShiftName] = useState<'MORNING' | 'AFTERNOON'>(() => snapshot?.shiftName || 'MORNING');
+
+  const orderKey = `meal_orders_${initialCustomerCode}_${snapshot?.serviceDate || todayInBusinessTimezone()}_${snapshot?.shiftName || 'MORNING'}`;
+  const cachedOrders = snapshot?.data ?? (initialCustomerCode ? serverStateCache.get<CoordinationShiftSummary>(orderKey)?.data : null);
+
+  const [hasCustomersLoaded, setHasCustomersLoaded] = useState(() => Boolean(cachedCustomers && cachedCustomers.length > 0));
+  const [customerError, setCustomerError] = useState<Error | null>(null);
   const [isLockModalOpen, setIsLockModalOpen] = useState(false);
   const [isLocking, setIsLocking] = useState(false);
   const [lockSuccess, setLockSuccess] = useState<string | null>(null);
-  const requestSequence = useRef(0);
+  const [lockError, setLockError] = useState<Error | null>(null);
+
+  const fetcher = useCallback(async (f: { customerCode: string; serviceDate: string; shiftName: 'MORNING' | 'AFTERNOON' }) => {
+    if (!f.customerCode) return null;
+    const summary = await coordinationApi.getOrders(f.serviceDate, f.shiftName, f.customerCode);
+    serverStateCache.set('snapshot:meal_orders', {
+      customerCode: f.customerCode,
+      serviceDate: f.serviceDate,
+      shiftName: f.shiftName,
+      data: summary,
+    });
+    return summary;
+  }, []);
+
+  const recovery = useOperationalRecovery<CoordinationShiftSummary | null, { customerCode: string; serviceDate: string; shiftName: 'MORNING' | 'AFTERNOON' }>({
+    queryKey: `meal_orders_${customerCode}_${serviceDate}_${shiftName}`,
+    fetcher,
+    initialFilters: { customerCode, serviceDate, shiftName },
+    defaultFilters: { customerCode: customers[0]?.customerCode || '', serviceDate: todayInBusinessTimezone(), shiftName: 'MORNING' },
+    prerequisiteRoute: '/admin-data?view=customers',
+    prerequisiteLabel: 'Khách hàng & Hợp đồng',
+  });
+
+  const { setFilters } = recovery;
+  useEffect(() => {
+    if (customerCode) {
+      setFilters({ customerCode, serviceDate, shiftName });
+    }
+  }, [customerCode, serviceDate, shiftName, setFilters]);
+
+  const data = recovery.data || cachedOrders || null;
+  const isLoading = recovery.isLoading && !data;
+  const isFetching = recovery.isFetching;
+  const error = customerError || recovery.error;
+  const loadOrders = recovery.refetch;
 
   const handleLock = async () => {
     if (!data || data.orders.length === 0) return;
     setIsLocking(true);
-    setError(null);
-    try {
-      await coordinationApi.lockOrderPlan({
+    setLockError(null);
+
+    await executeSafeMutation({
+      mutationFn: async (payload: {
+        serviceDate: string;
+        shiftName: string;
+        scope: string;
+        lines: Array<{ quantityPlanLineId: string; orderId: string; actualQuantity: number }>;
+      }) => {
+        return coordinationApi.lockOrderPlan(payload);
+      },
+      payload: {
         serviceDate,
         shiftName,
         scope: 'FULLDAY',
@@ -55,15 +106,20 @@ export function MealOrdersPage() {
           orderId: o.id,
           actualQuantity: o.actualQuantity,
         })),
-      });
-      setLockSuccess(`Đã chốt đơn suất ăn cho ${data.customerCode} ${shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : 'Ca 2 (Chiều)'} thành công.`);
-      setIsLockModalOpen(false);
-      await loadOrders();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error('Không thể chốt đơn kế hoạch suất ăn.'));
-    } finally {
-      setIsLocking(false);
-    }
+      },
+      onSuccess: async () => {
+        setLockSuccess(`Đã chốt đơn suất ăn cho ${data.customerCode} ${shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : 'Ca 2 (Chiều)'} thành công.`);
+        setIsLockModalOpen(false);
+        setLockError(null);
+        serverStateCache.delete(`meal_orders_${customerCode}_${serviceDate}_${shiftName}`);
+        await loadOrders();
+      },
+      onError: (err) => {
+        setLockError(err);
+      },
+    });
+
+    setIsLocking(false);
   };
 
   useEffect(() => {
@@ -72,48 +128,20 @@ export function MealOrdersPage() {
       .then((list) => {
         if (ignore) return;
         setCustomers(list);
+        setHasCustomersLoaded(true);
+        serverStateCache.set('catalog_customers', list);
+        const existing = customerCode && list.find((c) => c.customerCode === customerCode);
+        if (existing) return;
         setCustomerCode((current) => current || list[0]?.customerCode || '');
-        if (list.length === 0) setIsLoading(false);
       })
       .catch((cause: unknown) => {
         if (!ignore) {
-          setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
-          setIsLoading(false);
+          setHasCustomersLoaded(true);
+          setCustomerError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
         }
       });
     return () => { ignore = true; };
   }, []);
-
-  const loadOrders = useCallback(async () => {
-    if (!customerCode) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const summary = await coordinationApi.getOrders(serviceDate, shiftName, customerCode);
-      setData(summary);
-    } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách đơn ăn ca phục vụ.'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [serviceDate, shiftName, customerCode]);
-
-  useEffect(() => {
-    if (!customerCode) return;
-    const sequence = ++requestSequence.current;
-    coordinationApi.getOrders(serviceDate, shiftName, customerCode)
-      .then((summary) => {
-        if (sequence === requestSequence.current) setData(summary);
-      })
-      .catch((cause: unknown) => {
-        if (sequence === requestSequence.current) {
-          setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách đơn ăn ca phục vụ.'));
-        }
-      })
-      .finally(() => {
-        if (sequence === requestSequence.current) setIsLoading(false);
-      });
-  }, [serviceDate, shiftName, customerCode]);
 
   const customerSelectOptions = customers.map((customer) => ({
     value: customer.customerCode,
@@ -184,6 +212,7 @@ export function MealOrdersPage() {
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <WorkspaceHeader
         title="Điều phối đơn ăn"
+        breadcrumb="Điều phối · Điều phối suất ăn"
         contextSelectors={
           <>
             <Select
@@ -223,10 +252,9 @@ export function MealOrdersPage() {
       />
 
       {lockSuccess && (
-        <div role="status" className="px-4 py-2 text-xs font-semibold border-b border-emerald-200 bg-emerald-50 text-emerald-800 flex items-center justify-between shrink-0">
-          <span>{lockSuccess}</span>
-          <button type="button" onClick={() => setLockSuccess(null)} className="underline cursor-pointer">Đóng</button>
-        </div>
+        <InlineBanner variant="success" onClose={() => setLockSuccess(null)} className="shrink-0">
+          {lockSuccess}
+        </InlineBanner>
       )}
 
       <TelemetrySubbar
@@ -252,27 +280,39 @@ export function MealOrdersPage() {
       />
 
       <StateBoundary
-        isLoading={isLoading}
-        isFetching={isLoading}
-        hasExistingData={Boolean(data && data.orders.length > 0)}
+        isLoading={isLoading && !data}
+        isFetching={isFetching || (isLoading && Boolean(data))}
+        hasExistingData={Boolean(data || snapshot?.data)}
         error={error}
         onRetry={loadOrders}
-        isEmpty={Boolean(data && data.orders.length === 0)}
-        emptyScenario="prerequisite-blocked"
-        emptyTitle="Chưa có kế hoạch suất ăn"
-        emptyDescription="Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn."
+        isEmpty={!isLoading && !isFetching && hasCustomersLoaded && (!data || data.orders.length === 0 || customers.length === 0)}
+        emptyScenario={customers.length === 0 ? 'prerequisite-blocked' : 'filter-empty'}
+        prerequisiteLabel="Khách hàng & Hợp đồng"
+        onNavigatePrerequisite={() => { window.location.href = '/admin-data?view=customers'; }}
+        onResetFilters={() => {
+          setShiftName('MORNING');
+          if (customers.length > 0) setCustomerCode(customers[0].customerCode);
+        }}
+        contextDomain="coordination"
+        emptyTitle={customers.length === 0 ? 'Chưa có dữ liệu Khách hàng' : 'Chưa có kế hoạch suất ăn'}
+        emptyDescription={customers.length === 0 ? 'Hệ thống chưa có khách hàng nào. Vui lòng tạo khách hàng trước.' : 'Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn.'}
       >
         {data && <DataGrid data={data.orders} columns={columns} keyExtractor={(row) => row.quantityPlanLineId} />}
       </StateBoundary>
 
       <Modal
         isOpen={isLockModalOpen}
-        onClose={() => setIsLockModalOpen(false)}
+        onClose={() => {
+          if (!isLocking) {
+            setIsLockModalOpen(false);
+            setLockError(null);
+          }
+        }}
         title="Xác nhận chốt đơn suất ăn ca phục vụ"
         description={`Khách hàng: ${data?.customerCode ?? ''} · Ngày: ${serviceDate} · Ca: ${shiftName === 'MORNING' ? 'Ca 1 (Sáng)' : 'Ca 2 (Chiều)'}`}
         footer={
           <>
-            <Button variant="outline" size="sm" disabled={isLocking} onClick={() => setIsLockModalOpen(false)}>
+            <Button variant="outline" size="sm" disabled={isLocking} onClick={() => { setIsLockModalOpen(false); setLockError(null); }}>
               Hủy
             </Button>
             <Button variant="default" size="sm" disabled={isLocking} onClick={() => void handleLock()}>
@@ -282,6 +322,11 @@ export function MealOrdersPage() {
         }
       >
         <div className="space-y-3 text-sm text-slate-700">
+          {lockError && (
+            <InlineBanner variant="error" onClose={() => setLockError(null)}>
+              {lockError.message}
+            </InlineBanner>
+          )}
           <p>
             Bạn có chắc chắn muốn chốt số lượng suất ăn cho ca này? Sau khi chốt, số suất thực tế sẽ được khóa và đồng bộ sang Bếp trưởng và Kho vận.
           </p>

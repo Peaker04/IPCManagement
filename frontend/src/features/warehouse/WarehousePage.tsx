@@ -11,6 +11,7 @@ import { Badge } from '../../components/ui/badge';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Modal } from '../../components/ui/modal';
 import { Num } from '../../components/ui/num';
+import { serverStateCache } from '../../store/serverStateCache';
 import {
   warehouseApi,
   type WarehouseItem,
@@ -51,6 +52,13 @@ export function WarehousePage() {
   return <DefaultWarehousePage />;
 }
 
+interface WarehouseSnapshot {
+  warehouses: WarehouseItem[];
+  issues: InventoryIssueItem[];
+  receipts: InventoryReceiptItem[];
+  selectedWarehouseId: string;
+}
+
 function DefaultWarehousePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -58,17 +66,20 @@ function DefaultWarehousePage() {
   const activeView: 'issues' | 'receipts' | 'stock' =
     requestedView === 'receipts' || requestedView === 'stock' ? requestedView : 'issues';
 
-  const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState('ALL');
-  const [issues, setIssues] = useState<InventoryIssueItem[]>([]);
-  const [receipts, setReceipts] = useState<InventoryReceiptItem[]>([]);
+  const snapshot = serverStateCache.get<WarehouseSnapshot>('snapshot:warehouse')?.data;
+  const cachedWh = snapshot ? { warehouses: snapshot.warehouses, issues: snapshot.issues, receipts: snapshot.receipts } : serverStateCache.get<{ warehouses: WarehouseItem[]; issues: InventoryIssueItem[]; receipts: InventoryReceiptItem[] }>('default_warehouse_data')?.data;
+  const [warehouses, setWarehouses] = useState<WarehouseItem[]>(() => cachedWh?.warehouses || []);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState(() => snapshot?.selectedWarehouseId || 'ALL');
+  const [issues, setIssues] = useState<InventoryIssueItem[]>(() => cachedWh?.issues || []);
+  const [receipts, setReceipts] = useState<InventoryReceiptItem[]>(() => cachedWh?.receipts || []);
   const [selectedIssue, setSelectedIssue] = useState<InventoryIssueItem | null>(null);
   const [selectedReceipt, setSelectedReceipt] = useState<InventoryReceiptItem | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(() => Boolean(cachedWh));
+  const [isLoading, setIsLoading] = useState(!cachedWh);
   const [error, setError] = useState<Error | null>(null);
 
   const loadData = async () => {
-    setIsLoading(true);
+    if (!cachedWh && !hasLoadedOnce) setIsLoading(true);
     setError(null);
     try {
       const [whs, iss, rcp] = await Promise.all([
@@ -79,6 +90,9 @@ function DefaultWarehousePage() {
       setWarehouses(whs);
       setIssues(iss);
       setReceipts(rcp);
+      setHasLoadedOnce(true);
+      serverStateCache.set('default_warehouse_data', { warehouses: whs, issues: iss, receipts: rcp });
+      serverStateCache.set('snapshot:warehouse', { warehouses: whs, issues: iss, receipts: rcp, selectedWarehouseId });
     } catch (err: unknown) {
       setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu kho vận.'));
     } finally {
@@ -87,33 +101,7 @@ function DefaultWarehousePage() {
   };
 
   useEffect(() => {
-    let ignore = false;
-    async function fetchData() {
-      try {
-        const [whs, iss, rcp] = await Promise.all([
-          warehouseApi.getWarehouses(),
-          warehouseApi.getIssues(),
-          warehouseApi.getReceipts(),
-        ]);
-        if (!ignore) {
-          setWarehouses(whs);
-          setIssues(iss);
-          setReceipts(rcp);
-          setIsLoading(false);
-        }
-      } catch (err: unknown) {
-        if (!ignore) {
-          setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu kho vận.'));
-          setIsLoading(false);
-        }
-      }
-    }
-
-    fetchData();
-
-    return () => {
-      ignore = true;
-    };
+    void loadData();
   }, []);
 
   const warehouseOptions = useMemo(() => {
@@ -269,6 +257,7 @@ function DefaultWarehousePage() {
       {/* Zone 1: WorkspaceHeader (56px / h-14) */}
       <WorkspaceHeader
         title="Kho nguyên liệu & Nhập xuất"
+        breadcrumb="Kho bãi · Nhập xuất vật tư"
         contextSelectors={
           <>
             <Select
@@ -318,7 +307,7 @@ function DefaultWarehousePage() {
           </>
         }
         rightActions={
-          <span className="text-xs text-slate-500 truncate max-w-72">
+          <span className="text-xs text-slate-500 truncate max-w-72 hidden xl:inline">
             Phiếu xuất phải bắt đầu từ yêu cầu vật tư đã duyệt.
           </span>
         }
@@ -326,9 +315,9 @@ function DefaultWarehousePage() {
 
       {/* Zone 3: DataGrid */}
       <StateBoundary
-        isLoading={isLoading}
-        isFetching={isLoading}
-        hasExistingData={issues.length > 0 || receipts.length > 0}
+        isLoading={isLoading && !hasLoadedOnce}
+        isFetching={isLoading && hasLoadedOnce}
+        hasExistingData={hasLoadedOnce || Boolean(cachedWh)}
         error={error}
         onRetry={loadData}
         isEmpty={
@@ -337,6 +326,11 @@ function DefaultWarehousePage() {
           ((activeView === 'issues' && issues.length === 0) ||
             (activeView === 'receipts' && receipts.length === 0))
         }
+        emptyScenario={selectedWarehouseId !== 'ALL' ? 'filter-empty' : 'true-empty'}
+        onResetFilters={() => setSelectedWarehouseId('ALL')}
+        actionLabel={selectedWarehouseId !== 'ALL' ? 'Xem tất cả kho' : 'Làm mới danh sách'}
+        onAction={selectedWarehouseId !== 'ALL' ? () => setSelectedWarehouseId('ALL') : loadData}
+        contextDomain="warehouse"
         emptyTitle={activeView === 'issues' ? 'Chưa có phiếu xuất kho' : 'Chưa có phiếu nhập kho'}
         emptyDescription={
           activeView === 'issues'

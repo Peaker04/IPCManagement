@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
+import { serverStateCache } from '../../store/serverStateCache';
 import { adminApi, type ApprovalRuleItem } from '../../api/adminApi';
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
@@ -17,26 +18,28 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 export function ApprovalRulesPage() {
-  const [rules, setRules] = useState<ApprovalRuleItem[]>([]);
+  const cachedRules = serverStateCache.get<ApprovalRuleItem[]>('admin_approval_rules')?.data;
+  const [rules, setRules] = useState<ApprovalRuleItem[]>(() => cachedRules || []);
   const [activeType, setActiveType] = useState('ALL');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!cachedRules);
   const [error, setError] = useState<Error | null>(null);
 
   const loadData = async () => {
-    setIsLoading(true);
+    if (rules.length === 0) setIsLoading(true);
     setError(null);
-    try { setRules(await adminApi.getApprovalRules()); }
-    catch (cause: unknown) { setError(cause instanceof Error ? cause : new Error('Không thể tải quy tắc phê duyệt.')); }
-    finally { setIsLoading(false); }
+    try {
+      const items = await adminApi.getApprovalRules();
+      setRules(items);
+      serverStateCache.set('admin_approval_rules', items);
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause : new Error('Không thể tải quy tắc phê duyệt.'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    let ignore = false;
-    adminApi.getApprovalRules()
-      .then((items) => { if (!ignore) setRules(items); })
-      .catch((cause: unknown) => { if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải quy tắc phê duyệt.')); })
-      .finally(() => { if (!ignore) setIsLoading(false); });
-    return () => { ignore = true; };
+    void loadData();
   }, []);
 
   const filteredRules = useMemo(() => activeType === 'ALL' ? rules : rules.filter((rule) => rule.documentType === activeType), [rules, activeType]);
@@ -55,9 +58,20 @@ export function ApprovalRulesPage() {
   ];
 
   return <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
-    <WorkspaceHeader title="Thiết lập quy trình duyệt" contextSelectors={<Badge variant="neutral" size="default" className="h-9 px-3">{rules.length} quy tắc phê duyệt hiệu lực</Badge>} actions={<Button variant="outline" size="default" onClick={loadData}>Làm mới</Button>} />
+    <WorkspaceHeader title="Thiết lập quy trình duyệt" breadcrumb="Hệ thống · Quy trình phê duyệt" contextSelectors={<Badge variant="neutral" size="default" className="h-9 px-3">{rules.length} quy tắc phê duyệt hiệu lực</Badge>} actions={<Button variant="outline" size="default" onClick={loadData}>Làm mới</Button>} />
     <TelemetrySubbar leftControls={<Tabs items={tabs} activeId={activeType} onChange={setActiveType} size="sm" />} telemetryPills={<span className="text-slate-500">{filteredRules.length} quy tắc trong phạm vi</span>} />
-    <StateBoundary isLoading={isLoading} error={error} onRetry={loadData} isEmpty={!isLoading && !error && filteredRules.length === 0} emptyTitle="Chưa có quy tắc phê duyệt" emptyDescription="Chưa thiết lập quy tắc phê duyệt cho loại chứng từ này.">
+    <StateBoundary
+      isLoading={isLoading}
+      error={error}
+      onRetry={loadData}
+      isEmpty={!isLoading && !error && filteredRules.length === 0}
+      emptyScenario="empty-first-use"
+      emptyTitle="Chưa có quy tắc phê duyệt"
+      emptyDescription="Chưa thiết lập quy tắc phê duyệt cho loại chứng từ này."
+      actionLabel="Làm mới quy tắc"
+      onAction={loadData}
+      contextDomain="approvals"
+    >
       <DataGrid data={filteredRules} columns={columns} keyExtractor={(row) => row.ruleId} />
     </StateBoundary>
   </div>;

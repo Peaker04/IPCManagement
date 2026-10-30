@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { clearAllServerCache } from '../store/serverStateCache';
+import { workspaceSessionStore } from '../store/workspaceSessionStore';
 
 const DEFAULT_TEST_USER = {
   userId: '10000000-0000-0000-0000-000000000001',
@@ -14,6 +16,11 @@ const DEFAULT_TEST_USER = {
 };
 
 beforeEach(() => {
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    sessionStorage.clear();
+  }
+  clearAllServerCache();
+  workspaceSessionStore.clearScope();
   localStorage.setItem('ipc_v3_token', 'test-jwt-token');
   localStorage.setItem('ipc_v3_user', JSON.stringify(DEFAULT_TEST_USER));
   localStorage.setItem('ipc_v3_mode', 'DEFAULT');
@@ -30,6 +37,11 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    sessionStorage.clear();
+  }
+  clearAllServerCache();
+  workspaceSessionStore.clearScope();
   vi.clearAllMocks();
 });
 

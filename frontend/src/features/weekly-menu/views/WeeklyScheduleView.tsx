@@ -7,53 +7,69 @@ import { clsx } from 'clsx';
 
 export interface WeeklyScheduleViewProps {
   data: WeeklyMenuData;
+  showSubbar?: boolean;
 }
 
-export function WeeklyScheduleView({ data }: WeeklyScheduleViewProps) {
-  // Group matrix rows by sectionTitle (e.g. MENU MẶN CA SÁNG, MENU CHAY CA SÁNG)
-  const sections = Array.from(new Set(data.matrixRows.map((r) => r.sectionTitle)));
+export function WeeklyScheduleView({ data, showSubbar = true }: WeeklyScheduleViewProps) {
+  const CANONICAL_SECTIONS = [
+    'MENU MẶN CA SÁNG',
+    'MENU CHAY CA SÁNG',
+    'MENU MẶN CA CHIỀU',
+    'MENU CHAY CA CHIỀU',
+  ];
+  const allSections = Array.from(new Set(data.matrixRows.map((r) => r.sectionTitle)));
+  const sections = allSections.sort((a, b) => {
+    const idxA = CANONICAL_SECTIONS.indexOf(a);
+    const idxB = CANONICAL_SECTIONS.indexOf(b);
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.localeCompare(b);
+  });
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       {/* Zone 2: TelemetrySubbar (44px / h-11) */}
-      <TelemetrySubbar
-        leftControls={
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-900 text-sm">
-              Khách hàng: {data.customerName}
-            </span>
-            <span className="text-slate-300">·</span>
-            <span className="text-xs text-slate-500 font-mono">
-              Tuần: {data.scheduleDays[0]?.dateStr} — {data.scheduleDays[data.scheduleDays.length - 1]?.dateStr}
-            </span>
-          </div>
-        }
-        telemetryPills={
-          <>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Món tuần:</span>
-              <strong className="text-slate-900 font-semibold">{data.matrixRows.length * 6} lượt</strong>
-            </span>
-            <span className="text-slate-300">·</span>
-            <span className="inline-flex items-center gap-1">
-              <span className="text-slate-500">Định mức:</span>
-              {data.mealTargetPrice > 0 ? (
-                <Num
-                  value={data.mealTargetPrice}
-                  format="currency"
-                  className="text-slate-900 font-mono font-semibold"
-                />
-              ) : (
-                <span className="text-slate-500 font-medium">Theo ca / Chưa chốt</span>
-              )}
-            </span>
-            <span className="text-slate-300">·</span>
-            <Badge variant="neutral" size="sm">
-              Trạng thái: Kế hoạch tuần
-            </Badge>
-          </>
-        }
-      />
+      {showSubbar && (
+        <TelemetrySubbar
+          leftControls={
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-900 text-sm">
+                Khách hàng: {data.customerName}
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="text-xs text-slate-500 font-mono">
+                Tuần: {data.scheduleDays[0]?.dateStr} — {data.scheduleDays[data.scheduleDays.length - 1]?.dateStr}
+              </span>
+            </div>
+          }
+          telemetryPills={
+            <>
+              <span className="inline-flex items-center gap-1">
+                <span className="text-slate-500">Món tuần:</span>
+                <strong className="text-slate-900 font-semibold">{data.matrixRows.length * 6} lượt</strong>
+              </span>
+              <span className="text-slate-300">·</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="text-slate-500">Định mức:</span>
+                {data.mealTargetPrice > 0 ? (
+                  <Num
+                    value={data.mealTargetPrice}
+                    format="currency"
+                    className="text-slate-900 font-mono font-semibold"
+                  />
+                ) : (
+                  <span className="text-slate-500 font-medium">Theo ca / Chưa chốt</span>
+                )}
+              </span>
+              <span className="text-slate-300">·</span>
+              <Badge variant="neutral" size="sm">
+                Trạng thái: Kế hoạch tuần
+              </Badge>
+            </>
+          }
+        />
+      )}
 
       {/* Zone 3: Matrix Grid tràn khung (flex-1) */}
       <div className="flex-1 min-h-0 overflow-auto bg-white">
@@ -76,26 +92,6 @@ export function WeeklyScheduleView({ data }: WeeklyScheduleViewProps) {
                   </div>
                 </th>
               ))}
-            </tr>
-            {/* Servings Row per Shift */}
-            <tr className="bg-slate-50 border-b border-slate-200 text-xs">
-              <th className="px-4 py-1.5 text-xs font-bold text-slate-600 uppercase bg-slate-50">
-                Số suất ăn ca
-              </th>
-              {data.scheduleDays.map((day, dIdx) => {
-                const isoDate = Object.keys(data.matrixRows[0]?.days || {})[dIdx] || '';
-                const morningPlan = data.productionPlans.find((p) => (p.serviceDate === isoDate || p.serviceDate === day.dateStr) && (p.shiftName === 'MORNING' || p.shiftName.includes('Sáng') || p.shiftName.includes('Ca 1')));
-                const afternoonPlan = data.productionPlans.find((p) => (p.serviceDate === isoDate || p.serviceDate === day.dateStr) && (p.shiftName === 'AFTERNOON' || p.shiftName.includes('Chiều') || p.shiftName.includes('Ca 2')));
-
-                return (
-                  <td key={day.dayName} className="px-3 py-1 border-l border-slate-200 bg-slate-50/80">
-                    <div className="flex items-center justify-between font-mono text-[11px] text-slate-700">
-                      <span>Ca 1: <strong className="text-slate-900">{morningPlan?.plannedServings ?? 100}</strong></span>
-                      <span>Ca 2: <strong className="text-slate-900">{afternoonPlan?.plannedServings ?? 0}</strong></span>
-                    </div>
-                  </td>
-                );
-              })}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

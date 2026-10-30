@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReconciliationPage } from '../features/reconciliation/ReconciliationPage';
@@ -333,18 +333,27 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     // 2. View: variances
     const { unmount: unmount2 } = renderReconciliation('/reconciliation?view=variances');
+    await vi.waitFor(() => {
+      expect(mrxApi.getVarianceRegister).toHaveBeenCalled();
+    });
     expect(await screen.findByText('Sổ theo dõi chênh lệch & quyết định xử lý tuần')).toBeInTheDocument();
     expect(await screen.findByText(/Bao bì lẻ/)).toBeInTheDocument();
     unmount2();
 
     // 3. View: transactions
     const { unmount: unmount3 } = renderReconciliation('/reconciliation?view=transactions');
+    await vi.waitFor(() => {
+      expect(mrxApi.getTransactionsHistory).toHaveBeenCalled();
+    });
     expect(await screen.findByText(/Lịch sử giao dịch kho/)).toBeInTheDocument();
     expect(await screen.findByText('PX-001')).toBeInTheDocument();
     unmount3();
 
     // 4. View: audit
     const { unmount: unmount4 } = renderReconciliation('/reconciliation?view=audit');
+    await vi.waitFor(() => {
+      expect(mrxApi.getAuditTrail).toHaveBeenCalled();
+    });
     expect(await screen.findByText(/Nhật ký kiểm toán đối soát nguyên liệu/)).toBeInTheDocument();
     expect(await screen.findByText('Admin User')).toBeInTheDocument();
     expect(screen.getByText('Chuyển kho')).toBeInTheDocument();
@@ -368,24 +377,15 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     renderReconciliation();
 
     expect(mrxApi.getOperationalSummary).toHaveBeenCalled();
-    const card1 = await screen.findByRole('button', { name: /Đổi nguồn chờ duyệt/i });
-    expect(within(card1).getAllByText('2').length).toBeGreaterThanOrEqual(1);
+    // Invariant: 5 operational queue cards strip is permanently removed from /reconciliation
+    expect(screen.queryByRole('button', { name: /Đổi nguồn chờ duyệt/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Lô chờ xuất kho/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Hàng đợi bù\/trả/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Sai lệch chưa giải trình/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Lô sẵn sàng chốt/i })).not.toBeInTheDocument();
 
-    const card2 = screen.getByRole('button', { name: /Lô chờ xuất kho/i });
-    expect(within(card2).getAllByText('1').length).toBeGreaterThanOrEqual(1);
-
-    const card3 = screen.getByRole('button', { name: /Hàng đợi bù\/trả/i });
-    expect(within(card3).getAllByText('3').length).toBeGreaterThanOrEqual(1);
-
-    const card4 = screen.getByRole('button', { name: /Sai lệch chưa giải trình/i });
-    expect(within(card4).getAllByText('4').length).toBeGreaterThanOrEqual(1);
-
-    const card5 = screen.getByRole('button', { name: /Lô sẵn sàng chốt/i });
-    expect(within(card5).getAllByText('5').length).toBeGreaterThanOrEqual(1);
-
-    // Clicking "Sai lệch chưa giải trình" switches to variance register tab
-    await userEvent.click(card4);
-    expect(await screen.findByText(/Sổ theo dõi chênh lệch/i)).toBeInTheDocument();
+    // Directly renders clean TelemetrySubbar and table
+    expect(screen.getByRole('heading', { name: 'Đối soát nguyên liệu' })).toBeInTheDocument();
   });
 
   it('renders completed register tab, fetches completed batches, and renders table with CSV download', async () => {
@@ -499,5 +499,39 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     expect(await screen.findByText('Không có quyền thực hiện thao tác')).toBeInTheDocument();
     expect(screen.getByText('Tài khoản không đủ thẩm quyền chốt đối soát tuần.')).toBeInTheDocument();
+  });
+
+  it('clicking document code in transaction history opens the issue detail modal', async () => {
+    vi.spyOn(mrxApi, 'getTransactionsHistory').mockResolvedValue({
+      rows: [{
+        transactionType: 'INITIAL_ISSUE', documentCode: 'ISS-20260912-160015-C97F', date: '2026-09-12',
+        batchId: MOCK_RECONCILIATION.batchId, customerName: 'Draxlmaier',
+        ingredientCode: 'NL-01', ingredientName: 'Ớt xanh huế', unitName: 'Kilogram',
+        quantity: 5.13, actorName: 'Thủ kho', createdAt: '2026-09-12T05:00:00Z', reason: null
+      }],
+      totalCount: 1,
+    });
+    vi.spyOn(mrxApi, 'getIssueById').mockResolvedValue({
+      issueId: 'iss-1',
+      issueCode: 'ISS-20260912-160015-C97F',
+      issueDate: '2026-09-12',
+      warehouseName: 'Kho mẫu IPC',
+      issuedByName: 'Thủ kho',
+      kitchenStatus: 'Chờ xác nhận',
+      lines: [
+        { ingredientId: 'ing-1', ingredientName: 'Xà lách', unitName: 'Kilogram', requestedQty: 140.242, issuedQty: 140.242 }
+      ],
+    } as any);
+
+    renderReconciliation('/reconciliation?view=transactions');
+
+    const docBtn = await screen.findByTitle('Bấm để xem chi tiết phiếu xuất kho');
+    expect(docBtn).toBeInTheDocument();
+
+    await userEvent.click(docBtn);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/Chi tiết phiếu xuất kho: ISS-20260912-160015-C97F/)).toBeInTheDocument();
+    expect(screen.getByText('Xà lách')).toBeInTheDocument();
   });
 });

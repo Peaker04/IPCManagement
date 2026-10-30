@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './store/authContext';
 import { useAuth } from './store/useAuth';
@@ -9,59 +8,44 @@ import { ForbiddenPage } from './features/auth/ForbiddenPage';
 import { CANONICAL_ROUTES } from './routes/routeRegistry';
 import { resolveEligibleNavigation, resolveLandingPath } from './routes/navigationEligibility';
 import { DirtyNavigationProvider } from './components/workbench/DirtyNavigation';
-import { RouteWorkbenchLoadingFallback } from './routes/RouteWorkbenchLoadingFallback';
-
 import { RoleGuard } from './routes/RoleGuard';
 
-// Route-level code splitting for production bundle optimization (NFR-PERF-01)
-const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
-const WeeklyMenuPage = lazy(() => import('./features/weekly-menu/WeeklyMenuPage').then((m) => ({ default: m.WeeklyMenuPage })));
-const MealOrdersPage = lazy(() => import('./features/coordination/MealOrdersPage').then((m) => ({ default: m.MealOrdersPage })));
-const ChefDashboardPage = lazy(() => import('./features/chef/ChefDashboardPage').then((m) => ({ default: m.ChefDashboardPage })));
-const PurchasingPage = lazy(() => import('./features/purchasing/PurchasingPage').then((m) => ({ default: m.PurchasingPage })));
-const WarehousePage = lazy(() => import('./features/warehouse/WarehousePage').then((m) => ({ default: m.WarehousePage })));
-const ApprovalPage = lazy(() => import('./features/approvals/ApprovalPage').then((m) => ({ default: m.ApprovalPage })));
-const ReconciliationPage = lazy(() => import('./features/reconciliation/ReconciliationPage').then((m) => ({ default: m.ReconciliationPage })));
-const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
-const AdminDataPage = lazy(() => import('./features/admin/AdminDataPage').then((m) => ({ default: m.AdminDataPage })));
-const ApprovalRulesPage = lazy(() => import('./features/admin/ApprovalRulesPage').then((m) => ({ default: m.ApprovalRulesPage })));
-const AdvancedSettingsPage = lazy(() => import('./features/admin/AdvancedSettingsPage').then((m) => ({ default: m.AdvancedSettingsPage })));
-
-function WorkbenchLoadingFallback() {
-  return <RouteWorkbenchLoadingFallback />;
-}
+import { DashboardPage } from './features/dashboard/DashboardPage';
+import { ReconciliationDashboardPage } from './features/dashboard/ReconciliationDashboardPage';
+import { WeeklyMenuPage } from './features/weekly-menu/WeeklyMenuPage';
+import { MealOrdersPage } from './features/coordination/MealOrdersPage';
+import { ChefDashboardPage } from './features/chef/ChefDashboardPage';
+import { PurchasingPage } from './features/purchasing/PurchasingPage';
+import { WarehousePage } from './features/warehouse/WarehousePage';
+import { ApprovalPage } from './features/approvals/ApprovalPage';
+import { ReconciliationPage } from './features/reconciliation/ReconciliationPage';
+import { ReportsPage } from './features/reports/ReportsPage';
+import { AdminDataPage } from './features/admin/AdminDataPage';
+import { ApprovalRulesPage } from './features/admin/ApprovalRulesPage';
+import { AdvancedSettingsPage } from './features/admin/AdvancedSettingsPage';
 
 const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
 
 function RootLandingRoute() {
-  const { user, operationalMode, operationalModeVersion } = useAuth();
-  if (operationalModeVersion === null) {
-    return <WorkbenchLoadingFallback />;
-  }
+  const { operationalMode } = useAuth();
   if (operationalMode === 'MATERIAL_RECONCILIATION') {
-    const landingPath = resolveLandingPath(CANONICAL_ROUTES, user ?? {}, operationalMode);
-    return <Navigate to={landingPath} replace />;
+    return <ReconciliationDashboardPage />;
   }
   return (
     <RoleGuard roles={getRouteRoles('/')}>
-      <Suspense fallback={<WorkbenchLoadingFallback />}>
-        <DashboardPage />
-      </Suspense>
+      <DashboardPage />
     </RoleGuard>
   );
 }
 
 function AuthorizedAppShell() {
-  const { user, operationalMode, operationalModeVersion } = useAuth();
+  const { user, operationalMode } = useAuth();
   const eligibleRoutes = resolveEligibleNavigation(
     CANONICAL_ROUTES,
     user ?? {},
-    operationalModeVersion === null ? null : operationalMode
+    operationalMode
   );
-  const homePath = operationalMode === 'MATERIAL_RECONCILIATION'
-    ? resolveLandingPath(CANONICAL_ROUTES, user ?? {}, operationalMode)
-    : '/';
-  return <AppShell navigation={eligibleRoutes} homePath={homePath} />;
+  return <AppShell navigation={eligibleRoutes} homePath="/" />;
 }
 
 export function App() {
@@ -82,9 +66,7 @@ export function App() {
                 path="/weekly-menu"
                 element={
                   <RoleGuard roles={getRouteRoles('/weekly-menu')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <WeeklyMenuPage />
-                    </Suspense>
+                    <WeeklyMenuPage />
                   </RoleGuard>
                 }
               />
@@ -92,9 +74,7 @@ export function App() {
                 path="/meal-orders"
                 element={
                   <RoleGuard roles={getRouteRoles('/meal-orders')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <MealOrdersPage />
-                    </Suspense>
+                    <MealOrdersPage />
                   </RoleGuard>
                 }
               />
@@ -102,9 +82,7 @@ export function App() {
                 path="/chef"
                 element={
                   <RoleGuard roles={getRouteRoles('/chef')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <ChefDashboardPage />
-                    </Suspense>
+                    <ChefDashboardPage />
                   </RoleGuard>
                 }
               />
@@ -112,9 +90,7 @@ export function App() {
                 path="/purchasing"
                 element={
                   <RoleGuard roles={getRouteRoles('/purchasing')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <PurchasingPage />
-                    </Suspense>
+                    <PurchasingPage />
                   </RoleGuard>
                 }
               />
@@ -122,9 +98,7 @@ export function App() {
                 path="/warehouse"
                 element={
                   <RoleGuard roles={getRouteRoles('/warehouse')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <WarehousePage />
-                    </Suspense>
+                    <WarehousePage />
                   </RoleGuard>
                 }
               />
@@ -132,9 +106,7 @@ export function App() {
                 path="/approvals"
                 element={
                   <RoleGuard roles={getRouteRoles('/approvals')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <ApprovalPage />
-                    </Suspense>
+                    <ApprovalPage />
                   </RoleGuard>
                 }
               />
@@ -142,9 +114,7 @@ export function App() {
                 path="/reconciliation"
                 element={
                   <RoleGuard roles={getRouteRoles('/reconciliation')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <ReconciliationPage />
-                    </Suspense>
+                    <ReconciliationPage />
                   </RoleGuard>
                 }
               />
@@ -152,9 +122,7 @@ export function App() {
                 path="/reports"
                 element={
                   <RoleGuard roles={getRouteRoles('/reports')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <ReportsPage />
-                    </Suspense>
+                    <ReportsPage />
                   </RoleGuard>
                 }
               />
@@ -162,9 +130,7 @@ export function App() {
                 path="/admin-data"
                 element={
                   <RoleGuard roles={getRouteRoles('/admin-data')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <AdminDataPage />
-                    </Suspense>
+                    <AdminDataPage />
                   </RoleGuard>
                 }
               />
@@ -172,9 +138,7 @@ export function App() {
                 path="/settings/approval-rules"
                 element={
                   <RoleGuard roles={getRouteRoles('/settings/approval-rules')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <ApprovalRulesPage />
-                    </Suspense>
+                    <ApprovalRulesPage />
                   </RoleGuard>
                 }
               />
@@ -182,9 +146,7 @@ export function App() {
                 path="/settings/advanced"
                 element={
                   <RoleGuard roles={getRouteRoles('/settings/advanced')}>
-                    <Suspense fallback={<WorkbenchLoadingFallback />}>
-                      <AdvancedSettingsPage />
-                    </Suspense>
+                    <AdvancedSettingsPage />
                   </RoleGuard>
                 }
               />

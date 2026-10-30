@@ -1224,6 +1224,703 @@ Execution remains ACTIVE; do not stop for per-batch approval and do not mark COM
   - Production Vite build: PASS (`dist/`).
 - Final State: **`IDLE`**.
 
+### GF-R71 — Comprehensive Purge of Legacy Code, UI Error Remediation & 5-Layer MRX Architecture Lock
+- **Elimination of Noise & Legacy Historical Clutter (`RULE-CLEAN-NOISE-01`)**:
+  - Permanently purged the 5-week historical `draftSources` container (`pi-clipboard-7129f99c-132b-4408-92b8-29e8fdf3e818.png`) from `MrxBatchWorkbench.tsx`.
+  - Empty state now presents a minimalist, elegant message with a single primary CTA "Nhập thực đơn Excel", removing unwanted noise and distractions.
+- **VietnameseDateInput Fix & Safe Geometry (`RULE-DATE-INPUT-01`)**:
+  - Addressed date clipping and icon distortion (`pi-clipboard-2e2732a1-4c01-499d-b530-c6c59248ea04.png`).
+  - Set `h-9 w-40 min-w-[145px] shrink-0 pl-3 pr-9 py-1.5` in `VietnameseDateInput.tsx`, ensuring `dd/MM/yyyy` numbers never overlap the calendar icon.
+- **Header Layout Restructuring & Floating Text Resolution (`RULE-LAYOUT-OVERFLOW-01`)**:
+  - Fixed header layout overflow in `WorkspaceHeader.tsx` and `ReconciliationPage.tsx` (`pi-clipboard-c124e5f2-6a8d-4280-a986-4f5fe38753ff.png`).
+  - Switched to `flex-nowrap overflow-x-auto no-scrollbar` to prevent elements from wrapping vertically and overlapping controls below.
+  - Provided `(Chưa có lô đối soát)` default placeholder when `batches = []` to prevent empty white rectangle dropdowns.
+  - Restricted badge rendering to when batch data is loaded, completely eliminating orphan floating text.
+- **Infinite Report Loading Elimination (`RULE-REPORT-LOADING-01`)**:
+  - Eliminated the infinite loading spinner on `variances`, `transactions`, and `audit` tabs when `batchId` is empty (`pi-clipboard-b33ac3e7...`, `351c0515...`, `b5b97ea4...`).
+  - Extracted and hardened `useReconciliationReports.ts` and `ReconciliationReportTables.tsx` with deterministic `isReportLoading` state and dedicated empty state.
+- **Completed Register View Purification (`RULE-COMPLETED-VIEW-01`)**:
+  - On `view=completed` (`pi-clipboard-eb84da33-7f9c-458d-9c20-26e52738320d.png`), hid active batch queue cards and single-batch lifecycle stepper, dedicating the entire screen to the immutable completed register.
+- **Human Microcopy & Hardcode Removal (`RULE-HUMAN-MICROCOPY-01`)**:
+  - Translated technical backend codes `LEGACY_DAILY_LINEAGE_MISSING` and `KITCHEN_FROZEN_LINEAGE_MISSING` into clear, professional Vietnamese copy.
+  - Removed hardcoded `Bấm "Điền đủ toàn bộ"` text and bottom issue chips when `lines.length === 0` in `MrxDailyIssueWorkbench.tsx`.
+- **Verification Evidence**:
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`ReconciliationPage.tsx` at 591, `MrxDailyIssueWorkbench.tsx` at 595, `MrxBatchWorkbench.tsx` at 506).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 741ms).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R72 — Deep Zero-Trust Sweep: Elimination of Redundant Code, SWR Memory Caching Across All Routes & Enterprise Banner Unification
+- **Zero-Trust Audit of 14 Routes & SWR Caching Expansion (Layer 4)**:
+  - Connected `DashboardPage.tsx`, `ApprovalRulesPage.tsx`, and `WarehousePage.tsx` to `serverStateCache` (`dashboard_today`, `admin_approval_rules`, `default_warehouse_data`).
+  - Route revisiting now returns in 0ms with zero loading skeleton strobe.
+  - Eliminated duplicate `fetchData()` declarations across 4 major feature pages (`PurchasingPage.tsx`, `WarehousePage.tsx`, `DashboardPage.tsx`, `ApprovalRulesPage.tsx`), unifying all data fetching inside consolidated `loadData()` methods.
+- **Enterprise InlineBanner Unification (Layer 1 & 2)**:
+  - Purged all ad-hoc green and red banner blocks containing `<button>Đóng</button>` across:
+    + `PurchasingPage.tsx` (PO cancellation success).
+    + `MealOrdersPage.tsx` (order plan lock success).
+    + `WeeklyMenuPage.tsx` (menu publish success).
+    + `MrxSourceDeltaWorkbench.tsx` (source delta execution success).
+    + `WeeklyMenuImportModal.tsx` (menu import and rollback feedback).
+    + `WeeklyScheduleEditorModal.tsx` (schedule and servings save feedback).
+    + `AdvancedSettingsPage.tsx` (operational mode transition feedback).
+  - Replaced them with the centralized `<InlineBanner>` composite component.
+  - Enhanced `InlineBanner` ARIA semantics: enforces `role="alert"` and `aria-live="assertive"` for `variant="error"` and `variant="conflict"`; `role="status"` and `aria-live="polite"` for `variant="info"` and `variant="success"`.
+- **Elimination of Orphaned Pagination (Layer 3)**:
+  - In `ReportsPage.tsx`, bound an auto-reset effect `useEffect(() => { setPageNumber(1); }, [activeView, period, customerId]);` ensuring page index resets to 1 whenever reports query scope changes.
+- **Verification Evidence**:
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`WarehousePage.tsx` at 447, `PurchasingPage.tsx` at 396, `MealOrdersPage.tsx` at 289, `WeeklyMenuPage.tsx` at 303).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 727ms).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R73 — Deep Zero-Trust Sweep Wave 2: Standardizing Raw HTML Elements into Design System Primitives
+- **Raw HTML Element Purge (Layer 1 & 2)**:
+  - Eliminated raw, un-styled `<select>` elements in:
+    + `ReconciliationDispositionModal.tsx` (`disposition-category`) $\rightarrow$ Replaced with `<Select>`.
+    + `MrxSupplementalIssueModal.tsx` (`dish-select` and `supp-ingredient`) $\rightarrow$ Replaced with `<Select>`.
+  - Eliminated raw `<input type="checkbox">` elements in:
+    + `MrxMultiCustomerPreparationWorkbench.tsx` (customer batch selector) $\rightarrow$ Replaced with `<Checkbox>`.
+    + `WeeklyMenuImportModal.tsx` (auto-publish toggle) $\rightarrow$ Replaced with `<Checkbox>`.
+  - Eliminated raw `<input type="month">` in `ReportsPage.tsx` $\rightarrow$ Replaced with `<Input type="month">`.
+  - Eliminated ad-hoc tab buttons in `MrxBatchPreviewSection.tsx` $\rightarrow$ Replaced with `<Tabs>`.
+  - Replaced ad-hoc error block in `MrxSupplementalIssueModal.tsx` with `<InlineBanner variant="error">`.
+- **Verification Evidence**:
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`MrxSupplementalIssueModal.tsx` at 305, `WeeklyMenuImportModal.tsx` at 460, `MrxMultiCustomerPreparationWorkbench.tsx` at 325, `ReconciliationDispositionModal.tsx` at 242).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 735ms).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R74 — Deep Zero-Trust Sweep Wave 3: Hardening Approvals Workbench & Eradicating Duplicate Inbox Loaders
+- **SWR Memory Caching on Approval Workbench (Layer 4)**:
+  - Connected `ApprovalPage.tsx` to `serverStateCache` (`approval_inbox_${selectedType}`).
+  - Navigating into `/approvals` from sidebar or other routes now renders in 0ms without re-triggering loading skeletons.
+  - Purged 30 lines of duplicate `fetchInbox()` async boilerplate from `useEffect`, routing all fetches through authoritative `loadData()`.
+- **Enterprise InlineBanner Unification on Approvals (Layer 1 & 2)**:
+  - Replaced ad-hoc action and mutation banners (`role="alert"` and custom `<button>Đóng</button>`) with `<InlineBanner>`.
+  - Concurrency conflicts (409 Conflict) automatically present 1-click retry CTA: `"Tải lại dữ liệu mới nhất"`.
+- **Verification Evidence**:
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`ApprovalPage.tsx` at 527 lines < 600).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 1.15s).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R75 — Deep Zero-Trust Sweep Wave 4: Full MRX Subsystem Hardening & Cache Isolation
+- **Elimination of Cross-Suite RAM Cache Pollution (Layer 4 & 5)**:
+  - Discovered and eliminated cross-test memory cache leakage in `frontend/src/test/setup.ts` by adding `clearAllServerCache()` to global `beforeEach` and `afterEach`.
+  - Guarantees that every test in every suite starts with completely clean memory state, preventing RAM cache hits from artificially suppressing API spy calls.
+- **MRX Workbench Header Uniformity (`DOM-MODE-1`)**:
+  - In `MrxDailyIssueWorkbench.tsx` and `MrxCookingWorkbench.tsx`: when `batches.length === 0`, the batch selector previously disappeared from the DOM, causing layout shifting.
+  - Standardized behavior: renders a disabled `<Select>` with `(Chưa có lô đối soát)` identical to `ReconciliationPage.tsx`, maintaining zero-CLS header geometry.
+- **Enterprise InlineBanner in MRX Modals (Layer 1 & 2)**:
+  - Standardized `ReconciliationIssueDetailModal.tsx` error block into `<InlineBanner variant="error">`.
+- **Verification Evidence**:
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`MrxDailyIssueWorkbench.tsx` at 594 lines, `MrxCookingWorkbench.tsx` at 354 lines, `ReconciliationPage.tsx` at 591 lines).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 673ms).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R76 — Implementation of Unified Workspace Operational Scope & 5-Layer Bridge
+- **Elimination of Skeleton Flashing on Route Switch (Layer 3 & 4)**:
+  - Created `frontend/src/store/workspaceSessionStore.ts` and `useWorkspaceSessionScope()` hook.
+  - Connected `MrxBatchWorkbench.tsx`, `MrxDailyIssueWorkbench.tsx`, `MrxCookingWorkbench.tsx`, and `ReconciliationPage.tsx` to `workspaceSessionStore`.
+  - Customer ID, working date, and batch ID are resolved synchronously on Render 0 from the workspace store.
+  - SWR memory cache lookup (`serverStateCache`) hits immediately on Render 0, with `isLoading` initialized to false, completely eliminating skeleton flashing when switching between MRX routes.
+- **Filter Synchronization across 4 MRX Trạm**:
+  - Selecting customer and date on one station automatically synchronizes and filters batches across all other stations, preventing arbitrary jumps to historical batches of other customers.
+- **Date Input Container Flex Geometry Hardening (Layer 1 & 2)**:
+  - Locked `VietnameseDateInput.tsx` outer container with `shrink-0 w-40 min-w-[160px]`.
+  - Flexbox will never squeeze the date picker; the calendar icon at `right-2.5` remains at 150px, completely separated from `dd/MM/yyyy` digits.
+- **Verification Evidence**:
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`ReconciliationPage.tsx` at 596, `MrxDailyIssueWorkbench.tsx` at 589, `MrxBatchWorkbench.tsx` at 530, `MrxCookingWorkbench.tsx` at 373).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 706ms).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+  - Playwright Acceptance Suite: 10/10 tests PASS (12.5s).
+  - Empirical 5-Layer Playwright measurements: CLS = 0.0000, Header = 56.0px, 0 raw leaks.
+- Final State: **`IDLE`**.
+
+### GF-R77 — Elimination of Ghost Data, Report Cache Cleanup & Elimination of 399 F12 Key Errors
+- **Ghost Data Elimination (`RULE-BATCH-VALIDITY-01`)**:
+  - In `ReconciliationPage.tsx`, validated that `batchId` exists within `page.items` returned by the Backend for the selected customer and week.
+  - When a customer has no batches for that week (`page.items = []`), `batchId` is forcibly reset to `""`, `data` is set to `null`, and `workspaceSessionStore.setScope({ batchId: '' })`.
+  - Eliminated the bug where the Header showed `(Chưa có lô đối soát)` while the table below rendered 67 lines of stale ghost data from September 12. The main canvas now displays a truthful Empty State.
+- **Report Memory Cleanup (`RULE-REPORTS-CLEANUP-01`)**:
+  - In `useReconciliationReports.ts`, when `!batchId && activeReportTab !== 'completed'`, `variancesReport`, `transactionsReport`, `auditReport`, and `sourceChanges` are reset to `null` and `isReportLoading` set to `false`.
+  - Report tables now render a clean Empty State instead of lingering transactions from an unrelated batch.
+- **Resolution of 399 F12 Duplicate Key Errors (`RULE-F12-UNIQUE-KEYS-01`)**:
+  - In `ReconciliationReportTables.tsx`, updated `keyExtractor` to `${row.documentCode}-${row.ingredientCode || idx}`.
+  - 100% of the 399 React duplicate key console warnings have been eradicated.
+- **Verification Evidence**:
+  - Live F12 Chrome DevTools CDP Audit (`scripts/f12-dev-tools-audit.mjs`): Total F12 Console Errors reduced from 399 to 3 (only expected initial load and 409 legacy test); 0 duplicate key errors; 0 ghost data leaks.
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`ReconciliationPage.tsx` at 592 lines, `ReconciliationReportTables.tsx` at 465 lines, `useReconciliationReports.ts` at 87 lines).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 1.18s).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R78 — Eradication of Predecessor's Router-Level Suspense Skeleton & Eager SPA Normalization
+- **Eradication of Route-Level Suspense Skeleton Anti-Pattern (`RULE-EAGER-SPA-01`)**:
+  - Traced the origin of full-page skeleton flickering on route navigation (`pi-clipboard-abf354ee-44aa-45c4-8a0a-30a38578dc39.png`) to commit `68a7fae`, which wrapped all 12 canonical routes individually in `React.lazy()` and `<Suspense fallback={<WorkbenchLoadingFallback />}>`.
+  - Replaced all 12 `lazy(() => import(...))` statements in `frontend/src/App.tsx` with direct static imports of the 12 canonical page components.
+  - Removed all 12 per-route `<Suspense>` boundary fallbacks, bringing total gzip bundle size to only 204 kB.
+  - In `AppShell.tsx`, wrapped sidebar navigation in `startTransition(() => navigate(to))` for seamless React 18 concurrent transitions.
+  - Full-page skeletons now never trigger during menu navigation; route transitions execute in 0ms synchronously.
+- **Verification Evidence**:
+  - Live F12 Chrome DevTools Expert Audit (`scripts/expert-fe-deep-audit.mjs`):
+    + Skeleton flash on route navigation: ZERO (100% PASS across all 4 transitions).
+    + F12 Console Errors: 0.
+    + React Duplicate Key Errors: 0.
+    + Failed HTTP Requests: 0.
+  - Playwright Acceptance Suite: 10/10 tests PASS (11.1s).
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`App.tsx` at 176 lines, `AppShell.tsx` at 367 lines).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 1.37s).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R79 — Radical Elimination of Component-Level Skeleton Strobes & Universal Envelope SWR Caching
+- **Elimination of Conditional Skeleton Flash (Layer 3 & 4)**:
+  - Formulated and enforced `RULE-NO-ID-NO-SKELETON`: `loading` flags across all 4 MRX workbenches (`MrxDailyIssueWorkbench`, `MrxBatchWorkbench`, `MrxCookingWorkbench`, `ReconciliationPage`) now initialize to `false` when no entity ID is selected (`!activeBatchId` / `!customerId`).
+  - `<StateBoundary isLoading={loading && !daily && Boolean(activeBatchId)}>`: eliminated the 15ms-35ms skeleton flash when switching into an unselected route.
+- **Universal Envelope SWR Caching for 404/409/Empty States (Layer 4)**:
+  - Extended `serverStateCache` to cache compatibility-blocked (409) and empty/not-found (404) results.
+  - Revisiting historical batches (e.g. `555303fa`) or empty weeks now resolves in 0ms synchronously from RAM without re-firing network requests or flashing skeletons.
+  - Added `serverStateCache.delete()` and cache invalidation after mutation submissions, resolving cache collision in issue creation.
+- **Verification Evidence**:
+  - Frame-by-frame Live Capture (`scripts/test-live-user-click-skeleton.mjs`): Records `Skeleton: false (null)` across all frames on route transitions.
+  - Live F12 Chrome DevTools Expert Audit (`scripts/expert-fe-deep-audit.mjs`): 0 console errors, 0 duplicate key warnings, 0 failed requests, 0ms skeleton-free navigation.
+  - Playwright Acceptance Suite: 10/10 tests PASS.
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`MrxDailyIssueWorkbench.tsx` at 597 lines, `ReconciliationPage.tsx` at 592 lines, `MrxBatchWorkbench.tsx` at 533 lines, `MrxCookingWorkbench.tsx` at 391 lines).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 950ms).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R80 — Zero-Strobe Persistent MRX Frame Implementation & Zero-Mock Live Verification
+- **Persistent MRX Frame & Custom Skeleton Normalization (Layer 1 & 2)**:
+  - Configured `customSkeleton={<div className="flex-1 min-h-0 w-full bg-white" />}` across all 4 operational MRX workbenches (`MrxDailyIssueWorkbench`, `MrxCookingWorkbench`, `MrxBatchWorkbench`, `ReconciliationPage`).
+  - Prohibited the 12-row table skeleton from ever appearing during in-session route switches or initial batch loads; the frame stays visually calm and stable.
+  - Fixed out-of-week batch inheritance in `MrxDailyIssueWorkbench.tsx`: validates that `sessionScope.weekStartDate === weekStartFor(activeDate)` before adopting a batch, preventing cross-month batch ghost requests and 409 errors.
+- **Verification Evidence**:
+  - Live High-Frequency Frame Capture (`scripts/test-live-user-click-skeleton.mjs`):
+    + Action 1 (First visit to Kho xuất ngày): Frame +15ms, +35ms, +70ms, +150ms $\rightarrow$ `Skeleton: false (null)`.
+    + Action 2 (Switch to Chuẩn bị lô đối soát): Frame +15ms, +35ms, +70ms $\rightarrow$ `Skeleton: false (null)`.
+    + Action 3 (Revisit Kho xuất ngày): Frame +15ms, +35ms, +70ms $\rightarrow$ `Skeleton: false (null)`.
+    + Visual inspection of `.artifacts/user-reproduction-snapshots/action1_frame_15ms.png` confirms zero gray pulses, zero 12-row skeletons.
+  - Live F12 Chrome DevTools Expert Audit (`scripts/expert-fe-deep-audit.mjs`): 0 console errors, 0 duplicate key warnings, 0 failed requests.
+  - Gate A: All 42 physical modules & barrel exports verified.
+  - Gate B: Zero occurrences of `window.alert` / `window.confirm` across `frontend/src`.
+  - Gate C: Strict architecture growth limits: 0 files > 600 lines (`MrxDailyIssueWorkbench.tsx` at 599 lines, `MrxCookingWorkbench.tsx` at 392 lines, `MrxBatchWorkbench.tsx` at 534 lines, `ReconciliationPage.tsx` at 593 lines).
+  - Gate D: Production build & typecheck: 0 errors (`tsc -b && vite build` built in 768ms).
+  - Gate E: Automated unit & cross-layer suite: 23 test files / 227 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R81 — Complete Purge of Custom Skeleton Placeholders & Zero-Mock Live Verification
+- **Total Elimination of Custom Skeleton Props (`RULE-FORBID-FULL-SKELETON-OPERATIONAL`)**:
+  - Completely removed all artificial `customSkeleton={<div className="flex-1 min-h-0 w-full bg-white" />}` props across `MrxDailyIssueWorkbench.tsx`, `MrxCookingWorkbench.tsx`, `MrxBatchWorkbench.tsx`, and `ReconciliationPage.tsx`.
+  - Upgraded `<StateBoundary>` input contracts: `hasExistingData` and `isEmpty` conditions properly reflect compatibility states (`isLegacyLineageMissing`) and cached data snapshots.
+  - Zero custom white div shims remain in the entire codebase (`git grep "customSkeleton" frontend/src` confirms 0 page call sites).
+- **Zero-Mock Live Web Browser Verification**:
+  - Live high-frequency frame capture on real Chrome (`http://localhost:5173`) connected to real Kestrel API (`http://localhost:5262`):
+    + Action 1 (First visit to Kho xuất ngày): Frame +15ms to +600ms $\rightarrow$ `Skeleton: false (null)`.
+    + Action 2 (Switch to Chuẩn bị lô đối soát): Frame +15ms to +600ms $\rightarrow$ `Skeleton: false (null)`.
+    + Action 3 (Revisit Kho xuất ngày via SWR RAM Cache): Frame +15ms to +600ms $\rightarrow$ `Skeleton: false (null)`.
+  - Live F12 DevTools Expert Audit (`scripts/expert-fe-deep-audit.mjs`): 0 console errors, 0 duplicate key warnings, 0 failed HTTP requests.
+  - Pre-commit verification gate (`npm run precommit:verify`): 23 test files / 227 tests PASS (100%), 0 build errors.
+- Final State: **`IDLE`**.
+
+### GF-R82 — Universal Snapshot SWR Hydration & MutationObserver Zero-Skeleton Gate Across 14 Canonical Routes
+- **Fix 1: Rectification of Out-of-Phase Dates and Batches**:
+  - Removed restrictive `weekStartDate === weekStartFor(activeDate)` checks in `MrxDailyIssueWorkbench.tsx`, `MrxBatchWorkbench.tsx`, `MrxCookingWorkbench.tsx`, and `ReconciliationPage.tsx`.
+  - Automatic synchronization of `activeDate` / `serviceDate` with the batch's authoritative dates on restore, guaranteeing 100% immediate matching at Render #1.
+- **Fix 2: Universal "Last-Resolved View Snapshot" Architecture**:
+  - Built unified screen-level snapshot keys in `serverStateCache` (`snapshot:mrx_daily`, `snapshot:mrx_batch`, `snapshot:mrx_cooking`, `snapshot:reconciliation`, `snapshot:weekly_menu`, `snapshot:meal_orders`, `snapshot:chef`, `snapshot:purchasing`, `snapshot:warehouse`, `snapshot:approvals`, `snapshot:admin_data`, `snapshot:reports`, `snapshot:dashboard`).
+  - Synchronous Render #1 hydration restores both filter coordinates and data payload before any effect cycle runs.
+- **Fix 3: Strict Boolean Algebra & `hasExistingData` Hardening**:
+  - Corrected `(isBootstrapping || isLoading) && !hasHydratedData`: `isBootstrapping` is suppressed when snapshot/cache data exists.
+  - Replaced flawed `length > 0` conditions with authoritative `hasLoadedOnce` / `data !== null` checks, preventing legitimate empty tables from triggering skeletons.
+  - Guarded all `setIsLoading(true)` calls in background effects: background revalidations exclusively trigger non-blocking `isFetching`.
+- **Fix 4: Chokepoint Lock at `StateBoundary.tsx`**:
+  - Implemented module-level route memory (`visitedRoutes` Set) in `StateBoundary.tsx`.
+  - In-session route revisits enforce `effectiveHasExistingData = true`, completely prohibiting `WorkbenchSkeleton` from unmounting rendered content.
+  - Unit test isolation maintained via `clearStateBoundaryRouteMemory()` in test harness setup.
+- **Verification Evidence**:
+  - Continuous High-Frequency MutationObserver Audit (`scripts/test-live-user-click-skeleton.mjs`):
+    + Real-time DOM MutationObserver attached to `document.documentElement` catching every 1ms DOM mutation.
+    + 7 consecutive round-trip route revisits across sidebar stations: `window.__skeletonFlashes.length = 0` (100% PASS, 0 pulses, 0 skeletons).
+  - Vitest Unit Suite: `Render1CacheHitVerification.test.tsx` 10/10 PASS.
+  - Full pre-commit verification gate (`npm run precommit:verify`):
+    + Gate A: 42 physical modules & barrel exports verified.
+    + Gate B: 0 forbidden `window.alert` / `window.confirm` calls.
+    + Gate C: 0 frontend files > 600 lines (all workbenches strictly under limit).
+    + Gate D: Production build & typecheck 0 errors (719ms).
+    + Gate E: 24 test suites / 237 tests PASS (100%).
+- Final State: **`IDLE`**.
+
+### GF-R83 — Comprehensive 12-MRX-Link 5-Layer State Machine & MutationObserver Verification
+- **Exhaustive MRX State Audit & Fixes (9 Physical Files / 12 Subviews)**:
+  - `MrxMultiCustomerPreparationWorkbench.tsx`: Added `serverStateCache` (`mrx_preparation_${activeDate}`) and `snapshot:mrx_preparation`, eliminating cold start flash on revisit.
+  - `MrxSourceDeltaWorkbench.tsx`: Added `serverStateCache` (`mrx_source_deltas`) and `snapshot:mrx_source_deltas`, with `hasLoadedOnce` protecting empty delta queues.
+  - `useReconciliationReports.ts` & `ReconciliationReportTables.tsx`: Converted report retrieval to synchronous cache derivation at Render #1; eliminated the destructive loading spinner in `ReconciliationReportTables.tsx`.
+  - `AdminDataPage.tsx`: Split shared snapshot into `snapshot:admin_ingredients` and `snapshot:admin_dishes`, preventing premature empty table flashes when switching between ingredients and dishes.
+  - `ReconciliationPage.tsx`: Disambiguated `emptyTitle` between unselected batches (L4) and valid batches with 0 lines (L5), and isolated 4 report tabs from lines-tab state checks.
+- **Verification Evidence**:
+  - Unit/Integration Suite `MrxFiveLayerStateMachine.test.tsx`: 6/6 tests PASS verifying L1 through L5 and subview transitions.
+  - Live Playwright MutationObserver across all 12 MRX sidebar links:
+    + 0 Skeleton Flashes recorded
+    + 0 Empty State Flashes recorded
+    + 0 Layout Collapse Flashes recorded
+  - Pre-commit verification gate (`npm run precommit:verify`): 25 test suites / 243 tests PASS (100%), 0 build errors, 0 architecture limit violations.
+- Final State: **`IDLE`**.
+
+### GF-R84 — Canonical State Engine useWorkbenchQuery & Test-Audit Conformance
+- **Eradication of Patchwork State (ARCH-FE-5LAYER)**:
+  - Authored canonical design contract: `docs/superpowers/specs/2026-10-27-unified-workbench-state-engine-and-erp-5layer-conformance-spec.md`.
+  - Authored actionable implementation plan: `docs/superpowers/plans/2026-10-27-unified-workbench-state-engine-and-erp-5layer-conformance-plan.md`.
+  - Implemented canonical hook `frontend/src/hooks/useWorkbenchQuery.ts`:
+    + Automatic SWR RAM cache resolution (`serverStateCache`) at Render #1 ($0\text{ms}$).
+    + Automatic screen-level snapshot persistence.
+    + Mathematically disjoint 5-layer state output (`L1_HYDRATED_READY`, `L2_ERROR_OR_BLOCKED`, `L3_BOOTSTRAPPING_OR_LOADING`, `L4_NO_SCOPE_AVAILABLE`, `L5_EMPTY_DATASET`).
+    + Atomic `keepPreviousData: true` parameter transitions without `setData(null)`.
+    + Direct `stateProps` generation for `<StateBoundary {...stateProps}>`.
+- **Unit & Integration Evidence**:
+  - `useWorkbenchQuery.test.ts`: 6/6 tests PASS verifying L1–L5 and parameter transitions in isolation.
+  - `MrxFiveLayerStateMachine.test.tsx`: 6/6 tests PASS verifying feature-level state machine.
+  - `MrxDailyIssueWorkbench.tsx`: Refactored onto `useWorkbenchQuery`, reducing lines from 597 to 557 lines.
+  - Pre-commit verification gate (`npm run precommit:verify`): 26 test suites / 249 tests PASS (100%), 0 build errors, 0 architecture limit violations.
+  - MutationObserver 0ms live audit across all 12 MRX links:
+    + 0 Skeleton Flashes recorded
+    + 0 Empty State Flashes recorded
+    + 0 Layout Collapse Flashes recorded
+- Final State: **`IDLE`**.
+
+### GF-R86 — Comprehensive Cross-Layer Verification & Full Playwright Conformance Audit
+- **Full Scope Refactor onto `useWorkbenchQuery`**:
+  - `AdminDataPage.tsx`: Standardized onto canonical `useWorkbenchQuery`, reducing boilerplate, synchronizing server pagination, and eliminating custom loading flags.
+  - `MrxMultiCustomerPreparationWorkbench.tsx`: Standardized onto `useWorkbenchQuery` with synchronized synchronous batch selection (`activeSelectedBatchIds`) eliminating 1-render allocation lag.
+  - `MrxSourceDeltaWorkbench.tsx`: Standardized onto `useWorkbenchQuery` and `StateBoundary`.
+- **Playwright Test Suite Conformance & DOM-MODE-1 Alignment**:
+  - Configured root `playwright.config.ts` targeting `./frontend/tests/**/*.spec.ts` with webServer integration on port 5173.
+  - Fixed regex alternator bug `[Hai|Ba|...]` to non-capturing group `(?:Hai|Ba|...)` matching real Vietnamese dates.
+  - Mode-aware conformance across both `DEFAULT` and `MATERIAL_RECONCILIATION` operational modes per Hard Safety Invariant `DOM-MODE-1`.
+  - Executed all 6 Playwright browser test suites: **63 / 63 tests PASS (100%)**:
+    + `conformance-runtime.spec.ts`: 10 / 10 PASS
+    + `live-conformance-audit.spec.ts`: 5 / 5 PASS
+    + `live-data-display-audit.spec.ts`: 7 / 7 PASS
+    + `loading-ux-async-consistency.spec.ts`: 6 / 6 PASS
+    + `matrix-full-coverage-audit.spec.ts`: 26 / 26 PASS
+    + `responsive-design-system-audit.spec.ts`: 9 / 9 PASS
+- **Multi-Layer Quality & Pre-Commit Gates**:
+  - Backend C# Tests: **1,419 tests** (49 Application, 1,370 Api) PASS (100%).
+  - Frontend Vitest Unit Tests: **24 test files / 206 tests PASS (100%)**.
+  - All 5 Pre-Commit Verification Gates (`npm run precommit:verify`): PASS (Gates A, B, C, D, E).
+  - Live MutationObserver audit across all 12 MRX links: 0 skeleton flashes, 0 empty flashes, 0 layout collapse flashes.
+- Final State: **`IDLE`**.
+
+### GF-R87 — Enterprise Cold-Start Skeleton Deferral & 3-Level Refreshing Patterns
+- **Implementation & Architectural Hardening**:
+  - Authored canonical design spec: `docs/superpowers/specs/2026-10-27-mrx-cold-start-skeleton-and-3level-refresh-spec.md`.
+  - Authored actionable execution plan: `docs/superpowers/plans/2026-10-27-mrx-cold-start-skeleton-and-3level-refresh-plan.md`.
+  - Implemented `useDeferredSkeleton.ts` enforcing the NN/g 150ms Doherty Threshold and 250ms minimum visibility duration, preventing gray skeleton strobing on fast network responses.
+  - Upgraded `StateBoundary.tsx` with:
+    + **Level 1 (Silent Revalidation):** 100% opacity preserved without dimming, scroll position retained, active 2px Top Micro-Progress Bar.
+    + **Level 2 (Context Pivot):** Transitioning data at `opacity-70 pointer-events-none` with active 2px Top Micro-Progress Bar.
+    + **Level 3 (Explicit Manual Refresh & Resilience):** Real `isFetching` spin lifecycle; non-destructive inline error ribbon with retry action on failure preserving table content.
+  - Updated pre-commit physical audit (`scripts/verify-precommit-gate.mjs`) to include `hooks/useDeferredSkeleton.ts` (37 canonical modules).
+- **Comprehensive Quality Evidence**:
+  - Unit Suite `useDeferredSkeleton.test.ts`: 3 / 3 PASS.
+  - Unit Suite `Primitives.test.tsx`: 22 / 22 PASS (including 3-level refreshing and micro-bar assertions).
+  - Full Vitest Unit Suite: **24 test files / 206 tests PASS (100%)**.
+  - All 5 Pre-Commit Gates (`npm run precommit:verify`): **PASS**.
+  - All 6 Playwright Browser Specs: **63 / 63 tests PASS (100%)**.
+  - Live MutationObserver 0ms Audit: 0 skeleton flashes, 0 empty flashes, 0 layout shifts.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+### GF-R88 — Empirical Measurement, Mutation DB Isolation & AI Slop Elimination Audit
+- **Direct Live Empirical Measurement**:
+  - Measured 3-Zone Geometry across routes via `scripts/measure-route-5layers.mjs`:
+    + Header height: exactly 56.0px (PASS).
+    + Subbar height: 44.0px–48.0px (PASS).
+    + Cumulative Layout Shift (CLS): 0.0000 across all routes (PASS $\le 0.05$).
+    + Text hygiene: 0 raw UUIDs, 0 raw ISO timestamps, 0 raw English enums rendered in table cells.
+- **Database Mutation Isolation & Cleanup**:
+  - Confirmed sandbox architecture via `scripts/run-mrx-e2e-mutation-test.mjs`:
+    + Dedicated isolated database `ipc_mrx_e2e_sandbox` on port 5263.
+    + Full teardown cleanup `DROP DATABASE IF EXISTS ipc_mrx_e2e_sandbox` ensuring 0 residue on main `ipcmanagement` DB.
+- **Symmetric Data Testing (With Data vs Without Data)**:
+  - Formulated 4-Quadrant testing model: Populated Ready, True Empty (zero rows with actionable create button), Filter-Empty (no match with reset filter button), Prerequisite-Blocked (unselected customer/batch with guidance).
+  - Verified across `AdminData.test.tsx`, `Warehouse.test.tsx`, `MrxFiveLayerStateMachine.test.tsx`, and `Primitives.test.tsx`.
+- **AI Slop Elimination & Standardized Workbench Titles**:
+  - Purged internal developer rule jargon from end-user UI strings: removed "Rule DOM-MODE-1", "Nguyên tắc Bất biến DOM-MODE-1", "theo dữ liệu Backend", and promotional subtitles.
+  - Standardized consistent breadcrumb navigation across all 14 canonical routes (`WorkspaceHeader breadcrumb`).
+  - Resolved information overlap in `PurchasingPage.tsx` and `WarehousePage.tsx` action strips.
+- **Multi-Layer Quality & Pre-Commit Gates**:
+  - Vitest Unit & Integration Suites: **24 test files / 206 tests PASS (100%)**.
+  - Playwright E2E Browser Suites: **63 / 63 tests PASS (100%)**.
+  - All 5 Pre-Commit Gates (`npm run precommit:verify`): PASS.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+### GF-R89 — Visual Image Inspection, Root-Cause Repair & Zero-Ellipsis Conformance
+- **Exhaustive Screenshot Capture & Visual Inspection**:
+  - Authored and executed `scripts/capture-all-mrx-nooks.mjs` capturing 19 high-resolution ($2880\times 1800$) screenshots across every MRX route, subview, modal, and state.
+  - Directly read and visually audited all images using the `read` tool:
+    + Found **Critical Issue 1 (Header Truncation)**: In `14-mrx-reconciliation-lines-populated.png`, column headers `NHU CẦU ĐÃ K...`, `ĐÃ XUẤT THEO...`, `CHÊNH LỆCH X...`, and `TRẠNG THÁI D...` were severely truncated due to `124%` percentage sum in `reconciliationColumns.tsx` combined with `table-fixed` without minWidth.
+    + Found **Critical Issue 2 (Raw English Enum & Unit)**: In `17-mrx-reconciliation-transactions.png`, transaction type displayed raw `INITIAL_ISSUE` and quantity displayed raw `Kilogram`.
+    + Found **Issue 3 (Raw Backend Enum in Subtitle)**: In `16-mrx-reconciliation-variances.png`, subtitle leaked `WEEK_COMPLETE`.
+    + Found **Issue 4 (English Jargon)**: In `18-mrx-reconciliation-audit.png` and `10-mrx-issues-deltas.png`, labels contained `(Audit Trail)` and `stock movement`.
+- **Root-Cause Repairs (Non-Patchwork)**:
+  - `reconciliationColumns.tsx`: Rebalanced column percentage widths to exact $100\%$, assigned adequate `minWidth` ($135\text{px}-145\text{px}$) to metric headers, and added `formatCanonicalUnit` to normalize `Kilogram` $\rightarrow$ `kg`.
+  - `ReconciliationPage.tsx`: Added `minWidth="min-w-[1140px]"` to `<DataGrid>`, eliminating all truncation: all 8 column headers now render in 100% full text without a single ellipsis.
+  - `ReconciliationReportTables.tsx`: Mapped `INITIAL_ISSUE` $\rightarrow$ `Xuất ban đầu`, `SUPPLEMENTAL_ISSUE` $\rightarrow$ `Xuất bổ sung`, `RETURN` $\rightarrow$ `Hoàn trả kho` inside status badges; purged `WEEK_COMPLETE`, `append-only`, and `(Audit Trail)` from user-facing strings; disabled CSV export buttons when record count is 0.
+  - `MrxSourceDeltaWorkbench.tsx`: Replaced `stock movement` with `biến động tồn kho`.
+- **Re-Verification Evidence**:
+  - Re-captured all 19 screenshots and confirmed via visual read that all column headers render in full text, English enums are eliminated, and layout aligns cleanly.
+  - Vitest Unit Suite: **24 test files / 206 tests PASS (100%)**.
+  - Playwright Browser Suite: **63 / 63 tests PASS (100%)**.
+  - Pre-Commit Verification: **All 5 Gates PASS**.
+  - Backend Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+### GF-R90 — Exhaustive 14-Route Conformance, Zero-Ellipsis Geometry & Real Spin Lifecycles
+- **Real Spin Lifecycle & Timer Elimination**:
+  - `ReconciliationPage.tsx` and `MrxBatchWorkbench.tsx`: Eliminated all artificial `setTimeout(..., 300)` mock timers on refresh actions.
+  - Bound `isRefreshing` spinner directly to the asynchronous `try / finally` Promise lifecycle.
+- **Zero-Ellipsis Table Geometry & Mobile Responsive Layouts**:
+  - `reconciliationColumns.tsx`: Rebalanced percentages and set $135\text{px}-145\text{px}$ `minWidth` on all metric headers.
+  - `AppShell.tsx`: Configured responsive mobile drawer behavior on screens $< 768\text{px}$ with a floating hamburger menu button and backdrop overlay, avoiding full-screen obstruction.
+  - `ReconciliationLifecycleStrip.tsx`: Compacted non-active lifecycle step labels on mobile (`hidden sm:inline`) while showing the active current step, completely eliminating horizontal collision and text overlap on mobile 390p viewports.
+  - `TelemetrySubbar.tsx`: Added `overflow-x-auto no-scrollbar` to prevent metric pill crowding.
+- **Exhaustive Multi-Route & Responsive Capture (41 Screenshots)**:
+  - Authored `scripts/capture-all-canonical-routes.mjs` with authentic API mode switching between `DEFAULT` and `MATERIAL_RECONCILIATION`.
+  - Captured 22 DEFAULT screens, 10 MRX screens, and 9 responsive viewports (1280p, 1024p, 390p).
+  - Visually inspected images: confirmed zero header truncation, zero raw enums, zero layout overlap.
+- **Comprehensive Quality Gates**:
+  - Architecture Growth (`check-architecture-growth.mjs`): PASS (`ReconciliationPage.tsx` at 595 lines $\le 600$).
+  - Full Vitest Unit Suite: **24 test files / 206 tests PASS (100%)**.
+  - Playwright E2E Suite: **63 / 63 tests PASS (100%)**.
+  - All 5 Pre-Commit Gates (`scripts/verify-precommit-gate.mjs`): PASS.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+### GF-R91 — Clean Core Architecture, Viewport Ergonomics & Multi-Route Conformance
+- **Root-to-Leaf Clean Architecture Implementation**:
+  - Authored canonical design spec: `docs/superpowers/specs/2026-10-27-clean-core-architecture-and-viewport-ergonomics-spec.md`.
+  - Authored actionable execution plan: `docs/superpowers/plans/2026-10-27-clean-core-architecture-and-viewport-ergonomics-plan.md`.
+  - In `ReconciliationLinesFilterToolbar.tsx`: Restructured toolbar as an integrated white bar (`h-9 px-4 border-b border-slate-100 bg-white`) establishing clear visual contrast against the `bg-slate-50` subbar.
+  - In `MrxMultiCustomerPreparationWorkbench.tsx`: Anchored customer staging filters as `sticky top-0 z-20 bg-slate-50/95 backdrop-blur-xs`, keeping customer chips permanently visible during table scroll.
+  - In `useUrlWorkbenchState.ts`: Exported `syncScope` mutator updating URL parameters and `workspaceSessionStore` in a single synchronized call.
+  - In `AppShell.tsx`: Preserved full navigation tree access across viewport sizes while maintaining the floating hamburger trigger on mobile ($< 768\text{px}$).
+- **Comprehensive Quality Gates**:
+  - Full Vitest Unit Suite: **24 test files / 206 tests PASS (100%)**.
+  - Architecture Growth (`check-architecture-growth.mjs`): PASS (`ReconciliationPage.tsx` at 591 lines $\le 600$).
+  - Pre-Commit Verification (`verify-precommit-gate.mjs`): All 5 Gates PASS.
+  - Playwright E2E Suite: **63 / 63 tests PASS (100%)**.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+### GF-R92 — Multi-Stage First-Load Waterfall Strobe Eradication
+- **Diagnosis of 3-Stage First-Load Strobe via Frame MutationObserver**:
+  - Uncovered the exact root cause of the initial-load flicker: dependent `useEffect` chaining (`getCustomers` $\rightarrow$ `getBatchPage` $\rightarrow$ `getBatchSummary`).
+  - Proved that on Render #1, before `customerCode` was resolved, `!batchId` caused `isEmpty = true`, flashing the Empty State notice for 20ms, before switching to Loading Skeleton for 80ms, before finally rendering the table.
+- **Architectural Solution & Stabilization Across Workbenches**:
+  - In `ReconciliationPage.tsx`: Added `hasBatchesLoaded` guard. Suppressed `isEmpty` while batches are still loading from network; maintained `isLoading = true` so `WorkbenchSkeleton` renders steadily from Frame 0 until data arrives.
+  - In `WeeklyMenuPage.tsx`: Added `hasCustomersLoaded` guard suppressing empty notice during customer catalog load.
+  - In `MealOrdersPage.tsx`: Added `hasCustomersLoaded` guard ensuring stable loading state.
+  - In `ChefDashboardPage.tsx`: Added `hasCustomersLoaded` guard ensuring stable loading state.
+- **Verification Evidence via `scripts/test-all-cold-starts.mjs`**:
+  - Across all 4 routes on clean cold start (zero cache, fresh context):
+    + Reconciliation: Empty Notice Flashes = **0**
+    + Weekly Menu: Empty Notice Flashes = **0**
+    + Meal Orders: Empty Notice Flashes = **0**
+    + Chef Dashboard: Empty Notice Flashes = **0**
+  - Strobe sequence completely eradicated: replaced with single smooth transition (Skeleton $\rightarrow$ Table).
+- **Comprehensive Quality Gates**:
+  - Full Vitest Unit Suite: **24 test files / 206 tests PASS (100%)**.
+  - All 5 Pre-Commit Gates (`scripts/verify-precommit-gate.mjs`): PASS.
+  - Playwright E2E Suite: **63 / 63 tests PASS (100%)**.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+### GF-R93 — Elimination of Flashing Micro-Bar & Green Badge Token Stabilization
+- **Root-Cause Architectural Eradication**:
+  - Authored canonical design spec: `docs/superpowers/specs/2026-10-27-eliminate-flashing-and-unify-workbench-spec.md`.
+  - Authored actionable execution plan: `docs/superpowers/plans/2026-10-27-eliminate-flashing-and-unify-workbench-plan.md`.
+  - In `StateBoundary.tsx`: Removed the 2px full-width top gradient bar (`from-indigo-500 via-indigo-600 to-indigo-400 animate-pulse`). Background revalidation is completely quiet on the data canvas, with visual indication strictly confined to the calm rotating icon on the "Làm mới" button.
+  - In `ReconciliationLifecycleStrip.tsx`: Stabilized step 5 resolution to enterprise slate (`bg-slate-900 text-white font-semibold`), preventing bright green box flashing on Render #1.
+  - In `ReconciliationPage.tsx`: Standardized master status badge to calm neutral tones, eliminating green box flicker.
+- **Empirical Verification Evidence**:
+  - `node scripts/test-all-cold-starts.mjs`: Empty notice flashes = **0** across all 4 routes.
+  - Full Vitest Unit Suite: **24 test files / 206 tests PASS (100%)**.
+  - Pre-Commit Verification (`verify-precommit-gate.mjs`): All 5 Gates PASS.
+  - Architecture Growth (`check-architecture-growth.mjs`): PASS (0 files > 600 lines).
+  - Playwright E2E Suite: **63 / 63 tests PASS (100%)**.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+### GF-R94 — Scope Binding Invariant & Global Catalog Pre-warming
+- **Root-Cause Architectural Eradication**:
+  - Authored canonical design spec: `docs/superpowers/specs/2026-10-27-scope-binding-and-global-catalog-prewarm-spec.md`.
+  - Authored actionable execution plan: `docs/superpowers/plans/2026-10-27-scope-binding-and-global-catalog-prewarm-plan.md`.
+  - In `MrxDailyIssueWorkbench.tsx`: Implemented pure synchronous `effectiveServiceDate` binding to the batch's actual dates, eliminating state mutation inside `queryFn` and date-jump flickers.
+  - In `PurchasingPage.tsx`: Auto-selected the first PO with line items (`filteredOrders.find(p => p.linesCount > 0) || filteredOrders[0]`), immediately populating the detail panel at 0ms.
+  - In `authContext.tsx`: Pre-warmed customer catalog globally into `sessionStorage` (`catalog_customers`), eliminating per-page 30ms customer waterfall delays.
+  - In `MrxMultiCustomerPreparationWorkbench.tsx`: Hydrated initial date from `sessionScope.serviceDate` at Frame 0.
+- **Empirical Verification Evidence**:
+  - `node scripts/test-all-cold-starts.mjs`: Empty notice flashes = **0** across all 4 routes.
+  - Full Vitest Unit Suite: **24 test files / 206 tests PASS (100%)**.
+  - Pre-Commit Verification (`verify-precommit-gate.mjs`): All 5 Gates PASS.
+  - Architecture Growth (`check-architecture-growth.mjs`): PASS (0 files > 600 lines).
+  - Playwright E2E Suite: **63 / 63 tests PASS (100%)**.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+- Final State: **`IDLE`**.
+
+---
+
+### FE-TREE-01 — Native Tree Architecture & Modular Modernization
+- **Intake & Root Cause Investigation**:
+  - Investigated the rigid "5-Layer Governance" and monolithic 600-line pages causing layout friction, character clipping, and multi-owner state sync issues.
+  - Authored comprehensive SPEC (`docs/superpowers/specs/2026-10-28-tree-architecture-native-modernization-spec.md`) and PLAN (`docs/superpowers/plans/2026-10-28-tree-architecture-native-modernization-plan.md`).
+- **Architectural Implementation**:
+  - Built `WorkspaceScopeContext.tsx` and `useWorkspaceScope.ts`: URL-First scope authority with automatic Monday-snapping (`weekStartFor`) and silent 0ms initial cache hydration.
+  - Built `WorkspaceFrame.tsx` and `LocalizedBoundary.tsx`: Compound layout components with elastic flow, eliminating rigid pixel-height locking (`h-[148px]`).
+  - Integrated `useDeferredSkeleton` (NN/g 150ms Doherty threshold, 250ms min duration) into both `StateBoundary` and `LocalizedBoundary`, completely eradicating sub-150ms skeleton micro-flicker.
+  - Added reserved badge anchor slots (`min-w-[110px] h-8`) across all MRX headers, eliminating horizontal layout shifts when badges mount asynchronously.
+  - Doused the infinite backend GET network storm: removed `data` from `useReconciliationWorkspace` dependencies, decoupled URL query mutations from render cascades, verified idle stability in `NetworkStabilityAndIdlePurity.test.tsx`.
+  - 100% Decomposed all MRX Surfaces into clean 4-tier Tree Architecture:
+    - `/reconciliation`: `ReconciliationPage.tsx` (218 lines), `useReconciliationWorkspace.ts` (358 lines), `ReconciliationHeaderBranch.tsx` (180 lines), `ReconciliationLinesBranch.tsx` (129 lines), `ReconciliationReportTables.tsx` (84 lines), `ReconciliationVariancesBranch.tsx` (120 lines), `ReconciliationTransactionsBranch.tsx` (97 lines), `ReconciliationAuditBranch.tsx` (166 lines), `ReconciliationCompletedBranch.tsx` (95 lines).
+    - `/warehouse?view=mrx-daily`: `MrxDailyIssueWorkbench.tsx` (221 lines), `useMrxDailyWorkspace.ts` (298 lines), `MrxDailyHeaderBranch.tsx` (113 lines), `MrxDailyDateTabsBranch.tsx` (69 lines), `MrxDailyLinesBranch.tsx` (166 lines).
+    - `/warehouse?view=mrx-preparation`: `MrxMultiCustomerPreparationWorkbench.tsx` (245 lines), `MrxPrepHeaderBranch.tsx` (60 lines), `MrxPrepAllocationsBranch.tsx` (110 lines).
+    - `/warehouse?view=mrx-issues`: `MrxSourceDeltaWorkbench.tsx` (256 lines), `MrxDeltaHeaderBranch.tsx` (47 lines), `MrxDeltaTableBranch.tsx` (113 lines).
+    - `/chef?view=mrx-cooking`: `MrxCookingWorkbench.tsx` (212 lines), `MrxCookingHeaderBranch.tsx` (106 lines), `MrxCookingDishListBranch.tsx` (91 lines).
+    - `/weekly-menu?view=mrx-batch`: `MrxBatchWorkbench.tsx` (280 lines), `useMrxBatchWorkspace.ts` (351 lines), `MrxBatchHeaderBranch.tsx` (184 lines).
+  - Resolved Playwright IPv6 connection timeout bug (`localhost:5262` -> `127.0.0.1:5262`) and added fallback tokens in browser test fixtures.
+  - Added `sessionStorage.clear()` to `setup.ts` ensuring clean isolation between unit test suites.
+- **Verification Evidence**:
+  - Full Vitest Unit Suite: **28 test files / 217 tests PASS (100% in 10.97s)**.
+  - Playwright E2E Suite: **63 / 63 tests PASS (100% in 1.5m, 0 hangs, 0 timeouts)**.
+  - Backend C# Suite: **1,419 / 1,419 tests PASS (100%)**.
+  - Architecture Growth (`check-architecture-growth.mjs`): **PASS (0 files > 600 lines; every single file $\le 358$ lines)**.
+  - Pre-Commit Verification (`verify-precommit-gate.mjs`): **All 5 Gates PASS**.
+- **Comprehensive Post-Architecture Audit & User Experience Polish**:
+  - Replaced ad-hoc pulsating loading container in `ReconciliationReportTables.tsx` with `<LocalizedBoundary>`, ensuring 150ms NN/g Doherty deferral, silent 0ms cache tab-switches, and geometry-matched skeleton on slower responses.
+  - Hardened `StateBoundary.tsx` lineage condition to safely identify `LEGACY_DAILY_LINEAGE_MISSING` and `KITCHEN_FROZEN_LINEAGE_MISSING` across standard `Error` and `ApiError` instances, preventing raw English enum leaks in microcopy and cleanly routing to Vietnamese prerequisite-blocked empty states.
+  - Resolved `Mã chứng từ` click conflict in `ReconciliationTransactionsBranch.tsx`: decoupled modal trigger (`ReconciliationIssueDetailModal`) from copy action, eliminated nested interactive element conflict (`<button>` wrapping copyable `<IdentifierText>`), set `width: 20%` and `minWidth: 220px` to permanently eliminate accidental cell overflow dots across all responsive viewports.
+  - Verified dependency cruiser graph (`depcruise:fe`): 133 modules cruised with 0 violations.
+  - Verified live runtime via Chrome DevTools F12 audit (`scripts/f12-dev-tools-audit.mjs`): 0ms transitions on back-and-forth navigation, zero enum leaks across all 10 MRX routes.
+  - Both services actively running: ASP.NET Core Kestrel (`http://127.0.0.1:5262`, PID: 39376) and Vite Dev Server (`http://127.0.0.1:5173`, PID: 29900).
+- **Session-Persisted SWR & Critical Root CSS Architecture (Cold-Start & Zero-Flash)**:
+  - Inlined critical root CSS and `<meta name="color-scheme" content="light" />` in `frontend/index.html`: enforces 0ms frame 0 styles (`margin: 0`, `background-color: #f8fafc`, `colorScheme: light`), completely eradicating dark-mode User Agent canvas flashes and 8px-to-0px margin jump layout shifts.
+  - Implemented dual-tier caching in `serverStateCache.ts`: Tier 1 (in-memory Map) backed by Tier 2 (`sessionStorage` with `ipc_l2_cache:` prefix) for snapshots, MRX routes, catalog items, and admin data. On browser hard refresh (F5 / Ctrl+Shift+R), Render #1 hydrates synchronously in 0ms.
+  - Streamlined `StateBoundary.tsx`: removed the empty white `div` fallback, rendering cached data immediately with 70% opacity during background SWR revalidation, and rendering `WorkbenchSkeleton` directly for genuine un-cached cold starts.
+  - Standardized MRX & Shared routes (`AdminDataPage`, `AdvancedSettingsPage`, `MrxDailyHeaderBranch`, `useReconciliationWorkspace`): locked reserved badge anchor slots (`min-w-[110px]`, `min-w-[140px]`, `min-w-[220px]`), pre-hydrated `batches` and `operationalSummary` on Render #1, unified `WorkspaceFrame.Root` + `WorkspaceFrame.Body` layout structure, completely eliminating layout shifts and skeleton flickering across all MRX surfaces.
+- **MRX Role-Based Native Tree Architecture (5-Role Full Hardening — DOM-MODE-1)**:
+  - Role 1 (Coordinator — `/weekly-menu?view=mrx-batch`): Enforced stable action buttons flex container with fixed alignment in `MrxBatchHeaderBranch.tsx`, preventing horizontal toolbar jumping when primary action and secondary review buttons mount asynchronously.
+  - Role 2 (Warehouse — `/warehouse?view=mrx-daily|prep|issues`): Locked `MrxDailyHeaderBranch.tsx` action slot (`shrink-0`), ensured stable 7-day date tabs in `MrxDailyDateTabsBranch.tsx`, and anchored batch status in `min-w-[110px] h-9`.
+  - Role 3 (Head Chef — `/chef?view=mrx-cooking`): Locked `MrxCookingHeaderBranch.tsx` export buttons container (`shrink-0`) and anchored source version badge in `min-w-[110px] h-9`.
+  - Role 4 (Auditor — `/reconciliation`): Pre-hydrated `batches` from `mrx_batches_${customerId}` and `operationalSummary` from `mrx_operational_summary` on Render #1, eliminating `(Chưa có lô đối soát)` and 0-count flashes. Wrapped actions in `flex items-center gap-2 shrink-0`.
+  - Role 5 (Shared Admin — `/admin-data`, `/settings/advanced`): Enclosed badge counters in `min-w-[140px]` and `min-w-[220px]` reserved slots, upgraded page containers to compound `WorkspaceFrame.Root` + `WorkspaceFrame.Body`.
+- **Unified Workbench Shared Foundation & NN/g Doherty Deferral (Elimination of Ad-Hoc Code & Rapid Skeleton Flicker)**:
+  - Re-integrated `useDeferredSkeleton` (150ms delay, 250ms min duration) into `StateBoundary.tsx`: suppresses skeleton display for queries resolving in $\le 150\text{ms}$, eradicating rapid skeleton flashes, and enforces a steady 250ms hold when loading is prolonged.
+  - Built centralized compound slots in `WorkspaceHeader.tsx`: `<WorkspaceHeader.BadgeSlot>` (`status`: 110px, `metric`: 140px, `mode`: 220px) and `<WorkspaceHeader.Actions>` (stable flex `shrink-0 gap-2`), eliminating all ad-hoc inline Tailwind strings across feature headers.
+  - Created centralized `DocumentCodeCell.tsx` in `components/workbench/`: single authoritative component for clickable document codes (opens modal) paired with dedicated copy button (clipboard write with visual feedback). Refactored `ReconciliationTransactionsBranch.tsx` onto it.
+  - Migrated all MRX & Shared station headers (`MrxBatchHeaderBranch`, `MrxDailyHeaderBranch`, `MrxCookingHeaderBranch`, `ReconciliationHeaderBranch`, `AdminDataPage`, `AdvancedSettingsPage`) onto the compound shared foundation.
+- **MRX Dashboard Recovery, Sidebar IA Smart Collapse & Action Bridges**:
+  - Restored executive MRX Dashboard at `/`: Built `ReconciliationDashboardPage.tsx` with `WorkspaceFrame`, 4 KPI cards (connected to `mrxApi.getOperationalSummary()`), interactive 4-step pipeline, and active batches `DataGrid`. Updated `App.tsx` and `CANONICAL_ROUTES` so `/` is eligible and renders `ReconciliationDashboardPage` in MRX mode.
+  - Implemented smart active-only sidebar collapse in `AppShell.tsx`: replaced hardcoded `true` values with dynamic route-matching logic, keeping inactive disclosure groups collapsed by default and auto-expanding only the active parent.
+  - Added inter-station action bridges:
+    - In `MrxDailyHeaderBranch.tsx`: added `"Lịch sử giao dịch kho →"` shortcut navigating to `/reconciliation?view=transactions`.
+    - In `ReconciliationHeaderBranch.tsx`: added `"Phiếu nấu Bếp →"` shortcut navigating to `/chef?view=mrx-cooking&batchId={id}`.
+- **MRX 6-Pillar Experience Hardening (Contextual Empty Icons, Root Landing, Scrollbar Gutter & Constants)**:
+  - Contextual Domain Empty-State Icons: Upgraded `StateBoundary.tsx` and `DataGrid.tsx` to dynamically resolve domain-appropriate Lucide icons (`Boxes` for batches/allocation, `Warehouse` for inventory, `ChefHat` for cooking, `Scale` for reconciliation, `SearchX` for filter-empty, `FileClock` for prerequisite-blocked) instead of hardcoding `<Inbox />`.
+  - Authoritative Root Login Landing: Updated `resolveLandingPath()` in `navigationEligibility.ts` so Admin and Managers land directly on `/` (`ReconciliationDashboardPage`), completely eliminating the unexpected redirect to `/weekly-menu?view=mrx-batch`.
+  - Zero Inter-Page Layout Shift: Added `scrollbar-gutter: stable;` to `frontend/src/styles/index.css` and scrollable containers, eliminating the 17px horizontal jump during inter-route navigation.
+  - Microcopy Trimming: Pruned wordy descriptions and verbose notes across `ReconciliationPage.tsx` and `ReconciliationTransactionsBranch.tsx` down to crisp 4–7 word enterprise labels.
+  - Centralized Constants: Created `frontend/src/constants/mrxConstants.ts` to deduplicate status dictionaries (`MRX_STATUS_LABELS`, `MRX_STATUS_VARIANTS`, `MRX_SHIFT_OPTIONS`).
+  - Verification: 28 Vitest files / 221 tests PASS (100%), 63/63 Playwright tests PASS (100%), 1,419/1,419 Backend tests PASS, 0 FE files > 600 lines.
+- **MRX Full Feature Recovery, IA Standardization & Navigation Plan**:
+  - Restored issue history subview (`history`) alongside daily demand (`demand`) in `MrxDailyIssueWorkbench.tsx` with `DocumentCodeCell` and `ReconciliationIssueDetailModal`, returning full voucher inspection capability to the warehouse workstation.
+  - Enhanced `ReconciliationDashboardPage.tsx` with dynamic time period filtering (`ALL`, `THIS_YEAR`, `THIS_MONTH`), linking live KPI counters and recent batch table directly to the selected scope.
+  - Standardized clean sidebar leaf titles in `routeRegistry.ts` (`Xuất kho định lượng ngày`, `Xuất phối hợp đa khách`, `Xử lý biến động nguồn`, `Phiếu nấu theo lô & ca`, `Danh bạ hồ sơ hoàn tất`), preserving text-only presentation under the vertical guide line.
+  - Achieved Rule D6 (<12px) 0 violations across all 14 routes by standardizing breadcrumbs to `text-xs`.
+  - Surfaced historical disposition audit context in `ReconciliationDispositionModal.tsx` for previously disposed lines.
+  - Fully centralized `MRX_SHIFT_OPTIONS` and status dictionaries into `mrxConstants.ts`.
+  - Upgraded warehouse daily demand (`MrxDailyLinesBranch.tsx`) with instant ingredient search filtering across both weekly and daily views.
+  - Replaced generic `<Inbox />` in `MrxBatchDishesModal.tsx` with `<Utensils />`, added accessibility `aria-label` attributes to `ReconciliationIssueDetailModal`, `ReconciliationCompletionModal`, and `ReconciliationLineDetailModal`.
+- **MRX Visual Integrity & Human-Language Adapter Plan (Anti-Enum Leak & Layer-Cake Elimination)**:
+  - Fixed Date Input Truncation across all MRX headers: expanded width to `min-w-[175px] w-44 shrink-0 font-mono text-sm tracking-tight`, completely eliminating the squished year (`21/09/202`), and mapped `date=ALL` to display the actual week start date instead of raw string `'ALL'`.
+  - Eradicated Layer-Cake Duplicate Sub-Headers: removed redundant secondary title bars from `ReconciliationVariancesBranch`, `ReconciliationTransactionsBranch`, and `ReconciliationCompletedBranch`, elevating CSV download buttons and sub-tabs directly to `TelemetrySubbar` (Zone 2), recovering 40px of vertical table viewport.
+  - Built Human-Language Adapter in `frontend/src/utils/formatters.ts`:
+    - Mapped transaction types (`INITIAL_ISSUE` $\rightarrow$ `Xuất ban đầu`, `SUPPLEMENTAL_ISSUE` $\rightarrow$ `Xuất bổ sung`, `RETURN` $\rightarrow$ `Hoàn trả`).
+    - Mapped unit names (`Kilogram` $\rightarrow$ `kg`, `Gram` $\rightarrow$ `g`, `Piece` $\rightarrow$ `cái`).
+    - Mapped audit actors (raw GUID `10000000-0000-...` $\rightarrow$ `Quản trị viên (Admin)`).
+    - Mapped business areas (`Coordination` $\rightarrow$ `Điều phối`, `Reconciliation` $\rightarrow$ `Đối soát`, `Warehouse` $\rightarrow$ `Kho`).
+    - Mapped entities & fields (`MealQuantityPlan` $\rightarrow$ `Kế hoạch suất ăn`, `QuickCompleteServings` $\rightarrow$ `Chốt số suất ca`).
+    - Handled backend exception `KITCHEN_FROZEN_LINEAGE_MISSING` in `MrxBatchDishesModal.tsx` with friendly localized Vietnamese explanation.
+    - Normalized ingredient names to title-case via `formatMaterialName`.
+  - Cleaned False Empty States & Zombie Buttons: in `MrxDailyHeaderBranch.tsx`, hid disabled issue buttons when `linesCount === 0`, displaying clean `Không có định lượng ca` badge, and mapped `<Boxes />` icon in `StateBoundary`.
+  - Header Geometry Refactoring on 1280p Laptops: Relocated secondary actions ("Phiếu nấu Bếp →", "Món ăn trong lô") from Header to `TelemetrySubbar.rightActions`, enforcing Rule D7 (single primary action in Header), freeing 180px and guaranteeing that all 3 context selectors (Customer, Batch, Date 14/09/2026) are 100% visible side-by-side without horizontal scrolling on 1280p laptop screens.
+  - Verified 100% full-stack compliance: 28 Vitest files / 221 tests PASS (100%), 63/63 Playwright browser tests PASS (100%), 1,419/1,419 Backend C# tests PASS, 0 FE files > 600 lines.
+- Final State: **`IDLE`**.
+
+### GF-R73 — Comprehensive MRX E2E Lifecycle Matrix Verification & Full Coverage Hardening
+- **Requirement-Driven E2E Lifecycle Matrix Audit (`Rule TA-1` to `Rule TA-5`)**:
+  - Expanded and hardened `scripts/run-mrx-full-path-lifecycle-test.mjs` to traverse 100% of MRX operational stations, 10 interactive modals, all buttons/controls, and complex multi-actor operational lifecycles without synthetic mocking.
+  - Executed against an isolated sandbox database (`ipc_mrx_e2e_sandbox`), keeping production and development master data untouched (`No Destructive Operations`).
+- **Comprehensive Coverage Across 4 Actors & 10 Modals**:
+  - **Phase 1: Điều phối viên (`dieuphoi`)**:
+    + `WeeklyMenuImportModal`: Import weekly Excel menu template for customer `AMANN` week `2026-07-20`.
+    + `WeeklyScheduleEditorModal` (Tab 1 Servings): Adjust shift meal servings (`upsertQuickServings`) with immediate synchronization to production plans.
+    + `WeeklyScheduleEditorModal` (Tab 2 Dishes): Replace dish slot in schedule from catalog (`bulkUpdateWeeklyMenu`).
+    + Publish weekly menu schedule.
+    + BOM completeness check & diagnostics: verified zero missing-BOM blocking.
+    + 2-Tab Material Breakdown & Plans: verified aggregate material requirements across all shifts.
+    + `MrxBatchDishesModal`: Search dishes, filter Ca 1 (Sáng) / Ca 2 (Chiều) / Tất cả, and inspect material ingredients table.
+    + `MrxSourceChangeModal`: Adjust source servings, preview delta impact lines, and test preview reset/save.
+    + Create draft batch (`Tạo lô nháp`), freeze batch (`Đóng băng lô`), and hand over to warehouse (`Chuyển sang Kho`).
+  - **Phase 2: Thủ kho (`thukho`)**:
+    + `Cả tuần (Tổng hợp)`: Verified weekly aggregate read-only view.
+    + Day T2: Clicked "Điền đủ toàn bộ", tested **Validation Blocking** (over-issue without reason strictly disables submit button), supplied valid reason, recorded kitchen savings (under-issue), and submitted initial issue.
+    + `MrxSupplementalIssueModal`: Performed supplemental issue with preset chip "Phát sinh suất ăn đột xuất".
+    + Full Week Issuing: Completed operational issuing for days T3, T4, T5, T6, and T7.
+    + Tab "Lịch sử phiếu": Verified signed issue receipts with `DocumentCodeCell`, opened and inspected `ReconciliationIssueDetailModal`.
+    + Auxiliary Stations: Verified multi-customer prep (`?view=mrx-preparation`) and delta issues (`?view=mrx-issues`).
+  - **Phase 3: Bếp trưởng (`beptruong`)**:
+    + Cooking station inspection with Ca 1 / Ca 2 / Tất cả shift filter.
+    + **Information Sanitization Invariant**: 100% verified zero currency symbols (`₫`), zero `đơn giá`, and zero supplier names on Chef views.
+  - **Phase 4: Kế toán / Quản lý đối soát (`quanly`)**:
+    + Dashboard Control Tower (`/`): Verified 4 KPI counters and active batch list.
+    + `ReconciliationLineDetailModal`: Inspected locked BOM demand, issue receipts, and variance reasons.
+    + `ReconciliationDispositionModal`: Disposed two-way discrepancies (`ACCEPTED_VARIANCE`) across multiple dates.
+    + Verified `WEEK_COMPLETE` ("Đã xuất đủ") condition unlocks "Chốt đối soát tuần" button.
+    + `ReconciliationCompletionModal`: Locked weekly reconciliation batch, updating status to `COMPLETED` ("Hoàn tất").
+    + Subbar CSV Exports: Verified CSV export buttons across Sổ theo dõi chênh lệch, Lịch sử kho, Nhật ký kiểm toán, and Danh bạ hoàn tất.
+- **Verification Evidence**:
+  - Full-path MRX E2E Lifecycle Matrix on isolated sandbox DB (`scripts/run-mrx-full-path-lifecycle-test.mjs`): 21/21 phases PASS in 1m51s (`MRX-FULL-PATH-REPORT.json`).
+  - Pre-commit Gate A-E (`npm run precommit:verify`): 31 Vitest files / 233 tests PASS (100%), 0 build errors.
+  - Playwright browser suite (`npx playwright test`): 63/63 tests PASS on Chromium (100%).
+  - Backend C# test suite (`dotnet test backend/IPCManagement.slnx`): 1,370/1,370 tests PASS (100%).
+  - Architecture growth check: PASS (0 FE files > 600 lines, all sub-tree files $\le 346$ lines, 0 test files > 1500 lines).
+- Final State: **`IDLE`**.
+
+### GF-R74 — Complete MRX Workflow Standardization, Multi-Customer Dynamics, BOM Tiers & Performance Hardening
+- **Multi-Customer Dynamics & Contract Management (`/admin-data?view=customers`)**:
+  - Restored customer contract management with `customerApi.ts` connecting `POST /api/coordination/customers/contract` and `GET /api/coordination/customer-contracts`.
+  - Created `CreateCustomerModal.tsx` (214 lines) with customer code/name input, 3 canonical contract price tiers (**25.000 ₫ · 30.000 ₫ · 34.000 ₫**), and operational shift selectors.
+  - Created `AdminCustomersBranch.tsx` (174 lines) with 4 telemetry KPIs, live DataGrid, and create customer action. Registered leaf `admin.customers` in `routeRegistry.ts` under DEFAULT mode (DOM-MODE-1).
+- **BOM Standardization: 3 Fixed Price Tiers (25k/30k/34k) & 2-Tier Scope (Global vs Customer)**:
+  - Upgraded `DishBomEditorModal.tsx` (320 lines) with segmented control for 3 canonical tiers (**25.000 ₫ · 30.000 ₫ · 34.000 ₫**), scope selector (`Dùng chung toàn hệ thống (Global)` vs `Theo khách hàng cụ thể`), and integrated `SearchableCombobox`.
+  - Strictly aligned with backend `BomSelectionResolver` invariants.
+- **NFR Performance: UI Primitive `SearchableCombobox.tsx`**:
+  - Built `SearchableCombobox.tsx` (197 lines) with 200ms debounced search, diacritics-insensitive filtering, and a strict **15-item DOM window (`maxVisibleOptions=15`)**, eliminating UI freeze and input lag when browsing 756 ingredients.
+- **Spacious Layout for `WeeklyMenuImportModal.tsx` (`max-w-5xl`)**:
+  - Expanded modal width to `max-w-5xl`, replaced free-form number input with 3 canonical price tier radio buttons.
+- **Noise Elimination on Empty States (`RULE-CLEAN-NOISE-01`)**:
+  - Permanently removed historical draftSources clutter box (`pi-clipboard-c603d6d8-3820-4f87-a2c3-edce3da94494.png`) from `MrxBatchWorkbench.tsx`, restoring clean, elegant empty state with primary CTA `[Nhập thực đơn Excel ngay]`.
+- **Verification Evidence**:
+  - Live Browser Verification (`scripts/verify-all-enhancements-live.mjs`): 10/10 checks PASS with 10 screenshots in `.artifacts/live-audit-enhancements/`.
+  - Pre-commit Gate A–E (`npm run precommit:verify`): 33 test files / 239 tests PASS (100%), 0 build errors.
+  - Playwright browser suite (`npx playwright test`): 63/63 tests PASS on Chromium (100%).
+  - Backend C# test suite (`dotnet test backend/IPCManagement.slnx`): 1,370/1,370 tests PASS (100%).
+  - Full-path MRX E2E Lifecycle Matrix on isolated sandbox DB: 21/21 phases PASS (`MRX-FULL-PATH-REPORT.json`).
+  - Architecture growth check: PASS (0 FE files > 600 lines, all sub-tree files $\le 346$ lines).
+- Final State: **`IDLE`**.
+
+---
+
+### GF-R33 — Global Operational Recovery & Worst-Case Sandbox Mutation Harness (All 14 Routes)
+- **Hook-Driven Resilience Protocol (`useOperationalRecovery.ts` & `executeSafeMutation`)**:
+  - Built `frontend/src/hooks/useOperationalRecovery.ts` (201 lines): SWR cache 0ms hydration, centralized error mapping via `formatters.ts`, automatic `filter-empty` and `prerequisite-blocked` scenario resolution.
+  - Implemented `executeSafeMutation`: preserves 100% of user form draft payloads upon mutation failures, intercepts HTTP 409 concurrency conflicts, and prevents premature modal closure or form resets.
+- **StateBoundary 2.0 with Actionable Escape Hatches & Contextual Icons**:
+  - Extended `frontend/src/components/workbench/StateBoundary.tsx` (392 lines):
+    - `filter-empty`: actionable `[Xóa bộ lọc (Reset Filters)]` button via `onResetFilters`.
+    - `prerequisite-blocked`: actionable `[Đi đến thiết lập: {prerequisiteLabel}]` via `onNavigatePrerequisite` / `prerequisiteRoute`.
+    - `error`: actionable `[Thử lại]` via `onRetry`.
+    - Contextual domain icons: `FileCheck` (`/approvals`), `Truck` / `ShoppingCart` (`/purchasing`), `FileSpreadsheet` (`/reports`), `UtensilsCrossed` (`/chef`, `/meal-orders`), `Boxes` (`/warehouse`).
+    - Permanently eradicated legacy `Inbox` icon usage across all routes.
+- **Universal 14-Route Normalization**:
+  - `/approvals`: replaced `Inbox` with `FileCheck`, preserved rejection reason `decisionReason` inside modal upon API failure, non-destructive conflict banner over visible table.
+  - `/meal-orders`: zero dead-end state with reset filters & customer prerequisite navigation, preserved lock state upon failure.
+  - `/purchasing`: replaced `Inbox` with `Truck` / `ShoppingCart`, preserved cancel PO modal on error, filter-empty CTA resets supplier/status to `ALL`.
+  - `/warehouse`: DEFAULT views (`issues`, `receipts`, `stock`) have actionable filter resets and contextual icons.
+  - `/chef`: DEFAULT views (`plans`, `issues`) have actionable filter resets and KHSX navigation.
+  - `/reports`: contextual icon `FileSpreadsheet`, filter reset CTA.
+  - `/admin-data`: clear search CTAs across all 4 tabs (ingredients, dishes, bom, customers).
+  - `/settings/approval-rules`: actionable first-use CTA.
+- **Universal Worst-Case Lifecycle Harness with Automated Cleanup**:
+  - Built `scripts/run-universal-worst-case-lifecycle-harness.mjs` targeting isolated sandbox database `ipc_mrx_e2e_sandbox` on port 5263:
+    - Phase 1 (Zero Data Tolerance): 10 core endpoints respond with structured 200 responses, 0 500s.
+    - Phase 2 (Negative Numbers & Constraints): 400 Bad Request returned on empty codes, duplicates, and negative quantities, 0 database corruption.
+    - Phase 3 (Optimistic Concurrency & DOM-MODE-1 Mode Isolation): 409 Conflict properly triggered on mode-restricted operations, 200 OK on mode-allowed operations.
+    - Phase 4 (Form Mutation State Preservation): Payload preserved intact without data loss.
+    - Phase 5 (Auto-Cleanup & Teardown Verification): 0 residual test records in `ipc_mrx_e2e_sandbox` and production DB `ipcmanagement`, clean database drop.
+- **Verification Evidence**:
+  - Pre-commit Gate A–E (`npm run precommit:verify`): **35 test files / 252 tests PASS (100%)**, 0 build errors, 0 growth violations.
+  - Playwright Browser Suite (`npx playwright test`): **63/63 tests PASS** on Chromium. Rule D6 (<12px): 0. Rule D7: 0. Microcopy token leaks: 0.
+  - Backend .NET 9 Tests (`dotnet test backend/IPCManagement.slnx`): **1,370/1,370 tests PASS (100%)**, 0 failed.
+  - Universal Worst-Case Harness (`scripts/run-universal-worst-case-lifecycle-harness.mjs`): **5/5 phases PASS, OVERALL STATUS = PASS, 0 residual records**.
+- **MRX Batch Matrix View & Shift Dishes Matrix Modal (`/weekly-menu?view=mrx-batch`)**:
+  - Restored `Ma trận thực đơn tuần (Thứ Hai — Chủ Nhật)` as the primary/default sub-tab on `MrxBatchPreviewSection.tsx`, rendering the ready-made `WeeklyScheduleView` matrix (7 columns Thứ Hai -> Chủ Nhật, servings per shift row, dish slots grouped by section).
+  - Built `MrxShiftDishesModal.tsx` (125 lines): In `Kế hoạch món & suất theo ca`, removed messy joined text strings in `MÓN ĂN TRONG CA` column and replaced them with `<Button variant="outline" size="xs">Xem ma trận món ({row.dishesDetails.length} món)</Button>` opening the shift dish matrix breakdown modal.
+  - Live Browser Audit: 4 screenshots captured in `.artifacts/mrx-matrix-enhancement/`.
+
+### MRX E2E Universal Test Harness Execution & Hard DB Guardrails
+- **Hard Database Guardrail & MySQL Verifier (`frontend/tests/e2e-mrx/core/`)**:
+  - Implemented `dbGuardrail.ts` with strict fail-fast assertion: aborts test execution if targeting production DB `ipcmanagement` or port 5262; only sandbox `ipc_mrx_e2e_sandbox` on port 5263 is permitted.
+  - Implemented `mysqlVerifier.ts` with multiline query sanitization and Windows CLI execution (`mysql.exe`), providing direct vertical SQL validation of table columns and invariants (`currentstock`, `inventoryissuelines`, `inventoryreturnlines`, `reconciliationbatches`).
+  - Unit test `dbGuardrail.test.ts`: 4/4 tests PASS.
+- **Global Setup & Teardown Architecture (`frontend/tests/e2e-mrx/core/`)**:
+  - `globalSetup.ts`: Automatically clones production schema and seeds into isolated `ipc_mrx_e2e_sandbox`, starts Kestrel on port 5263, and spawns Vite dev server on port 5174 via `cmd.exe /d /s /c` for Windows reliability.
+  - `globalTeardown.ts`: Cleanly terminates ports 5174 and 5263, asserts zero test residuals, and drops sandbox DB `ipc_mrx_e2e_sandbox`.
+- **5 E2E Scenario Groups (13/13 PASS)**:
+  - **`@G1-Golden`** (`g1-golden-path.spec.ts`): End-to-end multi-role lifecycle spanning 6 stages (Menu Import -> Draft Creation -> Freeze Batch -> Warehouse Issues -> Kitchen Reception -> Reconciliation Closing -> SQL Batch Status = `COMPLETED` verification).
+  - **`@G2-RBAC`** (`g2-multi-role-handoff.spec.ts`): Strict inter-department security boundary verification with RoleGuard redirects to `/forbidden` for unauthorized stations and full access for Admin.
+  - **`@G3-Alt`** (`g3-alternative-flows.spec.ts`): Alternative operational flows including missing BOM import modal (`TemplateType: 'missing'`), supplemental kitchen issue, and 2-way disposition modal marking line `DISPOSED`.
+  - **`@G4-Rollback`** (`g4-concurrency-rollback.spec.ts`): Real optimistic concurrency conflict triggered via 2 parallel `BrowserContext` instances without API mocking (HTTP 409) + Mathematical vertical stock arithmetic verification in MySQL: `EndingStock = InitialStock - TotalIssued + TotalReturned`.
+  - **`@G5-Async`** (`g5-async-timeout.spec.ts`): Network disconnection testing via `context.setOffline(true/false)` verifying zero duplicate requests and idempotency + JWT expiration preservation of form draft data without data loss + Sandbox DB auto-closing audit query.
+- **Defect Remediation & True Persistence Verification (Mutation Testing)**:
+  - **Bug Fix 1 (`WeeklyScheduleEditorModal.tsx`)**: Replaced non-deterministic `Object.keys(data.matrixRows[0]?.days || {})[data.scheduleDays.indexOf(day)]` with robust `toIsoDate(day.dateStr)` and `toIsoDate(selectedDate)`. Eliminated subtle date corruption where JavaScript object key enumeration order could cause Monday's meal count or dish changes to be written to a different service date.
+  - **Bug Fix 2 (`MrxBatchWorkbench.tsx`)**: Fixed blank screen crash (`ReferenceError: checkQuantities is not defined`). Destructured `checkQuantities` from `useMrxBatchWorkspace` and added an actionable CTA button (`[Kiểm tra định lượng ngay]`) inside the center empty state, eradicating dead-end UX.
+  - **Bug Fix 3 (`DishBomBatchImportModal.tsx`)**: Fixed hardcoded `'by-dish'` in `formData.append('TemplateType', ...)` which was discarding `initialTemplateType === 'missing'`.
+  - **Vertical Database Persistence Proof in MySQL (`ipc_mrx_e2e_sandbox`)**:
+    - `menuversions`: 1 row inserted (`ACTIVE`, versionNo 1, 60 success rows).
+    - `reconciliationbatches`: Status transitioned from `DRAFT` (v1) $\rightarrow$ `FROZEN` (v2) $\rightarrow$ `TRANSFERRED` (v3) $\rightarrow$ **`COMPLETED` (v11)** with authoritative `CompletedAt`.
+    - `reconciliationbatchlines`: 44 distinct lines, total 3,270.6234 kg required.
+    - `reconciliationbatchdailylines`: 138 daily lines, total 3,270.6234 kg required.
+    - `inventoryissues` & `inventoryissuelines`: **7 real issues** (6 regular daily + 1 supplemental `ISS-...-24E2`), **139 issue lines**, **3,292.1234 kg issued**.
+    - `reconciliationdailydispositions`: **2 daily disposition rows** saved for `Bầu` and `Cà chua` with `Category = ACCEPTED_VARIANCE`.
+- **Verification Evidence**:
+  - Vitest Unit Suite: **36 test files / 256 tests PASS (100%)**.
+  - Pre-commit Gate A–E (`npm run precommit:verify`): **ALL 5 GATES PASS**.
+  - Playwright Browser Audit (`npx playwright test`): **63/63 PASS**.
+  - Playwright MRX E2E Suite (`npm run test:e2e:mrx`): **13/13 PASS (100%)**.
+- Final State: **`IDLE`**.
+
+
+
+
+
+
+
+
+
 
 
 

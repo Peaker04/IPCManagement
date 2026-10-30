@@ -48,7 +48,7 @@ export function MenuCostView({ data }: MenuCostViewProps) {
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
       <TelemetrySubbar
-        leftControls={<span className="text-xs font-semibold text-slate-700">Báo cáo giá vốn theo dữ liệu Backend</span>}
+        leftControls={<span className="text-xs font-semibold text-slate-700">Báo cáo giá vốn định mức món ăn</span>}
         telemetryPills={
           <span className="inline-flex items-center gap-1">
             <span className="text-slate-500">Món có số liệu:</span>

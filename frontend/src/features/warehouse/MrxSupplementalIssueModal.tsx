@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Select } from '../../components/ui/select';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import { toVietnameseDate } from '../../utils/dates';
 import { mrxApi, type MrxBatchDishSummary } from '../../api/mrxApi';
 
@@ -103,9 +105,9 @@ export function MrxSupplementalIssueModal({
     >
       <div className="space-y-3 text-sm text-slate-700">
         {suppError && (
-          <div role="alert" className="p-2.5 rounded bg-rose-50 text-rose-800 border border-rose-200 text-xs">
+          <InlineBanner variant="error">
             {suppError}
-          </div>
+          </InlineBanner>
         )}
 
         <div className="flex items-center gap-1 p-1 bg-slate-100 rounded text-xs">
@@ -139,19 +141,17 @@ export function MrxSupplementalIssueModal({
                 <label htmlFor="dish-select" className="font-semibold text-slate-700 block mb-1">
                   Chọn món ăn:
                 </label>
-                <select
+                <Select
                   id="dish-select"
                   aria-label="Chọn món ăn phát sinh"
                   value={selectedDishId}
                   onChange={(e) => setSelectedDishId(e.target.value)}
-                  className="w-full h-8 rounded border border-slate-300 bg-white px-2 text-xs text-slate-900"
-                >
-                  {dishes.map((d) => (
-                    <option key={d.dishId} value={d.dishId}>
-                      {d.dishName} ({d.dishCode})
-                    </option>
-                  ))}
-                </select>
+                  options={dishes.map((d) => ({
+                    value: d.dishId,
+                    label: `${d.dishName} (${d.dishCode})`,
+                  }))}
+                  className="w-full h-8 text-xs"
+                />
               </div>
               <div className="col-span-3">
                 <label htmlFor="servings-input" className="font-semibold text-slate-700 block mb-1">
@@ -244,19 +244,17 @@ export function MrxSupplementalIssueModal({
           <label htmlFor="supp-ingredient" className="text-xs font-semibold text-slate-700 block mb-1">
             Chọn nguyên liệu bổ sung:
           </label>
-          <select
+          <Select
             id="supp-ingredient"
             aria-label="Chọn nguyên liệu bổ sung"
             value={suppMaterialId}
             onChange={(e) => onSuppMaterialIdChange(e.target.value)}
-            className="w-full h-9 rounded border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-400"
-          >
-            {lines.map((l) => (
-              <option key={l.dailyLineId} value={l.dailyLineId}>
-                {l.ingredientName || 'Nguyên liệu'} (Đã xuất: {l.issuedQuantity ?? 0} {l.canonicalUnitName || 'đơn vị'})
-              </option>
-            ))}
-          </select>
+            options={lines.map((l) => ({
+              value: l.dailyLineId,
+              label: `${l.ingredientName || 'Nguyên liệu'} (Đã xuất: ${l.issuedQuantity ?? 0} ${l.canonicalUnitName || 'đơn vị'})`,
+            }))}
+            className="w-full h-9 text-sm"
+          />
         </div>
 
         <div>

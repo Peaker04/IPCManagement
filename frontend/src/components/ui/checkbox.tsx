@@ -8,7 +8,7 @@ export interface CheckboxProps
 }
 
 export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, indeterminate, checked, onChange, ...props }, ref) => {
+  ({ className, indeterminate, checked, onChange, disabled, ...props }, ref) => {
     const internalRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -19,21 +19,26 @@ export const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     }, [indeterminate, ref]);
 
     return (
-      <input
-        type="checkbox"
-        ref={ref || internalRef}
-        checked={checked}
-        onChange={onChange}
-        className={twMerge(
-          clsx(
-            'h-4 w-4 rounded border border-slate-300 text-slate-900 accent-slate-900 cursor-pointer',
-            'transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            className
-          )
-        )}
-        {...props}
-      />
+      <span className="inline-flex items-center justify-center min-h-[var(--density-hit-target,1.25rem)] min-w-[var(--density-hit-target,1.25rem)]">
+        <input
+          type="checkbox"
+          ref={ref || internalRef}
+          checked={checked}
+          disabled={disabled}
+          onChange={onChange}
+          aria-checked={indeterminate ? 'mixed' : (checked ? 'true' : 'false')}
+          className={twMerge(
+            clsx(
+              'h-4 w-4 rounded border border-slate-300 text-slate-900 accent-slate-900 cursor-pointer shrink-0',
+              'transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1',
+              'disabled:cursor-not-allowed disabled:opacity-50 disabled:pointer-events-none',
+              indeterminate && 'accent-slate-700',
+              className
+            )
+          )}
+          {...props}
+        />
+      </span>
     );
   }
 );

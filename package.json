@@ -37,6 +37,13 @@
     "benchmark:workflow": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --filter \"Category=Performance\" --logger \"console;verbosity=normal\"",
     "verify": "npm run test:ignore-policy && npm run test:frontend-test-taxonomy && npm run test:frontend-unit-launcher && npm run test:architecture-growth && npm run check:architecture-growth && npm run check:conformance-contracts && npm run build:be && npm run test:be:ci && npm run lint:fe && npm run depcruise:fe && npm run build:fe && npm run test:fe:unit",
     "verify:coverage": "npm run coverage:be && npm run coverage:fe",
+    "precommit:verify": "node scripts/verify-precommit-gate.mjs",
+    "test:e2e:mrx": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts",
+    "test:e2e:mrx:g1": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G1-Golden",
+    "test:e2e:mrx:g2": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G2-RBAC",
+    "test:e2e:mrx:g3": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G3-Alt",
+    "test:e2e:mrx:g4": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G4-Rollback",
+    "test:e2e:mrx:g5": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G5-Async",
     "e2e:happy": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1HappyPathE2E.ps1",
     "e2e:weekly": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-WeeklyHappyPathE2E.ps1",
     "e2e:exceptions": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1ExceptionPathE2E.ps1"
