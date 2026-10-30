@@ -164,8 +164,8 @@ public sealed class ReconciliationQuantityImportService(
                     .Append(GuidHelper.ToGuidString(line.MenuScheduleId)).Append(':').Append(GuidHelper.ToGuidString(line.CustomerId)).Append(':')
                     .Append(GuidHelper.ToGuidString(line.MenuId)).Append(':').Append(line.ShiftName).Append(':')
                     .Append(line.FinalServings.ToString(CultureInfo.InvariantCulture)).Append(':')
-                    .Append(line.SavoryServings?.ToString(CultureInfo.InvariantCulture)).Append(':')
-                    .Append(line.VegetarianServings?.ToString(CultureInfo.InvariantCulture)).Append(':')
+                    .Append(line.SavoryServings!.Value.ToString(CultureInfo.InvariantCulture)).Append(':')
+                    .Append(line.VegetarianServings!.Value.ToString(CultureInfo.InvariantCulture)).Append(':')
                     .Append(line.MenuSchedule.MenuPrice.ToString(CultureInfo.InvariantCulture)).Append(':')
                     .Append(line.MenuSchedule.ServiceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                 foreach (var dish in projectedLine.Dishes)

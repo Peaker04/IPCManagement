@@ -96,6 +96,29 @@ public sealed class ReconciliationVariantServingsTests
     }
 
     [Fact]
+    public async Task Split_not_matching_final_servings_throws_servings_split_required()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await SeedVariantSourceAsync(fixture, savory: 280, vegetarian: 20, sameDishInBothMenus: false);
+        await using (var write = fixture.CreateContext())
+        {
+            // Đổi tổng như luồng NewServings cũ mà không tách lại Mặn/Chay.
+            var line = await write.Mealquantityplanlines.SingleAsync();
+            line.FinalServings = 310;
+            await write.SaveChangesAsync();
+        }
+        await using var context = fixture.CreateContext();
+        var sourceLines = await LoadSourceLinesAsync(context);
+
+        var projectError = Assert.Throws<MrxSourceChangeException>(() => ReconciliationMaterialProjection.Project(sourceLines));
+        var inspectError = Assert.Throws<MrxSourceChangeException>(() => ReconciliationMaterialProjection.Inspect(sourceLines));
+
+        Assert.Equal("MRX_SERVINGS_SPLIT_REQUIRED", projectError.Code);
+        Assert.Equal(422, projectError.StatusCode);
+        Assert.Equal("MRX_SERVINGS_SPLIT_REQUIRED", inspectError.Code);
+    }
+
+    [Fact]
     public async Task Materialized_contributor_records_variant_and_variant_servings()
     {
         await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();

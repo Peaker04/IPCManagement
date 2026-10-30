@@ -80,6 +80,7 @@ public sealed class ReconciliationQuantityImportReachabilityTests
 
         var line = await fixture.Context.Mealquantityplanlines.SingleAsync();
         line.FinalServings++;
+        line.SavoryServings++; // giữ số suất Mặn/Chay khớp tổng để kiểm đúng nguồn cũ (stale).
         await fixture.Context.SaveChangesAsync();
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => fixture.ReconciliationController.CommitQuantityImport(

@@ -34,6 +34,12 @@ internal static class ReconciliationMaterialProjection
                 MrxErrorCodes.ServingsSplitRequired,
                 StatusCodes.Status422UnprocessableEntity,
                 $"{source.QuantityPlan.ServiceDate:dd/MM/yyyy} · {ShiftLabel(source.ShiftName)}: chưa nhập đủ số suất Mặn và Chay. Cần nhập cả hai số suất trước khi tính định lượng.");
+        // BR-MRX-SERV-1: FinalServings = Mặn + Chay; số suất tách lệch tổng không phải số suất hợp lệ.
+        if (savoryServings + vegetarianServings != source.FinalServings)
+            throw new MrxSourceChangeException(
+                MrxErrorCodes.ServingsSplitRequired,
+                StatusCodes.Status422UnprocessableEntity,
+                $"{source.QuantityPlan.ServiceDate:dd/MM/yyyy} · {ShiftLabel(source.ShiftName)}: số suất Mặn ({savoryServings}) và Chay ({vegetarianServings}) không khớp tổng {source.FinalServings} suất. Cần nhập lại số suất Mặn và Chay trước khi tính định lượng.");
 
         var dishes = new List<ProjectedDish>();
         foreach (var (menuItem, variant) in source.Menu.Menuitems

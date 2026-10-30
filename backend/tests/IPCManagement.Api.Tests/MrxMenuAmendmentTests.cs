@@ -233,6 +233,19 @@ public partial class WorkflowGenerationTests
         var originalServings = sourceLine.FinalServings;
         sourceLine.SavoryServings = sourceLine.FinalServings; // BR-MRX-SERV-1: món slot mặn nhân số suất mặn.
         sourceLine.VegetarianServings = 0;
+        // Đổi món (không đổi số suất) để staging thành công rồi giao dịch mới bị ép lỗi; đổi số suất
+        // qua NewServings không còn qua được projection MRX vì số suất Mặn/Chay sẽ lệch tổng.
+        var originalMenuId = schedule.MenuId;
+        var originalDishId = (await context.Menuitems.SingleAsync(item => item.MenuId == originalMenuId)).DishId;
+        var originalBom = await context.Dishboms.SingleAsync(item => item.DishId == originalDishId);
+        var replacementDish = await context.Dishes.SingleAsync(item => item.DishId != originalDishId && item.IsActive == true);
+        context.Dishboms.Add(new DishBom
+        {
+            BomId = GuidHelper.NewId(), DishId = replacementDish.DishId, IngredientId = originalBom.IngredientId,
+            UnitId = originalBom.UnitId, CustomerId = originalBom.CustomerId, PriceTierAmount = originalBom.PriceTierAmount,
+            GrossQtyPerServing = originalBom.GrossQtyPerServing * 2, WasteRatePercent = 0,
+            BomStatus = "PUBLISHED", EffectiveFrom = schedule.ServiceDate.AddDays(-1)
+        });
         var baseVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = schedule.CustomerId, WeekStartDate = schedule.WeekStartDate, VersionNo = 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         context.Menuversions.Add(baseVersion);
         schedule.MenuVersionId = baseVersion.MenuVersionId;
@@ -242,7 +255,7 @@ public partial class WorkflowGenerationTests
         var request = await new MenuAmendmentService(context).CreateAsync(new CreateMenuAmendmentRequest
         {
             CustomerId = fixture.CustomerIdString, WeekStartDate = schedule.WeekStartDate, Reason = "Kiểm tra rollback sau staging.",
-            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewServings = originalServings + 10 }]
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = schedule.ServiceDate, ShiftName = schedule.ShiftName, DishSlot = "main", NewDishId = GuidHelper.ToGuidString(replacementDish.DishId) }]
         }, fixture.UserIdString);
         var adminId = await CreateApprovalActorAsync(context, "mrx-admin-rollback");
         var service = new MenuAmendmentService(context, new FailAfterOperationTransactionRunner(context), new ReconciliationSourceRevisionService(context));
@@ -253,6 +266,9 @@ public partial class WorkflowGenerationTests
         context.ChangeTracker.Clear();
         (await context.Menuamendments.SingleAsync()).Status.Should().Be("PENDING_REVIEW");
         (await context.Mealquantityplanlines.SingleAsync()).FinalServings.Should().Be(originalServings);
+        var restoredSchedule = await context.Menuschedules.SingleAsync(item => item.MenuScheduleId == schedule.MenuScheduleId);
+        restoredSchedule.MenuId.Should().Equal(originalMenuId);
+        (await context.Menuitems.SingleAsync(item => item.MenuId == originalMenuId)).DishId.Should().Equal(originalDishId);
         (await context.Menuversions.CountAsync()).Should().Be(1);
         (await context.Reconciliationsourcerevisions.CountAsync()).Should().Be(0);
         (await context.Reconciliationbatchlines.CountAsync()).Should().Be(0);

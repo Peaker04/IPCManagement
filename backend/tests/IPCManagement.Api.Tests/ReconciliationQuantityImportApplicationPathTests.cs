@@ -228,7 +228,9 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         await using var fixture = await Fixture.CreateAsync();
         var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
             new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn chuẩn"), default));
-        fixture.Context.Mealquantityplanlines.Single().FinalServings++;
+        var staleLine = fixture.Context.Mealquantityplanlines.Single();
+        staleLine.FinalServings++;
+        staleLine.SavoryServings++; // giữ số suất Mặn/Chay khớp tổng để kiểm đúng nguồn cũ (stale).
         await fixture.Context.SaveChangesAsync();
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => fixture.Controller.CommitQuantityImport(
