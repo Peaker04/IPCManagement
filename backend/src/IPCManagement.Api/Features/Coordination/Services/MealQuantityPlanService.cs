@@ -1,6 +1,7 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -13,12 +14,20 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
 {
     private readonly IpcManagementContext _context;
     private readonly IEfTransactionRunner _transactionRunner;
+    private readonly SystemOperationRequestContext? _requestContext;
 
-    public MealQuantityPlanService(IpcManagementContext context, IEfTransactionRunner transactionRunner)
+    public MealQuantityPlanService(
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner,
+        SystemOperationRequestContext? requestContext = null)
     {
         _context = context;
         _transactionRunner = transactionRunner;
+        _requestContext = requestContext;
     }
+
+    private bool IsMaterialReconciliation =>
+        string.Equals(_requestContext?.Mode, SystemOperationEligibility.MaterialReconciliation, StringComparison.Ordinal);
 
     public async Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query)
     {
@@ -122,7 +131,30 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
             throw new ArgumentException("Ca phục vụ không hợp lệ.");
         }
 
-        if (request.Servings < 0)
+        var isMrx = IsMaterialReconciliation;
+        int savoryServings = 0, vegetarianServings = 0;
+        int finalServings = request.Servings;
+        if (isMrx)
+        {
+            if (request.SavoryServings is null || request.VegetarianServings is null)
+            {
+                throw new ArgumentException("Cần nhập cả số suất mặn và số suất chay.");
+            }
+
+            savoryServings = request.SavoryServings.Value;
+            vegetarianServings = request.VegetarianServings.Value;
+            if (savoryServings < 0 || vegetarianServings < 0)
+            {
+                throw new ArgumentException("Số suất mặn và số suất chay phải lớn hơn hoặc bằng 0.");
+            }
+
+            finalServings = checked(savoryServings + vegetarianServings);
+            if (finalServings <= 0)
+            {
+                throw new ArgumentException("Tổng số suất mặn và chay phải lớn hơn 0.");
+            }
+        }
+        else if (request.Servings < 0)
         {
             throw new ArgumentException("Số suất phải lớn hơn hoặc bằng 0.");
         }
@@ -214,10 +246,15 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
                         plan.Mealquantityplanlines.Add(line);
                     }
 
-                    line.ForecastServings = request.Servings;
-                    line.ConfirmedServings = request.Complete ? request.Servings : line.ConfirmedServings;
+                    line.ForecastServings = finalServings;
+                    line.ConfirmedServings = request.Complete ? finalServings : line.ConfirmedServings;
                     line.AdjustedServings = 0;
-                    line.FinalServings = request.Servings;
+                    line.FinalServings = finalServings;
+                    if (isMrx)
+                    {
+                        line.SavoryServings = savoryServings;
+                        line.VegetarianServings = vegetarianServings;
+                    }
                     line.UpdatedAt = changedAt;
                 }
 
@@ -229,7 +266,9 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
                     plan.QuantityPlanId,
                     request.Complete ? "QuickCompleteServings" : "QuickForecastServings",
                     null,
-                    $"{serviceDate:yyyy-MM-dd}|{shiftName}|{request.Servings}",
+                    isMrx
+                        ? $"{serviceDate:yyyy-MM-dd}|{shiftName}|{finalServings}|savory={savoryServings}|vegetarian={vegetarianServings}"
+                        : $"{serviceDate:yyyy-MM-dd}|{shiftName}|{request.Servings}",
                     "KHSX cập nhật nhanh số suất vận hành");
 
                 transactionPlanId = plan.QuantityPlanId;
@@ -251,8 +290,11 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
                                 plan.Status == expectedStatus &&
                                 plan.Mealquantityplanlines.Count > 0 &&
                                 plan.Mealquantityplanlines.All(line =>
-                                    line.ForecastServings == request.Servings &&
-                                    line.FinalServings == request.Servings),
+                                    line.ForecastServings == finalServings &&
+                                    line.FinalServings == finalServings &&
+                                    (!isMrx ||
+                                     (line.SavoryServings == savoryServings &&
+                                      line.VegetarianServings == vegetarianServings))),
                         cancellationToken);
             });
 
@@ -305,6 +347,16 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
 
     private async Task EnsureNoActiveReconBatchAsync(DateOnly weekStartDate, byte[] customerId, CancellationToken cancellationToken)
     {
+        if (IsMaterialReconciliation)
+        {
+            if (await MrxReconBatchGuard.AnyBatchAsync(_context, weekStartDate, customerId, cancellationToken))
+            {
+                throw new BusinessRuleException(MrxReconBatchGuard.BatchExistsMessage);
+            }
+
+            return;
+        }
+
         var activeMenuVersionIds = await _context.Menuversions
             .AsNoTracking()
             .Where(mv => mv.CustomerId == customerId && mv.WeekStartDate == weekStartDate)

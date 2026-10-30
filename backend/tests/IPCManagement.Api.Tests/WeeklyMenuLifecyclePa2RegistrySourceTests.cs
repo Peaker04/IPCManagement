@@ -22,9 +22,9 @@ public sealed class WeeklyMenuLifecyclePa2RegistrySourceTests
             .Should().Contain("RequireRole(AuthorizationPolicies.CoordinationRoles)");
         ReadWorkspaceFile("backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs")
             .Should().Contain("public static readonly string[] CoordinationRoles");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs", 149)
+        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs", 181)
             .Should().Contain("if (request.Complete && schedules.Any(schedule =>");
-        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs", 150)
+        ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MealQuantityPlanService.cs", 182)
             .Should().Contain("!string.Equals(schedule.Status, \"ACTIVE\"");
         ReadWorkspaceLine("backend/src/IPCManagement.Api/Features/Coordination/Services/MenuScheduleService.cs", 160)
             .Should().Contain("var status = MenuSchedulePolicy.NormalizeMenuScheduleStatus(request.Status)");

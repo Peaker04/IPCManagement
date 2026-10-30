@@ -249,7 +249,8 @@ public sealed class ReconciliationQuantityImportReachabilityTests
             {
                 ControllerContext = ControllerContext()
             };
-            var quantityController = new MealQuantityPlansController(new MealQuantityPlanService(context, transactionRunner), currentUser)
+            var quantityController = new MealQuantityPlansController(new MealQuantityPlanService(context, transactionRunner,
+                new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation }), currentUser)
             {
                 ControllerContext = ControllerContext()
             };
@@ -386,18 +387,16 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                     CustomerId = CustomerIdString,
                     ServiceDate = schedule.ServiceDate.ToString("yyyy-MM-dd"),
                     ShiftName = schedule.ShiftName,
-                    Servings = servings,
+                    SavoryServings = servings,
+                    VegetarianServings = 0,
                     Complete = true
                 }));
             Assert.Equal("COMPLETED", quantity.Status);
-            // BR-MRX-SERV-1: projection MRX cần số suất Mặn/Chay. Quick-servings chưa nhận hai số này
-            // (Task 4 sẽ bổ sung), nên tách toàn bộ số suất vào Mặn để giữ nguyên định lượng mong đợi.
-            foreach (var sourceLine in await Context.Mealquantityplanlines.Where(line => line.MenuScheduleId == schedule.MenuScheduleId).ToListAsync())
-            {
-                sourceLine.SavoryServings = sourceLine.FinalServings;
-                sourceLine.VegetarianServings = 0;
-            }
-            await Context.SaveChangesAsync();
+            // BR-MRX-SERV-1: quick-servings MRX ghi tách Mặn/Chay; toàn bộ số suất vào Mặn để giữ nguyên định lượng mong đợi.
+            var sourceLine = await Context.Mealquantityplanlines.AsNoTracking().SingleAsync(line => line.MenuScheduleId == schedule.MenuScheduleId);
+            Assert.Equal(servings, sourceLine.FinalServings);
+            Assert.Equal(servings, sourceLine.SavoryServings);
+            Assert.Equal(0, sourceLine.VegetarianServings);
 
             var sourceLabel = $"{sourceMarker}-{committedMenu.SourceChecksum}";
             Assert.False(string.IsNullOrWhiteSpace(committedMenu.MenuVersionId));
