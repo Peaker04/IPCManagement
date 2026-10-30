@@ -75,6 +75,7 @@ public sealed class MrxBatchRecomputerTests
         (await scenario.Context.Reconciliationbatchcontributors.AsNoTracking().AnyAsync(item => item.ContributorId == oldOpenContributorId))
             .Should().BeFalse();
         scenario.BatchLine.RequiredQuantity.Should().Be(500m);
+        scenario.BatchLine.Version.Should().Be(2, "batch line quantity changed and Version is its concurrency token");
     }
 
     [Fact]
@@ -223,8 +224,10 @@ public sealed class MrxBatchRecomputerTests
         (await scenario.Context.Reconciliationsourcedeltas.CountAsync(item => item.SourceRevisionId == revision.SourceRevisionId)).Should().Be(0);
         scenario.OpenDaily.Version.Should().Be(1);
         scenario.OpenDaily.RequiredQuantity.Should().Be(200m);
+        scenario.BatchLine.Version.Should().Be(1);
         (await scenario.Context.Reconciliationbatchcontributors.AsNoTracking()
-            .SingleAsync(item => item.DailyLineId == scenario.OpenDaily.DailyLineId)).FrozenMenuVariant.Should().Be("savory");
+            .SingleAsync(item => item.DailyLineId == scenario.OpenDaily.DailyLineId)).ContributorId
+            .Should().Equal(scenario.OpenContributor.ContributorId, "unchanged open day keeps its contributor rows (BR-MRX-EDIT-8)");
     }
 
     [Fact]
@@ -258,6 +261,72 @@ public sealed class MrxBatchRecomputerTests
         scenario.OpenDaily.Version.Should().Be(2);
     }
 
+    [Fact]
+    public async Task Unchanged_open_day_keeps_contributor_ids_when_another_open_day_changes()
+    {
+        await using var scenario = await Scenario.CreateAsync(withSecondOpenDay: true);
+        var untouchedIds = await scenario.Context.Reconciliationbatchcontributors.AsNoTracking()
+            .Where(item => item.DailyLineId == scenario.SecondOpenDaily!.DailyLineId)
+            .Select(item => item.ContributorId).ToListAsync();
+        scenario.OpenPlanLine.SavoryServings = 150;
+        scenario.OpenPlanLine.FinalServings = 150;
+        await scenario.Context.SaveChangesAsync();
+
+        await scenario.ApplyAsync();
+
+        untouchedIds.Should().ContainSingle();
+        (await scenario.Context.Reconciliationbatchcontributors.AsNoTracking()
+            .Where(item => item.DailyLineId == scenario.SecondOpenDaily!.DailyLineId)
+            .Select(item => item.ContributorId).ToListAsync())
+            .Should().BeEquivalentTo(untouchedIds, "only 2026-06-17 changed; 2026-06-16 is open but its contribution set is identical");
+        (await scenario.Context.Reconciliationbatchcontributors.AsNoTracking()
+            .AnyAsync(item => item.ContributorId == scenario.OpenContributor.ContributorId)).Should().BeFalse();
+        scenario.SecondOpenDaily!.Version.Should().Be(1);
+        scenario.OpenDaily.RequiredQuantity.Should().Be(300m);
+        scenario.BatchLine.RequiredQuantity.Should().Be(700m);
+    }
+
+    [Fact]
+    public async Task Requirements_use_only_the_batch_import_plan_when_the_week_has_another_plan()
+    {
+        await using var scenario = await Scenario.CreateAsync();
+        // Một đợt nhập khác (ví dụ nhập lại) cũng có dòng số suất cho cùng lịch 2026-06-17.
+        var otherPlan = new MealQuantityPlan
+        {
+            QuantityPlanId = GuidHelper.NewId(), ImportBatchId = GuidHelper.NewId(), PlanCode = "QTY-20260617-R2",
+            ServiceDate = OpenDay, Status = "COMPLETED", ConfirmationTime = new TimeOnly(9, 0), ConfirmedBy = scenario.Fixture.UserId
+        };
+        scenario.Context.Mealquantityplans.Add(otherPlan);
+        scenario.Context.Mealquantityplanlines.Add(new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = otherPlan.QuantityPlanId, MenuScheduleId = scenario.OpenSchedule.MenuScheduleId,
+            CustomerId = scenario.OpenSchedule.CustomerId, MenuId = scenario.OpenSchedule.MenuId, ShiftName = "MORNING",
+            ForecastServings = 100, ConfirmedServings = 100, FinalServings = 100, SavoryServings = 100, VegetarianServings = 0
+        });
+        await scenario.Context.SaveChangesAsync();
+
+        var revision = await scenario.ApplyAsync();
+
+        scenario.OpenDaily.RequiredQuantity.Should().Be(200m, "the batch's own import plan is the only requirement authority");
+        scenario.OpenDaily.Version.Should().Be(1);
+        (await scenario.Context.Reconciliationsourcedeltas.CountAsync(item => item.SourceRevisionId == revision.SourceRevisionId)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Replay_of_applied_amendment_on_completed_batch_returns_existing_revision()
+    {
+        await using var scenario = await Scenario.CreateAsync();
+        var amendmentId = GuidHelper.NewId();
+        var first = await scenario.ApplyAsync(amendmentId);
+        scenario.Batch.Status = "COMPLETED";
+        await scenario.Context.SaveChangesAsync();
+
+        var replay = await scenario.ApplyAsync(amendmentId);
+
+        replay.SourceRevisionId.Should().Equal(first.SourceRevisionId);
+        (await scenario.Context.Reconciliationsourcerevisions.CountAsync()).Should().Be(1);
+    }
+
     private sealed class Scenario : IAsyncDisposable
     {
         public required WorkflowGenerationTests.WorkflowFixture Fixture { get; init; }
@@ -276,8 +345,10 @@ public sealed class MrxBatchRecomputerTests
         public required MealQuantityPlanLine OpenPlanLine { get; init; }
         public required DishBom Bom { get; init; }
         public required Ingredient Ingredient { get; init; }
+        public required List<byte[]> ScheduleIds { get; init; }
+        public ReconciliationBatchDailyLine? SecondOpenDaily { get; init; }
 
-        public static async Task<Scenario> CreateAsync()
+        public static async Task<Scenario> CreateAsync(bool withSecondOpenDay = false)
         {
             var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
             await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -287,6 +358,9 @@ public sealed class MrxBatchRecomputerTests
             var lockedSchedule = await context.Menuschedules.Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).ThenInclude(item => item.Dish)
                 .SingleAsync(item => item.ServiceDate == LockedDay);
             var lockedPlanLine = await context.Mealquantityplanlines.SingleAsync(item => item.MenuScheduleId == lockedSchedule.MenuScheduleId);
+            var batchImportId = GuidHelper.NewId();
+            // Lô được tạo từ một đợt nhập; dòng số suất của đợt nhập đó là nguồn định lượng của lô.
+            (await context.Mealquantityplans.SingleAsync(item => item.QuantityPlanId == lockedPlanLine.QuantityPlanId)).ImportBatchId = batchImportId;
             lockedPlanLine.SavoryServings = 100;
             lockedPlanLine.VegetarianServings = 0;
             var dish = lockedSchedule.Menu.Menuitems.Single().Dish;
@@ -308,7 +382,7 @@ public sealed class MrxBatchRecomputerTests
             };
             var openPlan = new MealQuantityPlan
             {
-                QuantityPlanId = GuidHelper.NewId(), PlanCode = "QTY-20260617", ServiceDate = OpenDay, Status = "COMPLETED",
+                QuantityPlanId = GuidHelper.NewId(), ImportBatchId = batchImportId, PlanCode = "QTY-20260617", ServiceDate = OpenDay, Status = "COMPLETED",
                 ConfirmationTime = new TimeOnly(9, 0), ConfirmedBy = fixture.UserId
             };
             var openPlanLine = new MealQuantityPlanLine
@@ -325,7 +399,7 @@ public sealed class MrxBatchRecomputerTests
 
             var batch = new ReconciliationBatch
             {
-                BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(),
+                BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = batchImportId,
                 Status = "IN_PROGRESS", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow
             };
             var batchLine = new ReconciliationBatchLine
@@ -363,6 +437,39 @@ public sealed class MrxBatchRecomputerTests
             var openDaily = Daily(OpenDay);
             Contributor(lockedDaily, lockedSchedule, lockedPlanLine);
             var openContributor = Contributor(openDaily, openSchedule, openPlanLine);
+            var scheduleIds = new List<byte[]> { lockedSchedule.MenuScheduleId, openSchedule.MenuScheduleId };
+            ReconciliationBatchDailyLine? secondOpenDaily = null;
+            if (withSecondOpenDay)
+            {
+                var secondDay = new DateOnly(2026, 6, 16);
+                var secondMenu = new Menu { MenuId = GuidHelper.NewId(), MenuCode = "MENU-TUE", MenuName = "Menu thứ ba", IsActive = true };
+                var secondSchedule = new MenuSchedule
+                {
+                    MenuScheduleId = GuidHelper.NewId(), CustomerId = lockedSchedule.CustomerId, MenuId = secondMenu.MenuId,
+                    ServiceDate = secondDay, WeekStartDate = LockedDay, ShiftName = "MORNING", MenuPrice = lockedSchedule.MenuPrice,
+                    BomRatePercent = 100, Status = "ACTIVE", MenuVersionId = baseVersion.MenuVersionId
+                };
+                var secondPlan = new MealQuantityPlan
+                {
+                    QuantityPlanId = GuidHelper.NewId(), ImportBatchId = batchImportId, PlanCode = "QTY-20260616", ServiceDate = secondDay,
+                    Status = "COMPLETED", ConfirmationTime = new TimeOnly(9, 0), ConfirmedBy = fixture.UserId
+                };
+                var secondPlanLine = new MealQuantityPlanLine
+                {
+                    QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = secondPlan.QuantityPlanId, MenuScheduleId = secondSchedule.MenuScheduleId,
+                    CustomerId = lockedSchedule.CustomerId, MenuId = secondMenu.MenuId, ShiftName = "MORNING",
+                    ForecastServings = 100, ConfirmedServings = 100, FinalServings = 100, SavoryServings = 100, VegetarianServings = 0
+                };
+                context.Menus.Add(secondMenu);
+                context.Menuitems.Add(new MenuItem { MenuItemId = GuidHelper.NewId(), MenuId = secondMenu.MenuId, DishId = dish.DishId, DisplayOrder = 1, DishSlot = "savory-main" });
+                context.Menuschedules.Add(secondSchedule);
+                context.Mealquantityplans.Add(secondPlan);
+                context.Mealquantityplanlines.Add(secondPlanLine);
+                secondOpenDaily = Daily(secondDay);
+                Contributor(secondOpenDaily, secondSchedule, secondPlanLine);
+                batchLine.RequiredQuantity = 600m;
+                scheduleIds.Add(secondSchedule.MenuScheduleId);
+            }
             context.Reconciliationbatches.Add(batch);
 
             var issue = new InventoryIssue
@@ -394,7 +501,8 @@ public sealed class MrxBatchRecomputerTests
                 Fixture = fixture, Context = context, Batch = batch, BatchLine = batchLine, LockedDaily = lockedDaily, OpenDaily = openDaily,
                 OpenContributor = openContributor, BaseVersion = baseVersion, AppliedVersion = appliedVersion,
                 LockedSchedule = lockedSchedule, OpenSchedule = openSchedule, OpenMenuItem = openMenuItem,
-                LockedPlanLine = lockedPlanLine, OpenPlanLine = openPlanLine, Bom = bom, Ingredient = bom.Ingredient
+                LockedPlanLine = lockedPlanLine, OpenPlanLine = openPlanLine, Bom = bom, Ingredient = bom.Ingredient,
+                ScheduleIds = scheduleIds, SecondOpenDaily = secondOpenDaily
             };
         }
 
@@ -421,7 +529,7 @@ public sealed class MrxBatchRecomputerTests
         public async Task<ReconciliationSourceRevision> ApplyAsync(byte[]? menuAmendmentId = null)
         {
             var requirements = await MrxBatchRecomputer.LoadRequirementsAsync(
-                Context, [LockedSchedule.MenuScheduleId, OpenSchedule.MenuScheduleId], CancellationToken.None);
+                Context, Batch.QuantityImportBatchId, ScheduleIds, CancellationToken.None);
             var locked = await MrxDayLockReader.GetLockedDatesAsync(Context, Batch.BatchId, CancellationToken.None);
             var batch = await MrxBatchRecomputer.LoadBatchAsync(Context, Batch.BatchId, CancellationToken.None);
             return await new MrxBatchRecomputer(Context).ApplyAsync(batch, requirements, locked,

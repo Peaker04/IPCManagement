@@ -80,9 +80,12 @@ public partial class WorkflowGenerationTests
         schedule.MenuVersionId = baseVersion.MenuVersionId;
         var required = decimal.Round(ReconciliationBatchService.ConvertToCanonical(
             bom.GrossQtyPerServing * sourceLine.FinalServings, bom.Unit, bom.Ingredient.Unit), 6, MidpointRounding.AwayFromZero);
+        var importBatchId = GuidHelper.NewId();
+        // Lô được tạo từ đợt nhập này; tính lại chỉ đọc dòng số suất của đúng đợt nhập (như lúc tạo lô).
+        (await context.Mealquantityplans.SingleAsync(item => item.QuantityPlanId == sourceLine.QuantityPlanId)).ImportBatchId = importBatchId;
         var batch = new ReconciliationBatch
         {
-            BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(),
+            BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = importBatchId,
             Status = "IN_PROGRESS", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow
         };
         var batchLine = new ReconciliationBatchLine
@@ -253,7 +256,9 @@ public partial class WorkflowGenerationTests
         var baseVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = schedule.CustomerId, WeekStartDate = schedule.WeekStartDate, VersionNo = 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         context.Menuversions.Add(baseVersion);
         schedule.MenuVersionId = baseVersion.MenuVersionId;
-        context.Reconciliationbatches.Add(new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "DRAFT", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow });
+        var importBatchId = GuidHelper.NewId();
+        (await context.Mealquantityplans.SingleAsync(item => item.QuantityPlanId == sourceLine.QuantityPlanId)).ImportBatchId = importBatchId;
+        context.Reconciliationbatches.Add(new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = importBatchId, Status = "DRAFT", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow });
         context.Reconciliationtolerances.Add(new ReconciliationTolerance { ToleranceId = GuidHelper.NewId(), ScopeKind = "SYSTEM_DEFAULT", Value = 0.5m, Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow });
         await context.SaveChangesAsync();
         var request = await new MenuAmendmentService(context).CreateAsync(new CreateMenuAmendmentRequest

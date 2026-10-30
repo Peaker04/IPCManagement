@@ -33,15 +33,21 @@ public sealed class MrxBatchRecomputer(IpcManagementContext context)
             .SingleOrDefaultAsync(item => item.BatchId == batchId, ct)
             ?? throw new KeyNotFoundException("Không tìm thấy lô đối soát bị ảnh hưởng.");
 
-    /// <summary>Tính yêu cầu định lượng theo ngày × nguyên liệu (kèm lineage contributor) từ nguồn hiện tại của các lịch thực đơn.</summary>
+    /// <summary>
+    /// Tính yêu cầu định lượng theo ngày × nguyên liệu (kèm lineage contributor) từ nguồn hiện tại của các lịch thực đơn,
+    /// chỉ trên các dòng số suất thuộc đợt nhập <paramref name="quantityImportBatchId"/> của lô.
+    /// </summary>
     public static async Task<IReadOnlyList<ReconciliationRevisionMaterialFact>> LoadRequirementsAsync(
         IpcManagementContext ctx,
+        byte[] quantityImportBatchId,
         IReadOnlyCollection<byte[]> menuScheduleIds,
         CancellationToken ct)
     {
         var scheduleIds = menuScheduleIds.ToList();
+        // Cùng quy tắc chọn nguồn với tạo lô (ReconciliationBatchService.MaterializeDraftAsync):
+        // chỉ dòng số suất thuộc đợt nhập của lô, để tuần có nhiều đợt nhập không bị cộng trùng.
         var sources = await ctx.Mealquantityplanlines
-            .Where(item => scheduleIds.Contains(item.MenuScheduleId))
+            .Where(item => item.QuantityPlan.ImportBatchId == quantityImportBatchId && scheduleIds.Contains(item.MenuScheduleId))
             .Include(item => item.QuantityPlan)
             .Include(item => item.MenuSchedule)
             .Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).ThenInclude(item => item.Dish).ThenInclude(dish => dish.Dishboms).ThenInclude(bom => bom.Unit)
@@ -106,15 +112,16 @@ public sealed class MrxBatchRecomputer(IpcManagementContext context)
         MrxRevisionStamp stamp,
         CancellationToken ct)
     {
-        if (batch.Status == "COMPLETED")
-            throw new MrxSourceChangeException(MrxErrorCodes.BatchCompleted, StatusCodes.Status409Conflict,
-                "Lô đối soát đã hoàn tất nên mọi ngày đều bị khóa; không thể áp dụng thay đổi nguồn.");
+        // Phát lại một yêu cầu đã áp dụng trả về revision cũ, kể cả khi lô đã hoàn tất sau đó.
         if (stamp.MenuAmendmentId is { } amendmentId)
         {
             var existing = await context.Reconciliationsourcerevisions
                 .SingleOrDefaultAsync(item => item.MenuAmendmentId == amendmentId && item.BatchId == batch.BatchId, ct);
             if (existing is not null) return existing;
         }
+        if (batch.Status == "COMPLETED")
+            throw new MrxSourceChangeException(MrxErrorCodes.BatchCompleted, StatusCodes.Status409Conflict,
+                "Lô đối soát đã hoàn tất nên mọi ngày đều bị khóa; không thể áp dụng thay đổi nguồn.");
 
         // Ngày khóa: bỏ qua hoàn toàn yêu cầu mới (BR-MRX-EDIT-7).
         var required = requirements
@@ -226,7 +233,13 @@ public sealed class MrxBatchRecomputer(IpcManagementContext context)
         }
 
         foreach (var line in batch.Lines)
-            line.RequiredQuantity = line.DailyLines.Sum(item => item.RequiredQuantity);
+        {
+            var total = line.DailyLines.Sum(item => item.RequiredQuantity);
+            if (line.RequiredQuantity == total) continue;
+            line.RequiredQuantity = total;
+            // Dòng mới tạo trong lần áp dụng này giữ Version = 1.
+            if (context.Entry(line).State != EntityState.Added) line.Version++;
+        }
         batch.MenuVersionId = stamp.AppliedMenuVersionId;
         batch.Version++;
 
@@ -234,6 +247,10 @@ public sealed class MrxBatchRecomputer(IpcManagementContext context)
         return revision;
     }
 
+    /// <summary>
+    /// Thay contributor của một ngày mở chỉ khi tập đóng góp mới khác tập đang lưu (BR-MRX-EDIT-5/8);
+    /// ngày mở không đổi giữ nguyên dòng và id contributor.
+    /// </summary>
     private void ReplaceContributors(
         ReconciliationBatch batch,
         IReadOnlyList<ReconciliationBatchDailyLine> dailyLines,
@@ -242,28 +259,68 @@ public sealed class MrxBatchRecomputer(IpcManagementContext context)
     {
         var dayDailyIds = dailyLines.Where(item => item.ServiceDate == date)
             .Select(item => Convert.ToHexString(item.DailyLineId)).ToHashSet(StringComparer.Ordinal);
-        var stale = batch.Lines.SelectMany(line => line.Contributors)
+        var stored = batch.Lines.SelectMany(line => line.Contributors)
             .Where(item => item.DailyLineId is not null && dayDailyIds.Contains(Convert.ToHexString(item.DailyLineId)))
             .ToList();
-        foreach (var contributor in stale)
+        var desired = required
+            .Where(entry => entry.Key.ServiceDate == date && entry.Value.Quantity > 0)
+            .SelectMany(entry => entry.Value.Contributions.Select(contribution => (Key: entry.Key, Contribution: contribution)))
+            .ToList();
+
+        var storedIdentities = stored.Select(item =>
+        {
+            var daily = dailyLines.Single(line => line.DailyLineId.AsSpan().SequenceEqual(item.DailyLineId));
+            return Identity(Key(daily.ServiceDate, daily.IngredientId, daily.CanonicalUnitId), item);
+        });
+        var desiredIdentities = desired.Select(entry => Identity(entry.Key, entry.Contribution));
+        if (SameMultiset(storedIdentities, desiredIdentities)) return;
+
+        foreach (var contributor in stored)
         {
             contributor.BatchLine?.Contributors.Remove(contributor);
             contributor.DailyLine?.Contributors.Remove(contributor);
             context.Reconciliationbatchcontributors.Remove(contributor);
         }
-
-        foreach (var (key, requirement) in required.Where(entry => entry.Key.ServiceDate == date && entry.Value.Quantity > 0))
+        foreach (var (key, contribution) in desired)
         {
             var daily = dailyLines.Single(item => Key(item.ServiceDate, item.IngredientId, item.CanonicalUnitId) == key);
             var line = daily.BatchLine;
-            foreach (var contribution in requirement.Contributions)
-            {
-                var contributor = CreateContributor(line, daily, contribution);
-                line.Contributors.Add(contributor);
-                context.Reconciliationbatchcontributors.Add(contributor);
-            }
+            var contributor = CreateContributor(line, daily, contribution);
+            line.Contributors.Add(contributor);
+            context.Reconciliationbatchcontributors.Add(contributor);
         }
     }
+
+    private static ContributorIdentity Identity(DayKey key, ReconciliationBatchContributor item)
+        => new(key, Convert.ToHexString(item.MenuScheduleId), Convert.ToHexString(item.MealQuantityPlanLineId),
+            Convert.ToHexString(item.DishBomId), item.DishId is null ? null : Convert.ToHexString(item.DishId),
+            item.FrozenShiftName, item.FrozenDishCode, item.FrozenDishName, item.FrozenMenuVariant, item.FrozenServings,
+            item.FrozenBomQuantityPerServing, item.FrozenWasteRatePercent, item.SourceQuantity);
+
+    private static ContributorIdentity Identity(DayKey key, ReconciliationRevisionContributionFact item)
+        => new(key, Hex(item.MenuScheduleId), Hex(item.MealQuantityPlanLineId), Hex(item.DishBomId), Hex(item.DishId),
+            item.ShiftName, item.DishCode, item.DishName, item.MenuVariant, item.Servings,
+            item.BomQuantityPerServing, item.WasteRatePercent, item.SourceQuantity);
+
+    private static string Hex(string id) => Convert.ToHexString(ReconciliationBatchService.RequiredId(id));
+
+    private static bool SameMultiset(IEnumerable<ContributorIdentity> left, IEnumerable<ContributorIdentity> right)
+    {
+        var counts = new Dictionary<ContributorIdentity, int>();
+        foreach (var item in left) counts[item] = counts.GetValueOrDefault(item) + 1;
+        foreach (var item in right)
+        {
+            if (!counts.TryGetValue(item, out var count) || count == 0) return false;
+            counts[item] = count - 1;
+        }
+        return counts.Values.All(count => count == 0);
+    }
+
+    /// <summary>Danh tính contributor: ngày × nguyên liệu, lineage nguồn, món, biến thể, số suất, BOM và lượng (decimal so theo giá trị).</summary>
+    private readonly record struct ContributorIdentity(
+        DayKey Day, string MenuScheduleId, string MealQuantityPlanLineId, string DishBomId, string? DishId,
+        string? ShiftName, string? DishCode, string? DishName, string? MenuVariant, int? Servings,
+        decimal? BomQuantityPerServing, decimal? WasteRatePercent, decimal SourceQuantity);
 
     private static decimal Round(decimal value) => decimal.Round(value, 6, MidpointRounding.AwayFromZero);
 

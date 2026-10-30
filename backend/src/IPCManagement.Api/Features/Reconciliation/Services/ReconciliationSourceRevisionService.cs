@@ -106,13 +106,15 @@ public sealed class ReconciliationSourceRevisionService(IpcManagementContext con
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new UnauthorizedAccessException("Không xác định được vai trò người áp dụng thay đổi nguồn.");
         var amendmentBytes = ReconciliationBatchService.RequiredId(amendmentId);
-        var requirements = await MrxBatchRecomputer.LoadRequirementsAsync(
-            context, schedules.Select(schedule => schedule.MenuScheduleId).ToList(), cancellationToken);
+        var scheduleIds = schedules.Select(schedule => schedule.MenuScheduleId).ToList();
         var recomputer = new MrxBatchRecomputer(context);
 
         foreach (var batchId in affectedBatchIds)
         {
             var batch = await MrxBatchRecomputer.LoadBatchAsync(context, batchId, cancellationToken);
+            // Cùng quy tắc chọn nguồn với lúc tạo lô: chỉ dòng số suất thuộc đợt nhập của lô.
+            var requirements = await MrxBatchRecomputer.LoadRequirementsAsync(
+                context, batch.QuantityImportBatchId, scheduleIds, cancellationToken);
             var lockedDates = await MrxDayLockReader.GetLockedDatesAsync(context, batchId, cancellationToken);
             await recomputer.ApplyAsync(batch, requirements, lockedDates,
                 new MrxRevisionStamp(actorId, actorRole, "APPROVED_REQUEST", reason,
