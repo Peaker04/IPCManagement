@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
  ContributorId BLOB NOT NULL PRIMARY KEY, BatchLineId BLOB NOT NULL, MenuScheduleId BLOB NOT NULL,
  MealQuantityPlanLineId BLOB NOT NULL, DishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL,
  FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL,
- FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, SourceQuantity TEXT NOT NULL);
+ FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, SourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL);
 """);
         var line = new ReconciliationBatchLine
         {

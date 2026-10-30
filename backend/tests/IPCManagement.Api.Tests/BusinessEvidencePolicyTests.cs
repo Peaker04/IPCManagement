@@ -43,8 +43,8 @@ public sealed partial class BusinessEvidencePolicyTests
             .OrderBy(id => id, StringComparer.Ordinal)
             .ToArray();
 
-        migrationIds.Should().HaveCount(87);
-        migrationIds[^1].Should().Be("20261022020917_AddPreparationGroupIdToInventoryIssue");
+        migrationIds.Should().HaveCount(88);
+        migrationIds[^1].Should().Be("20261030130414_MrxDirectSourceEdit");
     }
 
     [GeneratedRegex("\\[Migration\\(\"([^\"]+)\"\\)\\]", RegexOptions.CultureInvariant)]

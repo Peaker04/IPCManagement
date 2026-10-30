@@ -12,6 +12,8 @@ public sealed class ReconciliationSourceRevision
     public string Reason { get; set; } = null!;
     public byte[] AppliedBy { get; set; } = null!;
     public DateTime AppliedAt { get; set; }
+    public string? AppliedByRole { get; set; }
+    public string? ApplyMode { get; set; }
     public ReconciliationBatch Batch { get; set; } = null!;
     public ICollection<ReconciliationSourceDelta> Deltas { get; set; } = [];
 }

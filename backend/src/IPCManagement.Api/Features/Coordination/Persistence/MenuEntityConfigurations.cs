@@ -51,6 +51,8 @@ internal sealed class MealQuantityPlanLineConfiguration : IEntityTypeConfigurati
         entity.Property(e => e.ConfirmedServings).HasColumnName("confirmedServings");
         entity.Property(e => e.CustomerId).HasMaxLength(16).IsFixedLength().HasColumnName("customerId");
         entity.Property(e => e.FinalServings).HasColumnName("finalServings");
+        entity.Property(e => e.SavoryServings).HasColumnName("savoryServings");
+        entity.Property(e => e.VegetarianServings).HasColumnName("vegetarianServings");
         entity.Property(e => e.ForecastServings).HasColumnName("forecastServings");
         entity.Property(e => e.MenuId).HasMaxLength(16).IsFixedLength().HasColumnName("menuId");
         entity.Property(e => e.MenuScheduleId).HasMaxLength(16).IsFixedLength().HasColumnName("menuScheduleId");

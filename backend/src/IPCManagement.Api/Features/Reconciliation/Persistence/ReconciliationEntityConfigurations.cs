@@ -79,6 +79,7 @@ internal sealed class ReconciliationBatchContributorConfiguration : IEntityTypeC
         e.Property(x => x.FrozenShiftName).HasMaxLength(32);
         e.Property(x => x.FrozenDishCode).HasMaxLength(64);
         e.Property(x => x.FrozenDishName).HasMaxLength(255);
+        e.Property(x => x.FrozenMenuVariant).HasMaxLength(16);
         e.Property(x => x.FrozenBomQuantityPerServing).HasPrecision(18, 6);
         e.Property(x => x.FrozenWasteRatePercent).HasPrecision(9, 4);
         e.Property(x => x.SourceQuantity).HasPrecision(18, 6);
@@ -107,6 +108,8 @@ internal sealed class ReconciliationSourceRevisionConfiguration : IEntityTypeCon
         ReconciliationMapping.Id(e.Property(x => x.AppliedBy));
         e.Property(x => x.Status).HasMaxLength(32);
         e.Property(x => x.Reason).HasMaxLength(1000);
+        e.Property(x => x.AppliedByRole).HasMaxLength(32);
+        e.Property(x => x.ApplyMode).HasMaxLength(24);
         e.Property(x => x.AppliedAt).HasColumnType("datetime");
         e.HasIndex(x => new { x.MenuAmendmentId, x.BatchId }).IsUnique();
         e.HasIndex(x => new { x.BatchId, x.RevisionNumber }).IsUnique();

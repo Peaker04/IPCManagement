@@ -660,7 +660,7 @@ public partial class WorkflowGenerationTests
                     forecastServings INTEGER NOT NULL,
                     confirmedServings INTEGER NOT NULL,
                     adjustedServings INTEGER NOT NULL,
-                    finalServings INTEGER NOT NULL,
+                    finalServings INTEGER NOT NULL, savoryServings INTEGER NULL, vegetarianServings INTEGER NULL,
                     updatedAt TEXT NOT NULL DEFAULT '2026-01-01 00:00:00'
                 );
                 CREATE TABLE productionplans (

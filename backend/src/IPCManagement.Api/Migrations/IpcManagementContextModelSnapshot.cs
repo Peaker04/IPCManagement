@@ -1128,6 +1128,8 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasIndex(new[] { "ReconciliationBatchId" }, "ixInventoryIssuesReconciliationBatch");
 
+                    b.HasIndex(new[] { "ReconciliationBatchId", "IssueDate" }, "ix_inventoryissues_reconciliationBatchId_issueDate");
+
                     b.HasIndex(new[] { "MaterialRequestId" }, "materialRequestId");
 
                     b.HasIndex(new[] { "ReceivedBy" }, "receivedBy");
@@ -2400,6 +2402,10 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("quantityPlanId")
                         .IsFixedLength();
 
+                    b.Property<int?>("SavoryServings")
+                        .HasColumnType("int")
+                        .HasColumnName("savoryServings");
+
                     b.Property<string>("ShiftName")
                         .IsRequired()
                         .HasColumnType("enum('MORNING','AFTERNOON')")
@@ -2410,6 +2416,10 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("datetime")
                         .HasColumnName("updatedAt")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int?>("VegetarianServings")
+                        .HasColumnType("int")
+                        .HasColumnName("vegetarianServings");
 
                     b.HasKey("QuantityPlanLineId")
                         .HasName("PRIMARY");
@@ -4654,6 +4664,10 @@ namespace IPCManagement.Api.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("FrozenMenuVariant")
+                        .HasMaxLength(16)
+                        .HasColumnType("varchar(16)");
+
                     b.Property<int?>("FrozenServings")
                         .HasColumnType("int");
 
@@ -5036,11 +5050,19 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .IsFixedLength();
 
+                    b.Property<string>("AppliedByRole")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
                     b.Property<byte[]>("AppliedMenuVersionId")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .IsFixedLength();
+
+                    b.Property<string>("ApplyMode")
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)");
 
                     b.Property<byte[]>("BatchId")
                         .IsRequired()

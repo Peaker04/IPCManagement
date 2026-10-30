@@ -49,6 +49,8 @@ internal sealed class InventoryIssueConfiguration : IEntityTypeConfiguration<Inv
 
         entity.HasIndex(e => e.ReconciliationBatchId, "ixInventoryIssuesReconciliationBatch");
 
+        entity.HasIndex(e => new { e.ReconciliationBatchId, e.IssueDate }, "ix_inventoryissues_reconciliationBatchId_issueDate");
+
         entity.HasIndex(e => e.ReceivedBy, "receivedBy");
 
         entity.HasIndex(e => e.WarehouseId, "warehouseId");

@@ -25,6 +25,10 @@ public partial class MealQuantityPlanLine
 
     public int FinalServings { get; set; }
 
+    public int? SavoryServings { get; set; }
+
+    public int? VegetarianServings { get; set; }
+
     public DateTime UpdatedAt { get; set; }
 
     public virtual Customer Customer { get; set; } = null!;
