@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Tests;
 public sealed class ReconciliationSourceDeltaProjectorTests
 {
     [Fact]
-    public void Project_returns_exact_positive_negative_and_new_ingredient_daily_deltas()
+    public void Project_returns_exact_positive_negative_and_new_ingredient_daily_deltas_as_source_changes()
     {
         var date = new DateOnly(2026, 10, 20);
         var existing = new[]
@@ -21,6 +21,9 @@ public sealed class ReconciliationSourceDeltaProjectorTests
 
         var deltas = ReconciliationSourceDeltaProjector.Project(existing, current);
 
+        // BR-MRX-EDIT-8: MRX không có xuất thêm/trả hàng; chênh lệch nào cũng chỉ là thay đổi nguồn đã áp dụng.
+        Assert.DoesNotContain(deltas, item => item.WorkKind is "SUPPLEMENTAL_ISSUE" or "RETURN_REQUIRED");
+
         Assert.Collection(deltas.OrderBy(item => item.IngredientId, StringComparer.Ordinal),
             item =>
             {
@@ -29,7 +32,7 @@ public sealed class ReconciliationSourceDeltaProjectorTests
                 Assert.Equal(10m, item.PreviousQuantity);
                 Assert.Equal(12m, item.NewQuantity);
                 Assert.Equal(2m, item.DeltaQuantity);
-                Assert.Equal("SUPPLEMENTAL_ISSUE", item.WorkKind);
+                Assert.Equal("SOURCE_CHANGE", item.WorkKind);
             },
             item =>
             {
@@ -38,7 +41,7 @@ public sealed class ReconciliationSourceDeltaProjectorTests
                 Assert.Equal(0m, item.PreviousQuantity);
                 Assert.Equal(3m, item.NewQuantity);
                 Assert.Equal(3m, item.DeltaQuantity);
-                Assert.Equal("SUPPLEMENTAL_ISSUE", item.WorkKind);
+                Assert.Equal("SOURCE_CHANGE", item.WorkKind);
             },
             item =>
             {
@@ -47,7 +50,7 @@ public sealed class ReconciliationSourceDeltaProjectorTests
                 Assert.Equal(5m, item.PreviousQuantity);
                 Assert.Equal(0m, item.NewQuantity);
                 Assert.Equal(-5m, item.DeltaQuantity);
-                Assert.Equal("RETURN_REQUIRED", item.WorkKind);
+                Assert.Equal("SOURCE_CHANGE", item.WorkKind);
             });
     }
 }

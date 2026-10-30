@@ -379,7 +379,7 @@ public sealed partial class ReconciliationServiceTests
     }
 
     [Fact]
-    public async Task Issued_batch_revision_persists_positive_delta_invalidates_only_affected_disposition_and_replays_idempotently()
+    public async Task Issued_day_revision_keeps_locked_day_frozen_preserves_disposition_and_replays_idempotently()
     {
         await using var context = CreateContext();
         var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
@@ -403,32 +403,27 @@ public sealed partial class ReconciliationServiceTests
             CreatedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
         });
         await context.SaveChangesAsync();
-        var amendmentId = GuidHelper.ToGuidString(GuidHelper.NewId());
-        var appliedVersionId = GuidHelper.ToGuidString(GuidHelper.NewId());
-        var service = new ReconciliationSourceRevisionService(context);
+        var amendmentId = GuidHelper.NewId();
+        var appliedVersionId = GuidHelper.NewId();
+        var previousVersionId = fixture.Batch.MenuVersionId;
         var requirements = new[] { new ReconciliationRevisionMaterialFact(daily.ServiceDate, GuidHelper.ToGuidString(daily.IngredientId), GuidHelper.ToGuidString(daily.CanonicalUnitId), 12m) };
+        var locked = await MrxDayLockReader.GetLockedDatesAsync(context, fixture.Batch.BatchId, CancellationToken.None);
+        var recomputer = new MrxBatchRecomputer(context);
+        var stamp = new MrxRevisionStamp(fixture.Actor, "ADMIN", "APPROVED_REQUEST", "Tăng số suất", previousVersionId, appliedVersionId, amendmentId);
 
-        var revision = await service.StageIssuedBatchAsync(
-            GuidHelper.ToGuidString(fixture.Batch.BatchId), amendmentId, GuidHelper.ToGuidString(fixture.Batch.MenuVersionId),
-            appliedVersionId, requirements, GuidHelper.ToGuidString(fixture.Actor), "Tăng số suất");
-        var replay = await service.StageIssuedBatchAsync(
-            GuidHelper.ToGuidString(fixture.Batch.BatchId), amendmentId, GuidHelper.ToGuidString(fixture.Batch.MenuVersionId),
-            appliedVersionId, requirements, GuidHelper.ToGuidString(fixture.Actor), "Tăng số suất");
+        var revision = await recomputer.ApplyAsync(fixture.Batch, requirements, locked, stamp, CancellationToken.None);
+        var replay = await recomputer.ApplyAsync(fixture.Batch, requirements, locked, stamp, CancellationToken.None);
 
+        Assert.Contains(daily.ServiceDate, locked);
         Assert.Equal(revision.SourceRevisionId, replay.SourceRevisionId);
         Assert.Single(await context.Reconciliationsourcerevisions.ToListAsync());
-        var delta = Assert.Single(await context.Reconciliationsourcedeltas.ToListAsync());
-        Assert.Equal(2m, delta.DeltaQuantity);
-        Assert.Equal("SUPPLEMENTAL_ISSUE", delta.WorkKind);
-        Assert.Equal("PENDING", delta.Status);
-        var disposition = await context.Reconciliationdailydispositions.SingleAsync();
-        Assert.NotNull(disposition.InvalidatedAt);
-        Assert.Equal(fixture.Actor, disposition.InvalidatedBy);
+        Assert.Empty(await context.Reconciliationsourcedeltas.ToListAsync());
+        Assert.Null((await context.Reconciliationdailydispositions.SingleAsync()).InvalidatedAt);
         Assert.Equal(10m, daily.RequiredQuantity);
-        var queue = await service.GetPendingPageAsync(new ReconciliationSourceDeltaPageQuery { BatchId = GuidHelper.ToGuidString(fixture.Batch.BatchId) });
-        var queued = Assert.Single(queue.Items);
-        Assert.Equal(GuidHelper.ToGuidString(daily.DailyLineId), queued.DailyLineId);
-        Assert.Equal("SUPPLEMENTAL_ISSUE", queued.WorkKind);
+        Assert.Equal(1L, daily.Version);
+        Assert.Equal(appliedVersionId, fixture.Batch.MenuVersionId);
+        var queue = await new ReconciliationSourceRevisionService(context).GetPendingPageAsync(new ReconciliationSourceDeltaPageQuery { BatchId = GuidHelper.ToGuidString(fixture.Batch.BatchId) });
+        Assert.Empty(queue.Items);
     }
 
     [Fact]
@@ -452,29 +447,33 @@ public sealed partial class ReconciliationServiceTests
             CreatedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
         });
         await context.SaveChangesAsync();
-        var appliedVersionId = GuidHelper.ToGuidString(GuidHelper.NewId());
-        var service = new ReconciliationSourceRevisionService(context);
+        var appliedVersionId = GuidHelper.NewId();
+        var locked = await MrxDayLockReader.GetLockedDatesAsync(context, fixture.Batch.BatchId, CancellationToken.None);
 
-        var revision = await service.StageBatchAsync(
-            GuidHelper.ToGuidString(fixture.Batch.BatchId), GuidHelper.ToGuidString(GuidHelper.NewId()),
-            GuidHelper.ToGuidString(fixture.Batch.MenuVersionId), appliedVersionId,
+        var revision = await new MrxBatchRecomputer(context).ApplyAsync(fixture.Batch,
             [new(daily.ServiceDate, GuidHelper.ToGuidString(daily.IngredientId), GuidHelper.ToGuidString(daily.CanonicalUnitId), 12m,
                 [new(GuidHelper.ToGuidString(GuidHelper.NewId()), GuidHelper.ToGuidString(GuidHelper.NewId()),
                     GuidHelper.ToGuidString(GuidHelper.NewId()), GuidHelper.ToGuidString(GuidHelper.NewId()),
-                    "MORNING", "DISH", "Món", 12, 1m, 0m, 12m)])],
-            GuidHelper.ToGuidString(fixture.Actor), "Tăng số suất");
+                    "MORNING", "DISH", "Món", 12, 1m, 0m, 12m, "savory")])],
+            locked,
+            new MrxRevisionStamp(fixture.Actor, "ADMIN", "DIRECT", "Tăng số suất", fixture.Batch.MenuVersionId, appliedVersionId, GuidHelper.NewId()),
+            CancellationToken.None);
 
+        Assert.Empty(locked);
         Assert.Equal("APPLIED", revision.Status);
         var delta = Assert.Single(await context.Reconciliationsourcedeltas.ToListAsync());
-        Assert.Equal("RESOLVED", delta.Status);
-        Assert.NotNull(delta.ResolvedAt);
+        Assert.Equal("APPLIED", delta.Status);
+        Assert.Equal("SOURCE_CHANGE", delta.WorkKind);
+        Assert.Equal(2m, delta.DeltaQuantity);
         Assert.Equal(12m, daily.RequiredQuantity);
+        Assert.Equal(2L, daily.Version);
         Assert.Equal(12m, fixture.Line.RequiredQuantity);
-        Assert.Equal(ReconciliationBatchService.RequiredId(appliedVersionId), fixture.Batch.MenuVersionId);
+        Assert.Equal(appliedVersionId, fixture.Batch.MenuVersionId);
+        Assert.Equal("savory", Assert.Single(await context.Reconciliationbatchcontributors.ToListAsync()).FrozenMenuVariant);
     }
 
     [Fact]
-    public async Task Issued_batch_new_ingredient_creates_hidden_zero_placeholder_and_pending_delta()
+    public async Task Locked_day_new_ingredient_creates_no_placeholder_and_no_pending_delta()
     {
         await using var context = CreateContext();
         var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
@@ -492,22 +491,22 @@ public sealed partial class ReconciliationServiceTests
             CreatedBy = fixture.Actor, CreatedAt = DateTime.UtcNow
         });
         await context.SaveChangesAsync();
-        var newIngredientId = GuidHelper.ToGuidString(GuidHelper.NewId());
-        var service = new ReconciliationSourceRevisionService(context);
+        var newIngredientId = GuidHelper.NewId();
+        var locked = await MrxDayLockReader.GetLockedDatesAsync(context, fixture.Batch.BatchId, CancellationToken.None);
 
-        await service.StageBatchAsync(
-            GuidHelper.ToGuidString(fixture.Batch.BatchId), GuidHelper.ToGuidString(GuidHelper.NewId()),
-            GuidHelper.ToGuidString(fixture.Batch.MenuVersionId), GuidHelper.ToGuidString(GuidHelper.NewId()),
+        await new MrxBatchRecomputer(context).ApplyAsync(fixture.Batch,
             [
                 new(daily.ServiceDate, GuidHelper.ToGuidString(daily.IngredientId), GuidHelper.ToGuidString(daily.CanonicalUnitId), 10m),
-                new(daily.ServiceDate, newIngredientId, GuidHelper.ToGuidString(daily.CanonicalUnitId), 3m)
-            ], GuidHelper.ToGuidString(fixture.Actor), "Đổi món");
+                new(daily.ServiceDate, GuidHelper.ToGuidString(newIngredientId), GuidHelper.ToGuidString(daily.CanonicalUnitId), 3m)
+            ],
+            locked,
+            new MrxRevisionStamp(fixture.Actor, "ADMIN", "APPROVED_REQUEST", "Đổi món", fixture.Batch.MenuVersionId, GuidHelper.NewId(), GuidHelper.NewId()),
+            CancellationToken.None);
 
-        var delta = Assert.Single(await context.Reconciliationsourcedeltas.ToListAsync());
-        Assert.Equal("PENDING", delta.Status);
-        Assert.Equal(3m, delta.NewRequiredQuantity);
-        var placeholder = await context.Reconciliationbatchdailylines.SingleAsync(item => item.IngredientId == ReconciliationBatchService.RequiredId(newIngredientId));
-        Assert.Equal(0m, placeholder.RequiredQuantity);
+        Assert.Empty(await context.Reconciliationsourcedeltas.ToListAsync());
+        Assert.False(await context.Reconciliationbatchdailylines.AnyAsync(item => item.IngredientId == newIngredientId));
+        Assert.Single(fixture.Batch.Lines);
+        Assert.Equal(10m, daily.RequiredQuantity);
     }
 
     [Fact]

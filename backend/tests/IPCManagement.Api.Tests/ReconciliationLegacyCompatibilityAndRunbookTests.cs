@@ -191,10 +191,11 @@ public sealed class ReconciliationLegacyCompatibilityAndRunbookTests
         var actTransfer = () => batches.TransferToWarehouseAsync(GuidHelper.ToGuidString(batchId), new TransferReconciliationBatchRequest(10), fixture.UserIdString);
         await actTransfer.Should().ThrowAsync<DbUpdateConcurrencyException>();
 
-        // 3. Stage batch revisions fails
-        var sourceRevService = new ReconciliationSourceRevisionService(context);
-        var actStage = () => sourceRevService.StageBatchAsync(GuidHelper.ToGuidString(batchId), GuidHelper.ToGuidString(GuidHelper.NewId()), GuidHelper.ToGuidString(GuidHelper.NewId()), GuidHelper.ToGuidString(GuidHelper.NewId()), [], fixture.UserIdString, "Edit");
-        await actStage.Should().ThrowAsync<InvalidOperationException>().WithMessage("*đã hoàn tất*");
+        // 3. Source recompute fails: COMPLETED locks every day (BR-MRX-EDIT-3)
+        var recomputeBatch = await MrxBatchRecomputer.LoadBatchAsync(context, batchId, CancellationToken.None);
+        var actStage = () => new MrxBatchRecomputer(context).ApplyAsync(recomputeBatch, [], new HashSet<DateOnly>(),
+            new MrxRevisionStamp(fixture.UserId, "ADMIN", "DIRECT", "Edit", GuidHelper.NewId(), GuidHelper.NewId(), null), CancellationToken.None);
+        (await actStage.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.BatchCompleted);
 
         // 4. Daily disposition fails
         var actualService = new ReconciliationActualService(context, new ImmediateTransactionRunner(), requestContext);

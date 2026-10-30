@@ -23,8 +23,14 @@ public sealed record ReconciliationProjectedDelta(
     decimal DeltaQuantity,
     string WorkKind);
 
+/// <summary>
+/// Chênh lệch định lượng theo ngày × nguyên liệu giữa số đóng băng và nguồn mới.
+/// BR-MRX-EDIT-8: MRX không có xuất thêm/trả hàng; mọi chênh lệch là <see cref="SourceChangeWorkKind"/>.
+/// </summary>
 public static class ReconciliationSourceDeltaProjector
 {
+    public const string SourceChangeWorkKind = "SOURCE_CHANGE";
+
     public static IReadOnlyList<ReconciliationProjectedDelta> Project(
         IEnumerable<ReconciliationRequiredFact> frozenFacts,
         IEnumerable<ReconciliationCurrentRequirement> currentRequirements)
@@ -52,7 +58,7 @@ public static class ReconciliationSourceDeltaProjector
                     previousQuantity,
                     newQuantity,
                     delta,
-                    delta > 0 ? "SUPPLEMENTAL_ISSUE" : "RETURN_REQUIRED");
+                    SourceChangeWorkKind);
             })
             .Where(item => item.DeltaQuantity != 0)
             .ToList();

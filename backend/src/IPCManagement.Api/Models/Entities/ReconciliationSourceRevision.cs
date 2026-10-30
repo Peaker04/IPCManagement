@@ -3,7 +3,8 @@ namespace IPCManagement.Api.Models.Entities;
 public sealed class ReconciliationSourceRevision
 {
     public byte[] SourceRevisionId { get; set; } = null!;
-    public byte[] MenuAmendmentId { get; set; } = null!;
+    /// <summary>Null khi thay đổi không đến từ yêu cầu sửa thực đơn (ví dụ import lại); BR-MRX-EDIT-8.</summary>
+    public byte[]? MenuAmendmentId { get; set; }
     public byte[] BatchId { get; set; } = null!;
     public byte[] PreviousMenuVersionId { get; set; } = null!;
     public byte[] AppliedMenuVersionId { get; set; } = null!;

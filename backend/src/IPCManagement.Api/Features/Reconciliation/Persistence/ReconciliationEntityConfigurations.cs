@@ -101,7 +101,7 @@ internal sealed class ReconciliationSourceRevisionConfiguration : IEntityTypeCon
         e.ToTable("reconciliationsourcerevisions");
         e.HasKey(x => x.SourceRevisionId);
         ReconciliationMapping.Id(e.Property(x => x.SourceRevisionId));
-        ReconciliationMapping.Id(e.Property(x => x.MenuAmendmentId));
+        e.Property(x => x.MenuAmendmentId).HasMaxLength(16).IsFixedLength();
         ReconciliationMapping.Id(e.Property(x => x.BatchId));
         ReconciliationMapping.Id(e.Property(x => x.PreviousMenuVersionId));
         ReconciliationMapping.Id(e.Property(x => x.AppliedMenuVersionId));
@@ -126,8 +126,9 @@ internal sealed class ReconciliationSourceDeltaConfiguration : IEntityTypeConfig
     {
         e.ToTable("reconciliationsourcedeltas", table =>
         {
-            table.HasCheckConstraint("ckReconciliationSourceDeltaWorkKind", "`workKind` IN ('SUPPLEMENTAL_ISSUE','RETURN_REQUIRED')");
-            table.HasCheckConstraint("ckReconciliationSourceDeltaStatus", "`status` IN ('PENDING','RESOLVED','CANCELLED')");
+            // BR-MRX-EDIT-8: dữ liệu mới chỉ ghi SOURCE_CHANGE/APPLIED; giá trị cũ vẫn hợp lệ để đọc lịch sử.
+            table.HasCheckConstraint("ckReconciliationSourceDeltaWorkKind", "`workKind` IN ('SUPPLEMENTAL_ISSUE','RETURN_REQUIRED','SOURCE_CHANGE')");
+            table.HasCheckConstraint("ckReconciliationSourceDeltaStatus", "`status` IN ('PENDING','RESOLVED','CANCELLED','APPLIED')");
             table.HasCheckConstraint("ckReconciliationSourceDeltaNonZero", "`deltaQuantity` <> 0");
         });
         e.HasKey(x => x.SourceDeltaId);

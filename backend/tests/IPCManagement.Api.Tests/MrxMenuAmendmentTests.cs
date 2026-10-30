@@ -43,7 +43,7 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task Admin_approval_of_issued_batch_commits_source_revision_pending_delta_and_disposition_invalidation()
+    public async Task Admin_approval_of_issued_batch_keeps_locked_day_frozen_without_pending_delta()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -144,15 +144,19 @@ public partial class WorkflowGenerationTests
         var revision = await context.Reconciliationsourcerevisions.Include(item => item.Deltas).SingleAsync();
         revision.MenuAmendmentId.Should().Equal(GuidHelper.ParseGuidString(request.MenuAmendmentId)!);
         revision.AppliedMenuVersionId.Should().Equal(GuidHelper.ParseGuidString(result.AppliedMenuVersionId)!);
-        revision.Deltas.Should().HaveCount(2);
-        revision.Deltas.Should().ContainSingle(item => item.WorkKind == "SUPPLEMENTAL_ISSUE" && item.IngredientId.SequenceEqual(replacementIngredient.IngredientId));
-        revision.Deltas.Should().ContainSingle(item => item.WorkKind == "RETURN_REQUIRED" && item.IngredientId.SequenceEqual(bom.IngredientId));
-        revision.Deltas.Should().OnlyContain(item => item.Status == "PENDING");
+        revision.Status.Should().Be("APPLIED");
+        revision.AppliedByRole.Should().Be("ADMIN");
+        revision.ApplyMode.Should().Be("APPROVED_REQUEST");
+        // BR-MRX-EDIT-3/7: 2026-06-15 đã có phiếu xuất nên là ngày khóa; không xuất thêm/trả hàng, không đổi số đóng băng.
+        revision.Deltas.Should().BeEmpty();
         daily.RequiredQuantity.Should().Be(required);
-        var placeholder = await context.Reconciliationbatchdailylines.SingleAsync(item => item.IngredientId == replacementIngredient.IngredientId);
-        placeholder.RequiredQuantity.Should().Be(0);
+        daily.Version.Should().Be(1);
+        (await context.Reconciliationbatchdailylines.AnyAsync(item => item.IngredientId == replacementIngredient.IngredientId)).Should().BeFalse();
+        (await context.Reconciliationsourcedeltas.AnyAsync(item => item.Status == "PENDING")).Should().BeFalse();
         (await context.Reconciliationbatchcontributors.SingleAsync()).DishBomId.Should().Equal(bom.BomId);
-        (await context.Reconciliationdailydispositions.SingleAsync()).InvalidatedAt.Should().NotBeNull();
+        (await context.Reconciliationdailydispositions.SingleAsync()).InvalidatedAt.Should().BeNull();
+        // P2: lô luôn trỏ phiên bản mới để lần sửa sau vẫn tìm thấy lô theo căn tin × tuần.
+        batch.MenuVersionId.Should().Equal(GuidHelper.ParseGuidString(result.AppliedMenuVersionId)!);
     }
 
     [Fact]
@@ -453,14 +457,14 @@ public partial class WorkflowGenerationTests
             => throw new NotSupportedException();
     }
 
-    private static Task EnsureMrxRevisionSchemaAsync(IpcManagementContext context) => context.Database.ExecuteSqlRawAsync("""
+    internal static Task EnsureMrxRevisionSchemaAsync(IpcManagementContext context) => context.Database.ExecuteSqlRawAsync("""
         CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
         CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
         CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
         CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, dailyLineId BLOB NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, dishId BLOB NULL, frozenShiftName TEXT NOT NULL, frozenDishCode TEXT NULL, frozenDishName TEXT NULL, frozenServings INTEGER NULL, frozenBomQuantityPerServing TEXT NULL, frozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL);
         CREATE TABLE reconciliationtolerances (toleranceId BLOB PRIMARY KEY, scopeKind TEXT NOT NULL, scopeId BLOB NULL, value TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, systemDefaultKey INTEGER NULL);
         CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL, invalidatedAt TEXT NULL, invalidatedBy BLOB NULL, invalidationReason TEXT NULL);
-        CREATE TABLE reconciliationsourcerevisions (sourceRevisionId BLOB PRIMARY KEY, menuAmendmentId BLOB NOT NULL, batchId BLOB NOT NULL, previousMenuVersionId BLOB NOT NULL, appliedMenuVersionId BLOB NOT NULL, revisionNumber INTEGER NOT NULL, status TEXT NOT NULL, reason TEXT NOT NULL, appliedBy BLOB NOT NULL, appliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL, UNIQUE (menuAmendmentId, batchId), UNIQUE (batchId, revisionNumber));
+        CREATE TABLE reconciliationsourcerevisions (sourceRevisionId BLOB PRIMARY KEY, menuAmendmentId BLOB NULL, batchId BLOB NOT NULL, previousMenuVersionId BLOB NOT NULL, appliedMenuVersionId BLOB NOT NULL, revisionNumber INTEGER NOT NULL, status TEXT NOT NULL, reason TEXT NOT NULL, appliedBy BLOB NOT NULL, appliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL, UNIQUE (menuAmendmentId, batchId), UNIQUE (batchId, revisionNumber));
         CREATE TABLE reconciliationsourcedeltas (sourceDeltaId BLOB PRIMARY KEY, sourceRevisionId BLOB NOT NULL, batchId BLOB NOT NULL, dailyLineId BLOB NULL, serviceDate TEXT NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, previousRequiredQuantity TEXT NOT NULL, newRequiredQuantity TEXT NOT NULL, deltaQuantity TEXT NOT NULL, workKind TEXT NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdAt TEXT NOT NULL, resolvedAt TEXT NULL, resolvedBy BLOB NULL, resolutionEntity TEXT NULL, resolutionId BLOB NULL, resolutionCommandId TEXT NULL);
         """);
 }

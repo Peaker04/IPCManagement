@@ -5028,9 +5028,9 @@ namespace IPCManagement.Api.Migrations
                         {
                             t.HasCheckConstraint("ckReconciliationSourceDeltaNonZero", "`deltaQuantity` <> 0");
 
-                            t.HasCheckConstraint("ckReconciliationSourceDeltaStatus", "`status` IN ('PENDING','RESOLVED','CANCELLED')");
+                            t.HasCheckConstraint("ckReconciliationSourceDeltaStatus", "`status` IN ('PENDING','RESOLVED','CANCELLED','APPLIED')");
 
-                            t.HasCheckConstraint("ckReconciliationSourceDeltaWorkKind", "`workKind` IN ('SUPPLEMENTAL_ISSUE','RETURN_REQUIRED')");
+                            t.HasCheckConstraint("ckReconciliationSourceDeltaWorkKind", "`workKind` IN ('SUPPLEMENTAL_ISSUE','RETURN_REQUIRED','SOURCE_CHANGE')");
                         });
                 });
 
@@ -5071,7 +5071,6 @@ namespace IPCManagement.Api.Migrations
                         .IsFixedLength();
 
                     b.Property<byte[]>("MenuAmendmentId")
-                        .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .IsFixedLength();

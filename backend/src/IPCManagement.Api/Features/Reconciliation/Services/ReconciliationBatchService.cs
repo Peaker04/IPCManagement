@@ -423,21 +423,9 @@ public sealed class ReconciliationBatchService(
                         line.DailyLines.Add(dailyLine);
                     }
                     dailyLine.RequiredQuantity += material.RequiredQuantity;
-                    line.Contributors.Add(new ReconciliationBatchContributor
-                    {
-                        ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, DailyLineId = dailyLine.DailyLineId,
-                        MenuScheduleId = projectedSource.Source.MenuScheduleId,
-                        MealQuantityPlanLineId = projectedSource.Source.QuantityPlanLineId,
-                        DishBomId = bom.BomId, DishId = dish.MenuItem.DishId,
-                        FrozenShiftName = projectedSource.Source.ShiftName,
-                        FrozenDishCode = dish.MenuItem.Dish.DishCode,
-                        FrozenDishName = dish.MenuItem.Dish.DishName,
-                        FrozenMenuVariant = dish.MenuVariant,
-                        FrozenServings = dish.Servings,
-                        FrozenBomQuantityPerServing = bom.GrossQtyPerServing,
-                        FrozenWasteRatePercent = bom.WasteRatePercent,
-                        SourceQuantity = material.RequiredQuantity
-                    });
+                    // Contributor dùng chung với tính lại lô (MrxBatchRecomputer) để không lệch lineage/biến thể.
+                    line.Contributors.Add(MrxBatchRecomputer.CreateContributor(
+                        line, dailyLine, MrxBatchRecomputer.ContributionFrom(projectedSource, dish, material)));
                 }
             }
         }
