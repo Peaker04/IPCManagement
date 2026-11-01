@@ -84,8 +84,6 @@ export function ReconciliationPage() {
         statusLabels={STATUS_LABELS}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
-        onNavigateCooking={() => navigate(`/chef?view=mrx-cooking&batchId=${batchId}`)}
-        onOpenDishes={() => setIsDishesModalOpen(true)}
         canComplete={Boolean(canComplete)}
         onOpenComplete={() => setIsCompleteOpen(true)}
         needsReviewCount={needsReviewCount}

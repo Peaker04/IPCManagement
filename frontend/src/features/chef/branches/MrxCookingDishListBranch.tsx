@@ -9,6 +9,7 @@ export interface DishGroup {
   serviceDate: string;
   weekday: string;
   shiftName: string;
+  menuVariant: string;
   dishCode: string;
   dishName: string;
   servings: number;
@@ -25,7 +26,7 @@ export function MrxCookingDishListBranch({ groups }: MrxCookingDishListBranchPro
       {groups.map((group) => (
         <section
           key={group.key}
-          aria-label={`Món ${group.dishName}`}
+          aria-label={`Món ${group.dishName} · ${group.menuVariant}`}
           className="rounded-lg border border-slate-200 bg-white overflow-hidden shadow-2xs"
         >
           {/* Dish Header */}
@@ -33,6 +34,7 @@ export function MrxCookingDishListBranch({ groups }: MrxCookingDishListBranchPro
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-900">{group.dishName}</h3>
+                <Badge variant="neutral" size="sm">{group.menuVariant}</Badge>
                 <span className="text-xs font-mono text-slate-500">({group.dishCode})</span>
               </div>
               <p className="text-xs text-slate-600 mt-0.5">

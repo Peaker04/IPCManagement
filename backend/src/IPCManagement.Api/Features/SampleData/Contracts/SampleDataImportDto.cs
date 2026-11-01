@@ -50,7 +50,11 @@ public class WeeklyMenuImportResultDto
     public List<WeeklyMenuImportRowDto> Rows { get; set; } = [];
     public WeeklyMenuImportDiffDto PreviewDiff { get; set; } = new();
     public Dictionary<string, ImportedDayMenuDto> ImportedWeeklyMenu { get; set; } = new();
+    public List<MrxReimportDayDto>? MrxDayOutcomes { get; set; }
+    public MenuAmendmentResultDto? MrxSourceChange { get; set; }
 }
+
+public sealed record MrxReimportDayDto(DateOnly ServiceDate, string Outcome);
 
 public class WeeklyMenuImportValidationDto
 {

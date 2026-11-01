@@ -1,5 +1,5 @@
 import { test as base, type Page } from '@playwright/test';
-import { loginRole, type MrxRole } from './authHelpers';
+import { loginRole } from './authHelpers';
 import { MySQLVerifier } from '../core/mysqlVerifier';
 import { ALLOWED_SANDBOX_DB, ALLOWED_SANDBOX_PORT } from '../core/dbGuardrail';
 
@@ -12,41 +12,42 @@ export interface MrxTestFixtures {
 }
 
 export const test = base.extend<MrxTestFixtures>({
-  adminPage: async ({ browser }, use) => {
+  adminPage: async ({ browser }, fixtureUse) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
     await loginRole(page, 'admin');
-    await use(page);
+    await fixtureUse(page);
     await context.close();
   },
 
-  dieuphoiPage: async ({ browser }, use) => {
+  dieuphoiPage: async ({ browser }, fixtureUse) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
     await loginRole(page, 'dieuphoi');
-    await use(page);
+    await fixtureUse(page);
     await context.close();
   },
 
-  thukhoPage: async ({ browser }, use) => {
+  thukhoPage: async ({ browser }, fixtureUse) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
     await loginRole(page, 'thukho');
-    await use(page);
+    await fixtureUse(page);
     await context.close();
   },
 
-  beptruongPage: async ({ browser }, use) => {
+  beptruongPage: async ({ browser }, fixtureUse) => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
     await loginRole(page, 'beptruong');
-    await use(page);
+    await fixtureUse(page);
     await context.close();
   },
 
-  dbVerifier: async ({}, use) => {
+  dbVerifier: async ({ browser: _browser }, fixtureUse) => {
+    void _browser; // Playwright requires an object destructuring fixture signature.
     const verifier = new MySQLVerifier(ALLOWED_SANDBOX_DB, ALLOWED_SANDBOX_PORT);
-    await use(verifier);
+    await fixtureUse(verifier);
   },
 });
 

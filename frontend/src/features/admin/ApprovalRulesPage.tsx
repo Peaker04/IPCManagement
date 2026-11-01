@@ -39,7 +39,18 @@ export function ApprovalRulesPage() {
   };
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    adminApi.getApprovalRules()
+      .then((items) => {
+        if (ignore) return;
+        setRules(items);
+        serverStateCache.set('admin_approval_rules', items);
+      })
+      .catch((cause: unknown) => {
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải quy tắc phê duyệt.'));
+      })
+      .finally(() => { if (!ignore) setIsLoading(false); });
+    return () => { ignore = true; };
   }, []);
 
   const filteredRules = useMemo(() => activeType === 'ALL' ? rules : rules.filter((rule) => rule.documentType === activeType), [rules, activeType]);

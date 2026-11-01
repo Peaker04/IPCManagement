@@ -112,9 +112,32 @@ class ServerStateCache {
       try {
         sessionStorage.removeItem(`${L2_CACHE_PREFIX}${key}`);
         sessionStorage.removeItem(`${SNAPSHOT_STORAGE_PREFIX}${key}`);
-      } catch {}
+      } catch {
+        // In-memory invalidation remains authoritative when session storage is unavailable.
+      }
     }
     this.notify(key);
+  }
+
+  deletePrefix(prefix: string): void {
+    const keys = new Set([...this.store.keys()].filter((key) => key.startsWith(prefix)));
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+      try {
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const fullKey = sessionStorage.key(i);
+          if (fullKey?.startsWith(L2_CACHE_PREFIX)) {
+            const key = fullKey.slice(L2_CACHE_PREFIX.length);
+            if (key.startsWith(prefix)) keys.add(key);
+          } else if (fullKey?.startsWith(SNAPSHOT_STORAGE_PREFIX)) {
+            const key = fullKey.slice(SNAPSHOT_STORAGE_PREFIX.length);
+            if (key.startsWith(prefix)) keys.add(key);
+          }
+        }
+      } catch {
+        // Ignore storage access errors; in-memory entries are still removed.
+      }
+    }
+    keys.forEach((key) => this.delete(key));
   }
 
   invalidate(keyOrPrefix: string): void {
@@ -166,7 +189,9 @@ class ServerStateCache {
           }
         }
         for (const k of toRemove) sessionStorage.removeItem(k);
-      } catch {}
+      } catch {
+        // In-memory cache is already cleared when session storage is unavailable.
+      }
     }
     this.listeners.forEach((set) => set.forEach((fn) => fn()));
   }

@@ -137,6 +137,18 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     expect(screen.getByText('IPC System')).toBeInTheDocument();
   });
 
+  it('collapses an expanded sidebar when browser zoom reduces the layout viewport below 768px', async () => {
+    Object.defineProperty(window, 'innerWidth', { configurable: true, writable: true, value: 1440 });
+    renderAppShell();
+    await screen.findByRole('button', { name: 'Thu gọn sidebar' });
+
+    window.innerWidth = 720;
+    window.dispatchEvent(new Event('resize'));
+
+    expect(await screen.findByRole('button', { name: 'Mở menu điều hướng' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mở rộng sidebar' })).toBeInTheDocument();
+  });
+
   it('hides navigation destinations that the current role cannot access', async () => {
     localStorage.setItem('ipc_v3_token', 'token');
     localStorage.setItem('ipc_v3_user', JSON.stringify({

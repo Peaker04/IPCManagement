@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { invalidateMrxCaches } from './mrxCacheInvalidation';
 import type { components } from '../shared/api/contracts/schema';
 
 type Schema = components['schemas'];
@@ -143,35 +144,11 @@ export interface MrxPreparationWorkbookQuery {
   isSupplemental?: boolean;
 }
 
-export interface MrxMenuChangeLine {
-  serviceDate: string;
-  shiftName: string;
-  dishSlot: string;
-  newDishId?: string;
-  newServings?: number;
-}
-export interface MrxMenuChangeRequest {
-  customerId: string;
-  weekStartDate: string;
-  expectedBaseMenuVersionId: string;
-  reason: string;
-  lines: MrxMenuChangeLine[];
-}
-export interface MrxMenuChangeImpactLine {
-  serviceDate: string;
-  shiftName: string;
-  dishSlot: string;
-  oldDishId: string;
-  newDishId: string;
-  currentServings: number;
-  newServings: number;
-}
-export interface MrxMenuChangeResult {
-  menuAmendmentId: string;
-  status: string;
-  affectedReconciliationBatchIds: string[];
-  impactLines: MrxMenuChangeImpactLine[];
-}
+export type MrxEditScope = Schema['MrxEditScopeDto'];
+export type MrxMenuChangeLine = Schema['CreateMenuAmendmentLineRequest'];
+export type MrxMenuChangeRequest = Schema['CreateMenuAmendmentRequest'];
+export type MrxMenuChangeImpactLine = Schema['MenuAmendmentImpactLineDto'];
+export type MrxMenuChangeResult = Schema['MenuAmendmentResultDto'];
 
 export interface MrxMenuChangeInboxItem {
   menuAmendmentId: string;
@@ -182,7 +159,7 @@ export interface MrxMenuChangeInboxItem {
   reason: string;
   createdAt: string;
   affectedReconciliationBatchIds: string[];
-  impactLines: MrxMenuChangeImpactLine[];
+  impactLines: readonly MrxMenuChangeImpactLine[];
 }
 
 export type PreviewQuantityImportRequest = Schema['PreviewQuantityImportRequest'];
@@ -193,6 +170,12 @@ export type SetMrxDispositionRequest = Schema['SetReconciliationDispositionReque
 
 function batchPath(batchId: string, suffix = ''): string {
   return `/reconciliation/batches/${encodeURIComponent(batchId)}${suffix}`;
+}
+
+async function withMrxInvalidation<T>(operation: Promise<T>): Promise<T> {
+  const result = await operation;
+  invalidateMrxCaches();
+  return result;
 }
 
 export type MrxBatchDishSummary = Schema['ReconciliationBatchDishSummaryDto'];
@@ -216,31 +199,36 @@ export const mrxApi = {
     }),
 
   submitSourceChange: (request: MrxMenuChangeRequest) =>
-    apiClient<MrxMenuChangeResult>('/coordination/weekly-menu/amendments/mrx-submit', {
+    withMrxInvalidation(apiClient<MrxMenuChangeResult>('/coordination/weekly-menu/amendments/mrx-submit', {
       method: 'POST',
       body: JSON.stringify(request),
-    }),
+    })),
 
-  confirmSourceChange: (request: MrxMenuChangeRequest) =>
-    apiClient<MrxMenuChangeResult>('/coordination/weekly-menu/amendments/admin-confirm', {
+  applySourceChange: (request: MrxMenuChangeRequest) =>
+    withMrxInvalidation(apiClient<MrxMenuChangeResult>('/coordination/weekly-menu/amendments/mrx-apply', {
       method: 'POST',
       body: JSON.stringify(request),
-    }),
+    })),
 
   getSourceChangeInbox: () =>
     apiClient<MrxMenuChangeInboxItem[]>('/coordination/weekly-menu/amendments/mrx-inbox'),
 
   decideSourceChange: (amendmentId: string, approved: boolean, reason?: string) =>
-    apiClient<MrxMenuChangeResult>(`/coordination/weekly-menu/amendments/${encodeURIComponent(amendmentId)}/mrx-decision`, {
+    withMrxInvalidation(apiClient<MrxMenuChangeResult>(`/coordination/weekly-menu/amendments/${encodeURIComponent(amendmentId)}/mrx-decision`, {
       method: 'POST',
       body: JSON.stringify({ approved, reason }),
-    }),
+    })),
 
   getDraftSources: () => apiClient<MrxDraftSource[]>('/reconciliation/batches/draft-sources'),
 
   getWeeklySource: (customerId: string, weekStartDate: string) => {
     const query = new URLSearchParams({ customerId, weekStartDate });
     return apiClient<MrxWeeklySource | null>(`/reconciliation/weekly-menu?${query}`);
+  },
+
+  getEditScope: (customerId: string, weekStartDate: string) => {
+    const query = new URLSearchParams({ customerId, weekStartDate });
+    return apiClient<MrxEditScope>(`/reconciliation/weekly-menu/edit-scope?${query}`);
   },
 
   previewQuantityImport: (request: PreviewQuantityImportRequest) =>
@@ -250,16 +238,16 @@ export const mrxApi = {
     }),
 
   commitQuantityImport: (request: CommitQuantityImportRequest) =>
-    apiClient<MrxQuantityCommit>('/reconciliation/batches/quantity-import/commit', {
+    withMrxInvalidation(apiClient<MrxQuantityCommit>('/reconciliation/batches/quantity-import/commit', {
       method: 'POST',
       body: JSON.stringify(request),
-    }),
+    })),
 
   createBatch: (request: CreateReconciliationDraftRequest) =>
-    apiClient<MrxBatch>('/reconciliation/batches', {
+    withMrxInvalidation(apiClient<MrxBatch>('/reconciliation/batches', {
       method: 'POST',
       body: JSON.stringify(request),
-    }),
+    })),
 
   getBatch: (batchId: string) => apiClient<MrxBatch>(batchPath(batchId)),
 
@@ -269,16 +257,16 @@ export const mrxApi = {
   },
 
   markReady: (batchId: string, expectedVersion: number) =>
-    apiClient<MrxBatch>(batchPath(batchId, '/ready'), {
+    withMrxInvalidation(apiClient<MrxBatch>(batchPath(batchId, '/ready'), {
       method: 'POST',
       body: JSON.stringify({ expectedVersion }),
-    }),
+    })),
 
   transferToWarehouse: (batchId: string, expectedVersion: number) =>
-    apiClient<MrxWarehouseTransfer>(batchPath(batchId, '/transfer-to-warehouse'), {
+    withMrxInvalidation(apiClient<MrxWarehouseTransfer>(batchPath(batchId, '/transfer-to-warehouse'), {
       method: 'POST',
       body: JSON.stringify({ expectedVersion }),
-    }),
+    })),
 
   getWarehouseDaily: (batchId: string) =>
     apiClient<MrxWarehouseDaily>(batchPath(batchId, '/warehouse-daily')),
@@ -297,10 +285,10 @@ export const mrxApi = {
     apiClient<MrxInventoryIssueDetail>(`/inventory-issues/${encodeURIComponent(issueId)}?sourceFamily=${encodeURIComponent(sourceFamily)}`),
 
   createIssue: (request: CreateMrxIssueRequest) =>
-    apiClient<MrxIssueCreated>('/inventory-issues', {
+    withMrxInvalidation(apiClient<MrxIssueCreated>('/inventory-issues', {
       method: 'POST',
       body: JSON.stringify(request),
-    }),
+    })),
 
   getSourceDeltas: (pageNumber = 1, pageSize = 25) => {
     const query = new URLSearchParams({ PageNumber: String(pageNumber), PageSize: String(pageSize) });
@@ -308,31 +296,31 @@ export const mrxApi = {
   },
 
   createReturn: (request: CreateMrxReturnRequest) =>
-    apiClient<MrxReturnCreated>('/inventory-returns', { method: 'POST', body: JSON.stringify(request) }),
+    withMrxInvalidation(apiClient<MrxReturnCreated>('/inventory-returns', { method: 'POST', body: JSON.stringify(request) })),
 
   confirmReturn: (returnId: string, request: ConfirmMrxReturnRequest) =>
-    apiClient<void>(`/inventory-returns/${encodeURIComponent(returnId)}/confirm-receipt`, { method: 'POST', body: JSON.stringify(request) }),
+    withMrxInvalidation(apiClient<void>(`/inventory-returns/${encodeURIComponent(returnId)}/confirm-receipt`, { method: 'POST', body: JSON.stringify(request) })),
 
   getDispositionCategories: () =>
     apiClient<MrxDispositionCategory[]>('/reconciliation/lines/disposition-categories'),
 
   setDailyDisposition: (dailyLineId: string, request: SetMrxDispositionRequest) =>
-    apiClient<void>(`/reconciliation/daily-lines/${encodeURIComponent(dailyLineId)}/disposition`, {
+    withMrxInvalidation(apiClient<void>(`/reconciliation/daily-lines/${encodeURIComponent(dailyLineId)}/disposition`, {
       method: 'PUT',
       body: JSON.stringify(request),
-    }),
+    })),
 
   setLineDisposition: (lineId: string, request: SetMrxDispositionRequest) =>
-    apiClient<void>(`/reconciliation/lines/${encodeURIComponent(lineId)}/disposition`, {
+    withMrxInvalidation(apiClient<void>(`/reconciliation/lines/${encodeURIComponent(lineId)}/disposition`, {
       method: 'PUT',
       body: JSON.stringify(request),
-    }),
+    })),
 
   completeBatch: (batchId: string, expectedVersion: number) =>
-    apiClient<MrxBatch>(batchPath(batchId, '/complete'), {
+    withMrxInvalidation(apiClient<MrxBatch>(batchPath(batchId, '/complete'), {
       method: 'POST',
       body: JSON.stringify({ expectedVersion }),
-    }),
+    })),
 
   getKitchenCooking: (batchId: string) =>
     apiClient<MrxKitchenCooking>(batchPath(batchId, '/kitchen-cooking')),
@@ -344,10 +332,10 @@ export const mrxApi = {
   },
 
   issueCoordinated: (request: CreateCoordinatedPreparationIssueRequest) =>
-    apiClient<CoordinatedPreparationIssueResult>('/reconciliation/preparation/issue', {
+    withMrxInvalidation(apiClient<CoordinatedPreparationIssueResult>('/reconciliation/preparation/issue', {
       method: 'POST',
       body: JSON.stringify(request),
-    }),
+    })),
 
   getPreparationWorkbook: (query: MrxPreparationWorkbookQuery) => {
     const params = new URLSearchParams();

@@ -58,11 +58,13 @@ describe('Rule TA-5: Zero Fake API Data & Anti-Bogus Verification Gate', () => {
       const filePath = path.join(API_DIR, file);
       const content = fs.readFileSync(filePath, 'utf-8');
 
-      // Every exported api object must use apiClient
-      expect(
-        content.includes('apiClient'),
-        `File ${file} does not use apiClient for real network calls!`
-      ).toBe(true);
+      // Every exported API object must use the real client; pure helpers may share this folder.
+      if (/export\s+const\s+\w+Api\s*=/.test(content)) {
+        expect(
+          content.includes('apiClient'),
+          `File ${file} exports an API object without apiClient network calls!`
+        ).toBe(true);
+      }
     }
   });
 });

@@ -1,8 +1,11 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Caching;
 using Microsoft.EntityFrameworkCore;
@@ -19,8 +22,12 @@ internal sealed class WeeklyMenuImportService(
     IWeeklyMenuImportPersistence persistence,
     WeeklyMenuImportPreviewTicketStore previewTicketStore,
     IEfTransactionRunner transactionRunner,
-    IMemoryCache cache) : IWeeklyMenuImportService
+    IMemoryCache cache,
+    SystemOperationRequestContext? operationContext = null,
+    IMrxSourceChangeGateway? mrxGateway = null) : IWeeklyMenuImportService
 {
+    private readonly IMrxSourceChangeGateway sourceChangeGateway = mrxGateway
+        ?? MrxSourceChangeGatewayFactory.Create(context, transactionRunner, operationContext);
     private static readonly decimal[] WeeklyMenuPriceTiers = [25000m, 30000m, 34000m];
     private readonly XlsxWorkbookReader _reader = new();
 
@@ -58,7 +65,7 @@ internal sealed class WeeklyMenuImportService(
                 mapping,
                 normalizedPriceTier);
             plan.SourceChecksum = ComputeFileChecksum(tempFilePath);
-            var result = await resultBuilder.BuildAsync(plan, customer, committed: false, cancellationToken);
+            var result = await PreviewPreparedAsync(plan, customer, cancellationToken);
             result.SourceChecksum = plan.SourceChecksum;
             if (!result.Validation.HasCriticalErrors)
             {
@@ -105,7 +112,8 @@ internal sealed class WeeklyMenuImportService(
         decimal? priceTierAmount,
         string? previewToken,
         string? actorUserId = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        IReadOnlyCollection<string>? actorRoles = null)
     {
         try
         {
@@ -118,8 +126,11 @@ internal sealed class WeeklyMenuImportService(
                     priceTierAmount,
                     previewToken),
                 cancellationToken);
-            var results = await CommitPreparedBatchAsync([prepared], actorUserId, cancellationToken);
-            return results[0];
+            return await CommitPreparedSingleAsync(
+                prepared,
+                actorUserId,
+                actorRoles ?? [],
+                cancellationToken);
         }
         catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
         {
@@ -173,10 +184,9 @@ internal sealed class WeeklyMenuImportService(
                 mapping,
                 normalizedPriceTier);
             plan.SourceChecksum = ComputeFileChecksum(tempFilePath);
-            var validationResult = await resultBuilder.BuildAsync(
+            var validationResult = await PreviewPreparedAsync(
                 plan,
                 customer,
-                committed: false,
                 cancellationToken);
             if (validationResult.Validation.HasCriticalErrors)
             {
@@ -197,6 +207,200 @@ internal sealed class WeeklyMenuImportService(
             DeleteTempWorkbook(tempFilePath);
         }
     }
+
+    internal async Task<WeeklyMenuImportResultDto> PreviewPreparedAsync(
+        WeeklyMenuImportPlan plan,
+        Customer customer,
+        CancellationToken cancellationToken)
+    {
+        var result = await resultBuilder.BuildAsync(plan, customer, committed: false, cancellationToken);
+        var analysis = await AnalyzeMrxReimportAsync(plan, customer, cancellationToken);
+        result.MrxDayOutcomes = analysis?.Outcomes;
+        return result;
+    }
+
+    internal async Task<WeeklyMenuImportResultDto> CommitPreparedSingleAsync(
+        PreparedWeeklyMenuImport prepared,
+        string? actorUserId,
+        IReadOnlyCollection<string> actorRoles,
+        CancellationToken cancellationToken)
+    {
+        var preview = await PreviewPreparedAsync(prepared.Plan, prepared.Customer, cancellationToken);
+        var analysis = await AnalyzeMrxReimportAsync(prepared.Plan, prepared.Customer, cancellationToken);
+        if (analysis is null)
+        {
+            var results = await CommitPreparedBatchAsync([prepared], actorUserId, cancellationToken);
+            return results[0];
+        }
+
+        previewTicketStore.Validate(
+            prepared.PreviewToken,
+            prepared.Plan.SourceChecksum!,
+            GuidHelper.ToGuidString(prepared.Customer.CustomerId),
+            prepared.Plan.WeekStartDate,
+            prepared.PriceTierAmount,
+            WeeklyMenuWorkbookParser.ParserVersion);
+
+        var lockedConflicts = analysis.Outcomes
+            .Where(item => item.Outcome == "LOCKED_CONFLICT")
+            .Select(item => item.ServiceDate)
+            .ToList();
+        if (lockedConflicts.Count > 0)
+            throw new MrxSourceChangeException(
+                MrxErrorCodes.DayLocked,
+                StatusCodes.Status409Conflict,
+                "Các ngày đã xuất kho có nội dung khác file import nên không thể import lại.",
+                lockedConflicts);
+        if (analysis.HasUnsupportedStructureChange)
+            throw new BusinessRuleException("Import lại MRX chỉ hỗ trợ thay món tại các slot hiện có; không thêm hoặc xóa slot.");
+
+        var actorId = GuidHelper.ParseGuidString(actorUserId)
+            ?? throw new UnauthorizedAccessException("Không xác định được người import thực đơn.");
+        MenuAmendmentResultDto sourceChange;
+        if (analysis.Lines.Count == 0)
+        {
+            sourceChange = new MenuAmendmentResultDto { Status = "UNCHANGED" };
+            var currentVersion = await context.Menuversions.AsNoTracking()
+                .SingleAsync(item => item.MenuVersionId == analysis.Batch.MenuVersionId, cancellationToken);
+            WeeklyMenuImportProjection.ApplyMenuVersion(preview, currentVersion);
+            preview.Committed = true;
+        }
+        else
+        {
+            var request = new CreateMenuAmendmentRequest
+            {
+                CustomerId = GuidHelper.ToGuidString(prepared.Customer.CustomerId),
+                WeekStartDate = prepared.Plan.WeekStartDate,
+                ExpectedBaseMenuVersionId = GuidHelper.ToGuidString(analysis.Batch.MenuVersionId),
+                ExpectedBatchVersion = analysis.Batch.Version,
+                Reason = $"Import lại thực đơn từ file {prepared.Plan.FileName}",
+                Lines = analysis.Lines
+            };
+            var canApply = actorRoles.Any(role =>
+                IPCManagement.Api.Security.AuthorizationPolicies.IsAdminRole(role) ||
+                IPCManagement.Api.Security.AuthorizationPolicies.MatchesManagerRole(role));
+            if (canApply)
+            {
+                var impact = await sourceChangeGateway.PreviewAsync(request, cancellationToken);
+                var amendment = new MenuAmendment
+                {
+                    MenuAmendmentId = GuidHelper.NewId(), CustomerId = prepared.Customer.CustomerId,
+                    WeekStartDate = prepared.Plan.WeekStartDate, BaseMenuVersionId = analysis.Batch.MenuVersionId,
+                    Status = "PENDING_REVIEW", Reason = request.Reason, ImpactSnapshotJson = JsonSerializer.Serialize(impact),
+                    CreatedBy = actorId, CreatedAt = DateTime.UtcNow,
+                    Lines = impact.ImpactLines.Select(item => new MenuAmendmentLine
+                    {
+                        MenuAmendmentLineId = GuidHelper.NewId(), ServiceDate = item.ServiceDate,
+                        ShiftName = item.ShiftName, DishSlot = item.DishSlot,
+                        OldDishId = GuidHelper.ParseGuidString(item.OldDishId),
+                        NewDishId = GuidHelper.ParseGuidString(item.NewDishId)!
+                    }).ToList()
+                };
+                sourceChange = await sourceChangeGateway.ApplyAsync(
+                    amendment,
+                    actorId,
+                    actorRoles,
+                    "REIMPORT",
+                    analysis.Batch.Version,
+                    cancellationToken);
+                preview.Committed = true;
+                var appliedVersionId = GuidHelper.ParseGuidString(sourceChange.AppliedMenuVersionId)
+                    ?? throw new InvalidOperationException("Áp dụng thay đổi nguồn không trả về phiên bản thực đơn.");
+                var appliedVersion = await context.Menuversions.AsNoTracking()
+                    .SingleAsync(item => item.MenuVersionId == appliedVersionId, cancellationToken);
+                WeeklyMenuImportProjection.ApplyMenuVersion(preview, appliedVersion);
+            }
+            else if (actorRoles.Any(role => string.Equals(role, "Coordinator", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(role, "COORDINATOR", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(role, "Điều phối", StringComparison.OrdinalIgnoreCase)))
+            {
+                sourceChange = await new MenuAmendmentService(
+                        context,
+                        transactionRunner,
+                        operationContext: operationContext,
+                        mrxGateway: sourceChangeGateway)
+                    .SubmitMrxAsync(request, actorUserId, cancellationToken);
+            }
+            else
+            {
+                throw new UnauthorizedAccessException("Vai trò hiện tại không được import lại nguồn MRX.");
+            }
+        }
+
+        preview.MrxSourceChange = sourceChange;
+        DishCatalogCache.Clear(cache);
+        previewTicketStore.Consume(prepared.PreviewToken!);
+        return preview;
+    }
+
+    private async Task<MrxReimportAnalysis?> AnalyzeMrxReimportAsync(
+        WeeklyMenuImportPlan plan,
+        Customer customer,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(operationContext?.Mode, SystemOperationEligibility.MaterialReconciliation, StringComparison.Ordinal))
+            return null;
+
+        var batches = await (
+                from candidate in context.Reconciliationbatches.AsNoTracking()
+                join version in context.Menuversions.AsNoTracking() on candidate.MenuVersionId equals version.MenuVersionId
+                where version.CustomerId == customer.CustomerId && version.WeekStartDate == plan.WeekStartDate
+                select candidate)
+            .ToListAsync(cancellationToken);
+        if (batches.Count == 0) return null;
+        if (batches.Count > 1)
+            throw new BusinessRuleException("Tuần có nhiều lô đối soát; không xác định được lô nhận import lại.");
+        var batch = batches[0];
+        var schedules = await context.Menuschedules.AsNoTracking()
+            .Include(item => item.Menu).ThenInclude(menu => menu.Menuitems)
+            .Where(item => item.CustomerId == customer.CustomerId && item.WeekStartDate == plan.WeekStartDate
+                && item.MenuVersionId == batch.MenuVersionId)
+            .ToListAsync(cancellationToken);
+        var locked = batch.Status == "COMPLETED"
+            ? schedules.Select(item => item.ServiceDate).ToHashSet()
+            : await sourceChangeGateway.GetLockedDatesAsync(batch.BatchId, cancellationToken);
+
+        var current = schedules.SelectMany(schedule => schedule.Menu.Menuitems.Select(item =>
+        {
+            var slot = WeeklyMenuImportProjection.ParsePersistedDishSlot(item.DishSlot);
+            return new ReimportSlot(
+                SlotKey(schedule.ServiceDate, schedule.ShiftName, slot.VariantKey, slot.Slot),
+                schedule.ServiceDate, schedule.ShiftName, item.DishSlot ?? $"{slot.VariantKey}-{slot.Slot}", item.DishId);
+        })).ToDictionary(item => item.Key, StringComparer.OrdinalIgnoreCase);
+        var imported = plan.Items.Select(item => new ReimportSlot(
+            SlotKey(item.ServiceDate, item.DbShiftName, item.VariantKey, item.Slot),
+            item.ServiceDate, item.DbShiftName, $"{item.VariantKey}-{item.Slot}", GuidHelper.ParseGuidString(item.DishId)))
+            .ToDictionary(item => item.Key, StringComparer.OrdinalIgnoreCase);
+        var allKeys = current.Keys.Union(imported.Keys, StringComparer.OrdinalIgnoreCase).ToList();
+        var changedKeys = allKeys.Where(key =>
+            !current.TryGetValue(key, out var oldSlot) || !imported.TryGetValue(key, out var newSlot)
+            || oldSlot.DishId is null || newSlot.DishId is null
+            || !oldSlot.DishId.AsSpan().SequenceEqual(newSlot.DishId)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var outcomes = current.Values.Select(item => item.ServiceDate).Union(imported.Values.Select(item => item.ServiceDate))
+            .Distinct().Order().Select(date =>
+            {
+                var changed = changedKeys.Any(key =>
+                    (current.GetValueOrDefault(key)?.ServiceDate ?? imported.GetValueOrDefault(key)!.ServiceDate) == date);
+                return new MrxReimportDayDto(date, locked.Contains(date)
+                    ? changed ? "LOCKED_CONFLICT" : "LOCKED_IDENTICAL"
+                    : changed ? "CHANGED" : "UNCHANGED");
+            }).ToList();
+        var unsupported = changedKeys.Any(key => !current.ContainsKey(key) || !imported.ContainsKey(key));
+        var lines = changedKeys.Where(key => current.ContainsKey(key) && imported.ContainsKey(key)).Select(key =>
+        {
+            var oldSlot = current[key];
+            var newSlot = imported[key];
+            return new CreateMenuAmendmentLineRequest
+            {
+                ServiceDate = oldSlot.ServiceDate, ShiftName = oldSlot.ShiftName,
+                DishSlot = oldSlot.DishSlot, NewDishId = GuidHelper.ToGuidString(newSlot.DishId!)
+            };
+        }).ToList();
+        return new MrxReimportAnalysis(batch, outcomes, lines, unsupported);
+    }
+
+    private static string SlotKey(DateOnly date, string shiftName, string variant, string slot)
+        => $"{date:yyyyMMdd}|{shiftName.ToUpperInvariant()}|{variant.ToLowerInvariant()}|{slot.ToLowerInvariant()}";
 
     internal async Task<IReadOnlyList<WeeklyMenuImportResultDto>> CommitPreparedBatchAsync(
         IReadOnlyList<PreparedWeeklyMenuImport> prepared,
@@ -361,3 +565,16 @@ internal sealed record PreparedWeeklyMenuImport(
     Customer Customer,
     decimal PriceTierAmount,
     string? PreviewToken);
+
+internal sealed record MrxReimportAnalysis(
+    ReconciliationBatch Batch,
+    List<MrxReimportDayDto> Outcomes,
+    List<CreateMenuAmendmentLineRequest> Lines,
+    bool HasUnsupportedStructureChange);
+
+internal sealed record ReimportSlot(
+    string Key,
+    DateOnly ServiceDate,
+    string ShiftName,
+    string DishSlot,
+    byte[]? DishId);

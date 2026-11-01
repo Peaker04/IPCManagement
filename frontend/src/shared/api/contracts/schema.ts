@@ -2724,49 +2724,6 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
-    readonly "/api/coordination/weekly-menu/amendments/admin-confirm": {
-        readonly parameters: {
-            readonly query?: never;
-            readonly header?: never;
-            readonly path?: never;
-            readonly cookie?: never;
-        };
-        readonly get?: never;
-        readonly put?: never;
-        readonly post: {
-            readonly parameters: {
-                readonly query?: never;
-                readonly header?: never;
-                readonly path?: never;
-                readonly cookie?: never;
-            };
-            readonly requestBody?: {
-                readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateMenuAmendmentRequest"];
-                    readonly "application/json": components["schemas"]["CreateMenuAmendmentRequest"];
-                    readonly "text/json": components["schemas"]["CreateMenuAmendmentRequest"];
-                };
-            };
-            readonly responses: {
-                /** @description OK */
-                readonly 200: {
-                    headers: {
-                        readonly [name: string]: unknown;
-                    };
-                    content: {
-                        readonly "application/json": components["schemas"]["MenuAmendmentResultDtoApiResponse"];
-                        readonly "text/json": components["schemas"]["MenuAmendmentResultDtoApiResponse"];
-                        readonly "text/plain": components["schemas"]["MenuAmendmentResultDtoApiResponse"];
-                    };
-                };
-            };
-        };
-        readonly delete?: never;
-        readonly options?: never;
-        readonly head?: never;
-        readonly patch?: never;
-        readonly trace?: never;
-    };
     readonly "/api/coordination/weekly-menu/amendments/decisions": {
         readonly parameters: {
             readonly query?: never;
@@ -2837,6 +2794,49 @@ export interface paths {
                         readonly [name: string]: unknown;
                     };
                     content?: never;
+                };
+            };
+        };
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/coordination/weekly-menu/amendments/mrx-apply": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get?: never;
+        readonly put?: never;
+        readonly post: {
+            readonly parameters: {
+                readonly query?: never;
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: {
+                readonly content: {
+                    readonly "application/*+json": components["schemas"]["CreateMenuAmendmentRequest"];
+                    readonly "application/json": components["schemas"]["CreateMenuAmendmentRequest"];
+                    readonly "text/json": components["schemas"]["CreateMenuAmendmentRequest"];
+                };
+            };
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["MenuAmendmentResultDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["MenuAmendmentResultDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["MenuAmendmentResultDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -7908,6 +7908,68 @@ export interface paths {
                 };
                 /** @description Bad Request */
                 readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/weekly-menu/edit-scope": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly customerId?: string;
+                    readonly weekStartDate?: string;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["MrxEditScopeDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["MrxEditScopeDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["MrxEditScopeDtoApiResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                readonly 400: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
+                };
+                /** @description Not Found */
+                readonly 404: {
                     headers: {
                         readonly [name: string]: unknown;
                     };
@@ -13410,7 +13472,11 @@ export interface components {
             readonly dishSlot: string;
             readonly newDishId?: string | null;
             /** Format: int32 */
+            readonly newSavoryServings?: number | null;
+            /** Format: int32 */
             readonly newServings?: number | null;
+            /** Format: int32 */
+            readonly newVegetarianServings?: number | null;
             /** Format: date */
             readonly serviceDate: string;
             readonly shiftName: string;
@@ -13418,6 +13484,8 @@ export interface components {
         readonly CreateMenuAmendmentRequest: {
             readonly customerId: string;
             readonly expectedBaseMenuVersionId?: string | null;
+            /** Format: int64 */
+            readonly expectedBatchVersion?: number | null;
             readonly lines: readonly components["schemas"]["CreateMenuAmendmentLineRequest"][];
             readonly reason: string;
             /** Format: date */
@@ -15209,9 +15277,13 @@ export interface components {
             readonly quantityPlanId: string;
             /** Format: byte */
             readonly quantityPlanLineId: string;
+            /** Format: int32 */
+            readonly savoryServings?: number | null;
             readonly shiftName: string;
             /** Format: date-time */
             readonly updatedAt: string;
+            /** Format: int32 */
+            readonly vegetarianServings?: number | null;
         };
         readonly MealQuantityPlanLineDto: {
             /** Format: int32 */
@@ -15272,11 +15344,19 @@ export interface components {
         };
         readonly MenuAmendmentImpactLineDto: {
             /** Format: int32 */
+            readonly currentSavoryServings?: number | null;
+            /** Format: int32 */
             readonly currentServings: number;
+            /** Format: int32 */
+            readonly currentVegetarianServings?: number | null;
             readonly dishSlot: string;
             readonly newDishId: string;
             /** Format: int32 */
+            readonly newSavoryServings?: number | null;
+            /** Format: int32 */
             readonly newServings: number;
+            /** Format: int32 */
+            readonly newVegetarianServings?: number | null;
             readonly oldDishId: string;
             /** Format: date */
             readonly serviceDate: string;
@@ -15323,6 +15403,8 @@ export interface components {
             readonly hasPurchaseOrder: boolean;
             readonly hasReceipt: boolean;
             readonly impactLines: readonly components["schemas"]["MenuAmendmentImpactLineDto"][];
+            readonly lockedDates: readonly string[];
+            readonly materialImpact: readonly components["schemas"]["MrxMaterialImpactDto"][];
             readonly menuAmendmentId: string;
             readonly reconciliationCaseId?: string | null;
             readonly requiresReconciliation: boolean;
@@ -15589,6 +15671,54 @@ export interface components {
             /** Format: date */
             readonly weekStartDate: string;
         };
+        readonly MrxEditScopeDayDto: {
+            readonly isLocked: boolean;
+            readonly lockReason?: string | null;
+            /** Format: date */
+            readonly serviceDate: string;
+            readonly shifts: readonly components["schemas"]["MrxEditScopeShiftDto"][];
+        };
+        readonly MrxEditScopeDto: {
+            readonly batchId?: string | null;
+            readonly batchStatus?: string | null;
+            /** Format: int64 */
+            readonly batchVersion?: number | null;
+            readonly days: readonly components["schemas"]["MrxEditScopeDayDto"][];
+            readonly menuVersionId: string;
+        };
+        readonly MrxEditScopeDtoApiResponse: {
+            readonly data?: components["schemas"]["MrxEditScopeDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly MrxEditScopeShiftDto: {
+            /** Format: int32 */
+            readonly savoryServings?: number | null;
+            readonly shiftName: string;
+            readonly slots: readonly components["schemas"]["MrxEditScopeSlotDto"][];
+            /** Format: int32 */
+            readonly vegetarianServings?: number | null;
+        };
+        readonly MrxEditScopeSlotDto: {
+            readonly dishCode?: string | null;
+            readonly dishId?: string | null;
+            readonly dishName?: string | null;
+            readonly dishSlot: string;
+            readonly menuVariant: string;
+            readonly slotLabel: string;
+        };
+        readonly MrxMaterialImpactDto: {
+            readonly ingredientCode: string;
+            readonly ingredientName: string;
+            /** Format: double */
+            readonly newQuantity: number;
+            /** Format: double */
+            readonly previousQuantity: number;
+            /** Format: date */
+            readonly serviceDate: string;
+            readonly unitName: string;
+        };
         readonly MrxOperationalQueueItemDto: {
             /** Format: date-time */
             readonly createdAt: string;
@@ -15616,6 +15746,11 @@ export interface components {
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;
+        };
+        readonly MrxReimportDayDto: {
+            readonly outcome: string;
+            /** Format: date */
+            readonly serviceDate: string;
         };
         readonly MrxTransactionHistoryReportDto: {
             readonly rows: readonly components["schemas"]["MrxTransactionHistoryRowDto"][];
@@ -16951,6 +17086,7 @@ export interface components {
             readonly frozenBomQuantityPerServing?: number | null;
             readonly frozenDishCode?: string | null;
             readonly frozenDishName?: string | null;
+            readonly frozenMenuVariant?: string | null;
             /** Format: int32 */
             readonly frozenServings?: number | null;
             readonly frozenShiftName?: string | null;
@@ -17188,6 +17324,7 @@ export interface components {
             readonly dishName: string;
             readonly ingredientCode: string;
             readonly ingredientName: string;
+            readonly menuVariant: string;
             /** Format: date */
             readonly serviceDate: string;
             /** Format: int32 */
@@ -17458,6 +17595,10 @@ export interface components {
             readonly isApplicable: boolean;
             /** Format: double */
             readonly issuedQuantity: number;
+            /** Format: date-time */
+            readonly lastRevisionAt?: string | null;
+            readonly lastRevisionByName?: string | null;
+            readonly lastRevisionByRole?: string | null;
             readonly lines: readonly components["schemas"]["ReconciliationWarehouseDailyLineDto"][];
             /** Format: double */
             readonly remainingQuantity: number;
@@ -18613,10 +18754,14 @@ export interface components {
         readonly UpsertQuickServingsRequest: {
             readonly complete: boolean;
             readonly customerId: string;
+            /** Format: int32 */
+            readonly savoryServings?: number | null;
             readonly serviceDate: string;
             /** Format: int32 */
             readonly servings: number;
             readonly shiftName: string;
+            /** Format: int32 */
+            readonly vegetarianServings?: number | null;
         };
         readonly UpsertReconciliationActualRequest: {
             readonly confirmZero: boolean;
@@ -18870,6 +19015,8 @@ export interface components {
             /** Format: int32 */
             readonly menuVersionNo?: number | null;
             readonly menuVersionStatus?: string | null;
+            readonly mrxDayOutcomes?: readonly components["schemas"]["MrxReimportDayDto"][] | null;
+            readonly mrxSourceChange?: components["schemas"]["MenuAmendmentResultDto"];
             readonly previewDiff: components["schemas"]["WeeklyMenuImportDiffDto"];
             /** Format: date-time */
             readonly previewExpiresAt?: string | null;

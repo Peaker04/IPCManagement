@@ -350,10 +350,60 @@ public sealed partial class ReconciliationServiceTests
     }
 
     [Fact]
-    public async Task Completion_rejects_batch_with_unresolved_source_delta_before_finalizing()
+    public async Task Warehouse_daily_exposes_last_revision_for_changed_day()
+    {
+        await using var scenario = await MrxSourceChangeApplierTests.Scenario.CreateAsync();
+        var appliedAt = new DateTime(2026, 6, 14, 8, 30, 0, DateTimeKind.Utc);
+        var revision = new ReconciliationSourceRevision
+        {
+            SourceRevisionId = GuidHelper.NewId(), BatchId = scenario.Batch.BatchId,
+            PreviousMenuVersionId = scenario.BaseVersion.MenuVersionId,
+            AppliedMenuVersionId = scenario.BaseVersion.MenuVersionId,
+            RevisionNumber = 1, Status = "APPLIED", Reason = "Đổi món ngày mở",
+            AppliedBy = scenario.ManagerId, AppliedByRole = "MANAGER", ApplyMode = "DIRECT", AppliedAt = appliedAt
+        };
+        scenario.Context.Reconciliationsourcerevisions.Add(revision);
+        scenario.Context.Reconciliationsourcedeltas.Add(new ReconciliationSourceDelta
+        {
+            SourceDeltaId = GuidHelper.NewId(), SourceRevisionId = revision.SourceRevisionId,
+            BatchId = scenario.Batch.BatchId, DailyLineId = scenario.OpenDaily.DailyLineId,
+            ServiceDate = MrxSourceChangeApplierTests.OpenDay,
+            IngredientId = scenario.OpenDaily.IngredientId, CanonicalUnitId = scenario.OpenDaily.CanonicalUnitId,
+            PreviousRequiredQuantity = 200m, NewRequiredQuantity = 210m, DeltaQuantity = 10m,
+            WorkKind = "SOURCE_CHANGE", Status = "APPLIED", Version = 1, CreatedAt = appliedAt
+        });
+        await scenario.Context.SaveChangesAsync();
+        var service = new ReconciliationBatchService(
+            scenario.Context,
+            new ImmediateTransactionRunner(),
+            new IPCManagement.Api.Data.Transactions.SystemOperationRequestContext());
+
+        var result = await service.GetWarehouseDailyAsync(GuidHelper.ToGuidString(scenario.Batch.BatchId));
+
+        var changed = Assert.Single(result!.Dates, day => day.ServiceDate == MrxSourceChangeApplierTests.OpenDay);
+        Assert.Equal(appliedAt, changed.LastRevisionAt);
+        Assert.Equal("Quản lý MRX", changed.LastRevisionByName);
+        Assert.Equal("MANAGER", changed.LastRevisionByRole);
+        var unchanged = Assert.Single(result.Dates, day => day.ServiceDate == MrxSourceChangeApplierTests.LockedDay);
+        Assert.Null(unchanged.LastRevisionAt);
+    }
+
+    [Fact]
+    public async Task Legacy_pending_source_delta_does_not_block_completion()
     {
         await using var context = CreateContext();
         var fixture = SeedInProgressLine(context, purchasedVersion: 1, issuedVersion: 1);
+        var daily = new ReconciliationBatchDailyLine
+        {
+            DailyLineId = GuidHelper.NewId(), BatchLineId = fixture.Line.BatchLineId, BatchId = fixture.Batch.BatchId,
+            IngredientId = fixture.Line.IngredientId, CanonicalUnitId = fixture.Line.CanonicalUnitId,
+            ServiceDate = new DateOnly(2026, 8, 25), RequiredQuantity = 10m, Version = 1, BatchLine = fixture.Line
+        };
+        fixture.Line.DailyLines.Add(daily);
+        var issueLine = context.ChangeTracker.Entries<InventoryIssueLine>().Single().Entity;
+        issueLine.ReconciliationBatchDailyLineId = daily.DailyLineId;
+        issueLine.RequestedQty = 10m;
+        issueLine.IssuedQty = 10m;
         context.Reconciliationsourcerevisions.Add(new ReconciliationSourceRevision
         {
             SourceRevisionId = GuidHelper.NewId(), MenuAmendmentId = GuidHelper.NewId(), BatchId = fixture.Batch.BatchId,
@@ -363,19 +413,21 @@ public sealed partial class ReconciliationServiceTests
         context.Reconciliationsourcedeltas.Add(new ReconciliationSourceDelta
         {
             SourceDeltaId = GuidHelper.NewId(), SourceRevisionId = context.Reconciliationsourcerevisions.Local.Single().SourceRevisionId,
-            BatchId = fixture.Batch.BatchId, DailyLineId = GuidHelper.NewId(), IngredientId = fixture.Line.IngredientId,
+            BatchId = fixture.Batch.BatchId, DailyLineId = daily.DailyLineId, IngredientId = fixture.Line.IngredientId,
             CanonicalUnitId = fixture.Line.CanonicalUnitId, PreviousRequiredQuantity = 10m, NewRequiredQuantity = 12m,
             DeltaQuantity = 2m, WorkKind = "SUPPLEMENTAL_ISSUE", Status = "PENDING", Version = 1, CreatedAt = DateTime.UtcNow
         });
         await context.SaveChangesAsync();
         var runner = new ImmediateTransactionRunner();
-        var completion = new ReconciliationCompletionService(context, new ReconciliationBatchService(context, runner, ProtectedContext()), runner, ProtectedContext());
+        var batches = new ReconciliationBatchService(context, runner, ProtectedContext());
+        var completion = new ReconciliationCompletionService(context, batches, runner, ProtectedContext());
+        var batchId = GuidHelper.ToGuidString(fixture.Batch.BatchId);
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(
-            GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor)));
+        Assert.Equal("WEEK_COMPLETE", (await batches.GetAsync(batchId))!.DailyReview!.WeeklyStatus);
+        var completed = await completion.CompleteAsync(batchId, new(1), GuidHelper.ToGuidString(fixture.Actor));
 
-        Assert.Contains("thay đổi nguồn", error.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("IN_PROGRESS", fixture.Batch.Status);
+        Assert.Equal("COMPLETED", completed.Status);
+        Assert.Equal("PENDING", (await context.Reconciliationsourcedeltas.SingleAsync()).Status);
     }
 
     [Fact]

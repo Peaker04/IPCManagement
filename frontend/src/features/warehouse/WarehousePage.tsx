@@ -101,7 +101,24 @@ function DefaultWarehousePage() {
   };
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    Promise.all([
+      warehouseApi.getWarehouses(),
+      warehouseApi.getIssues(),
+      warehouseApi.getReceipts(),
+    ]).then(([whs, iss, rcp]) => {
+      if (ignore) return;
+      setWarehouses(whs);
+      setIssues(iss);
+      setReceipts(rcp);
+      setHasLoadedOnce(true);
+      serverStateCache.set('default_warehouse_data', { warehouses: whs, issues: iss, receipts: rcp });
+    }).catch((cause: unknown) => {
+      if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu kho vận.'));
+    }).finally(() => {
+      if (!ignore) setIsLoading(false);
+    });
+    return () => { ignore = true; };
   }, []);
 
   const warehouseOptions = useMemo(() => {

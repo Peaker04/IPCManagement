@@ -61,7 +61,7 @@ export function ApprovalPage() {
     setFilters({ type: selectedType });
   }, [selectedType, setFilters]);
 
-  const items = recovery.data || [];
+  const items = useMemo(() => recovery.data || [], [recovery.data]);
   const [history, setHistory] = useState<ApprovalHistoryItem[]>([]);
   const [decisionReason, setDecisionReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { WarehousePage } from '../features/warehouse/WarehousePage';
 import { AuthProvider } from '../store/authContext';
 import { warehouseApi } from '../api/warehouseApi';
+import { ApiError } from '../api/client';
 import { mrxApi } from '../api/mrxApi';
 import { MOCK_WAREHOUSES, MOCK_ISSUES, MOCK_RECEIPTS } from '../test/fixtures';
 
@@ -121,6 +122,25 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.getByText('Không có phiếu xuất kho nào phù hợp với bộ lọc.')).toBeInTheDocument();
   });
 
+  it('shows the latest source revision actor for the selected MRX day', async () => {
+    vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({
+      batchId: 'batch-1', batchStatus: 'TRANSFERRED', sourceVersion: 4, weeklyStatus: 'IN_PROGRESS',
+      compatibility: { canRead: true, canIssueByDate: true, reasonCode: 'DAILY_LINEAGE_READY' },
+      dates: [{
+        serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true,
+        requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2,
+        lastRevisionAt: '2026-10-31T01:30:00Z', lastRevisionByName: 'Nguyễn Quản Lý', lastRevisionByRole: 'MANAGER',
+        lines: [{ dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+      }],
+    });
+    vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
+
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-1&date=2026-10-19');
+
+    expect(await screen.findByText('Định lượng đã được điều chỉnh')).toBeInTheDocument();
+    expect(screen.getByText('Lúc 08:30 31/10/2026 bởi Nguyễn Quản Lý (MANAGER).')).toBeInTheDocument();
+  });
+
   it('MRX daily workbench confirms one exact-date initial issue through the canonical issue command', async () => {
     vi.spyOn(mrxApi, 'getWarehouseDaily').mockResolvedValue({
       batchId: 'batch-1', batchStatus: 'TRANSFERRED', sourceVersion: 3, weeklyStatus: 'IN_PROGRESS',
@@ -137,6 +157,10 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
 
     expect(screen.getByRole('heading', { name: 'Xuất kho nguyên liệu theo ngày' })).toBeInTheDocument();
     expect(await screen.findByText('Gạo')).toBeInTheDocument();
+    const header = screen.getByRole('banner');
+    expect(within(header).queryByRole('button', { name: 'Chuẩn bị phối hợp' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Chuẩn bị phối hợp' })).toBeInTheDocument();
+    expect(within(header).getByRole('button', { name: 'Xác nhận xuất kho' })).toBeInTheDocument();
     const quantity = screen.getByRole('spinbutton', { name: 'Số lượng thực xuất Gạo' });
     await userEvent.clear(quantity);
     await userEvent.type(quantity, '1.5');
@@ -150,6 +174,36 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
       expect(mrxApi.getWarehouseDaily).toHaveBeenCalledTimes(2);
       expect(mrxApi.getIssues).toHaveBeenCalledTimes(2);
     });
+  });
+
+  it('MRX daily workbench invalidates stale source so reload recovers after an issue concurrency conflict', async () => {
+    const staleDaily = {
+      batchId: 'batch-1', batchStatus: 'IN_PROGRESS', sourceVersion: 3, weeklyStatus: 'IN_PROGRESS',
+      compatibility: { canRead: true, canIssueByDate: true, reasonCode: 'DAILY_LINEAGE_READY' },
+      dates: [{
+        serviceDate: '2026-10-19', status: 'PENDING', isApplicable: true,
+        requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2,
+        lines: [{ dailyLineId: 'daily-1', batchLineId: 'line-1', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', requiredQuantity: 2, issuedQuantity: 0, returnedQuantity: 0, remainingQuantity: 2, quantityStatus: 'UNTOUCHED', hasValidDisposition: false }],
+      }],
+    };
+    const getDaily = vi.spyOn(mrxApi, 'getWarehouseDaily')
+      .mockResolvedValueOnce(staleDaily)
+      .mockResolvedValue({ ...staleDaily, sourceVersion: 4 });
+    vi.spyOn(mrxApi, 'getIssues').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false });
+    vi.spyOn(mrxApi, 'createIssue').mockRejectedValue(new ApiError(409, 'Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.'));
+
+    renderWarehouse('/warehouse?view=mrx-daily&batchId=batch-1&date=2026-10-19');
+    await screen.findByText('Gạo');
+    await userEvent.click(screen.getByRole('button', { name: 'Điền đủ toàn bộ' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất kho' }));
+
+    expect(await screen.findByText('Danh sách xuất kho đã thay đổi; hãy tải lại trước khi xác nhận.')).toBeInTheDocument();
+    const alert = screen.getByRole('alert');
+    expect(within(alert).getByRole('button', { name: 'Tải lại dữ liệu mới nhất' })).toBeInTheDocument();
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    await userEvent.click(within(alert).getByRole('button', { name: 'Tải lại dữ liệu mới nhất' }));
+    await waitFor(() => expect(getDaily).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('v4')).toBeInTheDocument();
   });
 
   it('MRX source-delta workbench resolves an exact positive delta through supplemental issue', async () => {

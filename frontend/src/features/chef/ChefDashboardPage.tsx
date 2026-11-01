@@ -83,9 +83,9 @@ function DefaultChefDashboardPage() {
         setCustomers(list);
         setHasCustomersLoaded(true);
         serverStateCache.set('catalog_customers', list);
-        const existing = customerId && list.find((c) => c.customerId === customerId);
-        if (existing) return;
-        setCustomerId((current) => current || list[0]?.customerId || '');
+        setCustomerId((current) => list.some((customer) => customer.customerId === current)
+          ? current
+          : list[0]?.customerId || '');
         if (list.length === 0) setIsLoading(false);
       })
       .catch((cause: unknown) => {
@@ -101,14 +101,6 @@ function DefaultChefDashboardPage() {
   useEffect(() => {
     if (!customerId) return;
     const key = `chef_${customerId}_${serviceDate}_${shiftName}_${issuePageNumber}`;
-    const cached = serverStateCache.get<ChefDashboardData>(key)?.data;
-    if (cached) {
-      setData(cached);
-      setIsLoading(false);
-      setIsFetching(true);
-    } else if (!data) {
-      setIsLoading(true);
-    }
     const sequence = ++requestSequence.current;
     chefApi.getChefDashboardData(serviceDate, shiftName, customerId, issuePageNumber, ISSUE_PAGE_SIZE)
       .then((result) => {

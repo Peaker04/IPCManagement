@@ -50,7 +50,9 @@ async function getValidAuthToken(): Promise<string> {
           return cachedAuthToken;
         }
       }
-    } catch {}
+    } catch {
+      // Retry transient live-backend login failures within the bounded loop.
+    }
     attempts++;
     await new Promise((r) => setTimeout(r, 600));
   }
@@ -73,7 +75,9 @@ test.describe('Requirement-Driven Matrix Full Coverage Audit (Real Backend & DB)
         if (modeJson.success && modeJson.data?.mode) {
           serverMode = modeJson.data.mode;
         }
-      } catch {}
+      } catch {
+        // Route assertions remain authoritative when mode probing is unavailable.
+      }
     }
 
     const screenshotDir = path.join(process.cwd(), 'test-results', 'matrix-screens');
@@ -136,10 +140,14 @@ test.describe('Requirement-Driven Matrix Full Coverage Audit (Real Backend & DB)
       }
 
       // Wait for network idle and skeleton animations to settle so we capture true rendered state
-      await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 3000 }).catch(() => {
+        // Some live routes keep background requests open; DOM assertions remain authoritative.
+      });
       const skeleton = page.locator('.animate-pulse');
       if (await skeleton.first().isVisible().catch(() => false)) {
-        await skeleton.first().waitFor({ state: 'detached', timeout: 8000 }).catch(() => {});
+        await skeleton.first().waitFor({ state: 'detached', timeout: 8000 }).catch(() => {
+          // The following rendered-state assertions report any unresolved skeleton.
+        });
       }
 
       // Check 3-Zone Geometry if not public auth route
@@ -184,7 +192,9 @@ test.describe('Requirement-Driven Matrix Full Coverage Audit (Real Backend & DB)
     await dateInput.press('Enter');
 
     // Wait for matrix rows to render
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForLoadState('networkidle').catch(() => {
+      // Screenshot assertions tolerate persistent live background requests.
+    });
     await expect(page.getByText('Khô gà lá chanh')).toBeVisible({ timeout: 15_000 });
 
     const screenshotPath = path.join(process.cwd(), 'test-results', 'matrix-screens', '02b-weekly-schedule-populated.png');

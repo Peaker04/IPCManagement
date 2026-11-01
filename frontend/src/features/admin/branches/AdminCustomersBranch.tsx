@@ -29,7 +29,14 @@ export function AdminCustomersBranch() {
   };
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    customerApi.getCustomerContracts()
+      .then((data) => { if (!ignore) setContracts(data || []); })
+      .catch((cause: unknown) => {
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách hợp đồng khách hàng.'));
+      })
+      .finally(() => { if (!ignore) setIsLoading(false); });
+    return () => { ignore = true; };
   }, []);
 
   const columns = useMemo<ColumnDef<CustomerContractItem>[]>(() => [

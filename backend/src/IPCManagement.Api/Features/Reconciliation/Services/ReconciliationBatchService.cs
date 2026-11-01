@@ -99,6 +99,9 @@ public sealed class ReconciliationBatchService(
                 .SingleOrDefaultAsync(token);
         weekStart ??= dailyLines.Count == 0 ? null : StartOfWeek(dailyLines.Min(item => item.Daily.ServiceDate));
 
+        var latestRevisionByDate = await new ReconciliationWarehouseRevisionQuery(context)
+            .GetLatestByDateAsync(batchId, token);
+
         var returnedByIssueLine = returnRows
             .GroupBy(line => Convert.ToHexString(line.SourceIssueLineId!))
             .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity), StringComparer.Ordinal);
@@ -137,10 +140,16 @@ public sealed class ReconciliationBatchService(
                 }).OrderBy(line => line.IngredientName).ThenBy(line => line.DailyLineId, StringComparer.Ordinal).ToList();
                 var lineStatuses = lineDtos.Select(line => new ReconciliationDailyLineStatus(line.QuantityStatus, line.HasValidDisposition)).ToList();
                 var dayStatus = ReconciliationDailyIssuePolicy.ResolveDailyStatus(lineStatuses);
+                latestRevisionByDate.TryGetValue(serviceDate, out var latestRevision);
                 dates.Add(new ReconciliationWarehouseDayDto(
                     serviceDate, dayStatus, lineDtos.Count > 0,
                     lineDtos.Sum(line => line.RequiredQuantity), lineDtos.Sum(line => line.IssuedQuantity ?? 0m),
-                    lineDtos.Sum(line => line.ReturnedQuantity), lineDtos.Sum(line => line.RemainingQuantity), lineDtos));
+                    lineDtos.Sum(line => line.ReturnedQuantity), lineDtos.Sum(line => line.RemainingQuantity), lineDtos)
+                {
+                    LastRevisionAt = latestRevision?.AppliedAt,
+                    LastRevisionByName = latestRevision?.AppliedByName,
+                    LastRevisionByRole = latestRevision?.AppliedByRole
+                });
             }
         }
         var weeklyStatus = compatibility.CanIssueByDate

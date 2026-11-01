@@ -54,7 +54,8 @@ public interface IWeeklyMenuImportService
         decimal? priceTierAmount,
         string? previewToken,
         string? actorUserId = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        IReadOnlyCollection<string>? actorRoles = null);
 
     Task<IReadOnlyList<WeeklyMenuImportResultDto>> CommitWeeklyMenuImportBatchAsync(
         IReadOnlyList<WeeklyMenuImportBatchItem> items,
@@ -77,6 +78,23 @@ internal interface IWeeklyMenuImportPersistence
         Customer customer,
         decimal priceTierAmount,
         string? actorUserId,
+        CancellationToken cancellationToken);
+}
+
+internal interface IMrxSourceChangeGateway
+{
+    Task<MenuAmendmentResultDto> PreviewAsync(CreateMenuAmendmentRequest request, CancellationToken cancellationToken);
+    Task<MenuAmendmentResultDto> ApplyAsync(
+        MenuAmendment amendment,
+        byte[] actorId,
+        IReadOnlyCollection<string> actorRoles,
+        string applyMode,
+        long? expectedBatchVersion,
+        CancellationToken cancellationToken);
+    Task<IReadOnlySet<DateOnly>> GetLockedDatesAsync(byte[] batchId, CancellationToken cancellationToken);
+    Task<T> RunTransactionAsync<T>(
+        Func<CancellationToken, Task<T>> operation,
+        Func<CancellationToken, Task<bool>> verifySucceeded,
         CancellationToken cancellationToken);
 }
 

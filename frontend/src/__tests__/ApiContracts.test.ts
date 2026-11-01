@@ -224,7 +224,7 @@ describe('Frontend API contracts against backend DTOs', () => {
     };
     await mrxApi.previewSourceChange(sourceChange);
     await mrxApi.submitSourceChange(sourceChange);
-    await mrxApi.confirmSourceChange(sourceChange);
+    await mrxApi.applySourceChange(sourceChange);
     await mrxApi.decideSourceChange('amendment-1', false, 'Khách hàng hủy yêu cầu');
     await mrxApi.previewQuantityImport({ menuVersionId: 'menu-v1', sourceLabel: 'Tuần 43' });
     await mrxApi.commitQuantityImport({ token: 'preview-token', contentFingerprint: 'fingerprint-v2', sourceLabel: 'Tuần 43' });
@@ -246,7 +246,7 @@ describe('Frontend API contracts against backend DTOs', () => {
     expect(requests).toEqual(expect.arrayContaining([
       [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/preview$/), expect.objectContaining({ method: 'POST', body: JSON.stringify(sourceChange) })],
       [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/mrx-submit$/), expect.objectContaining({ method: 'POST', body: JSON.stringify(sourceChange) })],
-      [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/admin-confirm$/), expect.objectContaining({ method: 'POST', body: JSON.stringify(sourceChange) })],
+      [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/mrx-apply$/), expect.objectContaining({ method: 'POST', body: JSON.stringify(sourceChange) })],
       [expect.stringMatching(/\/api\/coordination\/weekly-menu\/amendments\/amendment-1\/mrx-decision$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ approved: false, reason: 'Khách hàng hủy yêu cầu' }) })],
       [expect.stringMatching(/\/api\/reconciliation\/batches\/quantity-import\/preview$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ menuVersionId: 'menu-v1', sourceLabel: 'Tuần 43' }) })],
       [expect.stringMatching(/\/api\/reconciliation\/batches\/quantity-import\/commit$/), expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'preview-token', contentFingerprint: 'fingerprint-v2', sourceLabel: 'Tuần 43' }) })],

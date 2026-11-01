@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { bomApi } from '../api/bomApi';
+import {
+  bomApi,
+  type BomCoverageReport,
+  type BomImportCommitResult,
+  type BomImportPreviewResult,
+  type DishBomLine,
+} from '../api/bomApi';
 import * as clientModule from '../api/client';
 
 describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
@@ -8,7 +14,7 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
   });
 
   it('getBomCoverage invokes /Dishes/bom-coverage and returns coverage report', async () => {
-    const mockReport = {
+    const mockReport: BomCoverageReport = {
       generatedAt: '2026-10-28T12:00:00Z',
       totalDishes: 195,
       completeDishes: 180,
@@ -27,7 +33,7 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
       ],
     };
 
-    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockReport as any);
+    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockReport);
 
     const result = await bomApi.getBomCoverage();
 
@@ -38,7 +44,7 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
   });
 
   it('getDishBomLines invokes /Dishes/{id}/bom and returns list of BOM lines', async () => {
-    const mockLines = [
+    const mockLines: DishBomLine[] = [
       {
         bomId: 'b-1',
         dishId: 'd-1',
@@ -50,14 +56,18 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
         unitId: 'u-1',
         unitCode: 'KG',
         unitName: 'kg',
+        priceTierAmount: 25000,
+        bomScope: 'global',
         grossQtyPerServing: 0.15,
         wasteRatePercent: 5,
-        referencePrice: 120000,
         bomStatus: 'PUBLISHED',
+        bomStatusLabel: 'Đang áp dụng',
+        effectiveFrom: '2026-01-01',
+        referencePrice: 120000,
       },
     ];
 
-    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockLines as any);
+    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockLines);
 
     const result = await bomApi.getDishBomLines('d-1');
 
@@ -74,14 +84,28 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
       unitId: 'u-1',
     };
 
-    const mockCreated = {
+    const mockCreated: DishBomLine = {
       bomId: 'b-2',
       dishId: 'd-1',
+      dishCode: 'MON-01',
+      dishName: 'Cơm sườn',
       ingredientId: 'ing-2',
+      ingredientCode: 'NL-TOI',
+      ingredientName: 'Tỏi',
+      unitId: 'u-1',
+      unitCode: 'KG',
+      unitName: 'kg',
+      priceTierAmount: 25000,
+      bomScope: 'global',
       grossQtyPerServing: 0.05,
+      wasteRatePercent: 0,
+      bomStatus: 'PUBLISHED',
+      bomStatusLabel: 'Đang áp dụng',
+      effectiveFrom: '2026-01-01',
+      referencePrice: 45000,
     };
 
-    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockCreated as any);
+    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockCreated);
 
     const result = await bomApi.addDishBomLine('d-1', payload);
 
@@ -93,7 +117,7 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
   });
 
   it('closeDishBomLine invokes DELETE /Dishes/{id}/bom/{bomId}', async () => {
-    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce({ success: true } as any);
+    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce({ success: true });
 
     await bomApi.closeDishBomLine('d-1', 'b-1');
 
@@ -104,8 +128,19 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
 
   it('previewBomImport invokes POST /Dishes/bom-import/preview with FormData', async () => {
     const formData = new FormData();
-    const mockPreview = { canCommit: true, totalRows: 10, validRows: 10, errorRows: 0, rows: [] };
-    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockPreview as any);
+    const mockPreview: BomImportPreviewResult = {
+      generatedAt: '2026-10-28T12:00:00Z',
+      priceTier: 25000,
+      bomScope: 'global',
+      canCommit: true,
+      totalRows: 10,
+      validRows: 10,
+      errorRows: 0,
+      warningRows: 0,
+      rows: [],
+      warnings: [],
+    };
+    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockPreview);
 
     const result = await bomApi.previewBomImport(formData);
 
@@ -118,8 +153,14 @@ describe('BomApi Contract Tests (Rule TA-1 & TA-5)', () => {
 
   it('commitBomImport invokes POST /Dishes/bom-import/commit with FormData', async () => {
     const formData = new FormData();
-    const mockCommit = { totalCommittedRows: 10, createdRows: 10, updatedRows: 0, auditBatchCode: 'BOM-01' };
-    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockCommit as any);
+    const mockCommit: BomImportCommitResult = {
+      totalCommittedRows: 10,
+      createdRows: 10,
+      updatedRows: 0,
+      archivedRows: 0,
+      auditBatchCode: 'BOM-01',
+    };
+    const spy = vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(mockCommit);
 
     const result = await bomApi.commitBomImport(formData);
 

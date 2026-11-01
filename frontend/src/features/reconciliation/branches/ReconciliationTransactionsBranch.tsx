@@ -13,7 +13,7 @@ export interface ReconciliationTransactionsBranchProps {
   report: MrxTransactionHistoryReport | null;
 }
 
-export function ReconciliationTransactionsBranch({ batchId: _batchId, report }: ReconciliationTransactionsBranchProps) {
+export function ReconciliationTransactionsBranch({ report }: ReconciliationTransactionsBranchProps) {
   const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
 
   const transactionColumns = useMemo<ColumnDef<MrxTransactionHistoryReport['rows'][number]>[]>(() => [

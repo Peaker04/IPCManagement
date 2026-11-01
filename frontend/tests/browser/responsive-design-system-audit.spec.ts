@@ -64,7 +64,9 @@ test.describe('Responsive Design System & Visual Audit', () => {
             authToken = json.data.accessToken;
             break;
           }
-        } catch {}
+        } catch {
+          // Retry transient live-backend login failures within the bounded loop.
+        }
         attempts++;
         if (!authToken) await new Promise((r) => setTimeout(r, 300));
       }

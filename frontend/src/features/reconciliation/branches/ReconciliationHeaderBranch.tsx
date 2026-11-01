@@ -23,8 +23,6 @@ export interface ReconciliationHeaderBranchProps {
   statusLabels: Record<string, string>;
   isRefreshing: boolean;
   onRefresh: () => void | Promise<void>;
-  onNavigateCooking?: () => void;
-  onOpenDishes: () => void;
   canComplete: boolean;
   onOpenComplete: () => void;
   needsReviewCount: number;
@@ -44,8 +42,6 @@ export function ReconciliationHeaderBranch({
   statusLabels,
   isRefreshing,
   onRefresh,
-  onNavigateCooking: _onNavigateCooking,
-  onOpenDishes: _onOpenDishes,
   canComplete,
   onOpenComplete,
   needsReviewCount,

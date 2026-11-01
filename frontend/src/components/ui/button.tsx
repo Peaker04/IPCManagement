@@ -3,37 +3,9 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { Loader2 } from 'lucide-react';
+import { resolveInteractionState } from './button-state';
 
-export type ComponentInteractionState =
-  | 'disabled'
-  | 'loading'
-  | 'readonly'
-  | 'error'
-  | 'warning'
-  | 'active'
-  | 'idle';
-
-/**
- * Strict Finite State Machine (FSM) resolver for Component Interaction States (Rule L2-UI-01 & S-UI-01)
- * Enforces single unambiguous state based on strict precedence:
- * 'disabled' > 'loading' > 'readonly' > 'error' > 'warning' > 'active' > 'idle'
- */
-export function resolveInteractionState(params: {
-  disabled?: boolean;
-  loading?: boolean;
-  readOnly?: boolean;
-  error?: boolean;
-  warning?: boolean;
-  active?: boolean;
-}): ComponentInteractionState {
-  if (params.disabled) return 'disabled';
-  if (params.loading) return 'loading';
-  if (params.readOnly) return 'readonly';
-  if (params.error) return 'error';
-  if (params.warning) return 'warning';
-  if (params.active) return 'active';
-  return 'idle';
-}
+export type { ComponentInteractionState } from './button-state';
 
 const buttonVariants = cva(
   'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded font-medium text-sm transition-all duration-150 active:scale-[0.98] ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 select-none cursor-pointer',

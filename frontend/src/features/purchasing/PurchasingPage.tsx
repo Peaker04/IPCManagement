@@ -111,7 +111,26 @@ export function PurchasingPage() {
   };
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    Promise.all([purchasingApi.getPurchaseOrders(), purchasingApi.getSuppliers()])
+      .then(([pos, sups]) => {
+        if (ignore) return;
+        setOrders(pos);
+        setSuppliers(sups);
+        setHasLoadedOnce(true);
+        serverStateCache.set('purchasing_data', { pos, sups });
+        setSelectedPoId((current) => current || pos[0]?.id || null);
+      })
+      .catch((cause: unknown) => {
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách đơn mua hàng PO.'));
+      })
+      .finally(() => {
+        if (!ignore) {
+          setIsLoading(false);
+          setIsFetching(false);
+        }
+      });
+    return () => { ignore = true; };
   }, []);
 
   const filteredOrders = useMemo(() => {

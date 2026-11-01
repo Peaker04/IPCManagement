@@ -97,7 +97,8 @@ public sealed partial class WeeklyMenuImportsController
                 parsedWeekStart,
                 priceTierAmount, previewToken,
                 userId,
-                cancellationToken);
+                cancellationToken,
+                _currentUserService.GetRoleNames(User));
 
             return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(
                 result,

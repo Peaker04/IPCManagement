@@ -4,6 +4,7 @@ import { mrxApi, type MrxKitchenCooking, type MrxBatchSummary } from '../../api/
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
+import { Button } from '../../components/ui/button';
 import { ApiError } from '../../api/client';
 import { serverStateCache } from '../../store/serverStateCache';
 import { workspaceSessionStore } from '../../store/workspaceSessionStore';
@@ -17,17 +18,13 @@ export function MrxCookingWorkbench() {
   const sessionScope = workspaceSessionStore.getScope();
   const urlBatchId = searchParams.get('batchId') || '';
   const cachedBatches = serverStateCache.get<MrxBatchSummary[]>('mrx_daily_batches')?.data;
-  const snapshot = serverStateCache.get<any>('snapshot:mrx_cooking')?.data;
+  const snapshot = serverStateCache.get<{ batchId?: string; selectedShift?: 'ALL' | 'MORNING' | 'AFTERNOON' }>('snapshot:mrx_cooking')?.data;
   const [batches, setBatches] = useState<MrxBatchSummary[]>(() => cachedBatches ?? []);
   const resolvedBatchId = urlBatchId || snapshot?.batchId || sessionScope.batchId || (cachedBatches?.[0]?.batchId || '');
   const [batchId, setBatchId] = useState(() => resolvedBatchId);
   const [selectedShift, setSelectedShift] = useState<'ALL' | 'MORNING' | 'AFTERNOON'>(() => snapshot?.selectedShift || 'ALL');
 
-  const {
-    data,
-    stateProps,
-    refetch: loadCookingData,
-  } = useWorkbenchQuery<MrxKitchenCooking>({
+  const cookingQuery = useWorkbenchQuery<MrxKitchenCooking>({
     scopeKey: 'mrx_cooking',
     cacheKey: `mrx_cooking_${batchId}`,
     snapshotKey: 'snapshot:mrx_cooking',
@@ -42,6 +39,7 @@ export function MrxCookingWorkbench() {
     emptyTitle: !batchId ? 'Chưa có lô đối soát' : 'Không có dòng phiếu nấu cho lô đã chọn',
     emptyDescription: !batchId ? 'Chưa có lô đối soát nào được chọn.' : 'Lô này chưa có dữ liệu món ăn cho ca đã chọn.',
   });
+  const { data, stateProps, refetch: loadCookingData } = cookingQuery;
 
   useEffect(() => {
     let ignore = false;
@@ -85,7 +83,7 @@ export function MrxCookingWorkbench() {
     if (!data?.rows) return [];
     const map = new Map<string, DishGroup>();
     for (const r of data.rows) {
-      const key = `${r.serviceDate}_${r.shiftName}_${r.dishCode}`;
+      const key = `${r.serviceDate}_${r.shiftName}_${r.menuVariant}_${r.dishCode}`;
       const existing = map.get(key);
       if (existing) {
         existing.rows.push(r);
@@ -95,6 +93,7 @@ export function MrxCookingWorkbench() {
           serviceDate: r.serviceDate,
           weekday: r.weekday,
           shiftName: r.shiftName,
+          menuVariant: r.menuVariant,
           dishCode: r.dishCode,
           dishName: r.dishName,
           servings: r.servings,
@@ -118,6 +117,7 @@ export function MrxCookingWorkbench() {
 
   const csvUrl = batchId ? `/api/reconciliation/batches/${encodeURIComponent(batchId)}/kitchen-cooking/csv` : '';
   const xlsxUrl = batchId ? `/api/reconciliation/batches/${encodeURIComponent(batchId)}/kitchen-cooking/xlsx` : '';
+  const hasData = Boolean(data && data.rows.length > 0);
 
   const isLegacyLineageMissing = Boolean(
     stateProps.error?.message.includes('KITCHEN_FROZEN_LINEAGE_MISSING') ||
@@ -152,21 +152,9 @@ export function MrxCookingWorkbench() {
         selectedShift={selectedShift}
         onSelectShift={(shift) => setSelectedShift(shift)}
         data={data}
-        onDownloadCsv={() => {
-          if (csvUrl) window.open(csvUrl, '_blank');
-        }}
-        onDownloadXlsx={() => {
-          if (xlsxUrl) window.open(xlsxUrl, '_blank');
-        }}
-        onPrint={() => window.print()}
       />
 
       <TelemetrySubbar
-        leftControls={
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-700">Phiếu nấu theo từng món ăn trong ca</span>
-          </div>
-        }
         telemetryPills={data ? (
           <>
             <span className="inline-flex items-center gap-1">
@@ -187,6 +175,34 @@ export function MrxCookingWorkbench() {
             </span>
           </>
         ) : null}
+        rightActions={
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="outline"
+              size="xs"
+              disabled={!hasData}
+              onClick={() => { if (csvUrl) window.open(csvUrl, '_blank'); }}
+            >
+              Tải CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="xs"
+              disabled={!hasData}
+              onClick={() => { if (xlsxUrl) window.open(xlsxUrl, '_blank'); }}
+            >
+              Tải Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="xs"
+              disabled={!hasData}
+              onClick={() => window.print()}
+            >
+              In phiếu nấu
+            </Button>
+          </div>
+        }
       />
 
       <WorkspaceFrame.Body>

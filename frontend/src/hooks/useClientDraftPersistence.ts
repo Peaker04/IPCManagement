@@ -30,8 +30,8 @@ export function clearAllClientDrafts(): void {
       }
     }
     keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch (err) {
-    console.error('Failed to purge client drafts:', err);
+  } catch {
+    // Draft cleanup is best-effort when browser storage is unavailable.
   }
 }
 
@@ -82,8 +82,8 @@ export function useClientDraftPersistence<T>({
         };
         localStorage.setItem(storageKey, JSON.stringify(payload));
         setStoredDraft(payload);
-      } catch (err) {
-        console.error('Failed to auto-save draft:', err);
+      } catch {
+        // Keep the in-memory draft state when browser storage is unavailable.
       }
     }, debounceMs);
 
@@ -105,8 +105,8 @@ export function useClientDraftPersistence<T>({
       localStorage.removeItem(storageKey);
       setStoredDraft(null);
       setHasRestorableDraft(false);
-    } catch (err) {
-      console.error('Failed to discard draft:', err);
+    } catch {
+      // Keep the current draft state when browser storage is unavailable.
     }
   }, [storageKey]);
 
@@ -115,8 +115,8 @@ export function useClientDraftPersistence<T>({
       localStorage.removeItem(storageKey);
       setStoredDraft(null);
       setHasRestorableDraft(false);
-    } catch (err) {
-      console.error('Failed to clear draft on submit:', err);
+    } catch {
+      // Submission already succeeded; storage cleanup remains best-effort.
     }
   }, [storageKey]);
 

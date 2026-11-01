@@ -5,6 +5,8 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   data: T;
   errors?: string[];
+  code?: string;
+  lockedDates?: string[];
 }
 
 export interface UserInfo {

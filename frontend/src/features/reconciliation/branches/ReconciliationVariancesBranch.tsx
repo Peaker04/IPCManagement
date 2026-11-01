@@ -19,7 +19,7 @@ export interface ReconciliationVariancesBranchProps {
   report: MrxVarianceRegisterReport | null;
 }
 
-export function ReconciliationVariancesBranch({ batchId: _batchId, report }: ReconciliationVariancesBranchProps) {
+export function ReconciliationVariancesBranch({ report }: ReconciliationVariancesBranchProps) {
   const varianceColumns = useMemo<ColumnDef<MrxVarianceRegisterReport['rows'][number]>[]>(() => [
     {
       id: 'date',

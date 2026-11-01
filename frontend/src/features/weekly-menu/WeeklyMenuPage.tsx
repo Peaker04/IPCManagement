@@ -115,9 +115,9 @@ function DefaultWeeklyMenuPage() {
         setCustomers(list);
         setHasCustomersLoaded(true);
         serverStateCache.set('catalog_customers', list);
-        const existing = customerCode && list.find((c) => c.customerCode === customerCode);
-        if (existing) return;
-        setCustomerCode((current) => current || list[0]?.customerCode || '');
+        setCustomerCode((current) => list.some((customer) => customer.customerCode === current)
+          ? current
+          : list[0]?.customerCode || '');
         if (list.length === 0) setIsLoading(false);
       })
       .catch((cause: unknown) => {
@@ -135,14 +135,6 @@ function DefaultWeeklyMenuPage() {
   useEffect(() => {
     if (!customerCode) return;
     const key = `weekly_menu_${customerCode}_${weekStartDate}`;
-    const cached = serverStateCache.get<WeeklyMenuData>(key)?.data;
-    if (cached) {
-      setData(cached);
-      setIsLoading(false);
-      setIsFetching(true);
-    } else if (!data) {
-      setIsLoading(true);
-    }
     const sequence = ++requestSequence.current;
     weeklyMenuApi
       .getWeeklyMenuData(customerCode, weekStartDate)

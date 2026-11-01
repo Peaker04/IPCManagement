@@ -3,12 +3,16 @@ import type { ApiResponse } from '../types';
 export class ApiError extends Error {
   status: number;
   errors?: string[];
+  code?: string;
+  lockedDates: string[];
 
-  constructor(status: number, message: string, errors?: string[]) {
+  constructor(status: number, message: string, errors?: string[], code?: string, lockedDates: string[] = []) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.errors = errors;
+    this.code = code;
+    this.lockedDates = lockedDates;
   }
 }
 
@@ -70,7 +74,7 @@ export async function apiClient<T>(
   if (!response.ok) {
     const apiResp = data as ApiResponse | null;
     const message = apiResp?.message || response.statusText || 'Yêu cầu không thành công';
-    throw new ApiError(response.status, message, apiResp?.errors);
+    throw new ApiError(response.status, message, apiResp?.errors, apiResp?.code, apiResp?.lockedDates);
   }
 
   // Handle ApiResponse<T> wrapper from ASP.NET Core

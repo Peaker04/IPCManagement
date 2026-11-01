@@ -59,8 +59,8 @@ public sealed class ReconciliationKitchenExportTests
             ContributorId = GuidHelper.NewId(), BatchLineId = source.BatchLineId, BatchLine = source.BatchLine,
             DailyLineId = source.DailyLineId, DailyLine = source.DailyLine, DishBomId = source.DishBomId, DishId = source.DishId,
             MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(), FrozenShiftName = source.FrozenShiftName,
-            FrozenDishCode = source.FrozenDishCode, FrozenDishName = source.FrozenDishName, FrozenServings = source.FrozenServings,
-            FrozenBomQuantityPerServing = 0.09m, FrozenWasteRatePercent = source.FrozenWasteRatePercent, SourceQuantity = 1m
+            FrozenDishCode = source.FrozenDishCode, FrozenDishName = source.FrozenDishName, FrozenMenuVariant = source.FrozenMenuVariant,
+            FrozenServings = source.FrozenServings, FrozenBomQuantityPerServing = 0.09m, FrozenWasteRatePercent = source.FrozenWasteRatePercent, SourceQuantity = 1m
         });
         await context.SaveChangesAsync();
 
@@ -84,8 +84,8 @@ public sealed class ReconciliationKitchenExportTests
             DailyLineId = fixture.Contributors[0].DailyLineId, DishBomId = fixture.Contributors[0].DishBomId,
             DishId = fixture.Contributors[0].DishId, MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(),
             FrozenShiftName = fixture.Contributors[0].FrozenShiftName, FrozenDishCode = fixture.Contributors[0].FrozenDishCode,
-            FrozenDishName = fixture.Contributors[0].FrozenDishName, FrozenServings = fixture.Contributors[0].FrozenServings,
-            FrozenBomQuantityPerServing = fixture.Contributors[0].FrozenBomQuantityPerServing,
+            FrozenDishName = fixture.Contributors[0].FrozenDishName, FrozenMenuVariant = fixture.Contributors[0].FrozenMenuVariant,
+            FrozenServings = fixture.Contributors[0].FrozenServings, FrozenBomQuantityPerServing = fixture.Contributors[0].FrozenBomQuantityPerServing,
             FrozenWasteRatePercent = fixture.Contributors[0].FrozenWasteRatePercent, SourceQuantity = 2m
         });
         await context.SaveChangesAsync();
@@ -107,6 +107,30 @@ public sealed class ReconciliationKitchenExportTests
     }
 
     [Fact]
+    public async Task Kitchen_export_includes_menu_variant_and_variant_servings()
+    {
+        await using var context = CreateContext();
+        var fixture = Seed(context);
+        fixture.Contributors[0].FrozenMenuVariant = "savory";
+        fixture.Contributors[1].FrozenMenuVariant = "savory";
+        fixture.Contributors[2].FrozenMenuVariant = "vegetarian";
+        fixture.Contributors[2].FrozenServings = 20;
+        fixture.Contributors[2].SourceQuantity = 1.4m;
+        await context.SaveChangesAsync();
+
+        var result = await new ReconciliationKitchenExportService(context)
+            .GetAsync(GuidHelper.ToGuidString(fixture.BatchId));
+
+        var vegetarian = Assert.Single(result!.Rows, row => row.ServiceDate == fixture.Tuesday);
+        Assert.Equal("Chay", vegetarian.MenuVariant);
+        Assert.Equal(20, vegetarian.Servings);
+        Assert.Equal(1.4m, vegetarian.TotalRequiredQuantity);
+        var csv = Encoding.UTF8.GetString(ReconciliationKitchenExportService.BuildCsv(result.Rows));
+        Assert.Contains("Ngày,Thứ,Ca,Thực đơn,Món,Số suất", csv);
+        Assert.Contains("\"Chay\"", csv);
+    }
+
+    [Fact]
     public async Task Conflicting_frozen_facts_at_the_same_export_grain_fail_closed()
     {
         await using var context = CreateContext();
@@ -117,7 +141,7 @@ public sealed class ReconciliationKitchenExportTests
             ContributorId = GuidHelper.NewId(), BatchLineId = source.BatchLineId, DailyLineId = source.DailyLineId,
             DishBomId = source.DishBomId, DishId = source.DishId, MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(),
             FrozenShiftName = source.FrozenShiftName, FrozenDishCode = source.FrozenDishCode, FrozenDishName = source.FrozenDishName,
-            FrozenServings = source.FrozenServings, FrozenBomQuantityPerServing = 0.09m,
+            FrozenMenuVariant = source.FrozenMenuVariant, FrozenServings = source.FrozenServings, FrozenBomQuantityPerServing = 0.09m,
             FrozenWasteRatePercent = source.FrozenWasteRatePercent, SourceQuantity = 1m
         });
         await context.SaveChangesAsync();
@@ -147,12 +171,12 @@ public sealed class ReconciliationKitchenExportTests
     {
         var bytes = ReconciliationKitchenExportService.BuildCsv([
             new(new DateOnly(2026, 9, 14), "Thứ 2", "MORNING", "D-01", "Cơm \"đặc biệt\"", 100,
-                "I-01", "Gạo, thơm", "kg", 0.08m, 5m, 8m)
+                "I-01", "Gạo, thơm", "kg", 0.08m, 5m, 8m) { MenuVariant = "Mặn" }
         ]);
 
         Assert.Equal(Encoding.UTF8.GetPreamble(), bytes.Take(3));
         var csv = Encoding.UTF8.GetString(bytes);
-        Assert.Contains("Ngày,Thứ,Ca,Món,Số suất,Nguyên liệu,Đơn vị,Định lượng BOM / suất,Hao hụt (%),Tổng lượng cần cho món", csv);
+        Assert.Contains("Ngày,Thứ,Ca,Thực đơn,Món,Số suất,Nguyên liệu,Đơn vị,Định lượng BOM / suất,Hao hụt (%),Tổng lượng cần cho món", csv);
         Assert.Contains("14/09/2026", csv);
         Assert.Contains("\"Cơm \"\"đặc biệt\"\"\"", csv);
         Assert.Contains("\"Gạo, thơm\"", csv);
@@ -225,7 +249,7 @@ public sealed class ReconciliationKitchenExportTests
             ContributorId = GuidHelper.NewId(), BatchLineId = weekly.BatchLineId, BatchLine = weekly, DailyLineId = daily.DailyLineId, DailyLine = daily,
             MenuScheduleId = GuidHelper.NewId(), MealQuantityPlanLineId = GuidHelper.NewId(), DishBomId = bom.BomId, DishId = dish.DishId,
             FrozenShiftName = shift, FrozenDishCode = dishCode ?? dish.DishCode, FrozenDishName = dishName ?? dish.DishName,
-            FrozenServings = servings, FrozenBomQuantityPerServing = rate, FrozenWasteRatePercent = waste, SourceQuantity = total
+            FrozenMenuVariant = "savory", FrozenServings = servings, FrozenBomQuantityPerServing = rate, FrozenWasteRatePercent = waste, SourceQuantity = total
         };
         weekly.Contributors.Add(contributor);
         return contributor;

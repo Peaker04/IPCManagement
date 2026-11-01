@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { invalidateMrxCaches } from './mrxCacheInvalidation';
 import type {
   CustomerOption,
   MaterialDemandItem,
@@ -298,10 +299,12 @@ export const weeklyMenuApi = {
   },
 
   async commitWeeklyMenuImport(formData: FormData): Promise<WeeklyMenuImportResult> {
-    return apiClient<WeeklyMenuImportResult>(
+    const result = await apiClient<WeeklyMenuImportResult>(
       '/coordination/weekly-menu/import/commit',
       { method: 'POST', body: formData }
     );
+    invalidateMrxCaches();
+    return result;
   },
 
   getWeeklyMenuTemplateUrl(customerId?: string, weekStartDate?: string): string {
@@ -335,10 +338,12 @@ export const weeklyMenuApi = {
   },
 
   async upsertQuickServings(payload: UpsertQuickServingsPayload): Promise<unknown> {
-    return apiClient('/coordination/meal-quantity-plans/quick-servings', {
+    const result = await apiClient('/coordination/meal-quantity-plans/quick-servings', {
       method: 'POST',
       body: JSON.stringify({ complete: true, ...payload }),
     });
+    invalidateMrxCaches();
+    return result;
   },
 
   async getImportHistory(customerId?: string, pageNumber = 1, pageSize = 20): Promise<{ items: WeeklyMenuImportHistoryItem[]; totalCount: number }> {

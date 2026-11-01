@@ -1,6 +1,5 @@
 import { WorkspaceHeader } from '../../../components/workbench/WorkspaceHeader';
 import { Select } from '../../../components/ui/select';
-import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { MRX_SHIFT_OPTIONS } from '../../../constants/mrxConstants';
 import type { MrxBatchSummary, MrxKitchenCooking } from '../../../api/mrxApi';
@@ -12,9 +11,6 @@ export interface MrxCookingHeaderBranchProps {
   selectedShift: 'ALL' | 'MORNING' | 'AFTERNOON';
   onSelectShift: (shift: 'ALL' | 'MORNING' | 'AFTERNOON') => void;
   data: MrxKitchenCooking | null;
-  onDownloadCsv: () => void;
-  onDownloadXlsx: () => void;
-  onPrint: () => void;
 }
 
 export function MrxCookingHeaderBranch({
@@ -24,16 +20,11 @@ export function MrxCookingHeaderBranch({
   selectedShift,
   onSelectShift,
   data,
-  onDownloadCsv,
-  onDownloadXlsx,
-  onPrint,
 }: MrxCookingHeaderBranchProps) {
   const batchOptions = batches.map((b) => ({
     value: b.batchId,
     label: `${b.customerCode || b.customerName || 'Khách hàng'} · ${b.status} · ${b.batchId.slice(0, 8)}`,
   }));
-
-  const hasData = Boolean(data && data.rows.length > 0);
 
   return (
     <WorkspaceHeader
@@ -69,34 +60,6 @@ export function MrxCookingHeaderBranch({
             ) : null}
           </WorkspaceHeader.BadgeSlot>
         </>
-      }
-      actions={
-        <WorkspaceHeader.Actions>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!hasData}
-            onClick={onDownloadCsv}
-          >
-            Tải CSV
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!hasData}
-            onClick={onDownloadXlsx}
-          >
-            Tải Excel
-          </Button>
-          <Button
-            variant="default"
-            size="sm"
-            disabled={!hasData}
-            onClick={onPrint}
-          >
-            In phiếu nấu
-          </Button>
-        </WorkspaceHeader.Actions>
       }
     />
   );

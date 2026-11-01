@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary } from '../../../api/mrxApi';
 import { ApiError } from '../../../api/client';
+import { invalidateMrxCaches } from '../../../api/mrxCacheInvalidation';
 import { serverStateCache } from '../../../store/serverStateCache';
 import { workspaceSessionStore } from '../../../store/workspaceSessionStore';
 import { useWorkbenchQuery } from '../../../hooks/useWorkbenchQuery';
@@ -12,6 +13,13 @@ interface UseMrxDailyWorkspaceProps {
   serviceDate?: string;
 }
 
+interface MrxDailyCachedPayload {
+  activeBatchId?: string;
+  activeDate?: string;
+  daily?: MrxWarehouseDaily;
+  data?: { daily?: MrxWarehouseDaily };
+}
+
 export function useMrxDailyWorkspace({
   batchId: propBatchId = '',
   serviceDate: propServiceDate = '',
@@ -20,16 +28,16 @@ export function useMrxDailyWorkspace({
 
   const sessionScope = workspaceSessionStore.getScope();
   const cachedBatches = serverStateCache.get<MrxBatchSummary[]>('mrx_daily_batches')?.data;
-  const snapshot = serverStateCache.get<any>('snapshot:mrx_daily')?.data;
+  const snapshot = serverStateCache.get<MrxDailyCachedPayload>('snapshot:mrx_daily')?.data;
   const [batches, setBatches] = useState<MrxBatchSummary[]>(() => cachedBatches ?? []);
 
   const resolvedInitialBatchId = propBatchId || searchParams.get('batchId') || snapshot?.activeBatchId || sessionScope.batchId || cachedBatches?.[0]?.batchId || '';
   const initialCache = resolvedInitialBatchId
-    ? serverStateCache.get<any>(`mrx_daily_${resolvedInitialBatchId}`)?.data
+    ? serverStateCache.get<MrxDailyCachedPayload>(`mrx_daily_${resolvedInitialBatchId}`)?.data
     : null;
   const urlDate = propServiceDate || searchParams.get('date');
   const initialDaily = snapshot?.daily ?? snapshot?.data?.daily ?? initialCache?.daily ?? initialCache?.data?.daily;
-  const matchedDateInDaily = initialDaily?.dates.find((d: any) => d.serviceDate === (urlDate || snapshot?.activeDate || sessionScope.serviceDate));
+  const matchedDateInDaily = initialDaily?.dates.find((date) => date.serviceDate === (urlDate || snapshot?.activeDate || sessionScope.serviceDate));
   const fallbackDailyDate = initialDaily?.dates[0]?.serviceDate;
   const resolvedInitialDate = urlDate || (matchedDateInDaily ? matchedDateInDaily.serviceDate : (fallbackDailyDate || snapshot?.activeDate || sessionScope.serviceDate || todayInBusinessTimezone()));
 
@@ -38,11 +46,7 @@ export function useMrxDailyWorkspace({
 
   const isWeeklyAll = activeDate === 'ALL';
 
-  const {
-    data: queryPayload,
-    stateProps,
-    refetch: load,
-  } = useWorkbenchQuery<{ daily: MrxWarehouseDaily | null; history: MrxIssuePage | null }>({
+  const dailyQuery = useWorkbenchQuery<{ daily: MrxWarehouseDaily | null; history: MrxIssuePage | null }>({
     scopeKey: 'mrx_daily',
     cacheKey: `mrx_daily_${activeBatchId}`,
     snapshotKey: 'snapshot:mrx_daily',
@@ -55,6 +59,14 @@ export function useMrxDailyWorkspace({
       ]);
       const matched = nextDaily.dates.find((d) => d.serviceDate === activeDate);
       const selected = matched || (activeDate === 'ALL' ? undefined : nextDaily.dates[0]);
+      if (selected && selected.serviceDate !== activeDate) {
+        setActiveDate(selected.serviceDate);
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          next.set('date', selected.serviceDate);
+          return next;
+        }, { replace: true });
+      }
       workspaceSessionStore.setScope({
         batchId: activeBatchId,
         serviceDate: selected ? selected.serviceDate : activeDate,
@@ -80,6 +92,7 @@ export function useMrxDailyWorkspace({
       ? 'Chưa có lô đối soát nào được chọn hoặc khởi tạo cho tuần này.'
       : 'Kiểm tra lại ngày phục vụ hoặc chuyển sang màn hình Chuẩn bị phối hợp để xem toàn bộ các lô.',
   });
+  const { data: queryPayload, stateProps, refetch: load } = dailyQuery;
 
   const daily = queryPayload?.daily ?? null;
   const history = queryPayload?.history ?? null;
@@ -98,9 +111,12 @@ export function useMrxDailyWorkspace({
   const [inspectedIssueId, setInspectedIssueId] = useState<string | null>(null);
 
   const activeBatchIdRef = useRef(activeBatchId);
-  activeBatchIdRef.current = activeBatchId;
   const sessionScopeRef = useRef(sessionScope);
-  sessionScopeRef.current = sessionScope;
+
+  useEffect(() => {
+    activeBatchIdRef.current = activeBatchId;
+    sessionScopeRef.current = sessionScope;
+  }, [activeBatchId, sessionScope]);
 
   useEffect(() => {
     let ignore = false;
@@ -142,18 +158,6 @@ export function useMrxDailyWorkspace({
   const lines = useMemo(() => day?.lines.filter((l) => l.requiredQuantity > 0) ?? [], [day]);
   const hasInitialIssue = lines.some((l) => (l.issuedQuantity ?? 0) > 0);
   const isLegacyMissing = Boolean(stateProps.isPartial || stateProps.error?.message.includes('LEGACY_DAILY_LINEAGE_MISSING'));
-
-  useEffect(() => {
-    if (daily && !isWeeklyAll && effectiveServiceDate !== activeDate) {
-      setActiveDate(effectiveServiceDate);
-      workspaceSessionStore.setScope({ serviceDate: effectiveServiceDate, weekStartDate: weekStartFor(effectiveServiceDate) });
-      setSearchParams((curr) => {
-        const next = new URLSearchParams(curr);
-        next.set('date', effectiveServiceDate);
-        return next;
-      }, { replace: true });
-    }
-  }, [daily, isWeeklyAll, effectiveServiceDate, activeDate, setSearchParams]);
 
   const weeklyAggregateLines = useMemo(() => {
     if (!daily?.dates) return [];
@@ -210,6 +214,7 @@ export function useMrxDailyWorkspace({
       await load(true);
     } catch (cause) {
       setMutationError(cause instanceof Error ? cause : new Error('Không thể xác nhận xuất kho.'));
+      if (cause instanceof ApiError && cause.status === 409) invalidateMrxCaches();
     } finally {
       setSaving(false);
     }

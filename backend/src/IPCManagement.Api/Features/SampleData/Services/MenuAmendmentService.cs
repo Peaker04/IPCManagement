@@ -3,10 +3,10 @@ using System.Text.Json;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
-using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Infrastructure;
 using IPCManagement.Api.Infrastructure.Lifecycle;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -17,8 +17,12 @@ internal sealed class MenuAmendmentService(
     IpcManagementContext context,
     IEfTransactionRunner? transactionRunner = null,
     IReconciliationSourceRevisionStager? sourceRevisionStager = null,
-    SystemOperationRequestContext? operationContext = null) : IMenuAmendmentService
+    SystemOperationRequestContext? operationContext = null,
+    IMrxSourceChangeGateway? mrxGateway = null) : IMenuAmendmentService
 {
+    private readonly IMrxSourceChangeGateway sourceChangeGateway = mrxGateway
+        ?? MrxSourceChangeGatewayFactory.Create(context, transactionRunner, operationContext);
+
     internal sealed record DecisionScopeSource(
         string CustomerId,
         string CustomerName,
@@ -201,7 +205,10 @@ internal sealed class MenuAmendmentService(
     }
 
     private MrxMenuAmendmentCoordinator CreateMrxCoordinator()
-        => new(context, transactionRunner, operationContext, CreateAsync, PreviewAsync);
+        => new(
+            context,
+            sourceChangeGateway,
+            CreateAsync);
 
     public Task<MenuAmendmentResultDto> ApplyMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, IReadOnlyCollection<string> actorRoles, CancellationToken cancellationToken = default)
         => CreateMrxCoordinator().ApplyMrxAsync(request, actorUserId, actorRoles, cancellationToken);
@@ -241,7 +248,7 @@ internal sealed class MenuAmendmentService(
     {
         // MRX (có phiên bản gốc): so với nguồn hiện tại, ngày khóa, định lượng trước/sau — cùng logic với đường ghi duy nhất.
         if (!string.IsNullOrWhiteSpace(request.ExpectedBaseMenuVersionId))
-            return await new MrxSourceChangeApplier(context, transactionRunner, operationContext).PreviewAsync(request, cancellationToken);
+            return await sourceChangeGateway.PreviewAsync(request, cancellationToken);
         var customerId = GuidHelper.ParseGuidString(request.CustomerId) ?? throw new ArgumentException("CustomerId không hợp lệ.");
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Lines.Count == 0)
             throw new BusinessRuleException("Thay đổi thực đơn cần lý do và ít nhất một dòng thay đổi.");

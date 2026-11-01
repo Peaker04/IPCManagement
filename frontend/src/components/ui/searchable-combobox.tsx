@@ -42,6 +42,7 @@ export function SearchableCombobox({
 
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeValue, setActiveValue] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -81,18 +82,38 @@ export function SearchableCombobox({
     return matches;
   }, [options, searchTerm, maxVisibleOptions]);
 
+  const trackedActiveIndex = filteredOptions.findIndex((option) => option.value === activeValue);
+  const activeIndex = isOpen && filteredOptions.length > 0
+    ? trackedActiveIndex >= 0 ? trackedActiveIndex : 0
+    : -1;
+
   const handleSelect = (val: string) => {
     onChange(val);
     setIsOpen(false);
     setSearchTerm('');
+    setActiveValue(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
+    if (e.key === 'Escape' && isOpen) {
+      e.preventDefault();
       setIsOpen(false);
-      inputRef.current?.blur();
-    } else if (e.key === 'ArrowDown' && !isOpen) {
-      setIsOpen(true);
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!isOpen) setIsOpen(true);
+      else if (filteredOptions.length > 0) setActiveValue(filteredOptions[Math.min(activeIndex + 1, filteredOptions.length - 1)].value);
+    } else if (e.key === 'ArrowUp' && isOpen) {
+      e.preventDefault();
+      if (filteredOptions.length > 0) setActiveValue(filteredOptions[Math.max(activeIndex - 1, 0)].value);
+    } else if (e.key === 'Home' && isOpen) {
+      e.preventDefault();
+      if (filteredOptions.length > 0) setActiveValue(filteredOptions[0].value);
+    } else if (e.key === 'End' && isOpen) {
+      e.preventDefault();
+      if (filteredOptions.length > 0) setActiveValue(filteredOptions[filteredOptions.length - 1].value);
+    } else if (e.key === 'Enter' && isOpen && activeIndex >= 0) {
+      e.preventDefault();
+      handleSelect(filteredOptions[activeIndex].value);
     }
   };
 
@@ -110,6 +131,8 @@ export function SearchableCombobox({
           aria-expanded={isOpen}
           aria-label={ariaLabel}
           aria-controls={`${id}-listbox`}
+          aria-activedescendant={activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
+          aria-disabled={disabled}
           disabled={disabled}
           placeholder={selectedOption ? selectedOption.label : placeholder}
           value={isOpen ? searchTerm : selectedOption ? selectedOption.label : ''}
@@ -159,17 +182,20 @@ export function SearchableCombobox({
               Không tìm thấy kết quả phù hợp.
             </div>
           ) : (
-            filteredOptions.map((opt) => {
+            filteredOptions.map((opt, index) => {
               const isSelected = opt.value === value;
+              const isActive = index === activeIndex;
               return (
                 <div
                   key={opt.value}
+                  id={`${id}-option-${index}`}
                   role="option"
                   aria-selected={isSelected}
+                  onMouseEnter={() => setActiveValue(opt.value)}
                   onClick={() => handleSelect(opt.value)}
                   className={clsx(
                     'px-3 py-1.5 flex items-center justify-between cursor-pointer transition-colors',
-                    isSelected ? 'bg-blue-50 text-blue-900 font-semibold' : 'hover:bg-slate-50 text-slate-800'
+                    isSelected ? 'bg-blue-50 text-blue-900 font-semibold' : isActive ? 'bg-slate-50 text-slate-800' : 'hover:bg-slate-50 text-slate-800'
                   )}
                 >
                   <div className="flex flex-col min-w-0 pr-2">

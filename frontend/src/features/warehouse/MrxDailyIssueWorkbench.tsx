@@ -2,6 +2,9 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { Boxes } from 'lucide-react';
+import { ApiError } from '../../api/client';
+import { Button } from '../../components/ui/button';
+import { InlineBanner } from '../../components/ui/inline-banner';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
@@ -74,7 +77,7 @@ export function MrxDailyIssueWorkbench({
 
   const [activeTab, setActiveTab] = useState<'demand' | 'history'>('demand');
 
-  const historyColumns = useMemo<ColumnDef<any>[]>(() => [
+  const historyColumns = useMemo<ColumnDef<MrxIssuePage['items'][number]>[]>(() => [
     {
       id: 'code',
       header: 'Mã phiếu xuất',
@@ -152,8 +155,6 @@ export function MrxDailyIssueWorkbench({
             return next;
           }, { replace: true });
         }}
-        onNavigatePreparation={() => navigate(`/warehouse?view=mrx-preparation&date=${activeDate}`)}
-        onNavigateTransactions={() => navigate('/reconciliation?view=transactions')}
         isWeeklyAll={isWeeklyAll}
         hasInitialIssue={hasInitialIssue}
         onOpenSupplemental={() => {
@@ -227,13 +228,31 @@ export function MrxDailyIssueWorkbench({
             )
           )
         }
+        rightActions={
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={() => navigate(`/warehouse?view=mrx-preparation&date=${activeDate}`)}
+          >
+            Chuẩn bị phối hợp
+          </Button>
+        }
       />
 
       {mutationError && (
-        <div role="alert" className="p-3 bg-rose-50 border-b border-rose-200 text-xs text-rose-800 flex justify-between items-center">
-          <span>{mutationError.message}</span>
-          <button type="button" onClick={() => setMutationError(null)} className="font-bold underline ml-2">Đóng</button>
-        </div>
+        <InlineBanner
+          variant={mutationError instanceof ApiError && mutationError.status === 409 ? 'conflict' : 'error'}
+          title={mutationError instanceof ApiError && mutationError.status === 409 ? 'Dữ liệu xuất kho đã thay đổi' : 'Không thể ghi phiếu xuất'}
+          actionLabel={mutationError instanceof ApiError && mutationError.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
+          onAction={mutationError instanceof ApiError && mutationError.status === 409 ? () => {
+            setMutationError(null);
+            void load(true);
+          } : undefined}
+          onClose={() => setMutationError(null)}
+          className="shrink-0 rounded-none border-x-0"
+        >
+          {mutationError.message}
+        </InlineBanner>
       )}
 
       <WorkspaceFrame.Body>
@@ -261,6 +280,9 @@ export function MrxDailyIssueWorkbench({
                 reasons={reasons}
                 setReasons={setReasons}
                 hasInitialIssue={hasInitialIssue}
+                lastRevisionAt={day?.lastRevisionAt}
+                lastRevisionByName={day?.lastRevisionByName}
+                lastRevisionByRole={day?.lastRevisionByRole}
               />
             </div>
           ) : (

@@ -70,8 +70,10 @@ public static class DependencyInjection
         services.AddScoped<ReconciliationActualService>();
         services.AddScoped<ReconciliationKitchenExportService>();
         services.AddScoped<ReconciliationCompletionService>();
+        services.AddScoped<MrxEditScopeQuery>();
         services.AddScoped<ReconciliationSourceRevisionService>();
         services.AddScoped<IReconciliationSourceRevisionStager, ReconciliationSourceRevisionService>();
+        services.AddScoped<IMrxSourceChangeGateway, MrxSourceChangeGateway>();
         services.AddScoped<ReconciliationPreparationService>();
         services.AddScoped<ReconciliationReportsService>();
         services.AddScoped<IEfTransactionRunner>(serviceProvider =>

@@ -47,10 +47,10 @@ describe('Network Stability and Idle Dependency Purity (Anti-Spam Gate)', () => 
       awaitingWarehouseBatchesCount: 0,
       completionReadyBatchesCount: 0,
       pendingDeltasCount: 0,
+      pendingSourceChangesCount: 0,
       unresolvedVariancesCount: 0,
-      pendingReturnsCount: 0,
       items: [],
-    } as any);
+    });
   });
 
   it('guarantees that getBatchSummary is called exactly once on initial load and DOES NOT loop continuously', async () => {

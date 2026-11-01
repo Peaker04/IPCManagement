@@ -33,7 +33,9 @@ export default async function globalSetup(): Promise<void> {
   // 2. Free ports 5174 (Vite Sandbox) and 5263 (Kestrel Sandbox)
   try {
     execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 5174, 5263 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }"`);
-  } catch {}
+  } catch {
+    // Ports may already be free before sandbox startup.
+  }
 
   // 3. Clone fresh sandbox database
   const dumpPath = path.resolve('D:/Temp/ipc_mrx_harness_dump.sql');
@@ -95,7 +97,4 @@ export default async function globalSetup(): Promise<void> {
   await waitForHttp('http://127.0.0.1:5174/login', 25000);
   console.log('[E2E-MRX-SETUP] Sandbox Vite is live on port 5174. Ready for E2E Matrix!\n');
 
-  // Stash process PIDs for teardown
-  (globalThis as any).__MRX_KESTREL_PID = kestrelProc.pid;
-  (globalThis as any).__MRX_VITE_PID = viteProc.pid;
 }

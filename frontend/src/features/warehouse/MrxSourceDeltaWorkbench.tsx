@@ -18,11 +18,7 @@ import { MrxDeltaTableBranch } from './branches/MrxDeltaTableBranch';
 export function MrxSourceDeltaWorkbench() {
   const navigate = useNavigate();
 
-  const {
-    data: items,
-    stateProps,
-    refetch: load,
-  } = useWorkbenchQuery<readonly MrxSourceDelta[]>({
+  const sourceDeltaQuery = useWorkbenchQuery<readonly MrxSourceDelta[]>({
     scopeKey: 'mrx_source_deltas',
     cacheKey: 'mrx_source_deltas',
     snapshotKey: 'snapshot:mrx_source_deltas',
@@ -32,8 +28,9 @@ export function MrxSourceDeltaWorkbench() {
     emptyDescription: 'Các thay đổi đã xử lý được lưu trữ đầy đủ trong lịch sử phiếu xuất, phiếu trả và biến động tồn kho.',
     emptyScenario: 'filter-empty',
   });
+  const { data: items, stateProps, refetch: load } = sourceDeltaQuery;
 
-  const deltaItems = items ?? [];
+  const deltaItems = useMemo(() => items ?? [], [items]);
   const [error, setError] = useState<Error | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [selectedDelta, setSelectedDelta] = useState<MrxSourceDelta | null>(null);

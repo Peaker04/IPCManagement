@@ -84,6 +84,16 @@ export interface AppShellProps {
   homePath?: string;
 }
 
+function activeParentKeyForPath(pathname: string): string | null {
+  if (pathname.startsWith('/weekly-menu')) return 'weekly-menu';
+  if (pathname.startsWith('/warehouse')) return 'warehouse';
+  if (pathname.startsWith('/chef')) return 'chef';
+  if (pathname.startsWith('/reconciliation')) return 'reconciliation';
+  if (pathname.startsWith('/reports')) return 'reports';
+  if (pathname.startsWith('/admin-data') || pathname.startsWith('/settings')) return 'administration';
+  return null;
+}
+
 /**
  * AppShell — Nested Sidebar (Rule N6) & 3-Zone Flat Workbench
  * Left Sidebar: w-60 (240px) with hamburger toggle, real Lucide icons, nested tree with vertical guide line
@@ -105,40 +115,24 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
     }
     return false;
   });
-  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(() => {
-    const currentPath = typeof window !== 'undefined' ? location.pathname : '';
-    return {
-      'weekly-menu': currentPath.startsWith('/weekly-menu'),
-      warehouse: currentPath.startsWith('/warehouse'),
-      chef: currentPath.startsWith('/chef'),
-      reconciliation: currentPath.startsWith('/reconciliation'),
-      reports: currentPath.startsWith('/reports'),
-      administration: currentPath.startsWith('/admin-data') || currentPath.startsWith('/settings'),
-    };
-  });
-
   useEffect(() => {
-    const currentPath = location.pathname;
-    const activeKey =
-      currentPath.startsWith('/weekly-menu') ? 'weekly-menu' :
-      currentPath.startsWith('/warehouse') ? 'warehouse' :
-      currentPath.startsWith('/chef') ? 'chef' :
-      currentPath.startsWith('/reconciliation') ? 'reconciliation' :
-      currentPath.startsWith('/reports') ? 'reports' :
-      (currentPath.startsWith('/admin-data') || currentPath.startsWith('/settings')) ? 'administration' : null;
+    const collapseCompactSidebar = () => {
+      if (window.innerWidth < 768) setIsSidebarCollapsed(true);
+    };
+    window.addEventListener('resize', collapseCompactSidebar);
+    return () => window.removeEventListener('resize', collapseCompactSidebar);
+  }, []);
 
-    if (activeKey) {
-      setExpandedParents((prev) => ({
-        ...prev,
-        [activeKey]: true,
-      }));
-    }
-  }, [location.pathname]);
+  const activeParentKey = activeParentKeyForPath(location.pathname);
+  const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>(() => {
+    const initialActiveKey = typeof window !== 'undefined' ? activeParentKeyForPath(location.pathname) : null;
+    return initialActiveKey ? { [initialActiveKey]: true } : {};
+  });
 
   const toggleParent = (parentId: string) => {
     setExpandedParents((prev) => ({
       ...prev,
-      [parentId]: !prev[parentId],
+      [parentId]: !(prev[parentId] ?? parentId === activeParentKey),
     }));
   };
 
@@ -265,7 +259,7 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
             }
 
             // Parent with Nested Tree (Rule N6)
-            const isParentExpanded = expandedParents[entry.id];
+            const isParentExpanded = expandedParents[entry.id] ?? entry.id === activeParentKey;
             const parentPath = entry.children[0]?.to.split('?')[0] || '';
             const isAnyChildActive = location.pathname === parentPath;
 

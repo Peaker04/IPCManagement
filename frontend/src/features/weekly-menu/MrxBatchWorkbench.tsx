@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
 import { StateBoundary } from '../../components/workbench/StateBoundary';
@@ -10,12 +10,15 @@ import { Badge } from '../../components/ui/badge';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { weekStartFor } from '../../utils/dates';
 import { WeeklyMenuImportModal } from './WeeklyMenuImportModal';
-import { WeeklyScheduleEditorModal } from './WeeklyScheduleEditorModal';
-import { weeklyMenuApi, type WeeklyMenuData } from '../../api/weeklyMenuApi';
-import { MrxSourceChangeModal, MrxReviewChangeModal } from './MrxSourceChangeModal';
+import { MrxPendingRequestsPanel } from './MrxPendingRequestsPanel';
+import { MrxSourceEditGrid } from './MrxSourceEditGrid';
+import { MrxSourceChangePanel } from './MrxSourceChangePanel';
+import { SplitView } from '../../components/workbench/SplitView';
+import { useMrxSourceEdit } from './hooks/useMrxSourceEdit';
+import { useAuth } from '../../store/useAuth';
 import { MrxBatchPreviewSection } from './MrxBatchPreviewSection';
 import { MrxBatchDishesModal } from '../../components/workbench/MrxBatchDishesModal';
-import { DishBomBatchImportModal } from '../admin/DishBomBatchImportModal';
+import { DishBomBatchImportModal } from '../../components/workbench/DishBomBatchImportModal';
 import { MrxBatchHeaderBranch } from './branches/MrxBatchHeaderBranch';
 import { workspaceSessionStore } from '../../store/workspaceSessionStore';
 import { useMrxBatchWorkspace } from './hooks/useMrxBatchWorkspace';
@@ -33,12 +36,16 @@ const STATUS_LABELS: Record<string, string> = {
 export function MrxBatchWorkbench() {
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
-  const [isEditorModalOpen, setIsEditorModalOpen] = useState(false);
-  const [editorMenuData, setEditorMenuData] = useState<WeeklyMenuData | null>(null);
+  const [sourceMode, setSourceMode] = useState<'completion' | 'dish-edit'>('completion');
   const [isBatchBomModalOpen, setIsBatchBomModalOpen] = useState(false);
+  const [sourceChangeReason, setSourceChangeReason] = useState('');
+  const [isSourceReviewOpen, setIsSourceReviewOpen] = useState(false);
+  const reviewTriggerRef = useRef<HTMLButtonElement>(null);
+  const restoreReviewFocusRef = useRef(false);
+  const { hasRole } = useAuth();
 
   const {
-    isAdmin,
+    canReviewSourceChanges,
     customers,
     customerId,
     setCustomerId,
@@ -56,45 +63,54 @@ export function MrxBatchWorkbench() {
     changeInbox,
     reviewRequest,
     setReviewRequest,
-    rejectionReason,
-    setRejectionReason,
-    isChangeOpen,
-    setIsChangeOpen,
     isImportModalOpen,
     setIsImportModalOpen,
     isDishesModalOpen,
     setIsDishesModalOpen,
     isRefreshing,
     handleRefresh,
-    openSourceChange,
-    sourceLines,
-    selectedSourceLine,
-    setSelectedSourceLine,
-    newServings,
-    setNewServings,
-    changeReason,
-    setChangeReason,
-    changePreview,
-    setChangePreview,
-    buildSourceChange,
-    previewSourceChange,
-    saveSourceChange,
     decideSourceChange,
+    invalidateQuantityPreview,
     loadSource,
-    checkQuantities,
     primaryAction,
   } = useMrxBatchWorkspace();
+  const sourceEdit = useMrxSourceEdit({ customerId, weekStartDate, enabled: Boolean(source) });
+  const actorRole = hasRole(['Admin', 'ADMIN']) ? 'ADMIN'
+    : hasRole(['Manager', 'MANAGER', 'Quản lý']) ? 'MANAGER'
+      : hasRole(['Coordinator', 'COORDINATOR', 'Điều phối']) ? 'COORDINATOR'
+        : 'WAREHOUSE';
+  const canEditSource = actorRole === 'ADMIN' || actorRole === 'MANAGER' || actorRole === 'COORDINATOR';
+  const missingServingsCount = sourceEdit.editScope?.days.reduce((count, day) => count + day.shifts.reduce((shiftCount, shift) => {
+    const next = sourceEdit.draft[day.serviceDate]?.[shift.shiftName];
+    return shiftCount
+      + Number((next ? next.savoryServings : shift.savoryServings) == null)
+      + Number((next ? next.vegetarianServings : shift.vegetarianServings) == null);
+  }, 0), 0) ?? 0;
+  const hasMissingSplit = missingServingsCount > 0;
+  const isSplitScopeUnavailable = Boolean(source && (sourceEdit.isLoading || !sourceEdit.editScope));
+  const footerNeedsServings = primaryAction?.label === 'Kiểm tra định lượng';
+  const footerPrimaryLabel = footerNeedsServings ? 'Lưu & kiểm tra định lượng' : primaryAction?.label;
+  const changeServings = (date: string, shift: string, variant: 'savory' | 'vegetarian', value: number | null) => {
+    if (!canEditSource) return;
+    invalidateQuantityPreview();
+    sourceEdit.setServings(date, shift, variant, value);
+  };
+  const changeDish = (date: string, shift: string, dishSlot: string, dishId: string) => {
+    if (!canEditSource) return;
+    invalidateQuantityPreview();
+    sourceEdit.setDish(date, shift, dishSlot, dishId);
+  };
 
-  const handleOpenEditor = async () => {
-    const cust = customers.find((c) => c.customerId === customerId);
-    if (!cust?.customerCode || !weekStartDate) return;
-    try {
-      const data = await weeklyMenuApi.getWeeklyMenuData(cust.customerCode, weekStartDate);
-      setEditorMenuData(data);
-      setIsEditorModalOpen(true);
-    } catch (err: unknown) {
-      setActionError(err instanceof Error ? err : new Error('Không thể tải dữ liệu lịch thực đơn tuần.'));
+  useEffect(() => {
+    if (!isSourceReviewOpen && restoreReviewFocusRef.current) {
+      reviewTriggerRef.current?.focus();
+      restoreReviewFocusRef.current = false;
     }
+  }, [isSourceReviewOpen]);
+
+  const closeSourceReview = () => {
+    restoreReviewFocusRef.current = true;
+    setIsSourceReviewOpen(false);
   };
 
   return (
@@ -137,7 +153,7 @@ export function MrxBatchWorkbench() {
         isSubmitting={isSubmitting}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
-        primaryAction={primaryAction}
+        primaryAction={source || isSourceReviewOpen || sourceEdit.changedLines.length > 0 || hasMissingSplit ? null : primaryAction}
       />
 
       <TelemetrySubbar
@@ -171,6 +187,12 @@ export function MrxBatchWorkbench() {
                   ? 'Đã xuất bản'
                   : 'Bản nháp'}
               </Badge>
+              {missingServingsCount > 0 && (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <Badge variant="warning" size="sm">Thiếu {missingServingsCount} ô số suất</Badge>
+                </>
+              )}
               {batch?.status === 'DRAFT' && (
                 <span className="text-slate-500 hidden xl:inline">· Kiểm tra phân rã định lượng rồi bấm "Đóng băng lô"</span>
               )}
@@ -182,25 +204,7 @@ export function MrxBatchWorkbench() {
         }
         rightActions={
           <div className="flex items-center gap-1.5">
-            {source && (
-              <Button
-                variant="outline"
-                size="xs"
-                disabled={isSubmitting || Boolean(batch && batch.status !== 'DRAFT')}
-                onClick={handleOpenEditor}
-                aria-label="Chỉnh sửa lịch tuần"
-                title={
-                  batch && batch.status !== 'DRAFT'
-                    ? 'Lô đối soát đã bàn giao sang Kho / Đang đối chiếu. Mọi thay đổi số suất ăn phải thực hiện qua chức năng "Điều chỉnh nguồn MRX".'
-                    : undefined
-                }
-                className="h-7 text-xs font-medium"
-              >
-                <span className="hidden 2xl:inline">Chỉnh sửa lịch tuần</span>
-                <span className="2xl:hidden">Sửa lịch tuần</span>
-              </Button>
-            )}
-            {batch && (
+            {batch && !isSourceReviewOpen && (
               <Button
                 variant="outline"
                 size="xs"
@@ -213,48 +217,48 @@ export function MrxBatchWorkbench() {
                 <span className="2xl:hidden">Món trong lô</span>
               </Button>
             )}
-            {source && (source.menuVersionStatus === 'PUBLISHED' || source.menuVersionStatus === 'ACTIVE') && (
+            {source && !isSourceReviewOpen && (
               <Button
                 variant="outline"
                 size="xs"
                 disabled={isSubmitting}
                 onClick={() => setIsImportModalOpen(true)}
-                aria-label="Nhập thực đơn Excel"
+                aria-label="Nhập lại Excel"
                 className="h-7 text-xs font-medium"
               >
-                <span className="hidden 2xl:inline">Nhập thực đơn Excel</span>
+                <span className="hidden 2xl:inline">Nhập lại Excel</span>
                 <span className="2xl:hidden">Nhập Excel</span>
               </Button>
             )}
-            {sourceLines.length > 0 && (
+            {source && !isSourceReviewOpen && (
               <ActionGuard
                 capabilityId="RECON.SOURCE_CHANGE.PREVIEW"
-                roles={['ADMIN', 'COORDINATOR', 'Điều phối']}
+                roles={['ADMIN', 'MANAGER', 'Quản lý', 'COORDINATOR', 'Điều phối']}
                 permissions="reconciliation.source.read"
                 allowedModes={['MATERIAL_RECONCILIATION']}
-                mode="disable"
+                mode="hide"
                 reason="Chỉ khả dụng cho nguồn MRX đã phát hành."
               >
                 <Button
                   variant="outline"
                   size="xs"
                   disabled={isSubmitting}
-                  onClick={openSourceChange}
-                  aria-label="Điều chỉnh nguồn"
+                  onClick={() => setSourceMode((current) => current === 'dish-edit' ? 'completion' : 'dish-edit')}
+                  aria-label={sourceMode === 'dish-edit' ? 'Xem menu đã gộp' : 'Chỉnh sửa món'}
                   className="h-7 text-xs font-medium"
                 >
-                  <span className="hidden 2xl:inline">Điều chỉnh nguồn</span>
-                  <span className="2xl:hidden">Đổi nguồn</span>
+                  {sourceMode === 'dish-edit' ? 'Xem menu đã gộp' : 'Chỉnh sửa món'}
                 </Button>
               </ActionGuard>
             )}
-            {isAdmin && changeInbox.length > 0 && (
+            {canReviewSourceChanges && changeInbox.length > 0 && !isSourceReviewOpen && (
               <Button
                 variant="outline"
                 size="xs"
                 disabled={isSubmitting}
                 onClick={() => {
-                  setIsChangeOpen(false);
+                  setIsSourceReviewOpen(false);
+                  setActionError(null);
                   setReviewRequest(changeInbox[0]);
                 }}
                 className="h-7 text-xs font-medium"
@@ -269,23 +273,14 @@ export function MrxBatchWorkbench() {
       {changeMessage && (
         <InlineBanner
           variant="success"
-          title="Thành công"
+          title={changeMessage}
+          actionLabel={batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') ? 'Mở trạm Kho xuất ngày' : undefined}
+          onAction={batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS')
+            ? () => navigate(`/warehouse?view=mrx-daily&batchId=${batch.batchId}&date=${weekStartDate}`)
+            : undefined}
           onClose={() => setChangeMessage('')}
-          className="shrink-0 rounded-none border-x-0"
-        >
-          <div className="flex items-center justify-between w-full">
-            <span>{changeMessage}</span>
-            {batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => navigate(`/warehouse?view=mrx-daily&batchId=${batch.batchId}&date=${weekStartDate}`)}
-              >
-                Mở trạm Kho xuất ngày
-              </Button>
-            )}
-          </div>
-        </InlineBanner>
+          className="shrink-0 rounded-none border-x-0 py-1.5"
+        />
       )}
 
       {actionError && (
@@ -307,69 +302,86 @@ export function MrxBatchWorkbench() {
           actionLabel="Nhập thực đơn Excel ngay"
           onAction={() => setIsImportModalOpen(true)}
         >
-          {source && (
-            <div className="flex-1 min-h-0 flex flex-col">
-              {preview?.diagnostics.length ? (
-                <div role="alert" className="mx-4 mt-4 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <strong className="font-semibold block">Chưa thể tạo lô đối soát</strong>
-                    <span className="text-xs text-amber-800 font-medium">Cần bổ sung định mức nguyên liệu</span>
-                  </div>
-                  <ul className="list-disc pl-5 space-y-1">
-                    {preview.diagnostics.map((item, idx) => (
-                      <li key={idx} className="text-xs">
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-2.5 pt-2 border-t border-amber-200/80 flex items-center justify-between">
-                    <span className="text-xs text-amber-800">
-                      Vào mục <strong>Quản trị dữ liệu · Định mức BOM</strong> để bổ sung định mức cho các món trên.
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="xs"
-                        variant="default"
-                        onClick={() => setIsBatchBomModalOpen(true)}
-                        className="text-xs bg-amber-700 text-white hover:bg-amber-800 font-semibold"
-                      >
-                        Nhập BOM Excel cho các món thiếu
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        onClick={() => navigate('/admin-data?view=bom')}
-                        className="text-xs bg-white border-amber-300 text-amber-900 hover:bg-amber-100"
-                      >
-                        Mở quản lý định mức BOM →
-                      </Button>
+          {source && (sourceEdit.editScope ? (
+            isSourceReviewOpen ? (
+              <SplitView
+                hasActiveDetail
+                masterWidthClass="w-full lg:w-7/12"
+                master={<MrxSourceEditGrid mode={sourceMode} readOnly={!canEditSource} editScope={sourceEdit.editScope} draft={sourceEdit.draft} dishOptions={sourceEdit.dishOptions} onServingsChange={changeServings} onDishChange={changeDish} lockedHighlight={sourceEdit.lockedHighlight} />}
+                detail={<MrxSourceChangePanel previewResult={sourceEdit.previewResult} actorRole={actorRole} changedLinesCount={sourceEdit.changedLines.length} reason={sourceChangeReason} onReasonChange={setSourceChangeReason} onPreview={() => void sourceEdit.preview()} onApply={async () => { if (await sourceEdit.apply(sourceChangeReason)) { invalidateQuantityPreview(); await loadSource(true); setSourceMode('completion'); setIsSourceReviewOpen(false); setChangeMessage('Đã áp dụng thay đổi nguồn.'); } }} onSubmit={async () => { if (await sourceEdit.submit(sourceChangeReason)) { invalidateQuantityPreview(); setSourceMode('completion'); setIsSourceReviewOpen(false); setChangeMessage('Đã gửi yêu cầu thay đổi để duyệt.'); } }} isSubmitting={sourceEdit.isSubmitting} error={sourceEdit.error} />}
+                onBackToMaster={closeSourceReview}
+              />
+            ) : (
+              <div className="flex h-full min-h-0 flex-col bg-white">
+                {preview?.diagnostics.length && sourceEdit.changedLines.length === 0 ? (
+                  <div role="alert" className="mx-3 mt-3 rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong className="font-semibold">Chưa thể tạo lô đối soát</strong>
+                      <span className="text-xs font-medium text-amber-800">Cần bổ sung định mức nguyên liệu</span>
+                    </div>
+                    <ul className="mt-1 list-disc space-y-1 pl-5">
+                      {preview.diagnostics.map((item, idx) => <li key={idx} className="text-xs">{item}</li>)}
+                    </ul>
+                    <div className="mt-2 flex items-center justify-end gap-2 border-t border-amber-200/80 pt-2">
+                      <Button size="xs" variant="default" onClick={() => setIsBatchBomModalOpen(true)} className="text-xs font-semibold">Nhập BOM Excel cho các món thiếu</Button>
+                      <Button size="xs" variant="outline" onClick={() => navigate('/admin-data?view=bom')} className="text-xs">Mở quản lý định mức BOM →</Button>
                     </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
 
-              {preview ? (
-                <MrxBatchPreviewSection
-                  preview={preview}
-                  customerCode={source?.customerCode}
-                  customerName={source?.customerName}
-                />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3">
-                  <p className="text-sm font-medium text-slate-700">Kiểm tra định lượng để xác nhận đầy đủ món, số suất và nguyên liệu trước khi đóng băng.</p>
-                  <Button
-                    variant="default"
-                    size="default"
-                    disabled={isSubmitting}
-                    onClick={checkQuantities}
-                    className="shadow-sm font-medium"
-                  >
-                    Kiểm tra định lượng ngay
-                  </Button>
+                <div className="min-h-0 flex-1">
+                  <MrxSourceEditGrid mode={sourceMode} readOnly={!canEditSource} editScope={sourceEdit.editScope} draft={sourceEdit.draft} dishOptions={sourceEdit.dishOptions} onServingsChange={changeServings} onDishChange={changeDish} lockedHighlight={sourceEdit.lockedHighlight} />
                 </div>
-              )}
+
+                {preview && sourceEdit.changedLines.length === 0 && (
+                  <details className="shrink-0 border-t border-slate-200 bg-slate-50">
+                    <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-slate-700">Tóm tắt định lượng và nguyên liệu</summary>
+                    <div className="max-h-72 overflow-auto border-t border-slate-200 bg-white">
+                      <MrxBatchPreviewSection preview={preview} customerCode={source.customerCode} customerName={source.customerName} />
+                    </div>
+                  </details>
+                )}
+
+                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-3 py-2">
+                  <span className="text-xs text-slate-600">
+                    {sourceEdit.changedLines.length > 0
+                      ? `${sourceEdit.changedLines.length} thay đổi chưa xem ảnh hưởng`
+                      : hasMissingSplit ? `Thiếu ${missingServingsCount} ô số suất` : 'Nguồn tuần đã sẵn sàng kiểm tra định lượng'}
+                  </span>
+                  {canEditSource && (sourceEdit.changedLines.length > 0 ? (
+                    <Button ref={reviewTriggerRef} variant="default" size="sm" onClick={() => setIsSourceReviewOpen(true)}>
+                      Tiếp tục xem ảnh hưởng ({sourceEdit.changedLines.length})
+                    </Button>
+                  ) : primaryAction && footerPrimaryLabel ? (
+                    <ActionGuard
+                      capabilityId={primaryAction.capability}
+                      roles={['ADMIN', 'MANAGER', 'COORDINATOR', 'Điều phối']}
+                      permissions="reconciliation.source.read"
+                      allowedModes={['MATERIAL_RECONCILIATION']}
+                      mode="disable"
+                      reason="Chỉ Điều phối được thực hiện bước này trong chế độ MRX."
+                    >
+                      <Button
+                        variant="default"
+                        size="sm"
+                        disabled={isSubmitting || (footerNeedsServings && (isSplitScopeUnavailable || hasMissingSplit))}
+                        onClick={primaryAction.action}
+                      >
+                        {footerNeedsServings && isSplitScopeUnavailable
+                          ? 'Đang kiểm tra dữ liệu…'
+                          : footerNeedsServings && hasMissingSplit ? 'Cần nhập đủ suất Mặn và Chay' : footerPrimaryLabel}
+                      </Button>
+                    </ActionGuard>
+                  ) : null)}
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+              <p role={sourceEdit.error ? 'alert' : 'status'} className="text-sm text-slate-700">{sourceEdit.error?.message || 'Đang tải phạm vi nguồn tuần MRX…'}</p>
+              {sourceEdit.error && <Button variant="outline" size="sm" onClick={() => void sourceEdit.reload()}>Thử lại</Button>}
             </div>
-          )}
+          ))}
         </StateBoundary>
       </WorkspaceFrame.Body>
 
@@ -379,55 +391,24 @@ export function MrxBatchWorkbench() {
         customers={customers}
         initialCustomerId={customerId}
         initialWeekStartDate={weekStartDate}
-        onImportSuccess={() => loadSource(true)}
+        mrxActorRole={actorRole}
+        onImportSuccess={() => {
+          invalidateQuantityPreview();
+          void loadSource(true);
+        }}
       />
 
-      <MrxSourceChangeModal
-        isOpen={isChangeOpen}
-        onClose={() => setIsChangeOpen(false)}
-        isAdmin={isAdmin}
-        isSubmitting={isSubmitting}
-        sourceLines={sourceLines}
-        selectedSourceLine={selectedSourceLine}
-        onSelectedSourceLineChange={(key, servings) => {
-          setSelectedSourceLine(key);
-          setNewServings(String(servings));
-          setChangePreview(null);
-        }}
-        newServings={newServings}
-        onNewServingsChange={(val) => {
-          setNewServings(val);
-          setChangePreview(null);
-        }}
-        changeReason={changeReason}
-        onChangeReasonChange={(val) => {
-          setChangeReason(val);
-          setChangePreview(null);
-        }}
-        changePreview={changePreview}
-        onResetPreview={() => setChangePreview(null)}
-        onPreview={previewSourceChange}
-        onSave={saveSourceChange}
-        canPreview={Boolean(buildSourceChange())}
-      />
-
-      <MrxReviewChangeModal
-        isOpen={Boolean(reviewRequest)}
-        onClose={() => {
-          setReviewRequest(null);
-          setRejectionReason('');
-        }}
-        reviewRequest={reviewRequest}
-        changeInbox={changeInbox}
-        onRequestChange={(item) => {
-          setReviewRequest(item);
-          setRejectionReason('');
-        }}
-        rejectionReason={rejectionReason}
-        onRejectionReasonChange={setRejectionReason}
-        isSubmitting={isSubmitting}
-        onDecide={decideSourceChange}
-      />
+      {reviewRequest && (
+        <MrxPendingRequestsPanel
+          requests={changeInbox}
+          initialRequest={reviewRequest}
+          isSubmitting={isSubmitting}
+          error={actionError}
+          onRequestChange={() => setActionError(null)}
+          onClose={() => setReviewRequest(null)}
+          onDecide={decideSourceChange}
+        />
+      )}
 
       <MrxBatchDishesModal
         isOpen={isDishesModalOpen}
@@ -435,18 +416,6 @@ export function MrxBatchWorkbench() {
         batchId={batch?.batchId || ''}
         customerName={customers.find((c) => c.customerId === customerId)?.customerName || ''}
       />
-
-      {editorMenuData && (
-        <WeeklyScheduleEditorModal
-          isOpen={isEditorModalOpen}
-          onClose={() => setIsEditorModalOpen(false)}
-          data={editorMenuData}
-          onSaveSuccess={() => {
-            setIsEditorModalOpen(false);
-            void loadSource(true);
-          }}
-        />
-      )}
 
       <DishBomBatchImportModal
         isOpen={isBatchBomModalOpen}

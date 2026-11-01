@@ -117,7 +117,7 @@ describe('useWorkbenchQuery — Canonical 5-Layer State Engine Unit Test', () =>
         queryFn,
         scopeId: 'b-empty',
         isCatalogLoading: false,
-        isDatasetEmpty: (d: any) => d.lines.length === 0,
+        isDatasetEmpty: (d: { lines: unknown[] }) => d.lines.length === 0,
       })
     );
 

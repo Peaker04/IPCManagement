@@ -8,7 +8,7 @@ import { Num } from '../ui/num';
 import { IdentifierText } from '../ui/identifier-text';
 import { mrxApi, type MrxBatchDishSummary } from '../../api/mrxApi';
 import { toVietnameseDate } from '../../utils/dates';
-import { DishBomEditorModal } from '../../features/admin/DishBomEditorModal';
+import { DishBomEditorModal } from './DishBomEditorModal';
 
 export interface MrxBatchDishesModalProps {
   isOpen: boolean;
@@ -267,6 +267,7 @@ export function MrxBatchDishesModal({
     </Modal>
 
     <DishBomEditorModal
+      key={editingBomDish?.dishId ?? 'closed'}
       isOpen={Boolean(editingBomDish)}
       onClose={() => setEditingBomDish(null)}
       dish={editingBomDish}

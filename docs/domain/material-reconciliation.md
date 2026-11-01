@@ -48,8 +48,22 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 - Endpoint lịch sử thay đổi nguồn theo lô chỉ trả audit của các định danh nguồn tạo lô (phiên bản/thực đơn/lịch, kế hoạch và dòng số suất, BOM, đợt nhập). Trạng thái vòng đời `ReconciliationBatch` và audit `InventoryIssue` thuộc lịch sử lô/giao dịch Kho, không thuộc lịch sử tác giả nguồn.
 - Phạm vi nguồn là **customer × week**; nhiều khách hàng tạo các lô độc lập, không trộn dòng hoặc lineage giữa khách hàng.
 - Số suất thuộc grain **customer × service date/day × shift**. Mọi món trong cùng ngày/ca dùng cùng số suất; không lưu số suất độc lập cho từng món.
-- Người dùng được tăng hoặc giảm số suất, sửa món và sửa BOM trước khi đóng băng. Trạng thái “Hoàn tất” của số suất chưa đồng nghĩa source bất biến; source chỉ bất biến sau `READY`.
+- Người dùng được tăng hoặc giảm số suất, sửa món và sửa BOM. Trạng thái `READY` đóng băng baseline của lô nhưng không khóa toàn tuần: một ngày chỉ bất biến sau khi ngày đó có phiếu xuất; `COMPLETED` khóa toàn bộ.
 - Món thiếu BOM vẫn phải được giữ trong nguồn và hiển thị đầy đủ diagnostic; không coi demand là hoàn chỉnh, không tự bỏ món và không tạo BOM giả. Recovery phải qua authority BOM chính thức.
+
+### 2.1. Sửa nguồn trực tiếp và số suất tách Mặn/Chay
+
+- **BR-MRX-EDIT-1 — Vai trò:** Admin/Quản lý áp dụng trực tiếp với lý do bắt buộc; Điều phối gửi yêu cầu để Admin/Quản lý duyệt hoặc từ chối, trong đó từ chối bắt buộc lý do; Thủ kho và Bếp trưởng không sửa nguồn.
+- **BR-MRX-EDIT-2 — Đối tượng sửa:** món theo ngày × ca × slot, số suất Mặn/Chay theo căn tin × ngày × ca và import lại file thực đơn tuần.
+- **BR-MRX-EDIT-3 — Khóa ngày:** ngày có ít nhất một `InventoryIssue` cùng lô và `IssueDate` bị khóa; không sửa món/số suất và không sinh giao dịch bù do thay đổi nguồn. `COMPLETED` khóa toàn bộ; `DRAFT|READY|TRANSFERRED|IN_PROGRESS` vẫn cho sửa ngày chưa khóa.
+- **BR-MRX-EDIT-4 — Atomic:** một yêu cầu chạm bất kỳ ngày khóa nào bị từ chối toàn bộ và trả danh sách ngày khóa; không partial persistence.
+- **BR-MRX-EDIT-5 — Đồng bộ:** trong một transaction, ngày mở cập nhật phiên bản thực đơn, số suất, daily/weekly material projection và frozen cooking contributor; ngày khóa giữ nguyên.
+- **BR-MRX-EDIT-6 — Một đường sửa:** khi căn tin × tuần đã có lô, MRX chặn `quick-servings` và `bulk-update`; direct edit, approved request và reimport đều đi qua `MrxSourceChangeApplier`.
+- **BR-MRX-EDIT-7 — Đóng băng theo ngày:** giá trị của ngày bất biến kể từ issue đầu tiên của ngày đó, không phải từ lúc toàn lô vào `READY`.
+- **BR-MRX-EDIT-8 — Lịch sử:** mỗi lần áp dụng giữ revision actor/role/apply mode/reason/time và delta trước/sau theo ngày × nguyên liệu; dữ liệu append-only.
+- **BR-MRX-EDIT-9 — Xung đột:** ngày bị Kho khóa giữa preview và apply trả `MRX_DAY_LOCKED`; draft được giữ để người sửa tải lại và tiếp tục với ngày mở.
+- **BR-MRX-SERV-1 — Số suất Mặn/Chay:** slot `vegetarian-*` dùng `VegetarianServings`, các slot còn lại dùng `SavoryServings`; `FinalServings = SavoryServings + VegetarianServings`.
+- **BR-MRX-SERV-2 — Không bịa số suất:** import không ghi số suất mặc định; giá trị thiếu hiển thị `Chưa nhập` và chặn kiểm tra định lượng/tạo lô.
 
 ### 3. BOM và template định lượng
 
@@ -65,7 +79,7 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 - Commit phải recompute projection/fingerprint trong transaction trước write; source stale bị từ chối không partial persistence. Retry/double commit cùng command/source phải ổn định identity.
 - Lô lifecycle: `DRAFT → READY → TRANSFERRED → IN_PROGRESS → COMPLETED`.
 - `DRAFT`: còn chuẩn bị; `READY`: đã đóng băng immutable; `TRANSFERRED`: chờ Kho tạo phiếu đầu tiên; `IN_PROGRESS`: đã có issue ledger và được đối chiếu/xuất thêm; `COMPLETED`: read-only.
-- Sau `READY`, mọi thay đổi menu, món, BOM, servings, conversion hoặc master không được rewrite frozen line/contributor. Nguồn mới phải tạo batch/version mới.
+- Sau `READY`, direct source change chỉ được rewrite daily line/contributor của ngày chưa có issue, qua transaction/version/revision owner duy nhất. Ngày đã có issue và toàn bộ lô `COMPLETED` không được rewrite.
 
 ### 5. Invariant tồn kho bắt buộc
 
@@ -96,7 +110,7 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 
 ### 8. Authority số đã xuất và đối chiếu
 
-- `IssuedQuantity` chỉ được suy ra từ tổng mọi linked `InventoryIssueLine` của frozen line **trừ confirmed returns**. Legacy `ReconciliationActual` với `Side == ISSUED` chỉ giữ audit compatibility, không có authority.
+- `IssuedQuantity` chỉ được suy ra từ tổng mọi linked `InventoryIssueLine` của frozen line. MRX dữ liệu mới không có workflow trả hàng; return cũ chỉ còn compatibility/audit và không được direct source change sinh thêm. Legacy `ReconciliationActual` với `Side == ISSUED` chỉ giữ audit compatibility, không có authority.
 - Public legacy mutation `PUT /api/reconciliation/lines/{lineId}/purchased|issued` đã ngừng hỗ trợ và phải trả `410 Gone`; không được tái xuất FE mutation hook/drawer cho hai đường này. Dữ liệu actual/revision cũ vẫn được giữ để đọc và audit.
 - Missing linked issue dictionary entry nghĩa là `null/chưa xuất`, không phải decimal 0. Trước initial issue, reconciliation hiển thị `Chưa xuất`, không mở disposition và không giả vờ đã có giao dịch.
 - Reconciliation so sánh frozen `RequiredQuantity` với ledger-derived total issued; cùng ingredient xuất thêm phải aggregate vào đúng reconciliation row.

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { createElement, type ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { AlertCircle, AlertTriangle, Boxes, FileClock, FileCheck, FileSpreadsheet, SearchX, ShieldAlert, Truck, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -124,11 +124,14 @@ function resolveEmptyContent(
   }
 }
 
+function navigateToPrerequisite(route: string): void {
+  window.location.assign(route);
+}
+
 export function StateBoundary({
   scope = 'page',
   isLoading,
   delayMs,
-  isFetching: _isFetching,
   isPreviousData,
   hasExistingData,
   loadingVariant = 'table',
@@ -329,14 +332,14 @@ export function StateBoundary({
       ? 'prerequisite-blocked'
       : emptyScenario;
     const content = resolveEmptyContent(resolvedScenario, emptyTitle, emptyDescription, actionLabel, prerequisiteLabel);
-    const effectiveOnAction = onAction || onResetFilters || onNavigatePrerequisite || (prerequisiteRoute ? () => { window.location.href = prerequisiteRoute; } : undefined);
+    const effectiveOnAction = onAction || onResetFilters || onNavigatePrerequisite || (prerequisiteRoute ? () => navigateToPrerequisite(prerequisiteRoute) : undefined);
 
-    const EmptyIcon = resolveEmptyIcon(resolvedScenario, emptyIcon, contextDomain);
+    const emptyIconComponent = resolveEmptyIcon(resolvedScenario, emptyIcon, contextDomain);
 
     if (scope === 'widget') {
       return (
         <div className={clsx('p-3.5 rounded border border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center text-center min-h-[96px] w-full', className)}>
-          <EmptyIcon size={18} className="text-slate-400 mb-1" aria-hidden="true" />
+          {createElement(emptyIconComponent, { size: 18, className: 'text-slate-400 mb-1', 'aria-hidden': true })}
           <p className="text-xs font-medium text-slate-700">{content.title}</p>
           <p className="text-[11px] text-slate-400 max-w-xs mb-2">{content.desc}</p>
           {content.action && effectiveOnAction && (
@@ -351,7 +354,7 @@ export function StateBoundary({
     return (
       <div className={clsx('flex-1 min-h-0 w-full flex flex-col items-center justify-center p-8 bg-white text-center', className)}>
         <div aria-hidden="true" className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-3 text-slate-400">
-          <EmptyIcon size={22} strokeWidth={1.75} />
+          {createElement(emptyIconComponent, { size: 22, strokeWidth: 1.75 })}
         </div>
         <h3 className="text-sm font-semibold text-slate-900 mb-1">{content.title}</h3>
         <p className="text-xs text-slate-500 max-w-sm mb-4 leading-relaxed">{content.desc}</p>

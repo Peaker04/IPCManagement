@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ChefDashboardPage } from '../features/chef/ChefDashboardPage';
@@ -102,6 +102,7 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
         serviceDate: '2026-06-15',
         weekday: 'Thứ Hai',
         shiftName: 'Ca sáng',
+        menuVariant: 'Mặn',
         dishCode: 'MON-01',
         dishName: 'Cơm sườn nướng',
         servings: 100,
@@ -122,6 +123,14 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.getByText('Sườn heo')).toBeInTheDocument();
     expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('15')).toBeInTheDocument();
+
+    const header = screen.getByRole('banner');
+    expect(within(header).queryByRole('button', { name: 'In phiếu nấu' })).not.toBeInTheDocument();
+    expect(within(header).queryByRole('button', { name: 'Tải CSV' })).not.toBeInTheDocument();
+    expect(within(header).queryByRole('button', { name: 'Tải Excel' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải CSV' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải Excel' })).toBeInTheDocument();
 
     // Forbidden fields & mutations MUST NOT exist
     expect(screen.queryByText(/Đơn giá/i)).not.toBeInTheDocument();
@@ -146,6 +155,28 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     const printBtn = screen.getByRole('button', { name: 'In phiếu nấu' });
     await userEvent.click(printBtn);
     expect(printSpy).toHaveBeenCalled();
+  });
+
+  it('groups the MRX cooking sheet by menu variant for the same dish and shift', async () => {
+    vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
+      batchId: 'batch-1', sourceVersion: 3,
+      rows: [{
+        serviceDate: '2026-06-15', weekday: 'Thứ Hai', shiftName: 'Ca sáng', menuVariant: 'Mặn',
+        dishCode: 'MON-01', dishName: 'Cơm sườn nướng', servings: 100,
+        ingredientCode: 'SUON-01', ingredientName: 'Sườn heo', unitName: 'kg', bomQuantityPerServing: 0.15, wasteRatePercent: 5, totalRequiredQuantity: 15,
+      }, {
+        serviceDate: '2026-06-15', weekday: 'Thứ Hai', shiftName: 'Ca sáng', menuVariant: 'Chay',
+        dishCode: 'MON-01', dishName: 'Cơm sườn nướng', servings: 20,
+        ingredientCode: 'RAU-01', ingredientName: 'Rau củ', unitName: 'kg', bomQuantityPerServing: 0.1, wasteRatePercent: 2, totalRequiredQuantity: 2,
+      }],
+    });
+
+    renderChef('/chef?view=mrx-cooking&batchId=batch-1');
+
+    expect(await screen.findByRole('region', { name: 'Món Cơm sườn nướng · Mặn' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Món Cơm sườn nướng · Chay' })).toBeInTheDocument();
+    expect(screen.getByText('Mặn')).toBeInTheDocument();
+    expect(screen.getByText('Chay')).toBeInTheDocument();
   });
 
   it('MRX cooking workbench surfaces compatibility error neutrally when lineage is missing', async () => {

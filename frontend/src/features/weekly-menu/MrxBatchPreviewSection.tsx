@@ -10,6 +10,7 @@ import type { WeeklyMenuData } from '../../api/weeklyMenuApi';
 import type { ScheduleDayColumn, WeeklyScheduleMatrixRow, ProductionPlanItem } from '../../types';
 import { WeeklyScheduleView } from './views/WeeklyScheduleView';
 import { MrxShiftDishesModal } from './MrxShiftDishesModal';
+import type { PlanSummaryItem } from './mrxBatchPreviewTypes';
 
 export interface MrxBatchPreviewSectionProps {
   preview: MrxQuantityPreview;
@@ -25,33 +26,6 @@ export interface PreviewMaterialItem {
   totalRequiredQuantity: number;
   grossPerServing: number;
   dishes: string[];
-}
-
-export interface ShiftDishDetail {
-  dishId: string;
-  dishCode: string;
-  dishName: string;
-  dishSlot?: string | null;
-  displayOrder: number;
-  materials: Array<{
-    ingredientCode: string;
-    ingredientName: string;
-    canonicalUnitName: string;
-    grossQuantityPerServing: number;
-    requiredQuantity: number;
-  }>;
-}
-
-export interface PlanSummaryItem {
-  id: string;
-  planCode: string;
-  serviceDate: string;
-  shift: string;
-  menuName: string;
-  servings: number;
-  dishes: string[];
-  dishesDetails: ShiftDishDetail[];
-  materialsCount: number;
 }
 
 function resolveSlotLabel(slot?: string | null): string {

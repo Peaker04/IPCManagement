@@ -140,7 +140,10 @@ public sealed class MrxSourceChangeApplier(
             planLine.Menu = schedule.Menu;
         }
         foreach (var row in changed.Where(row => row.ServingsChanged).DistinctBy(row => Convert.ToHexString(row.Schedule.MenuScheduleId)))
-            WriteServings(row.PlanLine!, row.Dto.NewSavoryServings!.Value, row.Dto.NewVegetarianServings!.Value, actorId, tracked.Reason, now);
+        {
+            var planLine = row.PlanLine ?? CreateInitialPlanLine(row.Schedule, actorId, now);
+            WriteServings(planLine, row.Dto.NewSavoryServings!.Value, row.Dto.NewVegetarianServings!.Value, actorId, tracked.Reason, now);
+        }
         await context.SaveChangesAsync(token);
 
         ReconciliationSourceRevision? revision = null;
@@ -190,6 +193,30 @@ public sealed class MrxSourceChangeApplier(
         return amendment;
     }
 
+    private MealQuantityPlanLine CreateInitialPlanLine(MenuSchedule schedule, byte[] actorId, DateTime now)
+    {
+        var plan = new MealQuantityPlan
+        {
+            QuantityPlanId = GuidHelper.NewId(),
+            PlanCode = $"MRX-SOURCE-{schedule.ServiceDate:yyyyMMdd}-{schedule.ShiftName}-{Convert.ToHexString(schedule.MenuScheduleId)[..12]}",
+            ServiceDate = schedule.ServiceDate,
+            Status = "COMPLETED",
+            ForecastReceivedAt = now,
+            ConfirmedAt = now,
+            ConfirmationTime = TimeOnly.FromDateTime(now),
+            ConfirmedBy = actorId
+        };
+        var line = new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = plan.QuantityPlanId,
+            MenuScheduleId = schedule.MenuScheduleId, CustomerId = schedule.CustomerId, MenuId = schedule.MenuId,
+            ShiftName = schedule.ShiftName, QuantityPlan = plan, MenuSchedule = schedule, Menu = schedule.Menu
+        };
+        plan.Mealquantityplanlines.Add(line);
+        context.Mealquantityplans.Add(plan);
+        return line;
+    }
+
     private void WriteServings(MealQuantityPlanLine line, int savory, int vegetarian, byte[] actorId, string reason, DateTime now)
     {
         var final = savory + vegetarian;
@@ -208,6 +235,7 @@ public sealed class MrxSourceChangeApplier(
         }
         line.SavoryServings = savory;
         line.VegetarianServings = vegetarian;
+        line.ForecastServings = final;
         line.FinalServings = final;
         line.ConfirmedServings = final;
         line.UpdatedAt = now;
@@ -296,7 +324,7 @@ public sealed class MrxSourceChangeApplier(
             var servingsChanged = newSavory != currentSavory || newVegetarian != currentVegetarian;
             if (servingsChanged)
             {
-                if (planLine is null) throw new BusinessRuleException("Ngày/ca cần đổi chưa có dòng số suất nguồn.");
+                if (planLine is null && scope.Batch is not null) throw new BusinessRuleException("Ngày/ca cần đổi chưa có dòng số suất nguồn.");
                 if (newSavory is null || newVegetarian is null) throw new BusinessRuleException("Cần nhập cả số suất Mặn và số suất Chay.");
                 if (newSavory + newVegetarian <= 0) throw new BusinessRuleException("Tổng số suất Mặn và Chay phải lớn hơn 0.");
             }

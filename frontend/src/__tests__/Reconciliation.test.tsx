@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ReconciliationPage } from '../features/reconciliation/ReconciliationPage';
@@ -69,7 +69,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     // Customer select and date input
     expect(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' })).toBeInTheDocument();
     expect(await screen.findByRole('option', { name: /DAV · IN_PROGRESS/i })).toHaveValue(MOCK_RECONCILIATION.batchId);
-    expect(mrxApi.getBatchSummary).toHaveBeenCalledWith(MOCK_RECONCILIATION.batchId, '2026-10-19');
+    await waitFor(() => expect(mrxApi.getBatchSummary).toHaveBeenCalledWith(MOCK_RECONCILIATION.batchId, '2026-10-19'));
     expect(screen.getByRole('textbox')).toHaveAttribute('data-date-locale', 'vi-VN');
     expect(await screen.findByText('Đang đối chiếu')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Xuất biên bản đối soát' })).not.toBeInTheDocument();
@@ -515,13 +515,16 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
       issueId: 'iss-1',
       issueCode: 'ISS-20260912-160015-C97F',
       issueDate: '2026-09-12',
-      warehouseName: 'Kho mẫu IPC',
+      createdAt: '2026-09-12T05:00:00Z',
+      issuedBy: 'warehouse-user-1',
       issuedByName: 'Thủ kho',
-      kitchenStatus: 'Chờ xác nhận',
+      sourceFamily: 'MATERIAL_RECONCILIATION',
+      warehouseId: 'warehouse-1',
+      warehouseName: 'Kho mẫu IPC',
       lines: [
-        { ingredientId: 'ing-1', ingredientName: 'Xà lách', unitName: 'Kilogram', requestedQty: 140.242, issuedQty: 140.242 }
+        { issueLineId: 'issue-line-1', ingredientId: 'ing-1', ingredientName: 'Xà lách', unitId: 'unit-1', unitName: 'Kilogram', requestedQty: 140.242, issuedQty: 140.242 }
       ],
-    } as any);
+    });
 
     renderReconciliation('/reconciliation?view=transactions');
 

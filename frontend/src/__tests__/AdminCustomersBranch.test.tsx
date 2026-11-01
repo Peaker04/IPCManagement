@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AdminCustomersBranch } from '../features/admin/branches/AdminCustomersBranch';
-import { customerApi } from '../api/customerApi';
+import { customerApi, type CustomerContractItem } from '../api/customerApi';
 import { AuthProvider } from '../store/authContext';
 
 vi.mock('../api/customerApi', () => ({
@@ -12,7 +12,7 @@ vi.mock('../api/customerApi', () => ({
 }));
 
 describe('AdminCustomersBranch Component Tests (Rule TA-2 & TA-4)', () => {
-  const mockContracts = [
+  const mockContracts: CustomerContractItem[] = [
     {
       customerId: 'cust-1',
       customerCode: 'ANV',
@@ -39,7 +39,7 @@ describe('AdminCustomersBranch Component Tests (Rule TA-2 & TA-4)', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.mocked(customerApi.getCustomerContracts).mockResolvedValue(mockContracts as any);
+    vi.mocked(customerApi.getCustomerContracts).mockResolvedValue(mockContracts);
   });
 
   it('renders customer list and contract telemetry', async () => {

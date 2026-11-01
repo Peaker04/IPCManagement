@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { AdminBomBranch } from '../features/admin/branches/AdminBomBranch';
-import { bomApi } from '../api/bomApi';
+import { bomApi, type BomCoverageReport } from '../api/bomApi';
 
 vi.mock('../api/bomApi', () => ({
   bomApi: {
@@ -19,7 +19,7 @@ vi.mock('../api/adminApi', () => ({
 }));
 
 describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
-  const mockCoverageReport = {
+  const mockCoverageReport: BomCoverageReport = {
     generatedAt: '2026-10-28T12:00:00Z',
     totalDishes: 3,
     completeDishes: 2,
@@ -64,7 +64,7 @@ describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.mocked(bomApi.getBomCoverage).mockResolvedValue(mockCoverageReport as any);
+    vi.mocked(bomApi.getBomCoverage).mockResolvedValue(mockCoverageReport);
   });
 
   it('renders 4 KPI telemetry items and full dish list', async () => {

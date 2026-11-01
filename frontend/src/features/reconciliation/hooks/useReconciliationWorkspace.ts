@@ -51,9 +51,11 @@ export function useReconciliationWorkspace() {
   const setServiceDate = useCallback((date: string) => setInternalDate(date), []);
 
   const batchIdRef = useRef(batchId);
-  batchIdRef.current = batchId;
   const serviceDateRef = useRef(serviceDate);
-  serviceDateRef.current = serviceDate;
+  useEffect(() => {
+    batchIdRef.current = batchId;
+    serviceDateRef.current = serviceDate;
+  }, [batchId, serviceDate]);
 
   const reconCacheKey = `mrx_recon_${batchId}_${serviceDate}`;
   const initialReconCache = batchId
@@ -214,8 +216,6 @@ export function useReconciliationWorkspace() {
     if (!batchId) return;
     let ignore = false;
     const key = `mrx_recon_${batchId}_${serviceDate}`;
-    const cached = serverStateCache.get<ReconciliationBatchSummary>(key)?.data;
-    if (cached && !data) setData(cached);
     mrxApi.getBatchSummary(batchId, serviceDate)
       .then((result) => {
         if (!ignore) {

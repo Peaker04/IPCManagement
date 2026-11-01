@@ -65,7 +65,6 @@ export function ReconciliationDashboardPage() {
   const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
   const cachedBatches = serverStateCache.get<MrxBatchSummary[]>('mrx_recent_batches')?.data;
 
-  const [_operationalSummary, setOperationalSummary] = useState<MrxOperationalSummary | null>(() => cachedSummary ?? null);
   const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('ALL');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ALL');
@@ -84,7 +83,6 @@ export function ReconciliationDashboardPage() {
         weeklyMenuApi.getCustomers(),
         mrxApi.getBatchPage({ pageSize: 20 }),
       ]);
-      setOperationalSummary(summaryRes);
       setCustomers(custRes);
       setBatches(batchRes.items);
       serverStateCache.set('mrx_operational_summary', summaryRes);
@@ -99,8 +97,26 @@ export function ReconciliationDashboardPage() {
   }, [cachedBatches, cachedSummary]);
 
   useEffect(() => {
-    void loadData();
-  }, [loadData]);
+    if (cachedSummary && cachedBatches) return;
+    let ignore = false;
+    Promise.all([
+      mrxApi.getOperationalSummary(),
+      weeklyMenuApi.getCustomers(),
+      mrxApi.getBatchPage({ pageSize: 20 }),
+    ]).then(([summaryRes, custRes, batchRes]) => {
+      if (ignore) return;
+      setCustomers(custRes);
+      setBatches(batchRes.items);
+      serverStateCache.set('mrx_operational_summary', summaryRes);
+      serverStateCache.set('catalog_customers', custRes);
+      serverStateCache.set('mrx_recent_batches', batchRes.items);
+    }).catch((cause: unknown) => {
+      if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải tổng quan đối soát.'));
+    }).finally(() => {
+      if (!ignore) setIsLoading(false);
+    });
+    return () => { ignore = true; };
+  }, [cachedBatches, cachedSummary]);
 
   const filteredBatches = useMemo(() => {
     const now = new Date();

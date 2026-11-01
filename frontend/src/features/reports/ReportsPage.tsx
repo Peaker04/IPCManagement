@@ -40,12 +40,22 @@ export function ReportsPage() {
   const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
   const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
   const [customerId, setCustomerId] = useState(() => snapshot?.customerId || cachedCustomers?.[0]?.customerId || '');
-  const [pageNumber, setPageNumber] = useState(() => snapshot?.pageNumber || 1);
+  const reportScope = `${activeView}|${period}|${customerId}`;
+  const [pagination, setPagination] = useState(() => ({
+    scope: reportScope,
+    page: snapshot?.pageNumber || 1,
+  }));
+  const pageNumber = pagination.scope === reportScope ? pagination.page : 1;
+  const setPageNumber = (next: number | ((page: number) => number)) => {
+    setPagination((current) => {
+      const currentPage = current.scope === reportScope ? current.page : 1;
+      return {
+        scope: reportScope,
+        page: typeof next === 'function' ? next(currentPage) : next,
+      };
+    });
+  };
   const [customerError, setCustomerError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    setPageNumber(1);
-  }, [activeView, period, customerId]);
 
   useEffect(() => {
     let ignore = false;

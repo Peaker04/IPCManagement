@@ -36,8 +36,8 @@ export const offlineMutationQueue = {
     queue.push(item);
     try {
       localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
-    } catch (err) {
-      console.error('Failed to enqueue offline mutation:', err);
+    } catch {
+      // The caller still receives the item; persistence is best-effort while offline.
     }
     notify(queue.length);
     return item;
@@ -67,7 +67,9 @@ export const offlineMutationQueue = {
 
     try {
       localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(remaining));
-    } catch {}
+    } catch {
+      // Retain the previous persisted queue when storage is unavailable.
+    }
 
     notify(remaining.length);
     return { succeeded, failed: remaining.length };
@@ -76,7 +78,9 @@ export const offlineMutationQueue = {
   clear(): void {
     try {
       localStorage.removeItem(OFFLINE_QUEUE_KEY);
-    } catch {}
+    } catch {
+      // Clearing browser storage is best-effort; listeners still observe an empty queue.
+    }
     notify(0);
   },
 

@@ -137,18 +137,11 @@ export function useOperationalRecovery<TData, TFilter>({
 
   const requestSequence = useRef(0);
   const fetcherRef = useRef(fetcher);
-  fetcherRef.current = fetcher;
   const queryKeyRef = useRef(queryKey);
-  queryKeyRef.current = queryKey;
-
-  // Hydrate immediately from cache when queryKey changes (SWR Level 1)
   useEffect(() => {
-    const cachedEntry = serverStateCache.get<TData>(queryKey);
-    if (cachedEntry) {
-      setData(cachedEntry.data);
-      setIsLoading(false);
-    }
-  }, [queryKey]);
+    fetcherRef.current = fetcher;
+    queryKeyRef.current = queryKey;
+  }, [fetcher, queryKey]);
 
   const executeFetch = useCallback(
     async (currentFilters: TFilter) => {
@@ -178,14 +171,33 @@ export function useOperationalRecovery<TData, TFilter>({
   );
 
   useEffect(() => {
-    void executeFetch(filters);
-  }, [executeFetch, filters]);
+    const seq = ++requestSequence.current;
+    fetcherRef.current(filters)
+      .then((result) => {
+        if (seq !== requestSequence.current) return;
+        setData(result);
+        serverStateCache.set(queryKeyRef.current, result);
+        setIsLoading(false);
+        setIsFetching(false);
+      })
+      .catch((cause: unknown) => {
+        if (seq !== requestSequence.current) return;
+        setError(cause instanceof Error ? cause : new Error(String(cause)));
+        setData(null);
+        setIsLoading(false);
+        setIsFetching(false);
+      });
+  }, [filters]);
 
   const updateFilter = useCallback(<K extends keyof TFilter>(key: K, value: TFilter[K]) => {
+    setIsFetching(true);
+    setError(null);
     setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const handleResetFilters = useCallback(() => {
+    setIsFetching(true);
+    setError(null);
     setFilters(defaultFilters);
     onResetFilters?.();
   }, [defaultFilters, onResetFilters]);

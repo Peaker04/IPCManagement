@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, type ReactNode } from 'react';
 import { Boxes, type LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -55,7 +55,12 @@ export function DataGrid<T>({
   const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
 
   // Task L3-00: Safely bound focused row index when filters reduce row count so 1 row always holds tabIndex=0
-  const effectiveFocusedIndex = data.length > 0 ? Math.min(focusedRowIndex, data.length - 1) : 0;
+  const selectedRowIndex = selectedKey && data.length > 0
+    ? data.findIndex((row, index) => keyExtractor(row, index) === selectedKey)
+    : -1;
+  const effectiveFocusedIndex = selectedRowIndex >= 0
+    ? selectedRowIndex
+    : data.length > 0 ? Math.min(focusedRowIndex, data.length - 1) : 0;
 
   // Task L5-06: Virtual windowing computation for massive datasets (INP < 100ms)
   const totalCount = data.length;
@@ -67,16 +72,6 @@ export function DataGrid<T>({
   const visibleData = virtualized ? data.slice(startIndex, endIndex) : data;
   const topSpacerHeight = virtualized ? startIndex * rowHeight : 0;
   const bottomSpacerHeight = virtualized ? (totalCount - endIndex) * rowHeight : 0;
-
-  // Keep focused row in sync with selectedKey if externally controlled
-  useEffect(() => {
-    if (selectedKey && data.length > 0) {
-      const idx = data.findIndex((row, i) => keyExtractor(row, i) === selectedKey);
-      if (idx !== -1) {
-        setFocusedRowIndex(idx);
-      }
-    }
-  }, [selectedKey, data, keyExtractor]);
 
   if (data.length === 0 && (emptyState || emptyMessage)) {
     return (

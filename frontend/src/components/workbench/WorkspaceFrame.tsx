@@ -17,7 +17,7 @@ export interface WorkspaceFrameBodyProps {
   className?: string;
 }
 
-export function WorkspaceFrameRoot({ children, className }: WorkspaceFrameRootProps) {
+function WorkspaceFrameRoot({ children, className }: WorkspaceFrameRootProps) {
   return (
     <div className={twMerge(clsx('flex-1 min-h-0 w-full flex flex-col bg-slate-50 overflow-hidden', className))}>
       {children}
@@ -25,7 +25,7 @@ export function WorkspaceFrameRoot({ children, className }: WorkspaceFrameRootPr
   );
 }
 
-export function WorkspaceFrameHeader({ children, className }: WorkspaceFrameHeaderProps) {
+function WorkspaceFrameHeader({ children, className }: WorkspaceFrameHeaderProps) {
   return (
     <header className={twMerge(clsx('min-h-14 shrink-0 border-b border-slate-200 bg-white px-4 sm:px-5 flex flex-wrap items-center justify-between gap-3 z-20', className))}>
       {children}
@@ -33,7 +33,7 @@ export function WorkspaceFrameHeader({ children, className }: WorkspaceFrameHead
   );
 }
 
-export function WorkspaceFrameBody({ children, className }: WorkspaceFrameBodyProps) {
+function WorkspaceFrameBody({ children, className }: WorkspaceFrameBodyProps) {
   return (
     <main className={twMerge(clsx('flex-1 min-h-0 w-full flex flex-col overflow-hidden relative', className))}>
       {children}
@@ -41,8 +41,10 @@ export function WorkspaceFrameBody({ children, className }: WorkspaceFrameBodyPr
   );
 }
 
-export const WorkspaceFrame = {
-  Root: WorkspaceFrameRoot,
-  Header: WorkspaceFrameHeader,
-  Body: WorkspaceFrameBody,
-};
+export function WorkspaceFrame(props: WorkspaceFrameRootProps) {
+  return <WorkspaceFrameRoot {...props} />;
+}
+
+WorkspaceFrame.Root = WorkspaceFrameRoot;
+WorkspaceFrame.Header = WorkspaceFrameHeader;
+WorkspaceFrame.Body = WorkspaceFrameBody;

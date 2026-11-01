@@ -38,15 +38,6 @@ export function ReconciliationDispositionModal({
   const [succeededLineIds, setSucceededLineIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
-    if (isOpen && primaryLine) {
-      setCategory(primaryLine.disposition?.category || 'ACCEPTED_VARIANCE');
-      setReason(primaryLine.disposition?.reason || '');
-      setError(null);
-      setSucceededLineIds(new Set());
-    }
-  }, [isOpen, primaryLine?.id, primaryLine?.dailyLineId]);
-
-  useEffect(() => {
     let ignore = false;
     mrxApi.getDispositionCategories()
       .then((data) => { if (!ignore) setCategories(data); })

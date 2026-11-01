@@ -1,15 +1,15 @@
 import { useEffect, useState, useId, useMemo } from 'react';
 import { Trash2, Plus, AlertCircle, Utensils } from 'lucide-react';
 import { clsx } from 'clsx';
-import { Modal } from '../../components/ui/modal';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Select } from '../../components/ui/select';
-import { Badge } from '../../components/ui/badge';
-import { Num } from '../../components/ui/num';
-import { IdentifierText } from '../../components/ui/identifier-text';
-import { InlineBanner } from '../../components/ui/inline-banner';
-import { SearchableCombobox } from '../../components/ui/searchable-combobox';
+import { Modal } from '../ui/modal';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Select } from '../ui/select';
+import { Badge } from '../ui/badge';
+import { Num } from '../ui/num';
+import { IdentifierText } from '../ui/identifier-text';
+import { InlineBanner } from '../ui/inline-banner';
+import { SearchableCombobox } from '../ui/searchable-combobox';
 import { bomApi, type DishBomLine } from '../../api/bomApi';
 import { adminApi, type IngredientItem } from '../../api/adminApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
@@ -33,7 +33,7 @@ export function DishBomEditorModal({
   const [bomLines, setBomLines] = useState<DishBomLine[]>([]);
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -75,13 +75,29 @@ export function DishBomEditorModal({
   };
 
   useEffect(() => {
-    if (!isOpen || !dish?.dishId) {
-      setBomLines([]);
-      setFeedback(null);
-      return;
-    }
-    void loadData(dish.dishId);
-  }, [isOpen, dish?.dishId]);
+    if (!isOpen || !dish?.dishId) return;
+    let ignore = false;
+    Promise.all([
+      bomApi.getDishBomLines(dish.dishId),
+      adminApi.getIngredients({ pageSize: 200 }).catch(() => ({ items: [] })),
+      weeklyMenuApi.getCustomers().catch(() => []),
+    ]).then(([lines, ingResult, custList]) => {
+      if (ignore) return;
+      setBomLines(lines || []);
+      const ingItems = ingResult?.items || [];
+      setIngredients(ingItems);
+      setCustomers(custList || []);
+      setSelectedIngredientId((current) => current || ingItems[0]?.ingredientId || '');
+    }).catch((cause: unknown) => {
+      if (!ignore) setFeedback({
+        type: 'error',
+        message: cause instanceof Error ? cause.message : 'Không thể tải định mức BOM của món ăn.',
+      });
+    }).finally(() => {
+      if (!ignore) setIsLoading(false);
+    });
+    return () => { ignore = true; };
+  }, [dish?.dishId, isOpen]);
 
   const handleAddLine = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -48,7 +48,20 @@ export function DashboardPage() {
   };
 
   useEffect(() => {
-    void handleRefresh();
+    let ignore = false;
+    dashboardApi.getDashboardData()
+      .then((resp) => {
+        if (ignore) return;
+        setData(resp);
+        serverStateCache.set('dashboard_today', resp);
+      })
+      .catch((cause: unknown) => {
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+    return () => { ignore = true; };
   }, []);
 
   const filteredTasks = useMemo(() => {

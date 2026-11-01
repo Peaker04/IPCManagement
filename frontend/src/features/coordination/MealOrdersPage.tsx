@@ -130,9 +130,9 @@ export function MealOrdersPage() {
         setCustomers(list);
         setHasCustomersLoaded(true);
         serverStateCache.set('catalog_customers', list);
-        const existing = customerCode && list.find((c) => c.customerCode === customerCode);
-        if (existing) return;
-        setCustomerCode((current) => current || list[0]?.customerCode || '');
+        setCustomerCode((current) => list.some((customer) => customer.customerCode === current)
+          ? current
+          : list[0]?.customerCode || '');
       })
       .catch((cause: unknown) => {
         if (!ignore) {

@@ -1,6 +1,4 @@
 import {
-  createContext,
-  useContext,
   useCallback,
   useMemo,
   type ReactNode,
@@ -8,23 +6,11 @@ import {
 import { useSearchParams } from 'react-router-dom';
 import { weekStartFor, todayInBusinessTimezone } from '../utils/dates';
 import { workspaceSessionStore } from './workspaceSessionStore';
-
-export interface WorkspaceScope {
-  customerId: string;
-  customerCode: string;
-  customerName: string;
-  batchId: string;
-  serviceDate: string;
-  weekStartDate: string;
-}
-
-export interface WorkspaceScopeContextValue {
-  scope: WorkspaceScope;
-  setScope: (patch: Partial<WorkspaceScope>) => void;
-  snapToMonday: (date: string) => string;
-}
-
-const WorkspaceScopeContext = createContext<WorkspaceScopeContextValue | null>(null);
+import {
+  WorkspaceScopeContext,
+  type WorkspaceScope,
+  type WorkspaceScopeContextValue,
+} from './workspaceScope';
 
 export interface WorkspaceScopeProviderProps {
   children: ReactNode;
@@ -98,12 +84,4 @@ export function WorkspaceScopeProvider({
       {children}
     </WorkspaceScopeContext.Provider>
   );
-}
-
-export function useWorkspaceScope(): WorkspaceScopeContextValue {
-  const ctx = useContext(WorkspaceScopeContext);
-  if (!ctx) {
-    throw new Error('useWorkspaceScope must be used within a WorkspaceScopeProvider');
-  }
-  return ctx;
 }

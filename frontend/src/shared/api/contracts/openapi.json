@@ -1634,7 +1634,7 @@
         }
       }
     },
-    "/api/coordination/weekly-menu/amendments/admin-confirm": {
+    "/api/coordination/weekly-menu/amendments/mrx-apply": {
       "post": {
         "tags": [
           "Coordination"
@@ -10249,6 +10249,91 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReconciliationSourceDeltaQueueItemDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/weekly-menu/edit-scope": {
+      "get": {
+        "tags": [
+          "ReconciliationWeeklyMenu"
+        ],
+        "parameters": [
+          {
+            "name": "customerId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "weekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxEditScopeDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxEditScopeDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MrxEditScopeDtoApiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
                 }
               }
             }
@@ -23772,6 +23857,16 @@
             "type": "integer",
             "format": "int32",
             "nullable": true
+          },
+          "newSavoryServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "newVegetarianServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -23794,6 +23889,11 @@
           },
           "expectedBaseMenuVersionId": {
             "type": "string",
+            "nullable": true
+          },
+          "expectedBatchVersion": {
+            "type": "integer",
+            "format": "int64",
             "nullable": true
           },
           "reason": {
@@ -30002,6 +30102,16 @@
             "type": "integer",
             "format": "int32"
           },
+          "savoryServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "vegetarianServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "updatedAt": {
             "type": "string",
             "format": "date-time"
@@ -30284,6 +30394,26 @@
           "newServings": {
             "type": "integer",
             "format": "int32"
+          },
+          "currentSavoryServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "currentVegetarianServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "newSavoryServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "newVegetarianServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -30404,6 +30534,8 @@
           "hasPurchaseOrder",
           "hasReceipt",
           "impactLines",
+          "lockedDates",
+          "materialImpact",
           "menuAmendmentId",
           "requiresReconciliation",
           "status"
@@ -30472,6 +30604,19 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuAmendmentDecisionScopeDto"
+            }
+          },
+          "lockedDates": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "materialImpact": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxMaterialImpactDto"
             }
           }
         },
@@ -31360,6 +31505,184 @@
         },
         "additionalProperties": false
       },
+      "MrxEditScopeDayDto": {
+        "required": [
+          "isLocked",
+          "serviceDate",
+          "shifts"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "lockReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "shifts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxEditScopeShiftDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxEditScopeDto": {
+        "required": [
+          "days",
+          "menuVersionId"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "nullable": true
+          },
+          "batchStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "batchVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "menuVersionId": {
+            "type": "string"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxEditScopeDayDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxEditScopeDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MrxEditScopeDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxEditScopeShiftDto": {
+        "required": [
+          "shiftName",
+          "slots"
+        ],
+        "type": "object",
+        "properties": {
+          "shiftName": {
+            "type": "string"
+          },
+          "savoryServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "vegetarianServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "slots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxEditScopeSlotDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxEditScopeSlotDto": {
+        "required": [
+          "dishSlot",
+          "menuVariant",
+          "slotLabel"
+        ],
+        "type": "object",
+        "properties": {
+          "dishSlot": {
+            "type": "string"
+          },
+          "menuVariant": {
+            "type": "string"
+          },
+          "slotLabel": {
+            "type": "string"
+          },
+          "dishId": {
+            "type": "string",
+            "nullable": true
+          },
+          "dishCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "dishName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxMaterialImpactDto": {
+        "required": [
+          "ingredientCode",
+          "ingredientName",
+          "newQuantity",
+          "previousQuantity",
+          "serviceDate",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "ingredientCode": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string"
+          },
+          "previousQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "newQuantity": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
       "MrxOperationalQueueItemDto": {
         "required": [
           "createdAt",
@@ -31451,6 +31774,23 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MrxReimportDayDto": {
+        "required": [
+          "outcome",
+          "serviceDate"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "outcome": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -36061,6 +36401,10 @@
             "format": "int32",
             "nullable": true
           },
+          "frozenMenuVariant": {
+            "type": "string",
+            "nullable": true
+          },
           "frozenBomQuantityPerServing": {
             "type": "number",
             "format": "double",
@@ -36859,6 +37203,7 @@
           "dishName",
           "ingredientCode",
           "ingredientName",
+          "menuVariant",
           "serviceDate",
           "servings",
           "shiftName",
@@ -36909,6 +37254,9 @@
           "totalRequiredQuantity": {
             "type": "number",
             "format": "double"
+          },
+          "menuVariant": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -37855,6 +38203,19 @@
             "items": {
               "$ref": "#/components/schemas/ReconciliationWarehouseDailyLineDto"
             }
+          },
+          "lastRevisionAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lastRevisionByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastRevisionByRole": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -41945,6 +42306,16 @@
             "type": "integer",
             "format": "int32"
           },
+          "savoryServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "vegetarianServings": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
           "complete": {
             "type": "boolean"
           }
@@ -43017,6 +43388,16 @@
             "additionalProperties": {
               "$ref": "#/components/schemas/ImportedDayMenuDto"
             }
+          },
+          "mrxDayOutcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrxReimportDayDto"
+            },
+            "nullable": true
+          },
+          "mrxSourceChange": {
+            "$ref": "#/components/schemas/MenuAmendmentResultDto"
           }
         },
         "additionalProperties": false

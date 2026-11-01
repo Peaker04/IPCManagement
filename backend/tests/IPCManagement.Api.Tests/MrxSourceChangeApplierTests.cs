@@ -22,8 +22,8 @@ namespace IPCManagement.Api.Tests;
 /// </summary>
 public sealed class MrxSourceChangeApplierTests
 {
-    private static readonly DateOnly LockedDay = new(2026, 6, 15);
-    private static readonly DateOnly OpenDay = new(2026, 6, 17);
+    internal static readonly DateOnly LockedDay = new(2026, 6, 15);
+    internal static readonly DateOnly OpenDay = new(2026, 6, 17);
     private static readonly string[] ManagerRoles = ["Quản lý"];
 
     [Fact]
@@ -69,6 +69,29 @@ public sealed class MrxSourceChangeApplierTests
         result.LockedDates.Should().Equal(LockedDay);
         result.MaterialImpact.Should().ContainSingle().Which.Should().Be(
             new MrxMaterialImpactDto(OpenDay, "ING", "Ingredient", "kg", 200m, 300m));
+    }
+
+    [Fact]
+    public async Task First_split_before_batch_creates_source_servings_line()
+    {
+        await using var scenario = await Scenario.CreateAsync();
+        scenario.Context.Inventoryissues.RemoveRange(await scenario.Context.Inventoryissues.ToListAsync());
+        scenario.Context.Reconciliationbatches.RemoveRange(await scenario.Context.Reconciliationbatches.ToListAsync());
+        scenario.Context.Mealquantityplanlines.Remove(scenario.OpenPlanLine);
+        scenario.Context.Mealquantityplans.Remove(await scenario.Context.Mealquantityplans.SingleAsync(item => item.QuantityPlanId == scenario.OpenPlanLine.QuantityPlanId));
+        await scenario.Context.SaveChangesAsync();
+        scenario.Context.ChangeTracker.Clear();
+        var request = scenario.Request(Servings(OpenDay, 150, 25));
+        request.ExpectedBatchVersion = null;
+
+        var result = await scenario.Service().ApplyMrxAsync(request, scenario.ManagerIdString, ManagerRoles);
+
+        result.Status.Should().Be("EXECUTED");
+        await using var verify = scenario.Fixture.CreateContext();
+        var created = await verify.Mealquantityplanlines.AsNoTracking().SingleAsync(item => item.MenuScheduleId == scenario.OpenPlanLine.MenuScheduleId);
+        created.SavoryServings.Should().Be(150);
+        created.VegetarianServings.Should().Be(25);
+        created.FinalServings.Should().Be(175);
     }
 
     [Fact]
@@ -350,9 +373,9 @@ public sealed class MrxSourceChangeApplierTests
         ReconciliationBatchId = scenario.Batch.BatchId, IssuedBy = scenario.Fixture.UserId, CreatedAt = DateTime.UtcNow
     };
 
-    private sealed record Counts(int MenuVersions, int Amendments, int Revisions, int Deltas, int Audits, int Adjustments, int Menus, long BatchVersion);
+    internal sealed record Counts(int MenuVersions, int Amendments, int Revisions, int Deltas, int Audits, int Adjustments, int Menus, long BatchVersion);
 
-    private sealed class Scenario : IAsyncDisposable
+    internal sealed class Scenario : IAsyncDisposable
     {
         public const string Reason = "Khách hàng báo tăng suất thứ tư.";
 

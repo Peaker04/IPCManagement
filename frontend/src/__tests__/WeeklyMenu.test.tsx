@@ -1,17 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { WeeklyMenuPage } from '../features/weekly-menu/WeeklyMenuPage';
 import { AuthProvider } from '../store/authContext';
 import { weeklyMenuApi, type RawWeeklyMenuResponse } from '../api/weeklyMenuApi';
 import { MOCK_WEEKLY_MENU_DATA } from '../test/fixtures';
-import { mrxApi, type MrxBatch, type MrxQuantityPreview, type MrxWeeklySource } from '../api/mrxApi';
+import { mrxApi, type MrxBatch, type MrxMenuChangeResult, type MrxQuantityPreview, type MrxWeeklySource } from '../api/mrxApi';
 import { systemApi } from '../api/systemApi';
+import { adminApi } from '../api/adminApi';
 
 function LocationProbe() {
   const location = useLocation();
   return <div>{`${location.pathname}${location.search}`}</div>;
+}
+
+function mrxChangeResult(overrides: Partial<MrxMenuChangeResult>): MrxMenuChangeResult {
+  return {
+    affectedDemandCount: 0,
+    affectedDocumentIds: [],
+    affectedPurchaseRequestCount: 0,
+    affectedReconciliationBatchIds: [],
+    affectedSourceLineIds: [],
+    decisionScopes: [],
+    hasIssue: false,
+    hasPurchaseOrder: false,
+    hasReceipt: false,
+    impactLines: [],
+    lockedDates: [],
+    materialImpact: [],
+    menuAmendmentId: '',
+    requiresReconciliation: false,
+    status: 'PREVIEW',
+    ...overrides,
+  };
 }
 
 function renderWeeklyMenu(initialEntry = '/weekly-menu') {
@@ -42,6 +64,12 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
       items: [], totalCount: 0, pageNumber: 1, pageSize: 1, totalPages: 0, hasPrev: false, hasNext: false,
     });
+    vi.spyOn(mrxApi, 'getEditScope').mockResolvedValue({
+      batchId: null, batchStatus: null, batchVersion: null, menuVersionId: 'menu-v1', days: [],
+    });
+    vi.spyOn(adminApi, 'getDishes').mockResolvedValue({
+      items: [], totalCount: 0, pageNumber: 1, pageSize: 1000, totalPages: 0, hasPrev: false, hasNext: false,
+    });
   });
   it('lets Admin review exact pending impact and approve it from the MRX inbox', async () => {
     localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
@@ -60,7 +88,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
       status: 'PENDING_REVIEW', reason: 'Khách hàng tăng số suất', createdAt: '2026-10-18T00:00:00Z', affectedReconciliationBatchIds: ['batch-1'],
       impactLines: [{ serviceDate: '2026-10-19', shiftName: 'MORNING', dishSlot: 'main', oldDishId: 'dish-1', newDishId: 'dish-1', currentServings: 100, newServings: 120 }],
     }]);
-    vi.spyOn(mrxApi, 'decideSourceChange').mockResolvedValue({ menuAmendmentId: 'amendment-1', status: 'EXECUTED', affectedReconciliationBatchIds: ['batch-1'], impactLines: [] });
+    vi.spyOn(mrxApi, 'decideSourceChange').mockResolvedValue(mrxChangeResult({ menuAmendmentId: 'amendment-1', status: 'EXECUTED', affectedReconciliationBatchIds: ['batch-1'] }));
 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch');
     await userEvent.click(await screen.findByRole('button', { name: 'Yêu cầu chờ duyệt (1)' }));
@@ -69,43 +97,69 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     expect(mrxApi.decideSourceChange).toHaveBeenCalledWith('amendment-1', true, undefined);
     expect(await screen.findByText('Đã áp dụng thay đổi nguồn.')).toBeInTheDocument();
+    expect(screen.queryByText('Thành công')).not.toBeInTheDocument();
   });
 
-  it('previews a serving change then submits the exact versioned request for Admin review', async () => {
+  it('keeps imported dishes visible and exposes missing servings in the persistent source matrix', async () => {
     localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
     vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
-    const source: MrxWeeklySource = {
-      customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',
-      weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', menuVersionId: 'menu-v1', menuVersionNo: 3,
-      menuVersionStatus: 'PUBLISHED', warnings: [], validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
-    };
-    const quantityPreview = {
-      token: 'preview-token', expiresAt: '2026-10-18T10:15:00Z', contentFingerprint: 'fingerprint-v2', fingerprintFormatVersion: 2, diagnostics: [],
-      plans: [{ quantityPlanId: 'plan-1', planCode: 'SL-01', serviceDate: '2026-10-19', status: 'COMPLETED', rowVersion: '2026-10-18T00:00:00Z', lines: [{
-        quantityPlanLineId: 'line-1', menuScheduleId: 'schedule-1', customerId: 'customer-1', menuId: 'menu-1', shift: 'MORNING', finalServings: 100,
-        menuCode: 'MENU-1', menuName: 'Ca sáng', dishes: [{ dishId: 'dish-1', dishCode: 'MON-1', dishName: 'Món mặn', dishSlot: 'main', displayOrder: 1, materials: [] }],
+    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
+      customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25',
+      menuVersionId: 'menu-v1', menuVersionNo: 3, menuVersionStatus: 'PUBLISHED', warnings: [],
+      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
+    });
+    vi.spyOn(mrxApi, 'getEditScope').mockResolvedValue({
+      batchId: null, batchStatus: null, batchVersion: null, menuVersionId: 'menu-v1',
+      days: [{ serviceDate: '2026-10-19', isLocked: false, lockReason: null, shifts: [{
+        shiftName: 'MORNING', savoryServings: null, vegetarianServings: null,
+        slots: [
+          { dishSlot: 'savory-main', menuVariant: 'savory', slotLabel: 'Món mặn', dishId: 'dish-1', dishCode: 'M01', dishName: 'Cơm thịt' },
+          { dishSlot: 'vegetarian-main', menuVariant: 'vegetarian', slotLabel: 'Món chay', dishId: 'dish-2', dishCode: 'C01', dishName: 'Đậu khuôn kho' },
+        ],
       }] }],
-    } as MrxQuantityPreview;
-    const sourceImpact = { menuAmendmentId: '', status: 'PREVIEW', affectedReconciliationBatchIds: ['batch-1'], impactLines: [{ serviceDate: '2026-10-19', shiftName: 'MORNING', dishSlot: 'main', oldDishId: 'dish-1', newDishId: 'dish-1', currentServings: 100, newServings: 120 }] };
-    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue(source);
-    vi.spyOn(mrxApi, 'previewQuantityImport').mockResolvedValue(quantityPreview);
-    vi.spyOn(mrxApi, 'previewSourceChange').mockResolvedValue(sourceImpact);
-    vi.spyOn(mrxApi, 'submitSourceChange').mockResolvedValue({ ...sourceImpact, menuAmendmentId: 'amendment-1', status: 'PENDING_REVIEW' });
+    });
+    vi.spyOn(adminApi, 'getDishes').mockResolvedValue({
+      items: [
+        { dishId: 'dish-1', dishCode: 'M01', dishName: 'Cơm thịt', isActive: true },
+        { dishId: 'dish-2', dishCode: 'C01', dishName: 'Đậu khuôn kho', isActive: true },
+      ],
+      totalCount: 2, pageNumber: 1, pageSize: 1000, totalPages: 1, hasPrev: false, hasNext: false,
+    });
+    const preview = vi.spyOn(mrxApi, 'previewQuantityImport');
 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch&weekStartDate=2026-10-19');
-    await userEvent.click(await screen.findByRole('button', { name: 'Kiểm tra định lượng' }));
-    await userEvent.click(await screen.findByRole('button', { name: 'Điều chỉnh nguồn' }));
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Số suất mới' }), { target: { value: '120' } });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Lý do điều chỉnh' }), { target: { value: 'Khách hàng tăng số suất' } });
-    await userEvent.click(screen.getByRole('button', { name: 'Xem ảnh hưởng' }));
 
-    expect(await screen.findByText('100 → 120 suất')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Gửi Admin duyệt' }));
-    expect(mrxApi.submitSourceChange).toHaveBeenCalledWith({
-      customerId: 'customer-1', weekStartDate: '2026-10-19', expectedBaseMenuVersionId: 'menu-v1', reason: 'Khách hàng tăng số suất',
-      lines: [{ serviceDate: '2026-10-19', shiftName: 'MORNING', dishSlot: 'main', newServings: 120 }],
-    });
-    expect(await screen.findByText('Đã gửi yêu cầu thay đổi để Admin duyệt.')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
+    expect(screen.getByText('Cơm thịt')).toBeInTheDocument();
+    expect(screen.getByText('Đậu khuôn kho')).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Số suất Mặn 19/10 MORNING' })).toHaveValue(null);
+    expect(screen.getByRole('spinbutton', { name: 'Số suất Chay 19/10 MORNING' })).toHaveValue(null);
+    expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nhập lại Excel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
+    expect(preview).not.toHaveBeenCalled();
+
+    const savoryInput = screen.getByRole('spinbutton', { name: 'Số suất Mặn 19/10 MORNING' });
+    const vegetarianInput = screen.getByRole('spinbutton', { name: 'Số suất Chay 19/10 MORNING' });
+    await userEvent.type(savoryInput, '125');
+    await userEvent.type(vegetarianInput, '20');
+    expect(screen.queryByText('Thiếu 2 ô số suất')).not.toBeInTheDocument();
+    const reviewTrigger = screen.getByRole('button', { name: 'Tiếp tục xem ảnh hưởng (1)' });
+    await userEvent.click(reviewTrigger);
+    expect(screen.getByRole('button', { name: 'Quay lại danh sách' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Ảnh hưởng thay đổi nguồn MRX' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Xem trước ảnh hưởng' })).toHaveFocus();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Quay lại danh sách' }));
+    expect(screen.queryByRole('button', { name: 'Quay lại danh sách' })).not.toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', { name: 'Số suất Mặn 19/10 MORNING' })).toHaveValue(125);
+    expect(screen.getByRole('spinbutton', { name: 'Số suất Chay 19/10 MORNING' })).toHaveValue(20);
+    expect(screen.getByRole('button', { name: /Tiếp tục xem ảnh hưởng/ })).toHaveFocus();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa món' }));
+    expect(screen.getByRole('combobox', { name: 'Món mặn 19/10 MORNING' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Món chay 19/10 MORNING' })).toBeInTheDocument();
   });
 
   it('keeps MRX source diagnostics visible and blocks commit until the source is valid', async () => {
@@ -123,13 +177,33 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     };
     const defaultQuery = vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData');
     vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue(source);
+    vi.mocked(mrxApi.getEditScope).mockResolvedValue({
+      batchId: null, batchStatus: null, batchVersion: null, menuVersionId: 'menu-v1',
+      days: [{ serviceDate: '2026-10-19', isLocked: false, lockReason: null, shifts: [{
+        shiftName: 'MORNING', savoryServings: 100, vegetarianServings: 20,
+        slots: [{ dishSlot: 'savory-main', menuVariant: 'savory', slotLabel: 'Món mặn', dishId: 'dish-1', dishCode: 'M01', dishName: 'Canh bí đỏ' }],
+      }] }],
+    });
+    vi.mocked(adminApi.getDishes).mockResolvedValue({
+      items: [{ dishId: 'dish-1', dishCode: 'M01', dishName: 'Canh bí đỏ', isActive: true }],
+      totalCount: 1, pageNumber: 1, pageSize: 1000, totalPages: 1, hasPrev: false, hasNext: false,
+    });
     vi.spyOn(mrxApi, 'previewQuantityImport').mockResolvedValue(preview);
     vi.spyOn(mrxApi, 'commitQuantityImport');
 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch');
-    await userEvent.click(await screen.findByRole('button', { name: 'Kiểm tra định lượng' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Lưu & kiểm tra định lượng' }));
 
     expect(await screen.findByText('Món Canh bí đỏ chưa có định mức nguyên liệu.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
+    expect(screen.getAllByText('Canh bí đỏ').length).toBeGreaterThan(0);
+    expect(screen.getByText('Tóm tắt định lượng và nguyên liệu')).toBeInTheDocument();
+    const servings = screen.getByRole('spinbutton', { name: 'Số suất Mặn 19/10 MORNING' });
+    await userEvent.clear(servings);
+    await userEvent.type(servings, '101');
+    expect(screen.getByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
+    expect(screen.queryByText('Tóm tắt định lượng và nguyên liệu')).not.toBeInTheDocument();
+    expect(screen.queryByText('Món Canh bí đỏ chưa có định mức nguyên liệu.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Tạo lô nháp' })).not.toBeInTheDocument();
     expect(mrxApi.commitQuantityImport).not.toHaveBeenCalled();
     expect(defaultQuery).not.toHaveBeenCalled();
@@ -178,7 +252,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     vi.spyOn(mrxApi, 'transferToWarehouse').mockResolvedValue({ batchId: 'batch-1', status: 'TRANSFERRED', sourceVersion: 3, lines: [] });
 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch&weekStartDate=2026-10-19');
-    await userEvent.click(await screen.findByRole('button', { name: 'Kiểm tra định lượng' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Lưu & kiểm tra định lượng' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Tạo lô nháp' }));
     expect(mrxApi.commitQuantityImport).toHaveBeenCalledTimes(1);
     expect(createBatch).not.toHaveBeenCalled();
@@ -398,23 +472,31 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(customerSelect).toHaveValue('cust-2');
   });
 
-  it('renders Chỉnh sửa lịch tuần button on MRX Batch when source exists', async () => {
+  it('uses the unified weekly source workbench when an MRX source exists', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-11-01T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
       { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
     ]);
     vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
       customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
-      menuVersionId: 'mv-1', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [],
+      menuVersionId: 'mv-1', menuVersionNo: 1, menuVersionStatus: 'DRAFT', warnings: [],
       validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
     });
 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
 
-    const editBtn = await screen.findByRole('button', { name: 'Chỉnh sửa lịch tuần' });
-    expect(editBtn).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Hoàn thiện nguồn tuần' })).toBeInTheDocument();
+    expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nhập lại Excel' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
   });
 
-  it('disables Chỉnh sửa lịch tuần button with explanatory title when batch has progressed beyond DRAFT', async () => {
+  it('replaces the legacy schedule editor with direct MRX source editing after a batch exists', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-11-01T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
       { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
     ]);
@@ -437,8 +519,9 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
 
-    const editBtn = await screen.findByRole('button', { name: 'Chỉnh sửa lịch tuần' });
-    expect(editBtn).toBeDisabled();
-    expect(editBtn).toHaveAttribute('title', expect.stringContaining('Lô đối soát đã bàn giao sang Kho'));
+    expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
   });
 });

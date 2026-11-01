@@ -6,6 +6,14 @@ import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid
 import { toVietnameseDate } from '../../../utils/dates';
 import type { MrxPreparation } from '../../../api/mrxApi';
 
+type PreparationLine = MrxPreparation['aggregatedLines'][number];
+type PreparationAllocation = PreparationLine['allocations'][number];
+export type MrxFilteredPreparationLine = Omit<PreparationLine, 'allocations'> & {
+  allocations: PreparationAllocation[];
+  filteredRequired: number;
+  filteredRemaining: number;
+};
+
 export interface MrxPrepAllocationsBranchProps {
   data: MrxPreparation | null;
   activeDate: string;
@@ -13,8 +21,8 @@ export interface MrxPrepAllocationsBranchProps {
   onToggleBatch: (batchId: string) => void;
   supplierFilter: string;
   onSupplierFilterChange: (val: string) => void;
-  filteredAggregatedLines: any[];
-  columns: ColumnDef<any>[];
+  filteredAggregatedLines: MrxFilteredPreparationLine[];
+  columns: ColumnDef<MrxFilteredPreparationLine>[];
   successGroupId: string | null;
   onClearSuccessGroup: () => void;
   onNavigateDaily: () => void;

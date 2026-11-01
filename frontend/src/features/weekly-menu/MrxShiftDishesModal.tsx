@@ -5,7 +5,7 @@ import { Badge } from '../../components/ui/badge';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { toVietnameseDate } from '../../utils/dates';
-import type { PlanSummaryItem, ShiftDishDetail } from './MrxBatchPreviewSection';
+import type { PlanSummaryItem, ShiftDishDetail } from './mrxBatchPreviewTypes';
 
 interface MrxShiftDishesModalProps {
   isOpen: boolean;

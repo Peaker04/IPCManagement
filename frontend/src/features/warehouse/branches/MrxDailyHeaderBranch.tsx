@@ -11,8 +11,6 @@ export interface MrxDailyHeaderBranchProps {
   onSelectBatch: (id: string) => void;
   activeDate: string;
   onSelectDate: (date: string) => void;
-  onNavigatePreparation: () => void;
-  onNavigateTransactions?: () => void;
   isWeeklyAll: boolean;
   hasInitialIssue: boolean;
   onOpenSupplemental: () => void;
@@ -29,8 +27,6 @@ export function MrxDailyHeaderBranch({
   onSelectBatch,
   activeDate,
   onSelectDate,
-  onNavigatePreparation,
-  onNavigateTransactions: _onNavigateTransactions,
   isWeeklyAll,
   hasInitialIssue,
   onOpenSupplemental,
@@ -82,13 +78,6 @@ export function MrxDailyHeaderBranch({
       }
       actions={
         <WorkspaceHeader.Actions>
-          <Button
-            variant="outline"
-            size="default"
-            onClick={onNavigatePreparation}
-          >
-            Chuẩn bị phối hợp
-          </Button>
           {isWeeklyAll ? (
             <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center">
               Chế độ xem tổng hợp tuần (Chỉ đọc)

@@ -47,6 +47,19 @@ interface CacheWrapper<T> {
   isCompatibilityBlocked?: boolean;
 }
 
+function isCacheWrapper<T>(entry: unknown): entry is CacheWrapper<T> {
+  return typeof entry === 'object' && entry !== null && 'data' in entry;
+}
+
+function hasCompatibilityFlag(entry: unknown): entry is { isCompatibilityBlocked?: boolean } {
+  return typeof entry === 'object' && entry !== null && 'isCompatibilityBlocked' in entry;
+}
+
+function resolveCachePayload<T>(entry: unknown): T | null {
+  if (!entry) return null;
+  return isCacheWrapper<T>(entry) ? entry.data : entry as T;
+}
+
 /**
  * Canonical 5-Layer State & SWR Query Engine for Enterprise Workbenches
  * Enforces L1–L5 disjoint state precedence, 0ms synchronous Render #1 hydration,
@@ -65,33 +78,31 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
   emptyDescription,
   emptyScenario = 'filter-empty',
 }: UseWorkbenchQueryOptions<TData, TParams>): UseWorkbenchQueryResult<TData> {
-  const rawSnapshot = snapshotKey ? serverStateCache.get<any>(snapshotKey)?.data : null;
-  const rawCached = serverStateCache.get<any>(cacheKey)?.data;
+  const rawSnapshot = snapshotKey ? serverStateCache.get<unknown>(snapshotKey)?.data : null;
+  const rawCached = serverStateCache.get<unknown>(cacheKey)?.data;
 
-  const resolvePayload = (entry: any): TData | null => {
-    if (!entry) return null;
-    if (entry.data !== undefined) return entry.data as TData;
-    return entry as TData;
-  };
-
-  const initialData = resolvePayload(rawSnapshot) ?? resolvePayload(rawCached);
-  const initialBlocked = Boolean(rawSnapshot?.isCompatibilityBlocked || rawCached?.isCompatibilityBlocked);
+  const initialData = resolveCachePayload<TData>(rawSnapshot) ?? resolveCachePayload<TData>(rawCached);
+  const initialBlocked = Boolean(
+    (hasCompatibilityFlag(rawSnapshot) && rawSnapshot.isCompatibilityBlocked)
+      || (hasCompatibilityFlag(rawCached) && rawCached.isCompatibilityBlocked)
+  );
 
   const [data, setDataState] = useState<TData | null>(() => initialData);
   const [error, setError] = useState<Error | null>(() =>
     initialBlocked ? new Error('LEGACY_DAILY_LINEAGE_MISSING') : null
   );
   const [isFetching, setIsFetching] = useState(false);
+  const [resolvedCacheKey, setResolvedCacheKey] = useState(cacheKey);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(() => Boolean(initialData !== null || initialBlocked));
 
   const queryFnRef = useRef(queryFn);
-  queryFnRef.current = queryFn;
-
   const dataRef = useRef(data);
-  dataRef.current = data;
-
   const isCompatibilityBlockedRef = useRef(isCompatibilityBlocked);
-  isCompatibilityBlockedRef.current = isCompatibilityBlocked;
+  useEffect(() => {
+    queryFnRef.current = queryFn;
+    dataRef.current = data;
+    isCompatibilityBlockedRef.current = isCompatibilityBlocked;
+  }, [data, isCompatibilityBlocked, queryFn]);
 
   const isScopeProvided = scopeId !== undefined ? Boolean(scopeId) : true;
   const hasHydratedData = Boolean(data !== null || initialBlocked);
@@ -101,19 +112,25 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
   const refetch = useCallback(async (force = false) => {
     if (!isScopeProvided) return;
 
-    const currentCached = !force ? serverStateCache.get<any>(cacheKey)?.data : null;
+    const currentCached = !force ? serverStateCache.get<unknown>(cacheKey)?.data : null;
     if (currentCached) {
-      const payload = resolvePayload(currentCached);
+      const payload = resolveCachePayload<TData>(currentCached);
       setDataState(payload);
-      if (currentCached.isCompatibilityBlocked) {
+      if (hasCompatibilityFlag(currentCached) && currentCached.isCompatibilityBlocked) {
         setError(new Error('LEGACY_DAILY_LINEAGE_MISSING'));
       } else {
         setError(null);
       }
       setHasLoadedOnce(true);
+      setResolvedCacheKey(cacheKey);
       setIsFetching(false);
       if (snapshotKey) {
-        serverStateCache.set(snapshotKey, { data: payload, isCompatibilityBlocked: currentCached.isCompatibilityBlocked });
+        serverStateCache.set(snapshotKey, {
+          data: payload,
+          isCompatibilityBlocked: hasCompatibilityFlag(currentCached)
+            ? currentCached.isCompatibilityBlocked
+            : false,
+        });
       }
       return;
     }
@@ -127,6 +144,7 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
       const result = await queryFnRef.current();
       setDataState(result);
       setHasLoadedOnce(true);
+      setResolvedCacheKey(cacheKey);
       const entry: CacheWrapper<TData> = { data: result, isCompatibilityBlocked: false };
       serverStateCache.set(cacheKey, entry);
       if (snapshotKey) {
@@ -151,8 +169,46 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
   }, [cacheKey, isScopeProvided, snapshotKey]);
 
   useEffect(() => {
-    void refetch();
-  }, [refetch]);
+    if (!isScopeProvided) return;
+    let ignore = false;
+    queryFnRef.current()
+      .then((result) => {
+        if (ignore) return;
+        setDataState(result);
+        setHasLoadedOnce(true);
+        setResolvedCacheKey(cacheKey);
+        const entry: CacheWrapper<TData> = { data: result, isCompatibilityBlocked: false };
+        serverStateCache.set(cacheKey, entry);
+        if (snapshotKey) serverStateCache.set(snapshotKey, entry);
+        setError(null);
+      })
+      .catch((cause: unknown) => {
+        if (ignore) return;
+        setHasLoadedOnce(true);
+        setResolvedCacheKey(cacheKey);
+        const blocked = isCompatibilityBlockedRef.current
+          ? isCompatibilityBlockedRef.current(cause)
+          : false;
+        if (blocked) {
+          setError(new Error('LEGACY_DAILY_LINEAGE_MISSING'));
+          const entry: CacheWrapper<TData> = { data: null, isCompatibilityBlocked: true };
+          serverStateCache.set(cacheKey, entry);
+          if (snapshotKey) serverStateCache.set(snapshotKey, entry);
+        } else {
+          setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu trạm vận hành.'));
+        }
+      });
+    return () => { ignore = true; };
+  }, [cacheKey, isScopeProvided, snapshotKey]);
+
+  useEffect(() => {
+    if (!cacheKey.startsWith('mrx_')) return;
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') void refetch(true);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [cacheKey, refetch]);
 
   const setData = useCallback((updater: TData | null | ((prev: TData | null) => TData | null)) => {
     setDataState((prev) => {
@@ -177,15 +233,17 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
 
   const isRowsEmpty = Boolean(hasHydratedData && data && isDatasetEmpty ? isDatasetEmpty(data) : false);
 
+  const effectiveIsFetching = isFetching || (data !== null && resolvedCacheKey !== cacheKey);
+
   const isEmpty =
     (!hasHydratedData && !isCatalogBusy && !isQueryLoading && !isScopeProvided) ||
-    (hasHydratedData && !isCatalogBusy && !isQueryLoading && !isFetching && !error && isRowsEmpty);
+    (hasHydratedData && !isCatalogBusy && !isQueryLoading && !effectiveIsFetching && !error && isRowsEmpty);
 
   const isLoading = !hasHydratedData && (isCatalogBusy || (isScopeProvided && isQueryLoading));
 
   const stateProps = useMemo(() => ({
     isLoading,
-    isFetching,
+    isFetching: effectiveIsFetching,
     hasExistingData: hasHydratedData,
     error,
     isEmpty,
@@ -193,7 +251,7 @@ export function useWorkbenchQuery<TData, TParams = Record<string, unknown>>({
     emptyDescription,
     emptyScenario,
     isPartial: initialBlocked,
-  }), [emptyDescription, emptyScenario, emptyTitle, error, hasHydratedData, initialBlocked, isCatalogBusy, isEmpty, isFetching, isLoading, isScopeProvided]);
+  }), [emptyDescription, emptyScenario, emptyTitle, error, hasHydratedData, initialBlocked, isEmpty, effectiveIsFetching, isLoading, isScopeProvided]);
 
   return {
     data,

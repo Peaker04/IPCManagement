@@ -135,6 +135,22 @@ Ma trận yêu cầu chuẩn hóa toàn diện liên kết 12 Phân hệ Backend
 | `BR-GLOBAL-03` | Ledger Immutability | Các chứng từ sau khi chốt sổ hoặc ghi sổ kế toán kho (`Approved`, `Posted`, `Locked`, `Closed`) là bất biến (append-only); nghiêm cấm cập nhật đè (update) hoặc xóa vật lý (hard delete). | Sai sót chỉ được điều chỉnh bằng các bút toán bù trừ nghịch đảo mang đầy đủ dấu vết kiểm toán. |
 | `BR-GLOBAL-04` | Explicit Blocker Evidence | Khi một tiến trình vận hành bị chặn (ví dụ: `ServiceRun` bị kẹt, phiếu PO chưa duyệt, kho chưa đủ hàng), hệ thống phải cung cấp đầy đủ bằng chứng nguyên nhân, điều kiện tiên quyết và hướng dẫn khắc phục cụ thể (`UXR-02`). | Cấm hiển thị trạng thái bị khóa mà không chỉ rõ mắt xích bị tắc hoặc người chịu trách nhiệm. |
 
+### 1.1. Material Reconciliation Source Rules (BR-MRX)
+
+| Rule ID | Tiêu đề | Đặc tả nghiệp vụ bất biến | Ràng buộc kiến trúc |
+|---|---|---|---|
+| `BR-MRX-EDIT-1` | Source Change Roles | Admin/Quản lý áp dụng trực tiếp; Điều phối gửi duyệt; Thủ kho/Bếp trưởng không sửa nguồn. Lý do áp dụng và lý do từ chối đều bắt buộc ở đúng decision path. | Backend authorization và MRX action guards phải cùng vai trò; ẩn nút không thay thế API guard. |
+| `BR-MRX-EDIT-2` | Editable Source Grain | Cho phép sửa món theo ngày × ca × slot, số suất Mặn/Chay theo căn tin × ngày × ca và reimport thực đơn tuần. | Payload phải dùng exact source identity và split-serving fields; không dùng total-serving shortcut. |
+| `BR-MRX-EDIT-3` | Day Lock | Ngày có issue cùng batch/date bị khóa; `COMPLETED` khóa toàn lô, còn `DRAFT|READY|TRANSFERRED|IN_PROGRESS` cho sửa ngày chưa khóa. | Lock được suy ra từ immutable issue lineage, không lưu cờ UI hay batch-wide shortcut. |
+| `BR-MRX-EDIT-4` | Atomic Locked-Date Rejection | Yêu cầu chạm một ngày khóa bị từ chối toàn bộ và trả danh sách ngày khóa. | Transaction không được partial-write menu, servings, projection, contributor, revision hoặc delta. |
+| `BR-MRX-EDIT-5` | Cross-Projection Synchronization | Ngày mở cập nhật đồng bộ menu version, split servings, daily/weekly material quantities và cooking contributors; ngày khóa giữ nguyên. | Một protected transaction và một applier owner; Kho/Bếp/Đối chiếu/Dashboard đọc cùng revision mới. |
+| `BR-MRX-EDIT-6` | Single Source-Change Path | Khi căn tin × tuần đã có batch, mọi direct edit, approved request và reimport đi qua source-change applier; legacy quick-servings/bulk-update bị chặn. | Cấm bypass qua shared Coordination mutation sau khi batch tồn tại. |
+| `BR-MRX-EDIT-7` | Per-Day Freeze | Frozen value của một ngày bất biến kể từ issue đầu tiên của ngày đó, không phải chỉ vì batch vào `READY`. | Batch lifecycle và date lock là hai authority khác nhau; không dùng `READY` làm khóa toàn tuần. |
+| `BR-MRX-EDIT-8` | Append-Only Revision History | Mỗi lần áp dụng giữ actor, role, apply mode, reason, time và delta trước/sau theo ngày × nguyên liệu. | Không hard-delete revision/delta; legacy pending delta chỉ là lịch sử và không chặn completion. |
+| `BR-MRX-EDIT-9` | Apply-vs-Issue Concurrency | Nếu Kho khóa ngày giữa preview và apply, apply trả `MRX_DAY_LOCKED`, giữ draft và yêu cầu reload. | Protected transaction/version fence bảo đảm đúng một nhánh thắng và không có post-issue rewrite. |
+| `BR-MRX-SERV-1` | Savory/Vegetarian Servings | Slot `vegetarian-*` nhân số suất Chay; slot khác nhân số suất Mặn; tổng suất bằng tổng hai loại. | Projection/fingerprint/contributor phải giữ đúng variant; không nhân mọi món với tổng suất. |
+| `BR-MRX-SERV-2` | No Fabricated Servings | Import không tự ghi số suất; thiếu split hiển thị `Chưa nhập` và chặn quantity preview/batch creation. | Cấm default `100`, fake completion hoặc nuốt lỗi quick-servings để tạo PASS giả. |
+
 ### 2. Functional Requirements Matrix (13 FRs — 12 BE Features <-> 14 FE Routes)
 
 | FR Code | Tên phân hệ nghiệp vụ | Phân hệ Backend (`backend/.../Features/`) | Route & Feature Frontend (`frontend/.../`) | Primary Work Object & Năng lực chính |

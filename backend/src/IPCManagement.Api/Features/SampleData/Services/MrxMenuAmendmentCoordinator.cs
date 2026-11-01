@@ -1,10 +1,7 @@
 using System.Text.Json;
 using IPCManagement.Api.Data;
-using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
-using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.SampleData.Contracts;
-using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -13,14 +10,10 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class MrxMenuAmendmentCoordinator(
     IpcManagementContext context,
-    IEfTransactionRunner? transactionRunner,
-    SystemOperationRequestContext? operationContext,
-    Func<CreateMenuAmendmentRequest, string?, CancellationToken, Task<MenuAmendmentResultDto>> createAsync,
-    Func<CreateMenuAmendmentRequest, CancellationToken, Task<MenuAmendmentResultDto>> previewAsync)
+    IMrxSourceChangeGateway gateway,
+    Func<CreateMenuAmendmentRequest, string?, CancellationToken, Task<MenuAmendmentResultDto>> createAsync)
 {
-    private MrxSourceChangeApplier Applier => new(context, transactionRunner, operationContext);
-
-    /// <summary>BR-MRX-EDIT-1: Admin/Quản lý áp dụng trực tiếp (ApplyMode DIRECT) qua <see cref="MrxSourceChangeApplier"/>.</summary>
+    /// <summary>BR-MRX-EDIT-1: Admin/Quản lý áp dụng trực tiếp qua MRX source-change gateway.</summary>
     public async Task<MenuAmendmentResultDto> ApplyMrxAsync(
         CreateMenuAmendmentRequest request,
         string? actorUserId,
@@ -29,8 +22,7 @@ internal sealed class MrxMenuAmendmentCoordinator(
     {
         RequireMrxBaseVersion(request);
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người áp dụng thay đổi.");
-        var actorRole = MrxSourceChangeApplier.ResolveActorRole(actorRoles);
-        var preview = await previewAsync(request, cancellationToken);
+        var preview = await gateway.PreviewAsync(request, cancellationToken);
         var amendmentId = GuidHelper.NewId();
         var amendment = new MenuAmendment
         {
@@ -50,7 +42,7 @@ internal sealed class MrxMenuAmendmentCoordinator(
                 OldDishId = GuidHelper.ParseGuidString(line.OldDishId), NewDishId = GuidHelper.ParseGuidString(line.NewDishId)!
             }).ToList()
         };
-        return await Applier.ApplyAsync(amendment, actorId, actorRole, MrxSourceChangeApplier.DirectMode, request.ExpectedBatchVersion, cancellationToken);
+        return await gateway.ApplyAsync(amendment, actorId, actorRoles, "DIRECT", request.ExpectedBatchVersion, cancellationToken);
     }
 
     public async Task<MenuAmendmentResultDto> DecideMrxAsync(
@@ -62,11 +54,9 @@ internal sealed class MrxMenuAmendmentCoordinator(
     {
         var id = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã yêu cầu thay đổi không hợp lệ.");
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người duyệt.");
-        var actorRole = MrxSourceChangeApplier.ResolveActorRole(actorRoles);
-        var runner = transactionRunner ?? new EfTransactionRunner(context);
         if (!request.Approved)
         {
-            return await MrxSourceChangeApplier.RunMrxTransactionAsync(runner, operationContext, async token =>
+            return await gateway.RunTransactionAsync(async token =>
             {
                 var amendment = await LoadPendingAsync(id, token);
                 var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
@@ -85,13 +75,13 @@ internal sealed class MrxMenuAmendmentCoordinator(
             ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
         try
         {
-            return await Applier.ApplyAsync(pending, actorId, actorRole, MrxSourceChangeApplier.ApprovedRequestMode, null, cancellationToken);
+            return await gateway.ApplyAsync(pending, actorId, actorRoles, "APPROVED_REQUEST", null, cancellationToken);
         }
         catch (MrxSourceChangeException error) when (error.Code == MrxErrorCodes.DayLocked)
         {
             // BR-MRX-EDIT-9: ngày đã khóa từ lúc gửi → trả yêu cầu về CORRECTION_REQUIRED (giao dịch riêng, giao dịch áp dụng đã rollback).
             context.ChangeTracker.Clear();
-            await MrxSourceChangeApplier.RunMrxTransactionAsync(runner, operationContext, async token =>
+            await gateway.RunTransactionAsync(async token =>
             {
                 var amendment = await LoadPendingAsync(id, token);
                 SetReviewStatus(amendment, "CORRECTION_REQUIRED", actorId, error.Message);
@@ -123,7 +113,7 @@ internal sealed class MrxMenuAmendmentCoordinator(
     public Task<MenuAmendmentResultDto> PreviewMrxAsync(CreateMenuAmendmentRequest request, CancellationToken cancellationToken = default)
     {
         RequireMrxBaseVersion(request);
-        return previewAsync(request, cancellationToken);
+        return gateway.PreviewAsync(request, cancellationToken);
     }
 
     public Task<MenuAmendmentResultDto> SubmitMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)

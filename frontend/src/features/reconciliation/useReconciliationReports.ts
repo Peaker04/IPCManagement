@@ -44,14 +44,7 @@ export function useReconciliationReports({
 
   const fetchReport = useCallback(async (force = false) => {
     if (activeReportTab === 'lines') return;
-    if (activeReportTab !== 'completed' && !batchId) {
-      setIsReportLoading(false);
-      setVariancesReport(null);
-      setTransactionsReport(null);
-      setAuditReport(null);
-      setSourceChanges(null);
-      return;
-    }
+    if (activeReportTab !== 'completed' && !batchId) return;
 
     const cacheKey = activeReportTab === 'completed'
       ? 'mrx_completed_register'
@@ -62,21 +55,8 @@ export function useReconciliationReports({
       : `mrx_audit_${batchId}`;
 
     const cached = !force ? serverStateCache.get(cacheKey)?.data : null;
-    if (cached) {
-      if (activeReportTab === 'completed') setCompletedReport(cached as MrxCompletedRegisterReport);
-      else if (activeReportTab === 'variances') setVariancesReport(cached as MrxVarianceRegisterReport);
-      else if (activeReportTab === 'transactions') setTransactionsReport(cached as MrxTransactionHistoryReport);
-      else if (activeReportTab === 'audit') {
-        const c = cached as { audit: MrxAuditTrailReport; sources: MrxSourceChangeItem[] };
-        setAuditReport(c.audit);
-        setSourceChanges(c.sources);
-      }
-      setIsReportLoading(false);
-      return;
-    }
+    if (cached) return;
 
-    setReportError(null);
-    setIsReportLoading(true);
     try {
       if (activeReportTab === 'completed') {
         const res = await mrxApi.getCompletedRegister();
@@ -103,13 +83,60 @@ export function useReconciliationReports({
       }
     } catch (err: unknown) {
       setReportError(err instanceof Error ? err : new Error('Không thể tải báo cáo đối soát.'));
-    } finally {
-      setIsReportLoading(false);
     }
   }, [activeReportTab, batchId, weekStartDate]);
 
   useEffect(() => {
-    void fetchReport();
+    if (activeReportTab === 'lines' || (activeReportTab !== 'completed' && !batchId)) return;
+    const cacheKey = activeReportTab === 'completed'
+      ? 'mrx_completed_register'
+      : activeReportTab === 'variances'
+      ? `mrx_variance_${batchId}_${weekStartDate}`
+      : activeReportTab === 'transactions'
+      ? `mrx_tx_${batchId}`
+      : `mrx_audit_${batchId}`;
+    if (serverStateCache.get(cacheKey)?.data) return;
+
+    let ignore = false;
+    const request = activeReportTab === 'completed'
+      ? mrxApi.getCompletedRegister().then((result) => ({ kind: 'completed' as const, result }))
+      : activeReportTab === 'variances'
+      ? mrxApi.getVarianceRegister(batchId, weekStartDate).then((result) => ({ kind: 'variances' as const, result }))
+      : activeReportTab === 'transactions'
+      ? mrxApi.getTransactionsHistory(batchId).then((result) => ({ kind: 'transactions' as const, result }))
+      : Promise.all([mrxApi.getAuditTrail(batchId), mrxApi.getSourceChanges(batchId)])
+          .then(([audit, sources]) => ({ kind: 'audit' as const, result: { audit, sources } }));
+
+    request.then((response) => {
+      if (ignore) return;
+      if (response.kind === 'completed') {
+        setCompletedReport(response.result);
+        serverStateCache.set('mrx_completed_register', response.result);
+      } else if (response.kind === 'variances') {
+        setVariancesReport(response.result);
+        serverStateCache.set(`mrx_variance_${batchId}_${weekStartDate}`, response.result);
+      } else if (response.kind === 'transactions') {
+        setTransactionsReport(response.result);
+        serverStateCache.set(`mrx_tx_${batchId}`, response.result);
+      } else {
+        setAuditReport(response.result.audit);
+        setSourceChanges(response.result.sources);
+        serverStateCache.set(`mrx_audit_${batchId}`, response.result);
+      }
+    }).catch((cause: unknown) => {
+      if (!ignore) setReportError(cause instanceof Error ? cause : new Error('Không thể tải báo cáo đối soát.'));
+    });
+    return () => { ignore = true; };
+  }, [activeReportTab, batchId, weekStartDate]);
+
+  const reloadReport = useCallback(async () => {
+    setReportError(null);
+    setIsReportLoading(true);
+    try {
+      await fetchReport(true);
+    } finally {
+      setIsReportLoading(false);
+    }
   }, [fetchReport]);
 
   const currentVariance = variancesReport ?? (batchId ? serverStateCache.get<MrxVarianceRegisterReport>(`mrx_variance_${batchId}_${weekStartDate}`)?.data ?? null : null);
@@ -126,6 +153,6 @@ export function useReconciliationReports({
     sourceChanges: currentSourceChanges,
     isReportLoading,
     reportError,
-    reloadReport: fetchReport,
+    reloadReport,
   };
 }

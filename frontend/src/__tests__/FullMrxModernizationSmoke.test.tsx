@@ -175,7 +175,7 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
 
   // 4. Stepper Vòng đời Thật: Khi chưa có lô, Stepper hiển thị "Chưa khởi tạo lô đối soát"
   it('Task 4: Renders truthful neutral state "Chưa khởi tạo lô đối soát" when no batch exists', async () => {
-    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue(null as any);
+    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue(null);
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 1, totalPages: 0, hasPrev: false, hasNext: false });
 
     render(

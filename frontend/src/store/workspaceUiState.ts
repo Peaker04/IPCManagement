@@ -44,8 +44,8 @@ export function clearAllWorkspaceState(): void {
       }
     }
     keysToRemove.forEach((key) => localStorage.removeItem(key));
-  } catch (err) {
-    console.error('Failed to purge workspace storage:', err);
+  } catch {
+    // Workspace cleanup is best-effort when browser storage is unavailable.
   }
 }
 
@@ -116,8 +116,8 @@ export function useWorkspaceUiState<TFilter = unknown>({
       const next = { ...prev, ...patch };
       try {
         localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch (err) {
-        console.error('Failed to save workspace config:', err);
+      } catch {
+        // Keep the in-memory workspace config when storage is unavailable.
       }
       return next;
     });
@@ -135,7 +135,9 @@ export function useWorkspaceUiState<TFilter = unknown>({
       const next = { ...prev, hiddenColumns: hidden };
       try {
         localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch {}
+      } catch {
+        // Keep the in-memory column visibility when storage is unavailable.
+      }
       return next;
     });
   }, [storageKey]);
@@ -145,7 +147,9 @@ export function useWorkspaceUiState<TFilter = unknown>({
       const next = { ...prev, columnWidths: { ...prev.columnWidths, [columnId]: width } };
       try {
         localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch {}
+      } catch {
+        // Keep the in-memory column width when storage is unavailable.
+      }
       return next;
     });
   }, [storageKey]);
@@ -163,7 +167,9 @@ export function useWorkspaceUiState<TFilter = unknown>({
       const next = [...prev, newView];
       try {
         localStorage.setItem(viewsStorageKey, JSON.stringify(next));
-      } catch {}
+      } catch {
+        // Keep the in-memory saved view when storage is unavailable.
+      }
       return next;
     });
     return newView;
@@ -174,7 +180,9 @@ export function useWorkspaceUiState<TFilter = unknown>({
       const next = prev.filter((v) => v.id !== id);
       try {
         localStorage.setItem(viewsStorageKey, JSON.stringify(next));
-      } catch {}
+      } catch {
+        // Keep the in-memory saved-view list when storage is unavailable.
+      }
       return next;
     });
   }, [viewsStorageKey]);

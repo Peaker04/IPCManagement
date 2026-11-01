@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { MemoryRouter, useSearchParams } from 'react-router-dom';
-import { WorkspaceScopeProvider, useWorkspaceScope } from '../store/workspaceScopeContext';
+import { WorkspaceScopeProvider } from '../store/workspaceScopeContext';
+import { useWorkspaceScope } from '../store/workspaceScope';
 
 function TestConsumer() {
   const { scope, setScope, snapToMonday } = useWorkspaceScope();

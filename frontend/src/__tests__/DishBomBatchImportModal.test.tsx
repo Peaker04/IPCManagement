@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DishBomBatchImportModal } from '../features/admin/DishBomBatchImportModal';
-import { bomApi } from '../api/bomApi';
+import { DishBomBatchImportModal } from '../components/workbench/DishBomBatchImportModal';
+import { bomApi, type BomImportCommitResult, type BomImportPreviewResult } from '../api/bomApi';
 
 vi.mock('../api/bomApi', () => ({
   bomApi: {
@@ -42,13 +42,15 @@ describe('DishBomBatchImportModal Component Tests (Rule TA-2 & TA-4)', () => {
   });
 
   it('toggles price tiers and previews excel import file', async () => {
-    const mockPreview = {
+    const mockPreview: BomImportPreviewResult = {
+      generatedAt: '2026-10-28T12:00:00Z',
+      priceTier: 30000,
+      bomScope: 'global',
       canCommit: true,
       totalRows: 15,
       validRows: 15,
       errorRows: 0,
       warningRows: 0,
-      dishesCovered: 5,
       rows: [
         {
           rowNumber: 2,
@@ -65,7 +67,7 @@ describe('DishBomBatchImportModal Component Tests (Rule TA-2 & TA-4)', () => {
       warnings: [],
     };
 
-    vi.mocked(bomApi.previewBomImport).mockResolvedValueOnce(mockPreview as any);
+    vi.mocked(bomApi.previewBomImport).mockResolvedValueOnce(mockPreview);
 
     render(
       <DishBomBatchImportModal
@@ -98,18 +100,20 @@ describe('DishBomBatchImportModal Component Tests (Rule TA-2 & TA-4)', () => {
   });
 
   it('commits batch BOM import when confirmed', async () => {
-    const mockPreview = {
+    const mockPreview: BomImportPreviewResult = {
+      generatedAt: '2026-10-28T12:00:00Z',
+      priceTier: 25000,
+      bomScope: 'global',
       canCommit: true,
       totalRows: 15,
       validRows: 15,
       errorRows: 0,
       warningRows: 0,
-      dishesCovered: 5,
       rows: [],
       warnings: [],
     };
 
-    const mockCommit = {
+    const mockCommit: BomImportCommitResult = {
       totalCommittedRows: 15,
       createdRows: 15,
       updatedRows: 0,
@@ -117,8 +121,8 @@ describe('DishBomBatchImportModal Component Tests (Rule TA-2 & TA-4)', () => {
       auditBatchCode: 'BOM-20261029-001',
     };
 
-    vi.mocked(bomApi.previewBomImport).mockResolvedValueOnce(mockPreview as any);
-    vi.mocked(bomApi.commitBomImport).mockResolvedValueOnce(mockCommit as any);
+    vi.mocked(bomApi.previewBomImport).mockResolvedValueOnce(mockPreview);
+    vi.mocked(bomApi.commitBomImport).mockResolvedValueOnce(mockCommit);
 
     const onImportSuccess = vi.fn();
     const user = userEvent.setup();

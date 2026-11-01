@@ -6,8 +6,8 @@ import { IdentifierText } from '../../../components/ui/identifier-text';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { DishBomEditorModal } from '../DishBomEditorModal';
-import { DishBomBatchImportModal } from '../DishBomBatchImportModal';
+import { DishBomEditorModal } from '../../../components/workbench/DishBomEditorModal';
+import { DishBomBatchImportModal } from '../../../components/workbench/DishBomBatchImportModal';
 import { bomApi, type BomCoverageDish, type BomCoverageReport } from '../../../api/bomApi';
 
 export function AdminBomBranch() {
@@ -33,7 +33,14 @@ export function AdminBomBranch() {
   };
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    bomApi.getBomCoverage()
+      .then((data) => { if (!ignore) setReport(data); })
+      .catch((cause: unknown) => {
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải báo cáo độ phủ BOM.'));
+      })
+      .finally(() => { if (!ignore) setIsLoading(false); });
+    return () => { ignore = true; };
   }, []);
 
   const dishes = useMemo(() => report?.dishes || [], [report]);
@@ -250,6 +257,7 @@ export function AdminBomBranch() {
 
       {/* BOM Editor Modal */}
       <DishBomEditorModal
+        key={editingDish?.dishId ?? 'closed'}
         isOpen={Boolean(editingDish)}
         onClose={() => setEditingDish(null)}
         dish={editingDish}

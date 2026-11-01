@@ -7,7 +7,6 @@ import { Checkbox } from '../../components/ui/checkbox';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { VietnameseDateInput } from '../../components/ui/vietnamese-date-input';
 import { weeklyMenuApi, type WeeklyMenuImportHistoryItem } from '../../api/weeklyMenuApi';
-import { apiClient } from '../../api/client';
 import { toIsoDate, toVietnameseDate } from '../../utils/dates';
 import { downloadAuthenticatedFile } from '../../utils/fileDownload';
 import type { CustomerOption } from '../../types';
@@ -21,6 +20,7 @@ interface WeeklyMenuImportModalProps {
   customers: CustomerOption[];
   initialCustomerId?: string;
   initialWeekStartDate?: string;
+  mrxActorRole?: 'ADMIN' | 'MANAGER' | 'COORDINATOR' | 'WAREHOUSE';
   onImportSuccess: () => void;
 }
 
@@ -30,6 +30,7 @@ export function WeeklyMenuImportModal({
   customers = [],
   initialCustomerId = '',
   initialWeekStartDate = '',
+  mrxActorRole,
   onImportSuccess,
 }: WeeklyMenuImportModalProps) {
   const [selectedCustomerId, setSelectedCustomerId] = useState(initialCustomerId || customers[0]?.customerId || '');
@@ -129,23 +130,11 @@ export function WeeklyMenuImportModal({
 
       await weeklyMenuApi.commitWeeklyMenuImport(formData);
 
-      if (autoPublish) {
+      if (autoPublish && !previewResult?.mrxDayOutcomes?.length) {
         try {
           const schedules = await weeklyMenuApi.getMenuSchedules(selectedCustomerId, isoDate);
           if (schedules.length > 0) {
             await weeklyMenuApi.publishMenuSchedule(schedules[0].menuScheduleId, 'Tự động xuất bản sau khi nhập');
-            for (const s of schedules) {
-              await apiClient('/coordination/meal-quantity-plans/quick-servings', {
-                method: 'POST',
-                body: JSON.stringify({
-                  customerId: selectedCustomerId,
-                  serviceDate: s.serviceDate,
-                  shiftName: s.shiftName,
-                  servings: 100,
-                  complete: true,
-                }),
-              }).catch(() => null);
-            }
           }
         } catch {
           // ignore publish warning, commit already succeeded
@@ -168,6 +157,14 @@ export function WeeklyMenuImportModal({
 
   const validationIssues = previewResult?.validation?.issues ?? [];
   const hasErrors = validationIssues.some((issue) => issue.severity === 'ERROR');
+  const mrxDayOutcomes = previewResult?.mrxDayOutcomes ?? [];
+  const hasLockedConflict = mrxDayOutcomes.some((day) => day.outcome === 'LOCKED_CONFLICT');
+  const isMrxReimport = mrxDayOutcomes.length > 0;
+  const commitLabel = isMrxReimport && mrxActorRole === 'COORDINATOR'
+    ? 'Gửi duyệt'
+    : isMrxReimport && (mrxActorRole === 'ADMIN' || mrxActorRole === 'MANAGER')
+      ? 'Áp dụng ngay'
+      : 'Xác nhận nhập';
 
   return (
     <Modal
@@ -210,10 +207,11 @@ export function WeeklyMenuImportModal({
                   type="button"
                   variant="default"
                   size="sm"
-                  disabled={isLoading || hasErrors}
+                  disabled={isLoading || hasErrors || hasLockedConflict}
+                  title={hasLockedConflict ? 'Có ngày đã xuất kho khác dữ liệu nguồn; không thể lưu.' : undefined}
                   onClick={() => void handleCommit()}
                 >
-                  {isLoading ? 'Đang lưu…' : 'Xác nhận nhập'}
+                  {isLoading ? 'Đang lưu…' : commitLabel}
                 </Button>
               )
             )}
@@ -427,7 +425,7 @@ export function WeeklyMenuImportModal({
           />
         </div>
 
-        <div className="pt-1">
+        {!isMrxReimport && <div className="pt-1">
           <label className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700 cursor-pointer">
             <Checkbox
               checked={autoPublish}
@@ -435,7 +433,7 @@ export function WeeklyMenuImportModal({
             />
             <span>Tự động xuất bản thực đơn sau khi nhập (Để sẵn sàng lập lô MRX)</span>
           </label>
-        </div>
+        </div>}
 
         {previewResult && (
           <div role="status" className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2 text-xs">
@@ -451,6 +449,22 @@ export function WeeklyMenuImportModal({
               <div>Tuần: <strong>{previewResult.weekStartDate}</strong> đến <strong>{previewResult.weekEndDate}</strong></div>
               <div>Cảnh báo: <strong>{previewResult.warnings?.length ?? 0}</strong></div>
             </div>
+
+            {mrxDayOutcomes.length > 0 && (
+              <div className="mt-2 overflow-hidden rounded border border-slate-200 bg-white">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50 text-slate-700"><tr><th className="p-2 text-left">Ngày</th><th className="p-2 text-left">Kết quả đối chiếu nguồn</th></tr></thead>
+                  <tbody>{mrxDayOutcomes.map((day) => {
+                    const label = day.outcome === 'CHANGED' ? 'Thay đổi'
+                      : day.outcome === 'UNCHANGED' ? 'Không đổi'
+                        : day.outcome === 'LOCKED_IDENTICAL' ? 'Đã xuất kho – giống, bỏ qua'
+                          : 'Đã xuất kho – khác, bị chặn';
+                    return <tr key={day.serviceDate} className="border-t border-slate-100"><td className="p-2 tabular-nums">{toVietnameseDate(day.serviceDate)}</td><td className={`p-2 font-medium ${day.outcome === 'LOCKED_CONFLICT' ? 'text-rose-700' : 'text-slate-700'}`}>{label}</td></tr>;
+                  })}</tbody>
+                </table>
+                {hasLockedConflict && <p role="alert" className="border-t border-rose-200 bg-rose-50 p-2 text-rose-800">Không thể lưu vì file thay đổi ngày đã xuất kho.</p>}
+              </div>
+            )}
 
             {validationIssues.length > 0 && (
               <div className="mt-2 pt-2 border-t border-slate-200">

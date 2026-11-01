@@ -11,7 +11,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
 import { workspaceSessionStore } from '../../store/workspaceSessionStore';
 import { MrxPrepHeaderBranch } from './branches/MrxPrepHeaderBranch';
-import { MrxPrepAllocationsBranch } from './branches/MrxPrepAllocationsBranch';
+import { MrxPrepAllocationsBranch, type MrxFilteredPreparationLine } from './branches/MrxPrepAllocationsBranch';
 
 interface MrxMultiCustomerPreparationWorkbenchProps {
   serviceDate: string;
@@ -25,11 +25,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
   const initialDate = serviceDate || urlDate || sessionScope.serviceDate || todayInBusinessTimezone();
   const [activeDate, setActiveDate] = useState(() => initialDate);
 
-  const {
-    data,
-    stateProps,
-    refetch: load,
-  } = useWorkbenchQuery<MrxPreparation>({
+  const preparationQuery = useWorkbenchQuery<MrxPreparation>({
     scopeKey: 'mrx_preparation',
     cacheKey: `mrx_preparation_${activeDate}`,
     snapshotKey: 'snapshot:mrx_preparation',
@@ -40,6 +36,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
     emptyDescription: 'Các lô đối soát cần được Điều phối chuyển sang Kho ở trạng thái Sẵn sàng xuất kho.',
     emptyScenario: 'filter-empty',
   });
+  const { data, stateProps, refetch: load } = preparationQuery;
 
   const [selectedBatchIds, setSelectedBatchIds] = useState<string[] | null>(null);
   const [supplierFilter, setSupplierFilter] = useState('');
@@ -57,7 +54,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
     [data, activeSelectedBatchIds]
   );
 
-  const filteredAggregatedLines = useMemo(() => {
+  const filteredAggregatedLines = useMemo<MrxFilteredPreparationLine[]>(() => {
     if (!data || !data.aggregatedLines) return [];
     return data.aggregatedLines
       .map((line) => {
@@ -81,7 +78,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
     });
   };
 
-  const columns = useMemo<ColumnDef<typeof filteredAggregatedLines[number]>[]>(() => [
+  const columns = useMemo<ColumnDef<MrxFilteredPreparationLine>[]>(() => [
     {
       id: 'ingredient',
       header: 'Nguyên liệu',
@@ -128,7 +125,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
         </div>
       ),
     },
-  ], [filteredAggregatedLines]);
+  ], []);
 
   const canSubmit = activeBatches.length > 0 && !issuing && activeBatches.every((b) => b.isApplicable && !b.hasExistingIssue);
 

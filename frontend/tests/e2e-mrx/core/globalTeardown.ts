@@ -22,7 +22,9 @@ export default async function globalTeardown(): Promise<void> {
   try {
     execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 5174, 5263 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }"`);
     console.log('[E2E-MRX-TEARDOWN] Ports 5174 and 5263 processes terminated.');
-  } catch {}
+  } catch {
+    // Processes may already have exited before teardown.
+  }
 
   // 3. Drop sandbox database
   try {

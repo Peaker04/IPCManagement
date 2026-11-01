@@ -4,6 +4,8 @@ import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
 import { Num } from '../../../components/ui/num';
 import { IdentifierText } from '../../../components/ui/identifier-text';
+import { InlineBanner } from '../../../components/ui/inline-banner';
+import { formatVietnameseDateTime } from '../../../utils/dates';
 
 export interface MrxDailyLinesBranchProps {
   isWeeklyAll: boolean;
@@ -33,6 +35,9 @@ export interface MrxDailyLinesBranchProps {
   reasons: Record<string, string>;
   setReasons: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   hasInitialIssue: boolean;
+  lastRevisionAt?: string | null;
+  lastRevisionByName?: string | null;
+  lastRevisionByRole?: string | null;
 }
 
 export function MrxDailyLinesBranch({
@@ -44,6 +49,9 @@ export function MrxDailyLinesBranch({
   reasons,
   setReasons,
   hasInitialIssue,
+  lastRevisionAt,
+  lastRevisionByName,
+  lastRevisionByRole,
 }: MrxDailyLinesBranchProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -194,6 +202,11 @@ export function MrxDailyLinesBranch({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
+      {lastRevisionAt && (
+        <InlineBanner variant="info" title="Định lượng đã được điều chỉnh" className="mx-4 mt-3 shrink-0">
+          Lúc {formatVietnameseDateTime(lastRevisionAt)}{lastRevisionByName ? ` bởi ${lastRevisionByName}${lastRevisionByRole ? ` (${lastRevisionByRole})` : ''}` : ''}.
+        </InlineBanner>
+      )}
       <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Input

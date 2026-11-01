@@ -87,10 +87,42 @@ public sealed record ReconciliationWarehouseTransferDto(string BatchId, string S
 public sealed record ReconciliationWarehouseTransferLineDto(string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, long SourceVersion);
 public sealed record ReconciliationWarehouseDailyDto(string BatchId, string BatchStatus, long SourceVersion, string WeeklyStatus, ReconciliationDailyCompatibilityDto Compatibility, IReadOnlyList<ReconciliationWarehouseDayDto> Dates);
 public sealed record ReconciliationDailyCompatibilityDto(bool CanRead, bool CanIssueByDate, string? ReasonCode);
-public sealed record ReconciliationWarehouseDayDto(DateOnly ServiceDate, string Status, bool IsApplicable, decimal RequiredQuantity, decimal IssuedQuantity, decimal ReturnedQuantity, decimal RemainingQuantity, IReadOnlyList<ReconciliationWarehouseDailyLineDto> Lines);
+public sealed record ReconciliationWarehouseDayDto(DateOnly ServiceDate, string Status, bool IsApplicable, decimal RequiredQuantity, decimal IssuedQuantity, decimal ReturnedQuantity, decimal RemainingQuantity, IReadOnlyList<ReconciliationWarehouseDailyLineDto> Lines)
+{
+    public DateTime? LastRevisionAt { get; init; }
+    public string? LastRevisionByName { get; init; }
+    public string? LastRevisionByRole { get; init; }
+}
 public sealed record ReconciliationWarehouseDailyLineDto(string DailyLineId, string BatchLineId, string IngredientId, string? IngredientCode, string? IngredientName, string CanonicalUnitId, string? CanonicalUnitName, decimal RequiredQuantity, decimal? IssuedQuantity, decimal ReturnedQuantity, decimal RemainingQuantity, string QuantityStatus, bool HasValidDisposition);
 public sealed record ReconciliationKitchenCookingExportDto(string BatchId, long SourceVersion, IReadOnlyList<ReconciliationKitchenCookingRowDto> Rows);
-public sealed record ReconciliationKitchenCookingRowDto(DateOnly ServiceDate, string Weekday, string ShiftName, string DishCode, string DishName, int Servings, string IngredientCode, string IngredientName, string UnitName, decimal BomQuantityPerServing, decimal? WasteRatePercent, decimal TotalRequiredQuantity);
+public sealed record ReconciliationKitchenCookingRowDto(DateOnly ServiceDate, string Weekday, string ShiftName, string DishCode, string DishName, int Servings, string IngredientCode, string IngredientName, string UnitName, decimal BomQuantityPerServing, decimal? WasteRatePercent, decimal TotalRequiredQuantity)
+{
+    public string MenuVariant { get; init; } = string.Empty;
+}
+
+public sealed record MrxEditScopeDto(
+    string? BatchId,
+    string? BatchStatus,
+    long? BatchVersion,
+    string MenuVersionId,
+    IReadOnlyList<MrxEditScopeDayDto> Days);
+public sealed record MrxEditScopeDayDto(
+    DateOnly ServiceDate,
+    bool IsLocked,
+    string? LockReason,
+    IReadOnlyList<MrxEditScopeShiftDto> Shifts);
+public sealed record MrxEditScopeShiftDto(
+    string ShiftName,
+    int? SavoryServings,
+    int? VegetarianServings,
+    IReadOnlyList<MrxEditScopeSlotDto> Slots);
+public sealed record MrxEditScopeSlotDto(
+    string DishSlot,
+    string MenuVariant,
+    string SlotLabel,
+    string? DishId,
+    string? DishCode,
+    string? DishName);
 public sealed record UpsertReconciliationActualRequest(decimal Quantity, long? ExpectedVersion, bool ConfirmZero, string? CorrectionReason);
 public sealed record SetReconciliationDispositionRequest(string Category, string Reason, long? ExpectedVersion);
 public sealed record CompleteReconciliationBatchRequest(long ExpectedVersion);

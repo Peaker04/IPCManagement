@@ -43,7 +43,7 @@ export function MrxBatchHeaderBranch({
   weekStartDate,
   onSelectWeekStartDate,
   batch,
-  source: _source,
+  source,
   statusLabels,
   isSubmitting,
   isRefreshing,
@@ -52,7 +52,7 @@ export function MrxBatchHeaderBranch({
 }: MrxBatchHeaderBranchProps) {
   return (
     <WorkspaceHeader
-      title="Chuẩn bị lô đối soát"
+      title={source && !batch ? 'Hoàn thiện nguồn tuần' : 'Chuẩn bị lô đối soát'}
       breadcrumb="Đối soát MRX · Trạm Điều phối"
       contextSelectors={
         <>

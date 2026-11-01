@@ -44,6 +44,7 @@
     "test:e2e:mrx:g3": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G3-Alt",
     "test:e2e:mrx:g4": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G4-Rollback",
     "test:e2e:mrx:g5": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G5-Async",
+    "test:e2e:mrx:g6": "playwright test --config=frontend/tests/e2e-mrx/config/playwright.mrx.config.ts --grep @G6-Direct-Source-Edit",
     "e2e:happy": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1HappyPathE2E.ps1",
     "e2e:weekly": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-WeeklyHappyPathE2E.ps1",
     "e2e:exceptions": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1ExceptionPathE2E.ps1"

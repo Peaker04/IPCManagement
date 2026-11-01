@@ -18,7 +18,9 @@ test.describe('Live Data Display Audit Across Routes (Real Backend & MySQL)', ()
         if (json.success && json.data?.accessToken) {
           authToken = json.data.accessToken;
         }
-      } catch {}
+      } catch {
+        // Retry transient live-backend login failures within the bounded loop.
+      }
       attempts++;
       if (!authToken) await new Promise((r) => setTimeout(r, 500));
     }

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { DishBomEditorModal } from '../features/admin/DishBomEditorModal';
-import { bomApi } from '../api/bomApi';
-import { adminApi } from '../api/adminApi';
+import { DishBomEditorModal } from '../components/workbench/DishBomEditorModal';
+import { bomApi, type DishBomLine } from '../api/bomApi';
+import { adminApi, type IngredientItem } from '../api/adminApi';
 
 vi.mock('../api/bomApi', () => ({
   bomApi: {
@@ -31,27 +31,33 @@ describe('DishBomEditorModal Component Tests (Rule TA-2 & TA-4)', () => {
     dishName: 'Bò lúc lắc',
   };
 
-  const mockIngredients = [
+  const mockIngredients: IngredientItem[] = [
     {
       ingredientId: 'ing-1',
       ingredientCode: 'NL-BO-01',
       ingredientName: 'Thịt bò phi lê',
+      unitId: 'unit-kg',
       unitName: 'kg',
+      warehouseId: 'warehouse-1',
       referencePrice: 220000,
+      isActive: true,
     },
     {
       ingredientId: 'ing-2',
       ingredientCode: 'NL-TOI-01',
       ingredientName: 'Tỏi ta',
+      unitId: 'unit-kg',
       unitName: 'kg',
+      warehouseId: 'warehouse-1',
       referencePrice: 45000,
+      isActive: true,
     },
   ];
 
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.mocked(adminApi.getIngredients).mockResolvedValue({
-      items: mockIngredients as any,
+      items: mockIngredients,
       totalCount: 2,
       pageNumber: 1,
       pageSize: 100,
@@ -118,9 +124,27 @@ describe('DishBomEditorModal Component Tests (Rule TA-2 & TA-4)', () => {
 
   it('submits new BOM line when form is filled and calls addDishBomLine', async () => {
     vi.mocked(bomApi.getDishBomLines).mockResolvedValueOnce([]);
-    vi.mocked(bomApi.addDishBomLine).mockResolvedValueOnce({
+    const createdLine: DishBomLine = {
       bomId: 'b-new',
-    } as any);
+      dishId: 'dish-1',
+      dishCode: 'MON-BO-01',
+      dishName: 'Bò lúc lắc',
+      ingredientId: 'ing-1',
+      ingredientCode: 'NL-BO-01',
+      ingredientName: 'Thịt bò phi lê',
+      unitId: 'unit-kg',
+      unitCode: 'KG',
+      unitName: 'kg',
+      priceTierAmount: 25000,
+      bomScope: 'global',
+      grossQtyPerServing: 0.2,
+      wasteRatePercent: 0,
+      bomStatus: 'PUBLISHED',
+      bomStatusLabel: 'Đang áp dụng',
+      effectiveFrom: '2026-01-01',
+      referencePrice: 220000,
+    };
+    vi.mocked(bomApi.addDishBomLine).mockResolvedValueOnce(createdLine);
 
     const onSaved = vi.fn();
 

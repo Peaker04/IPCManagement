@@ -15,10 +15,20 @@ import {
   adminApi,
   type IngredientItem,
   type DishItem,
+  type PagedResult,
 } from '../../../api/adminApi';
 
 export interface AdminCatalogBranchProps {
   activeView: 'ingredients' | 'dishes';
+}
+
+type CatalogItem = IngredientItem | DishItem;
+type CatalogPageInfo = Pick<PagedResult<CatalogItem>,
+  'totalCount' | 'pageNumber' | 'pageSize' | 'totalPages' | 'hasPrev' | 'hasNext'>;
+
+interface CatalogQueryResult {
+  items: CatalogItem[];
+  pageInfo: CatalogPageInfo;
 }
 
 export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
@@ -36,11 +46,7 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
     setQ(newVal);
   };
 
-  const {
-    data: queryResult,
-    stateProps,
-    refetch: loadData,
-  } = useWorkbenchQuery<{ items: any[]; pageInfo: any }>({
+  const catalogQuery = useWorkbenchQuery<CatalogQueryResult>({
     scopeKey: `admin_${activeView}`,
     cacheKey: `admin_${activeView}_${pageNumber}_${searchKeyword.trim()}`,
     snapshotKey: `snapshot:admin_${activeView}`,
@@ -58,6 +64,7 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
     emptyTitle: activeView === 'ingredients' ? 'Chưa có danh mục nguyên liệu' : 'Chưa có danh mục món ăn',
     emptyDescription: 'Chưa có dữ liệu danh mục cho phân hệ này.',
   });
+  const { data: queryResult, stateProps, refetch: loadData } = catalogQuery;
 
   const items = queryResult?.items ?? [];
   const pageInfo = queryResult?.pageInfo ?? {
