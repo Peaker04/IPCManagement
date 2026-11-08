@@ -46,6 +46,9 @@ describe('WarehouseIssueDialog', () => {
 
     expect(screen.getByRole('dialog', { name: 'Tạo phiếu xuất kho' })).toBeInTheDocument()
     expect(screen.getByText('Kho có thể xuất 1/1 nhóm nguyên liệu còn lại; 1 nhóm đủ toàn bộ số lượng.')).toBeInTheDocument()
+    expect(screen.getByText('An Vui (ANV)')).toBeVisible()
+    expect(screen.getByText('07/09/2026 · Cả ngày')).toBeVisible()
+    expect(screen.getByText('MR-001')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận xuất 1 dòng' }))
     expect(onConfirm).toHaveBeenCalledOnce()
   })

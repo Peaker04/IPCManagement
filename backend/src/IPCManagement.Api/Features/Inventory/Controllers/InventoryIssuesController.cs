@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Shared.Contracts;
 
 using IPCManagement.Api.Exceptions;
@@ -19,13 +21,16 @@ public class InventoryIssuesController : ControllerBase
 {
     private readonly IInventoryIssueService _inventoryIssueService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly SystemOperationRequestContext _operationContext;
 
     public InventoryIssuesController(
         IInventoryIssueService inventoryIssueService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        SystemOperationRequestContext operationContext)
     {
         _inventoryIssueService = inventoryIssueService;
         _currentUserService = currentUserService;
+        _operationContext = operationContext;
     }
 
     /// <summary>Lấy danh sách phiếu xuất kho.</summary>
@@ -35,6 +40,7 @@ public class InventoryIssuesController : ControllerBase
     {
         try
         {
+            EnsureSourceFamilyMatchesActiveMode(request.SourceFamily);
             var scopedRequest = ApplyWarehouseScope(request);
             var result = await _inventoryIssueService.GetPagedAsync(scopedRequest);
             return Ok(ApiResponse<PagedResponseDto<InventoryIssueDto>>.SuccessResult(result));
@@ -58,6 +64,7 @@ public class InventoryIssuesController : ControllerBase
     {
         try
         {
+            EnsureSourceFamilyMatchesActiveMode(sourceFamily);
             var result = await _inventoryIssueService.GetByIdAsync(id, sourceFamily);
             if (result is null)
                 return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
@@ -82,7 +89,7 @@ public class InventoryIssuesController : ControllerBase
         {
             if (!string.IsNullOrWhiteSpace(dto.ReconciliationBatchId) &&
                 !_currentUserService.GetRoleNames(User).Any(role =>
-                    AuthorizationPolicies.WarehouseRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
+                    AuthorizationPolicies.ReconciliationWarehouseIssueRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
                     ApiResponse.FailResult("Chỉ người phụ trách Kho được tạo phiếu xuất cho lô đối chiếu."));
@@ -145,6 +152,20 @@ public class InventoryIssuesController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
+    }
+
+    private void EnsureSourceFamilyMatchesActiveMode(string sourceFamily)
+    {
+        var knownFamily = sourceFamily.Equals(InventoryIssueSourceFamilies.Default, StringComparison.OrdinalIgnoreCase)
+            || sourceFamily.Equals(InventoryIssueSourceFamilies.MaterialReconciliation, StringComparison.OrdinalIgnoreCase)
+            || sourceFamily.Equals(InventoryIssueSourceFamilies.LegacyUnclassified, StringComparison.OrdinalIgnoreCase);
+        if (!knownFamily) return;
+
+        var expectedFamily = _operationContext.Mode == SystemOperationEligibility.MaterialReconciliation
+            ? InventoryIssueSourceFamilies.MaterialReconciliation
+            : InventoryIssueSourceFamilies.Default;
+        if (!string.Equals(sourceFamily, expectedFamily, StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Nguồn phiếu xuất kho không thuộc chế độ vận hành hiện tại.", nameof(sourceFamily));
     }
 
     private InventoryIssueFilterRequestDto ApplyWarehouseScope(InventoryIssueFilterRequestDto request)

@@ -198,6 +198,27 @@ public class AuditReportService : IAuditReportService
             issues = issues.Where(item => (item.ShiftName ?? "FULLDAY").Contains(fieldNameFilter));
         }
 
+        var sourceFamilyFilter = NormalizeFilter(query.SourceFamily);
+        if (sourceFamilyFilter is not null && !sourceFamilyFilter.Equals("ALL", StringComparison.OrdinalIgnoreCase))
+        {
+            issues = sourceFamilyFilter.ToUpperInvariant() switch
+            {
+                "DEFAULT" => issues.Where(item => item.MaterialRequestId != null &&
+                                                   item.ReconciliationBatchId == null &&
+                                                   item.Inventoryissuelines.All(line => line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null)),
+                "MATERIAL_RECONCILIATION" => issues.Where(item => item.MaterialRequestId == null &&
+                                                                  item.ReconciliationBatchId != null &&
+                                                                  item.Inventoryissuelines.All(line => line.MaterialRequestLineId == null && line.ReconciliationBatchLineId != null)),
+                "LEGACY_UNCLASSIFIED" => issues.Where(item => !(item.MaterialRequestId != null &&
+                                                                 item.ReconciliationBatchId == null &&
+                                                                 item.Inventoryissuelines.All(line => line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null)) &&
+                                                               !(item.MaterialRequestId == null &&
+                                                                 item.ReconciliationBatchId != null &&
+                                                                 item.Inventoryissuelines.All(line => line.MaterialRequestLineId == null && line.ReconciliationBatchLineId != null))),
+                _ => issues.Where(_ => false)
+            };
+        }
+
         var orderedIssues = ascending
             ? issues.OrderBy(item => item.CreatedAt).ThenBy(item => item.IssueId)
             : issues.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.IssueId);
@@ -384,10 +405,11 @@ public class AuditReportService : IAuditReportService
             row.SourceFamily ??= "NOT_APPLICABLE";
         }
 
-        if (!string.IsNullOrWhiteSpace(query.SourceFamily))
+        var sourceFamily = query.SourceFamily?.Trim();
+        if (!string.IsNullOrWhiteSpace(sourceFamily) && !sourceFamily.Equals("ALL", StringComparison.OrdinalIgnoreCase))
         {
             rows = rows
-                .Where(item => string.Equals(item.SourceFamily, query.SourceFamily.Trim(), StringComparison.OrdinalIgnoreCase))
+                .Where(item => string.Equals(item.SourceFamily, sourceFamily, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
@@ -507,7 +529,7 @@ public class AuditReportService : IAuditReportService
     }
 
     private static int NormalizeLimit(int limit)
-        => Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+        => Math.Clamp(limit <= 0 ? 100 : limit, 1, 1000);
 
     private static int NormalizePageLimit(int limit)
         => Math.Clamp(limit <= 0 ? 20 : limit, 1, 100);

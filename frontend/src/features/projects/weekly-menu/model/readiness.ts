@@ -78,8 +78,8 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
         ? 'Không tải được'
         : demandMaterialCount > 0
           ? demandShortageCount > 0
-            ? `Thiếu ${demandShortageCount}/${demandMaterialCount} dòng`
-            : `Đủ ${demandMaterialCount}/${demandMaterialCount} dòng`
+            ? `Cần rà soát ${demandShortageCount}/${demandMaterialCount} dòng`
+            : `Đã tính ${demandMaterialCount} dòng`
           : 'Chưa tính',
       state: checkpointState(demandMaterialCount > 0, hasDemandIssue || demandShortageCount > 0, 'danger'),
     },
@@ -95,7 +95,7 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     return { label: 'Thiếu dữ liệu danh mục món', detail: 'Kiểm tra danh mục trước khi phân tích BOM và giá vốn.', tone: 'warning', checkpoints }
   }
   if (hasDemandIssue) {
-    return { label: 'Không tải được nhu cầu theo ngày', detail: 'Không thể xác nhận trạng thái thiếu/đủ của tuần. Hãy tải lại trước khi tiếp tục thu mua.', tone: 'danger', checkpoints }
+    return { label: 'Không tải được nhu cầu theo ngày', detail: 'Chưa xác minh được dữ liệu nhu cầu tuần. Hãy tải lại trước khi tiếp tục.', tone: 'danger', checkpoints }
   }
   if (menuCount === 0) {
     return { label: 'Chưa có thực đơn tuần', detail: 'Nhập Excel hoặc chỉnh sửa thực đơn để tiếp tục.', tone: 'warning', checkpoints }
@@ -110,7 +110,7 @@ export function buildWeeklyMenuReadiness(input: WeeklyMenuReadinessInput): Weekl
     return { label: 'Sẵn sàng tính nhu cầu', detail: 'Thực đơn, số lượng khách và BOM đã đầy đủ.', tone: 'info', checkpoints }
   }
   if (demandShortageCount > 0) {
-    return { label: 'Còn nguyên liệu cần xử lý', detail: `${demandShortageCount}/${demandMaterialCount} dòng ngày–nguyên liệu chưa được đáp ứng theo lifecycle.`, tone: 'warning', checkpoints }
+    return { label: 'Còn nguyên liệu cần xử lý', detail: `${demandShortageCount}/${demandMaterialCount} dòng cần rà soát theo kết quả tính/lifecycle; kiểm tra quyền và đề xuất tại Thu mua.`, tone: 'warning', checkpoints }
   }
-  return { label: 'Vật tư tuần đã được đáp ứng', detail: `${demandMaterialCount}/${demandMaterialCount} dòng ngày–nguyên liệu đã hoàn tất cấp phát.`, tone: 'success', checkpoints }
+  return { label: 'Đã tính nhu cầu tuần', detail: `${demandMaterialCount} dòng ngày–nguyên liệu đã tính; không xác nhận tồn kho, xuất/nhận hoặc quyền mua.`, tone: 'success', checkpoints }
 }

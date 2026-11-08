@@ -85,7 +85,7 @@ export function Drawer({ open, onOpenChange, children }: DrawerProps) {
   )
 }
 
-export function DrawerContent({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
+export function DrawerContent({ className, children, style, ...props }: React.HTMLAttributes<HTMLElement>) {
   const context = React.useContext(DrawerContext)
 
   return <aside
@@ -96,7 +96,11 @@ export function DrawerContent({ className, children, ...props }: React.HTMLAttri
     aria-modal="false"
     aria-labelledby={props['aria-label'] ? undefined : props['aria-labelledby'] ?? context?.titleId}
     tabIndex={props.tabIndex ?? -1}
-    className={cn('pointer-events-auto absolute inset-y-0 right-0 flex w-full flex-col border-l border-slate-200 bg-white shadow-xl outline-none xl:w-2/5 xl:max-w-2xl', className)}
+    style={{
+      boxShadow: '0 0 0 100vmax rgba(15, 23, 42, 0.28), -24px 0 48px rgba(15, 23, 42, 0.25)',
+      ...style,
+    }}
+    className={cn('pointer-events-auto absolute inset-y-0 right-0 flex w-full flex-col border-l border-slate-300 bg-white outline-none xl:w-2/5 xl:max-w-2xl', className)}
   >{children}</aside>
 }
 

@@ -49,7 +49,7 @@ vi.mock('@/api/reconciliationApi', () => ({
   },
 }))
 
-import { ReconciliationIssueDetailDialog } from './ReconciliationIssueDetailDialog'
+import { ReconciliationIssueDetailDialog } from '@/components/reconciliation/ReconciliationIssueDetailDialog'
 
 function FocusFixture({ onBackgroundClick = vi.fn() }: { onBackgroundClick?: () => void }) {
   const [open, setOpen] = useState(false)
@@ -98,15 +98,15 @@ describe('ReconciliationIssueDetailDialog behavior', () => {
     expect(screen.queryByText('Gạo')).not.toBeInTheDocument()
   })
 
-  it('returns focus after Escape and exposes batch navigation only as an explicit action', async () => {
+  it('isolates the transaction, locks background scroll, and returns focus after Escape', async () => {
     const user = userEvent.setup()
     const onOpenBatch = vi.fn()
     const view = render(<FocusFixture />)
     const opener = screen.getByRole('button', { name: 'Mở giao dịch' })
     await user.click(opener)
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'false')
-    expect(document.body.style.overflow).not.toBe('hidden')
-    expect(view.container).not.toHaveAttribute('inert')
+    expect(screen.getByRole('dialog')).toHaveAttribute('aria-modal', 'true')
+    expect(document.body.style.overflow).toBe('hidden')
+    expect(view.container).toHaveAttribute('inert')
     await user.keyboard('{Escape}')
     await waitFor(() => expect(opener).toHaveFocus())
 
@@ -119,24 +119,20 @@ describe('ReconciliationIssueDetailDialog behavior', () => {
     expect(onOpenBatch).toHaveBeenCalledWith('batch-1', 'issue-1')
   })
 
-  it('keeps the master list clickable and keyboard reachable without trapping Tab', async () => {
+  it('traps keyboard focus and prevents interaction with the background', async () => {
     const user = userEvent.setup()
     const onBackgroundClick = vi.fn()
     render(<FocusFixture onBackgroundClick={onBackgroundClick} />)
     await user.click(screen.getByRole('button', { name: 'Mở giao dịch' }))
 
-    const portal = document.querySelector<HTMLElement>('[data-ipc-drawer-portal="true"]')!
-    expect(portal.querySelector(':scope > [aria-hidden="true"]')).not.toBeInTheDocument()
     const backgroundControl = screen.getByRole('button', { name: 'Thao tác danh sách nền' })
-    await user.click(backgroundControl)
-    expect(onBackgroundClick).toHaveBeenCalledTimes(1)
-    expect(backgroundControl).toHaveFocus()
+    expect(backgroundControl.parentElement).toHaveAttribute('inert')
 
     const closeControl = screen.getByRole('button', { name: 'Đóng' })
     closeControl.focus()
     await user.tab()
-    expect(closeControl).not.toHaveFocus()
-    expect(screen.getByRole('dialog')).not.toContainElement(document.activeElement as HTMLElement)
+    expect(screen.getByRole('dialog')).toContainElement(document.activeElement as HTMLElement)
+    expect(onBackgroundClick).not.toHaveBeenCalled()
   })
 
   it('uses only exact reconciliation batch-line lineage when issue display fields are absent', () => {
@@ -145,29 +141,31 @@ describe('ReconciliationIssueDetailDialog behavior', () => {
 
     expect(screen.getAllByText('Nguyên liệu chưa đặt tên')).not.toHaveLength(0)
     expect(screen.getByText('5')).toBeInTheDocument()
-    expect(screen.getByText('unit-1')).toBeInTheDocument()
+    expect(screen.getByText('Chưa có tên đơn vị')).toBeInTheDocument()
     expect(screen.queryByText('Gạo đông lạnh')).not.toBeInTheDocument()
     expect(batchQueryArgs.at(-1)).toEqual({ id: 'batch-1', skip: false })
   })
 
-  it('uses a non-modal bounded drawer, semantic line table, and list-known data while refreshing', () => {
+  it('uses a modal bounded detail surface, semantic line table, and list-known data while refreshing', () => {
     queryState.issuePhase = 'loading'
     render(<ReconciliationIssueDetailDialog issueId="issue-1" open expectedBatchId="batch-1" initialIssue={issue()} onClose={vi.fn()} />)
 
-    const drawer = screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })
-    expect(drawer).toHaveAttribute('data-surface', 'drawer')
-    expect(drawer).toHaveAttribute('aria-modal', 'false')
-    expect(drawer).toHaveClass('absolute', 'inset-y-0', 'xl:w-2/5', 'xl:max-w-2xl')
-    expect(screen.getAllByText('ISS-001')).toHaveLength(2)
+    const dialog = screen.getByRole('dialog', { name: 'Chi tiết giao dịch xuất kho đối chiếu' })
+    expect(dialog).toHaveAttribute('data-surface', 'issue-detail')
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(dialog).toHaveClass('max-w-3xl')
+    expect(dialog).toHaveAttribute('data-scroll-mode', 'body')
+    expect(dialog.querySelectorAll('.overflow-y-auto')).toHaveLength(1)
+    expect(dialog.querySelector('[data-slot="dialog-body"]')).toHaveClass('overscroll-contain')
+    expect(screen.getAllByText('ISS-001')).toHaveLength(1)
     expect(screen.getByRole('status')).toHaveTextContent('Đang cập nhật dữ liệu chi tiết...')
     expect(screen.getByRole('region', { name: 'Các dòng giao dịch xuất kho' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument()
-    expect(screen.queryByText('Xem mã dòng')).not.toBeInTheDocument()
-    const lineSelector = screen.getByRole('combobox', { name: 'Chọn dòng để xem chi tiết kỹ thuật' })
-    expect(lineSelector).toHaveTextContent('Gạo')
-    expect(lineSelector).not.toHaveTextContent(/^Dòng 1$/)
-    expect(screen.getByRole('region', { name: 'Chi tiết kỹ thuật dòng đã chọn' })).toHaveTextContent('issue-line-1')
-    expect(screen.getByRole('region', { name: 'Chi tiết kỹ thuật dòng đã chọn' })).toHaveTextContent('batch-line-1')
+    const technicalDetails = screen.getByText('Thông tin kỹ thuật').closest('details')
+    expect(technicalDetails).not.toHaveAttribute('open')
+    expect(screen.queryByText('Vai trò chưa được lưu')).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Chi tiết kỹ thuật dòng đã chọn', hidden: true })).toHaveTextContent('issue-line-1')
+    expect(screen.getByRole('region', { name: 'Chi tiết kỹ thuật dòng đã chọn', hidden: true })).toHaveTextContent('batch-line-1')
     expect(screen.getAllByText('kg')).not.toHaveLength(0)
     expect(document.querySelectorAll('.break-all')).toHaveLength(0)
     expect(batchQueryArgs.at(-1)).toEqual({ id: '', skip: true })

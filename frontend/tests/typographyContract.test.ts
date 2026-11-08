@@ -36,13 +36,14 @@ const semanticWeightOverrideAllowlist: Readonly<Record<string, string>> = {
   'src/features/projects/weekly-menu/schedule/SearchableDishPicker.tsx': 'picker instruction retains compact emphasis',
   'src/features/projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx': 'locked-slot caption keeps emphasis within the compact weekly editor',
   'src/features/purchasing/PurchaseDecisionPanel.tsx': 'decision values retain their existing emphasis',
+  'src/features/reports/pages/ReportsPage.tsx': 'report identifiers retain compact emphasis',
   'src/features/reports/pages/ReportsPricePanel.tsx': 'report price annotations retain existing emphasis',
   'src/features/warehouse/WarehouseReceiptLifecyclePanel.tsx': 'receipt code remains emphasized within the code role',
 }
 
 const featureRoleContracts: Readonly<Record<string, readonly string[]>> = {
   'src/features/projects/pages/WeeklyMenuPage.tsx': ['typography.body'],
-  'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx': ['typography.body', 'typography.sectionTitle', 'typography.numeric'],
+  'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx': ['typography.body', 'typography.sectionTitle'],
   'src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx': ['typography.code'],
   'src/components/common/ApprovalQueue.tsx': ['typography.body', 'typography.sectionTitle', 'typography.numeric'],
   'src/features/warehouse/pages/WarehousePage.tsx': ['typography.body'],

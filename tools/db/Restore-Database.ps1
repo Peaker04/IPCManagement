@@ -35,7 +35,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # DB that - khong bao gio ghi de bang tay nham.
-$ProtectedDatabases = @('ipcmanagement', 'ipc_lane1')
+$ProtectedDatabases = @('ipcmanagement', 'ipc_lane1', 'ipc_lane7', 'ipc_lane9')
 
 if (($ProtectedDatabases -contains $Database.ToLower()) -and (-not $Force)) {
     Write-Host "[CHAN] '$Database' la database that." -ForegroundColor Red

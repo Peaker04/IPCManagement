@@ -23,7 +23,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Display preferences and localStorage settings are client-side UI configurations.",
         "sources": [
-          "frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-34"
+          "frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-35"
         ]
       },
       "backendBacked": false,
@@ -53,7 +53,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Configuration CRUD query and dialog state is not a business entity lifecycle.",
         "sources": [
-          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:100-123"
+          "frontend/src/features/admin/pages/ApprovalRulesPage.tsx:66-93"
         ]
       },
       "backendBacked": false,
@@ -127,7 +127,7 @@
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
         "reason": "Reconciliation state and disposition operations are query-owned while the server remains the lifecycle authority.",
         "sources": [
-          "frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-160",
+          "frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-360",
           "frontend/src/features/reconciliation/ReconciliationDispositionDrawer.tsx:1-46"
         ]
       },
@@ -145,10 +145,10 @@
       "registryModule": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
       "debt": {
         "marker": "KHÔNG-XÁC-ĐỊNH-ĐƯỢC",
-        "reason": "The imported chef model projects plan data; receive eligibility and action remain component-local.",
+        "reason": "The imported chef model and read-only section project plan handoff state; the send command is owned upstream by Coordination.",
         "sources": [
           "frontend/src/features/chef/production/chefProductionModel.ts:113-125",
-          "frontend/src/features/chef/production/ChefProductionSection.tsx:27-50"
+          "frontend/src/features/chef/production/ChefProductionSection.tsx:22-43"
         ]
       },
       "backendBacked": true,

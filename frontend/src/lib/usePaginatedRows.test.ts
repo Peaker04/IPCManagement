@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 import { formatPaginationRange } from './uiCopy';
-import { getPaginationMeta, usePaginatedRows } from './usePaginatedRows';
+import { getPaginationMeta } from './paginationMeta';
 import { createCursorPaginationContract, createLocalPaginationContract, createPageNumberPaginationContract } from './paginationContract';
 import { useLocalPagination } from './useLocalPagination';
 
@@ -43,8 +43,8 @@ describe('pagination helpers', () => {
     expect(useLocalPagination).toBeTypeOf('function');
   });
 
-  it('keeps the legacy hook API while using the canonical local contract', () => {
-    const { result } = renderHook(() => usePaginatedRows(['A', 'B', 'C'], 2));
+  it('paginates local rows with the canonical controller', () => {
+    const { result } = renderHook(() => useLocalPagination(['A', 'B', 'C'], 2));
 
     expect(result.current).toMatchObject({
       page: 1,

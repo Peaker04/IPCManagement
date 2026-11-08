@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
-import { Pencil, Power, Search, UserPlus, Users } from 'lucide-react';
-import { ConfirmDialog, FieldRow, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, InlineAlert } from '@/components/common';
+import { Pencil, Power, UserPlus, Users } from 'lucide-react';
+import { ConfirmDialog, FieldRow, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SearchField, SectionPanel, StatusBadge, InlineAlert } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,7 +16,7 @@ type AdminEmployeesPanelProps = { model: AdminDataPageModel };
 const EMPTY_EMPLOYEE_ROLE_VALUE = '__empty_employee_role__';
 
 export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
-  const { canManageEmployees, editingEmployeeId, effectiveActiveView, employeeForm, employeeMeta, employeeNotice, employeeRoles, employeeRows, employeeSearch, handleEditEmployee, handleEmployeeStatusToggle, handleEmployeeSubmit, isEmployeeLoading, isRolesLoading, isSavingEmployee, isUpdatingStatus, queryViews, resetEmployeeForm, setEmployeeForm, setEmployeePage, setEmployeeSearch } = model;
+  const { canManageEmployees, editingEmployeeId, effectiveActiveView, employeeForm, employeeMeta, employeeNotice, employeePageSize, employeeRoles, employeeRows, employeeSearch, handleEditEmployee, handleEmployeeStatusToggle, handleEmployeeSubmit, isEmployeeLoading, isRolesLoading, isSavingEmployee, isUpdatingStatus, queryViews, resetEmployeeForm, setEmployeeForm, setEmployeePage, setEmployeePageSize, setEmployeeSearch } = model;
   const [statusTarget, setStatusTarget] = useState<{
     employee: AdminDataPageModel['employeeRows'][number];
     nextActive: boolean;
@@ -138,20 +138,19 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
               icon={<Users size={18} />}
               description="Quản lý trạng thái hoạt động và quyền truy cập của nhân viên trên hệ thống."
               actions={
-                <div className="relative w-64 max-w-full">
-                  <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <Input
-                    id="employee-search"
-                    className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
-                    value={employeeSearch}
-                    onChange={(event) => {
-                      setEmployeeSearch(event.target.value);
-                      setEmployeePage(1);
-                    }}
-                    placeholder="Tìm theo tên, tài khoản, vai trò..."
-                    aria-label="Tìm kiếm nhân viên"
-                  />
-                </div>
+                <SearchField
+                  id="employee-search"
+                  label="Tìm kiếm nhân viên"
+                  hideLabel
+                  width="compact"
+                  value={employeeSearch}
+                  onChange={(event) => {
+                    setEmployeeSearch(event.target.value);
+                    setEmployeePage(1);
+                  }}
+                  placeholder="Tìm theo tên, tài khoản, vai trò..."
+                  inputClassName="bg-slate-50 text-xs focus:bg-white"
+                />
               }
             >
               <div className="flex flex-col gap-3">
@@ -229,8 +228,10 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
                 {employeeMeta && (
                   <PaginationBar
                     page={employeeMeta.pageNumber ?? 1}
-                    pageSize={employeeMeta.pageSize ?? 8}
+                    pageSize={employeeMeta.pageSize ?? employeePageSize}
                     totalItems={employeeMeta.totalCount ?? 0}
+                    pageSizeOptions={[8, 20, 50]}
+                    onPageSizeChange={(nextSize) => { setEmployeePageSize(nextSize); setEmployeePage(1); }}
                     onPageChange={setEmployeePage}
                   />
                 )}

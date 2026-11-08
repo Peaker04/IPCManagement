@@ -37,15 +37,3 @@ public class CreatePurchaseOrdersFromRequestDto
 {
     public string PurchaseRequestId { get; set; } = string.Empty;
 }
-
-public class RecordPurchaseOrderReceiptLineDto
-{
-    public string PurchaseOrderLineId { get; set; } = string.Empty;
-    public decimal ReceivedQty { get; set; }
-}
-
-public class RecordPurchaseOrderReceiptDto
-{
-    public string WarehouseId { get; set; } = string.Empty;
-    public IReadOnlyList<RecordPurchaseOrderReceiptLineDto> Lines { get; set; } = [];
-}

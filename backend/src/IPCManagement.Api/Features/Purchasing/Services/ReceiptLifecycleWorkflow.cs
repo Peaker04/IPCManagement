@@ -153,17 +153,17 @@ internal sealed class ReceiptLifecycleWorkflow(
 
                 if (receipt.Status != "APPROVED" || receipt.QualityStatus is not ("ACCEPTED" or "PARTIALLY_ACCEPTED"))
                 {
-                    throw new BusinessRuleException("Chỉ phiếu nhập đã duyệt và có kết quả chất lượng hợp lệ mới được POSTED.");
+                    throw new BusinessRuleException("Chỉ phiếu nhập đã duyệt và có kết quả chất lượng hợp lệ mới được ghi sổ kho.");
                 }
                 if (receipt.ConcurrencyVersion != request.ExpectedVersion)
                 {
-                    throw new BusinessRuleException("Phiếu nhập đã thay đổi; hãy tải lại trước khi POSTED.");
+                    throw new BusinessRuleException("Phiếu nhập đã thay đổi; hãy tải lại trước khi ghi sổ kho.");
                 }
                 if (receipt.CreatedBy.SequenceEqual(actorId) ||
                     receipt.QualityCheckedBy is not null && receipt.QualityCheckedBy.SequenceEqual(actorId) ||
                     receipt.ManagerApprovedBy is not null && receipt.ManagerApprovedBy.SequenceEqual(actorId))
                 {
-                    throw new BusinessRuleException("Người tạo, người kiểm tra hoặc người duyệt không được tự POSTED phiếu nhập.");
+                    throw new BusinessRuleException("Người tạo, người kiểm tra hoặc người duyệt không được tự ghi sổ phiếu nhập.");
                 }
 
                 var orderLines = order.Purchaseorderlines.ToDictionary(
@@ -185,7 +185,7 @@ internal sealed class ReceiptLifecycleWorkflow(
                         DecimalPolicy.RoundQuantity(orderLine.ReceivedQty + accepted),
                         orderLine.OrderedQty))
                     {
-                        throw new BusinessRuleException("POSTED vượt số lượng còn lại của dòng đơn mua.");
+                        throw new BusinessRuleException("Số lượng ghi sổ vượt phần còn lại của dòng đơn mua.");
                     }
                 }
 
@@ -279,7 +279,7 @@ internal sealed class ReceiptLifecycleWorkflow(
                 }
                 if (receipt.Status != "REJECTED")
                 {
-                    throw new BusinessRuleException("Chỉ phiếu nhập bị từ chối trước POSTED mới được xử lý lại.");
+                    throw new BusinessRuleException("Chỉ phiếu nhập bị từ chối trước khi ghi sổ mới được xử lý lại.");
                 }
                 if (!receipt.CreatedBy.SequenceEqual(actorId))
                 {
@@ -388,7 +388,7 @@ internal sealed class ReceiptLifecycleWorkflow(
                 }
                 if (receipt.Status is not ("DRAFT" or "PENDING_APPROVAL" or "APPROVED"))
                 {
-                    throw new BusinessRuleException("Chỉ phiếu nhập đang hoạt động trước POSTED mới được hủy có audit.");
+                    throw new BusinessRuleException("Chỉ phiếu nhập đang hoạt động trước khi ghi sổ mới được hủy có lưu lịch sử.");
                 }
                 if (receipt.ConcurrencyVersion != request.ExpectedVersion)
                 {
@@ -441,7 +441,7 @@ internal sealed class ReceiptLifecycleWorkflow(
             PurchaseReceivingValidator.ValidateDataAnnotations(line);
             if (!DecimalPolicy.GreaterThanQuantity(line.Quantity, 0m))
             {
-                throw new ArgumentException("Số lượng correction phải lớn hơn 0.", nameof(request.Lines));
+                throw new ArgumentException("Số lượng điều chỉnh phải lớn hơn 0.", nameof(request.Lines));
             }
         }
 
@@ -453,7 +453,7 @@ internal sealed class ReceiptLifecycleWorkflow(
         var receiptIdBytes = GuidHelper.ParseGuidString(receiptId)
             ?? throw new ArgumentException("Phiếu nhập không hợp lệ.");
         var actorId = GuidHelper.ParseGuidString(userId)
-            ?? throw new ArgumentException("Không xác định được người tạo correction.");
+            ?? throw new ArgumentException("Không xác định được người tạo chứng từ điều chỉnh.");
         var commandId = request.CommandId.Trim();
         var reason = request.Reason.Trim();
         var correctionId = PurchaseReceivingMapper.BuildReceiptCorrectionId(receiptIdBytes, commandId);
@@ -471,20 +471,20 @@ internal sealed class ReceiptLifecycleWorkflow(
                 if (existing is not null)
                 {
                     var prior = await queries.LoadReceiptCorrectionAsync(correctionId, token)
-                        ?? throw new BusinessRuleException("Không tìm thấy chứng từ correction đã ghi nhận.");
+                        ?? throw new BusinessRuleException("Không tìm thấy chứng từ điều chỉnh đã ghi nhận.");
                     return PurchaseReceivingMapper.BuildCorrectionResult(prior);
                 }
 
                 if (receipt.Status != "POSTED")
                 {
-                    throw new BusinessRuleException("Chỉ phiếu nhập đã POSTED mới được tạo correction hậu nhập.");
+                    throw new BusinessRuleException("Chỉ phiếu nhập đã ghi sổ mới được tạo chứng từ điều chỉnh sau nhập.");
                 }
 
                 var requestLines = request.Lines
                     .Select(line => new
                     {
                         SourceId = GuidHelper.ParseGuidString(line.ReceiptLineId)
-                            ?? throw new ArgumentException("Dòng phiếu nhập correction không hợp lệ."),
+                            ?? throw new ArgumentException("Dòng phiếu nhập cần điều chỉnh không hợp lệ."),
                         Quantity = DecimalPolicy.RoundQuantity(line.Quantity)
                     })
                     .ToList();
@@ -493,7 +493,7 @@ internal sealed class ReceiptLifecycleWorkflow(
                     .Distinct(StringComparer.Ordinal)
                     .Count() != requestLines.Count)
                 {
-                    throw new BusinessRuleException("Một dòng phiếu nhập chỉ được correction một lần trong cùng chứng từ.");
+                    throw new BusinessRuleException("Một dòng phiếu nhập chỉ được điều chỉnh một lần trong cùng chứng từ.");
                 }
 
                 var sourceLines = receipt.Inventoryreceiptlines.ToDictionary(
@@ -517,7 +517,7 @@ internal sealed class ReceiptLifecycleWorkflow(
                 {
                     if (!sourceLines.TryGetValue(Convert.ToHexString(requestedLine.SourceId), out var sourceLine))
                     {
-                        throw new BusinessRuleException("Dòng correction không thuộc phiếu nhập nguồn.");
+                        throw new BusinessRuleException("Dòng điều chỉnh không thuộc phiếu nhập nguồn.");
                     }
 
                     var acceptedQuantity = sourceLine.AcceptedQuantity ?? 0m;

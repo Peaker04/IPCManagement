@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from '../../node_modules/@playwright/test/index.mjs';
+import { buildRunConfiguration, buildRunOutcome, buildSourceIdentity, classifyPerformanceThresholds, performanceBudgetForRoute } from '../../tools/live-visual-audit-contract.mjs';
 import { summarizeTrace } from './trace-attribution.mjs';
 
 const baseUrl = process.env.IPC_VISUAL_BASE_URL ?? 'http://127.0.0.1:3001';
@@ -14,13 +14,24 @@ const attributionEnabled = process.env.IPC_VISUAL_ATTRIBUTION === 'true';
 const geometryEnabled = process.env.IPC_VISUAL_GEOMETRY === 'true';
 const dashboardUiRulesProfile = auditProfile === 'dashboard-ui-rules';
 if (database === 'ipc_lane1') throw new Error('Protected ipc_lane1 is prohibited for this visual audit.');
+const username = process.env.IPC_VISUAL_USERNAME ?? 'admin';
 const password = process.env.K6_PASSWORD;
 if (!password) throw new Error('K6_PASSWORD is required; default credentials are prohibited.');
 
-const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
-const dirtySourceFingerprint = createHash('sha256')
-  .update(execFileSync('git', ['status', '--porcelain=v1'], { encoding: 'utf8' }))
-  .digest('hex');
+const headCommit = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+const worktreeStatus = execFileSync('git', ['status', '--porcelain=v1'], { encoding: 'utf8' });
+const trackedDiff = execFileSync('git', ['diff', '--binary', 'HEAD', '--', '.'], { encoding: 'buffer', maxBuffer: 50 * 1024 * 1024 });
+const untrackedPaths = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { encoding: 'utf8' })
+  .split('\0')
+  .filter(Boolean)
+  .sort();
+const sourceIdentity = buildSourceIdentity({
+  status: worktreeStatus,
+  headCommit,
+  trackedDiff,
+  untrackedFiles: await Promise.all(untrackedPaths.map(async (filePath) => ({ path: filePath, content: await fs.readFile(filePath) }))),
+  publishedCommit: process.env.IPC_VISUAL_PUBLISHED_COMMIT?.trim() || undefined,
+});
 const root = path.resolve(
   '.artifacts/shipyard-live',
   process.env.IPC_VISUAL_AUDIT_RUN ?? 'phase25-p8-pf-20260802',
@@ -53,7 +64,7 @@ const allRoutes = dashboardUiRulesProfile ? [
   ...['production','documents'].map((view) => ({ name: `chef-${view}`, path: `/chef-dashboard?view=${view}` })),
   ...['queue','history'].map((view) => ({ name: `approvals-${view}`, path: `/approvals?view=${view}` })),
   ...['workflow','supplemental','quotations'].map((view) => ({ name: `purchasing-${view}`, path: `/purchasing?view=${view}` })),
-  ...['movement','demand','exceptions'].map((view) => ({ name: `warehouse-${view}`, path: `/warehouse?view=${view}` })),
+  ...['receiving','demand','exceptions','movement'].map((view) => ({ name: `warehouse-${view}`, path: `/warehouse?view=${view}` })),
   { name: 'reconciliation', path: '/reconciliation' },
   ...['price','demand','purchase','stock','movement','kitchen','usage','audit','data-quality'].map((view) => ({ name: `reports-${view}`, path: `/reports?view=${view}` })),
   ...['bom-import','contracts','cleanup','inventory','statistics','audit','employees'].map((view) => ({ name: `admin-data-${view}`, path: `/admin-data?view=${view}` })),
@@ -74,14 +85,15 @@ await Promise.all([
 ]);
 const evidence = {
   startedAt: new Date().toISOString(),
-  sourceCommit,
-  dirtySourceFingerprint,
+  sourceCommit: headCommit,
+  ...sourceIdentity,
   baseUrl,
   apiUrl,
   database,
   credentialSource: 'K6_PASSWORD',
   browser: 'Google Chrome',
   headed: true,
+  runConfiguration: buildRunConfiguration({ assertPerformance, attributionEnabled, geometryEnabled, auditProfile, routes, viewports }),
   viewports,
   routes: [],
   apiResponses: [],
@@ -291,7 +303,8 @@ const recordAction = async (name, action) => {
 };
 
 const captureNavigationTrace = async ({ route, viewport, navigate }) => {
-  const needsTrace = attributionEnabled && (route.path === '/warehouse' || route.path === '/admin-data');
+  const routePathname = performanceBudgetForRoute(route.path).pathname;
+  const needsTrace = attributionEnabled && (routePathname === '/warehouse' || routePathname === '/admin-data');
   if (!needsTrace) {
     await navigate();
     return null;
@@ -391,7 +404,7 @@ try {
   await page.goto(`${baseUrl}/login`);
   await settle();
   if (await page.locator('#username').isVisible().catch(() => false)) {
-    await page.locator('#username').fill('admin');
+    await page.locator('#username').fill(username);
     await page.locator('#password').fill(password);
     actionStartedAt = Date.now();
     await Promise.all([
@@ -495,7 +508,12 @@ try {
           },
         };
       });
-      evidence.routes.push({ viewport: viewport.name, route: route.path, ...state });
+      evidence.routes.push({
+        viewport: viewport.name,
+        route: route.path,
+        performanceBudget: performanceBudgetForRoute(route.path),
+        ...state,
+      });
     }
 
     if (!dashboardUiRulesProfile) {
@@ -573,26 +591,19 @@ try {
     attributionTraceCount: evidence.attributionTraces.length,
     maxCls: Math.max(...evidence.routes.map((sample) => sample.cls)),
   };
-  evidence.performanceThresholdFailures = evidence.routes.flatMap((sample) => {
-    const failures = [];
-    if ((sample.route === '/warehouse' || sample.route === '/approvals') && sample.cls > 0.1) {
-      failures.push({ viewport: sample.viewport, route: sample.route, metric: 'cls', actual: sample.cls, budget: 0.1 });
-    }
-    for (const task of sample.longTasks.filter((entry) => entry.duration > 50)) {
-      failures.push({ viewport: sample.viewport, route: sample.route, metric: 'longtask', actual: task.duration, budget: 50, startTime: task.startTime, action: task.action });
-    }
-    return failures;
-  });
+  evidence.performanceThresholdFailures = classifyPerformanceThresholds(evidence.routes);
   evidence.summary.performanceThresholdFailureCount = evidence.performanceThresholdFailures.length;
+  const runOutcome = buildRunOutcome({ assertPerformance, performanceThresholdFailures: evidence.performanceThresholdFailures });
+  Object.assign(evidence, runOutcome);
   await Promise.all([
     fs.writeFile(path.join(apiRoot, 'responses.json'), JSON.stringify(evidence.apiResponses, null, 2)),
     fs.writeFile(path.join(browserRoot, 'errors.json'), JSON.stringify({ consoleErrors: evidence.consoleErrors, pageErrors: evidence.pageErrors, requestFailures: evidence.requestFailures, escapedMutations: evidence.escapedMutations }, null, 2)),
     fs.writeFile(path.join(performanceRoot, 'metrics.json'), JSON.stringify(evidence.routes.map(({ viewport, route, cls, shifts, longTasks, geometry, actions }) => ({ viewport, route, cls, shifts, longTasks, geometry, actions })), null, 2)),
     fs.writeFile(path.join(performanceRoot, 'attribution.json'), JSON.stringify(evidence.attributionTraces, null, 2)),
     fs.writeFile(path.join(performanceRoot, 'threshold-failures.json'), JSON.stringify(evidence.performanceThresholdFailures, null, 2)),
-    fs.writeFile(path.join(root, 'manifest.json'), JSON.stringify({ ...evidence, status: 'passed' }, null, 2)),
+    fs.writeFile(path.join(root, 'manifest.json'), JSON.stringify(evidence, null, 2)),
   ]);
-  if (assertPerformance && evidence.performanceThresholdFailures.length > 0) {
+  if (runOutcome.status === 'failed') {
     throw new Error(`Performance threshold failures: ${JSON.stringify(evidence.performanceThresholdFailures)}`);
   }
 } catch (error) {

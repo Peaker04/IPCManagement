@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   useGetDataQualityPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
-} from '@/features/reports/reportsApi';
+} from '@/api/reportsApi';
 import type { DataQualityIssueRow } from '@/api/workflowApiTypes';
 import { getMutationErrorMessage, type AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';

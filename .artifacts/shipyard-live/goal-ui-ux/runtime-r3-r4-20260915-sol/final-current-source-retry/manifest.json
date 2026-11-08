@@ -1,0 +1,2775 @@
+{
+  "startedAt": "2026-09-15T16:12:45.651Z",
+  "sourceCommit": "d5e0ae5260002ae1edf3519084aa24495deb432c",
+  "dirtySourceFingerprint": "122012c48ea2aa14954792bf8c15c90c34c35702298c1c87a2edbdcd34d3b0df",
+  "baseUrl": "http://127.0.0.1:3001",
+  "apiUrl": "http://127.0.0.1:8001",
+  "database": "ipc_lane7",
+  "credentialSource": "K6_PASSWORD",
+  "browser": "Google Chrome",
+  "headed": true,
+  "viewports": [
+    {
+      "name": "1440x900",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "1366x768",
+      "width": 1366,
+      "height": 768
+    }
+  ],
+  "routes": [
+    {
+      "viewport": "1440x900",
+      "route": "/",
+      "pathname": "/",
+      "textLength": 1641,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 352,
+      "rows": 0,
+      "cls": 0.00005987825118955762,
+      "shifts": [
+        {
+          "value": 0.00005987825118955762,
+          "startTime": 258.30000000074506,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1078.90625,
+                "y": 12.796875,
+                "width": 335.09375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1078.90625
+              },
+              "currentRect": {
+                "x": 1068.140625,
+                "y": 12.796875,
+                "width": 345.859375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1068.140625
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 11.600000001490116,
+          "endTime": 1591.7000000011176
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": null,
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/chef-dashboard?view=production",
+      "pathname": "/chef-dashboard",
+      "textLength": 756,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 324,
+      "rows": 1,
+      "cls": 0,
+      "shifts": [],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 9.900000000372529,
+          "endTime": 1696.2000000011176
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 0,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/warehouse?view=demand",
+      "pathname": "/warehouse",
+      "textLength": 1602,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 405,
+      "rows": 8,
+      "cls": 0.000423487131880144,
+      "shifts": [
+        {
+          "value": 0.00007310655381944445,
+          "startTime": 240.19999999925494,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1047.9375,
+                "y": 12.796875,
+                "width": 366.0625,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1047.9375
+              },
+              "currentRect": {
+                "x": 1035.90625,
+                "y": 12.796875,
+                "width": 378.09375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1035.90625
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.00008128365724665638,
+          "startTime": 561.7999999988824,
+          "sources": [
+            {
+              "selector": "span.ipc-command-meta",
+              "ariaLabel": null,
+              "heading": null,
+              "previousRect": {
+                "x": 331.625,
+                "y": 84.59375,
+                "width": 209.359375,
+                "height": 28,
+                "top": 84.59375,
+                "right": 540.984375,
+                "bottom": 112.59375,
+                "left": 331.625
+              },
+              "currentRect": {
+                "x": 357.546875,
+                "y": 84.59375,
+                "width": 180.359375,
+                "height": 28,
+                "top": 84.59375,
+                "right": 537.90625,
+                "bottom": 112.59375,
+                "left": 357.546875
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.0002690969208140432,
+          "startTime": 589,
+          "sources": [
+            {
+              "selector": "div.ipc-command-bar-actions.flex.shrink-0",
+              "ariaLabel": null,
+              "heading": null,
+              "previousRect": {
+                "x": 775.75,
+                "y": 80.59375,
+                "width": 617.25,
+                "height": 36,
+                "top": 80.59375,
+                "right": 1393,
+                "bottom": 116.59375,
+                "left": 775.75
+              },
+              "currentRect": {
+                "x": 798.359375,
+                "y": 80.59375,
+                "width": 594.640625,
+                "height": 36,
+                "top": 80.59375,
+                "right": 1393,
+                "bottom": 116.59375,
+                "left": 798.359375
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": {
+        "enabled": true,
+        "startedAt": 12.099999999627471,
+        "frames": [
+          {
+            "reason": "initial-request-animation-frame",
+            "changedTarget": null,
+            "time": 143,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 163.59999999962747,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 165.69999999925494,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 240.59999999962747,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 364.8999999985099,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 529.7999999988824,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "resize-observer:ViewSwitcher",
+            "changedTarget": null,
+            "time": 541.0999999996275,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 882.5,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          }
+        ],
+        "resizeEvents": [
+          {
+            "target": "ViewSwitcher",
+            "time": 537.5999999996275,
+            "count": 1
+          }
+        ]
+      },
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 12.099999999627471,
+          "endTime": 1887.8999999985099
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/warehouse?view=exceptions",
+      "pathname": "/warehouse",
+      "textLength": 4304,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 718,
+      "rows": 22,
+      "cls": 0.17495980388259907,
+      "shifts": [
+        {
+          "value": 0.00007386610243055556,
+          "startTime": 194.80000000074506,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1048.0625,
+                "y": 12.796875,
+                "width": 365.9375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1048.0625
+              },
+              "currentRect": {
+                "x": 1035.90625,
+                "y": 12.796875,
+                "width": 378.09375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1035.90625
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.17488593778016853,
+          "startTime": 622.0999999996275,
+          "sources": [
+            {
+              "selector": "section.ipc-section-panel.rounded-md.border",
+              "ariaLabel": null,
+              "heading": "Phiếu trả dư và hao hụt chờ kho tiếp nhận",
+              "previousRect": {
+                "x": 264,
+                "y": 611.6141967773438,
+                "width": 1140,
+                "height": 203,
+                "top": 611.6141967773438,
+                "right": 1404,
+                "bottom": 814.6141967773438,
+                "left": 264
+              },
+              "currentRect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": {
+        "enabled": true,
+        "startedAt": 10.099999999627471,
+        "frames": [
+          {
+            "reason": "initial-request-animation-frame",
+            "changedTarget": null,
+            "time": 113.09999999962747,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 135.80000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 195.19999999925494,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 299.30000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 485.69999999925494,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "resize-observer:ViewSwitcher",
+            "changedTarget": null,
+            "time": 505.5,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 545.3000000007451,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 561.9000000003725,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 624.8000000007451,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          }
+        ],
+        "resizeEvents": [
+          {
+            "target": "ViewSwitcher",
+            "time": 501,
+            "count": 1
+          }
+        ]
+      },
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 10,
+          "endTime": 1619.800000000745
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/reports?view=price",
+      "pathname": "/reports",
+      "textLength": 1469,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 471,
+      "rows": 6,
+      "cls": 0.000065832318592464,
+      "shifts": [
+        {
+          "value": 0.000065832318592464,
+          "startTime": 184.30000000074506,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1076.3125,
+                "y": 12.796875,
+                "width": 337.6875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1076.3125
+              },
+              "currentRect": {
+                "x": 1064.578125,
+                "y": 12.796875,
+                "width": 349.421875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1064.578125
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 9.5,
+          "endTime": 1523.4000000003725
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/reports?view=demand",
+      "pathname": "/reports",
+      "textLength": 1588,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 446,
+      "rows": 8,
+      "cls": 0.000065832318592464,
+      "shifts": [
+        {
+          "value": 0.000065832318592464,
+          "startTime": 180.39999999850988,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1076.3125,
+                "y": 12.796875,
+                "width": 337.6875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1076.3125
+              },
+              "currentRect": {
+                "x": 1064.578125,
+                "y": 12.796875,
+                "width": 349.421875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1064.578125
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 9.099999999627471,
+          "endTime": 1729.0999999996275
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1440x900",
+      "route": "/admin-data?view=audit",
+      "pathname": "/admin-data",
+      "textLength": 1657,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 403,
+      "rows": 8,
+      "cls": 0.00006565046899112654,
+      "shifts": [
+        {
+          "value": 0.00006565046899112654,
+          "startTime": 184,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1049.84375,
+                "y": 12.796875,
+                "width": 364.15625,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1049.84375
+              },
+              "currentRect": {
+                "x": 1038.953125,
+                "y": 12.796875,
+                "width": 375.046875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1038.953125
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 11,
+          "endTime": 1609.699999999255
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 0,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/",
+      "pathname": "/",
+      "textLength": 1641,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 352,
+      "rows": 0,
+      "cls": 0.00006695053785432239,
+      "shifts": [
+        {
+          "value": 0.00006695053785432239,
+          "startTime": 189.60000000149012,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1005.21875,
+                "y": 12.796875,
+                "width": 334.78125,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 1005.21875
+              },
+              "currentRect": {
+                "x": 995.921875,
+                "y": 12.796875,
+                "width": 344.078125,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 995.921875
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 10,
+          "endTime": 1532.9000000003725
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": null,
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/chef-dashboard?view=production",
+      "pathname": "/chef-dashboard",
+      "textLength": 756,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 324,
+      "rows": 1,
+      "cls": 0.00008601384323906887,
+      "shifts": [
+        {
+          "value": 0.00008601384323906887,
+          "startTime": 195.2000000011176,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1006.15625,
+                "y": 12.796875,
+                "width": 333.84375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 1006.15625
+              },
+              "currentRect": {
+                "x": 994.28125,
+                "y": 12.796875,
+                "width": 345.71875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 994.28125
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 13.800000000745058,
+          "endTime": 1539.5
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 0,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/warehouse?view=demand",
+      "pathname": "/warehouse",
+      "textLength": 1602,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 405,
+      "rows": 8,
+      "cls": 0.000603831571875891,
+      "shifts": [
+        {
+          "value": 0.00009619445951900795,
+          "startTime": 211.80000000074506,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 974.0625,
+                "y": 12.796875,
+                "width": 365.9375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 974.0625
+              },
+              "currentRect": {
+                "x": 961.90625,
+                "y": 12.796875,
+                "width": 378.09375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 961.90625
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.000507637112356883,
+          "startTime": 526.1000000014901,
+          "sources": [
+            {
+              "selector": "div.ipc-command-bar-actions.flex.shrink-0",
+              "ariaLabel": null,
+              "heading": null,
+              "previousRect": {
+                "x": 701.75,
+                "y": 80.59375,
+                "width": 617.25,
+                "height": 36,
+                "top": 80.59375,
+                "right": 1319,
+                "bottom": 116.59375,
+                "left": 701.75
+              },
+              "currentRect": {
+                "x": 724.359375,
+                "y": 80.59375,
+                "width": 594.640625,
+                "height": 36,
+                "top": 80.59375,
+                "right": 1319,
+                "bottom": 116.59375,
+                "left": 724.359375
+              }
+            },
+            {
+              "selector": "span.ipc-command-meta",
+              "ariaLabel": null,
+              "heading": null,
+              "previousRect": {
+                "x": 331.625,
+                "y": 84.59375,
+                "width": 209.359375,
+                "height": 28,
+                "top": 84.59375,
+                "right": 540.984375,
+                "bottom": 112.59375,
+                "left": 331.625
+              },
+              "currentRect": {
+                "x": 357.546875,
+                "y": 84.59375,
+                "width": 180.359375,
+                "height": 28,
+                "top": 84.59375,
+                "right": 537.90625,
+                "bottom": 112.59375,
+                "left": 357.546875
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": {
+        "enabled": true,
+        "startedAt": 11.400000000372529,
+        "frames": [
+          {
+            "reason": "initial-request-animation-frame",
+            "changedTarget": null,
+            "time": 135.7000000011176,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 152.7000000011176,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 213.40000000037253,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 321.1000000014901,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 497.5,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "resize-observer:ViewSwitcher",
+            "changedTarget": null,
+            "time": 508.6000000014901,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 758.2000000011176,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          }
+        ],
+        "resizeEvents": [
+          {
+            "target": "ViewSwitcher",
+            "time": 505.30000000074506,
+            "count": 1
+          }
+        ]
+      },
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 11.300000000745058,
+          "endTime": 1755.1000000014901
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/warehouse?view=exceptions",
+      "pathname": "/warehouse",
+      "textLength": 4304,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 718,
+      "rows": 22,
+      "cls": 0.16366094249789775,
+      "shifts": [
+        {
+          "value": 0.00008240267488890412,
+          "startTime": 187.7000000011176,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 974.0625,
+                "y": 12.796875,
+                "width": 365.9375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 974.0625
+              },
+              "currentRect": {
+                "x": 963.59375,
+                "y": 12.796875,
+                "width": 376.40625,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 963.59375
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.16357853982300885,
+          "startTime": 543.8000000007451,
+          "sources": [
+            {
+              "selector": "section.ipc-section-panel.rounded-md.border",
+              "ariaLabel": null,
+              "heading": "Phiếu trả dư và hao hụt chờ kho tiếp nhận",
+              "previousRect": {
+                "x": 264,
+                "y": 612.0404663085938,
+                "width": 1092,
+                "height": 155.95953369140625,
+                "top": 612.0404663085938,
+                "right": 1356,
+                "bottom": 768,
+                "left": 264
+              },
+              "currentRect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": {
+        "enabled": true,
+        "startedAt": 11.700000001117587,
+        "frames": [
+          {
+            "reason": "initial-request-animation-frame",
+            "changedTarget": null,
+            "time": 112.80000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 130.80000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 188.80000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 322.80000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 480.2000000011176,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "resize-observer:ViewSwitcher",
+            "changedTarget": null,
+            "time": 497.7000000011176,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 518.8000000007451,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 546.3000000007451,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          }
+        ],
+        "resizeEvents": [
+          {
+            "target": "ViewSwitcher",
+            "time": 493.40000000037253,
+            "count": 1
+          }
+        ]
+      },
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 11.700000001117587,
+          "endTime": 1541.0999999996275
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/reports?view=price",
+      "pathname": "/reports",
+      "textLength": 1469,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 471,
+      "rows": 6,
+      "cls": 0.0000857322113595859,
+      "shifts": [
+        {
+          "value": 0.0000857322113595859,
+          "startTime": 184.69999999925494,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1002.3125,
+                "y": 12.796875,
+                "width": 337.6875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 1002.3125
+              },
+              "currentRect": {
+                "x": 990.578125,
+                "y": 12.796875,
+                "width": 349.421875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 990.578125
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 9.899999998509884,
+          "endTime": 1490.5
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/reports?view=demand",
+      "pathname": "/reports",
+      "textLength": 1588,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 446,
+      "rows": 8,
+      "cls": 0.0000857322113595859,
+      "shifts": [
+        {
+          "value": 0.0000857322113595859,
+          "startTime": 186.7999999988824,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1002.3125,
+                "y": 12.796875,
+                "width": 337.6875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 1002.3125
+              },
+              "currentRect": {
+                "x": 990.578125,
+                "y": 12.796875,
+                "width": 349.421875,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 990.578125
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 10.099999999627471,
+          "endTime": 1772.7999999988824
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/admin-data?view=audit",
+      "pathname": "/admin-data",
+      "textLength": 1657,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 403,
+      "rows": 8,
+      "cls": 0.0000728386394368691,
+      "shifts": [
+        {
+          "value": 0.0000728386394368691,
+          "startTime": 183.10000000149012,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 975.84375,
+                "y": 12.796875,
+                "width": 364.15625,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 975.84375
+              },
+              "currentRect": {
+                "x": 966.515625,
+                "y": 12.796875,
+                "width": 373.484375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 966.515625
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": null,
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 11.200000001117587,
+          "endTime": 1525.7000000011176
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 0,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    }
+  ],
+  "apiResponses": [
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "POST",
+      "status": 200,
+      "url": "/api/auth/login"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/stock-movements"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/workflow-documents"
+    },
+    {
+      "probe": "1440x900:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/receipt-price-variance"
+    },
+    {
+      "probe": "1440x900:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/operational-kpis"
+    },
+    {
+      "probe": "1440x900:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/stock-movements"
+    },
+    {
+      "probe": "1440x900:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand"
+    },
+    {
+      "probe": "1440x900:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/workflow-documents"
+    },
+    {
+      "probe": "1440x900:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/receipt-price-variance"
+    },
+    {
+      "probe": "1440x900:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns"
+    },
+    {
+      "probe": "1440x900:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/kitchen-issues"
+    },
+    {
+      "probe": "1440x900:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/kitchen-issues/page"
+    },
+    {
+      "probe": "1440x900:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/production-plans/daily"
+    },
+    {
+      "probe": "1440x900:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/dishes/catalog"
+    },
+    {
+      "probe": "1440x900:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/workflow-documents"
+    },
+    {
+      "probe": "1440x900:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/warehouses/selector"
+    },
+    {
+      "probe": "1440x900:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/material-request-candidates/page"
+    },
+    {
+      "probe": "1440x900:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/service-runs/page"
+    },
+    {
+      "probe": "1440x900:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand/aggregate/page"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/warehouses/selector"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/supplemental-material-requests"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns/allocation-balances"
+    },
+    {
+      "probe": "1440x900:reports-price",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:reports-price",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/receipt-price-variance/page"
+    },
+    {
+      "probe": "1440x900:reports-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:reports-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand/aggregate/page"
+    },
+    {
+      "probe": "1440x900:admin-data-audit",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:admin-data-audit",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/audit-changes/page"
+    },
+    {
+      "probe": "1366x768:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/operational-kpis"
+    },
+    {
+      "probe": "1366x768:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/stock-movements"
+    },
+    {
+      "probe": "1366x768:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/workflow-documents"
+    },
+    {
+      "probe": "1366x768:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand"
+    },
+    {
+      "probe": "1366x768:dashboard",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/receipt-price-variance"
+    },
+    {
+      "probe": "1366x768:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/dishes/catalog"
+    },
+    {
+      "probe": "1366x768:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/kitchen-issues"
+    },
+    {
+      "probe": "1366x768:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/production-plans/daily"
+    },
+    {
+      "probe": "1366x768:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns"
+    },
+    {
+      "probe": "1366x768:chef-production",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/kitchen-issues/page"
+    },
+    {
+      "probe": "1366x768:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/warehouses/selector"
+    },
+    {
+      "probe": "1366x768:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/material-request-candidates/page"
+    },
+    {
+      "probe": "1366x768:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/workflow-documents"
+    },
+    {
+      "probe": "1366x768:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/service-runs/page"
+    },
+    {
+      "probe": "1366x768:warehouse-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand/aggregate/page"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/warehouses/selector"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/supplemental-material-requests"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns/allocation-balances"
+    },
+    {
+      "probe": "1366x768:reports-price",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:reports-price",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/receipt-price-variance/page"
+    },
+    {
+      "probe": "1366x768:reports-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:reports-demand",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand/aggregate/page"
+    },
+    {
+      "probe": "1366x768:admin-data-audit",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:admin-data-audit",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/audit-changes/page"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/supplemental-material-requests"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/purchase-requests"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/purchase-workflow/workbench"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/purchase-orders"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/ingredients"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/coordination/customer-contracts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/dishes/catalog"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": [],
+  "escapedMutations": [],
+  "fontResponses": [
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-ext-standard-normal-DpK-iCPk.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-latin-standard-normal-BwkfbSeq.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/assets/inter-vietnamese-standard-normal-Ci9T9ieq.woff2"
+    }
+  ],
+  "reflowChecks": [
+    {
+      "route": "/purchasing",
+      "equivalentZoom": "200%",
+      "pathname": "/purchasing",
+      "textLength": 411,
+      "horizontalOverflow": false,
+      "scrollWidth": 630,
+      "viewportWidth": 640,
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif"
+    },
+    {
+      "route": "/admin-data",
+      "equivalentZoom": "200%",
+      "pathname": "/admin-data",
+      "textLength": 1741,
+      "horizontalOverflow": false,
+      "scrollWidth": 630,
+      "viewportWidth": 640,
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif"
+    }
+  ],
+  "preferenceFlows": [],
+  "attributionTraces": [],
+  "phase29Contract": {
+    "modes": [
+      "DEFAULT",
+      "MATERIAL_RECONCILIATION"
+    ],
+    "roles": [
+      "Admin",
+      "Purchasing",
+      "Warehouse",
+      "retained-permission-denied"
+    ],
+    "requiredViewports": [
+      "1920x1080",
+      "1440x900",
+      "1366x768",
+      "1365x900",
+      "1280x900"
+    ],
+    "verdicts": [
+      "navigation",
+      "direct-route",
+      "bundle-preload",
+      "data-preload",
+      "action"
+    ],
+    "twoSessionRelocation": null,
+    "databaseInvariants": [
+      "purchaseRequests",
+      "purchaseOrders",
+      "receipts",
+      "issues",
+      "movements",
+      "lots",
+      "snapshots",
+      "currentStock"
+    ],
+    "immutableHistory": null,
+    "focusAndReload": null,
+    "performanceDisposition": {
+      "cls": null,
+      "longTasks": null
+    },
+    "ownedProcessTeardown": null,
+    "protectedRetry": {
+      "candidateScope": {
+        "customerCodes": [
+          "ANV",
+          "AMANN"
+        ],
+        "dateFrom": "2026-09-07",
+        "dateTo": "2026-09-12",
+        "disposition": "READ_ONLY_PREFLIGHT_CANDIDATE"
+      },
+      "freshWorkbookPath": null,
+      "freshWorkbookSha256": null,
+      "menuVersionId": null,
+      "contentFingerprint": null,
+      "quantityImportBatchId": null,
+      "quantityPlanIds": [],
+      "quantityPlanLineIds": [],
+      "reconciliationBatchId": null
+    }
+  },
+  "finishedAt": "2026-09-15T16:13:14.805Z",
+  "summary": {
+    "viewportCount": 2,
+    "routeProbeCount": 14,
+    "screenshotCount": 4,
+    "fontResponseCount": 51,
+    "reflowCheckCount": 2,
+    "apiResponseCount": 73,
+    "apiAfterActionCount": 73,
+    "consoleErrorCount": 0,
+    "pageErrorCount": 0,
+    "requestFailureCount": 0,
+    "escapedMutationCount": 0,
+    "overflowCount": 0,
+    "longTaskCount": 0,
+    "attributionTraceCount": 0,
+    "maxCls": 0.17495980388259907,
+    "performanceThresholdFailureCount": 0
+  },
+  "performanceThresholdFailures": [],
+  "status": "passed"
+}

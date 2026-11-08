@@ -371,7 +371,7 @@ public class WeeklyMenuImportParserTests
     }
 
     [Fact]
-    public void Validate_Should_Block_When_DishNotExistsInCatalog()
+    public void Validate_Should_Warn_And_Allow_When_DishIsNew()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
         try
@@ -405,11 +405,56 @@ public class WeeklyMenuImportParserTests
                 }
             ]);
 
+            validation.HasCriticalErrors.Should().BeFalse();
+            validation.IsValid.Should().BeTrue();
+            validation.Issues.Should().ContainSingle(issue =>
+                issue.Code == "NEW_DISH" &&
+                issue.Severity == "warning" &&
+                issue.Message.Contains("sẽ được tạo"));
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void Validate_Should_Block_When_Normalized_Dish_Match_Is_Ambiguous()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            CreateWorkbook(tempFile, "MENU", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                [],
+                [],
+                [],
+                ["", "", "", "15/06/2026"],
+                [],
+                [],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "Cá kho 100g"],
+            ]);
+            var plan = InvokeParse(tempFile, "ambiguous-dish.xlsx", null);
+            SetProperty(GetEnumerable(plan, "Items").Single(), "DishMatchAmbiguous", true);
+
+            var validation = InvokeValidation(plan, [new WeeklyMenuImportRowDto
+            {
+                ServiceDate = new DateOnly(2026, 6, 15),
+                SourceRowNumber = 9,
+                SourceColumn = "D",
+                DbShiftName = "MORNING",
+                Variant = "Mặn",
+                Slot = "main",
+                SlotLabel = "Món mặn chính",
+                DishName = "Cá kho 100g",
+                ExistingDish = false
+            }]);
+
             validation.HasCriticalErrors.Should().BeTrue();
             validation.Issues.Should().ContainSingle(issue =>
-                issue.Code == "DISH_NOT_FOUND" &&
-                issue.Severity == "error" &&
-                issue.Message.Contains("ngân hàng món ăn"));
+                issue.Code == "DISH_MATCH_AMBIGUOUS" && issue.Severity == "error");
+            validation.Issues.Should().NotContain(issue => issue.Code == "NEW_DISH");
         }
         finally
         {
@@ -986,6 +1031,9 @@ public class WeeklyMenuImportParserTests
         var value = source.GetType().GetProperty(propertyName)!.GetValue(source);
         return (T)value!;
     }
+
+    private static void SetProperty(object source, string propertyName, object value)
+        => source.GetType().GetProperty(propertyName)!.SetValue(source, value);
 
     private static IReadOnlyList<object> GetEnumerable(object source, string propertyName)
         => ((IEnumerable)source.GetType().GetProperty(propertyName)!.GetValue(source)!)

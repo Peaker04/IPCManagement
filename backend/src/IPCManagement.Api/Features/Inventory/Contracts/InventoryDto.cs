@@ -150,6 +150,7 @@ public class InventoryIssueDto
 public class InventoryReceiptFilterRequestDto : PagedRequestDto
 {
     public bool PurchaseOrderOnly { get; set; }
+    public string? PurchaseOrderId { get; set; }
 }
 
 public class InventoryIssueFilterRequestDto : PagedRequestDto
@@ -221,6 +222,8 @@ public class CreateInventoryIssueLineRequest
     public string? MaterialRequestLineId { get; set; }
 
     public string? ReconciliationBatchLineId { get; set; }
+
+    public string? ReconciliationBatchDailyLineId { get; set; }
 
     [Required]
     public string IngredientId { get; set; } = string.Empty;

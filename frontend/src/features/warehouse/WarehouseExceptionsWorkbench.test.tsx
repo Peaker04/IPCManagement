@@ -112,6 +112,13 @@ const uninitializedQuery = () => ({
   refetch: vi.fn(),
 });
 
+const loadingQuery = () => ({
+  ...uninitializedQuery(),
+  isUninitialized: false,
+  isLoading: true,
+  isFetching: true,
+});
+
 const failedQuery = (status: number, refetch: () => unknown = vi.fn()) => ({
   ...uninitializedQuery(),
   isUninitialized: false,
@@ -167,6 +174,31 @@ describe('WarehouseExceptionsWorkbench', () => {
     expect(screen.queryByRole('combobox', { name: /Kho nhận/ })).not.toBeInTheDocument();
     expect(screen.getByText('Kho chính')).toBeInTheDocument();
   });
+
+  it('references the quantity error only while that error is rendered', () => {
+    render(<WarehousePurchaseReceiptDialog
+      open
+      order={{ purchaseOrderId: 'po-1', purchaseOrderCode: 'PO-001', supplierName: 'Nhà cung cấp Minh An' } as PurchaseOrderDto}
+      line={{
+        purchaseOrderLineId: 'line-1', ingredientName: 'Gạo', orderedQty: 5, receivedQty: 0,
+        unitPrice: 20_000, unitName: 'kg', unitId: 'unit-1', lotNumberRequired: false,
+        manufactureDateRequired: false, expiryDateRequired: false,
+      } as PurchaseOrderLineDto}
+      warehouses={[{ warehouseId: 'warehouse-1', warehouseCode: 'KHO-01', warehouseName: 'Kho chính' }]}
+      onOpenChange={vi.fn()}
+      onSuccess={vi.fn()}
+    />)
+
+    const quantity = screen.getByLabelText(/Số lượng thực nhận/)
+    expect(quantity).toHaveAttribute('aria-describedby', 'purchase-receipt-quantity-help')
+    expect(document.getElementById('purchase-receipt-quantity-error')).not.toBeInTheDocument()
+
+    fireEvent.change(quantity, { target: { value: '6' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
+
+    expect(quantity).toHaveAttribute('aria-describedby', 'purchase-receipt-quantity-help purchase-receipt-quantity-error')
+    expect(document.getElementById('purchase-receipt-quantity-error')).toBeInTheDocument()
+  })
 
   it('shows server-authoritative actions and creates a partial supplemental issue', async () => {
     render(<WarehouseExceptionsWorkbench canManage />);
@@ -236,6 +268,47 @@ describe('WarehouseExceptionsWorkbench', () => {
     })));
   });
 
+  it('composes allocation quantities into six decision columns without losing facts', () => {
+    render(<WarehouseExceptionsWorkbench canManage canDisposition />);
+
+    const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
+    expect(within(allocationSection!).getAllByRole('columnheader')).toHaveLength(6);
+    expect(within(allocationSection!).getByRole('columnheader', { name: 'Xuất / trả' })).toBeInTheDocument();
+    expect(within(allocationSection!).getByRole('columnheader', { name: 'Hao hụt / còn dư' })).toBeInTheDocument();
+    expect(within(allocationSection!).getAllByText((_, element) => element?.textContent === 'Xuất: 5 kg')).not.toHaveLength(0);
+    expect(within(allocationSection!).getAllByText((_, element) => element?.textContent === 'Trả: 1 kg')).not.toHaveLength(0);
+    expect(within(allocationSection!).getAllByText((_, element) => element?.textContent === 'Hao hụt: 1 kg')).not.toHaveLength(0);
+    expect(within(allocationSection!).getByText((_, element) => element?.textContent === 'Còn dư: 3 kg')).toBeInTheDocument();
+  });
+
+  it('reserves the bounded allocation page footprint during initial loading', () => {
+    mocks.allocationQuery.mockReturnValue(loadingQuery());
+
+    const { container } = render(<WarehouseExceptionsWorkbench canManage />);
+
+    const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
+    expect(within(allocationSection!).getByText('Đang tải đối soát nguyên liệu theo dòng chứng từ')).toBeInTheDocument();
+    expect(container.querySelectorAll('.ipc-skeleton-tbody .ipc-skeleton-row')).toHaveLength(20);
+  });
+
+  it('renders allocation rows in bounded pages instead of mounting the full retained dataset', () => {
+    mocks.allocationQuery.mockReturnValue(readyQuery(Array.from({ length: 25 }, (_, index) => ({
+      ...allocationRow,
+      sourceIssueLineId: `source-line-${index + 1}`,
+      customerName: `Khách hàng ${index + 1}`,
+      customerCode: `KH${index + 1}`,
+    }))));
+
+    render(<WarehouseExceptionsWorkbench canManage />);
+
+    expect(screen.getByText('Khách hàng 1 (KH1)')).toBeInTheDocument();
+    expect(screen.queryByText('Khách hàng 21 (KH21)')).toBeNull();
+    const allocationSection = screen.getByRole('heading', { name: 'Đối soát nguyên liệu đã xuất' }).closest('section');
+    fireEvent.click(within(allocationSection!).getByRole('button', { name: /trang 2 trong 2/i }));
+    expect(screen.getByText('Khách hàng 21 (KH21)')).toBeInTheDocument();
+    expect(screen.queryByText('Khách hàng 1 (KH1)')).toBeNull();
+  });
+
   it('renders exact allocation scope and submits only a backend-authorized disposition', async () => {
     render(<WarehouseExceptionsWorkbench canManage canDisposition />);
 
@@ -260,7 +333,7 @@ describe('WarehouseExceptionsWorkbench', () => {
     render(<WarehouseExceptionsWorkbench canManage />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Không tải được yêu cầu cấp bổ sung');
-    expect(screen.queryByText('Không có yêu cầu bổ sung trong phạm vi kho.')).toBeNull();
+    expect(screen.getByText('Không có yêu cầu bổ sung trong phạm vi kho.').closest('[aria-hidden="true"]')).not.toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }));
     expect(mocks.refetchSupplemental).toHaveBeenCalledOnce();
   });
@@ -272,7 +345,7 @@ describe('WarehouseExceptionsWorkbench', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Bạn không có quyền xem yêu cầu cấp bổ sung.');
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
-    expect(screen.queryByText('Không có yêu cầu bổ sung trong phạm vi kho.')).toBeNull();
+    expect(screen.getByText('Không có yêu cầu bổ sung trong phạm vi kho.').closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('keeps supplemental rows visible while refreshing', () => {
@@ -294,7 +367,7 @@ describe('WarehouseExceptionsWorkbench', () => {
     render(<WarehouseExceptionsWorkbench canManage />);
 
     expect(screen.getByRole('alert')).toHaveTextContent('Không tải được phiếu trả');
-    expect(screen.queryByText('Không có phiếu trả hoặc hao hụt đang chờ kho.')).toBeNull();
+    expect(screen.getByText('Không có phiếu trả hoặc hao hụt đang chờ kho.').closest('[aria-hidden="true"]')).not.toBeNull();
   });
 
   it('keeps return-detail forbidden distinct from an empty receipt form', () => {

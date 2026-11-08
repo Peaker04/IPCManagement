@@ -161,8 +161,9 @@ describe('ApprovalRulesPage query state boundary', () => {
     renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Thêm quy tắc' }));
 
-    expect(screen.getByText('Danh sách nhân viên bị giới hạn')).toBeInTheDocument();
-    expect(screen.getByText(/1\/201 nhân viên/)).toBeInTheDocument();
+    expect(screen.getByText('Tìm nhân viên theo tên hoặc tài khoản')).toBeInTheDocument();
+    expect(screen.getByText(/201 nhân viên/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Tìm nhân viên chỉ định')).toBeInTheDocument();
   });
 
   it('renders document, role, and employee labels in closed select triggers', async () => {
@@ -195,7 +196,7 @@ describe('ApprovalRulesPage query state boundary', () => {
     const view = renderPage();
     fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
 
-    expect(screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' })).toBeInTheDocument();
     expect(mocks.deleteRule).not.toHaveBeenCalled();
 
     mocks.deleteState.isLoading = true;
@@ -247,7 +248,7 @@ describe('ApprovalRulesPage query state boundary', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Xóa' }));
     fireEvent.click(screen.getByRole('button', { name: 'Xóa quy tắc' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Xóa quy tắc duyệt?' });
+    const dialog = screen.getByRole('dialog', { name: 'Xác nhận xóa quy tắc duyệt' });
     await waitFor(() => expect(dialog).toHaveTextContent('Chưa thể xóa quy tắc'));
     expect(dialog).toHaveTextContent('Quy tắc đang được sử dụng.');
   });

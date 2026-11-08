@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import weeklyRouter from '@/features/projects/pages/WeeklyMenuPage.tsx?raw'
+import weeklyNavigation from '@/features/projects/weekly-menu/shell/WeeklyMenuNavigation.tsx?raw'
 import warehouseRouter from '@/features/warehouse/pages/WarehousePage.tsx?raw'
 import reconciliationWarehouse from '@/features/warehouse/pages/ReconciliationWarehousePage.tsx?raw'
 import adminRouter from '@/app/pages/AdminDataPage.tsx?raw'
@@ -13,8 +14,9 @@ import routePreloaders from '@/routes/routeDataPreloaders.ts?raw'
 describe('operation-mode page composition boundaries', () => {
   it('retains source authoring and completed serving owners in reconciliation Weekly Menu', () => {
     expect(weeklyRouter).toContain("isMaterialReconciliationMode")
-    expect(weeklyRouter).toContain("label: isMaterialReconciliationMode ? MRX_QUANTITY_TAB_LABEL : 'Nhu cầu'")
-    expect(weeklyRouter).not.toContain("label: isMaterialReconciliationMode ? 'Tổng hợp mua'")
+    expect(weeklyNavigation).toContain("{ id: 'demand', label: MRX_QUANTITY_TAB_LABEL }")
+    expect(weeklyNavigation).toContain("['purchase-summary', 'Tổng quan bàn giao cả tuần']")
+    expect(weeklyNavigation).not.toContain('Tổng hợp mua theo nhu cầu')
     expect(weeklyRouter).toContain("enabled: !isMaterialReconciliationMode && activeView === 'demand'")
     expect(weeklyRouter).toContain("isMaterialReconciliationMode && activeView === 'demand' ? <ClosedLoopTransferPanel")
     expect(weeklyRouter).toContain('useWeeklyMenuImport')

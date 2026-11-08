@@ -47,7 +47,8 @@ public class InventoryReceiptServiceTests
         {
             PageNumber = 3,
             PageSize = 20,
-            PurchaseOrderOnly = true
+            PurchaseOrderOnly = true,
+            PurchaseOrderId = "purchase-order-1"
         };
         _receiptRepository.GetPagedAsync(request)
             .Returns((Array.Empty<InventoryReceipt>(), 0));
@@ -55,7 +56,7 @@ public class InventoryReceiptServiceTests
         await _service.GetPagedAsync(request);
 
         await _receiptRepository.Received(1).GetPagedAsync(Arg.Is<InventoryReceiptFilterRequestDto>(value =>
-            value.PageNumber == 3 && value.PageSize == 20 && value.PurchaseOrderOnly));
+            value.PageNumber == 3 && value.PageSize == 20 && value.PurchaseOrderOnly && value.PurchaseOrderId == "purchase-order-1"));
     }
 
     [Fact]

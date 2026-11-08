@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { WeeklyMenuImportJobs } from './WeeklyMenuImportJobs'
+import importJobsSource from './WeeklyMenuImportJobs.tsx?raw'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 
 const job = {
@@ -70,11 +71,14 @@ describe('WeeklyMenuImportJobs confirmation contract', () => {
     expect(screen.getByRole('button', { name: 'Lưu toàn bộ file' })).toBeDisabled()
   })
 
-  it('keeps check, save and remove actions on one row', () => {
+  it('keeps check, save and remove actions inside a dedicated non-overlapping column', () => {
     render(<WeeklyMenuImportJobs workflow={buildWorkflow(vi.fn(), vi.fn())} />)
 
     const actionRow = screen.getByTestId('import-job-actions')
     expect(actionRow).toHaveClass('flex-nowrap')
     expect(within(actionRow).getAllByRole('button').map((button) => button.textContent)).toEqual(['Kiểm tra', 'Lưu', 'Xóa'])
+    expect(importJobsSource).toContain('className="ipc-data-table min-w-[1040px] table-fixed"')
+    expect(importJobsSource).toContain('className="w-[220px] text-right whitespace-nowrap"')
+    expect(importJobsSource.match(/className="min-w-0 shrink-0 px-2"/g)).toHaveLength(3)
   })
 })

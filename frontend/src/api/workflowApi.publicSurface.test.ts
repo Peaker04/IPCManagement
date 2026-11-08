@@ -37,6 +37,7 @@ const expectedEndpointNames = [
   'getAuditChangePage',
   'getAuditChanges',
   'getCurrentStock',
+  'getCurrentStockAllocation',
   'getCurrentStockPage',
   'getDailyProductionPlan',
   'getDataQuality',
@@ -91,7 +92,6 @@ const expectedEndpointNames = [
   'getWorkflowDocuments',
   'openServiceRun',
   'postWarehousePurchaseReceipt',
-  'recordPurchaseOrderReceipt',
   'recordServiceRunActualServings',
   'recordWarehousePurchaseReceipt',
   'rejectSupplementalMaterialRequest',
@@ -100,7 +100,6 @@ const expectedEndpointNames = [
   'reviewLegacyLineageDisposition',
   'reworkWarehousePurchaseReceipt',
   'routeSupplementalMaterialRequestToPurchasing',
-  'sendDailyProductionPlanToKitchen',
   'startServiceRun',
   'submitPurchaseRequest',
   'updateApprovalRule',
@@ -144,6 +143,7 @@ const expectedHookNames = [
   'useGetApprovalRulesQuery',
   'useGetAuditChangePageQuery',
   'useGetAuditChangesQuery',
+  'useGetCurrentStockAllocationQuery',
   'useGetCurrentStockPageQuery',
   'useGetCurrentStockQuery',
   'useGetDailyProductionPlanQuery',
@@ -198,7 +198,6 @@ const expectedHookNames = [
   'useGetWorkflowDocumentsQuery',
   'useOpenServiceRunMutation',
   'usePostWarehousePurchaseReceiptMutation',
-  'useRecordPurchaseOrderReceiptMutation',
   'useRecordServiceRunActualServingsMutation',
   'useRecordWarehousePurchaseReceiptMutation',
   'useRejectSupplementalMaterialRequestMutation',
@@ -206,7 +205,6 @@ const expectedHookNames = [
   'useReviewLegacyLineageDispositionMutation',
   'useReworkWarehousePurchaseReceiptMutation',
   'useRouteSupplementalMaterialRequestToPurchasingMutation',
-  'useSendDailyProductionPlanToKitchenMutation',
   'useStartServiceRunMutation',
   'useSubmitPurchaseRequestMutation',
   'useUpdateApprovalRuleMutation',
@@ -229,6 +227,6 @@ describe('workflow API public surface', () => {
       .sort();
 
     expect(hooks).toEqual(expectedHookNames);
-    expect(hooks).toHaveLength(102);
+    expect(hooks).toHaveLength(101);
   });
 });

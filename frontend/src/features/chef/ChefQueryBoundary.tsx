@@ -99,22 +99,32 @@ export function ChefQueryBoundary({
         .map(({ label }) => label)
     : [];
 
+  const hideChildren = Boolean(
+    blocking?.view.phase === 'forbidden' || isInitialLoad || (!preserveFallback && blocking),
+  );
+  const overlayEntry = hideChildren ? blocking : undefined;
+  const inlineEntries = hideChildren ? [] : visibleEntries;
+
   return (
-    <div
-      className={cn('relative flex flex-col gap-3', isInitialLoad && 'min-h-[32rem]')}
-      data-initial-load={isInitialLoad || undefined}
-    >
+    <div className="relative flex flex-col gap-3" data-initial-load={isInitialLoad || undefined}>
       {refreshingLabels.length > 0 && <RefreshStatus>Đang cập nhật dữ liệu ca</RefreshStatus>}
-      <div className={cn(isInitialLoad && 'absolute inset-x-0 top-0')}>
-        {visibleEntries.map((entry) => (
-          <QueryNotice
-            key={`${entry.label}-${entry.view.phase}`}
-            entry={entry}
-            showRefreshing={!preserveFallback}
-          />
-        ))}
+      {inlineEntries.map((entry) => (
+        <QueryNotice key={`${entry.label}-${entry.view.phase}`} entry={entry} showRefreshing={!preserveFallback} />
+      ))}
+      <div className="relative grid">
+        {overlayEntry && (
+          <div className="relative z-10 col-start-1 row-start-1">
+            <QueryNotice entry={overlayEntry} showRefreshing={!preserveFallback} />
+          </div>
+        )}
+        <div
+          className={cn('col-start-1 row-start-1', hideChildren && 'invisible')}
+          inert={hideChildren || undefined}
+          aria-hidden={hideChildren || undefined}
+        >
+          {children}
+        </div>
       </div>
-      {((preserveFallback && !isInitialLoad) || !blocking) && children}
     </div>
   );
 }

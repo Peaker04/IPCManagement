@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { CalendarCheck, Pencil, PlusCircle, Save } from 'lucide-react';
-import { TableViewport, ContextStrip, KeepAliveTabPanel, SectionPanel, StatusBadge } from '@/components/common';
+import { TableViewport, KeepAliveTabPanel, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,9 +15,20 @@ import { AdminQueryBoundary } from './AdminQueryBoundary';
 type AdminContractsPanelProps = { model: AdminDataPageModel };
 
 const EMPTY_CONTRACT_CUSTOMER_VALUE = '__empty_contract_customer__';
+const contractWeekDays = ['t2', 't3', 't4', 't5', 't6', 't7'] as const;
+const contractShifts = [['Ca sáng', 'Ca sáng'], ['Ca chiều', 'Ca chiều']] as const;
+const splitValues = (value: string) => value.split(',').map((item) => item.trim()).filter(Boolean);
+const toggleValue = (value: string, item: string, checked: boolean) => {
+  const values = new Set(splitValues(value));
+  if (checked) values.add(item); else values.delete(item);
+  return [...values].join(', ');
+};
 
 export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
-  const { contractFeedback, contractForm, customerContracts, effectiveActiveView, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, isCreatingContract, isSavingContract, loadContractForm, loadScheduleRuleForm, menuSchedules, queryViews, scheduleRuleForm, selectedContract, selectedSchedule, setContractForm, setIsCreatingContract, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, startNewContract } = model;
+  const { contractFeedback, contractFieldErrors = {}, contractForm, customerContracts, effectiveActiveView, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, isCreatingContract, isSavingContract, loadContractForm, loadScheduleRuleForm, menuSchedules, queryViews, scheduleRuleForm, selectedContract, selectedSchedule, setContractForm, setIsCreatingContract, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, startNewContract } = model;
+  useEffect(() => {
+    document.querySelector<HTMLElement>('[data-contract-field-error="true"]')?.focus();
+  }, [contractFieldErrors]);
   return (
     <>
       <KeepAliveTabPanel id="admin-contracts" active={effectiveActiveView === 'contracts'} className="flex flex-col gap-4">
@@ -29,14 +41,6 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
             icon={<CalendarCheck size={18} />}
             description="Quản lý thông tin hợp đồng khách hàng, quy tắc suất ăn, các ca áp dụng và phiên bản lịch thực đơn."
           >
-            <ContextStrip
-              items={[
-                { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
-                { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
-                { label: 'Ca phục vụ', value: selectedContract?.shiftNames.map(formatShiftName).join(', ') || '-', tone: 'info' },
-                { label: 'Lịch theo phiên bản', value: menuSchedules.length.toString(), tone: 'neutral' },
-              ]}
-            />
 
             {contractFeedback && (
               <div
@@ -100,9 +104,12 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                   id="admin-contract-code"
                   value={contractForm.customerCode}
                   disabled={!isCreatingContract}
+                  aria-invalid={Boolean(contractFieldErrors.customerCode) || undefined}
+                  aria-describedby={contractFieldErrors.customerCode ? 'admin-contract-code-error' : undefined}
                   onChange={(event) => setContractForm((prev) => ({ ...prev, customerCode: event.target.value.toUpperCase() }))}
                   placeholder={isCreatingContract ? 'VD: DAV' : selectedContract?.customerCode ?? 'Mã khách hàng'}
                 />
+                {contractFieldErrors.customerCode && <p id="admin-contract-code-error" tabIndex={-1} data-contract-field-error="true" className="text-xs text-red-700">{contractFieldErrors.customerCode}</p>}
 
                 <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-name">
                   Tên khách hàng
@@ -110,9 +117,12 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                 <Input
                   id="admin-contract-name"
                   value={contractForm.customerName}
+                  aria-invalid={Boolean(contractFieldErrors.customerName) || undefined}
+                  aria-describedby={contractFieldErrors.customerName ? 'admin-contract-name-error' : undefined}
                   onChange={(event) => setContractForm((prev) => ({ ...prev, customerName: event.target.value }))}
                   placeholder={selectedContract?.customerName ?? 'Tên khách hàng'}
                 />
+                {contractFieldErrors.customerName && <p id="admin-contract-name-error" tabIndex={-1} data-contract-field-error="true" className="text-xs text-red-700">{contractFieldErrors.customerName}</p>}
 
                 <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-note">
                   Ghi chú hợp đồng
@@ -146,26 +156,36 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                   </label>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-week-days">
-                    Ngày làm việc
-                    <Input
-                      id="admin-contract-week-days"
-                      value={contractForm.activeWeekDays}
-                      onChange={(event) => setContractForm((prev) => ({ ...prev, activeWeekDays: event.target.value }))}
-                      placeholder="t2,t3,t4,t5,t6,t7"
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-shifts">
-                    Ca phục vụ (cách nhau bằng dấu phẩy)
-                    <Input
-                      id="admin-contract-shifts"
-                      value={contractForm.shiftNames}
-                      onChange={(event) => setContractForm((prev) => ({ ...prev, shiftNames: event.target.value }))}
-                      placeholder="Ca sáng, Ca chiều"
-                    />
-                  </label>
-                </div>
+                <fieldset className="grid gap-2" tabIndex={contractFieldErrors.activeWeekDays ? -1 : undefined} data-contract-field-error={contractFieldErrors.activeWeekDays ? 'true' : undefined} aria-invalid={Boolean(contractFieldErrors.activeWeekDays) || undefined} aria-describedby={contractFieldErrors.activeWeekDays ? 'admin-contract-days-error' : undefined}>
+                  <legend className="text-label font-bold text-slate-600">Ngày làm việc</legend>
+                  <div className="flex flex-wrap gap-3">
+                    {contractWeekDays.map((day) => (
+                      <label key={day} className="flex items-center gap-2 text-sm text-slate-700">
+                        <Checkbox
+                          checked={splitValues(contractForm.activeWeekDays).includes(day)}
+                          onCheckedChange={(checked) => setContractForm((prev) => ({ ...prev, activeWeekDays: toggleValue(prev.activeWeekDays, day, checked === true) }))}
+                        />
+                        {day.toUpperCase()}
+                      </label>
+                    ))}
+                  </div>
+                  {contractFieldErrors.activeWeekDays && <p id="admin-contract-days-error" className="text-xs text-red-700">{contractFieldErrors.activeWeekDays}</p>}
+                </fieldset>
+                <fieldset className="grid gap-2" tabIndex={contractFieldErrors.shiftNames ? -1 : undefined} data-contract-field-error={contractFieldErrors.shiftNames ? 'true' : undefined} aria-invalid={Boolean(contractFieldErrors.shiftNames) || undefined} aria-describedby={contractFieldErrors.shiftNames ? 'admin-contract-shifts-error' : undefined}>
+                  <legend className="text-label font-bold text-slate-600">Ca phục vụ</legend>
+                  <div className="flex flex-wrap gap-3">
+                    {contractShifts.map(([value, label]) => (
+                      <label key={value} className="flex items-center gap-2 text-sm text-slate-700">
+                        <Checkbox
+                          checked={splitValues(contractForm.shiftNames).includes(value)}
+                          onCheckedChange={(checked) => setContractForm((prev) => ({ ...prev, shiftNames: toggleValue(prev.shiftNames, value, checked === true) }))}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                  {contractFieldErrors.shiftNames && <p id="admin-contract-shifts-error" className="text-xs text-red-700">{contractFieldErrors.shiftNames}</p>}
+                </fieldset>
 
                 <div className="grid grid-cols-1 gap-3">
                   <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-default-price">
@@ -176,9 +196,12 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                       min="0"
                       step="1000"
                       value={contractForm.defaultMenuPrice}
+                      aria-invalid={Boolean(contractFieldErrors.defaultMenuPrice) || undefined}
+                      aria-describedby={contractFieldErrors.defaultMenuPrice ? 'admin-contract-price-error' : undefined}
                       onChange={(event) => setContractForm((prev) => ({ ...prev, defaultMenuPrice: event.target.value }))}
                       placeholder={selectedContract?.defaultMenuPrice?.toString() ?? '25000'}
                     />
+                    {contractFieldErrors.defaultMenuPrice && <span id="admin-contract-price-error" tabIndex={-1} data-contract-field-error="true" className="text-xs text-red-700">{contractFieldErrors.defaultMenuPrice}</span>}
                   </label>
                 </div>
 

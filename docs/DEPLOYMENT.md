@@ -4,7 +4,7 @@
 ## Deployment targets
 
 - **Frontend trên Vercel:** root `vercel.json` là file cấu hình duy nhất — chọn framework Vite, chạy `npm run build:fe`, lấy artifact ở `frontend/dist`, khai rewrite SPA và security header (nosniff, `X-Frame-Options`, Referrer-Policy, HSTS, CSP). `frontend/vercel.json` **đã bị xóa ở P1.6** vì Vercel chỉ đọc file nằm tại Root Directory; rewrite SPA khai trong đó chưa từng có hiệu lực, deep-link sống được là nhờ preset Vite mặc định.
-- **Backend ASP.NET Core:** repository có project `backend/src/IPCManagement.Api/IPCManagement.Api.csproj` và các file cấu hình mẫu `backend/src/IPCManagement.Api/appsettings.Demo.example.json`, `backend/src/IPCManagement.Api/appsettings.Lan.example.json`, `backend/src/IPCManagement.Api/appsettings.Production.example.json`, nhưng chưa có Dockerfile hoặc provider-specific backend manifest. Backend cần được deploy riêng trên một host .NET/MySQL phù hợp.
+- **Backend ASP.NET Core:** repository có project `backend/src/IPCManagement.Api/IPCManagement.Api.csproj`, root `Dockerfile` multi-stage cho .NET 9 và các file cấu hình mẫu `backend/src/IPCManagement.Api/appsettings.Demo.example.json`, `backend/src/IPCManagement.Api/appsettings.Lan.example.json`, `backend/src/IPCManagement.Api/appsettings.Production.example.json`. Chưa có GitHub Actions deployment workflow hoặc provider-specific backend manifest; image/deployment backend vẫn cần được phát hành riêng trên host .NET/MySQL phù hợp.
 
 <!-- VERIFY: Tên project/team/domain Vercel và host backend production phải được xác nhận trong tài khoản triển khai thực tế. -->
 
@@ -14,9 +14,17 @@ Backend remains `net9.0`. The servicing lane uses SDK `9.0.313` via root `global
 
 ## Build pipeline
 
-`.github/workflows/verify.yml` là quality gate chạy khi `push` và `pull_request`: setup .NET/Node, `npm ci`, build/test backend, kiểm tra migration/schema MySQL, lint và build frontend. Đây không phải deployment workflow; không có file workflow deploy riêng trong `.github/workflows/`.
+`.github/workflows/verify.yml` là quality gate, không phải deployment workflow. Pipeline chạy một lần cho pull request vào `main`, chạy lại trên commit đã merge/push trực tiếp vào `main`, và hỗ trợ `workflow_dispatch` khi cần chạy thủ công. Không chạy đồng thời cả sự kiện `push` và `pull_request` cho cùng commit feature branch.
 
-Vercel deployment branch policy được khai báo trong root `vercel.json`: `main` và `dev` bật deployment, branch khác tắt theo cấu hình hiện tại. Việc project thực tế đã liên kết với Vercel nào cần được xác nhận ngoài repository.
+CI dùng SDK đúng theo root `global.json`, Node 22 và root `package-lock.json`. Thứ tự gate là architecture advisory → backend build/contract/migration/MySQL → frontend lint/dependency/build/route-budget advisory/unit test. Integration MySQL bị loại khỏi lượt backend chung và chạy đúng một lần ở bước riêng; route budget chạy trước Vitest để regression bundle được báo sớm. Architecture line-count và route budget là heuristic diagnostics (`continue-on-error`) vì lịch sử cho thấy chúng làm chặn release bởi baseline/count drift dù behavior suite xanh; build, generated contract, migration/schema, backend/frontend tests, lint và dependency rules vẫn fail-closed. Test result backend được upload ở bước `if: always()` cuối pipeline. Hook `.husky/pre-push` chạy production build và đúng frontend unit suite của CI trước khi gửi commit lên remote; hook không thay thế backend/MySQL CI.
+
+Quy trình xử lý CI đỏ:
+
+1. Mở **step đầu tiên thất bại** và phân loại `product regression`, `generated artifact drift`, `migration/schema drift`, `architecture baseline`, hoặc `budget regression`; không sửa bằng rerun mù.
+2. Chạy lại đúng command hiển thị trong workflow ở local với Node/.NET từ `package.json`, `frontend/package.json` và `global.json`.
+3. Nếu gate advisory là baseline/budget, sửa nguyên nhân hoặc cập nhật baseline trong cùng thay đổi với bằng chứng; không tăng ngưỡng chỉ để xóa warning. Advisory không thay thế performance review khi thay đổi route lớn.
+4. Chỉ dùng **Re-run failed jobs** cho lỗi hạ tầng runner/network đã có bằng chứng. Test hoặc gate deterministic đỏ phải được sửa trước khi rerun.
+5. `CodeQL` là workflow độc lập cho `main` và lịch tuần. Repository chưa có workflow deploy backend; Vercel frontend và backend host vẫn là các lane phát hành riêng.
 
 Root Directory của project trên Vercel là `./` (gốc repository) — **đã xác minh trực tiếp trong Vercel → Settings → Build & Development ngày 26/07/2026**, kèm tuỳ chọn "Include files outside the root directory in the Build Step" đang bật. Đây là căn cứ để chỉ giữ root `vercel.json`: Vercel chỉ đọc file cấu hình nằm tại Root Directory, nên `frontend/vercel.json` trước đây không bao giờ được áp dụng.
 

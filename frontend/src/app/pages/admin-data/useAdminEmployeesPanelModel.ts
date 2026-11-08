@@ -18,6 +18,7 @@ import { toAdminView } from './adminDataPageModelShared';
 
 export function useAdminEmployeesPanelModel(activeView: AdminView, canManageEmployees: boolean | undefined) {
   const [employeePage, setEmployeePage] = useState(1);
+  const [employeePageSize, setEmployeePageSize] = useState(8);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [employeeForm, setEmployeeForm] = useState<EmployeeFormState>(defaultEmployeeForm);
@@ -26,10 +27,10 @@ export function useAdminEmployeesPanelModel(activeView: AdminView, canManageEmpl
   const employeeQuery = useMemo(
     () => ({
       pageNumber: employeePage,
-      pageSize: 8,
+      pageSize: employeePageSize,
       searchKeyword: debouncedEmployeeSearch.trim() || undefined,
     }),
-    [debouncedEmployeeSearch, employeePage],
+    [debouncedEmployeeSearch, employeePage, employeePageSize],
   );
   const employeesQuery = useGetAdminEmployeesQuery(employeeQuery, {
     skip: !canManageEmployees || activeView !== 'employees',
@@ -138,6 +139,7 @@ export function useAdminEmployeesPanelModel(activeView: AdminView, canManageEmpl
     employeeForm,
     employeeMeta,
     employeeNotice,
+    employeePageSize,
     employeeRoles,
     employeeRows,
     employeeSearch,
@@ -151,6 +153,7 @@ export function useAdminEmployeesPanelModel(activeView: AdminView, canManageEmpl
     resetEmployeeForm,
     setEmployeeForm,
     setEmployeePage,
+    setEmployeePageSize,
     setEmployeeSearch,
   };
 }

@@ -2,3 +2,4 @@
 # so Husky hooks work on all platforms after git pull
 .husky/* text eol=lf
 *.sh text eol=lf
+contracts/phase30/reconciliation-stale-request.json text eol=lf

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { Button } from '@/components/ui/button';
-import { IdentifierText, SearchField, TableViewport } from '@/components/common';
+import { SearchField, TableViewport } from '@/components/common';
 import { formatCurrency, formatDateOnly, formatQuantityWithUnit } from '@/lib/formatters';
 
 type PurchaseLine = PurchaseWorkbenchServiceDate['purchaseLines'][number];
@@ -42,11 +42,13 @@ const uniqueText = (values: Array<string | null | undefined>, empty: string) => 
 export function PurchaseLineGroups({
   lines,
   selectedLineId,
-  onLineChange,
+  onLineChange = () => {},
+  ariaLabel = 'Dòng nguyên liệu của ngày phục vụ đang chọn',
 }: {
   lines: PurchaseLine[];
   selectedLineId?: string;
-  onLineChange: (lineId: string) => void;
+  onLineChange?: (lineId: string) => void;
+  ariaLabel?: string;
 }) {
   const [search, setSearch] = useState('');
   const [expandedGroupKey, setExpandedGroupKey] = useState<string>();
@@ -65,13 +67,15 @@ export function PurchaseLineGroups({
         <SearchField
           id="purchase-line-search"
           label="Tìm nguyên liệu, nhà cung cấp hoặc mã dòng nguồn"
+          hideLabel
           width="wide"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          placeholder="Nhập tên nguyên liệu, nhà cung cấp hoặc mã dòng..."
           inputClassName="bg-white"
         />
       </div>
-      <TableViewport ariaLabel="Nhóm dòng nguyên liệu cần mua" caption="Mỗi hàng là một nhóm nguyên liệu; mở nguồn để xử lý từng dòng chứng từ.">
+      <TableViewport ariaLabel={ariaLabel}>
       <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
         <thead>
           <tr>
@@ -118,7 +122,7 @@ export function PurchaseLineGroups({
                   <ul className="grid gap-2" aria-label={`Các dòng nguồn của ${group.ingredientName}`}>
                     {group.lines.map((line) => (
                       <li key={line.purchaseRequestLineId} className="grid gap-2 rounded-sm border border-slate-200 bg-white p-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-                        <span className="min-w-0 text-xs text-slate-600"><strong className="text-slate-900">{line.purchaseQty} {line.unitName}</strong> · {line.supplierName || 'Chưa chọn NCC'}<IdentifierText value={line.purchaseRequestLineId} className="mt-0.5" /></span>
+                        <span className="min-w-0 text-xs text-slate-600"><strong className="text-slate-900">{line.purchaseQty} {line.unitName}</strong> · {line.supplierName || 'Chưa chọn NCC'}</span>
                         <Button type="button" variant="outline" size="sm" className="min-h-9" aria-pressed={selectedLineId === line.purchaseRequestLineId} onClick={() => onLineChange(line.purchaseRequestLineId)}>Mở dòng nguồn</Button>
                       </li>
                     ))}

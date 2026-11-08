@@ -299,7 +299,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     actorOracle: completionAvailability(),
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:113-116',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:246-259',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:255-275',
       'frontend/src/features/auth/pages/LoginPage.tsx:20-24',
       'backend/src/IPCManagement.Api/Features/Coordination/Controllers/MealQuantityPlansController.cs:15,34',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:42-47',
@@ -319,7 +319,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:117-127',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:117-129',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:140-160',
       'backend/src/IPCManagement.Api/Program.cs:176-177',
     ],
     schedules: activeSchedules,
@@ -369,7 +369,7 @@ export const weeklyMenuLifecyclePa2bRegistry: readonly WeeklyMenuLifecyclePa2bSc
     source: [
       'frontend/src/features/projects/weekly-menu/lifecycle/weeklyMenuLifecycleModel.ts:121-124',
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:17-32,53-60',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:34,109-119',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:34,135-145',
       'frontend/src/routes/AppRouter.tsx:60',
       'backend/src/IPCManagement.Api/Security/AuthorizationPolicies.cs:150-187',
     ],

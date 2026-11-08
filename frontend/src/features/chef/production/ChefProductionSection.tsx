@@ -1,6 +1,5 @@
-import { ClipboardList, ShieldCheck } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { SectionPanel, StatusBadge, TableViewport } from '@/components/common';
-import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { getChefReadiness } from '../chefReadiness';
 import { formatShiftName } from '@/lib/workflowConfig';
@@ -8,12 +7,10 @@ import type { DailyPlanLine } from './chefProductionModel';
 
 type Props = {
   lines: DailyPlanLine[];
-  isSending: boolean;
   isLoading: boolean;
   isError: boolean;
   totalPlans: number;
   sentPlans: number;
-  onReceivePlan: () => Promise<void>;
 };
 
 const bomScopeLabels: Record<string, string> = {
@@ -24,9 +21,8 @@ const bomScopeLabels: Record<string, string> = {
 
 const formatBomScope = (scope?: string | null) => (scope ? (bomScopeLabels[scope.toLowerCase()] ?? 'Theo cấu hình') : 'Theo cấu hình');
 
-export function ChefProductionSection({ lines, isSending, isLoading, isError, totalPlans, sentPlans, onReceivePlan }: Props) {
+export function ChefProductionSection({ lines, isLoading, isError, totalPlans, sentPlans }: Props) {
   const isComplete = totalPlans > 0 && sentPlans >= totalPlans;
-  const canReceivePlan = !isLoading && !isError && totalPlans > 0 && !isComplete;
 
   return (
     <SectionPanel
@@ -36,11 +32,12 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
       badge={
         isComplete ? (
           <StatusBadge variant="success">Kế hoạch đã đồng bộ</StatusBadge>
+        ) : isLoading ? (
+          <StatusBadge variant="neutral">Đang tải</StatusBadge>
+        ) : isError ? (
+          <StatusBadge variant="danger">Không tải được</StatusBadge>
         ) : (
-          <Button size="sm" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
-            <ShieldCheck size={15} aria-hidden="true" />
-            {isSending ? 'Đang nhận...' : 'Nhận kế hoạch'}
-          </Button>
+          <StatusBadge variant="warning">Chờ Điều phối gửi</StatusBadge>
         )
       }
     >
@@ -48,10 +45,8 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
         <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
           <thead>
             <tr>
-              <th className="text-left">Kế hoạch</th>
-              <th className="text-left">Khách hàng</th>
-              <th className="text-left">Món</th>
-              <th className="text-left">Ca</th>
+              <th className="text-left">Kế hoạch / khách hàng</th>
+              <th className="text-left">Món / ca</th>
               <th className="text-right">Số suất</th>
               <th className="text-left">Định lượng</th>
               <th className="text-right">Mua dự kiến</th>
@@ -61,7 +56,7 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
           <tbody>
             {lines.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-500">
+                <td colSpan={6} className="py-8 text-center text-slate-500">
                   Chưa có kế hoạch cho ngày/ca này.
                 </td>
               </tr>
@@ -70,10 +65,8 @@ export function ChefProductionSection({ lines, isSending, isLoading, isError, to
                 const readiness = getChefReadiness(line);
                 return (
                   <tr key={`${line.planCode}-${line.planLineId}`}>
-                    <td className="text-left font-semibold text-slate-900">{line.planCode}</td>
-                    <td className="text-left text-slate-800">{line.customerName ?? '-'}</td>
-                    <td className="text-left text-slate-800">{line.dishName ?? line.dishId}</td>
-                    <td className="text-left text-slate-700">{formatShiftName(line.shiftName ?? undefined)}</td>
+                    <td className="text-left"><span className="block font-semibold text-slate-900">{line.planCode}</span><span className="block text-xs text-slate-500">{line.customerName ?? 'Chưa có tên khách hàng'}</span></td>
+                    <td className="text-left"><span className="block font-medium text-slate-900">{line.dishName ?? 'Chưa có tên món'}</span><span className="block text-xs text-slate-500">{formatShiftName(line.shiftName ?? undefined)}</span></td>
                     <td className="text-right tabular-nums font-semibold text-slate-900">{line.totalServings}</td>
                     <td className="text-left text-slate-700">{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
                     <td className="text-right tabular-nums text-slate-700">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>

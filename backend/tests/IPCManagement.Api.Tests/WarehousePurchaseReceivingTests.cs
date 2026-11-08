@@ -361,13 +361,13 @@ public class WarehousePurchaseReceivingTests
             new ReceiptPostRequest { CommandId = "receipt-post-stale-version", ExpectedVersion = 1 },
             Guid.NewGuid().ToString());
         await stalePost.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*đã thay đổi*POSTED*");
+            .WithMessage("*đã thay đổi*ghi sổ kho*");
         fixture.Context.Stockmovements.Should().BeEmpty();
 
         var selfPost = () => InvokePostAsync(service, draft.ReceiptId,
             new ReceiptPostRequest { CommandId = "receipt-post-by-inspector", ExpectedVersion = 2 },
             warehouseInspectorId);
-        await selfPost.Should().ThrowAsync<BusinessRuleException>().WithMessage("*kiểm tra*không được tự POSTED*");
+        await selfPost.Should().ThrowAsync<BusinessRuleException>().WithMessage("*kiểm tra*không được tự ghi sổ*");
 
         var postRequest = new ReceiptPostRequest { CommandId = "receipt-post-command-1", ExpectedVersion = 2 };
         var posted = await InvokePostAsync(service, draft.ReceiptId, postRequest, Guid.NewGuid().ToString());
@@ -506,7 +506,7 @@ public class WarehousePurchaseReceivingTests
             new ReceiptPostRequest { CommandId = "receipt-post-rejected", ExpectedVersion = 1 },
             Guid.NewGuid().ToString());
         await postRejected.Should().ThrowAsync<BusinessRuleException>()
-            .WithMessage("*đã duyệt*POSTED*");
+            .WithMessage("*đã duyệt*ghi sổ kho*");
         fixture.Context.Stockmovements.Should().BeEmpty();
     }
 

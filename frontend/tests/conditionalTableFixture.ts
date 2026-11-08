@@ -23,15 +23,7 @@ export const conditionalTableFixtures: readonly ConditionalTableFixture[] = [
   },
   {
     id: 'admin-statistics-kpi', route: '/admin-data', view: 'statistics', sourceFile: 'app/pages/admin-data/AdminStatisticsPanel.tsx', sourceSymbol: 'AdminStatisticsPanel', tableIndex: 0,
-    regionLabel: 'Bảng chỉ số thống kê vận hành', condition: /effectiveActiveView\s*===\s*['"]statistics['"]/, headerSignature: ['Chỉ số', 'Giá trị', 'Thao tác'], states: ['loading', 'empty', 'ready'],
-  },
-  {
-    id: 'admin-statistics-stock', route: '/admin-data', view: 'statistics', sourceFile: 'app/pages/admin-data/AdminStatisticsPanel.tsx', sourceSymbol: 'AdminStatisticsPanel', tableIndex: 1,
-    regionLabel: 'Bảng tồn kho ưu tiên', condition: /currentStockRows/, headerSignature: ['Nguyên liệu', 'Tồn hiện tại', 'Đơn vị'], states: ['loading', 'empty', 'ready'],
-  },
-  {
-    id: 'admin-statistics-price', route: '/admin-data', view: 'statistics', sourceFile: 'app/pages/admin-data/AdminStatisticsPanel.tsx', sourceSymbol: 'AdminStatisticsPanel', tableIndex: 2,
-    regionLabel: 'Bảng cảnh báo biến động giá', condition: /priceWarnings/, headerSignature: ['Nguyên liệu', 'Mức biến động', 'Xử lý'], states: ['loading', 'empty', 'ready'],
+    regionLabel: 'Bảng chỉ số thống kê vận hành', condition: /effectiveActiveView\s*===\s*['"]statistics['"]/, headerSignature: ['Nhóm thống kê', 'Chỉ số', 'Ý nghĩa vận hành', 'Cảnh báo', 'Chuyển xử lý'], states: ['loading', 'empty', 'ready'],
   },
   ...([
     ['demand', 'Bảng nhu cầu nguyên liệu', ['Ngày', 'Nguyên liệu', 'Số lượng']] as const,

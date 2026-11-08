@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { afterEach, describe, expect, it } from 'vitest'
-import { notifySessionExpired, resetSessionExpiredNotice } from '../sessionEvents'
+import { notifySessionExpired, resetSessionExpiredNotice } from '@/lib/auth/sessionEvents'
 import { SessionTimeoutModal } from './SessionTimeoutModal'
 
 function LocationProbe() {

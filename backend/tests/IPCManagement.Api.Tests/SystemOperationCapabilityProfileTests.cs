@@ -23,7 +23,7 @@ public sealed class SystemOperationCapabilityProfileTests
         new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["weekly-menu"] = ["schedule", "demand", "production-plan", "purchase-summary", "cost", "dish-materials"],
-            ["warehouse"] = ["movement", "demand", "exceptions"],
+            ["warehouse"] = ["receiving", "demand", "exceptions", "movement"],
             ["approvals"] = ["queue", "history"],
             ["purchasing"] = ["workflow", "supplemental", "quotations"],
             ["chef"] = ["production", "documents"],
@@ -37,7 +37,7 @@ public sealed class SystemOperationCapabilityProfileTests
         var profile = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.Default);
 
         Assert.Equal(ExpectedDefaultNavigation, profile.Navigation);
-        Assert.Equal(32, profile.PageTabs.Sum(group => group.Value.Count));
+        Assert.Equal(33, profile.PageTabs.Sum(group => group.Value.Count));
         Assert.Equal(ExpectedDefaultPageTabs.Keys, profile.PageTabs.Keys);
         foreach (var expectedGroup in ExpectedDefaultPageTabs)
             Assert.Equal(expectedGroup.Value, profile.PageTabs[expectedGroup.Key]);
@@ -77,7 +77,7 @@ public sealed class SystemOperationCapabilityProfileTests
 
         var second = SystemOperationEligibility.CapabilitiesFor(SystemOperationEligibility.Default);
         Assert.Equal(ExpectedDefaultNavigation, second.Navigation);
-        Assert.Equal(32, second.PageTabs.Sum(group => group.Value.Count));
+        Assert.Equal(33, second.PageTabs.Sum(group => group.Value.Count));
     }
 
     [Fact]
@@ -141,7 +141,7 @@ public sealed class SystemOperationCapabilityProfileTests
             Guid.NewGuid().ToString());
 
         Assert.Equal(ExpectedDefaultNavigation, before.Capabilities.Navigation);
-        Assert.Equal(32, before.Capabilities.PageTabs.Sum(group => group.Value.Count));
+        Assert.Equal(33, before.Capabilities.PageTabs.Sum(group => group.Value.Count));
         Assert.Equal(SystemOperationEligibility.MaterialReconciliation, after.Mode);
         Assert.Equal(
             ["dashboard", "weekly-menu", "warehouse", "reconciliation", "admin-data"],

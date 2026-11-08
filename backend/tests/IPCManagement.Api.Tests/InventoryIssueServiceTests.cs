@@ -620,6 +620,8 @@ public class InventoryIssueServiceTests
                 issueId BLOB,
                 materialRequestLineId BLOB NULL,
                 reconciliationBatchLineId BLOB NULL,
+                reconciliationBatchDailyLineId BLOB NULL,
+                reconciliationServiceDate TEXT NULL,
                 ingredientId BLOB,
                 unitId BLOB,
                 requestedQty REAL,

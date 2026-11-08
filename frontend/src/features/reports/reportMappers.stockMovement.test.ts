@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mapStockMovement } from './reportMappers';
+import { mapStockMovement } from '@/api/reportMappers';
 
 const issue = (kitchenReceiptStatus: string | null) => ({
   movementId: 'movement-1',

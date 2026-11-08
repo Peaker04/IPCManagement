@@ -1,0 +1,1492 @@
+{
+  "startedAt": "2026-09-15T16:00:35.218Z",
+  "sourceCommit": "d5e0ae5260002ae1edf3519084aa24495deb432c",
+  "dirtySourceFingerprint": "d595fee69fce5101b40c22b310b4864ce310fc7d39961880e68b228b3154817f",
+  "baseUrl": "http://127.0.0.1:3001",
+  "apiUrl": "http://127.0.0.1:8001",
+  "database": "ipc_lane7",
+  "credentialSource": "K6_PASSWORD",
+  "browser": "Google Chrome",
+  "headed": true,
+  "viewports": [
+    {
+      "name": "1440x900",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "1366x768",
+      "width": 1366,
+      "height": 768
+    }
+  ],
+  "routes": [
+    {
+      "viewport": "1440x900",
+      "route": "/warehouse?view=exceptions",
+      "pathname": "/warehouse",
+      "textLength": 4304,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1430,
+      "viewportWidth": 1440,
+      "viewportHeight": 900,
+      "domNodes": 693,
+      "rows": 22,
+      "cls": 0.17494879042773798,
+      "shifts": [
+        {
+          "value": 0.00006285264756944445,
+          "startTime": 242.90000000037253,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 1046.25,
+                "y": 12.796875,
+                "width": 367.75,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1046.25
+              },
+              "currentRect": {
+                "x": 1035.90625,
+                "y": 12.796875,
+                "width": 378.09375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1414,
+                "bottom": 42.796875,
+                "left": 1035.90625
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.17488593778016853,
+          "startTime": 626.3000000007451,
+          "sources": [
+            {
+              "selector": "section.ipc-section-panel.rounded-md.border",
+              "ariaLabel": null,
+              "heading": "Phiếu trả dư và hao hụt chờ kho tiếp nhận",
+              "previousRect": {
+                "x": 264,
+                "y": 611.7805786132812,
+                "width": 1140,
+                "height": 203,
+                "top": 611.7805786132812,
+                "right": 1404,
+                "bottom": 814.7805786132812,
+                "left": 264
+              },
+              "currentRect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": {
+        "enabled": true,
+        "startedAt": 11.099999999627471,
+        "frames": [
+          {
+            "reason": "initial-request-animation-frame",
+            "changedTarget": null,
+            "time": 13,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 149.40000000037253,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 165.5,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 243.30000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 527.6999999992549,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "resize-observer:ViewSwitcher",
+            "changedTarget": null,
+            "time": 544.6999999992549,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 566.8000000007451,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 630.9000000003725,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          }
+        ],
+        "resizeEvents": [
+          {
+            "target": "ViewSwitcher",
+            "time": 527.8000000007451,
+            "count": 1
+          }
+        ]
+      },
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 11.099999999627471,
+          "endTime": 1594.199999999255
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    },
+    {
+      "viewport": "1366x768",
+      "route": "/warehouse?view=exceptions",
+      "pathname": "/warehouse",
+      "textLength": 4304,
+      "errorOverlay": false,
+      "horizontalOverflow": false,
+      "scrollWidth": 1356,
+      "viewportWidth": 1366,
+      "viewportHeight": 768,
+      "domNodes": 693,
+      "rows": 22,
+      "cls": 0.16367374513641456,
+      "shifts": [
+        {
+          "value": 0.00009520531340570196,
+          "startTime": 209.59999999962747,
+          "sources": [
+            {
+              "selector": "div.ipc-header-context",
+              "ariaLabel": "Ngữ cảnh vận hành",
+              "heading": null,
+              "previousRect": {
+                "x": 973.9375,
+                "y": 12.796875,
+                "width": 366.0625,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 973.9375
+              },
+              "currentRect": {
+                "x": 961.90625,
+                "y": 12.796875,
+                "width": 378.09375,
+                "height": 30,
+                "top": 12.796875,
+                "right": 1340,
+                "bottom": 42.796875,
+                "left": 961.90625
+              }
+            }
+          ]
+        },
+        {
+          "value": 0.16357853982300885,
+          "startTime": 596,
+          "sources": [
+            {
+              "selector": "section.ipc-section-panel.rounded-md.border",
+              "ariaLabel": null,
+              "heading": "Phiếu trả dư và hao hụt chờ kho tiếp nhận",
+              "previousRect": {
+                "x": 264,
+                "y": 611.9452514648438,
+                "width": 1092,
+                "height": 156.05474853515625,
+                "top": 611.9452514648438,
+                "right": 1356,
+                "bottom": 768,
+                "left": 264
+              },
+              "currentRect": {
+                "x": 0,
+                "y": 0,
+                "width": 0,
+                "height": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+              }
+            }
+          ]
+        }
+      ],
+      "longTasks": [],
+      "geometry": {
+        "enabled": true,
+        "startedAt": 12.900000000372529,
+        "frames": [
+          {
+            "reason": "initial-request-animation-frame",
+            "changedTarget": null,
+            "time": 15.400000000372529,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 142.30000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 156.59999999962747,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 210.59999999962747,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": null
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 493.80000000074506,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "resize-observer:ViewSwitcher",
+            "changedTarget": null,
+            "time": 521.8000000007451,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 543.4000000003725,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          },
+          {
+            "reason": "mutation-frame",
+            "changedTarget": null,
+            "time": 598.9000000003725,
+            "targets": [
+              {
+                "name": "ContextStrip",
+                "rect": null
+              },
+              {
+                "name": "purchase-order-panel",
+                "rect": null
+              },
+              {
+                "name": "receipt-lifecycle-panel",
+                "rect": null
+              },
+              {
+                "name": "ViewSwitcher",
+                "rect": {
+                  "x": 264,
+                  "y": 134.59375,
+                  "width": 344.421875,
+                  "height": 38
+                }
+              }
+            ]
+          }
+        ],
+        "resizeEvents": [
+          {
+            "target": "ViewSwitcher",
+            "time": 509.09999999962747,
+            "count": 1
+          }
+        ]
+      },
+      "actions": [
+        {
+          "name": "document-navigation",
+          "startTime": 12.900000000372529,
+          "endTime": 1564.2000000011176
+        }
+      ],
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "pageTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "sectionTitleFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif",
+      "composition": {
+        "commandPrimaryActions": 1,
+        "invisibleActionSpacers": 0,
+        "visibleStateSurfaces": 0
+      }
+    }
+  ],
+  "apiResponses": [
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/apiSlice.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/coordinationApi.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowCacheTags.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/apiSlice.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/coordinationApi.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowCacheTags.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/systemOperationApi.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reconciliationApi.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "POST",
+      "status": 200,
+      "url": "/api/auth/login"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/dashboardApi.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApi.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowDocumentsApi.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportMappers.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApiMappers.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowOverviewModel.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/auditPrivacy.ts"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/stock-movements"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/receipt-price-variance"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/workflow-documents"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/ingredient-demand"
+    },
+    {
+      "probe": "login",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/workflow-reports/operational-kpis"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/apiSlice.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/coordinationApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowCacheTags.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reconciliationApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/systemOperationApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/warehouseApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/purchasingApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowDocumentsApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowApiTypes.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowOverviewModel.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/chefApi.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportMappers.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApiMappers.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowReportTypes.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/auditPrivacy.ts"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/warehouses/selector"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/supplemental-material-requests"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns"
+    },
+    {
+      "probe": "1440x900:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns/allocation-balances"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/apiSlice.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/coordinationApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowCacheTags.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reconciliationApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/systemOperationApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/warehouseApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/purchasingApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowDocumentsApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowApiTypes.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowOverviewModel.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/chefApi.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportMappers.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApiMappers.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowReportTypes.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/auditPrivacy.ts"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/warehouses/selector"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/supplemental-material-requests"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns"
+    },
+    {
+      "probe": "1366x768:warehouse-exceptions",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/inventory-returns/allocation-balances"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/apiSlice.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/coordinationApi.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowCacheTags.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reconciliationApi.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/systemOperationApi.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/purchasingApi.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/chefApi.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/dishCatalogApi.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/warehouseApi.ts"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/supplemental-material-requests"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/purchase-workflow/workbench"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/purchase-requests"
+    },
+    {
+      "probe": "zoom-200:purchasing",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/purchase-orders"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/apiSlice.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/coordinationApi.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowCacheTags.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reconciliationApi.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/systemOperationApi.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/system-operation-mode"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/dashboardApi.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/dishCatalogApi.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApi.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowDocumentsApi.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportMappers.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/reportsApiMappers.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/workflowOverviewModel.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/src/api/auditPrivacy.ts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/dishes/catalog"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/coordination/customer-contracts"
+    },
+    {
+      "probe": "zoom-200:admin-data",
+      "afterAction": true,
+      "method": "GET",
+      "status": 200,
+      "url": "/api/ingredients"
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "requestFailures": [],
+  "escapedMutations": [],
+  "fontResponses": [
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-ext-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-vietnamese-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-ext-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-vietnamese-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-ext-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-vietnamese-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-ext-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-vietnamese-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-ext-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-latin-standard-normal.woff2"
+    },
+    {
+      "status": 200,
+      "url": "http://127.0.0.1:3001/@fs/D:/K%C3%AC%207/PRN222%20Doanh%20Nghi%E1%BB%87p/IPCManagement/node_modules/@fontsource-variable/inter/files/inter-vietnamese-standard-normal.woff2"
+    }
+  ],
+  "reflowChecks": [
+    {
+      "route": "/purchasing",
+      "equivalentZoom": "200%",
+      "pathname": "/purchasing",
+      "textLength": 411,
+      "horizontalOverflow": false,
+      "scrollWidth": 630,
+      "viewportWidth": 640,
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif"
+    },
+    {
+      "route": "/admin-data",
+      "equivalentZoom": "200%",
+      "pathname": "/admin-data",
+      "textLength": 1741,
+      "horizontalOverflow": false,
+      "scrollWidth": 630,
+      "viewportWidth": 640,
+      "fontStatus": "loaded",
+      "bodyFontFamily": "\"Inter Variable\", Inter, system-ui, \"Segoe UI\", Roboto, Arial, sans-serif"
+    }
+  ],
+  "preferenceFlows": [],
+  "attributionTraces": [],
+  "phase29Contract": {
+    "modes": [
+      "DEFAULT",
+      "MATERIAL_RECONCILIATION"
+    ],
+    "roles": [
+      "Admin",
+      "Purchasing",
+      "Warehouse",
+      "retained-permission-denied"
+    ],
+    "requiredViewports": [
+      "1920x1080",
+      "1440x900",
+      "1366x768",
+      "1365x900",
+      "1280x900"
+    ],
+    "verdicts": [
+      "navigation",
+      "direct-route",
+      "bundle-preload",
+      "data-preload",
+      "action"
+    ],
+    "twoSessionRelocation": null,
+    "databaseInvariants": [
+      "purchaseRequests",
+      "purchaseOrders",
+      "receipts",
+      "issues",
+      "movements",
+      "lots",
+      "snapshots",
+      "currentStock"
+    ],
+    "immutableHistory": null,
+    "focusAndReload": null,
+    "performanceDisposition": {
+      "cls": null,
+      "longTasks": null
+    },
+    "ownedProcessTeardown": null,
+    "protectedRetry": {
+      "candidateScope": {
+        "customerCodes": [
+          "ANV",
+          "AMANN"
+        ],
+        "dateFrom": "2026-09-07",
+        "dateTo": "2026-09-12",
+        "disposition": "READ_ONLY_PREFLIGHT_CANDIDATE"
+      },
+      "freshWorkbookPath": null,
+      "freshWorkbookSha256": null,
+      "menuVersionId": null,
+      "contentFingerprint": null,
+      "quantityImportBatchId": null,
+      "quantityPlanIds": [],
+      "quantityPlanLineIds": [],
+      "reconciliationBatchId": null
+    }
+  },
+  "finishedAt": "2026-09-15T16:00:44.604Z",
+  "summary": {
+    "viewportCount": 2,
+    "routeProbeCount": 2,
+    "screenshotCount": 4,
+    "fontResponseCount": 15,
+    "reflowCheckCount": 2,
+    "apiResponseCount": 95,
+    "apiAfterActionCount": 95,
+    "consoleErrorCount": 0,
+    "pageErrorCount": 0,
+    "requestFailureCount": 0,
+    "escapedMutationCount": 0,
+    "overflowCount": 0,
+    "longTaskCount": 0,
+    "attributionTraceCount": 0,
+    "maxCls": 0.17494879042773798,
+    "performanceThresholdFailureCount": 0
+  },
+  "performanceThresholdFailures": [],
+  "status": "passed"
+}

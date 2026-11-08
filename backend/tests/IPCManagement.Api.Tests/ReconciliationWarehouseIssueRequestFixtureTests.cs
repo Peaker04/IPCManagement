@@ -47,6 +47,7 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
         var actorId = GuidHelper.ToGuidString(actor);
         var batchId = GuidHelper.ParseGuidString(request.ReconciliationBatchId)!;
         var batchLineId = GuidHelper.ParseGuidString(sourceLine.ReconciliationBatchLineId)!;
+        var dailyLineId = GuidHelper.ParseGuidString(sourceLine.ReconciliationBatchDailyLineId)!;
         var ingredientId = GuidHelper.ParseGuidString(sourceLine.IngredientId)!;
         var unitId = GuidHelper.ParseGuidString(sourceLine.UnitId)!;
         var warehouseId = GuidHelper.NewId();
@@ -79,6 +80,15 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
             ToleranceSourceKind = "SYSTEM_DEFAULT",
             ToleranceSourceVersion = "1",
             Version = 1,
+            DailyLines =
+            [
+                new ReconciliationBatchDailyLine
+                {
+                    DailyLineId = dailyLineId, BatchLineId = batchLineId, BatchId = batchId,
+                    IngredientId = ingredientId, CanonicalUnitId = unitId, ServiceDate = request.IssueDate,
+                    RequiredQuantity = sourceLine.RequestedQty, Version = 1
+                }
+            ]
         };
         batch.Lines.Add(line);
         context.AddRange(
@@ -121,7 +131,7 @@ public sealed class ReconciliationWarehouseIssueRequestFixtureTests
         var currentUser = Substitute.For<ICurrentUserService>();
         currentUser.GetRoleNames(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(["WarehouseStaff"]);
         currentUser.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(actorId);
-        var controller = new InventoryIssuesController(service, currentUser);
+        var controller = new InventoryIssuesController(service, currentUser, requestContext);
 
         var conflict = await Assert.ThrowsAsync<SystemOperationConflictException>(() => controller.CreateAsync(request));
         Assert.Contains("thay đổi", conflict.Message, StringComparison.OrdinalIgnoreCase);

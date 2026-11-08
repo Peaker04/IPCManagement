@@ -182,6 +182,7 @@ export default defineConfig([
     rules: {
       'ipc/no-swallowed-query-error': 'warn',
       'ipc/no-direct-query-data-fallback-after-classification': 'error',
+      'no-console': 'error',
     },
   },
   {

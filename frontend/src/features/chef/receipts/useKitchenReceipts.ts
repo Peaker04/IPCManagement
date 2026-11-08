@@ -45,8 +45,8 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
   const totalSignedCount = actionRows.filter((row) => row.isReceivedByKitchen || Boolean(signedMaterials[`${scope.serviceDate}-${scope.activeShift}-${row.issueId}-${row.id}`])).length
   const hasAdditionalPages = (response?.totalPages ?? 0) > 1
 
-  const signOff = async (material: ChefMaterial | undefined, signed: boolean) => {
-    if (!material) return
+  const signOff = async (material: ChefMaterial | undefined, signed: boolean, hasDiscrepancy = false, discrepancyNote?: string) => {
+    if (!material) return false
     const issueRow = rows.find((row) => row.id === material.id)
     const signKey = issueRow
       ? `${scope.serviceDate}-${scope.activeShift}-${issueRow.issueId}-${issueRow.id}`
@@ -59,31 +59,33 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
           message: `Phiếu ${issueRow.issueCode} đã xác nhận nhận nguyên liệu nên không thể bỏ ký từ giao diện.`,
           variant: 'warning',
         })
-        return
+        return false
       }
       setSignedMaterials((current) => ({ ...current, [signKey]: false }))
-      return
+      return true
     }
 
     if (issueRow?.issueId && !issueRow.isReceivedByKitchen) {
       try {
-        const response = await confirmReceipt({ issueId: issueRow.issueId, hasDiscrepancy: false }).unwrap()
+        const response = await confirmReceipt({ issueId: issueRow.issueId, hasDiscrepancy, discrepancyNote: hasDiscrepancy ? discrepancyNote?.trim() : undefined }).unwrap()
         setSignedMaterials((current) => ({ ...current, [signKey]: true }))
         onFeedback({
           title: 'Đã ký nhận nguyên liệu',
           message: response.message || `Bếp đã xác nhận nhận phiếu ${issueRow.issueCode}.`,
           variant: 'info',
         })
+        return true
       } catch (error) {
         onFeedback({
           title: 'Chưa ký nhận được nguyên liệu',
           message: getChefMutationErrorMessage(error, 'Kiểm tra quyền bếp trưởng hoặc trạng thái phiếu xuất rồi thử lại.'),
           variant: 'danger',
         })
+        return false
       }
-      return
     }
     setSignedMaterials((current) => ({ ...current, [signKey]: true }))
+    return true
   }
 
   return {

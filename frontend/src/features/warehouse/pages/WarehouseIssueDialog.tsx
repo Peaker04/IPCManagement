@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { PaginationBar } from '@/components/common/PaginationBar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatIssueCandidateLabel, type WarehouseIssueAllocation } from '../warehouseIssueAllocation'
+import { formatIssueCandidateLabel, issueScopeLabel, type WarehouseIssueAllocation } from '../warehouseIssueAllocation'
+import { formatDateOnly } from '@/lib/formatters'
 
 interface WarehouseIssueDialogProps {
   open: boolean
@@ -55,7 +56,7 @@ export default function WarehouseIssueDialog({
       <DialogContent aria-labelledby="warehouse-issue-title" aria-describedby="warehouse-issue-description">
         <DialogHeader>
           <DialogTitle id="warehouse-issue-title">Tạo phiếu xuất kho</DialogTitle>
-          <DialogDescription id="warehouse-issue-description">Chọn nhu cầu nguyên liệu và kho xuất tương ứng để lập phiếu.</DialogDescription>
+          <DialogDescription id="warehouse-issue-description">Chọn đúng khách hàng, ngày và ca phục vụ trước khi lập phiếu. Phiếu xuất và bước Bếp ký nhận sẽ giữ nguyên phạm vi này.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
@@ -66,6 +67,11 @@ export default function WarehouseIssueDialog({
               </SelectTrigger>
               <SelectContent>{issueCandidates.map((candidate) => <SelectItem key={candidate.materialRequestId} value={candidate.materialRequestId}>{formatIssueCandidateLabel(candidate)}</SelectItem>)}</SelectContent>
             </Select>
+            {selectedIssueCandidate && <dl className="grid grid-cols-2 gap-2 rounded-sm border border-sky-200 bg-sky-50 p-3 text-xs text-slate-700">
+              <div><dt className="font-semibold">Khách hàng</dt><dd>{selectedIssueCandidate.customerName} ({selectedIssueCandidate.customerCode})</dd></div>
+              <div><dt className="font-semibold">Ngày / ca</dt><dd>{formatDateOnly(selectedIssueCandidate.requestDate)} · {issueScopeLabel(selectedIssueCandidate.requestScope)}</dd></div>
+              <div className="col-span-2"><dt className="font-semibold">Chứng từ nguồn</dt><dd>{selectedIssueCandidate.materialRequestCode}</dd></div>
+            </dl>}
             <PaginationBar page={issueCandidatePageNumber} pageSize={issueCandidatePageSize} totalItems={issueCandidateTotalItems} onPageChange={onIssueCandidatePageChange} />
             {issueCandidates.length === 0 && (
               <p className={isIssueCandidateError && !isFetchingIssueCandidates ? 'text-xs font-semibold text-red-700' : 'text-xs text-amber-700'} role={isIssueCandidateError && !isFetchingIssueCandidates ? 'alert' : undefined}>

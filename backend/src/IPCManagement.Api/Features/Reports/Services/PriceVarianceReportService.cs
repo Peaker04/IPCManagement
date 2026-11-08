@@ -412,6 +412,7 @@ public class PriceVarianceReportService : IPriceVarianceReportService
 
         return new ReceiptPriceVarianceReportDto
         {
+            ReceiptLineId = GuidHelper.ToGuidString(item.ReceiptLineId),
             ReceiptId = GuidHelper.ToGuidString(item.ReceiptId),
             ReceiptCode = item.Receipt.ReceiptCode,
             ReceiptDate = item.Receipt.ReceiptDate,

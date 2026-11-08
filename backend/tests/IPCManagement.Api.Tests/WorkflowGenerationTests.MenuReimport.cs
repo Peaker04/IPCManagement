@@ -223,7 +223,9 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchlines (
  ToleranceSourceVersion TEXT NOT NULL, Version INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
  ContributorId BLOB NOT NULL PRIMARY KEY, BatchLineId BLOB NOT NULL, MenuScheduleId BLOB NOT NULL,
- MealQuantityPlanLineId BLOB NOT NULL, DishBomId BLOB NOT NULL, SourceQuantity TEXT NOT NULL);
+ MealQuantityPlanLineId BLOB NOT NULL, DishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL,
+ FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL,
+ FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, SourceQuantity TEXT NOT NULL);
 """);
         var line = new ReconciliationBatchLine
         {
@@ -299,6 +301,27 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
         result.RequiresReconciliation.Should().BeFalse();
         (await context.Menuamendments.Include(item => item.Lines).SingleAsync()).Lines.Should().ContainSingle();
         (await context.Auditlogs.AnyAsync(item => item.EntityName == nameof(MenuAmendment))).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task MenuAmendment_Should_Create_WhenNoDemandExists()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        context.Materialrequests.RemoveRange(await context.Materialrequests.ToListAsync());
+        await context.SaveChangesAsync();
+
+        var result = await new MenuAmendmentService(context).CreateAsync(new CreateMenuAmendmentRequest
+        {
+            CustomerId = fixture.CustomerIdString,
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            Reason = "Đổi món trước khi tạo nhu cầu.",
+            Lines = [new CreateMenuAmendmentLineRequest { ServiceDate = new DateOnly(2026, 6, 15), ShiftName = "MORNING", DishSlot = "savory-main", NewDishId = GuidHelper.ToGuidString(fixture.DishWithBomId) }]
+        }, fixture.UserIdString);
+
+        result.Status.Should().Be("PENDING_REVIEW");
+        result.AffectedDemandCount.Should().Be(0);
     }
 
     [Fact]

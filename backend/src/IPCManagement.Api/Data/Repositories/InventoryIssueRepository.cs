@@ -24,6 +24,9 @@ public class InventoryIssueRepository : GenericRepository<InventoryIssue>, IInve
             .Include(issue => issue.IssuedByNavigation)
             .Include(issue => issue.ReceivedByNavigation)
             .Include(issue => issue.Inventoryissuelines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(issue => issue.Inventoryissuelines)
+                .ThenInclude(line => line.Unit)
             .AsQueryable();
 
         query = ApplyExactSourceFamily(query, request.SourceFamily);

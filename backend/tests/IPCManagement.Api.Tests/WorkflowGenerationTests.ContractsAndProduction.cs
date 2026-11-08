@@ -437,6 +437,84 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task IngredientDemandAllocationScope_Should_ReturnAllRowsBeyondLegacyLimit()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+            var source = await context.Materialrequestlines.AsNoTracking().SingleAsync();
+            context.Materialrequestlines.AddRange(Enumerable.Range(0, 500).Select(_ => new MaterialRequestLine
+            {
+                RequestLineId = GuidHelper.NewId(),
+                RequestId = source.RequestId,
+                PlanLineId = source.PlanLineId,
+                IngredientId = source.IngredientId,
+                UnitId = source.UnitId,
+                BomId = source.BomId,
+                PriceTierAmount = source.PriceTierAmount,
+                BomScope = source.BomScope,
+                TotalServings = source.TotalServings,
+                GrossQtyPerServing = source.GrossQtyPerServing,
+                BomRatePercent = source.BomRatePercent,
+                AppliedPortionRuleId = source.AppliedPortionRuleId,
+                AppliedPortionRuleSource = source.AppliedPortionRuleSource,
+                AppliedPortionRatePercent = source.AppliedPortionRatePercent,
+                YieldLossPercent = source.YieldLossPercent,
+                TotalRequiredQty = source.TotalRequiredQty,
+                CurrentStockQty = source.CurrentStockQty,
+                SuggestedPurchaseQty = source.SuggestedPurchaseQty,
+            }));
+            var otherRequestId = GuidHelper.NewId();
+            context.Materialrequests.Add(new MaterialRequest
+            {
+                RequestId = otherRequestId,
+                RequestCode = "MR-OTHER-SCOPE",
+                PlanId = (await context.Materialrequests.AsNoTracking().SingleAsync()).PlanId,
+                RequestDate = new DateOnly(2026, 6, 15),
+                RequestScope = "FULLDAY",
+                Status = "GENERATED",
+                CreatedBy = fixture.UserId,
+            });
+            context.Materialrequestlines.Add(new MaterialRequestLine
+            {
+                RequestLineId = GuidHelper.NewId(),
+                RequestId = otherRequestId,
+                PlanLineId = source.PlanLineId,
+                IngredientId = source.IngredientId,
+                UnitId = source.UnitId,
+                PriceTierAmount = source.PriceTierAmount,
+                BomScope = source.BomScope,
+                TotalServings = source.TotalServings,
+                GrossQtyPerServing = source.GrossQtyPerServing,
+                BomRatePercent = source.BomRatePercent,
+                AppliedPortionRuleSource = source.AppliedPortionRuleSource,
+                AppliedPortionRatePercent = source.AppliedPortionRatePercent,
+                TotalRequiredQty = 999,
+                CurrentStockQty = 0,
+                SuggestedPurchaseQty = 999,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using var verificationContext = fixture.CreateContext();
+        var rows = await new DemandReportService(verificationContext).GetIngredientDemandAsync(new WorkflowReportQueryDto
+        {
+            MaterialRequestId = materialRequestId,
+            Limit = 1,
+        });
+
+        rows.Should().HaveCount(501);
+        rows.Should().OnlyContain(row => row.MaterialRequestId == materialRequestId);
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_RequireSignoffBeforeUsingLockedOrder()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

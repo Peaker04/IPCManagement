@@ -26,6 +26,20 @@ public class StockMovementReportService : IStockMovementReportService
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<CurrentStockSummaryDto>> GetCurrentStockAllocationAsync(CurrentStockAllocationQueryDto query)
+    {
+        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId)
+            ?? throw new ArgumentException("Kho không hợp lệ.");
+        var materialRequestId = GuidHelper.ParseGuidString(query.MaterialRequestId)
+            ?? throw new ArgumentException("Yêu cầu nguyên liệu không hợp lệ.");
+        var stocks = _context.Currentstocks.AsNoTracking()
+            .Where(stock => stock.WarehouseId == warehouseId && _context.Materialrequestlines.Any(line =>
+                line.RequestId == materialRequestId && line.IngredientId == stock.IngredientId && line.UnitId == stock.UnitId))
+            .OrderBy(stock => stock.Ingredient.IngredientName)
+            .ThenBy(stock => stock.Unit.UnitName);
+        return await ProjectCurrentStocks(stocks).ToListAsync();
+    }
+
     public async Task<PagedResponseDto<CurrentStockSummaryDto>> GetCurrentStockPageAsync(CurrentStockPageQueryDto query)
     {
         var stocks = BuildCurrentStockQuery(query);

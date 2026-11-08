@@ -5,6 +5,7 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { MainLayout } from '@/app/layout/MainLayout';
 import { ModeGuard } from '@/features/system-operation/ModeGuard';
+import { RouteDocumentTitle } from './RouteDocumentTitle';
 import {
   AdminDataPage,
   ApprovalPage,
@@ -30,7 +31,7 @@ const routeFallback = (
   <section
     aria-busy="true"
     aria-live="polite"
-    className="ipc-operational-frame min-h-[580px]"
+    className="ipc-operational-frame"
   >
     <span className="sr-only">Đang tải màn hình...</span>
     <div aria-hidden="true" className="ipc-operational-head space-y-2 motion-reduce:animate-none">
@@ -54,6 +55,7 @@ const routeFallback = (
 export const AppRouter = () => {
   return (
     <BrowserRouter>
+      <RouteDocumentTitle />
       <Suspense fallback={null}>
         <SessionTimeoutModal />
       </Suspense>

@@ -27,6 +27,9 @@ import {
 import { EMPTY_ADMIN_LIST, toAdminView } from './adminDataPageModelShared';
 import { formatMenuVersionStatus } from '@/lib/workflowConfig';
 
+type ContractField = 'customerCode' | 'customerName' | 'defaultMenuPrice' | 'activeWeekDays' | 'shiftNames';
+type ContractFieldErrors = Partial<Record<ContractField, string>>;
+
 const toApiShiftName = (value: string): ApiShiftName | null => {
   const normalized = value.trim().toLocaleUpperCase('vi-VN');
   if (['MORNING', 'CA SÁNG', 'CA SANG'].includes(normalized)) return 'MORNING';
@@ -43,6 +46,7 @@ export function useAdminContractsPanelModel(activeView: AdminView, enabled = tru
   const [contractForm, setContractForm] = useState<ContractFormState>(defaultContractForm);
   const [scheduleRuleForm, setScheduleRuleForm] = useState<ScheduleRuleFormState>(defaultScheduleRuleForm);
   const [contractFeedback, setContractFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [contractFieldErrors, setContractFieldErrors] = useState<ContractFieldErrors>({});
   const customerContractsQuery = useGetCustomerContractsQuery(undefined, {
     skip: !enabled || (activeView !== 'contracts' && activeView !== 'bom-import'),
   });
@@ -116,6 +120,7 @@ export function useAdminContractsPanelModel(activeView: AdminView, enabled = tru
   };
 
   const handleSaveCustomerContract = async () => {
+    setContractFieldErrors({});
     if (!isCreatingContract && !selectedContract) {
       setContractFeedback({ type: 'error', message: 'Chưa chọn khách hàng.' });
       return;
@@ -131,11 +136,13 @@ export function useAdminContractsPanelModel(activeView: AdminView, enabled = tru
       : selectedContract?.isActive ?? true;
 
     if (isCreatingContract && !nextCustomerCode) {
-      setContractFeedback({ type: 'error', message: 'Mã khách hàng không được trống.' });
+      setContractFieldErrors({ customerCode: 'Mã khách hàng không được trống.' });
+      setContractFeedback({ type: 'error', message: 'Kiểm tra trường Mã khách hàng.' });
       return;
     }
     if (!nextCustomerName) {
-      setContractFeedback({ type: 'error', message: 'Tên khách hàng không được trống.' });
+      setContractFieldErrors({ customerName: 'Tên khách hàng không được trống.' });
+      setContractFeedback({ type: 'error', message: 'Kiểm tra trường Tên khách hàng.' });
       return;
     }
 
@@ -143,7 +150,8 @@ export function useAdminContractsPanelModel(activeView: AdminView, enabled = tru
       ? Number(contractForm.defaultMenuPrice)
       : undefined;
     if (defaultMenuPrice != null && (!Number.isFinite(defaultMenuPrice) || defaultMenuPrice < 0)) {
-      setContractFeedback({ type: 'error', message: 'Đơn giá mặc định không hợp lệ.' });
+      setContractFieldErrors({ defaultMenuPrice: 'Đơn giá mặc định phải là số không âm.' });
+      setContractFeedback({ type: 'error', message: 'Kiểm tra trường Đơn giá mặc định.' });
       return;
     }
 
@@ -154,11 +162,13 @@ export function useAdminContractsPanelModel(activeView: AdminView, enabled = tru
       .filter(Boolean);
     const shiftNames = rawShiftNames.map(toApiShiftName);
     if (activeWeekDays.length === 0) {
-      setContractFeedback({ type: 'error', message: 'Ngày làm việc trong hợp đồng không được trống.' });
+      setContractFieldErrors({ activeWeekDays: 'Chọn ít nhất một ngày làm việc.' });
+      setContractFeedback({ type: 'error', message: 'Kiểm tra nhóm Ngày làm việc.' });
       return;
     }
     if (shiftNames.length === 0 || shiftNames.some((shift) => !shift)) {
-      setContractFeedback({ type: 'error', message: 'Ca phục vụ không được trống hoặc không đúng định dạng.' });
+      setContractFieldErrors({ shiftNames: 'Chọn ít nhất một ca phục vụ hợp lệ.' });
+      setContractFeedback({ type: 'error', message: 'Kiểm tra nhóm Ca phục vụ.' });
       return;
     }
 
@@ -242,6 +252,7 @@ export function useAdminContractsPanelModel(activeView: AdminView, enabled = tru
   return {
     queryViews: { contracts: customerContractsView, menuSchedules: menuSchedulesView },
     contractFeedback,
+    contractFieldErrors,
     contractForm,
     customerContracts,
     handleSaveCustomerContract,

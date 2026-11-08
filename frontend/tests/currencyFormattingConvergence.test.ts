@@ -88,7 +88,7 @@ describe('currency formatting convergence', () => {
     }, 0)
 
     expect(residualCount).toBe(0)
-    expect(canonicalCount).toBe(12)
+    expect(canonicalCount).toBe(10)
     expect(approvalQueue).not.toContain('const formatCurrency')
   })
 })

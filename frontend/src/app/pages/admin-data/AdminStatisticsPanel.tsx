@@ -1,40 +1,36 @@
-import { BarChart3, PackageCheck, TrendingUp } from 'lucide-react';
-import { KeepAliveTabPanel, TableViewport, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
+import { BarChart3 } from 'lucide-react';
+import { KeepAliveTabPanel, TableViewport, SectionPanel, StatusBadge } from '@/components/common';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
-import { formatCurrency, formatDateTime, formatPercent, formatQuantity, formatQuantityWithUnit } from '@/lib/formatters';
-import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
+import { formatQuantity } from '@/lib/formatters';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 const renderKpiStatus = (
   isAlert: boolean,
   alertLabel: string,
-  okLabel: string,
+  _okLabel: string,
   alertTone: 'danger' | 'warning' | 'neutral' = 'danger',
-) => (
-  <StatusBadge variant={isAlert ? alertTone : 'success'}>
-    {isAlert ? alertLabel : okLabel}
-  </StatusBadge>
-);
+) => isAlert
+  ? <StatusBadge variant={alertTone}>{alertLabel}</StatusBadge>
+  : <span className="text-slate-400" aria-label="Không có cảnh báo">—</span>;
 
 type AdminStatisticsPanelProps = { model: AdminDataPageModel };
 
 export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
-  const { currentStockPage, currentStockPageResponse, currentStockRows, effectiveActiveView, operationalKpis, priceVariancePage, priceWarningCount, priceWarningPage, priceWarnings, queryViews, setCurrentStockPage, setPriceWarningPage, shortageCount, totalIssuedQty, totalPurchaseQty, totalReturnedQty, totalUsedQty } = model;
+  const { effectiveActiveView, operationalKpis, priceWarningCount, queryViews, shortageCount, totalIssuedQty, totalPurchaseQty, totalReturnedQty, totalUsedQty } = model;
   return (
     <KeepAliveTabPanel id="admin-statistics" active={effectiveActiveView === 'statistics'} className="flex flex-col gap-4">
       <AdminQueryBoundary queries={[
         { label: 'KPI vận hành', view: queryViews.operationalKpis },
         { label: 'nhu cầu nguyên liệu', view: queryViews.ingredientDemand },
         { label: 'kế hoạch thu mua', view: queryViews.purchasePlan },
-        { label: 'tồn kho hiện tại', view: queryViews.currentStock },
         { label: 'cảnh báo giá', view: queryViews.priceVariance },
       ]}>
         <SectionPanel
-          title="Thống kê vận hành cho Admin"
+          title="Thống kê vận hành"
           icon={<BarChart3 size={18} />}
-          description="Tổng hợp các chỉ số KPI vận hành, tỷ lệ giao hàng đúng hạn và cảnh báo biến động giá."
+          description="Chỉ số cần Admin theo dõi và chuyển xử lý."
         >
           <TableViewport caption="Chỉ số thống kê vận hành cho Admin" ariaLabel="Bảng chỉ số thống kê vận hành">
             <table className="ipc-data-table ipc-erp-grid-table ipc-admin-statistics-table w-full">
@@ -43,7 +39,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                   <th className="text-left">Nhóm thống kê</th>
                   <th className="text-right">Chỉ số</th>
                   <th className="text-left">Ý nghĩa vận hành</th>
-                  <th className="text-center">Trạng thái</th>
+                  <th className="text-center">Cảnh báo</th>
                   <th className="text-center">Chuyển xử lý</th>
                 </tr>
               </thead>
@@ -56,6 +52,15 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                     {renderKpiStatus(Boolean(operationalKpis?.failedWorkflowCount), 'Cần điều tra', 'Ổn định')}
                   </td>
                   <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
+                </tr>
+                <tr>
+                  <td className="text-left font-semibold text-slate-900">Cảnh báo biến động giá</td>
+                  <td className="text-right tabular-nums">{priceWarningCount} cảnh báo</td>
+                  <td className="text-left text-slate-600">Biến động giá cần được phân tích tại báo cáo theo đúng bộ lọc và đơn vị dữ liệu.</td>
+                  <td className="text-center">
+                    {renderKpiStatus(Boolean(priceWarningCount), 'Cần theo dõi', 'Không có cảnh báo', 'warning')}
+                  </td>
+                  <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.REPORTS}?view=price&subview=lines`}>Mở báo cáo biến động giá</Link></td>
                 </tr>
                 <tr>
                   <td className="text-left font-semibold text-slate-900">Vấn đề dữ liệu nghiêm trọng</td>
@@ -77,10 +82,10 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 </tr>
                 <tr>
                   <td className="text-left font-semibold text-slate-900">Nhu cầu nguyên liệu</td>
-                  <td className="text-right tabular-nums">{shortageCount} dòng thiếu</td>
-                  <td className="text-left text-slate-600">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
+                  <td className="text-right tabular-nums">{shortageCount} dòng chưa xuất</td>
+                  <td className="text-left text-slate-600">Dòng ngày–nguyên liệu còn phải xuất; không phải đề xuất mua.</td>
                   <td className="text-center">
-                    {renderKpiStatus(Boolean(shortageCount), `${shortageCount} thiếu`, 'Đủ tồn', 'warning')}
+                    {renderKpiStatus(Boolean(shortageCount), `${shortageCount} chưa xuất`, 'Không còn chờ xuất', 'warning')}
                   </td>
                   <td className="text-center"><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WEEKLY_MENU}>Mở KHSX/BOM</Link></td>
                 </tr>
@@ -125,69 +130,6 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
           </TableViewport>
         </SectionPanel>
 
-        <SectionPanel title="Snapshot tồn kho hiện tại" icon={<PackageCheck size={18} />}>
-          <PaginatedTableFrame ariaLabel="Bảng snapshot tồn kho trong trang admin">
-            <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
-              <thead>
-                <tr>
-                  <th className="text-left">Kho</th>
-                  <th className="text-left">Nguyên liệu</th>
-                  <th className="text-right">Số lượng</th>
-                  <th className="text-center">Cập nhật</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentStockRows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.map((row) => (
-                  <tr key={`${row.warehouseId}-${row.ingredientId}`}>
-                    <td className="text-left text-slate-700">{row.warehouse}</td>
-                    <td className="text-left font-medium text-slate-900">{row.ingredient}</td>
-                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(row.currentQty, row.unit, { maximumFractionDigits: 3 })}</td>
-                    <td className="text-center tabular-nums text-slate-600">{formatDateTime(row.lastUpdated)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </PaginatedTableFrame>
-          <PaginationBar
-            page={currentStockPageResponse?.pageNumber ?? currentStockPage}
-            pageSize={currentStockPageResponse?.pageSize ?? 8}
-            totalItems={currentStockPageResponse?.totalCount ?? 0}
-            onPageChange={setCurrentStockPage}
-          />
-        </SectionPanel>
-
-        <SectionPanel title={`Cảnh báo biến động giá (${priceWarningCount} cảnh báo)`} icon={<TrendingUp size={18} />}>
-          <PaginatedTableFrame ariaLabel="Bảng cảnh báo biến động giá trong trang admin">
-            <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
-              <thead>
-                <tr>
-                  <th className="text-left">Nguyên liệu</th>
-                  <th className="text-left">Nhà cung cấp</th>
-                  <th className="text-right">Giá trước</th>
-                  <th className="text-right">Giá hiện tại</th>
-                  <th className="text-right">Mức tăng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {priceWarnings.length === 0 ? <EmptyRow colSpan={5} /> : priceWarnings.map((row, index) => (
-                  <tr key={`${row.id}-${index}`}>
-                    <td className="text-left font-medium text-slate-900">{row.name}</td>
-                    <td className="text-left text-slate-700">{row.supplier}</td>
-                    <td className="text-right tabular-nums text-slate-600">{formatCurrency(row.pricePrev)}</td>
-                    <td className="text-right tabular-nums font-semibold text-slate-900">{formatCurrency(row.priceCurrent)}</td>
-                    <td className="text-right tabular-nums font-bold text-red-600">+{formatPercent(row.change, 1)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </PaginatedTableFrame>
-          <PaginationBar
-            page={priceVariancePage?.pageNumber ?? priceWarningPage}
-            pageSize={priceVariancePage?.pageSize ?? 8}
-            totalItems={priceVariancePage?.totalCount ?? 0}
-            onPageChange={setPriceWarningPage}
-          />
-        </SectionPanel>
       </AdminQueryBoundary>
     </KeepAliveTabPanel>
   );

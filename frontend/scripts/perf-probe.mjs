@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
+import { createHash } from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { chromium } from 'playwright'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
+import { buildSourceIdentity } from '../../tools/live-visual-audit-contract.mjs'
+import { detectServedMode, summarizeFrameMetrics } from './perf-probe-metrics.mjs'
 
 const CONFIG = {
   baseUrl: process.env.PROBE_BASE_URL || 'http://127.0.0.1:3037',
+  runtimeMode: process.env.PROBE_RUNTIME_MODE || 'unspecified',
   profileQuery: process.env.PROBE_PROFILE || 'mock=huge',
   credentials: {
     username: process.env.PROBE_USERNAME || '',
@@ -18,7 +23,12 @@ const CONFIG = {
     { w: 1920, h: 1080 },
   ],
   primaryViewport: { w: 1440, h: 900 },
-  throttle: { cpuRate: 4, downKbps: 500, upKbps: 500, latencyMs: 400 },
+  throttle: {
+    cpuRate: Number(process.env.PROBE_CPU_RATE || 4),
+    downKbps: Number(process.env.PROBE_DOWN_KBPS || 500),
+    upKbps: Number(process.env.PROBE_UP_KBPS || 500),
+    latencyMs: Number(process.env.PROBE_LATENCY_MS || 400),
+  },
   settle: { quietMs: 700, maxWaitMs: 60000, pollMs: 100 },
   thresholds: {
     CGR_MAX: 0.1,
@@ -75,6 +85,7 @@ const ACTIVE_INTERACTIONS = interactionFilter?.length
   : INTERACTIONS
 
 const T = CONFIG.thresholds
+if (!Number.isInteger(T.REPEATS) || T.REPEATS < 3) throw new Error('PROBE_REPEATS phải là số nguyên >= 3 để tạo distribution hợp lệ.')
 const round = (value, digits = 2) => value == null ? null : Math.round(value * 10 ** digits) / 10 ** digits
 const median = (values) => {
   const sorted = values.filter((value) => value != null).slice().sort((a, b) => a - b)
@@ -94,8 +105,22 @@ function targetUrl(target) {
 }
 
 function initProbe() {
-  const probe = { shifts: [], events: [], lcp: null }
+  const probe = { shifts: [], events: [], frameTimes: [], loafs: [], eventSupported: false, loafSupported: false, lcp: null }
   window.__probe = probe
+  let lastFrame = performance.now()
+  const captureFrame = (now) => {
+    probe.frameTimes.push({ startTime: lastFrame, duration: now - lastFrame })
+    lastFrame = now
+    requestAnimationFrame(captureFrame)
+  }
+  probe.resetInteractionMetrics = () => {
+    probe.events.length = 0
+    probe.frameTimes.length = 0
+    probe.loafs.length = 0
+    lastFrame = performance.now()
+    return lastFrame
+  }
+  requestAnimationFrame(captureFrame)
   const describe = (node) => {
     if (!node || node.nodeType !== 1) return null
     const id = node.id ? `#${node.id}` : ''
@@ -103,6 +128,22 @@ function initProbe() {
     return `${node.tagName.toLowerCase()}${id}${classes.length ? `.${classes.join('.')}` : ''}`
   }
   const rect = (value) => value ? { x: value.x, y: value.y, w: value.width, h: value.height } : null
+  try {
+    probe.loafSupported = PerformanceObserver.supportedEntryTypes?.includes('long-animation-frame') === true
+    if (probe.loafSupported) new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) probe.loafs.push({
+        startTime: entry.startTime,
+        duration: entry.duration,
+        blockingDuration: entry.blockingDuration ?? 0,
+        renderStart: entry.renderStart ?? null,
+        styleAndLayoutStart: entry.styleAndLayoutStart ?? null,
+        scriptCount: entry.scripts?.length ?? 0,
+      })
+    }).observe({ type: 'long-animation-frame', buffered: true })
+  } catch (error) {
+    probe.loafSupported = false
+    probe.loafObserverError = String(error)
+  }
   try {
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
@@ -115,6 +156,8 @@ function initProbe() {
     }).observe({ type: 'layout-shift', buffered: true })
   } catch (error) { probe.shiftObserverError = String(error) }
   try {
+    probe.eventSupported = PerformanceObserver.supportedEntryTypes?.includes('event') === true
+    if (!probe.eventSupported) throw new Error('PerformanceEventTiming observer is unsupported')
     new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         if (entry.interactionId) probe.events.push({
@@ -147,6 +190,7 @@ function initProbe() {
 
 let authState
 let authToken
+let authUser
 const useMockAuth = () => CONFIG.credentials.username === 'admin' && CONFIG.credentials.password === 'admin'
 
 async function bootstrapAuth(browser) {
@@ -168,6 +212,7 @@ async function bootstrapAuth(browser) {
       await page.goto(new URL('/', CONFIG.baseUrl).toString(), { waitUntil: 'domcontentloaded', timeout: CONFIG.settle.maxWaitMs })
       authState = await context.storageState()
       authToken = await page.evaluate(() => sessionStorage.getItem('token'))
+      authUser = await page.evaluate(() => sessionStorage.getItem('user'))
       return
     }
     if (useMockAuth()) {
@@ -178,12 +223,17 @@ async function bootstrapAuth(browser) {
     await page.goto(new URL('/login', CONFIG.baseUrl).toString(), { waitUntil: 'domcontentloaded', timeout: CONFIG.settle.maxWaitMs })
     await page.locator('#username').fill(CONFIG.credentials.username)
     await page.locator('#password').fill(CONFIG.credentials.password)
+    const operationModeResponse = page.waitForResponse((response) => response.url().includes('/api/system-operation-mode') && response.status() === 200, { timeout: CONFIG.settle.maxWaitMs })
     await Promise.all([
       page.waitForURL((url) => url.pathname !== '/login', { timeout: CONFIG.settle.maxWaitMs }),
+      operationModeResponse,
       page.getByRole('button', { name: 'Đăng nhập' }).click(),
     ])
+    await page.waitForSelector('.ipc-content-shell', { state: 'attached', timeout: CONFIG.settle.maxWaitMs })
+    await page.waitForFunction(() => Boolean(sessionStorage.getItem('token') && sessionStorage.getItem('user')), undefined, { timeout: CONFIG.settle.maxWaitMs })
     authState = await context.storageState()
     authToken = await page.evaluate(() => sessionStorage.getItem('token'))
+    authUser = await page.evaluate(() => sessionStorage.getItem('user'))
   } finally {
     await context.close()
   }
@@ -196,9 +246,10 @@ async function newColdPage(browser, viewport) {
     storageState: authState,
   })
   const page = await context.newPage()
-  await page.addInitScript((token) => {
+  await page.addInitScript(({ token, user }) => {
     if (token) sessionStorage.setItem('token', token)
-  }, authToken)
+    if (user) sessionStorage.setItem('user', user)
+  }, { token: authToken, user: authUser })
   if (useMockAuth()) await page.route('**/api/auth/profile', (route) => route.fulfill({
     status: 200, contentType: 'application/json', body: JSON.stringify({
       success: true, data: {
@@ -298,8 +349,14 @@ async function measureLoad(browser, target) {
       clsWindow: window.__probe.clsWindow(),
       clsSources: window.__probe.shifts.slice().sort((a, b) => b.value - a.value).slice(0, 3),
       lcp: window.__probe.lcp,
+      frameTimes: [...window.__probe.frameTimes],
+      loafs: [...window.__probe.loafs],
+      loafSupported: window.__probe.loafSupported,
+      loafObserverError: window.__probe.loafObserverError ?? null,
     }))
     row.clsSum = round(extra.clsSum, 4); row.clsWindow = round(extra.clsWindow, 4); row.clsSources = extra.clsSources; row.lcp = extra.lcp
+    row.frameMetrics = summarizeFrameMetrics(extra.frameTimes, extra.loafs, extra.loafSupported)
+    if (extra.loafObserverError) row.notes.push(`LoAF observer unavailable: ${extra.loafObserverError}`)
     if (!start.anchorFound || !end.anchorFound) {
       row.deltaTop = null; row.cgr = null
       row.notes.push(`mốc neo vắng tại ${!start.anchorFound ? 't_0' : 't_settled'}`)
@@ -329,7 +386,7 @@ async function runInteraction(browser, target, interaction) {
   const { context, page } = await newColdPage(browser, CONFIG.primaryViewport)
   try {
     await openTarget(page, target); await sampleT0(page, target); await sampleSettled(page, target)
-    await page.evaluate(() => { window.__probe.events.length = 0 })
+    let locator
     if (interaction.selector) {
       // Tab switching and global navigation belong to the route shell; all
       // other interactions must resolve inside the active target panel so a
@@ -340,14 +397,35 @@ async function runInteraction(browser, target, interaction) {
         : target.tab
           ? page.locator(`#${target.tab}-panel`)
           : page.locator('.ipc-content-shell')
-      const locator = interactionRoot.locator(interaction.selector)
-      if (!await locator.count()) return { na: `selector không khớp: ${interaction.selector}` }
-      if (!await locator.first().isVisible()) return { na: `phần tử không hiển thị: ${interaction.selector}` }
+      locator = interactionRoot.locator(interaction.selector)
+      if (!await locator.count()) return { na: `selector không khớp: ${interaction.selector}`, observerSupport: await page.evaluate(() => ({ event: window.__probe.eventSupported, eventError: window.__probe.eventObserverError ?? null, loaf: window.__probe.loafSupported, loafError: window.__probe.loafObserverError ?? null })) }
+      if (!await locator.first().isVisible()) return { na: `phần tử không hiển thị: ${interaction.selector}`, observerSupport: await page.evaluate(() => ({ event: window.__probe.eventSupported, eventError: window.__probe.eventObserverError ?? null, loaf: window.__probe.loafSupported, loafError: window.__probe.loafObserverError ?? null })) }
+    }
+    const windowStart = await page.evaluate(() => window.__probe.resetInteractionMetrics())
+    if (locator) {
       if (interaction.action === 'type') { await locator.first().click(); await locator.first().type('a') } else await locator.first().click()
     }
-    await page.waitForTimeout(1500)
-    const events = await page.evaluate(() => window.__probe.events.slice())
-    if (!events.length) return { na: 'không có entry tương tác' }
+    await page.waitForFunction(() => window.__probe.events.length > 0, undefined, { timeout: 1500 }).catch(() => {})
+    const measured = await page.evaluate(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+      return {
+        endTime: performance.now(),
+        events: window.__probe.events.slice(),
+        frameTimes: [...window.__probe.frameTimes],
+        loafs: [...window.__probe.loafs],
+        eventSupported: window.__probe.eventSupported,
+        eventObserverError: window.__probe.eventObserverError ?? null,
+        loafSupported: window.__probe.loafSupported,
+        loafObserverError: window.__probe.loafObserverError ?? null,
+      }
+    })
+    const observerSupport = { event: measured.eventSupported, eventError: measured.eventObserverError, loaf: measured.loafSupported, loafError: measured.loafObserverError }
+    if (!measured.eventSupported) return { na: 'PerformanceEventTiming observer không được hỗ trợ', windowStart, windowEnd: measured.endTime, observerSupport }
+    if (!measured.events.length) return { na: 'không có entry tương tác', frameMetrics: summarizeFrameMetrics(measured.frameTimes, measured.loafs, measured.loafSupported, { startTime: windowStart, endTime: measured.endTime }), windowStart, windowEnd: measured.endTime, observerSupport }
+    const events = measured.events.filter((entry) => entry.startTime >= windowStart && entry.startTime <= measured.endTime)
+    if (!events.length) return { na: 'entry tương tác nằm ngoài cửa sổ đo', windowStart, windowEnd: measured.endTime, observerSupport }
+    const inputStart = Math.min(...events.map(({ startTime }) => startTime))
+    const frameMetrics = summarizeFrameMetrics(measured.frameTimes, measured.loafs, measured.loafSupported, { startTime: inputStart, endTime: measured.endTime })
     const worst = events.reduce((current, entry) => entry.duration > current.duration ? entry : current)
     return {
       duration: round(worst.duration),
@@ -355,21 +433,37 @@ async function runInteraction(browser, target, interaction) {
       processing: round(worst.processingEnd - worst.processingStart),
       presentation: round(worst.startTime + worst.duration - worst.processingEnd),
       target: worst.target,
+      frameMetrics,
+      inputStart,
+      windowEnd: measured.endTime,
+      observerSupport,
     }
   } catch (error) {
-    return { na: `lỗi thực thi: ${error instanceof Error ? error.message : String(error)}` }
+    const diagnostic = await page.evaluate(() => ({ url: location.href, hasToken: Boolean(sessionStorage.getItem('token')), hasUser: Boolean(sessionStorage.getItem('user')), body: document.body.innerText.slice(0, 160) })).catch(() => null)
+    return { na: `lỗi thực thi: ${error instanceof Error ? error.message : String(error)}`, diagnostic, observerSupport: { event: null, eventError: String(error), loaf: null, loafError: null } }
   } finally {
     await context.close()
   }
 }
 
 async function measureInteraction(browser, target, interaction) {
-  const samples = []; const reasons = []
+  const attempts = []; const samples = []; const reasons = []
   for (let index = 0; index < T.REPEATS; index += 1) {
     const result = await runInteraction(browser, target, interaction)
+    attempts.push({ repeat: index + 1, ...result })
     if (result.na) reasons.push(result.na); else samples.push(result)
   }
-  if (!samples.length) return { route: target.route, tab: target.tab, interaction: interaction.id, value: null, verdict: 'N/A', naReason: reasons[0] || 'không thu được mẫu' }
+  const base = {
+    route: target.route,
+    tab: target.tab,
+    interaction: interaction.id,
+    viewport: CONFIG.primaryViewport,
+    configuredRepeats: T.REPEATS,
+    attemptedRepeats: attempts.length,
+    succeededRepeats: samples.length,
+    attempts,
+  }
+  if (!samples.length) return { ...base, value: null, verdict: 'N/A', sampleStatus: 'NEEDS_EVIDENCE', naReason: reasons[0] || 'không thu được mẫu' }
   const value = median(samples.map((sample) => sample.duration))
   const components = {
     inputDelay: median(samples.map((sample) => sample.inputDelay)),
@@ -378,12 +472,26 @@ async function measureInteraction(browser, target, interaction) {
   }
   const presentationShare = value ? components.presentation / value : 0
   const processingShare = value ? components.processing / value : 0
+  const supportedLoafSamples = samples.filter(({ frameMetrics }) => frameMetrics.loaf.supported)
+  const frameSummary = {
+    medianFrameMs: median(samples.map(({ frameMetrics }) => frameMetrics.medianFrameMs)),
+    p95FrameMs: median(samples.map(({ frameMetrics }) => frameMetrics.p95FrameMs)),
+    longestFrameMs: Math.max(...samples.map(({ frameMetrics }) => frameMetrics.longestFrameMs ?? 0)),
+    framesOver8_33Ms: samples.reduce((sum, { frameMetrics }) => sum + frameMetrics.framesOver8_33Ms, 0),
+    framesOver16_67Ms: samples.reduce((sum, { frameMetrics }) => sum + frameMetrics.framesOver16_67Ms, 0),
+    framesOver33_3Ms: samples.reduce((sum, { frameMetrics }) => sum + frameMetrics.framesOver33_3Ms, 0),
+    loaf: supportedLoafSamples.length === samples.length
+      ? { supported: true, count: samples.reduce((sum, { frameMetrics }) => sum + frameMetrics.loaf.count, 0), longestDurationMs: Math.max(...samples.map(({ frameMetrics }) => frameMetrics.loaf.longestDurationMs ?? 0)) }
+      : { supported: false, count: null, longestDurationMs: null },
+  }
   const dominatedBy = presentationShare >= T.PRESENTATION_DOMINANT_SHARE ? 'trình bày' : processingShare >= T.PRESENTATION_DOMINANT_SHARE ? 'xử lý' : 'không rõ'
+  const complete = samples.length === T.REPEATS
   return {
-    route: target.route, tab: target.tab, interaction: interaction.id, samples: samples.length, value, min: Math.min(...samples.map((sample) => sample.duration)), max: Math.max(...samples.map((sample) => sample.duration)),
-    components, presentationShare: round(presentationShare, 4), dominatedBy,
+    ...base,
+    samples: samples.length, value, min: Math.min(...samples.map((sample) => sample.duration)), max: Math.max(...samples.map((sample) => sample.duration)),
+    components, frameSummary, presentationShare: round(presentationShare, 4), dominatedBy,
     isProcessingDebt: dominatedBy === 'xử lý' && value > T.INP_MAX_LAB_4X,
-    verdict: verdict(value, T.INP_MAX_LAB_4X), target: samples[0].target, partialReason: reasons[0],
+    verdict: complete ? verdict(value, T.INP_MAX_LAB_4X) : 'NEEDS_EVIDENCE', sampleStatus: complete ? 'COMPLETE' : 'PARTIAL', target: samples[0].target, partialReason: reasons[0],
   }
 }
 
@@ -435,16 +543,28 @@ async function scanOverflow(browser, target, viewport, stripSelector) {
 
 function assertIntegrity(report) {
   const violations = []
+  if (!report.sourceIdentity?.headCommit || !report.servedIdentity?.entrySha256) violations.push('report thiếu local/served source identity')
+  if (report.runtimeMode !== report.servedIdentity?.observedMode) violations.push('runtime mode không khớp served mode')
+  if (!report.primaryViewport?.w || !report.primaryViewport?.h) violations.push('report thiếu primary viewport')
+  if (!Number.isInteger(report.configuredRepeats) || report.configuredRepeats < 3) violations.push('report có repeat contract không hợp lệ')
   for (const row of report.load) {
     if (row.rowsDataSettled === 0 && row.verdicts?.cgr !== 'N/A') violations.push(`${row.id}: 0 hàng vẫn có phán quyết`)
     if (row.t0?.anchorFound === false && row.deltaTop != null) violations.push(`${row.id}: mốc neo vắng vẫn có hiệu số`)
     if (row.growthRatio != null && !row.growthDenominator) violations.push(`${row.id}: tỷ lệ tràn thiếu mẫu số`)
     if (row.growthRatio != null && !row.growthFrameSelector) violations.push(`${row.id}: tỷ lệ tràn thiếu selector khung cuộn`)
     if (row.cgr != null && !row.cgrDenominator) violations.push(`${row.id}: CGR thiếu mẫu số`)
+    if (!row.frameMetrics) violations.push(`${row.id}: thiếu frame metrics`)
+    if (row.frameMetrics?.loaf.supported === false && row.frameMetrics.loaf.count !== null) violations.push(`${row.id}: LoAF unsupported phải giữ count null`)
   }
   for (const cell of report.inp) {
+    if (cell.attemptedRepeats !== report.configuredRepeats || cell.attempts?.length !== report.configuredRepeats) violations.push(`${cell.route}/${cell.interaction}: thiếu repeat attempts`)
+    if (!cell.viewport?.w || !cell.viewport?.h) violations.push(`${cell.route}/${cell.interaction}: thiếu viewport`)
+    if (cell.succeededRepeats < report.configuredRepeats && cell.verdict !== 'N/A' && cell.verdict !== 'NEEDS_EVIDENCE') violations.push(`${cell.route}/${cell.interaction}: partial sample có verdict bình thường`)
+    if (cell.attempts?.some((attempt) => !attempt.observerSupport || !('event' in attempt.observerSupport) || !('loaf' in attempt.observerSupport))) violations.push(`${cell.route}/${cell.interaction}: attempt thiếu observer support`)
+    if (cell.attempts?.some((attempt) => attempt.observerSupport.event === false && !attempt.observerSupport.eventError)) violations.push(`${cell.route}/${cell.interaction}: Event Timing unsupported thiếu reason`)
     if (cell.value == null && !cell.naReason) violations.push(`${cell.route}/${cell.interaction}: N/A thiếu lý do`)
     if (cell.value != null && !cell.components) violations.push(`${cell.route}/${cell.interaction}: INP thiếu ba thành phần`)
+    if (cell.value != null && !cell.frameSummary) violations.push(`${cell.route}/${cell.interaction}: interaction thiếu frame summary`)
   }
   for (const row of report.overflow) if (row.verdict === 'N/A' && row.scopeFound !== false && !row.error) violations.push(`${row.id}@${row.viewport}: N/A thiếu lý do`)
   return violations
@@ -465,19 +585,68 @@ function parseArgs(argv) {
   return flags
 }
 
+const sha256 = (value) => createHash('sha256').update(value).digest('hex')
+
+async function captureSourceIdentity() {
+  const repositoryRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim()
+  const headCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot, encoding: 'utf8' }).trim()
+  const status = execFileSync('git', ['status', '--porcelain=v1', '--', 'frontend', 'package.json', 'package-lock.json', 'tools/live-visual-audit-contract.mjs'], { cwd: repositoryRoot, encoding: 'utf8' })
+  const trackedDiff = execFileSync('git', ['diff', '--binary', 'HEAD', '--', 'frontend', 'package.json', 'package-lock.json', 'tools/live-visual-audit-contract.mjs'], { cwd: repositoryRoot, encoding: 'buffer', maxBuffer: 50 * 1024 * 1024 })
+  const untrackedPaths = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z', '--', 'frontend', 'package.json', 'package-lock.json', 'tools/live-visual-audit-contract.mjs'], { cwd: repositoryRoot, encoding: 'utf8' }).split('\0').filter(Boolean).sort()
+  return buildSourceIdentity({
+    status,
+    headCommit,
+    trackedDiff,
+    untrackedFiles: await Promise.all(untrackedPaths.map(async (filePath) => ({ path: filePath, content: await readFile(join(repositoryRoot, filePath)) }))),
+    publishedCommit: process.env.PROBE_PUBLISHED_COMMIT?.trim() || undefined,
+  })
+}
+
+async function captureServedIdentity() {
+  const indexResponse = await fetch(CONFIG.baseUrl)
+  if (!indexResponse.ok) throw new Error(`Không đọc được served index: HTTP ${indexResponse.status}`)
+  const index = await indexResponse.text()
+  const viteClientResponse = await fetch(new URL('/@vite/client', CONFIG.baseUrl))
+  const viteClient = viteClientResponse.ok ? await viteClientResponse.text() : ''
+  const observedMode = detectServedMode(viteClientResponse.headers.get('content-type'), viteClient)
+  if (observedMode !== CONFIG.runtimeMode) throw new Error(`Runtime mode mismatch: declared ${CONFIG.runtimeMode}, observed ${observedMode}`)
+  const entryPath = observedMode === 'dev'
+    ? '/src/main.tsx'
+    : index.match(/<script[^>]+src="([^"]+)"/)?.[1]
+  if (!entryPath) throw new Error('Không xác định được served entry module.')
+  const entryResponse = await fetch(new URL(entryPath, CONFIG.baseUrl))
+  if (!entryResponse.ok) throw new Error(`Không đọc được served entry ${entryPath}: HTTP ${entryResponse.status}`)
+  const entry = Buffer.from(await entryResponse.arrayBuffer())
+  return {
+    declaredMode: CONFIG.runtimeMode,
+    observedMode,
+    indexSha256: sha256(index),
+    entryPath,
+    entrySha256: sha256(entry),
+  }
+}
+
 async function main() {
   const flags = parseArgs(process.argv.slice(2))
   const targets = flags.only ? TARGETS.filter((target) => flags.only.includes(target.id) || flags.only.includes(target.route)) : TARGETS
   if (!targets.length) { console.error(`Không có đích khớp --only. Đích hợp lệ: ${TARGETS.map((target) => target.id).join(', ')}`); process.exit(2) }
-  if (flags.check) { console.log(JSON.stringify({ routes: ROUTES.length, targets: TARGETS.length, interactions: INTERACTIONS.length, thresholds: T }, null, 2)); return }
+  if (flags.check) { console.log(JSON.stringify({ routes: ROUTES.length, targets: TARGETS.length, interactions: INTERACTIONS.length, thresholds: T, runtimeModes: ['dev', 'preview'] }, null, 2)); return }
+  if (!['dev', 'preview'].includes(CONFIG.runtimeMode)) throw new Error('PROBE_RUNTIME_MODE phải là dev hoặc preview để tránh trộn môi trường.')
   const report = {
     startedAt: new Date().toISOString(), baseUrl: CONFIG.baseUrl, profile: CONFIG.profileQuery,
+    sourceIdentity: await captureSourceIdentity(),
+    servedIdentity: await captureServedIdentity(),
+    runtimeMode: CONFIG.runtimeMode,
+    primaryViewport: CONFIG.primaryViewport,
+    configuredRepeats: T.REPEATS,
+    probeFlags: { load: flags.load, inp: flags.inp, overflow: flags.overflow, only: flags.only, strip: flags.strip, interactions: ACTIVE_INTERACTIONS.map(({ id }) => id) },
     navigation: 'context nguội theo route; tab được kích hoạt và xác minh aria-selected trước t_0',
     throttle: CONFIG.throttle, thresholds: T, load: [], inp: [], overflow: [],
   }
   // Reuse the headed Chrome installation already required by the repo's Playwright config.
   // This avoids a hidden dependency on a separately downloaded Playwright Chromium shell.
   const browser = await chromium.launch({ channel: 'chrome', headless: true, args: ['--no-sandbox'] })
+  report.browserVersion = browser.version()
   try {
     await bootstrapAuth(browser)
     if (flags.load) for (const target of targets) report.load.push(await measureLoad(browser, target))
@@ -485,6 +654,7 @@ async function main() {
     if (flags.overflow) for (const target of targets) for (const viewport of CONFIG.viewports) report.overflow.push(await scanOverflow(browser, target, viewport, flags.strip))
   } finally { await browser.close() }
   report.integrityViolations = assertIntegrity(report)
+  report.finishedAt = new Date().toISOString()
   report.counts = {
     loadRows: report.load.length, loadGradable: report.load.filter((row) => row.gradable).length,
     inpCells: report.inp.length, inpValueBearing: report.inp.filter((cell) => cell.value != null).length,

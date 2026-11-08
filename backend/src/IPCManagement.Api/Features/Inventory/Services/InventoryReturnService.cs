@@ -257,6 +257,9 @@ public class InventoryReturnService : IInventoryReturnService
                 var affectedReconciliationLineIds = sourceIssue.Inventoryissuelines
                     .Where(line => line.ReconciliationBatchLineId is not null && returnedSourceIssueLineIds.Any(sourceLineId => sourceLineId.AsSpan().SequenceEqual(line.IssueLineId)))
                     .Select(line => line.ReconciliationBatchLineId!).ToList();
+                var affectedReconciliationDailyLineIds = sourceIssue.Inventoryissuelines
+                    .Where(line => line.ReconciliationBatchDailyLineId is not null && returnedSourceIssueLineIds.Any(sourceLineId => sourceLineId.AsSpan().SequenceEqual(line.IssueLineId)))
+                    .Select(line => line.ReconciliationBatchDailyLineId!).ToList();
                 var staleDispositions = affectedReconciliationLineIds.Count == 0
                     ? []
                     : (await _context.Reconciliationdispositions.ToListAsync(cancellationToken))
@@ -271,6 +274,21 @@ public class InventoryReturnService : IInventoryReturnService
                         Reason = "Confirmed inventory return changed the linked issued quantity."
                     });
                     _context.Reconciliationdispositions.Remove(disposition);
+                }
+                var staleDailyDispositions = affectedReconciliationDailyLineIds.Count == 0
+                    ? []
+                    : (await _context.Reconciliationdailydispositions.ToListAsync(cancellationToken))
+                        .Where(disposition => affectedReconciliationDailyLineIds.Any(lineId => lineId.AsSpan().SequenceEqual(disposition.DailyLineId))).ToList();
+                foreach (var disposition in staleDailyDispositions)
+                {
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = GuidHelper.NewId(), ChangedAt = confirmedAt, ChangedBy = userIdBytes,
+                        BusinessArea = "RECONCILIATION", EntityName = nameof(ReconciliationDailyDisposition), EntityId = disposition.DispositionId,
+                        FieldName = "Validity", OldValue = $"{disposition.Category}|{disposition.Reason}|v{disposition.Version}", NewValue = "INVALIDATED",
+                        Reason = "Confirmed inventory return changed the daily linked issued quantity."
+                    });
+                    _context.Reconciliationdailydispositions.Remove(disposition);
                 }
                 foreach (var (line, adjustedQuantity) in proposedAdjustments.Where(item => item.Line.Quantity != item.Quantity))
                 {

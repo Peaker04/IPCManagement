@@ -20,6 +20,7 @@ const staleRequest: CreateReconciliationIssueRequest = {
   lines: [
     {
       reconciliationBatchLineId: '22222222-2222-4222-8222-222222222202',
+      reconciliationBatchDailyLineId: '55555555-5555-4555-8555-555555555505',
       ingredientId: '33333333-3333-4333-8333-333333333303',
       requestedQty: 2,
       issuedQty: 2,

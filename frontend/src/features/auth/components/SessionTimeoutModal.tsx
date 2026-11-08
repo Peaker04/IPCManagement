@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ROUTES } from '@/lib/routeConfig';
-import { subscribeSessionExpired } from '../sessionEvents';
+import { subscribeSessionExpired } from '@/lib/auth/sessionEvents';
 
 const AUTO_REDIRECT_MS = 1800;
 
@@ -60,7 +60,7 @@ export const SessionTimeoutModal = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <DialogFooter className="mt-4 gap-2 sm:justify-end">
+        <DialogFooter className="gap-2 sm:justify-end">
           <Button type="button" variant="outline" onClick={goToLogin}>
             Đăng nhập lại
           </Button>

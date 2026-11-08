@@ -3,6 +3,7 @@ using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Helpers;
 
 namespace IPCManagement.Api.Data.Repositories;
 
@@ -26,6 +27,12 @@ public class InventoryReceiptRepository : GenericRepository<InventoryReceipt>, I
 
         if (request.PurchaseOrderOnly)
             query = query.Where(receipt => receipt.PurchaseOrderId != null);
+        if (!string.IsNullOrWhiteSpace(request.PurchaseOrderId))
+        {
+            var purchaseOrderId = GuidHelper.ParseGuidString(request.PurchaseOrderId)
+                ?? throw new ArgumentException("PurchaseOrderId không hợp lệ.", nameof(request));
+            query = query.Where(receipt => receipt.PurchaseOrderId == purchaseOrderId);
+        }
 
         query = query.OrderByDescending(receipt => receipt.CreatedAt);
 

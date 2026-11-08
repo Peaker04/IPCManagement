@@ -475,6 +475,67 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task KitchenIssueAllocationScope_Should_ReturnAllRowsBeyondLegacyLimit()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+            var request = await context.Materialrequests.SingleAsync();
+            request.Status = "SENTTOWAREHOUSE";
+            context.Currentstocks.Add(new CurrentStock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 1000m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = DateTime.UtcNow,
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            await CreateInventoryIssueService(context).CreateAsync(new CreateInventoryIssueRequest
+            {
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                MaterialRequestId = materialRequestId,
+            }, fixture.UserIdString);
+            var source = await context.Inventoryissuelines.AsNoTracking().SingleAsync();
+            context.Inventoryissuelines.AddRange(Enumerable.Range(0, 500).Select(_ => new InventoryIssueLine
+            {
+                IssueLineId = GuidHelper.NewId(),
+                IssueId = source.IssueId,
+                IngredientId = source.IngredientId,
+                UnitId = source.UnitId,
+                MaterialRequestLineId = source.MaterialRequestLineId,
+                RequestedQty = source.RequestedQty,
+                IssuedQty = source.IssuedQty,
+            }));
+            await context.SaveChangesAsync();
+        }
+
+        await using var verificationContext = fixture.CreateContext();
+        var rows = await new InventoryOperationsReportService(verificationContext).GetKitchenIssuesAsync(new WorkflowReportQueryDto
+        {
+            MaterialRequestId = materialRequestId,
+            Limit = 1,
+        });
+
+        rows.Should().HaveCount(501);
+        rows.Should().OnlyContain(row => row.MaterialRequestId == materialRequestId);
+    }
+
+    [Fact]
     public async Task StockMovements_Should_ProjectKitchenReceiptState_ForStandardAndSupplementalIssues()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

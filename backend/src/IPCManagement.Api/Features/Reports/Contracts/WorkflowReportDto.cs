@@ -154,6 +154,7 @@ public class PurchaseDemandReportDto
 
 public class ReceiptPriceVarianceReportDto
 {
+    public string ReceiptLineId { get; set; } = string.Empty;
     public string ReceiptId { get; set; } = string.Empty;
     public string ReceiptCode { get; set; } = string.Empty;
     public DateOnly ReceiptDate { get; set; }

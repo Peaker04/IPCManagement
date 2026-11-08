@@ -74,4 +74,5 @@ internal sealed class ParsedWeeklyMenuItem
     public bool IsMergedContinuation { get; set; }
     public string? DishId { get; set; }
     public bool ExistingDish { get; set; }
+    public bool DishMatchAmbiguous { get; set; }
 }

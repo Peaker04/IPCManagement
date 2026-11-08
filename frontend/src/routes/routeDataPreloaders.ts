@@ -9,7 +9,6 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
     const { workflowApi } = await import('@/api/workflowApi');
     store.dispatch(workflowApi.util.prefetch('getWorkflowDocuments', { limit: 100 }, dataPrefetchOptions));
     store.dispatch(workflowApi.util.prefetch('getIngredientDemand', { limit: 100 }, dataPrefetchOptions));
-    store.dispatch(workflowApi.util.prefetch('getPriceVariance', { limit: 100 }, dataPrefetchOptions));
     store.dispatch(workflowApi.util.prefetch('getStockMovements', { limit: 100 }, dataPrefetchOptions));
     store.dispatch(workflowApi.util.prefetch('getOperationalKpis', undefined, dataPrefetchOptions));
   },
@@ -22,14 +21,6 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
     store.dispatch(coordinationApi.util.prefetch('getCoordinationCustomers', undefined, dataPrefetchOptions));
     store.dispatch(coordinationApi.util.prefetch('getCustomerContracts', undefined, dataPrefetchOptions));
     store.dispatch(coordinationApi.util.prefetch('getWeeklyMenuImportHistory', undefined, dataPrefetchOptions));
-  },
-  [ROUTES.REPORTS]: async () => {
-    const { workflowApi } = await import('@/api/workflowApi');
-    store.dispatch(workflowApi.util.prefetch('getPriceVariancePage', {
-      limit: 20,
-      pageNumber: 1,
-      pageSize: 6,
-    }, dataPrefetchOptions));
   },
   [ROUTES.MEAL_ORDERS]: async () => {
     const { coordinationApi } = await import('@/api/coordinationApi');

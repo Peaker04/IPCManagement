@@ -12,7 +12,7 @@ export const WeeklyMenuPricingContext = ({
     <div className="ipc-weekly-pricing-primary">
       <span>Định mức đang áp dụng</span>
       <strong>{formatBomTierLabel(menuPrice)}</strong>
-      {menuPrice > 0 ? <StatusBadge variant="success">Đang dùng</StatusBadge> : <StatusBadge variant="warning">Chưa cấu hình</StatusBadge>}
+      {menuPrice <= 0 && <StatusBadge variant="warning">Chưa cấu hình</StatusBadge>}
     </div>
     <dl className="ipc-weekly-pricing-meta">
       <div><dt>Nguồn</dt><dd>{menuPriceSource}</dd></div>

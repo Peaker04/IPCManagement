@@ -90,9 +90,7 @@ export function SupplierEvidenceList({
           >
             <span className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-semibold">{candidate.supplierName}</span>
-              <StatusBadge variant={selected ? 'warning' : 'neutral'}>
-                {selected ? 'Đang chọn' : 'Bằng chứng'}
-              </StatusBadge>
+              {selected ? <StatusBadge tone="warning">Đang chọn</StatusBadge> : null}
             </span>
             <span className="mt-1 block text-caption leading-[1.4] text-slate-600">
               {evidenceLabel(candidate)}. {formatCurrency(candidate.unitPrice)}/{formatUnit(candidate.unitName)}
@@ -116,9 +114,7 @@ export function PriceExceptionStatus({ serviceDate }: { serviceDate: PurchaseWor
             : 'Không còn ngoại lệ giá chặn ngày phục vụ này.'}
         </p>
       </div>
-      <StatusBadge variant={blocked ? 'warning' : 'success'}>
-        {blocked ? 'Cần xử lý' : 'Đủ căn cứ'}
-      </StatusBadge>
+      {blocked ? <StatusBadge tone="warning">Cần xử lý</StatusBadge> : null}
     </div>
   );
 }
@@ -132,7 +128,7 @@ export function OrderHandoffStatus({ serviceDate, week }: { serviceDate: Purchas
     <div className="rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-body font-semibold text-slate-900">Tiến độ nhập kho chỉ đọc</p>
-        <StatusBadge variant={complete ? 'success' : partial ? 'warning' : 'neutral'}>
+        <StatusBadge tone={complete ? 'success' : partial ? 'warning' : 'neutral'}>
           {complete ? 'Đã nhận đủ' : partial ? 'Nhận một phần' : 'Chưa nhận'}
         </StatusBadge>
       </div>
@@ -162,6 +158,7 @@ export function PurchaseDecisionPanel({
   const [selectedDemandId, setSelectedDemandId] = useState('');
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const [errorMessage, setErrorMessage] = useState('');
+  const [validationError, setValidationError] = useState<{ field: 'price' | 'date' | 'terms'; message: string }>();
   const [successMessage, setSuccessMessage] = useState('');
   const safeActionRef = useRef<HTMLButtonElement>(null);
 
@@ -212,6 +209,22 @@ export function PurchaseDecisionPanel({
 
   const closeConfirmation = () => {
     if (!isPending) setConfirmation(undefined);
+  };
+
+  const requestSupplierConfirmation = () => {
+    const invalid = Number(proposedUnitPrice) <= 0
+      ? { field: 'price' as const, message: 'Nhập giá đề xuất lớn hơn 0.' }
+      : !proposedDeliveryDate
+        ? { field: 'date' as const, message: 'Chọn ngày giao.' }
+        : !purchasingTerms.trim()
+          ? { field: 'terms' as const, message: 'Nhập điều khoản mua.' }
+          : undefined;
+    setValidationError(invalid);
+    if (invalid) {
+      requestAnimationFrame(() => document.getElementById(`purchase-decision-${invalid.field}`)?.focus());
+      return;
+    }
+    setConfirmation({ type: 'supplier' });
   };
 
   const executeConfirmation = async () => {
@@ -288,6 +301,7 @@ export function PurchaseDecisionPanel({
     return (
       <SectionPanel
         title="Quyết định thu mua"
+        headingLevel={3}
         icon={<ReceiptText size={18} aria-hidden="true" />}
         description="Chọn một ngày phục vụ từ danh sách để xem hành động tiếp theo, xác nhận nhà cung cấp và xử lý đơn mua."
       >
@@ -310,6 +324,7 @@ export function PurchaseDecisionPanel({
   return (
     <SectionPanel
       title="Quyết định thu mua"
+      headingLevel={3}
       icon={<ShieldCheck size={18} aria-hidden="true" />}
       description={`${formatDateOnly(serviceDate.serviceDate)} · ${scopeLabel}. Theo tiến độ mới nhất.`}
       className="mt-4 min-w-0"
@@ -319,13 +334,14 @@ export function PurchaseDecisionPanel({
         {successMessage ? <InlineAlert title="Đã cập nhật" variant="info"><span role="status">{successMessage}</span></InlineAlert> : null}
 
         {selectedStage === 'demand' ? (
-          <div className="space-y-3">
-            <label className="block text-body font-semibold text-slate-900" htmlFor="approved-demand-selection">Nhu cầu nguyên liệu đã duyệt</label>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold leading-4 text-slate-700 mb-1" htmlFor="approved-demand-selection">Nhu cầu nguyên liệu đã duyệt</label>
             <select
               id="approved-demand-selection"
               value={selectedDemandId}
               onChange={(event) => setSelectedDemandId(event.target.value)}
-              className="min-h-11 w-full rounded-sm border border-slate-300 bg-white px-3 text-body text-slate-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 sm:min-h-9"
+              className="h-9 w-full rounded-sm border border-input bg-white px-3 text-sm text-slate-900 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 outline-none transition-colors"
             >
               <option value="">Chọn nhu cầu để tạo đề xuất</option>
               {serviceDate.approvedDemands.map((demand) => (
@@ -334,22 +350,25 @@ export function PurchaseDecisionPanel({
                 </option>
               ))}
             </select>
-            <p id="purchase-demand-action-guidance" className="text-caption text-slate-600">
+            <p id="purchase-demand-action-guidance" className="text-caption text-slate-600 mt-1">
               {selectedDemand
-                ? `${selectedDemand.requestCode}. ${formatDateOnly(selectedDemand.serviceDate)}. Cả ngày.`
+                ? `${selectedDemand.requestCode}. Ngày phục vụ: ${formatDateOnly(selectedDemand.serviceDate)}. ${selectedDemand.shortageLineCount} dòng thiếu. Cả ngày.`
                 : serviceDate.approvedDemands.length === 0
                   ? 'Không còn nhu cầu đã duyệt đủ điều kiện tạo đề xuất mua cho ngày này.'
                   : 'Chọn một nhu cầu đã duyệt để tiếp tục.'}
             </p>
-            <Button
-              className="min-h-11 sm:min-h-9"
-              disabled={!selectedDemand}
-              aria-describedby="purchase-demand-action-guidance"
-              title={!selectedDemand ? (serviceDate.approvedDemands.length === 0 ? 'Không còn nhu cầu đủ điều kiện tạo đề xuất mua.' : 'Chọn nhu cầu đã duyệt trước khi tạo đề xuất.') : undefined}
-              onClick={() => selectedDemand && setConfirmation({ type: 'create-request', materialRequestId: selectedDemand.materialRequestId })}
-            >
-              Tạo đề xuất mua
-            </Button>
+            </div>
+            <div className="pt-1">
+              <Button
+                className="min-h-11 sm:min-h-9"
+                disabled={!selectedDemand}
+                aria-describedby="purchase-demand-action-guidance"
+                title={!selectedDemand ? (serviceDate.approvedDemands.length === 0 ? 'Không còn nhu cầu đủ điều kiện tạo đề xuất mua.' : 'Chọn nhu cầu đã duyệt trước khi tạo đề xuất.') : undefined}
+                onClick={() => selectedDemand && setConfirmation({ type: 'create-request', materialRequestId: selectedDemand.materialRequestId })}
+              >
+                Tạo đề xuất mua
+              </Button>
+            </div>
           </div>
         ) : null}
 
@@ -389,11 +408,13 @@ export function PurchaseDecisionPanel({
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Giá đề xuất</span>
-                        <input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        <input id="purchase-decision-price" type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => { setProposedUnitPrice(event.target.value); setValidationError(undefined); }} aria-invalid={validationError?.field === 'price' || undefined} aria-describedby={validationError?.field === 'price' ? 'purchase-decision-price-error' : undefined} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        {validationError?.field === 'price' && <span id="purchase-decision-price-error" role="alert" className="text-xs font-normal text-red-700">{validationError.message}</span>}
                       </label>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Ngày giao</span>
-                        <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} className="min-h-9 w-full bg-white" />
+                        <Input id="purchase-decision-date" type="date" value={proposedDeliveryDate} onChange={(event) => { setProposedDeliveryDate(event.target.value); setValidationError(undefined); }} aria-invalid={validationError?.field === 'date' || undefined} aria-describedby={validationError?.field === 'date' ? 'purchase-decision-date-error' : undefined} className="min-h-9 w-full bg-white" />
+                        {validationError?.field === 'date' && <span id="purchase-decision-date-error" role="alert" className="text-xs font-normal text-red-700">{validationError.message}</span>}
                       </label>
                       <div className="space-y-2 text-body text-slate-900">
                         <span className="font-semibold">Kho vận hành</span>
@@ -403,7 +424,8 @@ export function PurchaseDecisionPanel({
                       </div>
                       <label className="space-y-2 text-body font-semibold text-slate-900">
                         <span>Điều khoản mua</span>
-                        <input value={purchasingTerms} onChange={(event) => setPurchasingTerms(event.target.value)} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        <input id="purchase-decision-terms" value={purchasingTerms} onChange={(event) => { setPurchasingTerms(event.target.value); setValidationError(undefined); }} aria-invalid={validationError?.field === 'terms' || undefined} aria-describedby={validationError?.field === 'terms' ? 'purchase-decision-terms-error' : undefined} className="min-h-9 w-full rounded-sm border border-slate-300 bg-white px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600" />
+                        {validationError?.field === 'terms' && <span id="purchase-decision-terms-error" role="alert" className="text-xs font-normal text-red-700">{validationError.message}</span>}
                       </label>
                     </div>
                     {warehouseQuery.isError || warehouseContext.state === 'blocked' ? (
@@ -420,8 +442,8 @@ export function PurchaseDecisionPanel({
                 <Button
                   data-inp-action="confirm-supplier"
                   className="min-h-11 sm:min-h-9"
-                  disabled={!selectedEvidence || Number(proposedUnitPrice) <= 0 || !proposedDeliveryDate || warehouseContext.state !== 'ready' || !purchasingTerms.trim() || warehouseQuery.isError || Boolean(evidence?.blocker)}
-                  onClick={() => setConfirmation({ type: 'supplier' })}
+                  disabled={!selectedEvidence || warehouseContext.state !== 'ready' || warehouseQuery.isError || Boolean(evidence?.blocker)}
+                  onClick={requestSupplierConfirmation}
                 >
                   Xác nhận nhà cung cấp
                 </Button>
@@ -429,16 +451,20 @@ export function PurchaseDecisionPanel({
             ) : <div className="py-4 text-center text-sm text-slate-500">Chưa chọn dòng nguyên liệu trong bảng.</div>}
 
             {canSubmitPurchaseRequest ? (
-              <div className="rounded-[3px] border border-emerald-300 bg-emerald-50 px-3 py-3">
-                <p className="text-body font-semibold text-emerald-950">Đã đủ nhà cung cấp, giá và ngày giao cho mọi dòng.</p>
-                <Button
-                  data-inp-action="submit-purchase-request"
-                  className="mt-3 min-h-11 sm:min-h-9"
-                  onClick={() => setConfirmation({ type: 'submit-request', purchaseRequestId: serviceDate.purchaseRequestId! })}
-                >
-                  Gửi đề xuất mua
-                </Button>
-              </div>
+              <InlineAlert
+                variant="success"
+                action={(
+                  <Button
+                    data-inp-action="submit-purchase-request"
+                    className="min-h-11 sm:min-h-9"
+                    onClick={() => setConfirmation({ type: 'submit-request', purchaseRequestId: serviceDate.purchaseRequestId! })}
+                  >
+                    Gửi đề xuất mua
+                  </Button>
+                )}
+              >
+                Đã đủ nhà cung cấp, giá và ngày giao cho mọi dòng.
+              </InlineAlert>
             ) : null}
           </div>
         ) : null}

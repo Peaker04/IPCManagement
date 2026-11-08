@@ -1,3 +1,4 @@
+using IPCManagement.Api.Features.Reconciliation.Controllers;
 using IPCManagement.Api.Features.Reports.Controllers;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using Xunit;
@@ -15,6 +16,21 @@ public sealed class SystemOperationEligibilityTests
         var disposition = SystemOperationEligibility.Classify(controller, "Get");
         Assert.Equal(allowed, SystemOperationEligibility.IsAllowed(SystemOperationEligibility.MaterialReconciliation, disposition));
         Assert.True(SystemOperationEligibility.IsAllowed(SystemOperationEligibility.Default, disposition));
+    }
+
+    [Theory]
+    [InlineData(typeof(ReconciliationBatchesController), "reconciliation.batches.read")]
+    [InlineData(typeof(ReconciliationReportsController), "reconciliation.reports.read")]
+    public void Reconciliation_read_surfaces_are_explicitly_reconciliation_only(Type controller, string operationKey)
+    {
+        var metadata = Assert.Single(controller
+            .GetCustomAttributes(typeof(SystemOperationAttribute), inherit: true)
+            .Cast<SystemOperationAttribute>());
+
+        Assert.Equal(operationKey, metadata.OperationKey);
+        Assert.Equal(OperationDisposition.ReconciliationOnly, metadata.Disposition);
+        Assert.False(SystemOperationEligibility.IsAllowed(SystemOperationEligibility.Default, metadata.Disposition));
+        Assert.True(SystemOperationEligibility.IsAllowed(SystemOperationEligibility.MaterialReconciliation, metadata.Disposition));
     }
 
     [Fact]

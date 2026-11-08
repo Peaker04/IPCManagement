@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Features.Reports.Contracts;
@@ -9,6 +10,15 @@ namespace IPCManagement.Api.Features.Reports.Contracts;
 public sealed class CurrentStockPageQueryDto : WorkflowReportPageQueryDto
 {
     public string? SearchKeyword { get; set; }
+}
+
+public sealed class CurrentStockAllocationQueryDto
+{
+    [Required]
+    public string WarehouseId { get; set; } = string.Empty;
+
+    [Required]
+    public string MaterialRequestId { get; set; } = string.Empty;
 }
 
 /// <summary>

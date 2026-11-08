@@ -9,13 +9,13 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
     expect(source).toContain('đơn mua gốc');
   });
 
-  it('pages receipt headers and keeps detail selection inside the active page', () => {
-    expect(source).toContain('useGetInventoryReceiptsQuery({ pageNumber: receiptPageNumber, pageSize: RECEIPT_PAGE_SIZE, purchaseOrderOnly: true })');
-    expect(source).not.toContain('.filter((item) => Boolean(item.purchaseOrderId))');
-    expect(source).toContain('canonicalReceipts.some((item) => item.receiptId === selectedReceiptId)');
-    expect(source).toContain('totalItems={receiptPage?.totalCount ?? 0}');
-    expect(source).toContain('setSelectedReceiptId(undefined)');
-    expect(source).not.toContain('useGetInventoryReceiptsQuery({ pageNumber: 1, pageSize: 20 })');
+  it('loads only receipts belonging to the selected purchase order and keeps receipt selection URL-owned', () => {
+    expect(source).toContain('purchaseOrderId: string');
+    expect(source).toContain('selectedReceiptId?: string');
+    expect(source).toContain('purchaseOrderId, pageNumber: receiptPageNumber');
+    expect(source).toContain('onSelectReceipt(item.receiptId)');
+    expect(source).not.toContain('canonicalReceipts[0]?.receiptId');
+    expect(source).not.toContain('[selectedReceiptId, setSelectedReceiptId]');
   });
 
   it('keeps quality, manager approval, and POST ownership visibly separate', () => {
@@ -30,20 +30,32 @@ describe('WarehouseReceiptLifecyclePanel contract', () => {
   it('requires every rejected quantity to carry a reason and sends the optimistic version', () => {
     expect(source).toContain('rejectedQuantity > 0 && !line.reason');
     expect(source).toContain('expectedVersion: receipt.concurrencyVersion');
-    expect(source).toContain("commandId('receipt-quality')");
-    expect(source).toContain("commandId('receipt-post')");
-    expect(source).toContain("commandId('receipt-rework')");
+    expect(source).toContain('commandId: actionCommandIds.quality');
+    expect(source).toContain('commandId: actionCommandIds.post');
+    expect(source).toContain('commandId: actionCommandIds.rework');
+    expect(source).toContain("renewCommand('quality')");
+    expect(source).toContain("renewCommand('post')");
+    expect(source).toContain("renewCommand('rework')");
     expect(source).toContain('Lý do xử lý lại không được để trống.');
     expect(source.match(/maximumFractionDigits: 6/g)).toHaveLength(3);
   });
 
   it('offers only Admin an append-only correction after POSTED with source-line quantities and a mandatory reason', () => {
     expect(source).toContain("receipt.status === 'POSTED' && canCorrect");
-    expect(source).toContain("commandId('receipt-correction')");
+    expect(source).toContain('commandId: actionCommandIds.correction');
+    expect(source).toContain("renewCommand('correction')");
     expect(source).toContain('expectedVersion: 0');
     expect(source).toContain('Lý do điều chỉnh không được để trống.');
     expect(source).toContain('không sửa phiếu nhập hoặc bút toán gốc');
     expect(source).toContain('Ghi sổ chứng từ điều chỉnh');
+  });
+
+  it('preserves dirty form values across accidental close and resets them only after success or receipt selection', () => {
+    expect(source).not.toContain("setReworkReason(''); setReworkOpen(true)");
+    expect(source).not.toContain("setVoidReason(''); setVoidOpen(true)");
+    expect(source).not.toContain("setCorrectionDraft({}); setCorrectionOpen(true)");
+    expect(source).toMatch(/setQualityOpen\(false\);\s+setQualityDraft\(\{\}\);/)
+    expect(source).toContain("onSelectReceipt(item.receiptId); setQualityDraft({}); setReworkReason('');")
   });
 
   it('uses warehouse language instead of implementation vocabulary in visible copy', () => {

@@ -128,7 +128,7 @@ module.exports = {
 
   options: {
     doNotFollow: { path: 'node_modules' },
-    exclude: { path: '(^|/)(node_modules|dist|coverage|tests)/' },
+    exclude: { path: '(^|/)(node_modules|dist|coverage|tests)/|\\.(test|spec)\\.' },
     tsPreCompilationDeps: true,
     tsConfig: { fileName: 'tsconfig.app.json' },
     enhancedResolveOptions: {

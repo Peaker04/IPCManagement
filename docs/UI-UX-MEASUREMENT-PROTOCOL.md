@@ -74,6 +74,36 @@ Route có table scroll cục bộ hợp lệ không bị coi là overflow toàn 
 Gate này **chưa đủ** để kết luận visual composition PASS. Mọi route được sửa về layout phải bổ sung scoped
 browser assertion theo `V1`–`V10`; thiếu assertion đó là `NEEDS_EVIDENCE`, không được suy từ `issueCount: 0`.
 
+## Interaction fluidity oracle
+
+Dùng oracle này khi claim navigation/click/tab/search/form/overlay/table/sidebar/scroll hoặc continuous interaction
+“mượt”, “nhanh”, “đơ” hay “jank”. Audit hiện hành ghi finding bền vững tại
+[`perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md`](perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md); checklist thực thi
+thuộc GSD plan, không thuộc file oracle này.
+
+1. **DEV versus preview trước:** cùng browser/machine/actor/lane/viewport/data/route/state/action. Tách cold
+   module/chunk compile, warm navigation và application work. Phân loại `DEVELOPMENT_ONLY`,
+   `DEVELOPMENT_DOMINANT` hoặc `PERSISTS_IN_PRODUCTION`; không sửa production architecture từ DEV-only trace.
+2. **Đo theo phase:** khi hỗ trợ, lưu input delay, processing duration, presentation delay và total interaction.
+   Network-bound action thêm request/server/response; hover/scroll đã load không được quy cho backend nếu thiếu
+   causal evidence.
+3. **Frame distribution:** báo median/p95 frame time, số frame >8.33/16.67/33.3ms, LoAF count và longest frame.
+   8.33/16.67ms chỉ là reference 120/60Hz, không tự thành NFR. API không hỗ trợ là `NEEDS_EVIDENCE`, không ghi 0.
+4. **Control versus heavy:** luôn có ít nhất một route đối chứng và một route data/interaction-heavy. Mọi route
+   cùng xấu mới mở candidate shell/global CSS/runtime; một route xấu ưu tiên owner cục bộ.
+5. **Attribution trước optimization:** React commit cao mới dùng Profiler/state-owner analysis; React yên nhưng
+   layout/paint cao thì dùng browser pipeline trace. Source scan listener/layout read chỉ là inventory cho tới khi
+   gắn được với interaction tái hiện.
+6. **Retained/hidden UI:** phân loại `cheap`, `expensive but justified`, `owner candidate` hoặc
+   `NEEDS_PROFILER_EVIDENCE`; cấm global KeepAlive removal. Memoization, virtualization, debounce, layer promotion,
+   motion removal hoặc skeleton/min-height chỉ hợp lệ khi before evidence chỉ đúng owner và after đo cùng điều kiện.
+7. **Manifest:** content-sensitive source identity, DEV/preview mode, browser/version, viewport/throttle,
+   route/view/state/action, preload state, repeats, probe flags, errors và bounded verdict. Runner success không là
+   interaction PASS; screenshot không chứng minh frame/commit/paint cost.
+
+Mỗi optimization package phải có red-capable interaction oracle, before/after distribution, control-route check,
+focused correctness/accessibility regression và rollback nếu improvement không material hoặc làm metric khác xấu đi.
+
 ## Visual composition oracle
 
 Screenshot được dùng để phát hiện candidate defect, sau đó phải chuyển thành DOM measurement. Với route/layout
@@ -111,8 +141,7 @@ Oracle bắt buộc:
    không vượt biên control, cùng tâm theo trục dự kiến và `elementFromPoint()` tại tâm phải trả về accessory
    hoặc descendant của nó. Assertion click phải chạy sau khi control chuyển sang error/focus/pressed state vì
    ring, stacking context và active transform có thể làm hỏng hit target dù trạng thái ban đầu nhìn đúng.
-7. Với form, đo cả nhóm label → control → guidance/error: không overlap, không tách thành orphan message,
-   và lỗi của field này không được tạo khoảng trắng giả cho field khác.
+7. Với form, đo cả nhóm label → control → guidance/error: DOM và visual order phải khớp; không overlap, không tách thành orphan message, và lỗi của field này không được tạo khoảng trắng giả cho field khác. Đo effective separation bằng bounding box và token tại owner; `gap` cộng với margin con là FAIL. Với hai field cùng density và label một dòng trong cùng grid, mép control trên/dưới lệch quá 1px là FAIL; khi label/helper wrap chỉ yêu cầu containment, adjacency và hàng kế tiếp bắt đầu sau content cao nhất.
 8. Các assertion được chạy lại trên toàn viewport matrix thuộc claim. Nếu người dùng cung cấp screenshot ở
    viewport ngoài matrix, thêm đúng viewport/zoom đó vào scoped reproduction; matrix chuẩn không được dùng để
    bỏ qua lỗi đã báo cáo.
@@ -129,6 +158,7 @@ Oracle bắt buộc:
 12. Data-presentation oracle fail khi visible text chứa raw enum/code thuộc vocabulary đã biết, số vượt precision
     formatter, identifier kỹ thuật wrap phá cột, action bị clipping, hoặc cùng một fact xuất hiện ở nhiều primary
     surfaces. Giá trị raw cần audit được giữ trong tooltip/detail, không hiển thị thay cho business label.
+13. Với modal theo `M2.12–M2.13`, oracle phải đo bounding box giữa các direct region và từ content cuối của region tới action đầu tiên; `rowGap` hoặc class name riêng lẻ không đủ vì margin/padding bù có thể cộng đôi nhưng outer-box vẫn xanh. Fixture ngắn phải chứng minh không overflow; fixture dài phải có `scrollHeight > clientHeight`, focus cuối vẫn nằm trong viewport dialog và không bị sticky header/footer che. Positioning/portal layer phải `overflow: hidden`; modal body là primary vertical owner duy nhất. Modal tự quản **inter-region spacing** phải chứng minh `gap-0`; modal chỉ tự quản body scroll vẫn có thể giữ shared gap. Cả hai loại phải chứng minh body `min-h-0`, `overscroll-behavior: contain`, stable scrollbar gutter, document không overflow và background scroll position không đổi. Trace/listener inventory phải chứng minh shared lock không đăng ký global non-passive `wheel`/`touchmove`; nested vertical region phải có independent-collection rationale và accessible name. Fixture generic không chứng nhận một editor production cụ thể nếu editor đó chưa được mount/đo trong cùng evidence run.
 
 Ngưỡng khoảng cách/diện tích cụ thể phải xuất phát từ token và baseline của primitive. Không hardcode một tỷ lệ
 chung rồi áp cho chart, editor hoặc matrix workspace vốn có geometry hợp lệ.

@@ -18,17 +18,28 @@ const reconciliationRouteSet = new Set<string>([
   ROUTES.ADVANCED_SETTINGS,
 ])
 
-export const isRouteEligible = (mode: SystemOperationMode, path: string) => mode === 'DEFAULT' || reconciliationRouteSet.has(path)
+export const isRouteEligible = (mode: SystemOperationMode, path: string) => mode === 'DEFAULT'
+  ? path !== ROUTES.RECONCILIATION
+  : reconciliationRouteSet.has(path)
+
+export const isRouteVisibleToPermissions = (
+  mode: SystemOperationMode,
+  path: string,
+  requiredPermissions: readonly string[] | undefined,
+  permissions: readonly string[] = [],
+  isAdmin = false,
+) => isRouteEligible(mode, path)
+  && (!requiredPermissions || isAdmin || requiredPermissions.some((permission) => permissions.includes(permission)))
 export const isOperationEligible = (mode: SystemOperationMode, operationKey: string) => {
   if (mode === 'DEFAULT') return true
   return !['coordination.', 'approvals.', 'chef.', 'approval-rules.', 'purchasing.', 'reports.'].some(prefix => operationKey.startsWith(prefix))
 }
 export const retainedRoutes = (mode: SystemOperationMode) => mode === 'DEFAULT'
-  ? Object.values(ROUTES)
+  ? Object.values(ROUTES).filter((path) => path !== ROUTES.RECONCILIATION)
   : [...reconciliationWorkflowRoutes]
 
 export const eligibleCapabilityIds = (mode: SystemOperationMode, backendIds: readonly string[]) => mode === 'DEFAULT'
-  ? backendIds
+  ? backendIds.filter((id) => id !== 'reconciliation')
   : backendIds.filter((id) => ['dashboard', 'weekly-menu', 'warehouse', 'reconciliation', 'admin-data'].includes(id))
 
 export const getCapabilityConfigurationError = (snapshot: {
@@ -67,9 +78,5 @@ export const eligiblePageTabs = (
     warehouse: ['demand', 'movement'],
     'admin-data': ['bom-import', 'audit'],
   }[groupId]?.includes(tab) ?? false))
-  // Closed-loop tabs are mandatory workflow steps. DEFAULT display preferences must
-  // not make the reconciliation path unreachable after an operation-mode switch.
-  return mode === 'MATERIAL_RECONCILIATION'
-    ? allowed
-    : allowed.filter((tab) => locallyVisibleTabs.includes(tab))
+  return allowed.filter((tab) => locallyVisibleTabs.includes(tab))
 }

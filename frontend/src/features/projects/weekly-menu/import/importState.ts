@@ -8,7 +8,7 @@ export type ImportFeedback = {
   variant: 'info' | 'warning' | 'danger'
 }
 
-export type ImportSetupField = 'customer' | 'weekStartDate' | 'file'
+export type ImportSetupField = 'customer' | 'weekStartDate' | 'file' | 'quickCustomerCode' | 'quickCustomerName'
 export type ImportSetupErrors = Partial<Record<ImportSetupField, Pick<ImportFeedback, 'title' | 'message'>>>
 
 export type ImportRollbackTarget = {
@@ -91,7 +91,13 @@ export const weeklyMenuImportReducer = (
         ? 'customer'
         : action.field === 'weekStartDate'
           ? 'weekStartDate'
-          : action.field === 'selectedFile' ? 'file' : null
+          : action.field === 'selectedFile'
+            ? 'file'
+            : action.field === 'quickCustomerCode'
+              ? 'quickCustomerCode'
+              : action.field === 'quickCustomerName'
+                ? 'quickCustomerName'
+                : null
       const setupErrors = { ...state.setupErrors }
       if (setupField) delete setupErrors[setupField]
       return { ...state, [action.field]: action.value, feedback: null, setupErrors }
@@ -101,6 +107,8 @@ export const weeklyMenuImportReducer = (
     case 'quick-customer-created': {
       const setupErrors = { ...state.setupErrors }
       delete setupErrors.customer
+      delete setupErrors.quickCustomerCode
+      delete setupErrors.quickCustomerName
       return {
         ...state,
         draftCustomerId: action.customerId,

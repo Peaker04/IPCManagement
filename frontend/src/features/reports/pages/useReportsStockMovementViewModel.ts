@@ -1,5 +1,5 @@
 import { useDeferredValue, useState } from 'react';
-import { useGetCurrentStockPageQuery, useGetStockMovementPageQuery } from '@/features/reports/reportsApi';
+import { useGetCurrentStockPageQuery, useGetStockMovementPageQuery } from '@/api/reportsApi';
 import { toNextReportCursor, type ReportCursor, type WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { formatDateTime } from '@/lib/formatters';
@@ -26,8 +26,8 @@ export function useReportsStockMovementViewModel({ activeView, initialPage, repo
   const [movementCursors, setMovementCursors] = useState<ReportCursor[]>([]);
   const [stockPageSize, setStockPageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
   const [stockPage, setStockPage] = useState(initialPage);
-  const [stockSearch, setStockSearchState] = useState('');
-  const [movementSearch, setMovementSearchState] = useState('');
+  const [stockSearch, setStockSearchState] = useState(() => activeView === 'stock' ? searchParams.get('search') ?? '' : '');
+  const [movementSearch, setMovementSearchState] = useState(() => activeView === 'movement' ? searchParams.get('search') ?? '' : '');
   const deferredStockSearch = useDeferredValue(stockSearch.trim());
   const deferredMovementSearch = useDeferredValue(movementSearch.trim());
   const currentStockResult = useGetCurrentStockPageQuery({

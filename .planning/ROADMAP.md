@@ -8,8 +8,48 @@
 - [x] **Phase 29: System operation mode, material reconciliation and project-wide clarity cleanup** — add one Admin-controlled global mode, a frozen-batch reconciliation branch and evidence-backed removal of redundant/technical UI content in both modes.
 - [ ] **Phase 30: Closed-loop menu issue reconciliation** — issue-state seam is proven, but the complete menu-source → calculation → freeze → issue → reconciliation → change-log E2E remains open.
 - [x] **Phase 32: Pi CLI Agent Harness architecture** — Pi-only v1 complete; Codex app/CLI removed from workflow by Kỳ.
+- [ ] **Phase 33: Skill routing and project roadmap reset** — audit the installed catalog, adapt the small useful subset to Pi/GSD, add routing evidence, then reassess product priorities after Phase 30 review/cleanup.
 
 Kỳ explicitly promoted the follow-on on 23/08/2026. Phase 28 may audit every route and implement evidence-backed UI corrections, including Admin Data and Purchasing presentation, while preserving their business/API/permission boundaries.
+
+## Phase 33: Skill routing and project roadmap reset
+
+**Status:** AUDIT COMPLETE — adapter implementation and product reprioritization remain open
+
+**Goal:** Make the smallest useful skill surface reliably callable in Pi without creating a second planning/state system, then use the stabilized routing contract to reassess project work after the current MRX branch is reviewed and either checkpointed or cleaned up.
+
+**Depends on:** Phase 32 complete; Phase 30 task-owned diff and retained `2026-10-26` fixture remain protected until owner review.
+
+**Authority:**
+
+- Inventory/disposition: `docs/harness/SKILL-AUDIT.md`
+- Runtime contract: `docs/harness/RUNTIMES.md`
+- Delivery/state owner: GSD
+
+**Roadmap:**
+
+- [x] **33-01 Inventory and upstream comparison** — classify all 46 project skills, inspect `mattpocock/skills` at pinned commit `c55ee46073ed923f86ce59a5eb3b6d895095d1b7`, and record discovery/process mismatches without installing or overwriting sources.
+- [ ] **33-02 Adapter specifications** — define thin Pi/GSD adapters for `code-review`, `improve-codebase-architecture`, `request-refactor-plan`, `domain-modeling`, `grill-me`, `grill-with-docs`, and `handoff`; remove GitHub-issue, Claude/background-agent, mandatory-parallelism, and competing-state assumptions.
+- [ ] **33-03 Discovery pilot** — expose only the adapted pilot set through `.pi/settings.json`, reload Pi, verify exact discovery, and prove each trigger with a no-mutation smoke scenario. Do not expose the full catalog.
+- [ ] **33-04 Routing evidence** — add a compact checkpoint field recording selected process/primary/supporting disciplines and reason; measure routing correctness, not raw invocation count.
+- [ ] **33-05 Catalog consolidation** — alias overlapping grill/domain/design/writing entries, retain niche/setup/Claude skills hidden, and remove only redundant project copies whose provenance and consumers are proven. No bulk deletion.
+- [ ] **33-06 MRX closeout decision** — review the current Phase 30/MRX diff and retained evidence; with explicit authority, either create a bounded local checkpoint or restore stock and clean the retained fixture. No implicit commit, push, or cleanup.
+- [ ] **33-07 Product roadmap refresh** — after MRX closeout, re-rank remaining product work from live defects, protected evidence gaps, security/data-integrity risk, and user value. Do not start a speculative architecture campaign merely because an audit skill exists.
+
+**Success criteria:**
+
+1. Routine Pi discovery contains only skills with distinct triggers and compatible process semantics.
+2. Every adapted skill delegates state, acceptance, commit, and issue ownership to GSD/project rules.
+3. At least one no-mutation smoke receipt exists for every newly exposed adapter.
+4. Skill usage is judged by correct routing; rarely needed skills are not invoked artificially.
+5. Product roadmap changes occur only after the dirty MRX work and retained stock-affecting fixture receive an explicit owner decision.
+
+**Stop conditions:**
+
+- Do not run upstream setup/install skills or bulk-sync local skill files.
+- Do not create GitHub issues, ADR trees, `CONTEXT.md`, or another task database merely to satisfy an upstream skill.
+- Do not expose a skill that still assumes unavailable agents/tools or a conflicting runtime.
+- Do not touch product code, database state, retained evidence, commit, or push as part of the skill-catalog waves.
 
 ## Phase 27: Warehouse Data Workspace contract pilot
 

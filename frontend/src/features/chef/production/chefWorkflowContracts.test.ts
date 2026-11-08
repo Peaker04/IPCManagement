@@ -14,8 +14,8 @@ describe('chef workflow decomposition contracts', () => {
     expect(pageSource).toContain("{ id: 'chef-documents', label: 'Chứng từ bếp' }")
   })
 
-  it('keeps all kitchen mutations in the extracted workflows', () => {
-    expect(workflowSource).toContain('useSendDailyProductionPlanToKitchenMutation')
+  it('keeps only Chef-owned mutations in the extracted workflows', () => {
+    expect(workflowSource).not.toContain('useSendDailyProductionPlanToKitchenMutation')
     expect(workflowSource).toContain('useConfirmInventoryIssueReceiptMutation')
     expect(workflowSource).toContain('useCreateSupplementalMaterialRequestMutation')
     expect(workflowSource).toContain('useCreateInventoryReturnMutation')

@@ -28,11 +28,28 @@ Front-End Checklist mở rộng coverage nhưng không được ghi đè authori
 | Sửa query state, permission hoặc action | source/test state + control render/eligibility | empty table hay hidden button được coi là đúng |
 | Mutation/lifecycle qua UI | control → request/response → DB transition → reload render | API call riêng lẻ hoặc UI snapshot |
 | CLS, INP, long task, modal timing | trace/PerformanceObserver có action và owner | elapsed wait hoặc ảnh |
+| Interaction fluidity/frame pacing | DEV-vs-preview cùng cell + event phases + frame/LoAF distribution; React Profiler/browser pipeline trace chỉ khi layer đó bị nghi ngờ | FPS đơn, DEV-only trace, source inventory hoặc screenshot |
 
 Nếu chưa đủ số liệu, verdict là `NEEDS_EVIDENCE` (hoặc `UNRESOLVED` với rule chưa có oracle),
 không đoán `PASS`. Tuy nhiên screenshot có orphan control/heading, panel trắng vô nghĩa, duplicate state hoặc
 broken adjacency là **candidate finding bắt buộc triage**, không được bỏ qua. Agent phải chuyển tín hiệu ảnh
 thành selector/DOM geometry/source assertion trước production edit.
+
+### Screenshot intake chuẩn hóa
+
+Ảnh người dùng cung cấp là candidate evidence, không phải verdict. Trước khi phân tích hoặc tạo before/after,
+nhập ảnh vào artifact bất biến:
+
+```bash
+node tools/ui-screenshot-intake.mjs <đường-dẫn-ảnh> [output-root]
+```
+
+Command chỉ nhận `.png`, `.jpg` hoặc `.jpeg`, sao chép ảnh vào run directory có timestamp + SHA-256 và tạo
+`manifest.json` gồm kích thước, aspect ratio, hash và các trường linkage bắt buộc: route, actor, operation mode,
+state, viewport, DOM selector, source owner và rule ID. Manifest chỉ lưu basename và đường dẫn bản sao tương đối
+trong run; không lưu đường dẫn tuyệt đối của input/output. Input sai extension hoặc ảnh hỏng phải trả exit khác 0,
+không tạo manifest và không để lại Chrome do command sở hữu. Sau triage, điền linkage trong evidence của wave;
+không sửa manifest intake gốc hoặc suy `PASS/FAIL` chỉ từ pixel.
 
 ## 2. Vòng lặp thực thi — reproduce once, fix once, prove once
 
@@ -58,7 +75,10 @@ thành selector/DOM geometry/source assertion trước production edit.
    đúng một lần trong `PASS | FAIL/OPEN | NEEDS_EVIDENCE | NOT_APPLICABLE | BLOCKED`; thiếu cell là lỗi report/gate,
    không được ngầm coi là PASS. Route/view ngoài envelope là `NOT_CLAIMED`, không phải PASS.
 5. Tạo feedback loop red-capable trước khi sửa. Với layout/read-only ưu tiên
-   `npm run test:ui-measurements -w frontend` hoặc Playwright assertion DOM/network scoped. Composition loop
+   `npm run test:ui-measurements -w frontend` hoặc Playwright assertion DOM/network scoped. Khi claim interaction
+   fluidity, trước production edit phải chạy cùng một declared cell ở DEV và production preview, tách cold compile,
+   warm navigation và application interaction; ghi event input/processing/presentation phases, frame distribution
+   và LoAF khi browser hỗ trợ. DEV-only overhead không authorize production architecture edit. Composition loop
    phải đo bounding boxes, computed min-height/flex growth, số explanatory surfaces và adjacency của
    heading/control/content. Control có accessory tuyệt đối phải đo containment/centering và hit-test bằng
    `elementFromPoint()`; sau đó click thật ở normal, error/focus và pressed/active transition để bắt stacking

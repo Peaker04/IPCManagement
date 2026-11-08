@@ -334,6 +334,7 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
                 ?? throw new BusinessRuleException("Lịch thực đơn nguồn không còn tồn tại.");
             var menuItem = schedule.Menu.Menuitems.SingleOrDefault(item => item.DishSlot == line.DishSlot)
                 ?? ResolveLegacyMenuItem(schedule.Menu.Menuitems, line.DishSlot)
+                ?? (line.OldDishId is null ? null : schedule.Menu.Menuitems.SingleOrDefault(item => item.DishId is not null && item.DishId.SequenceEqual(line.OldDishId)))
                 ?? throw new BusinessRuleException("Không tìm thấy slot thực đơn nguồn.");
             menuItem.DishId = line.NewDishId;
         }
@@ -462,10 +463,12 @@ internal sealed class MenuAmendmentService(IpcManagementContext context) : IMenu
             requestIds.Any(id => id.SequenceEqual(item.MaterialRequestId)), cancellationToken);
         var requiresReconciliation = hasPurchaseOrder || hasReceipt || hasIssue;
         var documentIds = materialRequests.Select(item => GuidHelper.ToGuidString(item.RequestId)).Concat(purchaseRequestIds.Select(GuidHelper.ToGuidString)).ToArray();
-        var sourceLines = await context.Materialrequestlines
-            .Include(item => item.PlanLine).ThenInclude(item => item.Customer)
-            .Where(item => requestIds.Any(id => id.SequenceEqual(item.RequestId)))
-            .ToListAsync(cancellationToken);
+        var sourceLines = requestIds.Count == 0
+            ? []
+            : await context.Materialrequestlines
+                .Include(item => item.PlanLine).ThenInclude(item => item.Customer)
+                .Where(item => requestIds.Any(id => id.SequenceEqual(item.RequestId)))
+                .ToListAsync(cancellationToken);
         var scopes = BuildDecisionScopes(sourceLines.Select(item => new DecisionScopeSource(
             GuidHelper.ToGuidString(item.PlanLine.CustomerId),
             item.PlanLine.Customer.CustomerName,

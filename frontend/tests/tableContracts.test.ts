@@ -60,7 +60,7 @@ describe('table contracts', () => {
       for (const entry of readdirSync(directory, { withFileTypes: true })) {
         const path = resolve(directory, entry.name);
         if (entry.isDirectory()) { visit(path); continue; }
-        if (!entry.name.endsWith('.tsx') || path.replaceAll('\\', '/').endsWith('components/ui/table.tsx')) continue;
+        if (!entry.name.endsWith('.tsx') || /\.(?:test|spec)\.tsx$/.test(entry.name) || path.replaceAll('\\', '/').endsWith('components/ui/table.tsx')) continue;
         const source = readFileSync(path, 'utf8');
         if (/<table\b/.test(source) && !/TableViewport|DataTableShell|PaginatedTableFrame|CursorPaginationBar/.test(source)) {
           directTables.push(path.replace(`${resolve(process.cwd(), '..')}\\`, ''));

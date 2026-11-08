@@ -11,7 +11,7 @@ import chefChecklistSource from '../features/chef/components/material-checklist.
 
 describe('whole-project ingredient data-grain UI contracts', () => {
   it('makes every multi-day demand view expose its service date', () => {
-    expect(reportsSource).toContain('Tổng hợp nhu cầu theo từng ngày trong khoảng đã chọn')
+    expect(reportsSource).toContain('Nhu cầu theo ngày trong khoảng chọn')
     expect(reportsSource).toContain('<th>Ngày</th>')
     expect(weeklyPurchaseSource).toContain('Mỗi dòng thuộc một ngày, khách hàng, đơn giá, nguyên liệu và đơn vị')
     expect(weeklyPurchaseSource).toContain('>Ngày</th>')
@@ -27,9 +27,9 @@ describe('whole-project ingredient data-grain UI contracts', () => {
 
   it('keeps current stock, movement audit, kitchen issues and usage semantically separate', () => {
     expect(reportsSource).toContain('Tồn kho hiện tại theo kho')
-    expect(reportsSource).toContain('Lịch sử nhập, xuất, trả và điều chỉnh theo khoảng ngày')
+    expect(reportsSource).toContain('Lịch sử nhập/xuất theo khoảng ngày')
     expect(reportsSource).toContain('Xuất kho cho bếp theo ca')
-    expect(reportsSource).toContain('Sử dụng thực tế của bếp: đã xuất - hoàn kho')
+    expect(reportsSource).toContain('Sử dụng thực tế: xuất - hoàn')
   })
 
   it('keeps purchasing actions inside one selected service date and on source-line IDs', () => {
@@ -53,7 +53,7 @@ describe('whole-project ingredient data-grain UI contracts', () => {
   })
 
   it('shows daily demand on the operational demand surface instead of a separate lifecycle panel', () => {
-    expect(weeklyDemandSource).toContain('KHSX, kiểm tồn kho và nhu cầu xuất')
+    expect(weeklyDemandSource).toContain('KHSX và tiến độ xuất nguyên liệu')
     expect(weeklyDemandSource).toContain('Nguyên liệu trong ngày')
     expect(weeklyDemandSource).toContain('Phạm vi ngày đang xem')
   })

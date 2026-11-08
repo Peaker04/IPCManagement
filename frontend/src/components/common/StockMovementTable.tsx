@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -86,7 +87,8 @@ function shortenDocumentNo(docNo: string): string {
 
 export function StockMovementTable({ movements, pageSize = 8, className, cursorPagination }: StockMovementTableProps) {
   const { toast } = useToast();
-  const pagination = useLocalPagination(movements, pageSize);
+  const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
+  const pagination = useLocalPagination(movements, selectedPageSize);
   const visibleMovements = cursorPagination ? movements : pagination.rows;
 
   const handleCopyDocumentNo = async (docNo: string) => {
@@ -110,7 +112,16 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
       <TableViewport ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell" caption="Danh sách biến động kho">
-        <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]">
+        <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[960px]">
+          <colgroup>
+            <col className="w-[13%]" />
+            <col className="w-[11%]" />
+            <col className="w-[18%]" />
+            <col className="w-[11%]" />
+            <col className="w-[11%]" />
+            <col className="w-[17%]" />
+            <col className="w-[19%]" />
+          </colgroup>
           <thead>
             <tr>
               <th className="text-left">Chứng từ</th>
@@ -143,7 +154,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                     </Button>
                   </div>
                 </td>
-                <td className="ipc-badge-cell">
+                <td className="ipc-badge-cell text-center">
                   <span className={cn('ipc-table-badge ipc-table-badge--type rounded-sm border text-xs font-semibold leading-normal', typeClasses[movement.type])}>
                     <span className="ipc-table-badge-dot" aria-hidden="true" />
                     <span className="ipc-table-badge-label">{movementLabel[movement.type]}</span>
@@ -159,8 +170,8 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                   )}
                 </td>
                 <td>{movement.owner}</td>
-                <td className="ipc-badge-cell">
-                  <StatusBadge variant={movement.tone} className="ipc-table-badge ipc-table-badge--status">
+                <td className="ipc-badge-cell text-center">
+                  <StatusBadge variant={movement.tone} size="sm">
                     {displayWorkflowText(movement.status)}
                   </StatusBadge>
                 </td>
@@ -180,7 +191,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
           ariaLabel={cursorPagination.ariaLabel ?? 'Phân trang biến động kho'}
         />
       ) : (
-        <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
+        <PaginationBar page={pagination.page} pageSize={selectedPageSize} totalItems={pagination.totalItems} pageSizeOptions={[8, 20, 50]} onPageSizeChange={(nextSize) => { setSelectedPageSize(nextSize); pagination.setPage(1); }} onPageChange={pagination.setPage} />
       )}
     </div>
   );

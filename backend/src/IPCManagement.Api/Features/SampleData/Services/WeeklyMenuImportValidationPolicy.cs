@@ -78,13 +78,30 @@ internal static class WeeklyMenuImportValidationPolicy
                 "duplicateRows");
         }
 
-        foreach (var row in rows.Where(row => !row.ExistingDish))
+        var ambiguousCells = plan.Items
+            .Where(item => item.DishMatchAmbiguous)
+            .Select(item => $"{item.SourceColumn}{item.SourceRowNumber}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var item in plan.Items.Where(item => item.DishMatchAmbiguous))
         {
             AddIssue(
                 validation,
                 "error",
-                "DISH_NOT_FOUND",
-                $"Món '{row.DishName}' chưa có trong ngân hàng món ăn. Vui lòng chọn đúng tên món đã có rồi kiểm tra lại.",
+                "DISH_MATCH_AMBIGUOUS",
+                $"Món '{item.DishName}' có thể khớp với nhiều món trong ngân hàng món ăn. Vui lòng dùng đúng tên món đầy đủ rồi kiểm tra lại.",
+                plan.SheetName,
+                item.SourceRowNumber,
+                item.SourceColumn,
+                "dishMapping");
+        }
+
+        foreach (var row in rows.Where(row => !row.ExistingDish && !ambiguousCells.Contains($"{row.SourceColumn}{row.SourceRowNumber}")))
+        {
+            AddIssue(
+                validation,
+                "warning",
+                "NEW_DISH",
+                $"Món '{row.DishName}' chưa có trong ngân hàng món ăn và sẽ được tạo mới khi lưu. Cần bổ sung BOM trước khi tạo nhu cầu nguyên liệu.",
                 plan.SheetName,
                 row.SourceRowNumber,
                 row.SourceColumn,

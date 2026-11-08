@@ -1,4 +1,4 @@
-import type { AppRole } from './roleUtils';
+import type { AppRole } from '@/lib/auth/roleUtils';
 
 export interface User {
   id: string;

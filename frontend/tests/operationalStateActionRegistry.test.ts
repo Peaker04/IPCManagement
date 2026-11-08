@@ -95,20 +95,20 @@ const manifestDebtExpectations: DebtSourceExpectations = {
     ],
   },
   AdvancedDisplaySettings: {
-    'frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-34': [
+    'frontend/src/features/admin/components/AdvancedDisplaySettings.tsx:23-35': [
       'defaultNavigationPreferences,',
       'type PageTabGroupId,',
     ],
   },
   ApprovalRules: {
-    'frontend/src/features/admin/pages/ApprovalRulesPage.tsx:100-123': [
+    'frontend/src/features/admin/pages/ApprovalRulesPage.tsx:66-93': [
       'const rulesQuery = useGetApprovalRulesQuery();',
       'const [isModalOpen, setIsModalOpen] = useState(false);',
     ],
   },
   Dashboard: {
     'frontend/src/features/dashboard/pages/DefaultDashboardPage.tsx:61-66': [
-      'useWorkflowOverview();',
+      'useWorkflowOverview({ skipPrice: !canReadPurchaseReports });',
       'useGetOperationalKpisQuery();',
     ],
   },
@@ -123,13 +123,13 @@ const manifestDebtExpectations: DebtSourceExpectations = {
       'export function buildChefProductionPlan({',
       '}: BuildChefProductionPlanOptions): ProductionPlan {',
     ],
-    'frontend/src/features/chef/production/ChefProductionSection.tsx:27-50': [
-      'const canReceivePlan =',
-      'onClick={() => void onReceivePlan()}',
+    'frontend/src/features/chef/production/ChefProductionSection.tsx:22-43': [
+      'const isComplete =',
+      'Chờ Điều phối gửi',
     ],
   },
   MaterialReconciliation: {
-    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-160': [
+    'frontend/src/features/reconciliation/pages/ReconciliationPage.tsx:1-360': [
       'export default function ReconciliationPage()',
       '<ReconciliationComparisonTable lines={batch.lines}'
     ],
@@ -353,7 +353,7 @@ const materialDemandRegistry = materialDemandScenarios.map(({ scenarioId, backen
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/features/projects/weekly-menu/demand/demandModel.ts:16-80',
-      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-112',
+      'frontend/src/features/projects/weekly-menu/demand/MaterialDemandSection.tsx:38-160',
       'backend/src/IPCManagement.Api/Features/Planning/Controllers/MaterialDemandController.cs:15-96',
       'backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs:61-69',
     ],
@@ -396,7 +396,7 @@ const purchasingRegistry = purchasingStages.map((stage) => {
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/features/purchasing/purchasingModel.ts:173-244',
-      'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-500',
+      'frontend/src/features/purchasing/PurchaseDecisionPanel.tsx:130-510',
       'backend/src/IPCManagement.Api/Features/Purchasing/Controllers/PurchaseWorkflowController.cs:1',
       'backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseWorkbenchPolicy.cs:1',
     ],
@@ -438,7 +438,7 @@ const approvalRegistry = [
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/lib/actionEligibility.ts:20-47',
-      `frontend/src/features/approvals/pages/ApprovalPage.tsx:217-239 — ${UNKNOWN}: operation remains component-local`,
+      `frontend/src/features/approvals/pages/ApprovalPage.tsx:200-230 — ${UNKNOWN}: operation remains component-local`,
       'backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalWorkflowService.cs:61-69',
       'backend/src/IPCManagement.Api/Features/Approvals/Services/ApprovalInboxService.cs:187-217',
     ],
@@ -464,7 +464,7 @@ const warehouseFulfilmentRegistry = [
     frontendPermission: UNKNOWN,
     source: [
       'frontend/src/lib/actionEligibility.ts:49-69',
-      `frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50 — ${UNKNOWN}: operation remains page-local`,
+      `frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-32 — ${UNKNOWN}: operation remains page-local`,
       'frontend/src/features/warehouse/WarehouseExceptionsWorkbench.tsx:44',
       'backend/src/IPCManagement.Api/Features/Inventory/Controllers/InventoryIssuesController.cs:1',
     ],
@@ -558,23 +558,23 @@ const componentLocalDebt = [
   {
     id: 'ApprovalDocumentOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/approvals/pages/ApprovalPage.tsx:217-239',
+    source: 'frontend/src/features/approvals/pages/ApprovalPage.tsx:200-230',
     sourceText: approvalPageSource,
     fragment: "openDecisionModal(record, 'Approve')",
   },
   {
     id: 'WarehouseOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-50',
+    source: 'frontend/src/features/warehouse/pages/WarehousePageHeader.tsx:1-32',
     sourceText: warehousePageSource,
     fragment: 'resolveIssueCreationAvailability',
   },
   {
     id: 'ProductionPlanOperation',
     marker: UNKNOWN,
-    source: 'frontend/src/features/chef/production/ChefProductionSection.tsx:27-50',
+    source: 'frontend/src/features/chef/production/ChefProductionSection.tsx:22-43',
     sourceText: chefProductionSectionSource,
-    fragment: 'const canReceivePlan =',
+    fragment: 'const isComplete =',
   },
   {
     id: 'WarehousePurchaseReceiptOperation',

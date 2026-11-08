@@ -126,7 +126,7 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
 
         entity.ToTable("inventoryissuelines", table => table.HasCheckConstraint(
             "ckInventoryIssueLinesSourceFamily",
-            "(`materialRequestLineId` IS NOT NULL AND `reconciliationBatchLineId` IS NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NOT NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NULL)"));
+            "((`materialRequestLineId` IS NOT NULL AND `reconciliationBatchLineId` IS NULL AND `reconciliationBatchDailyLineId` IS NULL AND `reconciliationServiceDate` IS NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NOT NULL) OR (`materialRequestLineId` IS NULL AND `reconciliationBatchLineId` IS NULL AND `reconciliationBatchDailyLineId` IS NULL AND `reconciliationServiceDate` IS NULL)) AND ((`reconciliationBatchDailyLineId` IS NULL AND `reconciliationServiceDate` IS NULL) OR (`reconciliationBatchDailyLineId` IS NOT NULL AND `reconciliationBatchLineId` IS NOT NULL AND `reconciliationServiceDate` IS NOT NULL))"));
 
         entity.HasIndex(e => e.IngredientId, "ingredientId")
             .HasDatabaseName("ingredientId1");
@@ -136,6 +136,8 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
         entity.HasIndex(e => e.MaterialRequestLineId, "ixInventoryIssueLinesMaterialRequestLine");
 
         entity.HasIndex(e => e.ReconciliationBatchLineId, "ixInventoryIssueLinesReconciliationBatchLine");
+
+        entity.HasIndex(e => e.ReconciliationBatchDailyLineId, "ixInventoryIssueLinesReconciliationBatchDailyLine");
 
         entity.HasIndex(e => e.UnitId, "unitId")
             .HasDatabaseName("unitId2");
@@ -160,6 +162,13 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("reconciliationBatchLineId");
+        entity.Property(e => e.ReconciliationBatchDailyLineId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("reconciliationBatchDailyLineId");
+        entity.Property(e => e.ReconciliationServiceDate)
+            .HasColumnType("date")
+            .HasColumnName("reconciliationServiceDate");
         entity.Property(e => e.IssuedQty)
             .HasPrecision(18, 6)
             .HasColumnName("issuedQty");
@@ -190,6 +199,12 @@ internal sealed class InventoryIssueLineConfiguration : IEntityTypeConfiguration
             .HasForeignKey(d => d.ReconciliationBatchLineId)
             .OnDelete(DeleteBehavior.Restrict)
             .HasConstraintName("inventoryissuelines_ibfk_5");
+
+        entity.HasOne(d => d.ReconciliationBatchDailyLine).WithMany(p => p.InventoryIssueLines)
+            .HasForeignKey(d => new { d.ReconciliationBatchDailyLineId, d.ReconciliationBatchLineId, d.IngredientId, d.UnitId, d.ReconciliationServiceDate })
+            .HasPrincipalKey(p => new { p.DailyLineId, p.BatchLineId, p.IngredientId, p.CanonicalUnitId, p.ServiceDate })
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("inventoryissuelines_ibfk_6");
 
         entity.HasOne(d => d.Unit).WithMany(p => p.Inventoryissuelines)
             .HasForeignKey(d => d.UnitId)

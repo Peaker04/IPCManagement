@@ -159,6 +159,13 @@ describe('Admin BOM form feedback', () => {
     expect(document.getElementById('manual-bom-dish')).toHaveTextContent('MON-01 - Món 1');
     expect(document.getElementById('manual-bom-ingredient')).toHaveTextContent('NL-01 - Gạo (kg)');
     expect(document.getElementById('manual-bom-status')).toHaveTextContent('Áp dụng');
+    const search = document.getElementById('manual-bom-ingredient-search')!;
+    const dish = document.getElementById('manual-bom-dish')!;
+    const ingredient = document.getElementById('manual-bom-ingredient')!;
+    expect(search.compareDocumentPosition(dish)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(dish.parentElement?.parentElement).toBe(ingredient.parentElement?.parentElement);
+    expect(dish.parentElement?.textContent).toContain('Món ăn *');
+    expect(ingredient.parentElement?.textContent).toContain('Nguyên liệu *');
     expect(document.getElementById('manual-bom-dish')).not.toHaveTextContent('dish-1');
   });
 
@@ -220,7 +227,7 @@ describe('Admin BOM form feedback', () => {
     expect(viewport).toContainElement(table);
     expect(table).toHaveClass('ipc-bom-current-table');
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
-      'Món', 'Nguyên liệu', 'ĐVT', 'Định lượng/suất', 'Hao hụt', 'Hiệu lực', 'Trạng thái', 'Thao tác',
+      'Món', 'Nguyên liệu / ĐVT', 'Định lượng / hao hụt', 'Hiệu lực', 'Trạng thái', 'Thao tác',
     ]);
     expect(screen.getByRole('navigation', { name: 'Phân trang danh sách' })).not.toHaveClass('ipc-table-viewport');
   });

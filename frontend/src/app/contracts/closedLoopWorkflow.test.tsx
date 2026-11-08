@@ -55,7 +55,7 @@ describe('closed-loop reconciliation frontend contract', () => {
 
   it.each([
     { issuedQuantity: 10, issuedRequiredDifference: 0, status: 'MATCHED', label: 'Khớp' },
-    { issuedQuantity: 9.95, issuedRequiredDifference: -0.05, status: 'MATCHED', label: 'Khớp' },
+    { issuedQuantity: 9.95, issuedRequiredDifference: -0.05, status: 'MATCHED', label: 'Khớp trong ngưỡng' },
     { issuedQuantity: 8, issuedRequiredDifference: -2, status: 'NEEDS_REVIEW', label: 'Cần kiểm tra' },
     { issuedQuantity: 12, issuedRequiredDifference: 2, status: 'NEEDS_REVIEW', label: 'Cần kiểm tra' },
     { issuedQuantity: null, issuedRequiredDifference: null, status: 'INCOMPLETE', label: 'Chưa xuất đủ' },

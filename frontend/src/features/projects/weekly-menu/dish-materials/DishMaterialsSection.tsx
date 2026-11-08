@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Search, Scale, Utensils } from 'lucide-react'
-import { ContextStrip, InlineAlert, SectionPanel, TableViewport } from '@/components/common'
+import { Scale, Utensils } from 'lucide-react'
+import { ContextStrip, InlineAlert, SearchField, SectionPanel, TableViewport } from '@/components/common'
 import { formatCurrency, formatDateOnly, formatPercent, formatQuantity } from '@/lib/formatters'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { DishMaterialsWorkflow } from './useDishMaterials'
 
@@ -76,13 +75,14 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
               </SelectContent>
             </Select>
           </label>
-          <label className="ipc-fiori-field">
-            <span>Tìm món ăn</span>
-            <span className="relative block">
-              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-slate-400" />
-              <Input value={dishSearch} onChange={(event) => setDishSearch(event.target.value)} placeholder="Nhập tên món" aria-label="Tìm món ăn" className="pl-9" disabled={presentation.isCatalogEmpty} />
-            </span>
-          </label>
+          <SearchField
+            label="Tìm món ăn"
+            width="standard"
+            value={dishSearch}
+            onChange={(event) => setDishSearch(event.target.value)}
+            placeholder="Nhập tên món"
+            disabled={presentation.isCatalogEmpty}
+          />
         </div>
       </section>
       <ContextStrip items={[

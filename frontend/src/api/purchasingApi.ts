@@ -21,7 +21,6 @@ import type {
   PurchaseOrderQuery,
   PurchaseOrderPageQuery,
   PurchaseOrderPageResponse,
-  RecordPurchaseOrderReceiptArgs,
   GenerateMaterialDemandRequest,
   MaterialDemandStalenessQuery,
   MaterialDemandStaleness,
@@ -186,22 +185,6 @@ export const purchasingApi = apiSlice.injectEndpoints({
         workflowCacheTags.documents,
       ],
     }),
-    recordPurchaseOrderReceipt: builder.mutation<PurchaseOrderDto, RecordPurchaseOrderReceiptArgs>({
-      query: ({ purchaseOrderId, data }) => ({
-        url: `/purchase-orders/${purchaseOrderId}/receive`,
-        method: 'POST',
-        body: data,
-      }),
-      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
-      invalidatesTags: [
-        'PurchaseOrders',
-        workflowCacheTags.documents,
-        workflowCacheTags.stockMovements,
-        workflowCacheTags.currentStock,
-        workflowCacheTags.priceVariance,
-        workflowCacheTags.operationalKpis,
-      ],
-    }),
     cancelPurchaseOrder: builder.mutation<PurchaseOrderDto, string>({
       query: (purchaseOrderId) => ({
         url: `/purchase-orders/${purchaseOrderId}/cancel`,
@@ -295,7 +278,6 @@ export const {
   useGetPurchaseOrdersQuery,
   useGetPurchaseOrdersPageQuery,
   useCreatePurchaseOrdersFromRequestMutation,
-  useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,

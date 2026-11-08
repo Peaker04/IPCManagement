@@ -135,7 +135,7 @@ export function useChefExceptions(
     activeReturns: persistedReturnPage
       ? persistedReturns.flatMap((item) => item.lines.map((line) => ({
           ingredientId: line.ingredientId,
-          ingredientName: line.ingredientName || line.ingredientId,
+          ingredientName: line.ingredientName || 'Chưa có tên nguyên liệu',
           unit: line.unitName || '',
           returnedQty: line.quantity,
           condition: item.returnType === 'WASTE' ? 'damaged' as const : 'intact' as const,

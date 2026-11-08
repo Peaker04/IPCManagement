@@ -5,6 +5,7 @@ import reconciliationSource from '@/features/reconciliation/pages/Reconciliation
 import issueHistorySource from '@/components/reconciliation/ReconciliationIssueHistoryTable.tsx?raw'
 import drawerSource from '@/components/ui/drawer.tsx?raw'
 import adminBomSource from '@/app/pages/admin-data/AdminBomPanel.tsx?raw'
+import adminSourceChangesSource from '@/app/pages/admin-data/AdminSourceChangesPanel.tsx?raw'
 import { buildWeeklyMenuRoute } from '@/lib/routeConfig'
 
 describe('material reconciliation UI contracts', () => {
@@ -29,11 +30,12 @@ describe('material reconciliation UI contracts', () => {
     expect(warehouseSource).toContain('id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab"')
     expect(warehouseSource).toContain('id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab"')
     expect(warehouseSource).toContain("buildWeeklyMenuRoute({ view: 'demand' })")
-    expect(warehouseSource).toContain("activeView === 'demand' && batch?.status === 'TRANSFERRED' && !hasLinkedIssue && <div")
-    expect(warehouseSource).toContain('Điền đủ toàn bộ')
+    expect(warehouseSource).toContain("const demandActions = canCreateIssue && dailyProjection?.compatibility.canIssueByDate")
+    expect(warehouseSource).toContain("remainingLines.length > 0 && ['TRANSFERRED', 'IN_PROGRESS'].includes")
+    expect(warehouseSource).toContain('Điền đủ ngày')
     expect(warehouseSource).toContain("'Dự kiến xuất đủ'")
     expect(warehouseSource).toContain('maximumFractionDigits: 6')
-    expect(warehouseSource).toContain("activeView === 'demand' && batch?.status === 'IN_PROGRESS' && hasLinkedIssue && <div")
+    expect(warehouseSource).toContain("hasLinkedIssue && batch?.status === 'IN_PROGRESS'")
     expect(warehouseSource).toContain("line.issuedQuantity == null ? <span className=\"text-slate-600\">Chưa xuất</span>")
     expect(warehouseSource).toContain('formatQuantityWithUnit(line.issuedQuantity,')
     expect(warehouseSource).not.toContain('formatQuantityWithUnit(line.issuedQuantity ?? 0')
@@ -45,10 +47,10 @@ describe('material reconciliation UI contracts', () => {
     expect(warehouseSource).toContain("searchParams.get('batchId') ?? persistedSelection.batchId ?? ''")
     expect(warehouseSource).toContain('Nhập số thực tế xuất cho từng nguyên liệu.')
     expect(issueHistorySource).toContain('Lịch sử phiếu xuất của lô đối chiếu')
-    expect(warehouseSource).toContain("showAction={activeView === 'movement'}")
+    expect(warehouseSource).toContain('showAction={false}')
     expect(warehouseSource).toContain('aria-label={`Thực xuất ${line.ingredientName}`}')
     expect(warehouseSource).toContain('aria-label={`Lý do xuất vượt ${line.ingredientName}`}')
-    expect(warehouseSource).toContain('varianceReason: varianceReasons[line.batchLineId]?.trim() || undefined')
+    expect(warehouseSource).toContain('varianceReason: varianceReasons[line.dailyLineId]?.trim() || undefined')
   })
 
   it('keeps the issue drawer as a portal overlay without reflowing either master route', () => {
@@ -61,8 +63,9 @@ describe('material reconciliation UI contracts', () => {
     expect(reconciliationSource).not.toContain('data-drawer-open')
   })
 
-  it('keeps one batch-scoped source-change owner on the reconciliation workspace', () => {
-    expect(reconciliationSource).toContain('<ReconciliationSourceChangeLog batchId={batch.batchId} />')
+  it('keeps one batch-scoped source-change owner on the admin data workspace', () => {
+    expect(adminSourceChangesSource).toContain('<ReconciliationSourceChangeLog batchId={effectiveBatchId} standalone />')
+    expect(reconciliationSource).not.toContain('<ReconciliationSourceChangeLog')
     expect(warehouseSource).not.toContain('ReconciliationSourceChangeLog')
   })
 

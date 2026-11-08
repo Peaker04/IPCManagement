@@ -23,7 +23,7 @@ internal sealed class WeeklyMenuImportResultBuilder(IpcManagementContext context
                 StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 group => group.Key,
-                WeeklyMenuImportProjection.SelectPreferredImportedDish,
+                group => group.ToList(),
                 StringComparer.OrdinalIgnoreCase);
 
         var result = new WeeklyMenuImportResultDto
@@ -59,10 +59,25 @@ internal sealed class WeeklyMenuImportResultBuilder(IpcManagementContext context
         foreach (var parsedItem in plan.Items)
         {
             var key = WeeklyMenuImportProjection.NormalizeDishMatchKey(parsedItem.DishName);
-            if (existingByName.TryGetValue(key, out var existingDish))
+            if (existingByName.TryGetValue(key, out var matchingDishes))
             {
-                parsedItem.DishId = GuidHelper.ToGuidString(existingDish.DishId);
-                parsedItem.ExistingDish = true;
+                var exactMatches = matchingDishes
+                    .Where(dish => string.Equals(dish.DishName.Trim(), parsedItem.DishName.Trim(), StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+                if (exactMatches.Count == 1)
+                {
+                    parsedItem.DishId = GuidHelper.ToGuidString(exactMatches[0].DishId);
+                    parsedItem.ExistingDish = true;
+                }
+                else if (matchingDishes.Count == 1)
+                {
+                    parsedItem.DishId = GuidHelper.ToGuidString(matchingDishes[0].DishId);
+                    parsedItem.ExistingDish = true;
+                }
+                else
+                {
+                    parsedItem.DishMatchAmbiguous = true;
+                }
             }
 
             result.Rows.Add(new WeeklyMenuImportRowDto

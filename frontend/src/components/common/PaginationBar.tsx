@@ -14,7 +14,6 @@ interface PaginationBarProps {
   isPending?: boolean;
   pageSizeOptions?: readonly number[];
   onPageSizeChange?: (pageSize: number) => void;
-  enablePageJump?: boolean;
 }
 
 export function PaginationBar({
@@ -27,7 +26,6 @@ export function PaginationBar({
   isPending = false,
   pageSizeOptions,
   onPageSizeChange,
-  enablePageJump = true,
 }: PaginationBarProps) {
   const previousButtonRef = useRef<HTMLButtonElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
@@ -75,7 +73,7 @@ export function PaginationBar({
   }
 
   const showPageSize = Boolean(onPageSizeChange && pageSizeOptions?.length);
-  const showPageJump = enablePageJump && meta.totalPages > 7;
+  const showPageJump = meta.totalPages > 7;
   const rangeLabel = itemLabel ? `${meta.rangeLabel} ${itemLabel}` : meta.rangeLabel;
   const rememberAnchor = (target: 'previous' | 'next' | 'jump', element: HTMLElement) => {
     requestedFocusRef.current = target;

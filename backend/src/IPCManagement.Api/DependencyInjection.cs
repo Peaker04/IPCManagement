@@ -68,6 +68,7 @@ public static class DependencyInjection
         services.AddScoped<ReconciliationQuantityImportService>();
         services.AddScoped<ReconciliationToleranceInitializer>();
         services.AddScoped<ReconciliationActualService>();
+        services.AddScoped<ReconciliationKitchenExportService>();
         services.AddScoped<ReconciliationCompletionService>();
         services.AddScoped<IEfTransactionRunner>(serviceProvider =>
             new EfTransactionRunner(
