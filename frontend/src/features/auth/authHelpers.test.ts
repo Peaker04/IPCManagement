@@ -4,13 +4,13 @@ import {
   clearStoredAuth,
   persistAuthSnapshot,
   readStoredAuthSnapshot,
-} from './authStorage';
-import { canAccessRole, normalizeUserRole } from './roleUtils';
+} from '@/lib/auth/authStorage';
+import { canAccessRole, normalizeUserRole } from '@/lib/auth/roleUtils';
 import {
   notifySessionExpired,
   resetSessionExpiredNotice,
   subscribeSessionExpired,
-} from './sessionEvents';
+} from '@/lib/auth/sessionEvents';
 
 describe('authStorage boundaries', () => {
   beforeEach(() => {

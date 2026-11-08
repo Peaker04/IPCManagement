@@ -11,7 +11,7 @@ type Props = {
   isSubmittingSupplemental: boolean
   onSupplementalRequest: (data: SupplementalRequest) => Promise<boolean>
   onExcessMaterialReturn: (data: ExcessMaterial) => Promise<void>
-  onMaterialSignoff: (materialId: string, signed: boolean) => Promise<void>
+  onMaterialSignoff: (materialId: string, signed: boolean, hasDiscrepancy?: boolean, discrepancyNote?: string) => Promise<boolean>
   receiptPage: number
   receiptPageSize: number
   receiptTotalCount: number
@@ -50,7 +50,7 @@ export function KitchenReceiptSection({
             isSubmittingSupplementalRequest={isSubmittingSupplemental}
             onSupplementalRequest={onSupplementalRequest}
             onExcessMaterialReturn={(data) => void onExcessMaterialReturn(data)}
-            onMaterialSignoff={(materialId, signed) => void onMaterialSignoff(materialId, signed)}
+            onMaterialSignoff={onMaterialSignoff}
             checklistPagination={(
               <PaginationBar
                 page={receiptPage}

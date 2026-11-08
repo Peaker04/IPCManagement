@@ -101,7 +101,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
   const [LoadedDishDetailDialog, setLoadedDishDetailDialog] = useState<DishDetailDialogComponent | null>(
     () => cachedDishDetailDialog,
   )
-  const pageSize = 12
+  const [pageSize, setPageSize] = useState(12)
   const filteredOrders = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase('vi-VN')
     if (!needle) return orders
@@ -288,14 +288,14 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
               <th className="w-[260px] whitespace-nowrap border-r border-slate-200 text-left">
                 Món ăn
               </th>
-              <th className="w-[100px] whitespace-nowrap border-r border-slate-200 text-right">
-                Dự kiến
+              <th className="w-[110px] whitespace-nowrap border-r border-slate-200 text-right">
+                {useFinalServings ? 'Suất đã chốt' : 'Dự kiến'}
               </th>
-              <th className="w-[100px] whitespace-nowrap border-r border-slate-200 text-right">
-                Thực tế
+              <th className="w-[120px] whitespace-nowrap border-r border-slate-200 text-right">
+                {useFinalServings ? 'Suất sau chỉnh' : 'Thực tế'}
               </th>
-              <th className="w-[100px] whitespace-nowrap text-right">
-                Chênh lệch
+              <th className="w-[170px] whitespace-nowrap text-right">
+                {useFinalServings ? 'Tăng/giảm' : 'Chênh lệch'}
               </th>
             </tr>
           </thead>
@@ -419,23 +419,26 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
 
               <td className="text-right">
                 <div className="flex justify-end">
-                  <span
-                    className={`inline-flex items-center gap-1 min-w-14 justify-center rounded-md border px-2 py-1 text-xs tabular-nums font-bold ${
-                      variance === 0
-                        ? 'border-teal-200 bg-teal-50 text-teal-800'
-                        : variance < 0
-                          ? 'border-red-200 bg-red-50 text-red-700'
-                          : 'border-amber-200 bg-amber-50 text-amber-800'
-                    }`}
-                  >
-                    {variance < 0 ? (
-                      <span>{variance}</span>
-                    ) : variance > 0 ? (
-                      <span>+{variance}</span>
-                    ) : (
-                      <span>0</span>
-                    )}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <span
+                      className={`inline-flex items-center gap-1 min-w-14 justify-center rounded-md border px-2 py-1 text-xs tabular-nums font-bold ${
+                        variance === 0
+                          ? 'border-teal-200 bg-teal-50 text-teal-800'
+                          : variance < 0
+                            ? 'border-red-200 bg-red-50 text-red-700'
+                            : 'border-amber-200 bg-amber-50 text-amber-800'
+                      }`}
+                    >
+                      {variance < 0 ? (
+                        <span>{variance}</span>
+                      ) : variance > 0 ? (
+                        <span>+{variance}</span>
+                      ) : (
+                        <span>0</span>
+                      )}
+                    </span>
+                    {useFinalServings && variance !== 0 && <span className="text-xs font-medium text-amber-800">Cần tính lại nguyên liệu</span>}
+                  </div>
                 </div>
               </td>
             </tr>
@@ -444,7 +447,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
           </tbody>
         </table>
       </TableViewport>
-      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
+      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} pageSizeOptions={[12, 24, 48]} onPageSizeChange={(nextSize) => { setPageSize(nextSize); setPage(1); }} onPageChange={setPage} />
       {selectedOrder && (LoadedDishDetailDialog ? (
         <LoadedDishDetailDialog order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
       ) : (

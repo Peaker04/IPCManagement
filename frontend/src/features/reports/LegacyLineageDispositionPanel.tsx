@@ -12,7 +12,7 @@ import {
   useGetLegacyLineageCandidatesQuery,
   useGetLegacyLineageDispositionsQuery,
   useReviewLegacyLineageDispositionMutation,
-} from '@/features/reports/reportsApi';
+} from '@/api/reportsApi';
 import type { SupplyLineReconciliationDto } from '@/api/workflowApiTypes';
 import { formatLegacyDispositionStatus, formatLegacyLineType } from '@/lib/workflowConfig';
 

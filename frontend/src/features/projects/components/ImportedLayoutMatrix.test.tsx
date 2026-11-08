@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import type { WeeklyMenuImportRow } from '@/api/coordinationApi'
@@ -18,6 +20,18 @@ const makeCell = (dayKey: string, dishId: string, dishName: string) => ({
 } as WeeklyMenuImportRow)
 
 describe('ImportedLayoutMatrix', () => {
+  it('keeps canonical horizontal overflow ownership on TableViewport', () => {
+    render(<ImportedLayoutMatrix rows={[]} displayDays={days} />)
+
+    const viewport = screen.getByRole('region', { name: 'Bảng bố cục thực đơn theo file khách hàng' })
+    expect(viewport).toHaveClass('ipc-table-viewport', 'ipc-weekly-menu-shell', 'overflow-x-auto')
+
+    const tableCss = readFileSync(resolve(process.cwd(), 'src/styles/components/tables.css'), 'utf8')
+    const weeklyShellRule = tableCss.match(/\.ipc-weekly-menu-shell\s*\{([^}]*)\}/)?.[1]
+    expect(weeklyShellRule).toBeDefined()
+    expect(weeklyShellRule).not.toMatch(/overflow-x\s*:\s*hidden/)
+  })
+
   it('uses canonical slot labels, catalog names and one merged dessert cell', () => {
     const slots = [
       ['main', 'Món mặn 1'], ['sub1', 'Món mặn 2'], ['rau', 'Rau'], ['canh', 'Canh'], ['dessert', 'Tráng miệng'],

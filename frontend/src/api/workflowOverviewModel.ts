@@ -76,7 +76,7 @@ export const buildWorkflowLanes = (
     const laneInbox = inbox.filter((item) => item.laneId === lane.id);
     const laneDocuments = documents.filter((document) => ownerToLaneId(document.owner) === lane.id);
     const blocked = laneInbox.filter((item) => item.tone === 'danger').length;
-    const waiting = laneInbox.length + laneDocuments.filter((document) => document.tone === 'warning').length;
+    const waiting = laneInbox.filter((item) => item.tone === 'warning').length;
     const done = laneDocuments.filter((document) => document.tone === 'success').length
       + (lane.id === 'warehouse' ? movements.filter((movement) => movement.tone === 'success').length : 0);
     const tone: WorkflowTone = blocked > 0 ? 'danger' : waiting > 0 ? 'warning' : done > 0 ? 'success' : 'neutral';

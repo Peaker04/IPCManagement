@@ -32,7 +32,7 @@ import type {
 } from '@/api/workflowApiTypes';
 import type { ApiResponse } from '@/types/api';
 import { workflowCacheTags } from '@/api/workflowCacheTags';
-import type { CreateReturnAllocationDisposition, ReturnAllocationBalance, ReturnAllocationDispositionResult } from './returnAllocationTypes';
+import type { CreateReturnAllocationDisposition, ReturnAllocationBalance, ReturnAllocationDispositionResult } from '@/api/returnAllocationTypes';
 
 const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 
@@ -74,10 +74,10 @@ export const warehouseApi = apiSlice.injectEndpoints({
           : []),
       ],
     }),
-    getInventoryReceipts: builder.query<PageNumberPage<InventoryReceipt>, { pageNumber?: number; pageSize?: number; purchaseOrderOnly?: boolean } | void>({
+    getInventoryReceipts: builder.query<PageNumberPage<InventoryReceipt>, { pageNumber?: number; pageSize?: number; purchaseOrderOnly?: boolean; purchaseOrderId?: string } | void>({
       query: (query) => ({
         url: '/inventory-receipts',
-        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 20, purchaseOrderOnly: query?.purchaseOrderOnly },
+        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 20, purchaseOrderOnly: query?.purchaseOrderOnly, purchaseOrderId: query?.purchaseOrderId },
       }),
       transformResponse: (response: ApiResponse<PageNumberPage<InventoryReceipt>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
@@ -229,10 +229,10 @@ export const warehouseApi = apiSlice.injectEndpoints({
       ],
     }),
     rejectSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, RejectSupplementalMaterialRequest>({
-      query: ({ requestId, reason }) => ({
+      query: ({ requestId, commandId, expectedVersion, reason }) => ({
         url: `/supplemental-material-requests/${requestId}/reject`,
         method: 'POST',
-        body: { reason },
+        body: { commandId, expectedVersion, reason },
       }),
       invalidatesTags: [
         workflowCacheTags.supplementalRequests,

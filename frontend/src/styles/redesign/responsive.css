@@ -211,7 +211,7 @@
 
 
 @media (max-width: 767px) {
-  .ipc-table-viewport {
+  .ipc-table-viewport[data-vertical-scroll="bounded"] {
     max-height: 440px;
   }
 }

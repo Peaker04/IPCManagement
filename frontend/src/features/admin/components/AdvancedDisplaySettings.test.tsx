@@ -9,6 +9,8 @@ import {
   readNavigationPreferences,
   readPageTabPreferences,
 } from '@/lib/navigationPreferences';
+import { SystemOperationContext } from '@/lib/systemOperationContext';
+import type { SystemOperationSnapshot } from '@/lib/systemOperationTypes';
 import { AdvancedDisplaySettings } from './AdvancedDisplaySettings';
 import advancedSettingsSource from './AdvancedDisplaySettings.tsx?raw';
 import operationModeSource from './SystemOperationModeSettings.tsx?raw';
@@ -112,7 +114,7 @@ describe('AdvancedDisplaySettings Component', () => {
   it('keeps accordion expansion and show-all as sibling native controls', async () => {
     const user = userEvent.setup();
     const customTabPrefs = structuredClone(defaultPageTabPreferences);
-    customTabPrefs['weekly-menu']['dish-materials'] = false;
+    customTabPrefs['weekly-menu']['production-plan'] = false;
     window.localStorage.setItem('ipc.page-tab-preferences.v1', JSON.stringify(customTabPrefs));
     renderComponent();
 
@@ -121,7 +123,7 @@ describe('AdvancedDisplaySettings Component', () => {
     expect(expandButton).not.toContainElement(showAllButton);
 
     await user.click(showAllButton);
-    expect(readPageTabPreferences(window.localStorage)['weekly-menu']['dish-materials']).toBe(true);
+    expect(readPageTabPreferences(window.localStorage)['weekly-menu']['production-plan']).toBe(true);
   });
 
   it('expands tab groups and allows toggling tabs', async () => {
@@ -134,15 +136,14 @@ describe('AdvancedDisplaySettings Component', () => {
 
     // Check that child tabs are visible
     expect(screen.getByText('Kế hoạch tuần')).toBeInTheDocument();
-    expect(screen.getByText('Nguyên liệu món')).toBeInTheDocument();
+    expect(screen.getByText('Kế hoạch sản xuất')).toBeInTheDocument();
 
-    // Toggle off "Nguyên liệu món"
-    const dishMaterialsSwitch = screen.getByRole('switch', {
-      name: /Thực đơn tuần, Nguyên liệu món, đang hiện/i,
+    const productionPlanSwitch = screen.getByRole('switch', {
+      name: /Thực đơn tuần, Kế hoạch sản xuất, đang hiện/i,
     });
-    await user.click(dishMaterialsSwitch);
+    await user.click(productionPlanSwitch);
 
-    expect(readPageTabPreferences(window.localStorage)['weekly-menu']['dish-materials']).toBe(false);
+    expect(readPageTabPreferences(window.localStorage)['weekly-menu']['production-plan']).toBe(false);
   });
 
   it('allows expanding all and collapsing all tab groups', async () => {
@@ -221,5 +222,66 @@ describe('AdvancedDisplaySettings Component', () => {
     expect(readPageTabPreferences(window.localStorage).chef.production).toBe(true);
     expect(screen.getByText('Không thể ẩn')).toBeInTheDocument();
     expect(screen.getByText('Mỗi trang nghiệp vụ phải giữ lại ít nhất 1 tab hiển thị.')).toBeInTheDocument();
+  });
+
+  it('synchronizes navigation and tab groups in MATERIAL_RECONCILIATION mode', async () => {
+    const user = userEvent.setup();
+    const mrxSnapshot: SystemOperationSnapshot = {
+      mode: 'MATERIAL_RECONCILIATION',
+      label: 'Đối chiếu nguyên liệu',
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      reasonRequired: false,
+      capabilities: {
+        navigation: ['dashboard', 'weekly-menu', 'warehouse', 'reconciliation', 'admin-data'],
+        pageTabs: {
+          'weekly-menu': ['schedule', 'material-demand'],
+          warehouse: ['demand', 'movement'],
+          'admin-data': ['bom-import', 'audit'],
+        },
+      },
+    };
+
+    render(
+      <ToastProvider>
+        <SystemOperationContext.Provider value={mrxSnapshot}>
+          <AdvancedDisplaySettings />
+        </SystemOperationContext.Provider>
+      </ToastProvider>
+    );
+
+    // Summary counters for MRX mode
+    expect(screen.getByText('5/5 menu đang bật')).toBeInTheDocument();
+    expect(screen.getByText('6/6 tab đang bật')).toBeInTheDocument();
+
+    const expectedMrxItems = [
+      'Tổng quan',
+      'Thực đơn tuần',
+      'Kho nguyên liệu',
+      'Đối chiếu',
+      'Quản trị dữ liệu',
+    ];
+
+    for (const item of expectedMrxItems) {
+      expect(screen.getByRole('switch', { name: new RegExp(`^${item}, đang hiện`) })).toBeInTheDocument();
+    }
+
+    // Items outside MRX mode must not be present
+    expect(screen.queryByRole('switch', { name: /Thu mua/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: /Duyệt vận hành/i })).not.toBeInTheDocument();
+
+    // Toggle "Đối chiếu"
+    const reconciliationSwitch = screen.getByRole('switch', { name: /Đối chiếu, đang hiện/i });
+    await user.click(reconciliationSwitch);
+
+    expect(screen.getByText('4/5 menu đang bật')).toBeInTheDocument();
+    expect(readNavigationPreferences(window.localStorage).reconciliation).toBe(false);
+
+    // Only 3 tab groups should be rendered in MRX mode
+    expect(screen.getByRole('button', { name: /nhóm Thực đơn tuần/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /nhóm Kho nguyên liệu/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /nhóm Quản trị dữ liệu/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /nhóm Thu mua/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /nhóm Bếp trưởng/i })).not.toBeInTheDocument();
   });
 });

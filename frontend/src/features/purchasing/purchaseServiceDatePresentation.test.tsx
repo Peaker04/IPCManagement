@@ -1,9 +1,52 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
 import { PurchaseServiceDateWorkbench } from './PurchaseServiceDateWorkbench';
 
 describe('PurchaseServiceDateWorkbench terminal state', () => {
+  it('retires the always-normal approved label while preserving cross-date progress states', () => {
+    const baseDate: PurchaseWorkbenchServiceDate = {
+      serviceDate: '2026-07-20',
+      scope: 'FULLDAY',
+      currentStage: 'demand',
+      approvedDemandCount: 1,
+      shortageLineCount: 1,
+      supplierReadyLineCount: 0,
+      blockingExceptionCount: 0,
+      orderCount: 0,
+      receivingLineCount: 0,
+      fullyReceivedLineCount: 0,
+      approvedDemands: [],
+      purchaseLines: [],
+    };
+    const serviceDates: PurchaseWorkbenchServiceDate[] = [
+      baseDate,
+      { ...baseDate, serviceDate: '2026-07-21', currentStage: 'supplier-price' },
+      { ...baseDate, serviceDate: '2026-07-22', currentStage: 'approved-order' },
+      { ...baseDate, serviceDate: '2026-07-23', currentStage: 'submitted' },
+      { ...baseDate, serviceDate: '2026-07-24', currentStage: 'receiving', receivingLineCount: 1 },
+    ];
+
+    render(
+      <PurchaseServiceDateWorkbench
+        serviceDates={serviceDates}
+        selectedDate="2026-07-20"
+        selectedStage="demand"
+        page={1}
+        pageSize={8}
+        totalItems={0}
+        isLoading={false}
+        onDateChange={vi.fn()}
+        onLineChange={vi.fn()}
+        onPageChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Đã duyệt')).not.toBeInTheDocument();
+    expect(screen.getByText('Đã gửi duyệt')).toBeInTheDocument();
+    expect(screen.getByText('Đang nhập kho')).toBeInTheDocument();
+  });
+
   it('sizes a true empty state to its message instead of reserving the populated table height', () => {
     render(
       <PurchaseServiceDateWorkbench
@@ -104,9 +147,11 @@ describe('PurchaseServiceDateWorkbench terminal state', () => {
     expect(screen.getAllByText('Gạo')).toHaveLength(1);
     expect(screen.getByText('15 kg')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Xem 2 nguồn' }));
-    expect(screen.getByText('line-1')).toBeInTheDocument();
-    expect(screen.getByText('line-2')).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Mở dòng nguồn' })[1]);
+    const sources = screen.getByRole('list', { name: 'Các dòng nguồn của Gạo' })
+    expect(within(sources).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(sources).getByText('10 kg')).toBeInTheDocument()
+    expect(within(sources).getByText('5 kg')).toBeInTheDocument()
+    fireEvent.click(within(sources).getAllByRole('button', { name: 'Mở dòng nguồn' })[1]);
     expect(onLineChange).toHaveBeenCalledWith('line-2');
   });
 });

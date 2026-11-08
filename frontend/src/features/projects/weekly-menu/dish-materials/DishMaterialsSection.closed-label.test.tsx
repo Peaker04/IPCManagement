@@ -58,7 +58,7 @@ describe('DishMaterialsSection select labels', () => {
       />,
     )
 
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'dau' } })
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm món ăn' }), { target: { value: 'dau' } })
     fireEvent.click(screen.getByRole('combobox'))
 
     expect(await screen.findByRole('option', { name: 'Dau khuon' })).toBeInTheDocument()

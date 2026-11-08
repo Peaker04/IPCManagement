@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatAuditActor, presentAudit, splitAuditField } from './auditPresentation'
+import { formatAuditActor, presentAudit, splitAuditField } from '@/lib/auditPresentation'
 
 const present = (businessArea: string, entityName: string, fieldName: string, oldValue?: string | null, newValue?: string | null, reason?: string | null) => presentAudit({ businessArea, entityName, fieldName, oldValue, newValue, reason })
 

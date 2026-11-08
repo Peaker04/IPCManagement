@@ -14,6 +14,7 @@ scope: harness-retrieval-update-retirement
 4. Dùng [`docs/README.md`](../README.md) authority map và [harness index](README.md) để chọn nguồn theo task.
 5. Chỉ đọc domain/skill/runbook liên quan. Không auto-load HISTORY, toàn planning tree hoặc evidence.
 6. Trước mutation, xác nhận scope/authority/prerequisite; sau mỗi wave verified, cập nhật checklist và handover.
+7. Với cleanup evidence, tuân theo [artifact retention policy](ARTIFACTS.md): dry-run trước, bảo vệ tracked/reference paths và chỉ apply khi owner đã cấp quyền xóa.
 
 ## Cập nhật tài liệu
 

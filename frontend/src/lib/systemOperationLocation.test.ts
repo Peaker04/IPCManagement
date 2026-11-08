@@ -8,9 +8,12 @@ describe('SystemOperationProvider authority relocation', () => {
     expect(normalizeAuthorityLocation('MATERIAL_RECONCILIATION', ROUTES.REPORTS, '')).toBe(ROUTES.DASHBOARD)
   })
 
-  it('strips reconciliation-only warehouse and weekly-menu search state before DEFAULT mounts', () => {
-    expect(normalizeAuthorityLocation('DEFAULT', ROUTES.WAREHOUSE, '?batchId=batch-1&view=movement')).toBe(ROUTES.WAREHOUSE)
-    expect(normalizeAuthorityLocation('DEFAULT', ROUTES.WEEKLY_MENU, '?view=demand&customerId=customer-1&weekStartDate=2026-08-24')).toBe(ROUTES.WEEKLY_MENU)
+  it('strips reconciliation-only identity but preserves valid DEFAULT views', () => {
+    expect(normalizeAuthorityLocation('DEFAULT', ROUTES.WAREHOUSE, '?batchId=batch-1&view=demand')).toBe(`${ROUTES.WAREHOUSE}?view=demand`)
+    expect(normalizeAuthorityLocation('DEFAULT', ROUTES.WAREHOUSE, '?view=receiving')).toBeNull()
+    expect(normalizeAuthorityLocation('DEFAULT', ROUTES.WAREHOUSE, '?view=exceptions')).toBeNull()
+    expect(normalizeAuthorityLocation('DEFAULT', ROUTES.WAREHOUSE, '?view=invalid')).toBe(ROUTES.WAREHOUSE)
+    expect(normalizeAuthorityLocation('DEFAULT', ROUTES.WEEKLY_MENU, '?view=demand&customerId=customer-1&weekStartDate=2026-08-24')).toBeNull()
   })
 
   it('leaves eligible routes untouched when no reconciliation-only state remains', () => {

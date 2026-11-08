@@ -266,7 +266,7 @@ export function ApprovalQueue({
         caption="Danh sách nghiệp vụ, thời điểm, nội dung, người phụ trách, hạn xử lý, trạng thái và thao tác duyệt."
         className="ipc-table-viewport--page-flow rounded-none border-0 shadow-none"
       >
-        <table aria-label="Danh sách chứng từ cần duyệt" className="ipc-data-table ipc-approval-table min-w-[1080px] !table-fixed">
+        <table aria-label="Bảng chứng từ cần duyệt" className="ipc-data-table ipc-approval-table min-w-[1080px] !table-fixed">
           <colgroup>
             <col className="w-[17%]" />
             <col className="w-[10%]" />

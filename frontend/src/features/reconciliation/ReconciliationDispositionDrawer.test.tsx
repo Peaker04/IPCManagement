@@ -46,7 +46,7 @@ it('uses the canonical dialog focus contract and identifies the ingredient in us
 
   render(<ReconciliationDispositionDrawer line={line} onClose={onClose} onRefetch={vi.fn()} />)
 
-  expect(await screen.findByRole('dialog', { name: 'Xử lý chênh lệch' })).toBeInTheDocument()
+  expect(await screen.findByRole('dialog', { name: 'Xử lý chênh lệch đối chiếu' })).toBeInTheDocument()
   expect(screen.getByText('Ghi nhận kết luận xử lý cho Gạo thơm.')).toBeInTheDocument()
   expect(screen.queryByText(/GAO-01/)).not.toBeInTheDocument()
   expect(document.body.style.overflow).toBe('hidden')
@@ -66,6 +66,19 @@ it('does not show validation errors before the user interacts with the form', ()
   expect(screen.getByLabelText('Lý do')).toHaveAttribute('aria-invalid', 'false')
   fireEvent.blur(screen.getByLabelText('Lý do'))
   expect(screen.getByLabelText('Lý do')).toHaveAttribute('aria-invalid', 'true')
+})
+
+it('keeps validation submission available and focuses the first invalid owner', async () => {
+  render(<ReconciliationDispositionDrawer line={{ ...line, disposition: null }} onClose={vi.fn()} onRefetch={vi.fn()} />)
+
+  const submit = screen.getByRole('button', { name: 'Xác nhận xử lý' })
+  expect(submit).toBeEnabled()
+  fireEvent.click(submit)
+  expect(await screen.findByText('Chọn nhóm xử lý.')).toBeInTheDocument()
+  expect(screen.getByText('Nhập lý do xử lý.')).toBeInTheDocument()
+  await waitFor(() => expect(screen.getByText('Chọn nhóm xử lý.')).toHaveFocus())
+  expect(save).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: 'Chấp nhận hao hụt thực tế' })).toBeInTheDocument()
 })
 
 it('renders only server-owned disposition category options', () => {

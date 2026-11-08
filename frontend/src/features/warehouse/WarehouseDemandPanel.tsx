@@ -19,6 +19,7 @@ type WarehouseDemandPanelProps = {
   pageSize: number;
   totalItems: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   inboxItems: RoleInboxItem[];
 };
 
@@ -36,6 +37,7 @@ export function WarehouseDemandPanel({
   pageSize,
   totalItems,
   onPageChange,
+  onPageSizeChange,
   inboxItems,
 }: WarehouseDemandPanelProps) {
   const scopeLabel = requestedDemandDate
@@ -77,6 +79,8 @@ export function WarehouseDemandPanel({
           page={page}
           pageSize={pageSize}
           totalItems={totalItems}
+          pageSizeOptions={[8, 20, 50]}
+          onPageSizeChange={onPageSizeChange}
           onPageChange={onPageChange}
         />
         {inboxItems.length > 0 && (

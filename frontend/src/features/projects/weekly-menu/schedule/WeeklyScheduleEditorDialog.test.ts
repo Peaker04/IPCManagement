@@ -41,6 +41,7 @@ describe('weekly schedule editor dish labels', () => {
       serviceDate: '2026-08-10',
       shiftName: 'Ca Chiều',
       slotType: 'afternoonSavory',
+      oldDishId: 'dish-current',
       dishId: 'dish-replacement',
     }])
   })

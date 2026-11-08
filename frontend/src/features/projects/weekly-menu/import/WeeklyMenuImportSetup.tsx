@@ -16,6 +16,8 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
   const customerError = state.setupErrors.customer
   const weekError = state.setupErrors.weekStartDate
   const fileError = state.setupErrors.file
+  const quickCustomerCodeError = state.setupErrors.quickCustomerCode
+  const quickCustomerNameError = state.setupErrors.quickCustomerName
   const selectedCustomerLabel = selectedCustomer
     ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}`
     : 'Chọn khách hàng'
@@ -48,7 +50,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
                 {customers.length === 0 && <SelectItem value={NO_CUSTOMERS_VALUE}>Chưa có khách hàng</SelectItem>}
               </SelectContent>
             </Select>
-            {customerError && <p id="weekly-menu-import-customer-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{customerError.title}</span>{' '}{customerError.message}</p>}
+            {customerError && <p id="weekly-menu-import-customer-error" role="alert" className="mt-1 text-xs text-red-700"><span className="font-semibold">{customerError.title}</span>{' '}{customerError.message}</p>}
           </FieldRow>
           <FieldRow label="Tuần bắt đầu" hint="Chọn thứ 2 của tuần" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <Input
@@ -61,7 +63,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               onChange={(event) => actions.selectWeek(event.target.value)}
               className="h-9 min-h-9"
             />
-            {weekError && <p id="weekly-menu-import-week-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{weekError.title}</span>{' '}{weekError.message}</p>}
+            {weekError && <p id="weekly-menu-import-week-error" role="alert" className="mt-1 text-xs text-red-700"><span className="font-semibold">{weekError.title}</span>{' '}{weekError.message}</p>}
           </FieldRow>
           <FieldRow label="Mức giá thực đơn" hint="Chọn mức giá áp dụng cho file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <Select
@@ -77,7 +79,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               </SelectContent>
             </Select>
           </FieldRow>
-          <FieldRow label="File Excel" hint="Chọn file thực đơn" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
+          <FieldRow label="File Excel" hint="Chọn file thực đơn" htmlFor="weekly-menu-import-file" className="min-w-0 [&_.ipc-field-label]:min-h-[34px]">
             <input
               id="weekly-menu-import-file"
               ref={fileInputRef}
@@ -121,7 +123,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
                 Thêm file
               </Button>
             </div>
-            {fileError && <p id="weekly-menu-import-file-error" className="mt-1 text-xs text-red-700"><span className="font-semibold">{fileError.title}</span>{' '}{fileError.message}</p>}
+            {fileError && <p id="weekly-menu-import-file-error" role="alert" className="mt-1 text-xs text-red-700"><span className="font-semibold">{fileError.title}</span>{' '}{fileError.message}</p>}
           </FieldRow>
         </div>
         <div className="mt-3 flex min-h-8 flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
@@ -134,14 +136,16 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
 
       {state.isQuickCustomerFormOpen && (
         <div className="grid grid-cols-1 gap-4 rounded-md border border-blue-200 bg-blue-50/60 p-4 md:grid-cols-[180px_minmax(220px,1fr)_auto]">
-          <FieldRow label="Mã khách hàng" hint="VD: ANV, DAV">
-            <Input type="text" value={state.quickCustomerCode} onChange={(event) => actions.setQuickCustomerCode(event.target.value.toUpperCase())} placeholder="ANV" disabled={status.isCreatingCustomer} />
+          <FieldRow label="Mã khách hàng" hint="VD: ANV, DAV" htmlFor="weekly-menu-import-quick-customer-code" required>
+            <Input id="weekly-menu-import-quick-customer-code" aria-label="Mã khách hàng" type="text" required value={state.quickCustomerCode} onChange={(event) => actions.setQuickCustomerCode(event.target.value.toUpperCase())} placeholder="ANV" disabled={status.isCreatingCustomer} aria-invalid={Boolean(quickCustomerCodeError) || undefined} aria-describedby={quickCustomerCodeError ? 'weekly-menu-import-quick-customer-code-error' : undefined} />
+            {quickCustomerCodeError && <span id="weekly-menu-import-quick-customer-code-error" role="alert" className="text-xs font-normal text-red-700">{quickCustomerCodeError.message}</span>}
           </FieldRow>
-          <FieldRow label="Tên khách hàng" hint="Tên đơn vị sẽ hiển thị trong danh sách">
-            <Input type="text" value={state.quickCustomerName} onChange={(event) => actions.setQuickCustomerName(event.target.value)} placeholder="Tên khách hàng" disabled={status.isCreatingCustomer} />
+          <FieldRow label="Tên khách hàng" hint="Tên đơn vị sẽ hiển thị trong danh sách" htmlFor="weekly-menu-import-quick-customer-name" required>
+            <Input id="weekly-menu-import-quick-customer-name" aria-label="Tên khách hàng" type="text" required value={state.quickCustomerName} onChange={(event) => actions.setQuickCustomerName(event.target.value)} placeholder="Tên khách hàng" disabled={status.isCreatingCustomer} aria-invalid={Boolean(quickCustomerNameError) || undefined} aria-describedby={quickCustomerNameError ? 'weekly-menu-import-quick-customer-name-error' : undefined} />
+            {quickCustomerNameError && <span id="weekly-menu-import-quick-customer-name-error" role="alert" className="text-xs font-normal text-red-700">{quickCustomerNameError.message}</span>}
           </FieldRow>
           <div className="flex items-end">
-            <Button type="button" size="sm" onClick={() => void actions.createQuickCustomer()} className="w-full" disabled={status.isCreatingCustomer || !state.quickCustomerCode.trim() || !state.quickCustomerName.trim()}>
+            <Button type="button" size="sm" onClick={() => void actions.createQuickCustomer()} className="w-full" disabled={status.isCreatingCustomer}>
               {status.isCreatingCustomer ? 'Đang tạo...' : 'Tạo và chọn'}
             </Button>
           </div>

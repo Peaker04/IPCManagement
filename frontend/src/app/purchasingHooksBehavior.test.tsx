@@ -43,7 +43,6 @@ vi.mock('@/api/purchasingApi', () => ({
   useGetSuppliersQuery: mocks.getSuppliers,
   useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
   useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],
-  useRecordPurchaseOrderReceiptMutation: () => [vi.fn(), { isLoading: false }],
   useSubmitPurchaseRequestMutation: () => [mocks.submitRequest, { isLoading: false }],
   useUpdatePurchaseRequestLineSupplierMutation: () => [vi.fn(), { isLoading: false }],
   useUpdateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],

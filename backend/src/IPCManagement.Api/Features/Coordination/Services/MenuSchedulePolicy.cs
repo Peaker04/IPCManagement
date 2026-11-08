@@ -137,6 +137,7 @@ internal static class MenuSchedulePolicy
                     DishName = item.Dish.DishName,
                     DishGroup = item.Dish.DishGroup,
                     DishType = item.Dish.DishType,
+                    DishSlot = item.DishSlot,
                     DisplayOrder = item.DisplayOrder
                 })
                 .ToList()

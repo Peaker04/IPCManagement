@@ -11,6 +11,7 @@ public class WorkflowReportQueryDto
     public string? CustomerId { get; set; }
     public string? WarehouseId { get; set; }
     public string? IngredientId { get; set; }
+    public string? MaterialRequestId { get; set; }
     public string? SupplierId { get; set; }
     public string? ShiftName { get; set; }
     public string? Format { get; set; }

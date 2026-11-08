@@ -108,11 +108,11 @@ public class AuthorizationPoliciesTests
     public void Reconciliation_endpoint_policy_matrix_separates_read_coordinate_actual_and_decision_access()
     {
         var batches = typeof(ReconciliationBatchesController);
-        Policy(batches, nameof(ReconciliationBatchesController.List)).Should().Be(AuthorizationPolicies.ReportAccess);
-        Policy(batches, nameof(ReconciliationBatchesController.Get)).Should().Be(AuthorizationPolicies.ReportAccess);
-        Policy(batches, nameof(ReconciliationBatchesController.DraftSources)).Should().Be(AuthorizationPolicies.CoordinationAccess);
-        Policy(batches, nameof(ReconciliationBatchesController.Create)).Should().Be(AuthorizationPolicies.CoordinationAccess);
-        Policy(batches, nameof(ReconciliationBatchesController.Ready)).Should().Be(AuthorizationPolicies.CoordinationAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.List)).Should().Be(AuthorizationPolicies.ReconciliationReadAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.Get)).Should().Be(AuthorizationPolicies.ReconciliationReadAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.DraftSources)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.Create)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
+        Policy(batches, nameof(ReconciliationBatchesController.Ready)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
         Policy(batches, nameof(ReconciliationBatchesController.Complete)).Should().Be(AuthorizationPolicies.ReconciliationCompleteAccess);
 
         var actuals = typeof(ReconciliationActualsController);

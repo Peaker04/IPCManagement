@@ -8,14 +8,21 @@ describe('MainLayout ownership and behavior contract', () => {
     expect(appRouterSource).toContain("from '@/app/layout/MainLayout'");
   });
 
+  it('keeps page-owned shift scope out of the shared header', () => {
+    expect(currentLayoutSource).not.toContain('HeaderShiftContext');
+    expect(currentLayoutSource).not.toContain("'Ca trưa'");
+    expect(currentLayoutSource).toContain("title: 'Thực đơn tuần'");
+  });
+
   it('locks navigation, permissions, preload and DOM-visible behavior', () => {
-    expect(currentLayoutSource).toContain('item.requiredPermissions.some');
+    expect(currentLayoutSource).toContain('isRouteVisibleToPermissions(');
     expect(currentLayoutSource).toContain('preloadRoute(path, mode)');
     expect(currentLayoutSource).toContain('preloadRouteData(path, mode)');
     expect(currentLayoutSource).toContain("onPointerEnter={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}");
     expect(currentLayoutSource).toContain("onFocus={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}");
     expect(currentLayoutSource).toContain("onTouchStart={() => preloadNavigationTarget(item.path, systemOperation?.mode ?? 'DEFAULT')}");
     expect(currentLayoutSource).toContain('aria-current={isActive ? \'page\' : undefined}');
+    expect(currentLayoutSource).toContain("!navigationPreferences[item.preferenceKey]");
     expect(currentLayoutSource).toContain('id="ipc-main-content"');
     expect(currentLayoutSource).toContain('<Outlet />');
   });

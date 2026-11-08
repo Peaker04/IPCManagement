@@ -20,6 +20,7 @@ public class DemandReportService : IDemandReportService
     public async Task<IReadOnlyList<IngredientDemandReportDto>> GetIngredientDemandAsync(WorkflowReportQueryDto query)
     {
         var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var materialRequestId = GuidHelper.ParseFilterIdOrThrow(query.MaterialRequestId, "yêu cầu nguyên liệu");
         var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
@@ -32,6 +33,11 @@ public class DemandReportService : IDemandReportService
         if (ingredientId is not null)
         {
             lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (materialRequestId is not null)
+        {
+            lines = lines.Where(item => item.RequestId.SequenceEqual(materialRequestId));
         }
 
         if (dateFrom is not null)
@@ -57,7 +63,7 @@ public class DemandReportService : IDemandReportService
         return await lines
             .OrderByDescending(item => item.Request.RequestDate)
             .ThenBy(item => item.Ingredient.IngredientName)
-            .Take(NormalizeLimit(query.Limit))
+            .Take(materialRequestId is null ? NormalizeLimit(query.Limit) : int.MaxValue)
             .Select(item => new IngredientDemandReportDto
             {
                 MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
@@ -246,6 +252,18 @@ public class DemandReportService : IDemandReportService
                         .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m)
                     : 0m
                 : item.SuggestedPurchaseQty) > 0m);
+        var remainingToIssueCount = await grouped.CountAsync(group => group.Sum(item => Math.Max(0m, item.TotalRequiredQty -
+            (item.Inventoryissuelines
+                .Where(issueLine => issueLine.ReconciliationBatchLineId == null
+                    && issueLine.Issue.ReconciliationBatchId == null
+                    && issueLine.Issue.MaterialRequestId == item.RequestId)
+                .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m))) > 0m);
+        var pendingKitchenReceiptCount = await grouped.CountAsync(group => group.Sum(item => item.Inventoryissuelines
+            .Where(issueLine => issueLine.ReconciliationBatchLineId == null
+                && issueLine.Issue.ReconciliationBatchId == null
+                && issueLine.Issue.MaterialRequestId == item.RequestId
+                && issueLine.Issue.ReceivedAt == null)
+            .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m) > 0m);
         var items = await grouped
             .OrderByDescending(group => group.Key.RequestDate)
             .ThenBy(group => group.Key.IngredientName)
@@ -269,6 +287,23 @@ public class DemandReportService : IDemandReportService
                 CurrentStockQty = group.Sum(item =>
                     item.Request.Status != "CANCELLED" ? item.CurrentStockQty : 0m),
                 SuggestedPurchaseQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
+                IssuedQty = group.Sum(item => item.Inventoryissuelines
+                    .Where(issueLine => issueLine.ReconciliationBatchLineId == null
+                        && issueLine.Issue.ReconciliationBatchId == null
+                        && issueLine.Issue.MaterialRequestId == item.RequestId)
+                    .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m),
+                ReceivedByKitchenQty = group.Sum(item => item.Inventoryissuelines
+                    .Where(issueLine => issueLine.ReconciliationBatchLineId == null
+                        && issueLine.Issue.ReconciliationBatchId == null
+                        && issueLine.Issue.MaterialRequestId == item.RequestId
+                        && issueLine.Issue.ReceivedAt != null)
+                    .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m),
+                RemainingToIssueQty = group.Sum(item => Math.Max(0m, item.TotalRequiredQty -
+                    (item.Inventoryissuelines
+                        .Where(issueLine => issueLine.ReconciliationBatchLineId == null
+                            && issueLine.Issue.ReconciliationBatchId == null
+                            && issueLine.Issue.MaterialRequestId == item.RequestId)
+                        .Sum(issueLine => (decimal?)issueLine.IssuedQty) ?? 0m))),
                 FulfilledQty = group.Sum(item => item.Request.Status == "EXPORTED"
                     ? item.Inventoryissuelines
                         .Where(issueLine => issueLine.Issue.ReceivedAt != null)
@@ -313,6 +348,8 @@ public class DemandReportService : IDemandReportService
             PageNumber = query.PageNumber,
             PageSize = query.PageSize,
             ShortageCount = shortageCount,
+            RemainingToIssueCount = remainingToIssueCount,
+            PendingKitchenReceiptCount = pendingKitchenReceiptCount,
         };
     }
 

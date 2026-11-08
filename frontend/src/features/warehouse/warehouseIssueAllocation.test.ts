@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { DemandLine } from '@/types/workflow';
 import type { CurrentStockRow, KitchenIssueRow } from '@/api/workflowApi';
-import { buildWarehouseIssueAllocation } from './warehouseIssueAllocation';
+import { buildWarehouseIssueAllocation, formatIssueCandidateLabel, issueShiftName } from './warehouseIssueAllocation';
 
 const demand = (ingredientId: string, required: number): DemandLine => ({
   id: `demand-${ingredientId}`,
@@ -52,6 +52,15 @@ const issued = (ingredientId: string, issuedQty: number): KitchenIssueRow => ({
   issuedQty,
   isReceivedByKitchen: true,
   receiptStatus: 'Bếp đã nhận',
+});
+
+describe('warehouse issue context', () => {
+  it('keeps customer, date, shift and source document visible and maps FULLDAY to no issue shift', () => {
+    expect(formatIssueCandidateLabel({ requestDate: '2026-09-07', requestScope: 'MORNING', actionableLineCount: 2, materialRequestCode: 'MR-001', customerName: 'An Vui', customerCode: 'ANV' }))
+      .toContain('An Vui (ANV) · Ngày 07/09/2026 · Ca sáng · 2 nhóm nguyên liệu · Chứng từ MR-001');
+    expect(issueShiftName('MORNING')).toBe('MORNING');
+    expect(issueShiftName('FULLDAY')).toBeNull();
+  });
 });
 
 describe('buildWarehouseIssueAllocation', () => {

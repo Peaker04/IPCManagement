@@ -10,7 +10,7 @@ import {
   setCredentials,
   useGetCurrentUserQuery,
 } from '../features/auth';
-import { normalizeUserRole } from '../features/auth/roleUtils';
+import { normalizeUserRole } from '@/lib/auth/roleUtils';
 import { ROUTES } from '@/lib/routeConfig';
 
 export const ProtectedRoute = () => {

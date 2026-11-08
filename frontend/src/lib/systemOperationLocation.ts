@@ -9,9 +9,11 @@ export const normalizeAuthorityLocation = (mode: SystemOperationMode, pathname: 
 
   if (pathname === ROUTES.WAREHOUSE) {
     const next = new URLSearchParams(search)
-    const changed = next.has('batchId') || next.has('view')
+    const view = next.get('view')
+    const validView = view === 'receiving' || view === 'movement' || view === 'demand' || view === 'exceptions'
+    const changed = next.has('batchId') || Boolean(view && !validView)
     next.delete('batchId')
-    next.delete('view')
+    if (view && !validView) next.delete('view')
     if (changed) {
       const nextSearch = next.toString()
       return nextSearch ? `${pathname}?${nextSearch}` : pathname
@@ -21,11 +23,10 @@ export const normalizeAuthorityLocation = (mode: SystemOperationMode, pathname: 
 
   if (pathname === ROUTES.WEEKLY_MENU) {
     const next = new URLSearchParams(search)
-    const changed = ['view', 'customerId', 'weekStartDate'].some((key) => next.has(key))
-    next.delete('view')
-    next.delete('customerId')
-    next.delete('weekStartDate')
-    if (changed) {
+    const view = next.get('view')
+    const validView = view === 'schedule' || view === 'demand' || view === 'production-plan' || view === 'purchase-summary' || view === 'cost' || view === 'dish-materials'
+    if (view && !validView) {
+      next.delete('view')
       const nextSearch = next.toString()
       return nextSearch ? `${pathname}?${nextSearch}` : pathname
     }

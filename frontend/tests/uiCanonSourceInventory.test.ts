@@ -43,16 +43,13 @@ describe('PB canon source inventory', () => {
     expect(legacyTimers).toEqual([])
     expect(findCall(production, 'globalThis', 'setTimeout').filter((finding) => [
       'src/features/reports/pages/useReportsAuditQualityViewModel.ts',
-      'src/features/reports/pages/useReportsPriceViewModel.ts',
     ].includes(finding.path)).map((finding) => finding.path)).toEqual([
       'src/features/reports/pages/useReportsAuditQualityViewModel.ts',
-      'src/features/reports/pages/useReportsPriceViewModel.ts',
     ])
 
     const deferredOwners = new Set(findIdentifier(production, 'useDeferredValue').map((finding) => finding.path))
     for (const owner of [
       'src/features/reports/pages/useReportsAuditQualityViewModel.ts',
-      'src/features/reports/pages/useReportsPriceViewModel.ts',
       'src/features/purchasing/quotation/useSupplierQuotations.ts',
       'src/features/warehouse/WarehouseExceptionsWorkbench.tsx',
     ]) expect(deferredOwners.has(owner)).toBe(true)
@@ -68,7 +65,6 @@ describe('PB canon source inventory', () => {
     const confirmationOwners = findJsxTags(production, 'ConfirmDialog').map((finding) => finding.path)
     for (const owner of [
       'src/app/pages/admin-data/AdminEmployeesPanel.tsx',
-      'src/features/projects/weekly-menu/import/WeeklyMenuImportDialog.tsx',
       'src/features/projects/weekly-menu/import/WeeklyMenuImportJobs.tsx',
     ]) expect(confirmationOwners).toContain(owner)
   })

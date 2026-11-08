@@ -34,7 +34,20 @@ export const SECTIONS = [
 
 export const resolveImportedSlotLabel = (
   row: WeeklyMenuImportResult['rows'][number],
-) => importSlotLabels[row.slot] || row.slotLabel || row.slot
+) => {
+  const isVegetarian =
+    row.variant?.toLowerCase() === 'chay' ||
+    row.variant?.toLowerCase() === 'vegetarian' ||
+    row.sourceSection?.toUpperCase().includes('CHAY')
+  if (isVegetarian) {
+    if (row.slot === 'main') return 'Món chay 1'
+    if (row.slot === 'sub1' || row.slot === 'sub2') return 'Món chay 2'
+    if (row.slotLabel && /mặn/i.test(row.slotLabel)) {
+      return row.slotLabel.replace(/mặn/gi, 'chay')
+    }
+  }
+  return importSlotLabels[row.slot] || row.slotLabel || row.slot
+}
 
 export const getNormalizedSlotType = (row: WeeklyMenuImportResult['rows'][number]) => {
   const shift = row.dbShiftName === 'MORNING' ? 'morning' : 'afternoon'

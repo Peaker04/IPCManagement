@@ -38,12 +38,20 @@ vi.mock('../SupplementalPurchasingWorkbench', () => ({
   SupplementalPurchasingWorkbench: () => <div data-testid="supplemental-workbench" />,
 }));
 vi.mock('../PurchaseServiceDateWorkbench', () => ({
-  PurchaseServiceDateWorkbench: ({ serviceDates, children }: { serviceDates: unknown[]; children: ReactNode }) => (
-    <div data-testid="service-date-workbench">service dates: {serviceDates.length}{children}</div>
+  PurchaseServiceDateWorkbench: ({ serviceDates, selectedDate, children }: { serviceDates: unknown[]; selectedDate?: string; children: ReactNode }) => (
+    <div data-testid="service-date-workbench" data-selected-date={selectedDate}>
+      {/* TableViewport mock */}
+      <table><thead><tr><th>NHÀ CUNG CẤP</th><th>ĐƠN GIÁ</th></tr></thead></table>
+      service dates: {serviceDates.length}{children}
+    </div>
   ),
 }));
 vi.mock('../PurchaseWorkflowGuide', () => ({
-  PurchaseWorkflowGuide: () => <div data-testid="purchase-workflow-guide" />,
+  PurchaseWorkflowGuide: () => (
+    <nav aria-label="Sáu giai đoạn thu mua" data-testid="purchase-workflow-guide">
+      <button type="button">NCC & giá</button>
+    </nav>
+  ),
 }));
 vi.mock('../quotation/SupplierQuotationSection', () => ({
   SupplierQuotationSection: () => <div data-testid="supplier-quotation-section" />,
@@ -190,7 +198,7 @@ describe('PurchasingPage query state boundary', () => {
 
     expect(screen.getByText('Bạn không có quyền xem quy trình thu mua.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Thử lại' })).toBeNull();
-    expect(screen.getAllByText('—').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Ngày cần xử lý')).toBeNull();
     expect(screen.queryByTestId('service-date-workbench')).toBeNull();
   });
 
@@ -230,6 +238,25 @@ describe('PurchasingPage query state boundary', () => {
     expect(screen.getByTestId('supplemental-workbench').closest('[hidden]')).not.toBeNull();
   });
 
+  it('opens the service date that owns a purchase-request deep link', async () => {
+    const linkedWorkbench = {
+      ...workbench,
+      serviceDates: [
+        workbench.serviceDates[0],
+        { ...workbench.serviceDates[0], serviceDate: '2026-07-21', purchaseRequestId: 'purchase-request-2' },
+      ],
+    };
+    mocks.getWorkbench.mockReturnValue(queryResult({
+      data: linkedWorkbench,
+      currentData: linkedWorkbench,
+      isSuccess: true,
+    }));
+
+    renderPage('/purchasing?week=2026-07-20&purchaseRequestId=purchase-request-2');
+
+    expect(await screen.findByTestId('service-date-workbench')).toHaveAttribute('data-selected-date', '2026-07-21');
+  });
+
   it('keeps supplemental purchasing in its own URL-addressable tab', () => {
     mocks.getWorkbench.mockReturnValue(queryResult());
 
@@ -251,5 +278,85 @@ describe('PurchasingPage query state boundary', () => {
     expect(screen.getByTestId('service-date-workbench').closest('[hidden]')).not.toBeNull();
     await waitFor(() => expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toHaveAttribute('aria-selected', 'true'));
     expect(document.getElementById('purchasing-supplemental-panel')).not.toHaveAttribute('hidden');
+  });
+
+  it('retires workflow chrome when the ready week has no approved demand', () => {
+    const emptyWorkbench = {
+      ...workbench,
+      selectedDate: undefined,
+      stageCounts: {
+        demand: 0,
+        supplierPrice: 0,
+        exception: 0,
+        submittedRequest: 0,
+        approvedOrder: 0,
+        receivingProgress: 0,
+      },
+      serviceDates: [],
+      totalItems: 0,
+    };
+    mocks.getWorkbench.mockReturnValue(queryResult({ data: emptyWorkbench, currentData: emptyWorkbench, isSuccess: true }));
+
+    renderPage('/purchasing?week=2026-07-20');
+
+    // Compact guidance xuất hiện
+    expect(screen.getByText('Chưa có nhu cầu nguyên liệu đã duyệt trong tuần này.')).toBeInTheDocument();
+    expect(screen.getByText(/Chọn tuần khác hoặc kiểm tra KHSX tại Thực đơn tuần/i)).toBeInTheDocument();
+
+    // Workflow chrome absent
+    expect(screen.queryByRole('navigation', { name: /Sáu giai đoạn thu mua/i })).toBeNull();
+    expect(screen.queryByText('NCC & giá')).toBeNull();
+    expect(screen.queryByTestId('service-date-workbench')).toBeNull();
+    expect(screen.queryByText('NHÀ CUNG CẤP')).toBeNull();
+    expect(screen.queryByText('ĐƠN GIÁ')).toBeNull();
+    expect(screen.queryByTestId('service-run-blocker')).toBeNull();
+    expect(screen.queryByTestId('purchase-decision-panel')).toBeNull();
+
+    // ContextStrip 4 zero facts absent
+    expect(screen.queryByText('Ngày cần xử lý')).toBeNull();
+    expect(screen.queryByText('Nhu cầu chờ duyệt')).toBeNull();
+    expect(screen.queryByText('Ngoại lệ giá')).toBeNull();
+    expect(screen.queryByText('Đơn chờ nhập')).toBeNull();
+
+    // Scope CommandBar, page heading, ViewSwitcher still present
+    expect(screen.getByRole('heading', { name: 'Thu mua theo nhu cầu đã duyệt' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Xử lý thu mua' })).toBeInTheDocument();
+    expect(screen.getByText(/Tuần mua hàng/i)).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Mua bổ sung' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Báo giá nhà cung cấp' })).toBeInTheDocument();
+  });
+
+  it('keeps workflow guide and workbench when ready service dates exist', () => {
+    mocks.getWorkbench.mockReturnValue(queryResult({ data: workbench, currentData: workbench, isSuccess: true }));
+
+    renderPage('/purchasing?week=2026-07-20');
+
+    expect(screen.getByTestId('purchase-workflow-guide')).toBeInTheDocument();
+    expect(screen.getByTestId('service-date-workbench')).toBeInTheDocument();
+    expect(screen.getByTestId('purchase-decision-panel')).toBeInTheDocument();
+    expect(screen.queryByText('Ngày cần xử lý')).toBeNull();
+    expect(screen.queryByText('Chưa có nhu cầu nguyên liệu đã duyệt trong tuần này.')).toBeNull();
+  });
+
+  it('does not mistake loading, error, or forbidden states for ready-empty', () => {
+    // Loading
+    mocks.getWorkbench.mockReturnValue(queryResult({ isLoading: true, isFetching: true }));
+    const { unmount } = renderPage('/purchasing?week=2026-07-20');
+    expect(screen.queryByText('Chưa có nhu cầu nguyên liệu đã duyệt trong tuần này.')).toBeNull();
+    expect(screen.getByText('Đang tải quy trình thu mua')).toBeInTheDocument();
+    unmount();
+
+    // Error
+    mocks.getWorkbench.mockReturnValue(queryResult({ isError: true, error: { status: 500 } }));
+    const { unmount: unmountError } = renderPage('/purchasing?week=2026-07-20');
+    expect(screen.queryByText('Chưa có nhu cầu nguyên liệu đã duyệt trong tuần này.')).toBeNull();
+    expect(screen.getAllByText(/Không tải được quy trình thu mua/).length).toBeGreaterThan(0);
+    unmountError();
+
+    // Forbidden
+    mocks.getWorkbench.mockReturnValue(queryResult({ isError: true, error: { status: 403 } }));
+    renderPage('/purchasing?week=2026-07-20');
+    expect(screen.queryByText('Chưa có nhu cầu nguyên liệu đã duyệt trong tuần này.')).toBeNull();
+    expect(screen.getByText('Bạn không có quyền xem quy trình thu mua.')).toBeInTheDocument();
   });
 });

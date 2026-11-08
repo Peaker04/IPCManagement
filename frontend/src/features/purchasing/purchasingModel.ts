@@ -18,42 +18,49 @@ export const PURCHASING_STAGES = [
   {
     id: 'demand',
     label: 'Nhu cầu đã duyệt',
+    shortLabel: 'Nhu cầu duyệt',
     countKey: 'demand',
     blockedReason: 'Cần có nhu cầu nguyên liệu đã được duyệt.',
   },
   {
     id: 'supplier-price',
     label: 'Chọn nhà cung cấp và giá',
+    shortLabel: 'NCC & giá',
     countKey: 'supplierPrice',
     blockedReason: 'Cần tạo đề xuất mua từ nhu cầu đã duyệt.',
   },
   {
     id: 'exception',
     label: 'Xử lý ngoại lệ giá',
+    shortLabel: 'Ngoại lệ giá',
     countKey: 'exception',
     blockedReason: 'Cần xác nhận nhà cung cấp, giá và ngày giao cho từng dòng.',
   },
   {
     id: 'submitted',
     label: 'Gửi đề xuất mua',
+    shortLabel: 'Gửi đề xuất',
     countKey: 'submittedRequest',
     blockedReason: 'Cần xử lý xong mọi ngoại lệ giá.',
   },
   {
     id: 'approved-order',
     label: 'Duyệt và tạo đơn',
+    shortLabel: 'Duyệt & tạo đơn',
     countKey: 'approvedOrder',
     blockedReason: 'Đề xuất mua phải được gửi và quản lí duyệt.',
   },
   {
     id: 'receiving',
     label: 'Theo dõi nhập kho',
+    shortLabel: 'Nhập kho',
     countKey: 'receivingProgress',
     blockedReason: 'Cần tạo ít nhất một đơn đặt hàng.',
   },
 ] as const satisfies ReadonlyArray<{
   id: PurchasingStageId;
   label: string;
+  shortLabel?: string;
   countKey: keyof PurchaseWorkflowStageCounts;
   blockedReason: string;
 }>;
@@ -269,7 +276,7 @@ export function mapPurchasePlanLines(
     ingredientId: row.ingredientId,
     sourceDocumentCode: row.periodKey,
     serviceDate: row.periodStart,
-    material: row.ingredientName ?? row.ingredientId,
+    material: row.ingredientName ?? 'Chưa có tên nguyên liệu',
     required: row.requiredQty,
     available: row.currentStockQty + row.pendingReceiptQty,
     reserved: 0,

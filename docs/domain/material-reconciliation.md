@@ -9,6 +9,27 @@ extracted_from: ../../MEMORY.md
 
 > Contract này được extract nguyên nghĩa từ working memory ngày 08/09/2026. Source/runtime có thể phát hiện implementation lệch contract nhưng không tự thay đổi expected behavior. Mọi thay đổi nghiệp vụ cần owner decision và cập nhật tài liệu này trong cùng task.
 
+## PLANNED BUSINESS CHANGE — daily issue and kitchen export · 17/09/2026
+
+The next implementation campaign is owned by `.planning/notes/MRX-DAILY-ISSUE-KITCHEN-EXPORT-PLAN.md`. Owner decisions:
+
+- Warehouse issue is changing from one weekly initial issue to independent issue transactions per service date.
+- UI provides `Cả tuần | Thứ 2 … Chủ nhật`; `Cả tuần` is a read-only weekly ingredient summary and cannot submit an issue. The weekly summary groups the same frozen batch line across service dates into one row, sums required/net-issued/positive remaining quantities, and derives progress from date-level statuses so opposite daily variances cannot cancel each other. Concrete dates retain the exact daily-line mutation surface.
+- Daily and weekly statuses must come from one backend ledger-derived projection. The active filter must never change weekly status.
+- Daily frozen authority requires durable `batch × serviceDate × ingredient × unit` lineage; do not simulate this by filtering weekly aggregate lines.
+- Kitchen cooking export is generated from frozen batch facts with servings, dish, ingredient, BOM-per-serving and total required quantity; it excludes IDs, versions, fingerprints, price and purchasing data.
+- Existing protected batches are not silently rewritten. Compatibility must be explicit and tested before migration.
+
+Wave A persistence decision is additive: a new frozen daily-line owner retains `batch × serviceDate × ingredient × unit`, new contributors and MRX issue lines reference that owner, and the weekly line remains an aggregate projection. Existing rows keep nullable daily linkage and are not backfilled automatically. A retained batch without complete daily lineage remains readable but date issuing is blocked with `LEGACY_DAILY_LINEAGE_MISSING`; completed batches remain read-only.
+
+Wave A command implementation now requires every MRX issue line to carry the exact frozen daily-line ID for the request `IssueDate`. Initial issue validation covers every positive daily line for that date exactly once; another date can receive its own initial issue after the batch is already `IN_PROGRESS`. Supplemental eligibility is date-scoped. Wrong/outside/mixed dates, duplicate daily lines, stale versions and wrong operation mode fail closed before durable issue/stock writes.
+
+The backend daily Warehouse projection is now the status owner: it returns all seven dates, daily frozen lines, required/net-issued/confirmed-return/remaining quantities, daily status and one weekly status computed across every applicable date. It has no day-filter input, so a UI filter cannot alter weekly truth. Completion consults this projection for new-lineage batches. Daily overage resolution is owned by a versioned `ReconciliationDailyDisposition` attached to exactly one frozen daily line; supplemental issues and confirmed returns invalidate only affected daily dispositions. Completion succeeds only when every applicable date is exact or has a valid daily overage disposition. Weekly legacy dispositions are not reused across dates.
+
+Kitchen cooking export is owned by frozen contributor facts written with the batch: service date comes from the daily line, while shift, dish identity/name, servings, BOM quantity per serving and retained waste rate are frozen on each contributor. The canonical projection groups exactly by `serviceDate × shift × dish × ingredient`, aggregates duplicate contributions only when their frozen facts agree, and fails closed on ambiguity or legacy missing facts. Preview JSON and UTF-8-BOM CSV use the same ordering and quantities; export excludes technical IDs, versions, fingerprints, price, supplier and purchasing data.
+
+The sections below describe the current implemented contract and are the baseline to migrate from. Where the planned change conflicts with the current weekly-issue wording, the new checklist governs implementation only after its red gates and additive lineage design are approved in source/tests.
+
 ## BUSINESS CONTRACT HIỆN HÀNH — MATERIAL_RECONCILIATION · 04/09/2026
 
 > Đây là memory ưu tiên cao và là bản nghiệp vụ tự đủ phải được đọc trước mọi task liên quan MRX. Nó supersede mọi ghi chú lịch sử phía dưới nếu có mâu thuẫn, đặc biệt các câu cũ nói issued quantity không nhập tay, issue chỉ được tạo một lần hoặc shortage là hành vi dự kiến.
@@ -19,6 +40,7 @@ extracted_from: ../../MEMORY.md
 - Mode này có đúng các khu vực nghiệp vụ: Dashboard, Thực đơn tuần, Kho nguyên liệu, Đối chiếu, Quản trị dữ liệu; Advanced Settings chỉ là cấu hình admin.
 - Mode này **không có Thu mua, Báo cáo, KHSX hay MaterialDemand của DEFAULT**. Không mount/fetch/mutate owner Purchasing/default-demand và không hướng người dùng sang Thu mua để tiếp tục MRX.
 - `DEFAULT` và `MATERIAL_RECONCILIATION` dùng chung master data và physical stock, nhưng workflow record/lineage/query/mutation/audit của hai family phải tách tuyệt đối. Không chuyển, copy, re-parent hoặc cộng chéo record khi đổi mode.
+- Mọi API read sở hữu batch/report của MRX phải khai báo `ReconciliationOnly`; route ẩn không phải ranh giới API. Shared InventoryIssue read phải ràng buộc `sourceFamily` với mode hiện hành trước repository access, không cho caller tự chọn family chéo mode.
 - Trước mọi screenshot, browser action hoặc verdict phải gọi `GET /api/system-operation-mode` và assert đúng mode. Evidence từ mode khác không có giá trị. Không đổi mode khi Kỳ đang kiểm thử thủ công; harness đổi mode phải ghi version trước/sau và phục hồi mode gốc.
 
 ### 2. Authority và grain nguồn
@@ -67,7 +89,8 @@ extracted_from: ../../MEMORY.md
 ### 7. Phiếu xuất thêm
 
 - Chỉ được phép sau initial issue, khi batch là `IN_PROGRESS`; `COMPLETED` read-only.
-- Mỗi supplemental transaction chọn đúng **một ingredient đã có trong frozen batch**, quantity dương và một lý do tiếng Việt bắt buộc.
+- Mỗi supplemental transaction chọn **một hoặc nhiều ingredient đã có trong frozen batch** (chọn trực tiếp hoặc tính theo món và số suất phát sinh từ BOM hiện hành), quantity dương và lý do tiếng Việt bắt buộc. Phép tính theo món chỉ hợp lệ khi mỗi BOM nguồn ánh xạ duy nhất tới một frozen batch line cùng nguyên liệu; lineage mâu thuẫn phải fail-closed và hướng người dùng chọn nguyên liệu trực tiếp, không tùy ý chọn contributor đầu tiên. Sau khi đã có phiếu xuất đầu tiên, màn hình Thực đơn tuần phải dẫn thẳng tới đúng `batchId` ở Kho; thay đổi số suất không được âm thầm ghi đè `RequiredQuantity` đã khóa.
+- Projection món cho xuất thêm giữ chính xác contributor → frozen line; nếu nguyên liệu trên BOM hiện hành đã đổi và không còn khớp frozen ingredient, phải fail closed thay vì gắn ingredient mới vào ID dòng cũ. Định lượng/suất sau quy đổi giữ precision cho phép nhân số suất; chỉ làm tròn quantity cuối đến 6 chữ số, không làm tròn rate nhỏ về 0 trước phép nhân. Đây là read projection, không sửa frozen requirement/contributor. Consumer xuất thêm phải phân biệt đang tải, thành công không có món và lỗi định lượng; lỗi phải hiển thị lý do/thử lại, vẫn cho phép chọn trực tiếp frozen ingredient. Không tính xuất theo món từ dữ liệu lỗi hoặc cache của batch khác.
 - Mỗi lần xuất thêm tạo `InventoryIssue` mới với cùng batch/frozen-line lineage. Không sửa issue trước, không tạo frozen material row mới và không cho ingredient ngoài lô.
 - Một ingredient có thể có nhiều supplemental issue; history/audit/stock movement của từng giao dịch phải giữ append-only và hiển thị được.
 - Lifecycle transition của initial và supplemental issue cùng batch phải dùng aggregate sequence tăng theo batch version; không được tái dùng sequence `1`, vì unique lifecycle fence sẽ biến lần xuất thêm hợp lệ thành lỗi 500.
@@ -89,6 +112,24 @@ extracted_from: ../../MEMORY.md
 - Mode/version và aggregate expected version phải recheck trong transaction trước durable write. Stale tab, stale batch, concurrent/double submit và wrong mode phải fail closed, không duplicate issue/movement/audit/idempotency.
 - Mỗi committed `QuantityImportBatchId` chỉ có một reconciliation batch canonical. DB unique constraint là authority; retry cùng command trả canonical prior result, command khác cho source đã dùng phải conflict; muốn đối chiếu lại cần committed import authority mới. Supplemental dùng command identity mới cho từng giao dịch.
 - Không hard-delete valid issue, issue line, stock movement, return, audit, contributor hoặc reconciliation history. Không reshape retained/protected batch và không fabricate evidence.
+
+### 9.1. Ma trận vai trò trong MATERIAL_RECONCILIATION
+
+- **Điều phối** sở hữu nguồn: thực đơn, lịch, số suất, preview/commit định lượng, READY và chuyển Kho. Không tạo phiếu xuất, disposition hoặc hoàn tất đối chiếu.
+- **Thủ kho** sở hữu giao dịch kho: xem định lượng ngày, tạo phiếu xuất đầu tiên/bổ sung và xem lịch sử. Không xem phiếu nấu, chi tiết quyết định đối chiếu hoặc sửa nguồn.
+- **Quản lý** sở hữu quyết định: xem chi tiết sai lệch, xử lý chênh lệch và hoàn tất đối chiếu. Không vào màn hình Kho, không xem phiếu nấu và không nhập số thực xuất thay Thủ kho.
+- **Bếp trưởng** chỉ được xem/tải phiếu nấu theo phạm vi lô. Không được xem số xuất kho, sai lệch, disposition, màn hình Kho hoặc dữ liệu nguồn kỹ thuật.
+- **Thu mua** không thuộc workflow MRX; không thấy điều hướng lô, Kho MRX, phiếu nấu hoặc các nút mutation MRX.
+- **Admin** có quyền giám sát/khẩn cấp theo policy hệ thống và quản trị dữ liệu, nhưng giao diện vẫn trình bày owner nghiệp vụ tương ứng; audit phải giữ actor thật.
+- Nút không thuộc authority phải ẩn, không chỉ disable. Deep-link/API vẫn phải trả `403`; ẩn điều hướng không phải ranh giới bảo mật.
+
+### 9.2. Trình bày trạng thái và chi tiết giao dịch
+
+- Lifecycle strip là owner của trạng thái lô thông thường. Không dựng cảnh báo “số suất thay đổi” chỉ từ `TRANSFERRED` hoặc `IN_PROGRESS`; chỉ cảnh báo khi projection có bằng chứng chênh lệch thật.
+- Sau issue hoặc trong lúc projection ngày refetch, danh sách nguyên liệu phải giữ các dòng đã biết và chuyển sang read-only theo ledger facts; không được để tab chỉ còn khoảng trắng. Initial loading, error, legacy unavailable và ready-empty phải có surface riêng.
+- Lô legacy không có daily lineage dùng unavailable/empty state trung tính và dẫn tới lịch sử; không trình bày như lỗi hệ thống hoặc lộ mã compatibility.
+- Chi tiết phiếu xuất là bề mặt modal: khóa cuộn/tương tác nền, trap và trả focus, nội dung cuộn độc lập. Thông tin nghiệp vụ đứng trước; UUID/lineage nằm trong disclosure kỹ thuật mặc định đóng.
+- Ghi chú của lô liên quan phải được đặt tên đúng phạm vi, không được trình bày như ghi chú riêng của phiếu khi lineage hiện tại chưa chứng minh quan hệ đó.
 
 ### 10. Evidence và quy tắc thực thi
 

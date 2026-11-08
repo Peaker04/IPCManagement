@@ -43,7 +43,7 @@ describe('MXE-08 audit issue event detail', () => {
     expect(screen.getByRole('row', { name: /Gạo 1,25 kg/ })).toBeInTheDocument()
     expect(screen.getByRole('row', { name: /Sữa 900 ml/ })).toBeInTheDocument()
     expect(screen.queryByText(/901[,.]25/)).not.toBeInTheDocument()
-    expect(screen.getByText('Vai trò chưa được lưu')).toBeInTheDocument()
+    expect(screen.queryByText('Vai trò chưa được lưu')).not.toBeInTheDocument()
     expect(screen.getByText('issue-mxe08')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Mở lô đối chiếu/ })).toHaveAttribute('href', '/reconciliation?batchId=batch-mxe08&issueId=issue-mxe08')
 

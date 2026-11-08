@@ -3,7 +3,7 @@ import { useDebouncedValue } from '@/lib/useDebouncedValue';
 import {
   useGetCurrentStockPageQuery,
   useGetStockMovementPageQuery,
-} from '@/features/reports/reportsApi';
+} from '@/api/reportsApi';
 import type { ReportCursor } from '@/api/workflowApiTypes';
 import type { AdminView } from './adminDataPageTypes';
 import { toAdminView } from './adminDataPageModelShared';
@@ -11,6 +11,7 @@ import { toAdminView } from './adminDataPageModelShared';
 export function useAdminInventoryPanelModel(activeView: AdminView) {
   const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
   const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [currentStockPageSize, setCurrentStockPageSize] = useState(8);
   const [inventoryMovementSearch, setInventoryMovementSearchState] = useState('');
   const deferredInventoryMovementSearch = useDebouncedValue(inventoryMovementSearch.trim(), 250);
   const stockMovementCursor = stockMovementCursors.at(-1);
@@ -25,8 +26,8 @@ export function useAdminInventoryPanelModel(activeView: AdminView) {
   }, { skip: activeView !== 'inventory' });
   const stockMovementView = toAdminView(stockMovementResult, 'bút toán điều chỉnh kho');
   const currentStockQuery = useGetCurrentStockPageQuery(
-    { pageNumber: currentStockPage, pageSize: 8 },
-    { skip: activeView !== 'inventory' && activeView !== 'statistics' },
+    { pageNumber: currentStockPage, pageSize: currentStockPageSize },
+    { skip: activeView !== 'inventory' },
   );
   const currentStockView = toAdminView(currentStockQuery, 'tồn kho hiện tại');
   const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;
@@ -44,11 +45,13 @@ export function useAdminInventoryPanelModel(activeView: AdminView) {
     },
     adjustmentMovements,
     currentStockPage,
+    currentStockPageSize,
     currentStockPageResponse,
     currentStockRows,
     inventoryMovementSearch,
     setInventoryMovementSearch,
     setCurrentStockPage,
+    setCurrentStockPageSize,
     setStockMovementCursors,
     stockMovementCursors,
     stockMovementResult,

@@ -12,6 +12,14 @@ export type QueryBoundaryException = {
 }
 
 export const queryBoundaryExceptions: Readonly<Record<string, QueryBoundaryException>> = {
+  'src/features/approvals/components/MenuAmendmentInbox.tsx': {
+    rationale: 'The amendment inbox owns its paged query and preserves explicit loading, failure and ready-empty presentation around the operational list.',
+    requiredMarkers: ['useGetMenuAmendmentsQuery', 'Không tải được yêu cầu điều chỉnh', 'MenuAmendmentInbox'],
+  },
+  'src/features/reconciliation/KitchenCookingExport.tsx': {
+    rationale: 'The user-opened Kitchen export dialog owns preview and lazy file queries, renders loading and compatibility failures explicitly, and hides unavailable downloads.',
+    requiredMarkers: ['useGetReconciliationKitchenCookingQuery', 'useLazyGetReconciliationKitchenCookingCsvQuery', 'query.isError'],
+  },
   'src/features/admin/components/SystemOperationModeSettings.tsx': {
     rationale: 'The Admin mode setting owns one singleton query and renders explicit loading/error/current authority before allowing mutation.',
     requiredMarkers: ['useGetSystemOperationModeQuery', 'Không tải được chế độ vận hành', 'useChangeSystemOperationModeMutation'],

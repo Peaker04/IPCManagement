@@ -9,7 +9,7 @@ const querySpy = vi.hoisted(() => vi.fn(() => ({
 })))
 
 vi.mock('@/app/hooks', () => ({ useAppSelector: () => 'token-mxe08' }))
-vi.mock('@/features/reports/reportsApi', () => ({ useGetAuditChangePageQuery: querySpy }))
+vi.mock('@/api/reportsApi', () => ({ useGetAuditChangePageQuery: querySpy }))
 
 import { useAdminAuditPanelModel } from './useAdminAuditPanelModel'
 

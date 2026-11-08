@@ -141,7 +141,7 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task GenerateDemand_Should_ReportMissingBom_And_WriteDemandAudit()
+    public async Task GenerateDemand_Should_BlockMissingBom_WithoutWritingPartialDemand()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: true);
@@ -149,21 +149,19 @@ public partial class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var service = new MaterialDemandService(context);
 
-        var result = await service.GenerateAsync(
+        var action = () => service.GenerateAsync(
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
 
-        result.Should().NotBeNull();
-        result!.Lines.Should().ContainSingle();
-        result.MissingBomDishes.Should().ContainSingle(item => item.DishCode == "DISH-MISSING");
-
-        var audit = await context.Auditlogs.AsNoTracking().SingleAsync(item => item.BusinessArea == "Demand");
-        audit.NewValue.Should().Contain("1 demand lines");
-        audit.NewValue.Should().Contain("1 missing BOM dishes");
+        await action.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*DISH-MISSING*BOM*");
+        (await context.Materialrequests.AsNoTracking().CountAsync()).Should().Be(0);
+        (await context.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+        (await context.Auditlogs.AsNoTracking().CountAsync(item => item.BusinessArea == "Demand")).Should().Be(0);
     }
 
     [Fact]
-    public async Task GenerateDemand_Should_Ignore_Draft_BomLines()
+    public async Task GenerateDemand_Should_Block_Draft_BomLines()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -178,20 +176,19 @@ public partial class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var service = new MaterialDemandService(context);
 
-        var result = await service.GenerateAsync(
+        var action = () => service.GenerateAsync(
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
 
-        result.Should().NotBeNull();
-        result!.Lines.Should().BeEmpty();
-        result.MissingBomDishes.Should().ContainSingle(item => item.DishCode == "DISH-BOM");
+        await action.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*DISH-BOM*BOM*");
     }
 
     [Fact]
     public async Task GenerateDemand_Should_PruneStaleDemandAndProductionLines_OnRegenerate()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
-        await fixture.SeedMenuWithDemandAsync(includeMissingDish: true);
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using (var context = fixture.CreateContext())
         {
@@ -229,7 +226,7 @@ public partial class WorkflowGenerationTests
 
             result.Should().NotBeNull();
             result!.Lines.Should().BeEmpty();
-            result.MissingBomDishes.Should().ContainSingle();
+            result.MissingBomDishes.Should().BeEmpty();
             var demandLineCount = await context.Materialrequestlines.AsNoTracking().CountAsync();
             var productionLineCount = await context.Productionplanlines.AsNoTracking().CountAsync();
             var purchaseLineCount = await context.Purchaserequestlines.AsNoTracking().CountAsync();
@@ -237,7 +234,7 @@ public partial class WorkflowGenerationTests
                 .CountAsync(item => item.DishId == fixture.DishWithBomId);
 
             demandLineCount.Should().Be(0);
-            productionLineCount.Should().Be(1);
+            productionLineCount.Should().Be(0);
             purchaseLineCount.Should().Be(0);
             staleBomProductionLines.Should().Be(0);
         }
@@ -1139,7 +1136,7 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task GenerateDemand_Should_ReportMissingBom_WhenOnlyExpiredBomExists()
+    public async Task GenerateDemand_Should_Block_WhenOnlyExpiredBomExists()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -1153,7 +1150,7 @@ public partial class WorkflowGenerationTests
         }
 
         await using var context = fixture.CreateContext();
-        var result = await new MaterialDemandService(context).GenerateAsync(
+        var action = () => new MaterialDemandService(context).GenerateAsync(
             new GenerateMaterialDemandRequest
             {
                 ServiceDate = "2026-06-15",
@@ -1161,11 +1158,8 @@ public partial class WorkflowGenerationTests
             },
             fixture.UserIdString);
 
-        result.Should().NotBeNull();
-        result!.Lines.Should().BeEmpty();
-        result.MissingBomDishes.Should().ContainSingle(issue =>
-            issue.DishCode == "DISH-BOM" &&
-            issue.Message.Contains("đang hiệu lực"));
+        await action.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*DISH-BOM*BOM*");
         (await context.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(0);
     }
 

@@ -19,6 +19,17 @@ describe('SplitWorkbench', () => {
     expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Tìm tồn kho', 'Mở phiếu']);
   });
 
+  it('omits an unavailable detail rail instead of mounting a shifting empty region', () => {
+    render(
+      <SplitWorkbench detail={null} detailLabel="Chi tiết">
+        <span>Đang tải danh sách</span>
+      </SplitWorkbench>,
+    );
+
+    expect(screen.queryByRole('complementary', { name: 'Chi tiết' })).toBeNull();
+    expect(screen.getByText('Đang tải danh sách')).toBeVisible();
+  });
+
   it('preserves the stacked shared default for Approval and Chef consumers', () => {
     const { container } = render(
       <SplitWorkbench detail={<span>Chi tiết</span>} detailLabel="Chi tiết">

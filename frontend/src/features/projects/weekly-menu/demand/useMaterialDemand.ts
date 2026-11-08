@@ -183,7 +183,7 @@ export function useMaterialDemand({
   }, [activeDate, activeDay, dishesById, dishesByName, scope.customerId, scope.menuPrice, weeklyPlanRows])
 
   const aggregateLines = attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate, activeDayPlanSummary)
-  const inventoryStatus = getDemandInventoryStatus(aggregateLines, aggregatePage?.totalCount, aggregatePage?.shortageCount)
+  const inventoryStatus = getDemandInventoryStatus(aggregateLines, aggregatePage?.totalCount, undefined, aggregatePage)
   const inventoryGroups = partitionDemandLines(aggregateLines)
   const activeQuickServingRows = activeDay ? quickServingRows.filter((row) => row.serviceDate === activeDate) : []
   const aggregatedDemandLines = aggregateDemandLinesByMaterial(demandLines)
@@ -230,6 +230,16 @@ export function useMaterialDemand({
     }
     if (invalidScheduleMenuPrices.length > 0) {
       setFeedback({ title: 'Định mức không hợp lệ', message: 'Có lịch thực đơn dùng giá ngoài 25k, 30k hoặc 34k. Vui lòng nhập lại thực đơn với định mức cố định trước khi tạo nhu cầu.', variant: 'danger' })
+      return
+    }
+    const missingBomRows = weeklyPlanRows.filter((row) => !row.hasCatalogBom)
+    if (missingBomRows.length > 0) {
+      const affected = Array.from(new Set(missingBomRows.map((row) => `${row.dishName} (${row.date})`))).slice(0, 4)
+      setFeedback({
+        title: 'Chưa tạo được nhu cầu',
+        message: `Còn ${missingBomRows.length} dòng món chưa có BOM hiệu lực cho đúng ngày, khách hàng và định mức${affected.length > 0 ? `: ${affected.join(', ')}` : ''}. Bổ sung BOM rồi tính lại để tránh tạo nhu cầu thiếu dòng.`,
+        variant: 'danger',
+      })
       return
     }
     const missingServings = weeklyPlanRows.filter((row) => row.portions <= 0)

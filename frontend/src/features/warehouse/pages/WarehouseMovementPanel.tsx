@@ -36,6 +36,7 @@ interface WarehouseMovementPanelProps {
   currentStockPageSize: number;
   currentStockTotalItems: number;
   onCurrentStockPageChange: (page: number) => void;
+  onCurrentStockPageSizeChange: (pageSize: number) => void;
   stockMovementSearch: string;
   onStockMovementSearchChange: (value: string) => void;
   stockMovementView: QueryPresentation;
@@ -56,6 +57,7 @@ export function WarehouseMovementPanel({
   currentStockPageSize,
   currentStockTotalItems,
   onCurrentStockPageChange,
+  onCurrentStockPageSizeChange,
   stockMovementSearch,
   onStockMovementSearchChange,
   stockMovementView,
@@ -131,12 +133,12 @@ export function WarehouseMovementPanel({
                 </tbody>
               </table>
             </TableViewport>
-            {currentStockView.phase === 'ready' && <PaginationBar page={currentStockPage} pageSize={currentStockPageSize} totalItems={currentStockTotalItems} onPageChange={onCurrentStockPageChange} />}
+            {currentStockView.phase === 'ready' && <PaginationBar page={currentStockPage} pageSize={currentStockPageSize} totalItems={currentStockTotalItems} pageSizeOptions={[8, 20, 50]} onPageSizeChange={onCurrentStockPageSizeChange} onPageChange={onCurrentStockPageChange} />}
           </>}
         </SectionPanel>
 
         <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
-          <div className="space-y-3 px-4 py-3 sm:px-5 sm:py-4">
+          <div className="space-y-3">
           <SearchField
             id="warehouse-stock-movement-search"
             label="Tìm bút toán theo chứng từ nguồn"

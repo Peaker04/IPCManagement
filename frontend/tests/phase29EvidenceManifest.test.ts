@@ -1,22 +1,58 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { buildRunConfiguration, buildRunOutcome, performanceBudgetForRoute } from '../../tools/live-visual-audit-contract.mjs'
 
 const root = resolve(import.meta.dirname, '../..')
 const manifestOwnerPath = resolve(root, '.artifacts/shipyard-live/live-visual-audit.mjs')
+const contractOwnerPath = resolve(root, 'tools/live-visual-audit-contract.mjs')
 
 const manifestOwner = () => readFileSync(manifestOwnerPath, 'utf8')
+const evidenceOwners = () => `${manifestOwner()}\n${readFileSync(contractOwnerPath, 'utf8')}`
 
 describe('Phase 29 evidence contract', () => {
-  it('requires exhaustive protected evidence before a headed run', () => {
-    const source = manifestOwner()
+  it('persists content-sensitive source identity and explicit run configuration', () => {
+    const source = evidenceOwners()
     for (const field of [
-      'sourceCommit', 'dirtySourceFingerprint', 'database', 'headed', 'viewports', 'apiResponses',
-      'consoleErrors', 'pageErrors', 'requestFailures', 'escapedMutations', 'phase29Contract',
+      'sourceCommit', 'worktreeStatusFingerprint', 'headCommit', 'trackedDiffSha256',
+      'untrackedFiles', 'untrackedFilesSha256', 'runConfiguration', 'assertPerformance',
+      'attributionEnabled', 'geometryEnabled', 'auditProfile', 'selectedRoutes',
+      'selectedViewports', 'performanceAssertion', 'captureStatus', 'database', 'headed',
+      'viewports', 'apiResponses', 'consoleErrors', 'pageErrors', 'requestFailures',
+      'escapedMutations', 'phase29Contract',
     ]) expect(source).toContain(field)
+    expect(source).not.toContain('dirtySourceFingerprint')
     expect(source).toContain('1920x1080')
     expect(source).toContain('1365x900')
     expect(source).toContain('1280x900')
+  })
+
+  it('applies pathname budgets to query-string route samples', () => {
+    expect(performanceBudgetForRoute('/warehouse?view=exceptions')).toMatchObject({ pathname: '/warehouse', cls: 0.1 })
+    expect(performanceBudgetForRoute('/approvals?view=queue')).toMatchObject({ pathname: '/approvals', cls: 0.1 })
+  })
+
+  it('builds exact manifest configuration and distinguishes capture from assertion failure', () => {
+    expect(buildRunConfiguration({
+      assertPerformance: true,
+      attributionEnabled: true,
+      geometryEnabled: true,
+      auditProfile: 'standard',
+      routes: [{ name: 'warehouse-exceptions', path: '/warehouse?view=exceptions' }],
+      viewports: [{ name: '1366x768', width: 1366, height: 768 }],
+    })).toEqual({
+      assertPerformance: true,
+      attributionEnabled: true,
+      geometryEnabled: true,
+      auditProfile: 'standard',
+      selectedRoutes: [{ name: 'warehouse-exceptions', path: '/warehouse?view=exceptions', pathname: '/warehouse' }],
+      selectedViewports: [{ name: '1366x768', width: 1366, height: 768 }],
+    })
+    expect(buildRunOutcome({ assertPerformance: true, performanceThresholdFailures: [{ metric: 'cls' }] })).toEqual({
+      captureStatus: 'completed',
+      performanceAssertion: { enabled: true, verdict: 'failed' },
+      status: 'failed',
+    })
   })
 
   it('requires fresh quantity-import provenance and keeps the controlled scope read-only until preflight', () => {

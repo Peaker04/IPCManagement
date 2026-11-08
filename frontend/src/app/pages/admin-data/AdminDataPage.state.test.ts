@@ -10,6 +10,7 @@ import employeesModelSource from './useAdminEmployeesPanelModel.ts?raw';
 import inventoryModelSource from './useAdminInventoryPanelModel.ts?raw';
 import modelSource from './useAdminDataPageModel.ts?raw';
 import statisticsModelSource from './useAdminStatisticsPanelModel.ts?raw';
+import statisticsPanelSource from './AdminStatisticsPanel.tsx?raw';
 
 const panelModelSources = [
   auditModelSource,
@@ -27,9 +28,12 @@ describe('AdminDataPage query ownership contract', () => {
     expect(`${modelSource}\n${panelModelSources}`).not.toContain('const queryErrors =');
   });
 
-  it('loads current stock for both Inventory and Statistics', () => {
-    expect(inventoryModelSource).toContain("{ skip: activeView !== 'inventory' && activeView !== 'statistics' }");
-    expect(inventorySource).toContain("{ label: 'tồn kho hiện tại', view: queryViews.currentStock }");
+  it('keeps stock detail only in Inventory and price detail only in Reports', () => {
+    expect(inventoryModelSource).toContain("{ skip: activeView !== 'inventory' }");
+    expect(inventorySource).toContain('ariaLabel="Bảng snapshot tồn kho trong trang admin"');
+    expect(statisticsPanelSource).not.toContain('ariaLabel="Bảng snapshot tồn kho trong trang admin"');
+    expect(statisticsPanelSource).not.toContain('ariaLabel="Bảng cảnh báo biến động giá trong trang admin"');
+    expect(statisticsPanelSource).toContain('?view=price&subview=lines');
   });
 
   it('loads customer contracts for DEFAULT Contracts and BOM only when the owner is enabled', () => {
@@ -40,12 +44,34 @@ describe('AdminDataPage query ownership contract', () => {
     expect(bomSource.match(/<AdminQueryBoundary/g)).toHaveLength(2);
   });
 
-  it('keeps BOM summary facts single-owned and user-facing', () => {
+  it('uses the URL as the canonical selected-view owner', () => {
+    expect(modelSource).toContain('const [searchParams, setSearchParams] = useSearchParams()');
+    expect(modelSource).toContain("nextSearchParams.set('view', view)");
+    expect(modelSource).not.toContain('useState<AdminView>(initialView)');
+  });
+
+  it('preserves dish, tier, customer and service date when opening BOM remediation from weekly menu import', () => {
+    expect(modelSource).toContain("searchParams.get('tier')");
+    expect(modelSource).toContain("searchParams.get('customerId')");
+    expect(modelSource).toContain("searchParams.get('date')");
+    expect(modelSource).toContain('useAdminBomPanelModel(activeView, bomTemplateDishId, bomInitialScope)');
+    expect(bomModelSource).toContain("useState(initialScope?.priceTier ?? 25000)");
+    expect(bomModelSource).toContain("useState(initialScope?.customerId ?? '')");
+    expect(bomModelSource).toContain('useState(initialScope?.effectiveFrom ?? getTodayInputValue())');
+  });
+
+  it('keeps BOM scope, preview and feedback owned by the BOM work surface', () => {
     expect(bomSource).not.toContain('<ContextStrip');
-    expect(modelSource).toContain('bomModel.bomImportPreview.totalRows');
+    expect(modelSource).not.toContain('adminContextItems');
     for (const technicalCopy of ['trước khi preview', 'Preview hợp lệ', 'có thể commit', 'Chỉ commit', 'Commit import', 'Đã import BOM', 'archive ${', 'tạo version điều chỉnh']) {
       expect(bomModelSource).not.toContain(technicalCopy);
     }
+  });
+
+  it('keeps the Admin statistics heading concise without changing its action owners', () => {
+    expect(statisticsPanelSource).toContain('title="Thống kê vận hành"');
+    expect(statisticsPanelSource).toContain('description="Chỉ số cần Admin theo dõi và chuyển xử lý."');
+    expect(statisticsPanelSource).not.toContain('title="Thống kê vận hành cho Admin"');
   });
 
   it('composes every panel model unconditionally through the compatibility facade', () => {

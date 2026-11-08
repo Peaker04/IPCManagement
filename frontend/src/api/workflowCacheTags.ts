@@ -5,6 +5,13 @@ const workflowTag = <Id extends string>(id: Id) => ({
 
 export const workflowCacheTags = {
   documents: workflowTag('Documents'),
+  customerContracts: workflowTag('CustomerContracts'),
+  weeklyMenus: workflowTag('WeeklyMenus'),
+  menuSchedules: workflowTag('MenuSchedules'),
+  mealQuantityPlans: workflowTag('MealQuantityPlans'),
+  coordinationOrders: workflowTag('CoordinationOrders'),
+  menuAmendments: workflowTag('MenuAmendments'),
+  weeklyMenuImportHistory: workflowTag('WeeklyMenuImportHistory'),
   ingredientDemand: workflowTag('IngredientDemand'),
   materialRequestCandidates: workflowTag('MaterialRequestCandidates'),
   purchasePlan: workflowTag('PurchasePlan'),
@@ -48,6 +55,13 @@ export const workflowOperationalKpiSourceTags = [
 
 export const workflowAuditSourceTags = [
   workflowCacheTags.documents,
+  workflowCacheTags.customerContracts,
+  workflowCacheTags.weeklyMenus,
+  workflowCacheTags.menuSchedules,
+  workflowCacheTags.mealQuantityPlans,
+  workflowCacheTags.coordinationOrders,
+  workflowCacheTags.menuAmendments,
+  workflowCacheTags.weeklyMenuImportHistory,
   workflowCacheTags.ingredientDemand,
   workflowCacheTags.materialRequestCandidates,
   workflowCacheTags.purchasePlan,

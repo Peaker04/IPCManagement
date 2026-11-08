@@ -102,7 +102,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
               : dataQualityRows.map((row) => (
               <tr key={row.id}>
                 <td>
-                  <StatusBadge variant={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
+                  <StatusBadge tone={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
                     {row.severity === 'error' ? uiCopy.reports.error : uiCopy.reports.warning}
                   </StatusBadge>
                 </td>
@@ -114,7 +114,7 @@ export const ReportsDataQualityPanel = ({ model }: { model: ReportsPageModel }) 
                     <span className="min-w-0 truncate font-semibold text-slate-800">
                       {row.slaLabel} · {formatPriorityLabel(row.priorityRank)}
                     </span>
-                  <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
+                  <StatusBadge tone={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
                     {formatDataQualityRemediationStatus(row.remediationStatus)}
                   </StatusBadge>
                   </div>

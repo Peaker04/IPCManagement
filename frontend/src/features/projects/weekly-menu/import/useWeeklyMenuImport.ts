@@ -103,7 +103,15 @@ export const useWeeklyMenuImport = ({
   const createQuickCustomer = async () => {
     const customerCode = state.quickCustomerCode.trim().toUpperCase()
     const customerName = state.quickCustomerName.trim()
-    if (!customerCode || !customerName) return setFeedback('Thiếu thông tin khách hàng', 'Vui lòng nhập mã khách hàng và tên khách hàng trước khi tạo mới.', 'warning')
+    if (!customerCode || !customerName) {
+      setSetupErrors({
+        ...(!customerCode && { quickCustomerCode: { title: 'Nhập mã khách hàng', message: 'Mã khách hàng là bắt buộc.' } }),
+        ...(!customerName && { quickCustomerName: { title: 'Nhập tên khách hàng', message: 'Tên khách hàng là bắt buộc.' } }),
+      })
+      const firstInvalidId = !customerCode ? 'weekly-menu-import-quick-customer-code' : 'weekly-menu-import-quick-customer-name'
+      requestAnimationFrame(() => document.getElementById(firstInvalidId)?.focus())
+      return
+    }
     const body: CreateCustomerContractRequest = {
       customerCode, customerName, note: 'Tạo nhanh khi nhập thực đơn từ Excel', isActive: true,
       activeWeekDays: ['t2', 't3', 't4', 't5', 't6', 't7'], shiftNames: ['MORNING', 'AFTERNOON'],

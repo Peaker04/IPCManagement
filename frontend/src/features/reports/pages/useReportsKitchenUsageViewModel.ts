@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useGetIssueVsReturnUsagePageQuery, useGetKitchenIssuesPageQuery } from '@/features/reports/reportsApi';
+import { useGetIssueVsReturnUsagePageQuery, useGetKitchenIssuesPageQuery } from '@/api/reportsApi';
 import type { WorkflowReportQuery } from '@/api/workflowApiTypes';
 import { formatDateOnly } from '@/lib/formatters';
 import {

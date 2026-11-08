@@ -7,7 +7,7 @@ import { useCreateMenuAmendmentMutation, useUpdateWeeklyMenuBulkMutation, useUps
 import type { CatalogDish } from '@/api/dishCatalogApi'
 import { normalizeBomPriceTier } from '../../weeklyMenuPlanning'
 import { getApiErrorMessage } from '../model/formatters'
-import { matchesCategory, matchesShift, SECTIONS } from '../model/scope'
+import { matchesCategory, matchesShift, SECTIONS, buildImportedLayoutRows } from '../model/scope'
 import type { WeeklyPlanRow } from '../model/types'
 import { buildQuantityPlanByDateShift, buildQuickServingRows, cloneWeeklyMenu, getScheduleServiceDate, getShiftServingInfo, resolveSlotServingInfo } from './scheduleModel'
 import { initialWeeklyScheduleState, weeklyScheduleReducer } from './scheduleState'
@@ -30,7 +30,9 @@ type MenuDishChange = {
   locked: boolean
   serviceDate: string
   shiftName: 'Ca Sáng' | 'Ca Chiều'
-  slotType: keyof WeeklyMenuState[string]
+  slotType: string
+  dishSlot?: string
+  oldDishId: string
   dishId: string
 }
 
@@ -57,6 +59,7 @@ export const buildMenuDishChanges = ({
     serviceDate: date,
     shiftName: section.slotType.startsWith('morning') ? 'Ca Sáng' as const : 'Ca Chiều' as const,
     slotType: section.slotType,
+    oldDishId: currentDishId,
     dishId,
   }] : []
 }))
@@ -104,9 +107,10 @@ export function useWeeklyScheduleEditor({
     (dayKey: string) => getScheduleServiceDate(committedRows, dayKey),
     [committedRows],
   )
-  const isLocked = useCallback((dayKey: string, slotType: keyof WeeklyMenuState[string]) => {
-    const shift = slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'
-    const apiShift = slotType.startsWith('morning') ? 'MORNING' : 'AFTERNOON'
+  const isLocked = useCallback((dayKey: string, slotType: string) => {
+    const isMorning = slotType.toLowerCase().includes('morning') || slotType.toLowerCase().includes('sáng')
+    const shift = isMorning ? 'Ca Sáng' : 'Ca Chiều'
+    const apiShift = isMorning ? 'MORNING' : 'AFTERNOON'
     const persistedStatus = menuSchedules.find((schedule) =>
       schedule.customerId === scope.customerId
       && schedule.serviceDate.split('T')[0] === serviceDate(dayKey)
@@ -149,18 +153,62 @@ export function useWeeklyScheduleEditor({
     bomRatePercent: scope.fixedBomRatePercent,
     quantityFactor: 1,
   }), [scheduleByDateShift, scope.fixedBomRatePercent, scope.menuPrice])
+  const layoutRows = useMemo(
+    () => buildImportedLayoutRows(committedRows ?? []),
+    [committedRows],
+  )
+  const allDishes = useMemo(
+    () => catalogDishes.map(({ id, name, code, ingredients }) => ({
+      id,
+      name,
+      code,
+      bomReady: ingredients.some((line) => line.bomStatus.toUpperCase() === 'PUBLISHED'),
+    })),
+    [catalogDishes],
+  )
   const openEditor = useCallback(() => dispatch({
     type: 'open-editor',
     menu: cloneWeeklyMenu(weeklyMenu, scope.displayDays.map((day) => day.key)),
   }), [scope.displayDays, weeklyMenu])
-  const pendingChanges = useMemo(() => buildMenuDishChanges({
-    displayDays: scope.displayDays,
-    sections,
-    weeklyMenu,
-    draftMenu: state.draftMenu,
-    serviceDate,
-    isLocked,
-  }), [isLocked, scope.displayDays, sections, serviceDate, state.draftMenu, weeklyMenu])
+  const pendingChanges = useMemo(() => {
+    if (layoutRows.length > 0) {
+      const changes: MenuDishChange[] = []
+      layoutRows.forEach((row) => {
+        scope.displayDays.forEach((day) => {
+          const cell = row.cells[day.key]
+          if (!cell) return
+          const slotKey = `${row.key}|${day.key}`
+          const draftDishId = state.draftDishes[slotKey]
+          const currentDishId = cell.dishId
+          if (draftDishId && draftDishId !== currentDishId) {
+            const variantKey = cell.variant === 'Chay' ? 'vegetarian' : 'savory'
+            const dishSlot = `${variantKey}-${cell.slot}`
+            const date = cell.serviceDate || serviceDate(day.key)
+            const shiftName = cell.dbShiftName === 'MORNING' ? 'Ca Sáng' as const : 'Ca Chiều' as const
+            const locked = isLocked(day.key, cell.dbShiftName === 'MORNING' ? 'morningSavory' : 'afternoonSavory')
+            changes.push({
+              locked,
+              serviceDate: date,
+              shiftName,
+              slotType: dishSlot,
+              dishSlot,
+              oldDishId: currentDishId || '',
+              dishId: draftDishId,
+            })
+          }
+        })
+      })
+      if (changes.length > 0) return changes
+    }
+    return buildMenuDishChanges({
+      displayDays: scope.displayDays,
+      sections,
+      weeklyMenu,
+      draftMenu: state.draftMenu,
+      serviceDate,
+      isLocked,
+    })
+  }, [isLocked, layoutRows, scope.displayDays, sections, serviceDate, state.draftDishes, state.draftMenu, weeklyMenu])
   const saveEditor = useCallback(async (amendmentReason?: string) => {
     const changes = pendingChanges
     if (changes.length === 0) {
@@ -170,28 +218,66 @@ export function useWeeklyScheduleEditor({
     try {
       const directSlots = changes.filter((slot) => !slot.locked)
       const amendmentSlots = changes.filter((slot) => slot.locked)
-      if (directSlots.length > 0 && amendmentSlots.length > 0) {
-        throw new Error('Không thể lưu đồng thời bản nháp và lịch đã khóa. Hãy lưu từng nhóm thay đổi để giữ chứng từ nhất quán.')
+      if (amendmentSlots.length > 0 && !amendmentReason?.trim()) {
+        throw new Error('Cần nêu lý do trước khi gửi thay đổi cho lịch đã khóa.')
       }
-      if (amendmentSlots.length > 0 && !amendmentReason?.trim()) throw new Error('Cần nêu lý do trước khi gửi thay đổi cho lịch đã khóa.')
       if (directSlots.length > 0) {
-        const response = await updateWeeklyMenuBulk({ customerId: scope.customerId, slots: directSlots }).unwrap()
+        const response = await updateWeeklyMenuBulk({
+          customerId: scope.customerId,
+          slots: directSlots.map((slot) => ({
+            serviceDate: slot.serviceDate,
+            shiftName: slot.shiftName,
+            slotType: slot.dishSlot || slot.slotType,
+            dishId: slot.dishId,
+          })),
+        }).unwrap()
         if (!response.success) throw new Error(response.message || 'Không thể lưu chỉnh sửa thực đơn.')
+        directSlots.forEach((slot) => {
+          const dayKey = scope.displayDays.find((day) => serviceDate(day.key) === slot.serviceDate)?.key
+          if (dayKey && (slot.slotType in (weeklyMenu[dayKey] ?? {}))) {
+            reduxDispatch(updateWeeklyMenuDish({ day: dayKey, slotType: slot.slotType as keyof WeeklyMenuState[string], dishId: slot.dishId }))
+          }
+        })
       }
+      let amendmentResponse: { data?: { requiresReconciliation?: boolean } } | null = null
       if (amendmentSlots.length > 0) {
-        const response = await createMenuAmendment({ customerId: scope.customerId, weekStartDate: scope.weekStartDate, reason: amendmentReason!, lines: amendmentSlots.map((slot) => ({ serviceDate: slot.serviceDate, shiftName: slot.shiftName === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON', dishSlot: slot.slotType.includes('Vegetarian') ? 'vegetarian-main' : 'savory-main', newDishId: slot.dishId })) }).unwrap()
-        onMenuFeedback({ title: 'Đã gửi yêu cầu thay đổi', message: response.data?.requiresReconciliation ? 'Đã có chứng từ phía sau; yêu cầu cần đối soát và hậu kiểm.' : 'Yêu cầu đang chờ review trước khi thực thi.', variant: 'warning' })
+        amendmentResponse = await createMenuAmendment({
+          customerId: scope.customerId,
+          weekStartDate: scope.weekStartDate,
+          reason: amendmentReason!,
+          lines: amendmentSlots.map((slot) => ({
+            serviceDate: slot.serviceDate,
+            shiftName: slot.shiftName === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON',
+            dishSlot: slot.dishSlot || (slot.slotType.includes('Vegetarian') ? 'vegetarian-main' : 'savory-main'),
+            newDishId: slot.dishId,
+          })),
+        }).unwrap()
       }
-      directSlots.forEach((slot) => {
-        const dayKey = scope.displayDays.find((day) => serviceDate(day.key) === slot.serviceDate)?.key
-        if (dayKey) reduxDispatch(updateWeeklyMenuDish({ day: dayKey, slotType: slot.slotType, dishId: slot.dishId }))
-      })
-      if (directSlots.length > 0 && amendmentSlots.length === 0) onMenuFeedback({ title: 'Cập nhật thực đơn thành công', message: 'Thay đổi bản nháp đã được lưu.', variant: 'info' })
+      if (directSlots.length > 0 && amendmentSlots.length > 0) {
+        onMenuFeedback({
+          title: 'Đã lưu thay đổi thực đơn',
+          message: `Đã cập nhật ${directSlots.length} món nháp và gửi duyệt ${amendmentSlots.length} món đã khóa.${amendmentResponse?.data?.requiresReconciliation ? ' Đã có chứng từ phía sau; hồ sơ đối soát chênh lệch kho đã được mở.' : ''}`,
+          variant: 'info',
+        })
+      } else if (amendmentSlots.length > 0) {
+        const changedDishSummary = amendmentSlots.slice(0, 3).map((slot) => {
+          const oldDish = catalogDishes.find((dish) => dish.id === slot.oldDishId)?.name ?? 'Món hiện tại'
+          const newDish = catalogDishes.find((dish) => dish.id === slot.dishId)?.name ?? 'Món thay thế'
+          return `${oldDish} → ${newDish}`
+        }).join('; ')
+        onMenuFeedback({
+          title: amendmentResponse?.data?.requiresReconciliation ? 'Thay đổi cần đối soát' : 'Đã gửi yêu cầu thay đổi',
+          message: `${changedDishSummary}. ${amendmentResponse?.data?.requiresReconciliation ? 'Đã có chứng từ phía sau; không tính đè nhu cầu, yêu cầu cần đối soát và hậu kiểm.' : 'Chưa có chứng từ vật lý; sau khi duyệt và thực thi cần tính lại nhu cầu nguyên liệu.'}`,
+          variant: 'warning',
+        })
+      } else if (directSlots.length > 0) {
+        onMenuFeedback({ title: 'Cập nhật thực đơn thành công', message: 'Thay đổi bản nháp đã được lưu.', variant: 'info' })
+      }
       dispatch({ type: 'close-editor' })
     } catch (error) {
       onMenuFeedback({ title: 'Chỉnh sửa thực đơn thất bại', message: getApiErrorMessage(error, 'Không thể lưu thay đổi vào hệ thống.'), variant: 'danger' })
     }
-  }, [createMenuAmendment, onMenuFeedback, pendingChanges, reduxDispatch, scope.customerId, scope.displayDays, scope.weekStartDate, serviceDate, updateWeeklyMenuBulk])
+  }, [catalogDishes, createMenuAmendment, onMenuFeedback, pendingChanges, reduxDispatch, scope.customerId, scope.displayDays, scope.weekStartDate, serviceDate, updateWeeklyMenuBulk, weeklyMenu])
   const saveQuickServing = useCallback(async (row: QuickServingRow) => {
     if (!row.hasDraftChange) return
     try {
@@ -218,6 +304,44 @@ export function useWeeklyScheduleEditor({
       onQuickServingFeedback({ title: 'Chưa hoàn tất được suất', message: error instanceof Error ? error.message : 'Vui lòng kiểm tra kế hoạch suất trước khi hoàn tất.', variant: 'danger' })
     }
   }, [onQuickServingFeedback, scope.customerId, upsertQuickServings])
+  const applyServingToShift = useCallback((shiftName: 'MORNING' | 'AFTERNOON', value: string, rows: QuickServingRow[]) => {
+    const targetRows = rows.filter((r) => r.shiftName === shiftName)
+    targetRows.forEach((r) => {
+      dispatch({ type: 'change-serving', key: r.key, value })
+    })
+  }, [])
+  const saveAllQuickServings = useCallback(async (rows: QuickServingRow[]) => {
+    const draftRows = rows.filter((r) => r.hasDraftChange)
+    if (draftRows.length === 0) return
+    try {
+      if (!scope.customerId) throw new Error('Vui lòng chọn khách hàng trước khi lưu số suất.')
+      for (const row of draftRows) {
+        const servings = Number(row.inputValue)
+        if (!Number.isFinite(servings) || servings < 0) continue
+        await upsertQuickServings({ customerId: scope.customerId, serviceDate: row.serviceDate, shiftName: row.shiftName, servings: Math.round(servings), complete: false }).unwrap()
+        dispatch({ type: 'clear-serving', key: row.key })
+      }
+      onQuickServingFeedback({ title: 'Đã lưu số suất', message: `Đã cập nhật số suất dự kiến cho ${draftRows.length} ca.`, variant: 'info' })
+    } catch (error) {
+      onQuickServingFeedback({ title: 'Chưa lưu được số suất', message: error instanceof Error ? error.message : 'Vui lòng kiểm tra lại số suất.', variant: 'danger' })
+    }
+  }, [onQuickServingFeedback, scope.customerId, upsertQuickServings])
+  const completeAllQuickServings = useCallback(async (rows: QuickServingRow[]) => {
+    const incompleteRows = rows.filter((row) => !row.isConfirmed || row.hasDraftChange)
+    if (incompleteRows.length === 0) return
+    try {
+      if (!scope.customerId) throw new Error('Vui lòng chọn khách hàng trước khi hoàn tất số suất.')
+      for (const row of incompleteRows) {
+        const servings = Number(row.inputValue)
+        if (!Number.isFinite(servings) || servings <= 0) throw new Error(`${row.dayLabel} - ${row.shiftLabel} cần số suất lớn hơn 0.`)
+        await upsertQuickServings({ customerId: scope.customerId, serviceDate: row.serviceDate, shiftName: row.shiftName, servings: Math.round(servings), complete: true }).unwrap()
+        dispatch({ type: 'clear-serving', key: row.key })
+      }
+      onQuickServingFeedback({ title: 'Đã hoàn tất số suất cả tuần', message: `Đã hoàn tất ${incompleteRows.length} kế hoạch ngày/ca và có thể kiểm tra nguồn định lượng.`, variant: 'info' })
+    } catch (error) {
+      onQuickServingFeedback({ title: 'Chưa hoàn tất được cả tuần', message: error instanceof Error ? error.message : 'Vui lòng kiểm tra số suất từng ca.', variant: 'danger' })
+    }
+  }, [onQuickServingFeedback, scope.customerId, upsertQuickServings])
   const buildServingRows = useCallback(
     (weeklyPlanRows: WeeklyPlanRow[]) => buildQuickServingRows({
       scope,
@@ -235,15 +359,23 @@ export function useWeeklyScheduleEditor({
     actions: {
       openEditor,
       closeEditor: () => dispatch({ type: 'close-editor' }),
-      changeDish: (dayKey, slotType, dishId) => dispatch({ type: 'change-dish', dayKey, slotType, dishId }),
+      changeDish: (dayKey, slotType, dishId, slotKey) => dispatch({ type: 'change-dish', dayKey, slotType, dishId, slotKey }),
       saveEditor,
       changeQuickServing: (key, value) => dispatch({ type: 'change-serving', key, value }),
       discardQuickServing: (key) => dispatch({ type: 'clear-serving', key }),
       saveQuickServing,
       completeQuickServing,
+      applyServingToShift,
+      saveAllQuickServings,
+      completeAllQuickServings,
     },
     presentation: {
       pendingChangeCount: pendingChanges.length,
+      directChangeCount: pendingChanges.filter((slot) => !slot.locked).length,
+      amendmentChangeCount: pendingChanges.filter((slot) => slot.locked).length,
+      hasLockedChanges: pendingChanges.some((slot) => slot.locked),
+      allDishes,
+      layoutRows,
       sections,
       getDishName: (dishId) => catalogDishes.find((dish) => dish.id === dishId)?.name,
       isLocked,

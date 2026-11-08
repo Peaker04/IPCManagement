@@ -35,7 +35,9 @@ Không auto-load `HISTORY.md`, `LESSONS.md`, toàn bộ `docs/`, `.planning/` ho
 | UI floorplan/surface/geometry | [`DESIGN.md`](DESIGN.md) | CSS page-local hoặc mockup |
 | Đầu mối gom rule UI/UX cho tạo/sửa/xóa: mục đích, role, luồng, dữ liệu, design và verification | [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), mục 1.1–1.2 | Corpus checklist bên ngoài, ma trận quyền trong audit lịch sử hoặc bộ rule sao chép |
 | Quy trình audit/fix/browser UI | [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md) | Script run cũ hoặc reviewer summary |
-| Oracle và metric UI | [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md) | Screenshot đơn lẻ, `issueCount: 0` generic |
+| Oracle và metric UI | [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md), gồm interaction fluidity DEV-vs-preview/frame/LoAF/profiler routing | Screenshot đơn lẻ, `issueCount: 0`, FPS đơn hoặc DEV-only trace generic |
+| Ledger audit interaction fluidity đã đóng | [`perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md`](perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md), [`perf/DUAL_MODE_INTERACTION_FLUIDITY_RUNTIME_AUDIT.md`](perf/DUAL_MODE_INTERACTION_FLUIDITY_RUNTIME_AUDIT.md) | Không dùng làm active checklist hoặc field-performance claim |
+| Ledger systemic FE UI/UX hiện hành | [`ui-ux/SYSTEMIC_FE_UI_UX_AUDIT.md`](ui-ux/SYSTEMIC_FE_UI_UX_AUDIT.md) | Chat/audit tải xuống hoặc report page-local song song |
 | Adapter Front-End Checklist | [`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md) | Rule project hoặc scope generator |
 | FE → API → DB → reload | [`UI-UX-FE-BE-DATABASE-STANDARDIZATION.md`](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | API-only/BE-only PASS |
 | Setup/dev/test/config/deploy | [`GETTING-STARTED.md`](GETTING-STARTED.md), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`TESTING.md`](TESTING.md), [`CONFIGURATION.md`](CONFIGURATION.md), [`DEPLOYMENT.md`](DEPLOYMENT.md) | Command trong log/session cũ |

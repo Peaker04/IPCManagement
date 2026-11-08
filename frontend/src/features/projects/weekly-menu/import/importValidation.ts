@@ -122,9 +122,9 @@ export const buildImportValidationChecks = (job?: WeeklyMenuImportJob): ImportVa
     },
     { key: 'price-tier', label: 'Định mức BOM', value: formatBomTierLabel(job.priceTierAmount), detail: 'Áp dụng cho toàn bộ file khi lưu menu.', tone: 'success' },
     {
-      key: 'dish', label: 'Ngân hàng món', value: result ? `${result.rows.length - newDishCount} đã khớp / ${newDishCount} chưa khớp` : 'Chưa kiểm tra',
-      detail: newDishCount > 0 ? 'Sửa tên món trong file để khớp ngân hàng món ăn trước khi lưu.' : 'Các món trong file đã khớp ngân hàng món ăn.',
-      tone: !result ? 'neutral' : newDishCount > 0 ? 'danger' : 'success', blocking: newDishCount > 0,
+      key: 'dish', label: 'Ngân hàng món', value: result ? `${result.rows.length - newDishCount} đã khớp / ${newDishCount} món mới` : 'Chưa kiểm tra',
+      detail: newDishCount > 0 ? 'Món mới sẽ được tạo khi lưu và cần bổ sung BOM trước khi tạo nhu cầu nguyên liệu.' : 'Các món trong file đã khớp ngân hàng món ăn.',
+      tone: !result ? 'neutral' : newDishCount > 0 ? 'warning' : 'success', blocking: false,
     },
     {
       key: 'duplicate', label: 'Dòng trùng', value: result ? `${duplicateGroups.length} nhóm trùng` : 'Chưa kiểm tra',

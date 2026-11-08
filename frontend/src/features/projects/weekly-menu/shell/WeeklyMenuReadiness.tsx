@@ -32,12 +32,11 @@ export function WeeklyMenuReadiness({ readiness }: { readiness: Readiness }) {
         <SummaryIcon
           size={18}
           className={cn(
-            'shrink-0',
-            readiness.tone === 'success' && 'text-emerald-600',
-            readiness.tone === 'warning' && 'text-amber-600',
-            readiness.tone === 'danger' && 'text-rose-600',
-            readiness.tone === 'info' && 'text-blue-600',
-            readiness.tone === 'neutral' && 'text-slate-500'
+            readiness.tone === 'success' && 'text-[var(--status-success-fg,#0f766e)]',
+            readiness.tone === 'warning' && 'text-[var(--status-warning-fg,#c05621)]',
+            readiness.tone === 'danger' && 'text-[var(--status-danger-fg,#c53030)]',
+            readiness.tone === 'info' && 'text-[var(--status-info-fg,#1a56a8)]',
+            readiness.tone === 'neutral' && 'text-[var(--status-neutral-fg,#334155)]'
           )}
           aria-hidden="true"
         />
@@ -57,10 +56,10 @@ export function WeeklyMenuReadiness({ readiness }: { readiness: Readiness }) {
               title={`${checkpoint.label}: ${checkpoint.value}`}
               className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                checkpoint.state === 'complete' && 'bg-emerald-50 text-emerald-700',
-                checkpoint.state === 'warning' && 'bg-amber-50 text-amber-700',
-                checkpoint.state === 'danger' && 'bg-rose-50 text-rose-700',
-                checkpoint.state === 'pending' && 'bg-slate-100 text-slate-600'
+                checkpoint.state === 'complete' && 'bg-[var(--status-success-bg,#e6f7f3)] text-[var(--status-success-fg,#0f766e)]',
+                checkpoint.state === 'warning' && 'bg-[var(--status-warning-bg,#fff7e6)] text-[var(--status-warning-fg,#c05621)]',
+                checkpoint.state === 'danger' && 'bg-[var(--status-danger-bg,#fff1f1)] text-[var(--status-danger-fg,#c53030)]',
+                checkpoint.state === 'pending' && 'bg-[var(--status-neutral-bg,#f1f5f9)] text-[var(--status-neutral-fg,#334155)]'
               )}
             >
               <Icon size={12} aria-hidden="true" />

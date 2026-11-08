@@ -13,7 +13,7 @@ public static class SystemOperationEligibility
         new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             ["weekly-menu"] = ["schedule", "demand", "production-plan", "purchase-summary", "cost", "dish-materials"],
-            ["warehouse"] = ["movement", "demand", "exceptions"],
+            ["warehouse"] = ["receiving", "demand", "exceptions", "movement"],
             ["approvals"] = ["queue", "history"],
             ["purchasing"] = ["workflow", "supplemental", "quotations"],
             ["chef"] = ["production", "documents"],

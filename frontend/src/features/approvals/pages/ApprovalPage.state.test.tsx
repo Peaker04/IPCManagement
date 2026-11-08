@@ -1,7 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MainLayout } from '@/app/layout/MainLayout';
 import { ToastProvider } from '@/components/common';
+import { ROUTES } from '@/lib/routeConfig';
 
 const mocks = vi.hoisted(() => ({
   getApprovals: vi.fn(),
@@ -10,7 +14,27 @@ const mocks = vi.hoisted(() => ({
   getHistory: vi.fn(),
   executeDecision: vi.fn(),
   getMenuDecisions: vi.fn(),
+  getReceipt: vi.fn(),
 }));
+
+vi.mock('@/lib/useHasRole', () => ({ useHasRole: () => false }));
+vi.mock('@/app/hooks', () => ({
+  useAppDispatch: () => vi.fn(),
+  useAppSelector: () => ({
+    fullName: 'Quản lý vận hành',
+    role: 'quanly',
+    permissions: ['purchase.request.approve', 'purchase.read', 'warehouse.read'],
+    isAdminFullAccess: false,
+  }),
+}));
+vi.mock('@/app/providers/SystemOperationProvider', () => ({
+  SystemOperationProvider: ({ children }: { children: ReactNode }) => children,
+}));
+vi.mock('@/lib/systemOperationContext', () => ({
+  useSystemOperation: () => ({ mode: 'DEFAULT', label: 'Mặc định' }),
+}));
+vi.mock('@/features/auth/components/IdleSessionGuard', () => ({ IdleSessionGuard: () => null }));
+vi.mock('@/routes/routeLoaders', () => ({ preloadRoute: vi.fn(), preloadRouteData: vi.fn() }));
 
 vi.mock('@/api/approvalsApi', () => ({
   useGetApprovalRecordsQuery: mocks.getApprovals,
@@ -26,8 +50,15 @@ vi.mock('@/api/purchasingApi', () => ({
   useGetPurchaseRequestsPageQuery: mocks.getPurchaseRequests,
 }));
 
+vi.mock('@/api/warehouseApi', () => ({
+  useGetInventoryReceiptByIdQuery: mocks.getReceipt,
+}));
+
 vi.mock('@/api/coordinationApi', () => ({
   useGetCoordinationCustomersQuery: () => ({ data: { data: [{ customerId: 'anv', customerCode: 'ANV', customerName: 'Công ty ANV' }, { customerId: 'dav', customerCode: 'DAV', customerName: 'Công ty DAV' }] } }),
+  useGetMenuAmendmentsQuery: () => readyQuery({ success: true, data: [] }),
+  useReviewMenuAmendmentMutation: () => [vi.fn(), { isLoading: false }],
+  useExecuteMenuAmendmentMutation: () => [vi.fn(), { isLoading: false }],
   useGetMenuAmendmentDecisionPageQuery: mocks.getMenuDecisions,
   useExecuteMenuAmendmentDecisionMutation: () => [vi.fn(), { isLoading: false }],
 }));
@@ -136,10 +167,15 @@ const renderPage = () => render(
 );
 
 const openHistory = () => {
-  fireEvent.click(screen.getByRole('tab', { name: 'Lịch sử' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Lịch sử đề xuất mua' }));
 };
 
 describe('ApprovalPage query state boundary', () => {
+  it('does not present a global workflow-document list as selected approval detail', async () => {
+    const source = await import('./ApprovalPage.tsx?raw').then((module) => module.default);
+    expect(source).not.toContain('useGetWorkflowDocumentsQuery');
+    expect(source).not.toContain('detailLabel="Chứng từ"');
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.executeDecision.mockReturnValue({ unwrap: vi.fn() });
@@ -147,9 +183,17 @@ describe('ApprovalPage query state boundary', () => {
     mocks.getApprovals.mockReturnValue(readyQuery(approvalPage()));
     mocks.getDocuments.mockReturnValue(readyQuery([]));
     mocks.getPurchaseRequests.mockReturnValue(readyQuery(purchaseRequestPage));
+    mocks.getReceipt.mockReturnValue(uninitializedQuery());
     mocks.getHistory.mockImplementation((_args, options) => options.skip
       ? uninitializedQuery()
       : readyQuery({ success: true, message: 'OK', data: [] }));
+  });
+
+  it('mounts the selected approval queue as h2 below the shell route heading', async () => {
+    renderPage();
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Danh sách cần duyệt' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 3, name: 'Danh sách cần duyệt' })).not.toBeInTheDocument();
   });
 
   it('renders approval-inbox forbidden without a retry or false empty state', async () => {
@@ -165,11 +209,29 @@ describe('ApprovalPage query state boundary', () => {
   it('renders one purposeful surface for a ready empty approval queue', async () => {
     mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([])));
 
-    renderPage();
+    const { container } = renderPage();
 
     expect(await screen.findByText('Chưa có chứng từ chờ duyệt.')).toBeInTheDocument();
     expect(screen.queryByText('Không có chứng từ chờ duyệt')).toBeNull();
     expect(screen.getByText(/Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử/)).toBeInTheDocument();
+    expect(container.querySelector('.ipc-context-strip')).toBeNull();
+    expect(screen.queryByText('Đơn mua')).toBeNull();
+    expect(screen.queryByText('Nhu cầu xuất')).toBeNull();
+    expect(screen.queryByText('Người duyệt')).toBeNull();
+    expect(screen.queryByText(/Nguồn:/)).toBeNull();
+  });
+
+  it('keeps populated approval status, deadline and actions with the canonical queue instead of a page summary', async () => {
+    mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([approvalRecord])));
+
+    const { container } = renderPage();
+
+    const row = await screen.findByRole('row', { name: /Duyệt đề xuất mua PR-001/i });
+    expect(screen.getByRole('columnheader', { name: 'Trạng thái' })).toBeInTheDocument();
+    expect(within(row).getAllByText('27/07/2026')).toHaveLength(2);
+    expect(within(row).getByRole('button', { name: /Duyệt chứng từ:/i })).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: /Từ chối chứng từ:/i })).toBeInTheDocument();
+    expect(container.querySelector('.ipc-context-strip')).toBeNull();
   });
 
   it('keeps a non-forbidden approval-inbox failure retryable', async () => {
@@ -200,7 +262,11 @@ describe('ApprovalPage query state boundary', () => {
       source: 'PR-20260810-FULLDAY',
     }])));
 
-    renderPage();
+    const { container } = renderPage();
+
+    expect(container.querySelector('.ipc-command-bar')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Duyệt' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Từ chối' })).toBeNull();
 
     const row = await screen.findByRole('row', { name: /Duyệt đề xuất mua PR-20260810-FULLDAY/i });
     fireEvent.click(within(row).getByRole('button', { name: /Duyệt chứng từ:/i }));
@@ -245,13 +311,25 @@ describe('ApprovalPage query state boundary', () => {
     })));
   });
 
-  it('renders workflow-document forbidden without pretending the rail is empty', async () => {
-    mocks.getDocuments.mockReturnValue(failedQuery(403));
-
+  it('does not query or render an unrelated global document rail', () => {
     renderPage();
 
-    expect(await screen.findByText('Bạn không có quyền xem chứng từ workflow.')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
+    expect(mocks.getDocuments).not.toHaveBeenCalled();
+    expect(screen.queryByText('Bạn không có quyền xem chứng từ workflow.')).not.toBeInTheDocument();
+  });
+
+  it('defers the history detail rail while purchase requests load', async () => {
+    mocks.getPurchaseRequests.mockReturnValue({
+      ...uninitializedQuery(),
+      isUninitialized: false,
+      isLoading: true,
+    });
+
+    renderPage();
+    openHistory();
+
+    expect(await screen.findByText('Đang tải danh sách đề xuất mua hàng...')).toHaveAttribute('role', 'status');
+    expect(screen.queryByLabelText('Tiến trình phê duyệt')).toBeNull();
   });
 
   it('renders purchase-request forbidden on the history tab without a false empty list', async () => {
@@ -271,6 +349,21 @@ describe('ApprovalPage query state boundary', () => {
 
     expect(await screen.findByText('Chọn một đề xuất mua hàng ở bên trái để xem tiến trình duyệt')).toBeInTheDocument();
     expect(screen.queryByText('Không tìm thấy bước duyệt nào.')).toBeNull();
+  });
+
+  it('moves keyboard focus to selected history detail and restores it on close', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    openHistory();
+
+    const requestButton = await screen.findByRole('button', { name: /PR-001/ });
+    requestButton.focus();
+    await user.keyboard('{Enter}');
+
+    const detail = (await screen.findByRole('heading', { name: 'Lịch sử phê duyệt' })).closest('[tabindex="-1"]');
+    await waitFor(() => expect(detail).toHaveFocus());
+    await user.click(screen.getByRole('button', { name: 'Đóng' }));
+    await waitFor(() => expect(requestButton).toHaveFocus());
   });
 
   it('renders approval-history forbidden without a retry', async () => {
@@ -297,5 +390,38 @@ describe('ApprovalPage query state boundary', () => {
 
     expect(await screen.findByText('Quản lý vận hành')).toBeInTheDocument();
     expect(screen.getByText('Đang cập nhật...')).toBeInTheDocument();
+  });
+
+  it('keeps shell navigation and record actions after retiring generic page shortcuts', async () => {
+    const user = userEvent.setup();
+    mocks.getApprovals.mockReturnValue(readyQuery(approvalPage([approvalRecord])));
+
+    render(
+      <MemoryRouter initialEntries={[ROUTES.APPROVALS]}>
+        <Routes>
+          <Route element={<MainLayout />}>
+            <Route path={ROUTES.APPROVALS} element={<ToastProvider><ApprovalPage /></ToastProvider>} />
+            <Route path={ROUTES.PURCHASING} element={<h2>Điểm đến thu mua</h2>} />
+            <Route path={ROUTES.WAREHOUSE} element={<h2>Điểm đến kho nguyên liệu</h2>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const navigation = screen.getByRole('navigation', { name: 'Điều hướng chính' });
+    const purchasingLink = within(navigation).getByRole('link', { name: 'Thu mua' });
+    expect(purchasingLink).toHaveAttribute('href', ROUTES.PURCHASING);
+    expect(within(navigation).getByRole('link', { name: 'Kho nguyên liệu' })).toHaveAttribute('href', ROUTES.WAREHOUSE);
+    expect(screen.queryByRole('link', { name: 'Sang thu mua' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Kiểm tra kho' })).not.toBeInTheDocument();
+
+    const row = await screen.findByRole('row', { name: /Duyệt đề xuất mua PR-001/i });
+    expect(within(row).getByRole('button', { name: /Duyệt chứng từ:/i })).toBeInTheDocument();
+    expect(within(row).getByRole('button', { name: /Từ chối chứng từ:/i })).toBeInTheDocument();
+
+    purchasingLink.focus();
+    expect(purchasingLink).toHaveFocus();
+    await user.keyboard('{Enter}');
+    expect(await screen.findByRole('heading', { level: 2, name: 'Điểm đến thu mua' })).toBeInTheDocument();
   });
 });

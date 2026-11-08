@@ -29,6 +29,37 @@ project.fragment.lock.json
 artifacts/
 **/.artifacts/
 
+# Promoted AI-review evidence only. Keep build output, browser profiles, screenshots,
+# caches and unselected attempts ignored; readable evidence is hash-pinned in docs/EVIDENCE-INDEX.md.
+!/.artifacts/
+/.artifacts/*
+!/.artifacts/goal-ui-ux/
+/.artifacts/goal-ui-ux/*
+!/.artifacts/goal-ui-ux/reaudit-async-performance-20260915-sol/
+!/.artifacts/goal-ui-ux/reaudit-async-performance-20260915-sol/*.md
+!/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/
+/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/*
+!/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/metrics.json
+!/.artifacts/goal-ui-ux/ra08-payload-20260915-sol/teardown.json
+!/.artifacts/goal-ui-ux/runtime-r3-r4-20260915-sol/
+/.artifacts/goal-ui-ux/runtime-r3-r4-20260915-sol/*
+!/.artifacts/goal-ui-ux/runtime-r3-r4-20260915-sol/teardown-final.json
+!/.artifacts/shipyard-live/
+/.artifacts/shipyard-live/*
+!/.artifacts/shipyard-live/goal-ui-ux/
+/.artifacts/shipyard-live/goal-ui-ux/*
+!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/
+/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/*
+!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/browser/
+/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/browser/*
+!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/browser/manifest.json
+!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/warehouse-exceptions-after-pagination/
+/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/warehouse-exceptions-after-pagination/*
+!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/warehouse-exceptions-after-pagination/manifest.json
+!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/final-current-source-retry/
+/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/final-current-source-retry/*
+!/.artifacts/shipyard-live/goal-ui-ux/runtime-r3-r4-20260915-sol/final-current-source-retry/manifest.json
+
 ## User-specific files
 *.suo
 *.user

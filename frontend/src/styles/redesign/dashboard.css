@@ -19,74 +19,10 @@
     white-space: nowrap;
   }
 
-  .ipc-dashboard-incident {
-    grid-template-columns: minmax(0, 1fr) minmax(420px, 0.78fr);
-    min-height: 132px;
-    border: 1px solid var(--border);
-    border-radius: var(--ipc-radius-md);
-    background: var(--card);
-  }
-
-  .ipc-dashboard-incident-main {
-    grid-template-columns: minmax(0, 1fr);
-    padding: var(--ipc-space-4) var(--ipc-space-5);
-  }
-
-  .ipc-dashboard-incident-copy {
-    min-width: 0;
-  }
-
-  .ipc-dashboard-incident h2 {
-    margin-top: 2px;
-    font-size: 1.25rem;
-    font-weight: 750;
-    line-height: 1.2;
-  }
-
-  .ipc-dashboard-incident p {
-    max-width: 66ch;
-    margin-top: 4px;
-    color: var(--ipc-slate-600);
-    font-size: 0.8125rem;
-    line-height: 1.45;
-  }
-
-  .ipc-dashboard-readiness-metrics {
-    min-width: 420px;
-    border-left-color: var(--border);
-    background: var(--ipc-slate-50);
-  }
-
-  .ipc-dashboard-readiness-metrics > div {
-    min-height: 130px;
-    justify-content: center;
-    border-right-color: var(--ipc-slate-200);
-    padding: 12px 14px;
-  }
-
-  .ipc-dashboard-readiness-metrics span,
   .ipc-dashboard-signal-copy > span {
     color: var(--ipc-slate-500);
     font-size: 0.75rem;
     font-weight: 750;
-  }
-
-  .ipc-dashboard-readiness-metrics strong {
-    margin-top: 2px;
-    font-size: 1.65rem;
-    font-weight: 750;
-  }
-
-  .ipc-dashboard-readiness-metrics > div:nth-child(1) strong {
-    color: var(--ipc-primary);
-  }
-
-  .ipc-dashboard-readiness-metrics > div:nth-child(2) strong {
-    color: var(--ipc-warning);
-  }
-
-  .ipc-dashboard-readiness-metrics > div:nth-child(3) strong {
-    color: var(--ipc-danger);
   }
 
   .ipc-dashboard-section {

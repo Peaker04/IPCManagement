@@ -1,9 +1,8 @@
-import { useState, useTransition } from 'react';
+import { useTransition } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import type { ViewTab } from '@/components/common';
 import { selectCurrentUser } from '@/features/auth';
-import { formatQuantity } from '@/lib/formatters';
 import { getTodayInputValue, isAdminView, type AdminView } from './adminDataPageTypes';
 import { useAdminAuditPanelModel } from './useAdminAuditPanelModel';
 import { useAdminBomPanelModel } from './useAdminBomPanelModel';
@@ -21,18 +20,28 @@ export function useAdminDataPageModel() {
   const operationalDate = getTodayInputValue();
   const currentUser = useAppSelector(selectCurrentUser);
   const operation = useSystemOperation();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const bomTemplateDishId = searchParams.get('dishId')?.trim() || undefined;
+  const requestedBomTier = Number(searchParams.get('tier'));
+  const bomInitialScope = {
+    priceTier: [25000, 30000, 34000].includes(requestedBomTier) ? requestedBomTier : undefined,
+    customerId: searchParams.get('customerId')?.trim() || undefined,
+    effectiveFrom: /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get('date') ?? '') ? searchParams.get('date')! : undefined,
+  };
   const canManageEmployees = currentUser?.role === 'admin' || currentUser?.isAdminFullAccess;
   const eligibleAdminTabs = eligiblePageTabs(operation?.mode ?? 'DEFAULT', 'admin-data', operation?.capabilities.pageTabs['admin-data'] ?? [], visibleTabIds('admin-data')) as AdminView[];
   const requestedView = searchParams.get('view');
-  const initialView = isAdminView(requestedView) && eligibleAdminTabs.includes(requestedView) && (requestedView !== 'employees' || canManageEmployees)
+  const activeView = isAdminView(requestedView) && eligibleAdminTabs.includes(requestedView) && (requestedView !== 'employees' || canManageEmployees)
     ? requestedView
     : eligibleAdminTabs[0] ?? 'bom-import';
-  const [activeView, setActiveView] = useState<AdminView>(initialView);
+  const setActiveView = (view: AdminView) => {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set('view', view);
+    setSearchParams(nextSearchParams);
+  };
   const adminTabPreferences = readPageTabPreferences()['admin-data'];
 
-  const { queryViews: bomQueryViews, ...bomModel } = useAdminBomPanelModel(activeView, bomTemplateDishId);
+  const { queryViews: bomQueryViews, ...bomModel } = useAdminBomPanelModel(activeView, bomTemplateDishId, bomInitialScope);
   const { queryViews: contractQueryViews, ...contractModel } = useAdminContractsPanelModel(activeView);
   const { queryView: dataQualityView, ...cleanupModel } = useAdminCleanupPanelModel(activeView, operationalDate);
   const { queryViews: inventoryQueryViews, ...inventoryModel } = useAdminInventoryPanelModel(activeView);
@@ -41,39 +50,6 @@ export function useAdminDataPageModel() {
   const { queryViews: employeeQueryViews, ...employeeModel } = useAdminEmployeesPanelModel(activeView, canManageEmployees);
 
   const effectiveActiveView: AdminView = canManageEmployees ? activeView : activeView === 'employees' ? 'bom-import' : activeView;
-  const adminContextItems = effectiveActiveView === 'bom-import'
-    ? [
-        { label: 'BOM đang hiển thị', value: bomQueryViews.dishCatalog.phase === 'ready' ? `${bomModel.currentBomRows.length} dòng` : '—', tone: 'neutral' as const },
-        { label: 'Mức định lượng', value: `${bomModel.bomImportTier / 1000}k`, tone: 'info' as const },
-        { label: 'Phạm vi', value: bomModel.bomImportCustomerId ? 'Theo khách hàng' : 'Dùng chung', tone: bomModel.bomImportCustomerId ? 'warning' as const : 'neutral' as const },
-        { label: 'Kết quả kiểm tra', value: bomModel.bomImportPreview ? `${bomModel.bomImportPreview.validRows}/${bomModel.bomImportPreview.totalRows} hợp lệ` : 'Chưa kiểm tra', tone: bomModel.bomImportPreview?.errorRows ? 'danger' as const : bomModel.bomImportPreview ? 'success' as const : 'neutral' as const },
-      ]
-    : effectiveActiveView === 'contracts'
-      ? [
-          { label: 'Khách hàng', value: contractQueryViews.contracts.phase === 'ready' ? contractModel.customerContracts.length.toString() : '—', tone: 'neutral' as const },
-          { label: 'Đang dùng', value: contractQueryViews.contracts.phase === 'ready' ? contractModel.customerContracts.filter((item) => item.isActive).length.toString() : '—', tone: contractQueryViews.contracts.phase === 'ready' ? 'success' as const : 'neutral' as const },
-          { label: 'Phiên bản lịch', value: contractQueryViews.menuSchedules.phase === 'ready' ? contractModel.menuSchedules.length.toString() : '—', tone: 'neutral' as const },
-        ]
-      : effectiveActiveView === 'cleanup'
-        ? [
-            { label: 'Dữ liệu lỗi', value: dataQualityView.phase === 'ready' ? `${cleanupModel.dataQualityErrorCount} mục` : '—', tone: dataQualityView.phase !== 'ready' ? 'neutral' as const : cleanupModel.dataQualityErrorCount ? 'danger' as const : 'success' as const },
-            { label: 'SLA gấp', value: dataQualityView.phase === 'ready' ? `${dataQualityView.data.urgentIssueCount}` : '—', tone: dataQualityView.phase !== 'ready' ? 'neutral' as const : dataQualityView.data.urgentIssueCount ? 'danger' as const : 'success' as const },
-            { label: 'Đã xử lý', value: dataQualityView.phase === 'ready' ? `${dataQualityView.data.resolvedIssueCount}` : '—', tone: dataQualityView.phase === 'ready' ? 'success' as const : 'neutral' as const },
-          ]
-        : effectiveActiveView === 'inventory'
-          ? [
-              { label: 'Tồn kho', value: inventoryQueryViews.currentStock.phase === 'ready' ? `${inventoryQueryViews.currentStock.data.totalCount} dòng` : '—', tone: 'neutral' as const },
-              { label: 'Điều chỉnh', value: inventoryQueryViews.stockMovements.phase === 'ready' ? `${inventoryModel.adjustmentMovements.length} bút toán` : '—', tone: inventoryQueryViews.stockMovements.phase !== 'ready' ? 'neutral' as const : inventoryModel.adjustmentMovements.length ? 'warning' as const : 'success' as const },
-            ]
-          : effectiveActiveView === 'statistics'
-            ? [
-                { label: 'Thiếu nguyên liệu', value: statisticsQueryViews.ingredientDemand.phase === 'ready' ? statisticsModel.shortageCount.toString() : '—', tone: statisticsQueryViews.ingredientDemand.phase !== 'ready' ? 'neutral' as const : statisticsModel.shortageCount ? 'danger' as const : 'success' as const },
-                { label: 'Cảnh báo giá', value: statisticsQueryViews.priceVariance.phase === 'ready' ? statisticsModel.priceWarningCount.toString() : '—', tone: statisticsQueryViews.priceVariance.phase !== 'ready' ? 'neutral' as const : statisticsModel.priceWarningCount ? 'warning' as const : 'success' as const },
-                { label: 'Đề xuất mua', value: statisticsQueryViews.purchasePlan.phase === 'ready' ? formatQuantity(statisticsModel.totalPurchaseQty) : '—', tone: statisticsQueryViews.purchasePlan.phase !== 'ready' ? 'neutral' as const : statisticsModel.totalPurchaseQty ? 'warning' as const : 'success' as const },
-              ]
-            : effectiveActiveView === 'audit'
-              ? [{ label: 'Nhật ký', value: auditView.phase === 'ready' ? `${auditModel.displayLogs.length} thay đổi` : '—', tone: 'neutral' as const }]
-              : [{ label: 'Nhân viên', value: employeeQueryViews.employees.phase === 'ready' ? `${employeeModel.employeeMeta?.totalCount ?? 0} tài khoản` : '—', tone: employeeQueryViews.employees.phase === 'ready' ? 'info' as const : 'neutral' as const }];
   const adminTabs: ViewTab[] = [
     ...(adminTabPreferences['bom-import'] && eligibleAdminTabs.includes('bom-import') ? [{ id: 'admin-bom-import', label: 'BOM theo đơn giá' }] : []),
     ...(adminTabPreferences.contracts && eligibleAdminTabs.includes('contracts') ? [{ id: 'admin-contracts', label: 'Hợp đồng' }] : []),
@@ -110,7 +86,6 @@ export function useAdminDataPageModel() {
     ...statisticsModel,
     ...auditModel,
     ...employeeModel,
-    adminContextItems,
     adminTabs,
     bomTemplateDishId,
     canManageEmployees,

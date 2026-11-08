@@ -23,6 +23,7 @@ import type {
   UpdateMenuScheduleVersionRequest,
   ProductionPlanDto,
 } from '@/types/coordination'
+import type { DailyProductionPlan, SendDailyProductionPlanRequest } from './workflowApiTypes'
 import { toApiShiftName, toDisplayShift } from '@/types/coordination'
 
 type LowerCamelQuery<Query> = {
@@ -144,7 +145,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
     }),
     getCustomerContracts: builder.query<ApiResponse<CustomerContractDto[]>, void>({
       query: () => '/coordination/customer-contracts',
-      providesTags: ['Customers', 'Coordination'],
+      providesTags: ['Customers', workflowCacheTags.customerContracts],
     }),
     createCustomerContract: builder.mutation<ApiResponse<CustomerContractDto>, CreateCustomerContractRequest>({
       query: (body) => ({
@@ -152,7 +153,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Customers', 'Coordination'],
+      invalidatesTags: ['Customers', workflowCacheTags.customerContracts],
     }),
     updateCustomerContract: builder.mutation<ApiResponse<CustomerContractDto>, { customerId: string; body: UpdateCustomerContractRequest }>({
       query: ({ customerId, body }) => ({
@@ -160,28 +161,28 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: ['Customers', 'Coordination'],
+      invalidatesTags: ['Customers', workflowCacheTags.customerContracts],
     }),
     getCommittedWeeklyMenu: builder.query<ApiResponse<WeeklyMenuImportResult | null>, WeeklyMenuQuery>({
       query: ({ customerId, weekStartDate }) => ({
         url: '/coordination/weekly-menu',
         params: { customerId, ...(weekStartDate ? { weekStartDate } : {}) },
       }),
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.weeklyMenus],
     }),
     getReconciliationWeeklyMenu: builder.query<ApiResponse<WeeklyMenuImportResult | null>, WeeklyMenuQuery>({
       query: ({ customerId, weekStartDate }) => ({
         url: '/reconciliation/weekly-menu',
         params: { customerId, ...(weekStartDate ? { weekStartDate } : {}) },
       }),
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.weeklyMenus],
     }),
     getMenuSchedules: builder.query<ApiResponse<MenuScheduleDto[]>, MenuScheduleQuery>({
       query: (params) => ({
         url: '/coordination/menu-schedules',
         params,
       }),
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.menuSchedules],
     }),
     updateMenuScheduleRules: builder.mutation<ApiResponse<MenuScheduleDto>, { menuScheduleId: string; body: UpdateMenuScheduleRulesRequest }>({
       query: ({ menuScheduleId, body }) => ({
@@ -190,7 +191,10 @@ export const coordinationApi = apiSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: [
-        'Coordination',
+        workflowCacheTags.menuSchedules,
+        workflowCacheTags.weeklyMenus,
+        workflowCacheTags.mealQuantityPlans,
+        workflowCacheTags.coordinationOrders,
         'MaterialDemandStaleness',
         workflowCacheTags.documents,
         workflowCacheTags.ingredientDemand,
@@ -206,7 +210,10 @@ export const coordinationApi = apiSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: [
-        'Coordination',
+        workflowCacheTags.menuSchedules,
+        workflowCacheTags.weeklyMenus,
+        workflowCacheTags.mealQuantityPlans,
+        workflowCacheTags.coordinationOrders,
         'MaterialDemandStaleness',
         workflowCacheTags.documents,
         workflowCacheTags.ingredientDemand,
@@ -222,7 +229,10 @@ export const coordinationApi = apiSlice.injectEndpoints({
         body,
       }),
       invalidatesTags: [
-        'Coordination',
+        workflowCacheTags.weeklyMenus,
+        workflowCacheTags.menuSchedules,
+        workflowCacheTags.mealQuantityPlans,
+        workflowCacheTags.coordinationOrders,
         'MaterialDemandStaleness',
         workflowCacheTags.documents,
         workflowCacheTags.ingredientDemand,
@@ -236,7 +246,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         url: '/coordination/meal-quantity-plans',
         params,
       }),
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.mealQuantityPlans],
     }),
     getCoordinationOrders: builder.query<ApiResponse<OrderRow[]>, CoordinationQuery>({
       query: ({ dayOfWeek, serviceDate, shift }) => ({
@@ -258,7 +268,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
           dishId: order.dishes?.[0]?.dishId || order.dishId || '',
         })),
       }),
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.coordinationOrders],
     }),
     lockCoordinationOrders: builder.mutation<ApiResponse<LockOrderPlanResult>, LockOrderPlanRequest>({
       query: ({ dayOfWeek, serviceDate, shift, scope = 'FULLDAY', lines }) => ({
@@ -272,7 +282,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
           lines,
         } satisfies components['schemas']['LockOrderPlanRequest'],
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.coordinationOrders, workflowCacheTags.mealQuantityPlans],
     }),
     adjustCoordinationOrder: builder.mutation<ApiResponse<AdjustOrderAfterLockResult>, AdjustOrderAfterLockRequest>({
       query: (body) => ({
@@ -280,7 +290,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.coordinationOrders, workflowCacheTags.mealQuantityPlans],
     }),
     updateForecastServings: builder.mutation<ApiResponse<UpdateForecastServingsResult>, UpdateForecastServingsRequest>({
       query: ({ orderId, servingsQuantity, reason }) => ({
@@ -288,7 +298,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'PATCH',
         body: { servingsQuantity, reason } satisfies components['schemas']['UpdateForecastServingsRequest'],
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.coordinationOrders, workflowCacheTags.mealQuantityPlans],
     }),
     upsertQuickServings: builder.mutation<ApiResponse<MealQuantityPlanDto>, UpsertQuickServingsRequest>({
       query: (body) => ({
@@ -300,11 +310,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
         },
       }),
       invalidatesTags: [
-        'Coordination',
+        workflowCacheTags.mealQuantityPlans,
+        workflowCacheTags.coordinationOrders,
         workflowCacheTags.documents,
         workflowCacheTags.ingredientDemand,
         workflowCacheTags.purchasePlan,
         workflowCacheTags.productionPlans,
+        'ReconciliationBatches',
       ],
     }),
     signoffCoordinationOrder: builder.mutation<ApiResponse<SignoffOrderResult>, { id: string; body: SignoffOrderRequest }>({
@@ -313,7 +325,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.coordinationOrders, workflowCacheTags.mealQuantityPlans],
     }),
     signoffCoordinationScope: builder.mutation<ApiResponse<CoordinationScopeActionResult>, CoordinationScopeActionRequest>({
       query: ({ dayOfWeek, serviceDate, shift, note }) => ({
@@ -321,14 +333,14 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: { dayOfWeek, serviceDate, shiftName: toApiShiftName(shift), note } satisfies components['schemas']['CoordinationScopeActionRequest'],
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.coordinationOrders, workflowCacheTags.mealQuantityPlans],
     }),
     unlockCoordinationOrders: builder.mutation<ApiResponse<LockOrderPlanResult>, { id: string }>({
       query: ({ id }) => ({
         url: `/coordination/orders/${id}/unlock`,
         method: 'POST',
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.coordinationOrders, workflowCacheTags.mealQuantityPlans],
     }),
     unlockCoordinationScope: builder.mutation<ApiResponse<CoordinationScopeActionResult>, CoordinationScopeActionRequest>({
       query: ({ dayOfWeek, serviceDate, shift, note }) => ({
@@ -336,7 +348,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: { dayOfWeek, serviceDate, shiftName: toApiShiftName(shift), note } satisfies components['schemas']['CoordinationScopeActionRequest'],
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.coordinationOrders, workflowCacheTags.mealQuantityPlans],
     }),
     exportCoordinationOrders: builder.mutation<ApiResponse<ExportOrderReportResult>, ExportOrderReportRequest>({
       query: ({ dayOfWeek, serviceDate, shift, format }) => ({
@@ -375,7 +387,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: buildWeeklyMenuImportFormData(request),
       }),
-      invalidatesTags: ['Coordination', 'DishCatalog'],
+      invalidatesTags: [workflowCacheTags.weeklyMenus, workflowCacheTags.menuSchedules, workflowCacheTags.mealQuantityPlans, workflowCacheTags.coordinationOrders, workflowCacheTags.weeklyMenuImportHistory, 'DishCatalog'],
     }),
     commitWeeklyMenuImportBatch: builder.mutation<ApiResponse<WeeklyMenuImportResult[]>, WeeklyMenuImportRequest[]>({
       query: (requests) => ({
@@ -383,7 +395,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: buildWeeklyMenuImportBatchFormData(requests),
       }),
-      invalidatesTags: ['Coordination', 'DishCatalog'],
+      invalidatesTags: [workflowCacheTags.weeklyMenus, workflowCacheTags.menuSchedules, workflowCacheTags.mealQuantityPlans, workflowCacheTags.coordinationOrders, workflowCacheTags.weeklyMenuImportHistory, 'DishCatalog'],
     }),
     getCustomerImportMapping: builder.query<ApiResponse<CustomerImportMapping | null>, string>({
       query: (customerId) => `/coordination/customers/${customerId}/import-mapping`,
@@ -406,19 +418,19 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.weeklyMenus, workflowCacheTags.menuSchedules, workflowCacheTags.mealQuantityPlans, workflowCacheTags.coordinationOrders],
     }),
     createMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, CreateMenuAmendmentRequest>({
       query: (body) => ({ url: '/coordination/weekly-menu/amendments', method: 'POST', body }),
-      invalidatesTags: ['Coordination'],
+      invalidatesTags: [workflowCacheTags.menuAmendments],
     }),
-    getMenuAmendments: builder.query<ApiResponse<MenuAmendmentInboxItem[]>, string | void>({ query: (status) => ({ url: '/coordination/weekly-menu/amendments', params: status ? { status } : undefined }), providesTags: ['Coordination'] }),
-    reviewMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; approved: boolean; reason?: string }>({ query: ({ id, approved, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/review`, method: 'POST', body: { approved, reason } }), invalidatesTags: ['Coordination'] }),
-executeMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, string>({ query: (id) => ({ url: `/coordination/weekly-menu/amendments/${id}/execute`, method: 'POST' }), invalidatesTags: ['Coordination'] }),
-breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; reason: string }>({ query: ({ id, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/break-glass-execute`, method: 'POST', body: { reason } }), invalidatesTags: ['Coordination'] }),
+    getMenuAmendments: builder.query<ApiResponse<MenuAmendmentInboxItem[]>, string | void>({ query: (status) => ({ url: '/coordination/weekly-menu/amendments', params: status ? { status } : undefined }), providesTags: [workflowCacheTags.menuAmendments] }),
+    reviewMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; approved: boolean; reason?: string }>({ query: ({ id, approved, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/review`, method: 'POST', body: { approved, reason } }), invalidatesTags: [workflowCacheTags.menuAmendments] }),
+executeMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, string>({ query: (id) => ({ url: `/coordination/weekly-menu/amendments/${id}/execute`, method: 'POST' }), invalidatesTags: [workflowCacheTags.menuAmendments, workflowCacheTags.weeklyMenus, workflowCacheTags.menuSchedules, workflowCacheTags.mealQuantityPlans, workflowCacheTags.coordinationOrders] }),
+breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult>, { id: string; reason: string }>({ query: ({ id, reason }) => ({ url: `/coordination/weekly-menu/amendments/${id}/break-glass-execute`, method: 'POST', body: { reason } }), invalidatesTags: [workflowCacheTags.menuAmendments, workflowCacheTags.weeklyMenus, workflowCacheTags.menuSchedules, workflowCacheTags.mealQuantityPlans, workflowCacheTags.coordinationOrders] }),
     getMenuAmendmentDecisionPage: builder.query<ApiResponse<MenuAmendmentDecisionPage>, { customerId?: string; allCustomers: boolean; page: number; pageSize: number }>({
       query: (params) => ({ url: '/coordination/weekly-menu/amendments/decisions', params }),
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.menuAmendments],
     }),
     executeMenuAmendmentDecision: builder.mutation<ApiResponse<MenuAmendmentDecisionItem>, MenuAmendmentDecisionCommand>({
       query: ({ decisionItemId, ...command }) => ({
@@ -426,7 +438,7 @@ breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult
         method: 'POST',
         body: { decisionItemId, ...command },
       }),
-      invalidatesTags: ['Coordination', workflowCacheTags.productionPlans],
+      invalidatesTags: [workflowCacheTags.menuAmendments, workflowCacheTags.weeklyMenus, workflowCacheTags.menuSchedules, workflowCacheTags.mealQuantityPlans, workflowCacheTags.coordinationOrders, workflowCacheTags.productionPlans],
     }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryPage>, WeeklyMenuImportHistoryQuery | void>({
       query: (params) => {
@@ -436,21 +448,26 @@ breakGlassExecuteMenuAmendment: builder.mutation<ApiResponse<MenuAmendmentResult
           params: { customerId, fromDate, toDate, pageNumber, pageSize },
         };
       },
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.weeklyMenuImportHistory],
     }),
     rollbackWeeklyMenuImport: builder.mutation<ApiResponse<RollbackWeeklyMenuImportResult>, string>({
       query: (menuVersionId) => ({
         url: `/coordination/weekly-menu/import/${menuVersionId}/rollback`,
         method: 'POST',
       }),
-      invalidatesTags: ['Coordination', 'DishCatalog'],
+      invalidatesTags: [workflowCacheTags.weeklyMenus, workflowCacheTags.menuSchedules, workflowCacheTags.mealQuantityPlans, workflowCacheTags.coordinationOrders, workflowCacheTags.weeklyMenuImportHistory, 'DishCatalog'],
     }),
     getProductionPlans: builder.query<ApiResponse<ProductionPlanDto[]>, ProductionPlanQuery>({
       query: (params) => ({
         url: '/production-plans/filter',
         params,
       }),
-      providesTags: ['Coordination'],
+      providesTags: [workflowCacheTags.productionPlans],
+    }),
+    sendDailyProductionPlanToKitchen: builder.mutation<DailyProductionPlan, SendDailyProductionPlanRequest>({
+      query: (body) => ({ url: '/production-plans/daily/send-to-kitchen', method: 'POST', body }),
+      transformResponse: (response: ApiResponse<DailyProductionPlan>) => response.data!,
+      invalidatesTags: [workflowCacheTags.productionPlans, workflowCacheTags.documents, workflowCacheTags.kitchenIssues],
     }),
   }),
   overrideExisting: false,
@@ -497,4 +514,5 @@ useBreakGlassExecuteMenuAmendmentMutation,
   useRollbackWeeklyMenuImportMutation,
   useGetProductionPlansQuery,
   useLazyGetProductionPlansQuery,
+  useSendDailyProductionPlanToKitchenMutation,
 } = coordinationApi

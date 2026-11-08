@@ -402,22 +402,6 @@ export type ApprovalInboxPageDto = components['schemas']['ApprovalInboxPageDto']
 
 export type PurchaseOrderPageResponse = MutableContract<components['schemas']['PurchaseOrderPageDto']>;
 
-/** Legacy adapter retained for the exported `/receive` hook; that route is absent from OpenAPI. */
-export type RecordPurchaseOrderReceiptLineDto = Pick<
-  WarehousePurchaseReceiptLineRequest,
-  'purchaseOrderLineId'
-> & {
-  [Key in 'actualQuantity' as 'receivedQty']: WarehousePurchaseReceiptLineRequest[Key];
-};
-
-export type RecordPurchaseOrderReceiptDto = Pick<WarehousePurchaseReceiptRequest, 'warehouseId'> & {
-  lines: RecordPurchaseOrderReceiptLineDto[];
-};
-export type RecordPurchaseOrderReceiptArgs = {
-  purchaseOrderId: PurchaseOrderDto['purchaseOrderId'];
-  data: RecordPurchaseOrderReceiptDto;
-};
-
 export type ReceiptPriceVarianceReportDto = components['schemas']['ReceiptPriceVarianceReportDto'];
 export type PriceVarianceBySupplierDto = components['schemas']['PriceVarianceBySupplierDto'];
 export type PriceVarianceByPeriodDto = components['schemas']['PriceVarianceByPeriodDto'];

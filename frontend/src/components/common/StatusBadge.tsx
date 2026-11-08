@@ -2,10 +2,15 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import type { StatusTone } from '@/lib/statusPresentation';
 import { typography } from '@/lib/typography';
+import { resolveStatus, type StatusDomain } from '@/lib/status/statusRegistry';
 
-interface StatusBadgeProps {
+export interface StatusBadgeProps {
   children?: ReactNode;
+  status?: string | null;
+  domain?: StatusDomain;
   variant?: StatusTone;
+  tone?: StatusTone;
+  label?: string;
   size?: StatusBadgeSize;
   fullLabel?: string;
   tooltip?: string;
@@ -15,15 +20,15 @@ interface StatusBadgeProps {
 
 export type StatusBadgeSize = 'sm' | 'default' | 'lg';
 
-const badgeClasses = {
-  neutral: 'is-neutral text-slate-700 font-medium bg-transparent border-0',
-  info: 'is-info text-blue-700 font-semibold bg-transparent border-0',
-  success: 'is-success text-emerald-700 font-semibold bg-transparent border-0',
-  warning: 'is-warning text-amber-800 font-semibold bg-transparent border-0',
-  danger: 'is-danger text-red-700 font-semibold bg-transparent border-0',
+const badgeClasses: Record<StatusTone, string> = {
+  neutral: 'is-neutral text-[var(--status-neutral-fg,#334155)] font-medium bg-transparent border-0',
+  info: 'is-info text-[var(--status-info-fg,#1a56a8)] font-semibold bg-transparent border-0',
+  success: 'is-success text-[var(--status-success-fg,#0f766e)] font-semibold bg-transparent border-0',
+  warning: 'is-warning text-[var(--status-warning-fg,#c05621)] font-semibold bg-transparent border-0',
+  danger: 'is-danger text-[var(--status-danger-fg,#c53030)] font-semibold bg-transparent border-0',
 };
 
-const dotClasses = {
+const dotClasses: Record<StatusTone, string> = {
   neutral: 'bg-slate-400 hidden',
   info: 'bg-blue-500 hidden',
   success: 'bg-emerald-500 hidden',
@@ -38,22 +43,31 @@ const sizeClasses: Record<StatusBadgeSize, string> = {
 };
 
 /**
- * StatusBadge - Canonical Status Badge with Fixed Width Tokens (Rule C3, L4, L10)
- * Uses --cell-status-min-w to eliminate horizontal layout shifts.
+ * StatusBadge / StatusLozenge - Canonical Status Presentation with Fixed Width Tokens (Rule C3, L4, L10)
+ * Resolves business status via Domain Status Registry or explicit tone/label props.
  */
 export function StatusBadge({
   children,
-  variant = 'neutral',
+  status,
+  domain,
+  variant,
+  tone,
+  label: explicitLabel,
   size = 'default',
   fullLabel,
   tooltip,
   loading = false,
   className,
 }: StatusBadgeProps) {
+  const resolved = status ? resolveStatus(status, domain) : undefined;
+  const rawVariant = variant ?? tone ?? resolved?.tone ?? 'neutral';
+  const effectiveVariant: StatusTone = (rawVariant in badgeClasses) ? (rawVariant as StatusTone) : 'neutral';
+  const effectiveChildren = children ?? explicitLabel ?? resolved?.label;
+
   const label =
     fullLabel ??
-    (typeof children === 'string' || typeof children === 'number'
-      ? String(children)
+    (typeof effectiveChildren === 'string' || typeof effectiveChildren === 'number'
+      ? String(effectiveChildren)
       : undefined);
 
   // Abbreviations glossary lookup (Rule L10)
@@ -80,7 +94,7 @@ export function StatusBadge({
           typography.label,
           'ipc-status-badge ipc-status-badge--loading inline-flex min-h-5 min-w-0 items-center justify-center rounded-md border border-slate-200/60 bg-slate-100/60 whitespace-nowrap animate-pulse opacity-70',
           sizeClasses[size],
-          badgeClasses[variant],
+          badgeClasses[effectiveVariant],
           className
         )}
       >
@@ -103,12 +117,15 @@ export function StatusBadge({
         typography.label,
         'ipc-status-badge cell-status inline-flex min-h-5 items-center justify-center font-medium whitespace-nowrap select-none',
         sizeClasses[size],
-        badgeClasses[variant],
+        badgeClasses[effectiveVariant],
         className
       )}
     >
-      <span className={cn('ipc-status-badge-dot h-1.5 w-1.5 rounded-full shrink-0', dotClasses[variant])} aria-hidden="true" />
-      <span className="ipc-status-badge-label inline-flex items-center gap-1.5 whitespace-nowrap">{children}</span>
+      <span className={cn('ipc-status-badge-dot h-1.5 w-1.5 rounded-full shrink-0', dotClasses[effectiveVariant])} aria-hidden="true" />
+      <span className="ipc-status-badge-label inline-flex items-center gap-1.5 whitespace-nowrap">{effectiveChildren}</span>
     </span>
   );
 }
+
+export const StatusLozenge = StatusBadge;
+export type StatusLozengeProps = StatusBadgeProps;

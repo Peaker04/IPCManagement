@@ -1,4 +1,4 @@
-import type { User } from './authTypes';
+import type { User } from '@/lib/auth/authTypes';
 
 const ACCESS_TOKEN_KEY = 'token';
 const LEGACY_REFRESH_TOKEN_KEY = 'refreshToken';

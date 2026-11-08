@@ -21,7 +21,7 @@ describe('AdminQueryBoundary', () => {
     renderBoundary([{ phase: 'uninitialized', instruction: 'Chọn phạm vi trước.' }]);
 
     expect(screen.getByText('Chọn phạm vi trước.')).toBeInTheDocument();
-    expect(screen.queryByText('Kết quả quản trị')).toBeNull();
+    expect(screen.getByText('Kết quả quản trị').parentElement).toHaveClass('invisible');
   });
 
   it('keeps compact blocking states content-sized', () => {
@@ -33,7 +33,7 @@ describe('AdminQueryBoundary', () => {
     renderBoundary([{ phase: 'loading' }]);
 
     expect(screen.getByText('Đang tải nguồn 1')).toBeInTheDocument();
-    expect(screen.queryByText('Kết quả quản trị')).toBeNull();
+    expect(screen.getByText('Kết quả quản trị').parentElement).toHaveClass('invisible');
   });
 
   it('renders forbidden without a retry action', () => {
@@ -41,7 +41,7 @@ describe('AdminQueryBoundary', () => {
 
     expect(screen.getByRole('alert')).toHaveTextContent('Không có quyền.');
     expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
-    expect(screen.queryByText('Kết quả quản trị')).toBeNull();
+    expect(screen.getByText('Kết quả quản trị').parentElement).toHaveClass('invisible');
   });
 
   it('keeps a non-forbidden error retryable', () => {
@@ -50,21 +50,38 @@ describe('AdminQueryBoundary', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Thử tải lại' }));
     expect(retry).toHaveBeenCalledOnce();
-    expect(screen.queryByText('Kết quả quản trị')).toBeNull();
+    expect(screen.getByText('Kết quả quản trị').parentElement).toHaveClass('invisible');
   });
 
-  it('renders children for an authoritative ready-empty result', () => {
-    renderBoundary([ready()]);
+  it('retains the same shell node across loading and ready', () => {
+    const { rerender } = renderBoundary([{ phase: 'loading' }]);
+    const shell = screen.getByText('Kết quả quản trị');
+    expect(shell.parentElement).toHaveAttribute('inert');
+    expect(shell.parentElement).toHaveAttribute('aria-hidden', 'true');
+
+    rerender(
+      <AdminQueryBoundary queries={[{ label: 'nguồn 1', view: ready() }]}>
+        <div>Kết quả quản trị</div>
+      </AdminQueryBoundary>,
+    );
+    expect(screen.getByText('Kết quả quản trị')).toBe(shell);
+    expect(shell.parentElement).not.toHaveClass('invisible');
+  });
+
+  it('renders children for an authoritative ready-empty result without a hit-test overlay', () => {
+    const { container } = renderBoundary([ready()]);
 
     expect(screen.getByText('Kết quả quản trị')).toBeInTheDocument();
+    expect(container.querySelector('.z-10')).toBeNull();
   });
 
-  it('keeps ready children visible while refreshing', () => {
-    renderBoundary([ready(true)]);
+  it('keeps ready children interactive while refreshing', () => {
+    const { container } = renderBoundary([ready(true)]);
 
     expect(screen.getByText('Kết quả quản trị')).toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Đang cập nhật nguồn 1' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).toBeNull();
+    expect(container.querySelector('.z-10')).toHaveClass('pointer-events-none');
   });
 
   it('blocks the whole group when one required query fails', () => {
@@ -74,6 +91,6 @@ describe('AdminQueryBoundary', () => {
     ]);
 
     expect(screen.getByText(/Nguồn phụ bị lỗi/)).toBeInTheDocument();
-    expect(screen.queryByText('Kết quả quản trị')).toBeNull();
+    expect(screen.getByText('Kết quả quản trị').parentElement).toHaveClass('invisible');
   });
 });

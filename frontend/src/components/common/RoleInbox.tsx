@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { EmptyState } from './EmptyState';
@@ -32,7 +32,8 @@ export function RoleInbox({
   pageSize = 4,
   className,
 }: RoleInboxProps) {
-  const { page, rows: pageItems, totalItems, setPage } = useLocalPagination(items, pageSize);
+  const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
+  const { page, rows: pageItems, totalItems, setPage } = useLocalPagination(items, selectedPageSize);
 
   if (!items.length) {
     return (
@@ -85,7 +86,7 @@ export function RoleInbox({
           </tbody>
         </table>
       </TableViewport>
-      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
+      <PaginationBar page={page} pageSize={selectedPageSize} totalItems={totalItems} pageSizeOptions={[4, 8, 20]} onPageSizeChange={(nextSize) => { setSelectedPageSize(nextSize); setPage(1); }} onPageChange={setPage} />
     </div>
   );
 }

@@ -1,7 +1,29 @@
 import type { QuickServingRow, WeeklyScheduleEditorWorkflow } from './types'
 import { StatusBadge } from '@/components/common'
+import type { StatusTone } from '@/lib/statusPresentation'
+
+function resolveQuickServingStatus(row: QuickServingRow, isSaving: boolean): { label: string; tone: StatusTone } {
+  if (row.isCompleted) {
+    return { label: 'Đã hoàn tất', tone: 'success' }
+  }
+  if (isSaving) {
+    return { label: 'Đang lưu', tone: 'info' }
+  }
+  if (row.hasDraftChange) {
+    return { label: 'Chưa lưu', tone: 'neutral' }
+  }
+  if (row.hasPlanLines) {
+    return { label: row.statusLabel, tone: 'warning' }
+  }
+  if (row.importedServings > 0) {
+    return { label: 'Tạm từ tệp', tone: 'neutral' }
+  }
+  return { label: 'Chưa có kế hoạch', tone: 'neutral' }
+}
 
 export function QuickServingCell({ row, workflow }: { row: QuickServingRow; workflow: WeeklyScheduleEditorWorkflow }) {
+  const status = resolveQuickServingStatus(row, workflow.status.isSavingQuickServings)
+
   return (
     <div className="flex flex-col items-center gap-1.5">
       <input
@@ -24,16 +46,8 @@ export function QuickServingCell({ row, workflow }: { row: QuickServingRow; work
         disabled={row.isConfirmed}
         aria-label={`Số suất ${row.dayLabel} ${row.shiftLabel}`}
       />
-      <StatusBadge variant={row.isCompleted ? 'success' : row.hasDraftChange ? 'neutral' : row.hasPlanLines ? 'warning' : 'neutral'}>
-        {row.isCompleted
-          ? 'Đã hoàn tất'
-          : workflow.status.isSavingQuickServings
-            ? 'Đang lưu'
-            : row.hasDraftChange
-              ? 'Chưa lưu'
-              : row.hasPlanLines
-                ? row.statusLabel
-                : row.importedServings > 0 ? 'Tạm từ tệp' : 'Chưa có kế hoạch'}
+      <StatusBadge tone={status.tone}>
+        {status.label}
       </StatusBadge>
     </div>
   )

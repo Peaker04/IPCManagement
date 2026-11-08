@@ -124,5 +124,6 @@ public class MenuScheduleDishDto
     public string DishName { get; set; } = string.Empty;
     public string? DishGroup { get; set; }
     public string? DishType { get; set; }
+    public string? DishSlot { get; set; }
     public int DisplayOrder { get; set; }
 }

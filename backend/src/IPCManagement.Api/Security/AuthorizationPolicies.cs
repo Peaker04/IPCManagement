@@ -21,6 +21,10 @@ public static class AuthorizationPolicies
     public const string WarehouseSelectorAccess = "WarehouseSelectorAccess";
     public const string WarehousePurchaseReceive = "WarehousePurchaseReceive";
     public const string ReportAccess = "ReportAccess";
+    public const string ReconciliationReadAccess = "ReconciliationReadAccess";
+    public const string ReconciliationSourceReadAccess = "ReconciliationSourceReadAccess";
+    public const string ReconciliationWarehouseReadAccess = "ReconciliationWarehouseReadAccess";
+    public const string ReconciliationKitchenAccess = "ReconciliationKitchenAccess";
     public const string ReconciliationDispositionAccess = "ReconciliationDispositionAccess";
     public const string ReconciliationCompleteAccess = "ReconciliationCompleteAccess";
 
@@ -105,6 +109,36 @@ public static class AuthorizationPolicies
         "Admin", "ADMIN", "Quản trị",
         "Manager", "MANAGER", "Quản lý"
     ];
+
+    public static readonly string[] ReconciliationWarehouseIssueRoles = AdminRoles
+        .Concat([
+            "WarehouseManager", "Warehouse Manager", "WarehouseStaff", "Warehouse Staff", "Thủ kho"
+        ])
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    public static readonly string[] ReconciliationReadRoles = AdminRoles
+        .Concat(CoordinationRoles)
+        .Concat(ReconciliationWarehouseIssueRoles)
+        .Concat(ProductionRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    public static readonly string[] ReconciliationWarehouseReadRoles = ReconciliationWarehouseIssueRoles;
+
+    public static readonly string[] ReconciliationSourceReadRoles = AdminRoles
+        .Concat([
+            "Coordinator", "COORDINATOR", "Điều phối"
+        ])
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    public static readonly string[] ReconciliationKitchenRoles = AdminRoles
+        .Concat([
+            "Chef", "HeadChef", "Head Chef", "Kitchen", "Bếp trưởng"
+        ])
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 
     public static readonly string[] WarehousePurchaseReceiveRoles =
     [

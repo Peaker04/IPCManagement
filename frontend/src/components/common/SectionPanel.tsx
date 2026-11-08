@@ -43,7 +43,7 @@ export function SectionPanel({
   children,
   tone = 'default',
   padded = true,
-  headingLevel = 3,
+  headingLevel = 2,
   className,
 }: SectionPanelProps) {
   const HeadingTag = `h${headingLevel}` as 'h2' | 'h3' | 'h4';

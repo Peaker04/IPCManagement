@@ -5,12 +5,12 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 
 import { apiSlice } from '../api/apiSlice';
-import { coordinationReducer } from '../features/coordination';
-import authReducer from '../features/auth/authSlice';
+import coordinationReducer from '../features/coordination/coordinationSlice';
+import authReducer from '@/lib/auth/authSlice';
 import ForbiddenPage from '../features/auth/pages/ForbiddenPage';
-import type { User } from '../features/auth/authTypes';
+import type { User } from '@/lib/auth/authTypes';
 import { ROUTES } from '../lib/routeConfig';
-import { ActionGuard } from './ActionGuard';
+import { ActionGuard } from '@/components/common/ActionGuard';
 import { RoleGuard } from './RoleGuard';
 
 type AuthTestState = {

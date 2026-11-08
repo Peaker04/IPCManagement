@@ -486,7 +486,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     private sealed class StubCurrentUser(string id) : IPCManagement.Api.Security.ICurrentUserService
     {
         public string? GetUserId(System.Security.Claims.ClaimsPrincipal user) => id;
-        public IReadOnlyList<string> GetRoleNames(System.Security.Claims.ClaimsPrincipal user) => ["COORDINATION"];
+        public IReadOnlyList<string> GetRoleNames(System.Security.Claims.ClaimsPrincipal user) => ["Coordinator"];
         public string? GetWarehouseId(System.Security.Claims.ClaimsPrincipal user) => null;
     }
 

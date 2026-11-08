@@ -61,6 +61,8 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
     );
   }
 
+  const isPhysicalHandoff = lines.every((line) => line.projection === 'physical-handoff');
+
   return (
     <div className={cn('ipc-demand-summary', className)}>
       <TableViewport className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu" caption={showServiceDate ? 'Tổng hợp theo từng ngày trong khoảng đang xem' : 'Tổng hợp trong ngày đang xem'}>
@@ -68,36 +70,30 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
           <thead>
             <tr>
               {showServiceDate && <th style={{ width: '10%' }} className="whitespace-nowrap text-left">Ngày</th>}
-              <th style={{ width: showServiceDate ? '14%' : '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
-              <th style={{ width: showServiceDate ? '18%' : '24%' }} className="whitespace-nowrap text-left">{sourceLabel}</th>
-              <th style={{ width: showServiceDate ? '10%' : '11%' }} className="whitespace-nowrap text-right">Cần</th>
-              <th style={{ width: showServiceDate ? '10%' : '11%' }} className="whitespace-nowrap text-right">Đã cấp</th>
-              <th style={{ width: showServiceDate ? '10%' : '11%' }} className="whitespace-nowrap text-right">Chênh lệch</th>
+              <th style={{ width: showServiceDate ? '27%' : '32%' }} className="whitespace-nowrap text-left">Nguyên liệu / {sourceLabel}</th>
+              <th style={{ width: showServiceDate ? '11%' : '14%' }} className="whitespace-nowrap text-right">Cần</th>
+              <th style={{ width: showServiceDate ? '19%' : '22%' }} className="whitespace-nowrap text-right">{isPhysicalHandoff ? 'Bàn giao' : 'Cấp phát'}</th>
               <th style={{ width: showServiceDate ? '13%' : '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
               <th style={{ width: showServiceDate ? '15%' : '13%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
             </tr>
           </thead>
           <tbody>
             {lines.map((line, index) => {
-              const availableAfterReserve = line.available - line.reserved;
+              const availableAfterReserve = line.issuedQty ?? line.available - line.reserved;
               const variance = availableAfterReserve - line.required;
 
               return (
                 <tr key={`${line.id}-${index}`}>
                   {showServiceDate && <td className="whitespace-nowrap">{line.serviceDate ? formatDateOnly(line.serviceDate) : 'Chưa xác định'}</td>}
-                  <td className="font-medium text-slate-900"><IdentifierText value={line.material} className="font-sans" /></td>
-                  <td className="text-slate-600"><IdentifierText value={line.source} /></td>
+                  <td><span className="block font-medium text-slate-900"><IdentifierText value={line.material} className="font-sans" /></span><span className="block text-xs text-slate-500"><IdentifierText value={line.source} /></span></td>
                   <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
                     {formatQuantityWithUnit(line.required, line.unit)}
                   </td>
-                  <td className="ipc-numeric-cell text-right tabular-nums whitespace-nowrap">
-                    {formatQuantityWithUnit(availableAfterReserve, line.unit)}
-                  </td>
-                  <td className={cn(
-                    'ipc-numeric-cell text-right tabular-nums whitespace-nowrap font-semibold',
-                    variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700',
-                  )}>
-                    {formatVariance(variance, line.unit)}
+                  <td className="ipc-numeric-cell text-right text-xs tabular-nums whitespace-nowrap">
+                    <span className="block">{isPhysicalHandoff ? 'Đã xuất' : 'Đã cấp'}: {formatQuantityWithUnit(availableAfterReserve, line.unit)}</span>
+                    <span className={cn('block font-semibold', variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700')}>
+                      {isPhysicalHandoff ? 'Chưa xuất' : 'Chênh lệch'}: {line.projection === 'physical-handoff' ? formatQuantityWithUnit(line.remainingToIssueQty ?? 0, line.unit) : formatVariance(variance, line.unit)}
+                    </span>
                   </td>
                   <td className="ipc-badge-cell text-center whitespace-nowrap">
                     <StatusBadge
@@ -106,7 +102,7 @@ export function DemandSummary({ lines, className, sourceLabel = 'Nguồn', showS
                       tooltip={line.status}
                       className="ipc-table-badge ipc-table-badge--status ipc-demand-status-badge"
                     >
-                      {shortenStatus(line.status)}
+                      {line.projection === 'physical-handoff' ? line.status : shortenStatus(line.status)}
                     </StatusBadge>
                   </td>
                   <td className="text-center whitespace-nowrap">

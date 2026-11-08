@@ -19,7 +19,7 @@ export function WeeklyScheduleSection({ scope, rows, dishNamesById, maxBodyHeigh
       className="ipc-weekly-schedule-panel"
       title="Bố cục menu theo file khách hàng"
       icon={<Calendar size={18} color="var(--ipc-slate-600)" />}
-      badge={<StatusBadge variant={scope.activeDayKey ? 'success' : 'warning'}>{scope.activeDayKey ? `Đang thực hiện · ${scope.activeServiceLabel}` : scope.activeServiceLabel}</StatusBadge>}
+      badge={!scope.activeDayKey ? <StatusBadge variant="warning">{scope.activeServiceLabel}</StatusBadge> : undefined}
     >
       <ImportedLayoutMatrix rows={rows} displayDays={scope.displayDays} activeDayKey={scope.activeDayKey} dishNamesById={dishNamesById} maxBodyHeight={maxBodyHeight} />
     </SectionPanel>

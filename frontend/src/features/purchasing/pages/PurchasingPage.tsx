@@ -1,13 +1,13 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Info, RotateCcw, ShoppingCart, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, EmptyState, InlineAlert, KeepAliveTabPanel, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
+import { Drawer, DrawerBody, DrawerContent, DrawerHeader, DrawerTitle } from '@/components/ui/drawer';
 import { visibleTabIds } from '@/lib/navigationPreferences';
 import { formatDateOnly } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { useGetPurchaseWorkbenchQuery } from '@/api/purchasingApi';
-import type { PurchaseWorkflowStageCounts } from '@/api/workflowApiTypes';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
 import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
@@ -24,15 +24,6 @@ import {
 const SupplementalPurchasingWorkbench = lazy(() => import('../SupplementalPurchasingWorkbench').then(({ SupplementalPurchasingWorkbench: component }) => ({ default: component })))
 const SupplierQuotationSection = lazy(() => import('../quotation/SupplierQuotationSection').then(({ SupplierQuotationSection: component }) => ({ default: component })))
 const purchasingCapabilityFallback = <div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />
-
-const emptyStageCounts: PurchaseWorkflowStageCounts = {
-  demand: 0,
-  supplierPrice: 0,
-  exception: 0,
-  submittedRequest: 0,
-  approvedOrder: 0,
-  receivingProgress: 0,
-};
 
 type PurchasingView = 'workflow' | 'supplemental' | 'quotations';
 
@@ -83,23 +74,35 @@ export default function PurchasingPage() {
     forbiddenMessage: 'Bạn không có quyền xem quy trình thu mua.',
   });
   const workbench = workbenchView.phase === 'ready' ? workbenchView.data : undefined;
+  const isWorkflowReadyEmpty =
+    activeView === 'workflow' &&
+    workbenchView.phase === 'ready' &&
+    workbenchView.data.serviceDates.length === 0;
   const isFetching = workbenchView.phase === 'loading'
     || workbenchView.phase === 'ready' && workbenchView.isRefreshing;
 
+  const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
+  const requestedPurchaseDate = requestedPurchaseRequestId
+    ? workbench?.serviceDates.find((item) => item.purchaseRequestId === requestedPurchaseRequestId)?.serviceDate
+    : undefined;
   const routeState = useMemo(
     () => resolvePurchasingRouteState(
       {
         week: searchParams.get('week'),
-        date: searchParams.get('date') ?? workbench?.selectedDate,
+        date: searchParams.get('date') ?? requestedPurchaseDate ?? workbench?.selectedDate,
         stage: searchParams.get('stage') ?? workbench?.selectedStage,
       },
       workbench?.serviceDates ?? [],
     ),
-    [searchParams, workbench?.selectedDate, workbench?.selectedStage, workbench?.serviceDates],
+    [requestedPurchaseDate, searchParams, workbench?.selectedDate, workbench?.selectedStage, workbench?.serviceDates],
   );
   const activeDate = workbench?.serviceDates.find((item) => item.serviceDate === routeState.date);
   const selectedLine = activeDate?.purchaseLines.find((line) => line.purchaseRequestLineId === selectedLineId);
   const nextAction = resolveNextPurchasingAction(activeDate, { loadError: workbenchView.phase === 'error' });
+  const isSupplierLineDecision = routeState.stage === 'supplier-price' && Boolean(selectedLine);
+  const showCommandAction = nextAction.kind === 'recovery'
+    || routeState.stage !== 'demand'
+      && (routeState.stage !== 'supplier-price' || nextAction.label === 'Gửi đề xuất mua');
   const isQuotationFailure = quotationWorkflow.isLookupError
     || quotationWorkflow.isLookupForbidden
     || quotationWorkflow.quotationView.phase === 'error'
@@ -121,17 +124,17 @@ export default function PurchasingPage() {
     if (activeView !== 'workflow') return;
     if (!workbench && workbenchView.phase !== 'error') return;
 
-    setSearchParams((current) => {
-      const next = new URLSearchParams(current);
-      next.set('week', routeState.week);
-      if (current.has('date')) {
-        if (routeState.date) next.set('date', routeState.date);
-        else next.delete('date');
-      }
-      if (current.has('stage')) next.set('stage', routeState.stage);
-      return next.toString() === current.toString() ? current : next;
-    }, { replace: true });
-  }, [activeView, routeState.date, routeState.stage, routeState.week, setSearchParams, workbench, workbenchView.phase]);
+    const next = new URLSearchParams(searchParams);
+    next.set('week', routeState.week);
+    if (searchParams.has('date')) {
+      if (routeState.date) next.set('date', routeState.date);
+      else next.delete('date');
+    }
+    if (searchParams.has('stage')) next.set('stage', routeState.stage);
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [activeView, routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams, workbench, workbenchView.phase]);
 
   const changeView = (id: string) => {
     const view: PurchasingView = id === 'purchasing-quotations'
@@ -188,7 +191,7 @@ export default function PurchasingPage() {
             <Button variant="outline" size="icon" className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9" aria-label="Tuần sau" onClick={() => moveWeek(7)}>
               <ChevronRight aria-hidden="true" />
             </Button>
-            {nextAction.label ? (
+            {nextAction.label && showCommandAction ? (
               <Button
                 variant={nextAction.kind === 'recovery' ? 'outline' : 'default'}
                 className="min-h-11 min-w-[10.25rem] sm:min-h-9"
@@ -212,28 +215,33 @@ export default function PurchasingPage() {
           )}
         </CommandBar>
       }
-      context={
-        <ContextStrip items={activeView === 'workflow' ? [
-          { label: 'Ngày cần xử lý', value: workbenchView.phase === 'ready' ? workbenchView.data.stageCounts.demand : '—', tone: workbenchView.phase === 'ready' && workbenchView.data.stageCounts.demand > 0 ? 'warning' : 'neutral' },
-          { label: 'Nhu cầu chờ duyệt', value: workbenchView.phase === 'ready' ? (activeDate && activeDate.approvedDemandCount === 0 ? 1 : 0) : '—', tone: workbenchView.phase === 'ready' && activeDate && activeDate.approvedDemandCount === 0 ? 'warning' : 'neutral' },
-          { label: 'Ngoại lệ giá', value: workbenchView.phase === 'ready' ? activeDate?.blockingExceptionCount ?? 0 : '—', tone: workbenchView.phase === 'ready' && (activeDate?.blockingExceptionCount ?? 0) > 0 ? 'danger' : 'neutral' },
-          { label: 'Đơn chờ nhập', value: workbenchView.phase === 'ready' ? (activeDate ? Math.max(0, activeDate.receivingLineCount - activeDate.fullyReceivedLineCount) : 0) : '—', tone: workbenchView.phase === 'ready' && activeDate && activeDate.receivingLineCount > activeDate.fullyReceivedLineCount ? 'warning' : 'neutral' },
-        ] : activeView === 'quotations' ? [
+      context={activeView === 'quotations' ? (
+        <ContextStrip items={[
           { label: 'Nguyên liệu', value: quotationWorkflow.ingredientView.phase === 'ready' ? quotationWorkflow.ingredients.length : '—', tone: 'neutral' },
           { label: 'Nhà cung cấp', value: quotationWorkflow.supplierView.phase === 'ready' ? quotationWorkflow.suppliers.length : '—', tone: 'neutral' },
           { label: 'Báo giá đang xem', value: quotationWorkflow.quotationView.phase === 'ready' ? quotationWorkflow.response?.totalCount ?? 0 : quotationWorkflow.quotationView.phase === 'uninitialized' ? 0 : '—', tone: 'info' },
-        ] : []} />
-      }
+        ]} />
+      ) : undefined}
     >
       <div className="min-w-0 space-y-4 overflow-x-clip">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
             <h2 className="text-[20px] font-semibold leading-[1.2] text-slate-950">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : activeView === 'supplemental' ? 'Mua bổ sung cho bếp' : 'Quản lý báo giá nhà cung cấp'}</h2>
-            <p className="mt-2 text-body leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
+            {activeView !== 'workflow' ? (
+              <span
+                className="inline-flex cursor-help text-slate-400 hover:text-slate-600 transition-colors"
+                title={activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}
+                aria-label={activeView === 'supplemental' ? 'Xử lý riêng các yêu cầu bổ sung khi kho không đủ hàng, không chen vào luồng duyệt theo ngày.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}
+              >
+                <Info size={16} aria-hidden="true" />
+              </span>
+            ) : null}
           </div>
-          <StatusBadge variant={isPageFailure ? 'danger' : isPagePending ? 'warning' : 'success'}>
-            {isPageFailure ? 'Lỗi tải dữ liệu' : isPagePending ? 'Đang tải' : 'Đã đồng bộ'}
-          </StatusBadge>
+          {isPageFailure || isPagePending ? (
+            <StatusBadge variant={isPageFailure ? 'danger' : 'warning'}>
+              {isPageFailure ? 'Lỗi tải dữ liệu' : 'Đang tải'}
+            </StatusBadge>
+          ) : null}
         </div>
 
         <ViewSwitcher
@@ -261,7 +269,7 @@ export default function PurchasingPage() {
             <InlineAlert title="Đang tải quy trình thu mua" variant="info">
               Hệ thống đang lấy dữ liệu tuần mua hàng. Nội dung sẽ được giữ ổn định trong lúc đồng bộ.
             </InlineAlert>
-          ) : workbenchView.phase === 'ready' && nextAction.message ? (
+          ) : workbenchView.phase === 'ready' && nextAction.message && activeDate ? (
             <InlineAlert title={nextAction.kind === 'complete' ? 'Đã hoàn tất' : 'Hành động tiếp theo'} variant={nextAction.kind === 'blocked' ? 'warning' : 'info'}>
               <span role={nextAction.kind === 'blocked' ? 'alert' : 'status'}>{nextAction.message}</span>
             </InlineAlert>
@@ -271,36 +279,66 @@ export default function PurchasingPage() {
         <div>
           <KeepAliveTabPanel id="purchasing-workflow" active={activeView === 'workflow'} className="space-y-4">
             {workbenchView.phase === 'ready' ? (
-              <>
-                <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />
-                <PurchaseWorkflowGuide
-                  currentStage={activeDate?.currentStage}
-                  selectedStage={routeState.stage}
-                  stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
-                  onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
+              isWorkflowReadyEmpty ? (
+                <EmptyState
+                  title="Chưa có nhu cầu nguyên liệu đã duyệt trong tuần này."
+                  description="Tuần này chưa có nhu cầu nguyên liệu đã được duyệt. Chọn tuần khác hoặc kiểm tra KHSX tại Thực đơn tuần."
+                  className="rounded-lg border border-slate-200 bg-white p-6"
                 />
-
-                <PurchaseServiceDateWorkbench
-                  serviceDates={workbenchView.data.serviceDates}
-                  selectedDate={routeState.date}
-                  selectedLineId={selectedLineId}
-                  page={workbenchView.data.page}
-                  pageSize={workbenchView.data.pageSize}
-                  totalItems={workbenchView.data.totalItems}
-                  isLoading={false}
-                  onDateChange={(date) => replaceRouteContext({ date: date.serviceDate, stage: isPurchasingStage(date.currentStage) ? date.currentStage : 'demand' })}
-                  onLineChange={setSelectedLineId}
-                  onPageChange={setPage}
-                >
-                  <PurchaseDecisionPanel
-                      key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
-                      week={routeState.week}
-                      selectedStage={routeState.stage}
-                      serviceDate={activeDate}
-                      selectedLine={selectedLine}
+              ) : (
+                <>
+                  <ServiceRunBlockerPanel serviceDate={routeState.date} owner="Thu mua" />
+                  <PurchaseWorkflowGuide
+                    currentStage={activeDate?.currentStage}
+                    selectedStage={routeState.stage}
+                    onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
                   />
-                </PurchaseServiceDateWorkbench>
-              </>
+
+                  <PurchaseServiceDateWorkbench
+                    selectedStage={routeState.stage}
+                    serviceDates={workbenchView.data.serviceDates}
+                    selectedDate={routeState.date}
+                    selectedLineId={selectedLineId}
+                    page={workbenchView.data.page}
+                    pageSize={workbenchView.data.pageSize}
+                    totalItems={workbenchView.data.totalItems}
+                    isLoading={false}
+                    onDateChange={(date) => replaceRouteContext({ date: date.serviceDate, stage: isPurchasingStage(date.currentStage) ? date.currentStage : 'demand' })}
+                    onLineChange={setSelectedLineId}
+                    onPageChange={setPage}
+                  >
+                    {routeState.stage !== 'supplier-price' ? (
+                      <PurchaseDecisionPanel
+                          key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
+                          week={routeState.week}
+                          selectedStage={routeState.stage}
+                          serviceDate={activeDate}
+                          selectedLine={selectedLine}
+                      />
+                    ) : null}
+                  </PurchaseServiceDateWorkbench>
+
+                  <Drawer open={isSupplierLineDecision} onOpenChange={(open) => { if (!open) setSelectedLineId(undefined); }}>
+                    <DrawerContent aria-label={`Xử lý nhà cung cấp${selectedLine ? ` cho ${selectedLine.ingredientName}` : ''}`}>
+                      <DrawerHeader className="flex-row items-center justify-between gap-3">
+                        <DrawerTitle>Xử lý nhà cung cấp</DrawerTitle>
+                        <Button variant="ghost" size="icon" aria-label="Đóng xử lý nhà cung cấp" onClick={() => setSelectedLineId(undefined)}>
+                          <X aria-hidden="true" />
+                        </Button>
+                      </DrawerHeader>
+                      <DrawerBody className="p-0">
+                        <PurchaseDecisionPanel
+                            key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
+                            week={routeState.week}
+                            selectedStage={routeState.stage}
+                            serviceDate={activeDate}
+                            selectedLine={selectedLine}
+                        />
+                      </DrawerBody>
+                    </DrawerContent>
+                  </Drawer>
+                </>
+              )
             ) : (
               <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-4 motion-reduce:animate-none" aria-busy="true">
                 <div className="h-10 w-full animate-pulse rounded bg-slate-100" />

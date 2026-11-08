@@ -16,6 +16,7 @@ const baseProps = {
   pageSize: 8,
   totalItems: 0,
   onPageChange: vi.fn(),
+  onPageSizeChange: vi.fn(),
   inboxItems: [],
 };
 

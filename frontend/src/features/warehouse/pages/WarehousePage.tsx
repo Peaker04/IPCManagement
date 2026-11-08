@@ -1,64 +1,91 @@
 import { lazy, Suspense, useDeferredValue, useState } from 'react';
+import { skipToken } from '@reduxjs/toolkit/query';
 import { useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/lib/useHasRole';
-import { InlineAlert, KeepAliveTabPanel, OperationalFrame, QueryErrorAlert, ViewSwitcher, RefreshStatus } from '@/components/common';
+import { InlineAlert, KeepAliveTabPanel, OperationalFrame, QueryErrorAlert, ViewSwitcher } from '@/components/common';
 import { ServiceRunBlockerPanel } from '@/components/common/ServiceRunBlockerPanel';
 import { ROUTES } from '@/lib/routeConfig';
 import { useSystemOperation } from '@/lib/systemOperationContext';
-import { visibleTabIds } from '@/lib/navigationPreferences';
+import { resolveVisibleTabId, visibleTabIds } from '@/lib/navigationPreferences';
 import {
-  useGetCurrentStockQuery,
+  useGetCurrentStockAllocationQuery,
   useGetCurrentStockPageQuery,
   useGetIngredientDemandAggregatePageQuery,
   useGetIngredientDemandQuery,
   useGetMaterialRequestCandidatePageQuery,
   useGetKitchenIssuesQuery,
   useGetStockMovementPageQuery,
-  useWorkflowOverview,
 } from '@/api/reportsApi';
 import { useCreateInventoryIssueMutation, useGetWarehouseSelectorQuery } from '@/api/warehouseApi';
 import { useGetPurchaseOrdersPageQuery } from '@/api/purchasingApi';
 import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApiTypes';
-import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import type { PurchaseOrderLineDto } from '@/api/workflowApiTypes';
-import { buildWarehouseIssueAllocation } from '../warehouseIssueAllocation';
+import { buildWarehouseIssueAllocation, issueShiftName } from '../warehouseIssueAllocation';
 import { resolveOperationalWarehouseContext } from '@/lib/operationalWarehouseContext';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
+import { buildRoleInbox } from '@/api/workflowOverviewModel';
 
-import { addIsoDays } from '../warehouseDateRange';
+import { addIsoDays } from '@/lib/warehouseDateRange';
 import { typography } from '@/lib/typography';
 import { buildWarehousePageHeader } from './WarehousePageHeader';
 import { getWarehouseMutationErrorMessage } from '../warehouseError';
 import { WarehousePurchaseOrdersPanel } from './WarehousePurchaseOrdersPanel';
 import { WarehouseMovementPanel } from './WarehouseMovementPanel';
 import { WarehouseReceiptLifecyclePanel } from '../WarehouseReceiptLifecyclePanel';
+import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench';
+import { resolveSelectedPurchaseOrder } from './warehousePurchaseOrderSelection';
 const ReconciliationWarehousePage = lazy(() => import('./ReconciliationWarehousePage'))
 const WarehouseIssueDialog = lazy(() => import('./WarehouseIssueDialog'))
 const WarehousePurchaseReceiptDialog = lazy(() => import('../WarehousePurchaseReceiptDialog').then(({ WarehousePurchaseReceiptDialog: component }) => ({ default: component })))
 const WarehouseBatchPurchaseReceiptDialog = lazy(() => import('../WarehouseBatchPurchaseReceiptDialog').then(({ WarehouseBatchPurchaseReceiptDialog: component }) => ({ default: component })))
-const WarehouseExceptionsWorkbench = lazy(() => import('../WarehouseExceptionsWorkbench').then(({ WarehouseExceptionsWorkbench: component }) => ({ default: component })))
+
 const WarehouseDemandPanel = lazy(() => import('../WarehouseDemandPanel').then(({ WarehouseDemandPanel: component }) => ({ default: component })))
 const EMPTY_QUERY_ROWS: never[] = [];
+
+export function WarehouseIssueCreationBlocker({ reason }: { reason: string }) {
+  return (
+    <InlineAlert title="Không thể tạo phiếu xuất kho mới" variant="info" headingLevel={2}>
+      <span id="warehouse-issue-action-guidance">{reason}</span>
+    </InlineAlert>
+  );
+}
+
 function DefaultWarehousePage() {
-  const [searchParams] = useSearchParams();
-  const canReceivePurchases = useHasRole(['dieuphoi']);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const canReceivePurchases = useHasRole(['thukho']);
   const canCreateInventoryIssues = useHasRole(['thukho']);
-  const canDispositionReturns = useHasRole([]);
-  const warehouseTabIds = visibleTabIds('warehouse') as Array<'movement' | 'demand' | 'exceptions'>;
-  const [selectedView, setSelectedView] = useState<'movement' | 'demand' | 'exceptions'>(() => warehouseTabIds[0] ?? 'movement');
-  const activeView = useDeferredValue(selectedView);
-  const isViewPending = selectedView !== activeView;
+  const canDispositionReturns = useHasRole(['admin']);
+  type WarehouseView = 'receiving' | 'movement' | 'demand' | 'exceptions';
+  const warehouseTabIds = visibleTabIds('warehouse') as WarehouseView[];
+  const requestedWarehouseView = searchParams.get('view');
+  const handoffToReceiving = searchParams.has('purchaseOrderId') || searchParams.has('purchaseRequestId');
+  const selectedView = resolveVisibleTabId(
+    handoffToReceiving ? 'receiving' : requestedWarehouseView,
+    warehouseTabIds,
+    'receiving',
+  );
+  const activeView = selectedView;
+  const selectWarehouseView = (view: WarehouseView) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('view', view);
+    setSearchParams(next, { replace: true });
+  };
   const [purchaseOrderPageNumber, setPurchaseOrderPageNumber] = useState(1);
+  const [purchaseOrderPageSize, setPurchaseOrderPageSize] = useState(8);
   const selectedPurchaseOrderId = searchParams.get('purchaseOrderId');
-  const isPurchaseOrderDetailsOpen = selectedPurchaseOrderId !== null;
+  const selectedReceiptId = searchParams.get('receiptId') ?? undefined;
+  const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
+  const isPurchaseOrderDetailsOpen = selectedPurchaseOrderId !== null || requestedPurchaseRequestId !== null;
   const [selectedReceiptLine, setSelectedReceiptLine] = useState<PurchaseOrderLineDto>();
   const [isBatchReceiptOpen, setIsBatchReceiptOpen] = useState(false);
   const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [currentStockPageSize, setCurrentStockPageSize] = useState(8);
   const [currentStockSearch, setCurrentStockSearch] = useState('');
   const deferredCurrentStockSearch = useDeferredValue(currentStockSearch.trim());
   const [demandPage, setDemandPage] = useState(1);
+  const [demandPageSize, setDemandPageSize] = useState(8);
   const [demandSearch, setDemandSearch] = useState('');
   const deferredDemandSearch = useDeferredValue(demandSearch.trim());
   const [issueCandidatePageNumber, setIssueCandidatePageNumber] = useState(1);
@@ -73,16 +100,24 @@ function DefaultWarehousePage() {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const { data: workflowDocuments = [], isError: isWorkflowDocumentError, isFetching: isFetchingWorkflowDocuments, refetch: refetchWorkflowDocuments } = useGetWorkflowDocumentsQuery({ limit: 20 });
+  const isReceivingView = activeView === 'receiving';
+  const isIssueView = activeView === 'demand';
+  const { data: workflowDocuments = [], isError: isWorkflowDocumentError, isFetching: isFetchingWorkflowDocuments, refetch: refetchWorkflowDocuments } = useGetWorkflowDocumentsQuery(
+    { limit: activeView === 'demand' ? 100 : 20 },
+    { skip: activeView === 'exceptions' },
+  );
   const {
     data: purchaseOrderPageResponse,
     isFetching: isFetchingPurchaseOrders,
     isError: isPurchaseOrderError,
     refetch: refetchPurchaseOrders,
-  } = useGetPurchaseOrdersPageQuery({
-    pageNumber: purchaseOrderPageNumber,
-    pageSize: 8,
-  });
+  } = useGetPurchaseOrdersPageQuery(
+    {
+      pageNumber: purchaseOrderPageNumber,
+      pageSize: purchaseOrderPageSize,
+    },
+    { skip: !isReceivingView },
+  );
   const { data: receiptWarehouses = [], isError: isWarehouseSelectorError } = useGetWarehouseSelectorQuery();
   const operationalWarehouseContext = resolveOperationalWarehouseContext(receiptWarehouses);
   const selectedWarehouseId = operationalWarehouseContext.warehouse?.warehouseId ?? '';
@@ -98,7 +133,7 @@ function DefaultWarehousePage() {
   } = useGetIngredientDemandAggregatePageQuery(
     {
       pageNumber: demandPage,
-      pageSize: 8,
+      pageSize: demandPageSize,
       dateFrom: demandDateFrom,
       dateTo: demandDateTo,
       searchKeyword: deferredDemandSearch || undefined,
@@ -111,11 +146,14 @@ function DefaultWarehousePage() {
     isFetching: isFetchingIssueCandidates,
     isError: isIssueCandidateError,
     refetch: refetchIssueCandidates,
-  } = useGetMaterialRequestCandidatePageQuery({
-    purpose: 'issue',
-    pageNumber: issueCandidatePageNumber,
-    pageSize: 8,
-  });
+  } = useGetMaterialRequestCandidatePageQuery(
+    {
+      purpose: 'issue',
+      pageNumber: issueCandidatePageNumber,
+      pageSize: 8,
+    },
+    { skip: !isIssueView },
+  );
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementQuery = useGetStockMovementPageQuery(
     {
@@ -139,7 +177,7 @@ function DefaultWarehousePage() {
     {
       searchKeyword: deferredCurrentStockSearch || undefined,
       pageNumber: currentStockPage,
-      pageSize: 8,
+      pageSize: currentStockPageSize,
     },
     { skip: activeView !== 'movement' },
   );
@@ -151,72 +189,66 @@ function DefaultWarehousePage() {
   });
   const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;
   const currentStockRows = currentStockPageResponse ? currentStockPageResponse.items : EMPTY_QUERY_ROWS;
-  const isCurrentStockError = currentStockView.phase === 'error' || currentStockView.phase === 'forbidden';
-  const { data: kitchenIssueRows = [], isError: isKitchenIssueError, isFetching: isFetchingKitchenIssues, refetch: refetchKitchenIssues } = useGetKitchenIssuesQuery({ limit: 500 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
-  const { roleInboxItems } = useWorkflowOverview({
-    skip: activeView !== 'demand',
-  });
+  const roleInboxItems = buildRoleInbox(workflowDocuments, [], []);
   const warehouseDocuments = [...workflowDocuments.filter((document) => document.type === 'Phiếu nhập'), ...workflowDocuments.filter((document) => document.type === 'Phiếu xuất')];
   const warehouseInbox = roleInboxItems.filter((item) => item.laneId === 'warehouse');
-  const shortageLine = demandLines.find((line) => line.tone === 'danger');
-  const shortageCount = demandPageResponse?.shortageCount ?? 0;
   const issueDocument = warehouseDocuments.find((document) => document.type === 'Phiếu xuất');
   const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
   const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
   const issueCandidates = issueCandidatePage?.items ?? [];
+  const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
+  const { data: kitchenIssueRows = [], isError: isKitchenIssueError, isFetching: isFetchingKitchenIssues, refetch: refetchKitchenIssues } = useGetKitchenIssuesQuery(
+    selectedIssueCandidate ? { materialRequestId: selectedIssueCandidate.materialRequestId } : skipToken,
+  );
   const issueCreationAvailability = resolveIssueCreationAvailability({
     canManageWarehouse: canCreateInventoryIssues,
     isFetching: isFetchingIssueCandidates || isFetchingKitchenIssues,
     candidateCount: issueCandidatePage?.totalCount,
     isError: isIssueCandidateError,
   });
-  const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
   const {
     data: selectedDemandLines = [],
     isFetching: isFetchingSelectedDemand,
     isError: isSelectedDemandError,
   } = useGetIngredientDemandQuery(
     selectedIssueCandidate
-      ? {
-          dateFrom: selectedIssueCandidate.requestDate,
-          dateTo: selectedIssueCandidate.requestDate,
-          limit: 500,
-        }
-      : undefined,
-    { skip: !selectedIssueCandidate },
+      ? { materialRequestId: selectedIssueCandidate.materialRequestId }
+      : skipToken,
   );
   const {
     data: selectedWarehouseStockRows = [],
     isFetching: isFetchingSelectedWarehouseStock,
     isError: isSelectedWarehouseStockError,
     refetch: refetchSelectedWarehouseStock,
-  } = useGetCurrentStockQuery(selectedWarehouseId ? { warehouseId: selectedWarehouseId, limit: -1 } : undefined, { skip: !selectedWarehouseId });
+  } = useGetCurrentStockAllocationQuery(
+    isIssueView && selectedWarehouseId && selectedIssueCandidate
+      ? { warehouseId: selectedWarehouseId, materialRequestId: selectedIssueCandidate.materialRequestId }
+      : skipToken,
+  );
   // Nhu cầu hoặc tồn kho lỗi => phân bổ ra 0 dòng. Đó KHÔNG phải bằng chứng kho
   // thiếu hàng, nên không được hiển thị như vậy và không được cho xác nhận xuất.
-  const isAllocationSourceError = isSelectedDemandError || isSelectedWarehouseStockError;
+  const isAllocationSourceError = isSelectedDemandError || isSelectedWarehouseStockError || isKitchenIssueError;
   const isIssueAllocationRefreshing = isFetchingSelectedDemand || isFetchingSelectedWarehouseStock || isFetchingKitchenIssues;
   const selectedWarehouseAllocation = selectedIssueCandidate
     ? buildWarehouseIssueAllocation(selectedIssueCandidate.materialRequestId, selectedWarehouseId, selectedDemandLines, selectedWarehouseStockRows, kitchenIssueRows)
     : { lines: [], remainingLineCount: 0, fullyCoveredLineCount: 0 };
-  const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
   const purchaseOrders = purchaseOrderPageResponse?.page.items ?? [];
-  const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
-  const selectedPurchaseOrder = isPurchaseOrderDetailsOpen
-    ? (purchaseOrders.find((order) => order.purchaseOrderId === selectedPurchaseOrderId) ??
-      (selectedPurchaseOrderId === null ? purchaseOrders.find((order) => order.purchaseRequestId === requestedPurchaseRequestId) : undefined))
-    : undefined;
+  const selectedPurchaseOrder = resolveSelectedPurchaseOrder(
+    purchaseOrders,
+    selectedPurchaseOrderId,
+    requestedPurchaseRequestId,
+  );
   const purchaseOrderDetailsHref = (purchaseOrderId: string | null) => {
     const next = new URLSearchParams(searchParams);
     if (purchaseOrderId) next.set('purchaseOrderId', purchaseOrderId);
     else next.delete('purchaseOrderId');
+    next.delete('receiptId');
     return `${ROUTES.WAREHOUSE}?${next.toString()}`;
   };
   const openIssueDialog = () => {
-    setIssueCandidatePageNumber(1);
-    setSelectedMaterialRequestId('');
     setWarehouseFeedback(null);
-    setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
+    if (!issueCommandId) setIssueCommandId(`inventory-issue-${crypto.randomUUID()}`);
     setIsIssueDialogOpen(true);
   };
   const handleCreateInventoryIssue = async () => {
@@ -235,7 +267,7 @@ function DefaultWarehousePage() {
         message: 'Kho cần có nhu cầu nguyên liệu và kế hoạch sản xuất hợp lệ trước khi tạo phiếu xuất.',
         variant: 'warning',
       });
-      setSelectedView('demand');
+      selectWarehouseView('demand');
       return;
     }
 
@@ -245,7 +277,7 @@ function DefaultWarehousePage() {
         message: 'Chưa có dòng tồn kho live để xác định warehouseId cho phiếu xuất.',
         variant: 'warning',
       });
-      setSelectedView('movement');
+      selectWarehouseView('movement');
       return;
     }
 
@@ -263,6 +295,7 @@ function DefaultWarehousePage() {
         commandId: issueCommandId,
         expectedVersion: selectedIssueCandidate.concurrencyVersion,
         issueDate: selectedIssueCandidate.requestDate,
+        shiftName: issueShiftName(selectedIssueCandidate.requestScope),
         warehouseId: selectedWarehouseId,
         materialRequestId: selectedIssueCandidate.materialRequestId,
         lines: selectedWarehouseAllocation.lines,
@@ -279,14 +312,15 @@ function DefaultWarehousePage() {
       });
       setIsIssueDialogOpen(false);
       setIssueCommandId('');
-      setSelectedView('movement');
+      setSelectedMaterialRequestId('');
+      setIssueCandidatePageNumber(1);
+      selectWarehouseView('demand');
     } catch (error) {
       setWarehouseFeedback({
         title: 'Chưa tạo được phiếu xuất kho',
         message: getWarehouseMutationErrorMessage(error, 'Kiểm tra tồn kho, demand còn lại hoặc quyền thủ kho rồi thử lại.'),
         variant: 'danger',
       });
-      setSelectedView('exceptions');
     }
   };
 
@@ -299,25 +333,27 @@ function DefaultWarehousePage() {
         issueDisabledReason: issueCreationAvailability.disabledReason ?? undefined,
         isFetchingIssueCandidates,
         onOpenIssueDialog: openIssueDialog,
-        receiptCountLabel: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`,
-        issueCountLabel: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`,
-        stockCountLabel: isCurrentStockError ? 'Chưa xác định' : currentStockRows.length.toString(),
-        shortageLabel: isDemandPageError ? 'Chưa xác định' : shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : shortageCount > 0 ? `${shortageCount} dòng thiếu` : 'Không có',
-        kitchenReceiptLabel: isKitchenIssueError ? 'Chưa xác định' : pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký',
-        workflowDocumentError: isWorkflowDocumentError,
-        currentStockError: isCurrentStockError,
-        hasCurrentStock: currentStockRows.length > 0,
-        demandError: isDemandPageError,
-        hasShortage: shortageCount > 0,
-        kitchenIssueError: isKitchenIssueError,
-        hasPendingKitchenReceipt: pendingKitchenReceiptCount > 0,
       })}
-    >      {isPurchaseOrderError && (
+    >
+      <ViewSwitcher
+        compact
+        ariaLabel="Chọn góc nhìn kho"
+        tabs={[
+          { id: 'warehouse-receiving', label: 'Nhập hàng' },
+          { id: 'warehouse-demand', label: 'Xuất hàng' },
+          { id: 'warehouse-exceptions', label: 'Ngoại lệ' },
+          { id: 'warehouse-movement', label: 'Tra cứu' },
+        ].filter((tab) => warehouseTabIds.includes(tab.id.replace('warehouse-', '') as WarehouseView))}
+        activeTab={`warehouse-${selectedView}`}
+        onTabChange={(id) => selectWarehouseView(id.replace('warehouse-', '') as WarehouseView)}
+      />
+
+      {isReceivingView && isPurchaseOrderError && (
         <QueryErrorAlert title="Không tải được đơn mua chờ nhập kho" isRetrying={isFetchingPurchaseOrders} onRetry={refetchPurchaseOrders}>
           Không thể coi danh sách đơn mua đang trống. Hãy kiểm tra kết nối rồi tải lại trước khi ghi nhận nhận hàng.
         </QueryErrorAlert>
       )}
-      {isWorkflowDocumentError && (
+      {isReceivingView && isWorkflowDocumentError && (
         <QueryErrorAlert
           title="Thiếu dữ liệu tham chiếu của kho"
           isRetrying={isFetchingWorkflowDocuments}
@@ -329,9 +365,7 @@ function DefaultWarehousePage() {
         </QueryErrorAlert>
       )}
       {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
-        <InlineAlert title="Không thể tạo phiếu xuất kho mới" variant="info">
-          <span id="warehouse-issue-action-guidance">{issueCreationAvailability.disabledReason}</span>
-        </InlineAlert>
+        <WarehouseIssueCreationBlocker reason={issueCreationAvailability.disabledReason} />
       )}
 
       {isIssueDialogOpen && (
@@ -396,7 +430,7 @@ function DefaultWarehousePage() {
         </InlineAlert>
       )}
 
-      {!isPurchaseOrderError && <WarehousePurchaseOrdersPanel
+      {isReceivingView && !isPurchaseOrderError && <WarehousePurchaseOrdersPanel
         canReceivePurchases={canReceivePurchases}
         purchaseOrders={purchaseOrders}
         isFetchingPurchaseOrders={isFetchingPurchaseOrders}
@@ -406,8 +440,13 @@ function DefaultWarehousePage() {
         purchaseOrderDetailsHref={purchaseOrderDetailsHref}
         onSelectReceiptLine={setSelectedReceiptLine}
         pageNumber={purchaseOrderPageResponse?.page.pageNumber ?? purchaseOrderPageNumber}
-        pageSize={purchaseOrderPageResponse?.page.pageSize ?? 8}
+        pageSize={purchaseOrderPageResponse?.page.pageSize ?? purchaseOrderPageSize}
         totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
+        onPageSizeChange={(nextSize) => {
+          setPurchaseOrderPageSize(nextSize);
+          setPurchaseOrderPageNumber(1);
+          setSelectedReceiptLine(undefined);
+        }}
         onPageChange={(page) => {
           setPurchaseOrderPageNumber(page);
           setSelectedReceiptLine(undefined);
@@ -415,24 +454,18 @@ function DefaultWarehousePage() {
         onOpenBatchReceipt={() => setIsBatchReceiptOpen(true)}
       />}
 
-      <WarehouseReceiptLifecyclePanel />
+      {isReceivingView && selectedPurchaseOrder && <WarehouseReceiptLifecyclePanel
+        purchaseOrderId={selectedPurchaseOrder.purchaseOrderId}
+        selectedReceiptId={selectedReceiptId}
+        onSelectReceipt={(receiptId) => {
+          const next = new URLSearchParams(searchParams);
+          if (receiptId) next.set('receiptId', receiptId);
+          else next.delete('receiptId');
+          setSearchParams(next);
+        }}
+      />}
 
-      <ViewSwitcher
-        compact
-        ariaLabel="Chọn góc nhìn kho"
-        tabs={[
-          { id: 'warehouse-movement', label: 'Luân chuyển' },
-          { id: 'warehouse-demand', label: 'Nhu cầu xuất' },
-          { id: 'warehouse-exceptions', label: 'Ngoại lệ' },
-        ].filter((tab) => warehouseTabIds.includes(tab.id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions'))}
-        activeTab={`warehouse-${selectedView}`}
-        onTabChange={(id) => setSelectedView(id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions')}
-      />
-
-      <div className={`${typography.body} relative min-h-[420px]`} aria-busy={isViewPending} aria-live="polite">
-        {isViewPending && (
-          <RefreshStatus>Đang cập nhật</RefreshStatus>
-        )}
+      <div className={typography.body}>
         <KeepAliveTabPanel id="warehouse-movement" active={activeView === 'movement'} className="duration-150 motion-reduce:transition-none">
             <WarehouseMovementPanel
               documents={warehouseDocuments}
@@ -441,9 +474,10 @@ function DefaultWarehousePage() {
               currentStockView={currentStockView}
               currentStockRows={currentStockRows}
               currentStockPage={currentStockPageResponse?.pageNumber ?? currentStockPage}
-              currentStockPageSize={currentStockPageResponse?.pageSize ?? 8}
+              currentStockPageSize={currentStockPageResponse?.pageSize ?? currentStockPageSize}
               currentStockTotalItems={currentStockPageResponse?.totalCount ?? 0}
               onCurrentStockPageChange={setCurrentStockPage}
+              onCurrentStockPageSizeChange={(nextSize) => { setCurrentStockPageSize(nextSize); setCurrentStockPage(1); }}
               stockMovementSearch={stockMovementSearch}
               onStockMovementSearchChange={(value) => { setStockMovementSearch(value); setStockMovementCursors([]); }}
               stockMovementView={stockMovementView}
@@ -460,7 +494,7 @@ function DefaultWarehousePage() {
 
         <KeepAliveTabPanel id="warehouse-demand" active={activeView === 'demand'}>
           <ServiceRunBlockerPanel serviceDate={requestedDemandDate ?? undefined} owner="Kho" />
-          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+          <Suspense fallback={<div aria-busy="true" className="min-h-[260px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
             <WarehouseDemandPanel
               demandSearch={demandSearch}
             onDemandSearchChange={(value) => {
@@ -475,9 +509,10 @@ function DefaultWarehousePage() {
             onRetry={refetchDemandPage}
             lines={demandLines}
             page={demandPageResponse?.pageNumber ?? demandPage}
-            pageSize={demandPageResponse?.pageSize ?? 8}
+            pageSize={demandPageResponse?.pageSize ?? demandPageSize}
             totalItems={demandPageResponse?.totalCount ?? 0}
             onPageChange={setDemandPage}
+            onPageSizeChange={(nextSize) => { setDemandPageSize(nextSize); setDemandPage(1); }}
               inboxItems={warehouseInbox}
             />
           </Suspense>
@@ -502,7 +537,7 @@ function DefaultWarehousePage() {
         )}
 
         <KeepAliveTabPanel id="warehouse-exceptions" active={activeView === 'exceptions'}>
-          <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+          <Suspense fallback={<div aria-busy="true" className="min-h-[260px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
             <WarehouseExceptionsWorkbench canManage={canCreateInventoryIssues} canDisposition={canDispositionReturns} />
           </Suspense>
         </KeepAliveTabPanel>
@@ -514,6 +549,6 @@ function DefaultWarehousePage() {
 export default function WarehousePage() {
   const operation = useSystemOperation();
   return operation?.mode === 'MATERIAL_RECONCILIATION'
-    ? <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><ReconciliationWarehousePage /></Suspense>
+    ? <Suspense fallback={<div aria-busy="true" className="min-h-[260px] rounded-md bg-slate-50 motion-reduce:animate-none" />}><ReconciliationWarehousePage /></Suspense>
     : <DefaultWarehousePage />;
 }

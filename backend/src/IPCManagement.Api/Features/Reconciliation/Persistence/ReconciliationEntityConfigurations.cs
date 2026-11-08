@@ -33,11 +33,37 @@ internal sealed class ReconciliationBatchLineConfiguration : IEntityTypeConfigur
         e.ToTable("reconciliationbatchlines"); e.HasKey(x => x.BatchLineId); ReconciliationMapping.Id(e.Property(x => x.BatchLineId));
         ReconciliationMapping.Id(e.Property(x => x.BatchId)); ReconciliationMapping.Id(e.Property(x => x.IngredientId)); ReconciliationMapping.Id(e.Property(x => x.CanonicalUnitId));
         e.HasIndex(x => new { x.BatchId, x.IngredientId, x.CanonicalUnitId }).IsUnique();
+        e.HasAlternateKey(x => new { x.BatchLineId, x.BatchId, x.IngredientId, x.CanonicalUnitId });
         e.Property(x => x.RequiredQuantity).HasPrecision(18, 6); e.Property(x => x.FrozenTolerance).HasPrecision(18, 6);
         e.Property(x => x.ToleranceSourceKind).HasMaxLength(32); e.Property(x => x.ToleranceSourceVersion).HasMaxLength(128); e.Property(x => x.Version).IsConcurrencyToken();
         e.HasOne(x => x.Batch).WithMany(x => x.Lines).HasForeignKey(x => x.BatchId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne(x => x.CanonicalUnit).WithMany().HasForeignKey(x => x.CanonicalUnitId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class ReconciliationBatchDailyLineConfiguration : IEntityTypeConfiguration<ReconciliationBatchDailyLine>
+{
+    public void Configure(EntityTypeBuilder<ReconciliationBatchDailyLine> e)
+    {
+        e.ToTable("reconciliationbatchdailylines", table =>
+            table.HasCheckConstraint("ckReconciliationBatchDailyLineRequiredQuantity", "`requiredQuantity` > 0"));
+        e.HasKey(x => x.DailyLineId);
+        ReconciliationMapping.Id(e.Property(x => x.DailyLineId));
+        ReconciliationMapping.Id(e.Property(x => x.BatchLineId));
+        ReconciliationMapping.Id(e.Property(x => x.BatchId));
+        ReconciliationMapping.Id(e.Property(x => x.IngredientId));
+        ReconciliationMapping.Id(e.Property(x => x.CanonicalUnitId));
+        e.Property(x => x.ServiceDate).HasColumnType("date");
+        e.Property(x => x.RequiredQuantity).HasPrecision(18, 6);
+        e.Property(x => x.Version).IsConcurrencyToken();
+        e.HasIndex(x => new { x.BatchLineId, x.ServiceDate }).IsUnique();
+        e.HasAlternateKey(x => new { x.DailyLineId, x.BatchLineId });
+        e.HasAlternateKey(x => new { x.DailyLineId, x.BatchLineId, x.IngredientId, x.CanonicalUnitId, x.ServiceDate });
+        e.HasOne(x => x.BatchLine).WithMany(x => x.DailyLines)
+            .HasForeignKey(x => new { x.BatchLineId, x.BatchId, x.IngredientId, x.CanonicalUnitId })
+            .HasPrincipalKey(x => new { x.BatchLineId, x.BatchId, x.IngredientId, x.CanonicalUnitId })
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -47,8 +73,19 @@ internal sealed class ReconciliationBatchContributorConfiguration : IEntityTypeC
     {
         e.ToTable("reconciliationbatchcontributors"); e.HasKey(x => x.ContributorId); ReconciliationMapping.Id(e.Property(x => x.ContributorId));
         ReconciliationMapping.Id(e.Property(x => x.BatchLineId)); ReconciliationMapping.Id(e.Property(x => x.MenuScheduleId)); ReconciliationMapping.Id(e.Property(x => x.MealQuantityPlanLineId)); ReconciliationMapping.Id(e.Property(x => x.DishBomId));
+        e.Property(x => x.DailyLineId).HasMaxLength(16).IsFixedLength();
+        e.Property(x => x.DishId).HasMaxLength(16).IsFixedLength();
+        e.Property(x => x.FrozenShiftName).HasMaxLength(32);
+        e.Property(x => x.FrozenDishCode).HasMaxLength(64);
+        e.Property(x => x.FrozenDishName).HasMaxLength(255);
+        e.Property(x => x.FrozenBomQuantityPerServing).HasPrecision(18, 6);
+        e.Property(x => x.FrozenWasteRatePercent).HasPrecision(9, 4);
         e.Property(x => x.SourceQuantity).HasPrecision(18, 6);
         e.HasOne(x => x.BatchLine).WithMany(x => x.Contributors).HasForeignKey(x => x.BatchLineId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne(x => x.DailyLine).WithMany(x => x.Contributors)
+            .HasForeignKey(x => new { x.DailyLineId, x.BatchLineId })
+            .HasPrincipalKey(x => new { x.DailyLineId, x.BatchLineId })
+            .OnDelete(DeleteBehavior.Restrict);
         e.HasOne<MenuSchedule>().WithMany().HasForeignKey(x => x.MenuScheduleId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne<MealQuantityPlanLine>().WithMany().HasForeignKey(x => x.MealQuantityPlanLineId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne<DishBom>().WithMany().HasForeignKey(x => x.DishBomId).OnDelete(DeleteBehavior.Restrict);
@@ -94,6 +131,25 @@ internal sealed class ReconciliationActualRevisionConfiguration : IEntityTypeCon
         e.Property(x => x.OldQuantity).HasPrecision(18, 6); e.Property(x => x.NewQuantity).HasPrecision(18, 6); e.Property(x => x.Reason).HasMaxLength(1000);
         ReconciliationMapping.Id(e.Property(x => x.ChangedBy)); e.Property(x => x.ChangedAt).HasColumnType("datetime");
         e.HasOne(x => x.Actual).WithMany(x => x.Revisions).HasForeignKey(x => x.ActualId).OnDelete(DeleteBehavior.Restrict); e.HasOne<User>().WithMany().HasForeignKey(x => x.ChangedBy).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class ReconciliationDailyDispositionConfiguration : IEntityTypeConfiguration<ReconciliationDailyDisposition>
+{
+    public void Configure(EntityTypeBuilder<ReconciliationDailyDisposition> e)
+    {
+        e.ToTable("reconciliationdailydispositions");
+        e.HasKey(x => x.DispositionId);
+        ReconciliationMapping.Id(e.Property(x => x.DispositionId));
+        ReconciliationMapping.Id(e.Property(x => x.DailyLineId));
+        e.Property(x => x.Category).HasMaxLength(40);
+        e.Property(x => x.Reason).HasMaxLength(1000);
+        e.Property(x => x.Version).IsConcurrencyToken();
+        ReconciliationMapping.Id(e.Property(x => x.DisposedBy));
+        e.Property(x => x.DisposedAt).HasColumnType("datetime");
+        e.HasIndex(x => x.DailyLineId).IsUnique();
+        e.HasOne(x => x.DailyLine).WithOne(x => x.Disposition).HasForeignKey<ReconciliationDailyDisposition>(x => x.DailyLineId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne<User>().WithMany().HasForeignKey(x => x.DisposedBy).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

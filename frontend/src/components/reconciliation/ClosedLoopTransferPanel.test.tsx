@@ -141,6 +141,14 @@ it('offers the stock workflow action only for the exact menu source', () => {
   expect(screen.queryByRole('link', { name: /mở danh sách cần xuất/i })).not.toBeInTheDocument()
 })
 
+it('does not invent a serving-change warning from batch lifecycle alone', () => {
+  render(<MemoryRouter><ClosedLoopTransferPanel menuVersionId="menu-progress" scopeLabel="ANV · tuần 24/8/2026" /></MemoryRouter>)
+
+  expect(screen.queryByText('Số suất thay đổi sau khi đã khóa định lượng')).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Mở phiếu xuất bổ sung' })).not.toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Mở đối chiếu' })).toHaveAttribute('href', '/reconciliation?batchId=batch-progress')
+})
+
 it.each([
   ['menu-progress', 'Mở đối chiếu', '/reconciliation?batchId=batch-progress'],
   ['menu-completed', 'Mở kết quả', '/reconciliation?batchId=batch-completed'],

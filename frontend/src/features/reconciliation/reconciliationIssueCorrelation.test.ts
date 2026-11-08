@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectIssueRelatedNotes, dispositionCategoryLabel, issueActorLabel, issueCorrelationIdentity, issueRoleLabel, issueStatusLabel } from './reconciliationIssueCorrelation'
+import { collectIssueRelatedNotes, dispositionCategoryLabel, issueActorLabel, issueCorrelationIdentity, issueRoleLabel, issueStatusLabel } from '@/lib/reconciliationIssueCorrelation'
 
 const linkedIssue = {
   issueId: 'issue-1',

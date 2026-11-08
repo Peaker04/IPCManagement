@@ -1,4 +1,5 @@
 import type { WeeklyMenuState } from '@/types/coordination'
+import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix'
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 import type { WeeklyPlanRow } from '../model/types'
 
@@ -50,6 +51,7 @@ export type QuickServingRow = {
 export type WeeklyScheduleEditorState = {
   isEditorOpen: boolean
   draftMenu: WeeklyMenuState
+  draftDishes: Record<string, string>
   quickServingInputs: Record<string, string>
 }
 
@@ -60,15 +62,23 @@ export type WeeklyScheduleEditorWorkflow = {
   actions: {
     openEditor: () => void
     closeEditor: () => void
-    changeDish: (dayKey: string, slotType: keyof WeeklyMenuState[string], dishId: string) => void
+    changeDish: (dayKey: string, slotType: string, dishId: string, slotKey?: string) => void
     saveEditor: (amendmentReason?: string) => Promise<void>
     changeQuickServing: (key: string, value: string) => void
     discardQuickServing: (key: string) => void
     saveQuickServing: (row: QuickServingRow) => Promise<void>
     completeQuickServing: (row: QuickServingRow) => Promise<void>
+    applyServingToShift?: (shiftName: 'MORNING' | 'AFTERNOON', value: string, rows: QuickServingRow[]) => void
+    saveAllQuickServings?: (rows: QuickServingRow[]) => Promise<void>
+    completeAllQuickServings?: (rows: QuickServingRow[]) => Promise<void>
   }
   presentation: {
     pendingChangeCount: number
+    directChangeCount?: number
+    amendmentChangeCount?: number
+    hasLockedChanges?: boolean
+    allDishes?: Array<{ id: string; name: string; code: string; bomReady: boolean }>
+    layoutRows?: ImportedLayoutRow[]
     sections: Array<{
       label: string
       slotType: keyof WeeklyMenuState[string]
@@ -76,7 +86,7 @@ export type WeeklyScheduleEditorWorkflow = {
       defaultDishId: string
     }>
     getDishName: (dishId: string) => string | undefined
-    isLocked: (dayKey: string, slotType: keyof WeeklyMenuState[string]) => boolean
+    isLocked: (dayKey: string, slotType: string) => boolean
     getServiceDate: (dayKey: string) => string
     getSlotServingInfo: (dayKey: string, slotType: keyof WeeklyMenuState[string]) => {
       portions: number

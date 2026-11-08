@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
-import { ExternalLink, RefreshCw } from 'lucide-react'
+import { ExternalLink, RefreshCw, X } from 'lucide-react'
 import type { ReconciliationIssueHistoryItem } from '@/api/reconciliationApi'
 import { useGetReconciliationBatchQuery, useGetReconciliationIssueQuery } from '@/api/reconciliationApi'
 import { IdentifierText, InlineAlert, SkeletonTableRow, TableViewport } from '@/components/common'
 import { Button, buttonVariants } from '@/components/ui/button'
-import { Drawer, DrawerBody, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from '@/components/ui/drawer'
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatDateOnly, formatDateTime, formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import { ROUTES } from '@/lib/routeConfig'
@@ -12,7 +12,6 @@ import {
   collectIssueRelatedNotes,
   dispositionCategoryLabel,
   issueActorLabel,
-  issueRoleLabel,
   issueStatusLabel,
 } from '@/lib/reconciliationIssueCorrelation'
 
@@ -24,13 +23,12 @@ interface Props {
   title?: string
   ariaLabel?: string
   description?: string
+  showOpenBatch?: boolean
   onClose: (reason?: 'escape' | 'backdrop' | 'close-control') => void
   onOpenBatch?: (batchId: string, issueId: string) => void
 }
 
-const optionalText = (value?: string | null) => value?.trim() || 'Không có trong dữ liệu đã lưu'
-
-export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueId), expectedBatchId, initialIssue, title, ariaLabel = 'Chi tiết giao dịch xuất kho đối chiếu', description = 'Định danh chính xác bằng mã phiếu; vai trò giao dịch không được suy đoán khi chưa có dữ liệu lưu.', onClose, onOpenBatch }: Props) {
+export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueId), expectedBatchId, initialIssue, title, ariaLabel = 'Chi tiết giao dịch xuất kho đối chiếu', description, showOpenBatch = true, onClose, onOpenBatch }: Props) {
   const detailQuery = useGetReconciliationIssueQuery(issueId ?? '', { skip: !open || !issueId })
   const fetchedIssue = open ? detailQuery.currentData ?? detailQuery.data : undefined
   const issue = fetchedIssue ?? (initialIssue?.issueId === issueId ? initialIssue : undefined)
@@ -43,15 +41,18 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
   const selectedLine = issue?.lines.find((line) => line.issueLineId === selectedLineId) ?? issue?.lines[0]
   const selectedLineIndex = selectedLine ? issue?.lines.indexOf(selectedLine) ?? 0 : 0
 
-  return <Drawer open={open} onOpenChange={(nextOpen, reason) => { if (!nextOpen) onClose(reason) }}>
-    <DrawerContent aria-label={ariaLabel}>
-      <DrawerHeader>
-        <DrawerTitle>{title || issue?.issueCode || 'Chi tiết giao dịch xuất kho'}</DrawerTitle>
-        <DrawerDescription>{description}</DrawerDescription>
+  return <Dialog open={open} onOpenChange={(nextOpen, reason) => { if (!nextOpen) onClose(reason) }}>
+    <DialogContent scrollMode="body" size="lg" aria-label={ariaLabel} data-surface="issue-detail" className="max-w-3xl gap-0 !p-0">
+      <DialogHeader className="border-b border-slate-200 p-4 sm:p-6">
+        <div className="flex items-start justify-between gap-3">
+          <DialogTitle>{title || issue?.issueCode || 'Chi tiết giao dịch xuất kho'}</DialogTitle>
+          <Button type="button" variant="ghost" size="sm" aria-label="Đóng chi tiết giao dịch" onClick={() => onClose('close-control')}><X aria-hidden="true" /></Button>
+        </div>
+        {description && <DialogDescription>{description}</DialogDescription>}
         {detailQuery.isFetching && issue && <p className="mt-2 flex items-center gap-2 text-xs text-slate-600" role="status"><RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />Đang cập nhật dữ liệu chi tiết...</p>}
-      </DrawerHeader>
+      </DialogHeader>
 
-      <DrawerBody>
+      <DialogBody className="p-4 sm:p-6">
         {detailQuery.isError && !fetchedIssue && <InlineAlert title="Không tải được chi tiết phiếu" variant="danger"><Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => detailQuery.refetch()}>Thử lại</Button></InlineAlert>}
         {linkageMismatch && <InlineAlert title="Liên kết lô không khớp" variant="danger">Phiếu này không thuộc lô đang mở. Nội dung chi tiết được ẩn để tránh ghép nhầm giao dịch.</InlineAlert>}
 
@@ -66,17 +67,13 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
 
         {issue && !linkageMismatch && <div className="space-y-5">
           <dl className="grid grid-cols-[minmax(9rem,auto)_1fr] gap-x-5 gap-y-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
-            <dt className="text-slate-600">Mã phiếu</dt><dd className="font-medium text-slate-950">{issue.issueCode}</dd>
-            <dt className="text-slate-600">ID phiếu</dt><dd className="min-w-0 text-slate-950"><IdentifierText value={issue.issueId} /></dd>
-            <dt className="text-slate-600">ID lô đối chiếu</dt><dd className="min-w-0 text-slate-950"><IdentifierText value={issue.reconciliationBatchId} fallback="Không có trong dữ liệu đã lưu" /></dd>
-            <dt className="text-slate-600">Vai trò</dt><dd className="font-medium text-slate-950">{issueRoleLabel()}</dd>
             <dt className="text-slate-600">Trạng thái</dt><dd className="font-medium text-slate-950">{issueStatusLabel(issue)}</dd>
+            <dt className="text-slate-600">Ngày phiếu</dt><dd className="font-medium text-slate-950">{formatDateOnly(issue.issueDate)}</dd>
             <dt className="text-slate-600">Người tạo</dt><dd className="font-medium text-slate-950">{issueActorLabel(issue)}</dd>
             <dt className="text-slate-600">Thời điểm tạo</dt><dd className="font-medium text-slate-950">{formatDateTime(issue.createdAt)}</dd>
-            <dt className="text-slate-600">Ngày phiếu</dt><dd className="font-medium text-slate-950">{formatDateOnly(issue.issueDate)}</dd>
-            <dt className="text-slate-600">Người nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? optionalText(fetchedIssue.receivedByName) : 'Đang cập nhật...'}</dd>
-            <dt className="text-slate-600">Thời điểm nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? fetchedIssue.receivedAt ? formatDateTime(fetchedIssue.receivedAt) : 'Chưa được ghi nhận' : 'Đang cập nhật...'}</dd>
-            <dt className="text-slate-600">Số dòng</dt><dd className="font-medium text-slate-950">{issue.lines.length}</dd>
+            <dt className="text-slate-600">Người nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? (fetchedIssue.receivedByName?.trim() || (fetchedIssue.receivedAt ? 'Nhân viên bếp' : 'Chờ Bếp tiếp nhận')) : 'Đang cập nhật...'}</dd>
+            <dt className="text-slate-600">Thời điểm nhận</dt><dd className="font-medium text-slate-950">{fetchedIssue ? (fetchedIssue.receivedAt ? formatDateTime(fetchedIssue.receivedAt) : 'Chờ Bếp xác nhận bàn giao') : 'Đang cập nhật...'}</dd>
+            <dt className="text-slate-600">Số nguyên liệu</dt><dd className="font-medium text-slate-950">{issue.lines.length}</dd>
           </dl>
 
           <section aria-labelledby="issue-lines-heading">
@@ -89,7 +86,7 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
                     ? batch?.lines.find((candidate) => candidate.batchLineId === line.reconciliationBatchLineId)
                     : undefined
                   const ingredientName = line.ingredientName || batchLine?.ingredientName || 'Nguyên liệu chưa đặt tên'
-                  const unitLabel = line.unitName || batchLine?.canonicalUnitName || line.unitId
+                  const unitLabel = line.unitName || batchLine?.canonicalUnitName || 'Chưa có tên đơn vị'
                   return <tr key={line.issueLineId}>
                     <td className="font-medium text-slate-950">{ingredientName}</td>
                     <td className="text-right tabular-nums">{formatQuantityWithUnit(line.issuedQty, '', { maximumFractionDigits: 6 })}</td>
@@ -98,9 +95,14 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
                 })}</tbody>
               </table>
             </TableViewport>
-            {selectedLine && <div className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
-              <label className="grid gap-1 text-sm font-medium text-slate-800">
-                Chi tiết kỹ thuật
+            {selectedLine && <details className="mt-4 rounded-md border border-slate-200 bg-slate-50 p-4">
+              <summary className="cursor-pointer text-sm font-semibold text-slate-800">Thông tin kỹ thuật</summary>
+              <dl className="mt-3 grid grid-cols-[minmax(8rem,auto)_1fr] gap-x-4 gap-y-2 text-xs">
+                <dt className="text-slate-500">ID phiếu</dt><dd className="min-w-0"><IdentifierText value={issue.issueId} /></dd>
+                <dt className="text-slate-500">ID lô đối chiếu</dt><dd className="min-w-0"><IdentifierText value={issue.reconciliationBatchId} fallback="Không có trong dữ liệu đã lưu" /></dd>
+              </dl>
+              <label className="mt-4 grid gap-1 text-sm font-medium text-slate-800">
+                Dòng nguyên liệu
                 <Select value={selectedLine.issueLineId} onValueChange={(value) => value && setSelectedLineId(value)}>
                   <SelectTrigger aria-label="Chọn dòng để xem chi tiết kỹ thuật"><SelectValue>{selectedLine.ingredientName || 'Nguyên liệu chưa đặt tên'} · Dòng {selectedLineIndex + 1}</SelectValue></SelectTrigger>
                   <SelectContent>{issue.lines.map((line, index) => <SelectItem key={line.issueLineId} value={line.issueLineId}>{line.ingredientName || 'Nguyên liệu chưa đặt tên'} · Dòng {index + 1}</SelectItem>)}</SelectContent>
@@ -110,32 +112,32 @@ export function ReconciliationIssueDetailDialog({ issueId, open = Boolean(issueI
                 <dt className="text-slate-500">ID dòng phiếu</dt><dd className="min-w-0"><IdentifierText value={selectedLine.issueLineId} /></dd>
                 <dt className="text-slate-500">ID dòng lô</dt><dd className="min-w-0"><IdentifierText value={selectedLine.reconciliationBatchLineId} fallback="Không có trong dữ liệu đã lưu" /></dd>
               </dl>
-            </div>}
+            </details>}
           </section>
 
           {fetchedIssue && <section aria-labelledby="issue-notes-heading">
-            <h3 id="issue-notes-heading" className="font-semibold text-slate-950">Lý do và ghi chú liên quan</h3>
+            <h3 id="issue-notes-heading" className="font-semibold text-slate-950">Ghi chú của lô liên quan</h3>
             {batchQuery.isFetching && !batch && <p className="mt-2 text-sm text-slate-600" role="status">Đang tải dữ liệu lô...</p>}
             {batchQuery.isError && !batch && <p className="mt-2 text-sm text-red-700" role="alert">Không tải được ghi chú của lô. <Button type="button" variant="link" className="h-auto p-0" onClick={() => batchQuery.refetch()}>Thử lại</Button></p>}
             {batch && <div className="mt-2 space-y-2 text-sm">
               {relatedNotes.notes.length > 0 ? <ul className="list-disc space-y-1 pl-5">{relatedNotes.notes.map((note) => <li key={note}>{note}</li>)}</ul> : <p className="text-slate-600">Không có ghi chú liên quan trong lô.</p>}
-              <p className="text-xs text-slate-500">Các ghi chú trên thuộc những dòng lô liên kết; dữ liệu hiện tại không lưu quan hệ để khẳng định ghi chú nào thuộc riêng phiếu này.</p>
+              <p className="text-xs text-slate-500">Các ghi chú này thuộc những dòng của lô liên kết, không phải ghi chú riêng của phiếu.</p>
               {fetchedIssue.lines.map((issueLine) => {
                 const line = batch.lines.find((candidate) => candidate.batchLineId === issueLine.reconciliationBatchLineId)
                 if (!line?.disposition) return null
-                return <div key={issueLine.issueLineId} className="rounded-md bg-slate-50 p-3"><p className="font-medium">{line.ingredientName || issueLine.ingredientName || 'Nguyên liệu chưa đặt tên'}: {dispositionCategoryLabel(line.disposition.category)}</p><p className="mt-1 text-slate-700">{line.disposition.reason}</p><p className="mt-1 text-xs text-slate-500">Kết luận ở cấp dòng lô, không phải phân loại loại phiếu.</p></div>
+                return <div key={issueLine.issueLineId} className="rounded-md bg-slate-50 p-3"><p className="font-medium">{line.ingredientName || issueLine.ingredientName || 'Nguyên liệu chưa đặt tên'}: {dispositionCategoryLabel(line.disposition.category)}</p><p className="mt-1 text-slate-700">{line.disposition.reason}</p></div>
               })}
             </div>}
           </section>}
         </div>}
-      </DrawerBody>
+      </DialogBody>
 
-      <DrawerFooter>
-        {fetchedIssue && !linkageMismatch && fetchedIssue.reconciliationBatchId && (onOpenBatch
+      <DialogFooter className="border-t border-slate-200 px-4 py-3 sm:px-6">
+        {showOpenBatch && fetchedIssue && !linkageMismatch && fetchedIssue.reconciliationBatchId && (onOpenBatch
           ? <Button type="button" variant="outline" onClick={() => onOpenBatch(fetchedIssue.reconciliationBatchId!, fetchedIssue.issueId)}>Mở lô đối chiếu <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" /></Button>
           : <a className={buttonVariants({ variant: 'outline' })} href={`${ROUTES.RECONCILIATION}?batchId=${encodeURIComponent(fetchedIssue.reconciliationBatchId)}&issueId=${encodeURIComponent(fetchedIssue.issueId)}`}>Mở lô đối chiếu <ExternalLink className="ml-2 h-4 w-4" aria-hidden="true" /></a>)}
         <Button type="button" onClick={() => onClose('close-control')}>Đóng</Button>
-      </DrawerFooter>
-    </DrawerContent>
-  </Drawer>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 }

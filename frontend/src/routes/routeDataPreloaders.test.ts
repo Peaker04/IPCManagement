@@ -52,8 +52,18 @@ describe('route data prefetch request ownership', () => {
       prefetchRouteData(ROUTES.DASHBOARD),
     ])
 
-    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5))
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4))
+    expect(fetchMock.mock.calls.map(([request]) => new URL(request.url).pathname)).not.toContain('/api/workflow-reports/receipt-price-variance')
     release()
+  })
+
+  it('does not speculate a permission-specific report query before the active report view is known', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse([]))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await prefetchRouteData(ROUTES.REPORTS)
+
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('keeps reconciliation warehouse intent preload bounded to the shared selector', async () => {

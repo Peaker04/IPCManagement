@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,8 @@ const toneClasses = {
 
 export function DocumentRail({ documents, title = 'Chứng từ vận hành', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
   const { toast } = useToast();
-  const pagination = useLocalPagination(documents, pageSize);
+  const [selectedPageSize, setSelectedPageSize] = useState(pageSize);
+  const pagination = useLocalPagination(documents, selectedPageSize);
 
   if (!documents.length) {
     return (
@@ -109,7 +110,7 @@ export function DocumentRail({ documents, title = 'Chứng từ vận hành', ac
           {actionForDocument?.(document)}
         </article>
       ))}
-      <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
+      <PaginationBar page={pagination.page} pageSize={selectedPageSize} totalItems={pagination.totalItems} pageSizeOptions={[4, 8, 20]} onPageSizeChange={(nextSize) => { setSelectedPageSize(nextSize); pagination.setPage(1); }} onPageChange={pagination.setPage} />
     </aside>
   );
 }
