@@ -742,7 +742,8 @@ public class SampleDataImportServiceTests
                 updatedAt TEXT NOT NULL,
                 successRowCount INTEGER NOT NULL DEFAULT 0,
                 errorRowCount INTEGER NOT NULL DEFAULT 0,
-                warningRowCount INTEGER NOT NULL DEFAULT 0
+                warningRowCount INTEGER NOT NULL DEFAULT 0,
+                normalizedSourceSnapshotJson TEXT NULL
             );
             CREATE TABLE menuschedules (
                 menuScheduleId BLOB PRIMARY KEY,

@@ -1,92 +1,19 @@
----
-title: IPCManagement Documentation Map and Governance
-status: canonical-index
-scope: repository-documentation
-owner: GSD
-last_reviewed: 2026-09-02
----
+# Documentation router
 
-# Documentation map and governance
+Load the owner for the task, then its source/tests. [AGENTS](../AGENTS.md) owns safety/task routing; [ENGINEERING](ENGINEERING.md#delivery-workflow) owns delivery/intake/verification gates; [ROADMAP](../ROADMAP.md) owns future outcomes; [WORK](../.planning/WORK.md) owns the current task only; [CHANGELOG](../CHANGELOG.md) owns released history; Git owns detailed history.
 
-Đây là **điểm vào duy nhất** để chọn tài liệu cho một task. File này không thay thế `AGENTS.md` hoặc
-`MEMORY.md`; nó ngăn việc một audit/checklist cũ bị dùng nhầm như contract hiện hành.
+| Owner | Read when | Owns | Does not own |
+|---|---|---|---|
+| [DOMAIN](DOMAIN.md) | Business/data/lifecycle changes | Shared language, roles, status, identity/grain and lifecycle invariants | UI mechanics, deployment, bounded-mode detail |
+| [Weekly menu](domain/weekly-menu.md) | Menus, servings, BOM/planning | Planning arithmetic, source readiness and bounded preview contracts | Warehouse stock authority or MRX transactions |
+| [Warehouse](domain/warehouse-contract.md) | Stock/kitchen logistics | Operational shortcuts, source-document matching and queue semantics | MRX frozen-line lifecycle |
+| [MRX](domain/material-reconciliation.md) | MATERIAL_RECONCILIATION | Frozen daily lineage, issue/disposition/completion and mode roles | DEFAULT purchasing/demand |
+| [FLOWS](FLOWS.md) | Actor/screen/API/data handoffs across modules | Source-backed cross-system paths, flow acceptance boundaries and missing connectors | DOMAIN rules, presentation or network/deployment authority |
+| [ARCHITECTURE](ARCHITECTURE.md) | Module/transport/trust/compatibility changes | As-built boundaries, transport/persistence owners and compatibility | Business-flow rule ownership, setup or deployment recipes |
+| [ENGINEERING](ENGINEERING.md) | Delivery/intake/setup/config/build/test/API generation | Scoped delivery gates, risk-based verification, conventions, configuration and fixture privacy | Business transitions or operational authorization |
+| [DESIGN](DESIGN.md) | UI/accessibility changes | Presentation grammar, stable rule IDs and unresolved design policy | Inventing business actions, source facts or cutover permission |
+| [OPERATIONS](OPERATIONS.md) | Deploy/health/DB/recovery/performance | Current/target release, runtime signals, rollback and recovery safety | Current task state or implicit mutation authority |
+| [ROADMAP](../ROADMAP.md) | Desired outcomes/acceptance boundaries | Owner-approved future or evidenced achieved outcomes | Bug/refactor/validator/task progress |
+| [CHANGELOG](../CHANGELOG.md) | Released user/operational/security changes | Human-readable release history under ENGINEERING policy | Audits, documentation cleanup, task logs or guessed releases |
 
-## 1. Startup tối thiểu
-
-1. Đọc `AGENTS.md`.
-2. Auto-load duy nhất `MEMORY.md`, rồi đối chiếu với code/runtime và `git status --short --branch`.
-3. Chọn lane tại [`harness/DELIVERY.md`](harness/DELIVERY.md).
-4. Chỉ mở tài liệu canonical đúng loại việc trong bảng dưới.
-5. Chỉ mở phase/evidence/history khi task hiện hành thật sự cần chúng.
-
-Không auto-load `HISTORY.md`, `LESSONS.md`, toàn bộ `docs/`, `.planning/` hoặc `.artifacts/`.
-
-## 2. Authority map
-
-| Nhu cầu | Nguồn canonical | Không dùng thay thế |
-|---|---|---|
-| Trạng thái, runtime, lane, blocker, bước tiếp theo | `MEMORY.md` | Summary/verification cũ, session transcript |
-| AI Agent Harness, Pi runtime, skill discovery và subagent | [`harness/README.md`](harness/README.md), [`harness/RUNTIMES.md`](harness/RUNTIMES.md) | Tool/skill của runtime khác hoặc package chỉ nằm trên đĩa |
-| GitNexus khi được yêu cầu rõ ràng | [`GITNEXUS-POLICY.md`](GITNEXUS-POLICY.md) | Auto-index/hook hoặc policy graph áp cho mọi task |
-| Quy trình delivery/debug và mức L0/L1/L2 | [`harness/DELIVERY.md`](harness/DELIVERY.md) | Plan template hoặc agent fan-out tự phát |
-| Domain và grain dữ liệu | [`DOMAIN.md`](DOMAIN.md), [`DATA-GRAIN-MATRIX.md`](DATA-GRAIN-MATRIX.md) | Tên UI, table name hoặc fixture |
-| Kiến trúc hệ thống | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Audit/redesign có ngày trong tên |
-| UI normative rules | [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md) | Screenshot, wave audit, checklist lịch sử |
-| UI floorplan/surface/geometry | [`DESIGN.md`](DESIGN.md) | CSS page-local hoặc mockup |
-| Đầu mối gom rule UI/UX cho tạo/sửa/xóa: mục đích, role, luồng, dữ liệu, design và verification | [`UI-PHILOSOPHY.md`](UI-PHILOSOPHY.md), mục 1.1–1.2 | Corpus checklist bên ngoài, ma trận quyền trong audit lịch sử hoặc bộ rule sao chép |
-| Quy trình audit/fix/browser UI | [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md) | Script run cũ hoặc reviewer summary |
-| Oracle và metric UI | [`UI-UX-MEASUREMENT-PROTOCOL.md`](UI-UX-MEASUREMENT-PROTOCOL.md), gồm interaction fluidity DEV-vs-preview/frame/LoAF/profiler routing | Screenshot đơn lẻ, `issueCount: 0`, FPS đơn hoặc DEV-only trace generic |
-| Ledger audit interaction fluidity đã đóng | [`perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md`](perf/INTERACTION_FLUIDITY_RUNTIME_AUDIT.md), [`perf/DUAL_MODE_INTERACTION_FLUIDITY_RUNTIME_AUDIT.md`](perf/DUAL_MODE_INTERACTION_FLUIDITY_RUNTIME_AUDIT.md) | Không dùng làm active checklist hoặc field-performance claim |
-| Ledger systemic FE UI/UX hiện hành | [`ui-ux/SYSTEMIC_FE_UI_UX_AUDIT.md`](ui-ux/SYSTEMIC_FE_UI_UX_AUDIT.md) | Chat/audit tải xuống hoặc report page-local song song |
-| Adapter Front-End Checklist | [`FRONT-END-CHECKLIST-INTEGRATION.md`](FRONT-END-CHECKLIST-INTEGRATION.md) | Rule project hoặc scope generator |
-| FE → API → DB → reload | [`UI-UX-FE-BE-DATABASE-STANDARDIZATION.md`](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md) | API-only/BE-only PASS |
-| Setup/dev/test/config/deploy | [`GETTING-STARTED.md`](GETTING-STARTED.md), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`TESTING.md`](TESTING.md), [`CONFIGURATION.md`](CONFIGURATION.md), [`DEPLOYMENT.md`](DEPLOYMENT.md) | Command trong log/session cũ |
-| Evidence hash/index | [`EVIDENCE-INDEX.md`](EVIDENCE-INDEX.md) | Hash copy trong memory/plan |
-| Trạng thái phase đang mở | `.planning/phases/<phase>/` do GSD sở hữu | Docs root hoặc orchestrator thứ hai |
-| Lịch sử đã đóng | `HISTORY.md`, `docs/archive/` | Trạng thái hiện hành |
-
-## 3. Phân lớp tài liệu
-
-### Canonical
-
-Có `status: canonical-*` hoặc `adopted-*`, mô tả contract/process đang áp dụng. Sửa code làm contract thay đổi
-thì cập nhật cùng task. Một số liệu trạng thái chỉ được khai ở đúng owner của nó.
-
-### Reference/runbook
-
-Giải thích setup, architecture, domain, testing, deployment hoặc vận hành. Được mở theo nhu cầu, không tự tạo
-verdict PASS/FAIL hiện hành.
-
-### Planning/evidence
-
-`.planning/` là state do GSD sở hữu; `.artifacts/` là output kiểm chứng. Không copy nguyên nội dung sang `docs/`.
-Hash authoritative chỉ nằm trong `EVIDENCE-INDEX.md`.
-
-### Historical/archive
-
-Audit, research, checklist và wave closeout theo thời điểm không còn execution authority phải nằm dưới
-`docs/archive/` hoặc được chuyển thành mục lịch sử. Chúng chỉ dùng để điều tra quyết định cũ. Nếu mâu thuẫn,
-ưu tiên code/runtime, `MEMORY.md` và contract canonical hiện hành.
-
-## 4. Quy trình tài liệu cho một thay đổi
-
-1. Khai scope và owner trước khi sửa; không tạo tài liệu mới nếu file canonical hiện có sở hữu nội dung.
-2. Fact-check bằng source/test/runtime. Session và subagent summary chỉ là đầu mối, không phải bằng chứng.
-3. Sửa file canonical nhỏ nhất; liên kết thay vì copy rule, số liệu, hash hoặc trạng thái.
-4. Khi việc đóng, xóa trạng thái active khỏi `MEMORY.md` và append kết quả bền vững vào `HISTORY.md`.
-5. Nếu artifact mới có giá trị kiểm chứng, đăng ký đúng metadata/hash trong `EVIDENCE-INDEX.md`.
-6. Chạy link check, secret/stub scan theo scope và `git diff --check`.
-
-## 5. Tiêu chí tạo file mới
-
-Chỉ tạo file mới khi có **owner và vòng đời riêng** mà tài liệu hiện có không thể chứa hợp lý. Không tạo:
-
-- thêm một process song song với Lean standard hoặc UI harness;
-- thêm checklist route/wave ở `docs/` khi phase checklist đã tồn tại;
-- thêm `*-AUDIT-<date>.md` vào root docs cho output dùng một lần;
-- copy rule UI vào plan, memory hoặc checklist;
-- copy gate hiện hành ra ngoài `MEMORY.md`;
-- copy hash ra ngoài `EVIDENCE-INDEX.md`.
-
-Output dùng một lần đi vào `.artifacts/`; state công việc đi vào `.planning/`; lịch sử bền vững đi vào
-`HISTORY.md` hoặc `docs/archive/`.
+Machine owners remain [table metadata](table-contracts.json), generated API, manifests/CI and immutable migration lineage. Supporting-only exceptions: [diagram guide](diagrams/README.md) for export/font provenance; [performance tools](../tools/perf/RUNBOOK.md) for the executable-reader runbook contract. Private inputs/fixture disposition: [ENGINEERING](ENGINEERING.md#private-inputs-and-fixtures). Extra files are not competing canonical owners.

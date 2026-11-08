@@ -12,7 +12,7 @@ param(
     [string]$EncryptionKeyReference,
     [string]$RestoreDatabase,
     [string]$DcrClosureArtifactPath,
-    [string]$EvidenceDirectory = '.artifacts/shipyard-live/phase-04.2/db/recovery',
+    [string]$EvidenceDirectory = '.artifacts/database-recovery',
     [switch]$Teardown
 )
 
@@ -47,6 +47,37 @@ function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
     }
 }
 
+function ConvertTo-RecoveryNativeArgument([AllowEmptyString()][string]$Value) {
+    if ($Value.Length -gt 0 -and $Value -notmatch '[\s"]') { return $Value }
+    $escaped = [regex]::Replace($Value, '(\\*)"', '$1$1\"')
+    $escaped = [regex]::Replace($escaped, '(\\+)$', '$1$1')
+    return '"' + $escaped + '"'
+}
+
+function Invoke-SevenZipWithPassword([string[]]$Arguments, [string]$Password) {
+    $start = [Diagnostics.ProcessStartInfo]::new()
+    $start.FileName = $sevenZip
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $start.Arguments = ($Arguments | ForEach-Object { ConvertTo-RecoveryNativeArgument $_ }) -join ' '
+
+    $process = [Diagnostics.Process]::Start($start)
+    if ($null -eq $process) { throw 'Could not start 7-Zip.' }
+    $stdout = $process.StandardOutput.ReadToEndAsync()
+    $stderr = $process.StandardError.ReadToEndAsync()
+    $process.StandardInput.WriteLine($Password)
+    $process.StandardInput.Close()
+    $process.WaitForExit()
+    $errorText = $stderr.GetAwaiter().GetResult()
+    $null = $stdout.GetAwaiter().GetResult()
+    if ($process.ExitCode -ne 0) {
+        throw "7-Zip failed with exit code $($process.ExitCode): $errorText"
+    }
+}
+
 function New-DefaultsFile([string]$RunDirectory) {
     $connector = Join-Path $workspace 'backend/src/IPCManagement.Api/bin/Release/net9.0/MySqlConnector.dll'
     Assert-File $connector 'MySqlConnector Release assembly'
@@ -61,6 +92,8 @@ function New-DefaultsFile([string]$RunDirectory) {
         "user=`"$($builder.UserID.Replace('`"', '\`"'))`"",
         "password=`"$($builder.Password.Replace('`"', '\`"'))`""
     ) | Set-Content -LiteralPath $path -Encoding UTF8
+    & icacls.exe $path '/inheritance:r' '/grant:r' "${env:USERNAME}:(F)" | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw 'Could not restrict the MySQL defaults file ACL.' }
     return $path
 }
 
@@ -71,6 +104,33 @@ function Invoke-MySqlRows([string]$DefaultsFile, [string]$Sql) {
 }
 
 . (Join-Path $PSScriptRoot 'RestoreOracle.ps1')
+
+function Get-MrxBusinessOracle([string]$DefaultsFile, [string]$DatabaseName) {
+    $queries = [ordered]@{
+        batches = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(BatchId))),0) FROM ``$DatabaseName``.``reconciliationbatches``"
+        dailyLines = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(DailyLineId))),0) FROM ``$DatabaseName``.``reconciliationbatchdailylines``"
+        contributors = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(ContributorId))),0) FROM ``$DatabaseName``.``reconciliationbatchcontributors``"
+        sourceRevisions = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(SourceRevisionId))),0) FROM ``$DatabaseName``.``reconciliationsourcerevisions``"
+        sourceDeltas = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(SourceDeltaId))),0) FROM ``$DatabaseName``.``reconciliationsourcedeltas``"
+        dispositions = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(DispositionId))),0) FROM ``$DatabaseName``.``reconciliationdispositions``"
+        dailyDispositions = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(DispositionId))),0) FROM ``$DatabaseName``.``reconciliationdailydispositions``"
+        linkedIssues = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(issueId))),0) FROM ``$DatabaseName``.``inventoryissues`` WHERE reconciliationBatchId IS NOT NULL"
+        linkedMovements = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(movementId))),0) FROM ``$DatabaseName``.``stockmovements`` WHERE refTable='InventoryIssue' AND refId IN (SELECT issueId FROM ``$DatabaseName``.``inventoryissues`` WHERE reconciliationBatchId IS NOT NULL)"
+        audits = "SELECT COUNT(*), COALESCE(BIT_XOR(CRC32(HEX(auditId))),0) FROM ``$DatabaseName``.``auditlogs`` WHERE entityName LIKE 'Reconciliation%' OR (entityName='InventoryIssue' AND entityId IN (SELECT issueId FROM ``$DatabaseName``.``inventoryissues`` WHERE reconciliationBatchId IS NOT NULL)) OR (entityName='StockMovement' AND entityId IN (SELECT movementId FROM ``$DatabaseName``.``stockmovements`` WHERE refTable='InventoryIssue' AND refId IN (SELECT issueId FROM ``$DatabaseName``.``inventoryissues`` WHERE reconciliationBatchId IS NOT NULL)))"
+    }
+    $counts = [ordered]@{}
+    $digests = [ordered]@{}
+    foreach ($name in $queries.Keys) {
+        $result = Get-RequiredSingleMySqlRow -Rows @(Invoke-MySqlRows $DefaultsFile $queries[$name]) -Label "MRX restore oracle metric '$name'"
+        $columns = $result -split "`t"
+        if ($columns.Count -ne 2 -or $columns[0] -notmatch '^\d+$' -or $columns[1] -notmatch '^\d+$') {
+            throw "Invalid MRX restore oracle metric: $name"
+        }
+        $counts[$name] = [long]$columns[0]
+        $digests[$name] = $columns[1]
+    }
+    return [ordered]@{ counts = $counts; digests = $digests }
+}
 
 function Get-DatabaseManifest([string]$DefaultsFile, [string]$DatabaseName, [string]$ClosurePath) {
     Assert-File $ClosurePath 'DCR closure baseline'
@@ -84,7 +144,7 @@ function Get-DatabaseManifest([string]$DefaultsFile, [string]$DatabaseName, [str
     $rowDigests = [ordered]@{}
     foreach ($table in $tables) {
         if ($table -notmatch '^[A-Za-z0-9_]+$') { throw 'Unsafe table name returned by metadata query.' }
-        $rowCounts[$table] = [long](Invoke-MySqlRows $DefaultsFile "SELECT COUNT(*) FROM ``$DatabaseName``.``$table``;")[0]
+        $rowCounts[$table] = [long](Get-RequiredSingleMySqlRow -Rows @(Invoke-MySqlRows $DefaultsFile "SELECT COUNT(*) FROM ``$DatabaseName``.``$table``;") -Label "row count for '$table'")
         $rowDigests[$table] = Get-TableChecksumValue @(Invoke-MySqlRows $DefaultsFile "CHECKSUM TABLE ``$DatabaseName``.``$table``;")
     }
     $gtidExecuted = @(Invoke-MySqlRows $DefaultsFile 'SELECT @@GLOBAL.gtid_executed;')
@@ -97,6 +157,7 @@ function Get-DatabaseManifest([string]$DefaultsFile, [string]$DatabaseName, [str
         triggerDefinitions = $triggerDefinitions
         rowCounts = $rowCounts
         rowDigests = $rowDigests
+        mrxBusinessOracle = (Get-MrxBusinessOracle $DefaultsFile $DatabaseName)
         dcrClosureBaseline = (Get-FileHash -LiteralPath $ClosurePath -Algorithm SHA256).Hash
         gtidExecuted = $gtidExecuted
         binaryLogChain = $binaryLogChain
@@ -104,7 +165,7 @@ function Get-DatabaseManifest([string]$DefaultsFile, [string]$DatabaseName, [str
 }
 
 function Assert-RestoreDatabaseAbsent([string]$DefaultsFile, [string]$DatabaseName) {
-    $count = [long](Invoke-MySqlRows $DefaultsFile "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='$DatabaseName';")[0]
+    $count = [long](Get-RequiredSingleMySqlRow -Rows @(Invoke-MySqlRows $DefaultsFile "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='$DatabaseName';") -Label "database existence for '$DatabaseName'")
     if ($count -ne 0) { throw "Restore database still exists after teardown: $DatabaseName" }
 }
 
@@ -185,13 +246,15 @@ try {
         $manifestData.headerEncrypted = $true
         $manifestData | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $innerManifest -Encoding UTF8
         $innerManifestSha256 = (Get-FileHash -LiteralPath $innerManifest -Algorithm SHA256).Hash
-        Invoke-Checked $sevenZip @('a', '-t7z', '-mhe=on', "-p$encryptionPassword", $archive, $dump, $innerManifest)
-        Invoke-Checked $sevenZip @('t', "-p$encryptionPassword", $archive)
+        Invoke-SevenZipWithPassword -Arguments @('a', '-t7z', '-mhe=on', '-p', $archive, $dump, $innerManifest) -Password $encryptionPassword
+        Invoke-SevenZipWithPassword -Arguments @('t', $archive) -Password $encryptionPassword
+        [DateTimeOffset]$archiveCreatedAtUtc = [DateTimeOffset]::UtcNow
         $archiveSha256 = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
         $receipt = Publish-ImmutableObjectVersion -ArchivePath $archive -ObjectKey $ProviderObjectKey `
-            -EncryptionKeyReference $EncryptionKeyReference -ProviderAdapter {
-                param($ArchivePath, $ObjectKey, $EncryptionKeyReference)
-                Upload-ProviderObjectVersion -ArchivePath $ArchivePath -ObjectKey $ObjectKey -EncryptionKeyReference $EncryptionKeyReference
+            -EncryptionKeyReference $EncryptionKeyReference -ArchiveCreatedAtUtc $archiveCreatedAtUtc -ProviderAdapter {
+                param($ArchivePath, $ObjectKey, $EncryptionKeyReference, $ArchiveCreatedAtUtc)
+                Upload-ProviderObjectVersion -ArchivePath $ArchivePath -ObjectKey $ObjectKey `
+                    -EncryptionKeyReference $EncryptionKeyReference -ArchiveCreatedAtUtc $ArchiveCreatedAtUtc
             }
         if ([string]$receipt.archiveSha256 -ne $archiveSha256) { throw 'Uploaded object hash mismatch.' }
         $live = Get-LiveImmutableObjectMetadata -Receipt $receipt -ProviderAdapter {
@@ -212,7 +275,7 @@ try {
     Assert-LiveRetentionMatchesReceipt -Receipt $receipt -LiveMetadata $live | Out-Null
     Assert-NewRestoreTarget -DatabaseName $RestoreDatabase -TestDatabaseExists {
         param($DatabaseName)
-        [long](Invoke-MySqlRows $defaultsFile "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='$DatabaseName';")[0] -ne 0
+        [long](Get-RequiredSingleMySqlRow -Rows @(Invoke-MySqlRows $defaultsFile "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='$DatabaseName';") -Label "restore target existence for '$DatabaseName'") -ne 0
     } | Out-Null
     $ownedRestoreDatabase = $RestoreDatabase
     $download = Receive-ImmutableObjectVersion -Receipt $receipt -Destination $temp -ProviderAdapter {
@@ -224,7 +287,7 @@ try {
     }
     $extract = Join-Path $temp 'extract'
     New-Item -ItemType Directory -Force -Path $extract | Out-Null
-    Invoke-Checked $sevenZip @('x', '-y', "-o$extract", "-p$encryptionPassword", $download.archivePath)
+    Invoke-SevenZipWithPassword -Arguments @('x', '-y', "-o$extract", $download.archivePath) -Password $encryptionPassword
     $dump = Get-ChildItem -LiteralPath $extract -Filter '*.sql' | Select-Object -Single
     $manifest = Get-ChildItem -LiteralPath $extract -Filter 'manifest.json' | Select-Object -Single
     $expected = Get-Content -Raw -LiteralPath $manifest.FullName | ConvertFrom-Json
@@ -237,7 +300,21 @@ try {
     if ($process.ExitCode -ne 0) { throw 'Restore import failed.' }
     $actual = Get-DatabaseManifest $defaultsFile $RestoreDatabase $DcrClosureArtifactPath
     Assert-RestoreOracle -Expected $expected -Actual $actual
-    $result = [ordered]@{ runId=$runId; status='RESTORE_VERIFIED'; restoreDatabase=$RestoreDatabase; provider=$receipt.provider; objectKey=$receipt.objectKey; objectVersion=$receipt.objectVersion }
+    Assert-MrxRestoreOracle -Expected $expected.mrxBusinessOracle -Actual $actual.mrxBusinessOracle
+    $result = [ordered]@{
+        runId = $runId
+        status = 'RESTORE_VERIFIED'
+        restoreDatabase = $RestoreDatabase
+        provider = $receipt.provider
+        objectKey = $receipt.objectKey
+        objectVersion = $receipt.objectVersion
+        archiveCreatedAtUtc = $receipt.archiveCreatedAtUtc
+        retainUntilUtc = $receipt.retainUntilUtc
+        lockMode = $receipt.lockMode
+        lockState = $receipt.lockState
+        downloadRequestId = $download.downloadRequestId
+        mrxBusinessOracle = $actual.mrxBusinessOracle
+    }
     $result | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $evidence "$runId-restore.json") -Encoding UTF8
     if ($Teardown) {
         Remove-RunOwnedRestoreDatabase -DefaultsFile $defaultsFile -DatabaseName $RestoreDatabase -RunId $runId -OwnerRunId $runId

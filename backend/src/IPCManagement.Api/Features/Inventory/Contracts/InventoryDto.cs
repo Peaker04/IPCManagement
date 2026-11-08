@@ -137,6 +137,7 @@ public class InventoryIssueDto
     public string?  WarehouseName     { get; set; }
     public string?  MaterialRequestId { get; set; }
     public string?  ReconciliationBatchId { get; set; }
+    public string?  PreparationGroupId { get; set; }
     public string   IssuedBy          { get; set; } = string.Empty;
     public string?  IssuedByName      { get; set; }
     public string?  ReceivedBy        { get; set; }
@@ -145,6 +146,16 @@ public class InventoryIssueDto
     public DateTime CreatedAt         { get; set; }
 
     public List<InventoryIssueLineDto> Lines { get; set; } = new();
+    public List<MrxStockProvisionDto> Provisions { get; set; } = new();
+}
+
+public sealed class MrxStockProvisionDto
+{
+    public string StockMovementId { get; set; } = string.Empty;
+    public string IngredientId { get; set; } = string.Empty;
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public decimal ProvisionedQuantity { get; set; }
 }
 
 public class InventoryReceiptFilterRequestDto : PagedRequestDto
@@ -175,6 +186,8 @@ public class InventoryIssueLineDto
     public string   IssueLineId    { get; set; } = string.Empty;
     public string?  MaterialRequestLineId { get; set; }
     public string?  ReconciliationBatchLineId { get; set; }
+    public string?  ReconciliationBatchDailyLineId { get; set; }
+    public DateOnly? ReconciliationServiceDate { get; set; }
     public string   IngredientId   { get; set; } = string.Empty;
     public string?  IngredientName { get; set; }
     public decimal  RequestedQty   { get; set; }
@@ -209,6 +222,10 @@ public class CreateInventoryIssueRequest
     public string? MaterialRequestId { get; set; }
 
     public string? ReconciliationBatchId { get; set; }
+
+    public string? ReconciliationSourceDeltaId { get; set; }
+
+    public long? ExpectedSourceDeltaVersion { get; set; }
 
     public bool? IsSupplemental { get; set; }
 
@@ -246,6 +263,7 @@ public class InventoryIssueCreatedDto
     public string IssueId { get; set; } = string.Empty;
     public string IssueCode { get; set; } = string.Empty;
     public long ConcurrencyVersion { get; set; }
+    public List<MrxStockProvisionDto> Provisions { get; set; } = new();
 }
 
 public class ConfirmInventoryIssueReceiptRequest
@@ -339,6 +357,10 @@ public class CreateInventoryReturnRequest
 
     [Required]
     public string IssueId { get; set; } = string.Empty;
+
+    public string? ReconciliationSourceDeltaId { get; set; }
+
+    public long? ExpectedSourceDeltaVersion { get; set; }
 
     public string? Reason { get; set; }
 

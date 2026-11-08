@@ -19,6 +19,8 @@ public partial class InventoryIssue
 
     public byte[]? ReconciliationBatchId { get; set; }
 
+    public byte[]? PreparationGroupId { get; set; }
+
     public byte[] IssuedBy { get; set; } = null!;
 
     public byte[]? ReceivedBy { get; set; }

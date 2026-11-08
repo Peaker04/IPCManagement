@@ -49,6 +49,44 @@ public sealed class MigrationHealthCheck : IHealthCheck
         }
     }
 
+    public static Task<IReadOnlyList<string>> EnsurePendingMigrationsAppliedAsync(
+        IpcManagementContext context,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        if (!context.Database.IsRelational())
+        {
+            return Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
+        }
+
+        return EnsurePendingMigrationsAppliedAsync(
+            ct => context.Database.GetPendingMigrationsAsync(ct),
+            ct => context.Database.MigrateAsync(ct),
+            logger,
+            cancellationToken);
+    }
+
+    internal static async Task<IReadOnlyList<string>> EnsurePendingMigrationsAppliedAsync(
+        Func<CancellationToken, Task<IEnumerable<string>>> getPendingMigrations,
+        Func<CancellationToken, Task> migrateAsync,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var pending = (await getPendingMigrations(cancellationToken)).ToArray();
+        if (pending.Length == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        logger.LogInformation(
+            "Applying {Count} pending EF Core migration(s) on startup: {Migrations}",
+            pending.Length,
+            string.Join(", ", pending));
+
+        await migrateAsync(cancellationToken);
+        return pending;
+    }
+
     internal static HealthCheckResult BuildResult(IEnumerable<string> pendingMigrations)
     {
         var pending = pendingMigrations.ToArray();

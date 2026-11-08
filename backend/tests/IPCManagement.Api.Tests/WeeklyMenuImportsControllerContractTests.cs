@@ -10,11 +10,30 @@ using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.RateLimiting;
+using NSubstitute;
 
 namespace IPCManagement.Api.Tests;
 
 public sealed class WeeklyMenuImportsControllerContractTests
 {
+    [Theory]
+    [InlineData("not-a-date")]
+    [InlineData("2026-10-13")]
+    public async Task Preview_Should_RejectInvalidRequestedWeekBeforeCallingImporter(string weekStartDate)
+    {
+        var service = Substitute.For<IWeeklyMenuImportService>();
+        var controller = new WeeklyMenuImportsController(
+            Substitute.For<IWeeklyMenuQueryService>(), Substitute.For<IWeeklyMenuTemplateService>(), service,
+            Substitute.For<IWeeklyMenuImportHistoryService>(), Substitute.For<ICustomerImportMappingService>(),
+            Substitute.For<IWeeklyMenuBulkEditService>(), Substitute.For<IMenuAmendmentService>(), Substitute.For<ICurrentUserService>());
+        var file = new FormFile(new MemoryStream([1]), 0, 1, "file", "menu.xlsx");
+
+        var result = await controller.PreviewWeeklyMenuImportAsync(file, "customer-1", weekStartDate, 25000m, default);
+
+        result.Should().BeOfType<BadRequestObjectResult>();
+        await service.DidNotReceiveWithAnyArgs().PreviewWeeklyMenuImportAsync(default!, default!, default!, default, default, default);
+    }
+
     [Fact]
     public void Controller_Should_KeepPublishedRoutesAndAuthorizationAcrossPartialFiles()
     {
@@ -83,6 +102,16 @@ public sealed class WeeklyMenuImportsControllerContractTests
         new(AuthorizationPolicies.AdminAccess, null)
     ];
 
+    private static readonly AuthorizationContract[] SourceEditPolicy =
+    [
+        new(AuthorizationPolicies.ReconciliationSourceEditAccess, null)
+    ];
+
+    private static readonly AuthorizationContract[] SourceReadPolicy =
+    [
+        new(AuthorizationPolicies.ReconciliationSourceReadAccess, null)
+    ];
+
     private static readonly AuthorizationContract[] AdminRoles =
     [
         new(null, "Admin,ADMIN,Quản trị")
@@ -95,10 +124,12 @@ public sealed class WeeklyMenuImportsControllerContractTests
 
     private static readonly ActionContract[] ExpectedActions =
     [
+        new(nameof(WeeklyMenuImportsController.ApplyMrxMenuAmendmentAsync), "POST", "weekly-menu/amendments/mrx-apply", SourceEditPolicy),
         new(nameof(WeeklyMenuImportsController.BreakGlassExecuteMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/break-glass-execute", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.BulkUpdateWeeklyMenuAsync), "PUT", "weekly-menu/bulk-update", []),
         new(nameof(WeeklyMenuImportsController.CommitWeeklyMenuImportAsync), "POST", "weekly-menu/import/commit", []),
         new(nameof(WeeklyMenuImportsController.CreateMenuAmendmentAsync), "POST", "weekly-menu/amendments", []),
+        new(nameof(WeeklyMenuImportsController.DecideMrxMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/mrx-decision", SourceEditPolicy),
         new(nameof(WeeklyMenuImportsController.DownloadWeeklyMenuTemplateAsync), "GET", "weekly-menu/template", []),
         new(nameof(WeeklyMenuImportsController.ExecuteMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/execute", AdminRoles),
         new(nameof(WeeklyMenuImportsController.ExecuteMenuAmendmentDecisionAsync), "POST", "weekly-menu/amendments/decisions/{decisionItemId}/commands", AdminPolicy),
@@ -106,14 +137,18 @@ public sealed class WeeklyMenuImportsControllerContractTests
         new(nameof(WeeklyMenuImportsController.GetCustomersAsync), "GET", "customers", []),
         new(nameof(WeeklyMenuImportsController.GetMenuAmendmentDecisionPageAsync), "GET", "weekly-menu/amendments/decisions", []),
         new(nameof(WeeklyMenuImportsController.GetMenuAmendmentsAsync), "GET", "weekly-menu/amendments", []),
+        new(nameof(WeeklyMenuImportsController.GetMrxMenuAmendmentInboxAsync), "GET", "weekly-menu/amendments/mrx-inbox", SourceEditPolicy),
         new(nameof(WeeklyMenuImportsController.GetWeeklyMenuAsync), "GET", "weekly-menu", []),
         new(nameof(WeeklyMenuImportsController.GetWeeklyMenuImportHistoryAsync), "GET", "weekly-menu/import-history", []),
+        new(nameof(WeeklyMenuImportsController.GetWeeklyMenuImportSnapshotAsync), "GET", "weekly-menu/import-history/{menuVersionId}/snapshot", []),
         new(nameof(WeeklyMenuImportsController.ImportWeeklyMenuAsync), "POST", "weekly-menu/import", []),
+        new(nameof(WeeklyMenuImportsController.PreviewMenuAmendmentAsync), "POST", "weekly-menu/amendments/preview", SourceReadPolicy),
         new(nameof(WeeklyMenuImportsController.PreviewWeeklyMenuImportAsync), "POST", "weekly-menu/import/preview", []),
         new(nameof(WeeklyMenuImportsController.RemediateMenuAmendmentDecisionFanAsync), "POST", "weekly-menu/amendments/reconciliation-cases/{reconciliationCaseId}/decision-fan-remediations", AdminPolicy),
         new(nameof(WeeklyMenuImportsController.ReviewMenuAmendmentAsync), "POST", "weekly-menu/amendments/{amendmentId}/review", ManagerRoles),
         new(nameof(WeeklyMenuImportsController.RollbackWeeklyMenuImportAsync), "POST", "weekly-menu/import/{menuVersionId}/rollback", []),
-        new(nameof(WeeklyMenuImportsController.SaveCustomerImportMappingAsync), "PUT", "customers/{customerId}/import-mapping", [])
+        new(nameof(WeeklyMenuImportsController.SaveCustomerImportMappingAsync), "PUT", "customers/{customerId}/import-mapping", []),
+        new(nameof(WeeklyMenuImportsController.SubmitMrxMenuAmendmentAsync), "POST", "weekly-menu/amendments/mrx-submit", SourceReadPolicy)
     ];
 
     private sealed record AuthorizationContract(string? Policy, string? Roles);

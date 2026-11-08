@@ -152,7 +152,7 @@ internal static class WeeklyMenuImportProjection
             "rau" => "Rau",
             "canh" => "Canh",
             "fruit" => "Trái cây",
-            "dessert" => "Sữa chua",
+            "dessert" => "Tráng miệng",
             _ => "Món chính"
         };
 

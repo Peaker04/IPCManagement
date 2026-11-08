@@ -29,10 +29,8 @@ public static class BomSelectionResolver
     public static decimal NormalizePriceTier(decimal menuPrice)
     {
         var normalized = decimal.Round(menuPrice, 0);
-        return normalized switch
-        {
-            25000m or 30000m or 34000m => normalized,
-            _ => throw new BusinessRuleException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM 25000/30000/34000.")
-        };
+        if (!MenuPriceTierPolicy.SupportedPriceTiers.Contains(normalized))
+            throw new BusinessRuleException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM {string.Join("/", MenuPriceTierPolicy.SupportedPriceTiers)}.");
+        return normalized;
     }
 }

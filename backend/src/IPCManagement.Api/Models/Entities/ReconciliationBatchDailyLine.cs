@@ -13,5 +13,5 @@ public sealed class ReconciliationBatchDailyLine
     public ReconciliationBatchLine BatchLine { get; set; } = null!;
     public ICollection<ReconciliationBatchContributor> Contributors { get; set; } = [];
     public ICollection<InventoryIssueLine> InventoryIssueLines { get; set; } = [];
-    public ReconciliationDailyDisposition? Disposition { get; set; }
+    public ICollection<ReconciliationDailyDisposition> Dispositions { get; set; } = [];
 }

@@ -78,6 +78,7 @@ public sealed class Phase29ModelConfigurationTests
 
         var disposition = model.FindEntityType(typeof(ReconciliationDisposition))!;
         Assert.True(disposition.FindProperty(nameof(ReconciliationDisposition.Version))!.IsConcurrencyToken);
-        Assert.Contains(disposition.GetIndexes(), index => index.IsUnique && index.Properties.Single().Name == nameof(ReconciliationDisposition.BatchLineId));
+        Assert.Contains(disposition.GetIndexes(), index => index.IsUnique
+            && index.Properties.Single().Name == nameof(ReconciliationDisposition.ActiveOwnerKey));
     }
 }

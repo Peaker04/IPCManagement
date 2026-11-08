@@ -1,0 +1,369 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Check, ArrowRight } from 'lucide-react';
+import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
+import { SplitView } from '../../components/workbench/SplitView';
+import { StateBoundary } from '../../components/workbench/StateBoundary';
+import { Button } from '../../components/ui/button';
+import { Badge } from '../../components/ui/badge';
+import { serverStateCache } from '../../store/serverStateCache';
+import { dashboardApi, type DashboardData } from '../../api/dashboardApi';
+import type { DashboardTask } from '../../types';
+import { clsx } from 'clsx';
+
+function todayInVietnamese(): string {
+  const now = new Date();
+  const dayName = new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'long' }).format(now);
+  const dateStr = new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', day: '2-digit', month: '2-digit', year: 'numeric' }).format(now);
+  return `${dayName.charAt(0).toUpperCase() + dayName.slice(1)}, ${dateStr}`;
+}
+
+interface DashboardSnapshot {
+  data: DashboardData | null;
+  selectedMetricId: string | null;
+}
+
+export function DashboardPage() {
+  const snapshot = serverStateCache.get<DashboardSnapshot>('snapshot:dashboard')?.data;
+  const cachedDashboard = snapshot?.data ?? serverStateCache.get<DashboardData>('dashboard_today')?.data;
+  const [data, setData] = useState<DashboardData | null>(() => cachedDashboard || null);
+  const [isLoading, setIsLoading] = useState(!cachedDashboard);
+  const [error, setError] = useState<Error | null>(null);
+  const [selectedMetricId, setSelectedMetricId] = useState<string | null>(() => snapshot?.selectedMetricId || null);
+  const navigate = useNavigate();
+
+  const handleRefresh = async () => {
+    if (!data) setIsLoading(true);
+    setError(null);
+    try {
+      const resp = await dashboardApi.getDashboardData();
+      setData(resp);
+      serverStateCache.set('dashboard_today', resp);
+      serverStateCache.set('snapshot:dashboard', { data: resp, selectedMetricId });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let ignore = false;
+    dashboardApi.getDashboardData()
+      .then((resp) => {
+        if (ignore) return;
+        setData(resp);
+        serverStateCache.set('dashboard_today', resp);
+      })
+      .catch((cause: unknown) => {
+        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải dữ liệu điều hành hôm nay.'));
+      })
+      .finally(() => {
+        if (!ignore) setIsLoading(false);
+      });
+    return () => { ignore = true; };
+  }, []);
+
+  const filteredTasks = useMemo(() => {
+    if (!data) return [];
+    if (!selectedMetricId) return data.tasks;
+    if (selectedMetricId === 'm2') return data.tasks.filter((t) => t.roleCode === 'CHEF');
+    if (selectedMetricId === 'm3') return data.tasks.filter((t) => t.roleCode === 'PURCHASER');
+    if (selectedMetricId === 'm4') return data.tasks.filter((t) => t.roleCode === 'WAREHOUSE');
+    return data.tasks;
+  }, [data, selectedMetricId]);
+
+  return (
+    <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
+      {/* Zone 1: Workspace Header (56px / h-14) */}
+      <WorkspaceHeader
+        title="Bàn điều hành hôm nay"
+        breadcrumb="Tổng quan · Điều hành hôm nay"
+        contextSelectors={
+          <>
+            <span className="text-sm text-slate-700 font-medium">
+              {todayInVietnamese()}
+            </span>
+            <span className="text-slate-300">·</span>
+            <Badge variant="info" size="default" className="text-xs px-2.5 py-1">
+              Ca 1 & Ca 2 đang vận hành
+            </Badge>
+          </>
+        }
+        actions={
+          <>
+            <Button variant="outline" size="default" onClick={handleRefresh} className="h-9 text-sm font-medium">
+              Làm mới
+            </Button>
+            {/* Rule D7: Single primary button */}
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => navigate('/weekly-menu?view=demand')}
+              className="h-9 text-sm font-medium"
+            >
+              Mở bàn giao ca
+            </Button>
+          </>
+        }
+      />
+
+      {/* Dải 5 ô chỉ số phẳng (56px / h-14) */}
+      <div className="h-14 shrink-0 border-b border-slate-200 bg-white grid grid-cols-5 divide-x divide-slate-200 text-sm select-none">
+        {isLoading
+          ? Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex flex-col justify-center px-4 space-y-1.5 animate-pulse">
+                <div className="h-3 w-1/2 bg-slate-200 rounded" />
+                <div className="h-4 w-3/4 bg-slate-200 rounded" />
+              </div>
+            ))
+          : data?.metrics.map((metric) => {
+              const isSelected = selectedMetricId === metric.id;
+              return (
+                <button
+                  key={metric.id}
+                  type="button"
+                  onClick={() =>
+                    setSelectedMetricId(selectedMetricId === metric.id ? null : metric.id)
+                  }
+                  className={clsx(
+                    'flex flex-col justify-center px-4 transition-colors text-left cursor-pointer group',
+                    isSelected ? 'bg-blue-50/80 ring-1 ring-inset ring-blue-500' : 'hover:bg-slate-50'
+                  )}
+                >
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-xs text-slate-600 font-medium truncate" title={metric.label}>
+                  {metric.label}
+                </span>
+                {metric.unit && (
+                  <span className="text-xs text-slate-500 font-mono shrink-0">
+                    ({metric.unit})
+                  </span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className="text-base font-bold text-slate-900 font-mono tracking-tight tabular-nums shrink-0">
+                  {metric.value}
+                </span>
+                {metric.trend && (
+                  <span
+                    className={clsx(
+                      'text-xs truncate font-medium',
+                      metric.variant === 'danger'
+                        ? 'text-rose-600'
+                        : metric.variant === 'warning'
+                        ? 'text-amber-600'
+                        : metric.variant === 'success'
+                        ? 'text-emerald-600'
+                        : 'text-slate-500'
+                    )}
+                    title={metric.trend}
+                  >
+                    {metric.trend}
+                  </span>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Zone 3: SplitView (Left: Tasks Table 8 cols | Right: 4-Stage Stepper 4 cols) */}
+      <StateBoundary
+        isLoading={isLoading}
+        isFetching={isLoading}
+        hasExistingData={Boolean(data && data.metrics.length > 0)}
+        error={error}
+        onRetry={handleRefresh}
+        isEmpty={!isLoading && (!data || data.tasks.length === 0)}
+        emptyTitle="Hôm nay không có nhiệm vụ tồn đọng"
+        emptyDescription="Mọi công đoạn ca hôm nay đã hoàn thành hoặc chưa đến giờ kích hoạt."
+        actionLabel="Mở bàn giao ca"
+        onAction={() => navigate('/weekly-menu?view=demand')}
+      >
+        {data && (
+          <SplitView
+            masterWidthClass="w-8/12"
+            master={
+              <div className="flex-1 min-h-0 flex flex-col bg-white">
+                {/* Table Header Strip */}
+                <div className="h-10 px-4 border-b border-slate-200 bg-slate-100 flex items-center justify-between shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+                      Việc cần xử lý trước
+                    </span>
+                    <Badge variant="neutral" size="sm">
+                      {filteredTasks.length} nhiệm vụ
+                    </Badge>
+                  </div>
+                  {selectedMetricId && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => setSelectedMetricId(null)}
+                      className="text-xs text-slate-500 hover:text-slate-800"
+                    >
+                      Bỏ lọc metric
+                    </Button>
+                  )}
+                </div>
+
+                {/* Table Content */}
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <table className="w-full text-left text-sm border-collapse table-fixed">
+                    <thead className="sticky top-0 z-10 bg-slate-100/95 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase tracking-wider">
+                      <tr>
+                        <th className="h-10 px-4 w-[42%]">Nhiệm vụ & Quy trình</th>
+                        <th className="h-10 px-3 w-[26%]">Phụ trách</th>
+                        <th className="h-10 px-3 w-[18%]">Thời hạn</th>
+                        <th className="h-10 px-4 w-[14%] text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-slate-800">
+                      {filteredTasks.map((task: DashboardTask, idx: number) => (
+                        <tr
+                          key={task.id}
+                          className={clsx(
+                            'h-10 hover:bg-slate-50 transition-colors',
+                            idx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'
+                          )}
+                        >
+                          <td className="px-4 py-2">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={clsx(
+                                  'h-2 w-2 rounded-full shrink-0',
+                                  task.priority === 'high'
+                                    ? 'bg-rose-500'
+                                    : task.priority === 'medium'
+                                    ? 'bg-amber-500'
+                                    : 'bg-slate-300'
+                                )}
+                              />
+                              <span className="font-medium text-slate-900 truncate text-sm">
+                                {task.title}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-slate-600 truncate text-sm">
+                            <span className="text-xs text-slate-400 mr-1">Phụ trách:</span>
+                            <span>{task.assignee}</span>
+                          </td>
+                          <td className="px-3 py-2 font-mono text-xs text-slate-600 truncate">
+                            <span className="text-xs text-slate-400 mr-1">Hạn:</span>
+                            <span>{task.deadline}</span>
+                          </td>
+                          <td className="px-4 py-2 text-right whitespace-nowrap">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate(task.actionRoute)}
+                              className="font-medium text-xs h-7"
+                            >
+                              Xử lý
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+            detail={
+              <div className="flex-1 min-h-0 flex flex-col bg-slate-50/40">
+                {/* Stepper Header */}
+                <div className="h-10 px-4 border-b border-slate-200 bg-slate-100 flex items-center justify-between shrink-0">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+                    Tiến độ 4 công đoạn
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">
+                    Ca 1 + Ca 2
+                  </span>
+                </div>
+
+                {/* Vertical Stepper List */}
+                <div className="flex-1 min-h-0 overflow-auto p-4 space-y-3.5">
+                  {data.stages.map((stage) => {
+                    const isCompleted = stage.status === 'completed';
+                    const isInProgress = stage.status === 'in_progress';
+                    return (
+                      <div
+                        key={stage.stageNumber}
+                        className={clsx(
+                          'rounded-md border p-3.5 transition-colors',
+                          isInProgress
+                            ? 'bg-white border-blue-200 shadow-2xs'
+                            : isCompleted
+                            ? 'bg-white/80 border-slate-200'
+                            : 'bg-slate-50 border-slate-200/60 opacity-70'
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={clsx(
+                                'h-5 w-5 rounded-full flex items-center justify-center font-semibold text-[11px] font-sans shrink-0 leading-none select-none tabular-nums',
+                                isCompleted
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : isInProgress
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-200 text-slate-600'
+                              )}
+                            >
+                              {isCompleted ? <Check className="size-3 stroke-[2.5]" aria-hidden="true" /> : stage.stageNumber}
+                            </span>
+                            <span className="text-sm font-bold text-slate-900">
+                              {stage.stageName}
+                            </span>
+                          </div>
+                          <Badge
+                            variant={
+                              isCompleted
+                                ? 'success'
+                                : isInProgress
+                                ? 'info'
+                                : 'neutral'
+                            }
+                            size="sm"
+                          >
+                            {isCompleted
+                              ? 'Đã xong'
+                              : isInProgress
+                              ? 'Đang chạy'
+                              : 'Chờ'}
+                          </Badge>
+                        </div>
+
+                        <p className="text-xs text-slate-500 pl-7 leading-relaxed mb-2.5">
+                          {stage.description}
+                        </p>
+
+                        <div className="flex items-center justify-between pl-7 pt-1 border-t border-slate-100 text-xs">
+                          <span className="font-mono text-slate-600">
+                            Hoàn thành: {stage.completedCount}/{stage.totalCount}
+                          </span>
+                          {stage.actionLabel && stage.actionRoute && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              onClick={() => navigate(stage.actionRoute!)}
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium inline-flex items-center gap-1"
+                            >
+                              <span>{stage.actionLabel}</span>
+                              <ArrowRight className="size-3" aria-hidden="true" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            }
+          />
+        )}
+      </StateBoundary>
+    </div>
+  );
+}

@@ -1,3 +1,16 @@
+function Get-RequiredSingleMySqlRow {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()][object[]]$Rows,
+        [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    if ($Rows.Count -ne 1) {
+        throw "$Label must return exactly one row; received $($Rows.Count)."
+    }
+    return [string]$Rows[0]
+}
+
 function Get-TableChecksumValue([object[]]$Rows) {
     if ($Rows.Count -ne 1) { throw 'Expected exactly one CHECKSUM TABLE row.' }
     $columns = [string]$Rows[0] -split "`t"
@@ -5,6 +18,17 @@ function Get-TableChecksumValue([object[]]$Rows) {
         throw 'Invalid CHECKSUM TABLE result.'
     }
     return $columns[1]
+}
+
+function Assert-MrxRestoreOracle([object]$Expected, [object]$Actual) {
+    if ($null -eq $Expected -or $null -eq $Actual) {
+        throw 'MRX restore oracle is missing.'
+    }
+    foreach ($field in @('counts', 'digests')) {
+        $expectedJson = $Expected.$field | ConvertTo-Json -Depth 10 -Compress
+        $actualJson = $Actual.$field | ConvertTo-Json -Depth 10 -Compress
+        if ($expectedJson -ne $actualJson) { throw "MRX restore oracle mismatch: $field" }
+    }
 }
 
 function Assert-RestoreOracle([object]$Expected, [object]$Actual) {

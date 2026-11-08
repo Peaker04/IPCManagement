@@ -1,0 +1,56 @@
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('./NotoSans-400.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('./NotoSans-500.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('./NotoSans-600.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Noto Sans';
+  src: url('./NotoSans-700.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('./NotoSerif-600.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Noto Serif';
+  src: url('./NotoSerif-700.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('./GeistMono-500.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('./GeistMono-600.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+}

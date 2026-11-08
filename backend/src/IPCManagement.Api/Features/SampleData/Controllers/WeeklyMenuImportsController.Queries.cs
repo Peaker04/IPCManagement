@@ -1,6 +1,7 @@
 using System.Globalization;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -50,7 +51,7 @@ public sealed partial class WeeklyMenuImportsController
         [FromQuery] string? weekStartDate,
         CancellationToken cancellationToken)
     {
-        var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+        var parsedWeekStart = WeeklyMenuImportValidationPolicy.ParseRequestedWeekStart(weekStartDate);
         var template = await _templateService.BuildWeeklyMenuTemplateAsync(
             customerId,
             parsedWeekStart,
@@ -66,14 +67,22 @@ public sealed partial class WeeklyMenuImportsController
     [HttpGet("weekly-menu/import-history")]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<WeeklyMenuImportHistoryItemDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWeeklyMenuImportHistoryAsync(
-        [FromQuery] string? customerId,
-        [FromQuery] DateOnly? fromDate,
-        [FromQuery] DateOnly? toDate,
+        [FromQuery] WeeklyMenuImportHistoryQueryDto query,
         [FromQuery] PagedRequestDto request,
         CancellationToken cancellationToken)
     {
-        var history = await _historyService.GetWeeklyMenuImportHistoryAsync(customerId, fromDate, toDate, request, cancellationToken);
+        var history = await _historyService.GetWeeklyMenuImportHistoryAsync(query, request, cancellationToken);
         return Ok(ApiResponse<PagedResponseDto<WeeklyMenuImportHistoryItemDto>>.SuccessResult(history));
+    }
+
+    [HttpGet("weekly-menu/import-history/{menuVersionId}/snapshot")]
+    [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportSnapshotDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWeeklyMenuImportSnapshotAsync(
+        string menuVersionId,
+        CancellationToken cancellationToken)
+    {
+        var snapshot = await _historyService.GetWeeklyMenuImportSnapshotAsync(menuVersionId, cancellationToken);
+        return Ok(ApiResponse<WeeklyMenuImportSnapshotDto>.SuccessResult(snapshot));
     }
 
     [HttpGet("customers/{customerId}/import-mapping")]

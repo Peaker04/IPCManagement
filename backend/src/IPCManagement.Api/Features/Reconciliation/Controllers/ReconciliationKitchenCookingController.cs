@@ -39,7 +39,7 @@ public sealed class ReconciliationKitchenCookingController(ReconciliationKitchen
             var result = await service.GetAsync(id, token);
             if (result is null) return NotFound(ApiResponse.FailResult("Không tìm thấy lô đối chiếu."));
             if (result.Rows.Count == 0) return Conflict(ApiResponse.FailResult("Lô không có dòng phiếu nấu để xuất."));
-            return File(ReconciliationKitchenExportService.BuildCsv(result.Rows), "text/csv; charset=utf-8", $"phieu-nau-{result.BatchId}.csv");
+            return File(await service.BuildCsvAsync(result, token), "text/csv; charset=utf-8", $"phieu-nau-{result.BatchId}.csv");
         }
         catch (InvalidOperationException error) when (IsCompatibilityError(error))
         {
@@ -56,7 +56,7 @@ public sealed class ReconciliationKitchenCookingController(ReconciliationKitchen
             var result = await service.GetAsync(id, token);
             if (result is null) return NotFound(ApiResponse.FailResult("Không tìm thấy lô đối chiếu."));
             if (result.Rows.Count == 0) return Conflict(ApiResponse.FailResult("Lô không có dòng phiếu nấu để xuất."));
-            return File(ReconciliationKitchenExportService.BuildXlsx(result.Rows), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"phieu-nau-{result.BatchId}.xlsx");
+            return File(await service.BuildXlsxAsync(result, token), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"phieu-nau-{result.BatchId}.xlsx");
         }
         catch (InvalidOperationException error) when (IsCompatibilityError(error))
         {

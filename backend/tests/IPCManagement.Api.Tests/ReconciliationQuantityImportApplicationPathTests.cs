@@ -10,10 +10,12 @@ using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Features.Reconciliation.Controllers;
+using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
+using IPCManagement.Api.Shared.Contracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
@@ -35,6 +37,176 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             new(GuidHelper.ToGuidString(fixture.MenuVersionId), "DI activation regression"), default);
 
         Assert.IsType<QuantityImportPreviewDto>(Payload<QuantityImportPreviewDto>(result));
+    }
+
+    [Fact]
+    public async Task Inspection_groups_before_paging_preserves_daily_rates_and_never_allocates_commit_authority()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var context = fixture.Context;
+        var firstBom = await context.Dishboms.SingleAsync();
+        firstBom.EffectiveTo = new DateOnly(2026, 8, 25);
+        var nextDay = new DateOnly(2026, 8, 26);
+        var menu = await context.Menus.SingleAsync();
+        var secondIngredient = new Ingredient
+        {
+            IngredientId = GuidHelper.NewId(), IngredientCode = "ING-2", IngredientName = "A second ingredient",
+            UnitId = firstBom.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 1m, IsActive = true
+        };
+        var schedule = new MenuSchedule
+        {
+            MenuScheduleId = GuidHelper.NewId(), MenuVersionId = fixture.MenuVersionId,
+            CustomerId = fixture.CustomerId, MenuId = menu.MenuId, MenuPrice = 25000m, ServiceDate = nextDay,
+            WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "AFTERNOON", Status = "ACTIVE"
+        };
+        var plan = new MealQuantityPlan
+        {
+            QuantityPlanId = GuidHelper.NewId(), PlanCode = "QTY-2", ServiceDate = nextDay,
+            Status = "COMPLETED", CompletedAt = DateTime.UtcNow, RowVersion = DateTime.UtcNow
+        };
+        context.AddRange(secondIngredient, schedule, plan,
+            new MealQuantityPlanLine
+            {
+                QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = plan.QuantityPlanId,
+                MenuScheduleId = schedule.MenuScheduleId, CustomerId = fixture.CustomerId, MenuId = menu.MenuId,
+                ShiftName = "AFTERNOON", FinalServings = 20, SavoryServings = 20, VegetarianServings = 0, UpdatedAt = DateTime.UtcNow
+            },
+            new DishBom
+            {
+                BomId = GuidHelper.NewId(), DishId = fixture.DishId, IngredientId = fixture.IngredientId,
+                UnitId = firstBom.UnitId, GrossQtyPerServing = 0.2m, PriceTierAmount = 25000m,
+                BomStatus = "PUBLISHED", EffectiveFrom = nextDay
+            },
+            new DishBom
+            {
+                BomId = GuidHelper.NewId(), DishId = fixture.DishId, IngredientId = secondIngredient.IngredientId,
+                UnitId = firstBom.UnitId, GrossQtyPerServing = 0.05m, PriceTierAmount = 25000m,
+                BomStatus = "PUBLISHED", EffectiveFrom = new DateOnly(2026, 8, 1)
+            });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var versionId = GuidHelper.ToGuidString(fixture.MenuVersionId);
+        var first = Payload<QuantityInspectionPageDto<QuantityMaterialInspectionDto>>(await fixture.InspectionController.MaterialInspection(
+            versionId, new PagedRequestDto { PageSize = 1 }, default));
+        Assert.Equal(2, first.Page.TotalCount);
+        Assert.Equal("A second ingredient", Assert.Single(first.Page.Items).IngredientName);
+        Assert.Equal(1.5m, Assert.Single(first.Page.Items).RequiredQuantity);
+        var second = Payload<QuantityInspectionPageDto<QuantityMaterialInspectionDto>>(await fixture.InspectionController.MaterialInspection(
+            versionId, new PagedRequestDto { PageSize = 1, PageNumber = 2 }, default));
+        var material = Assert.Single(second.Page.Items);
+        Assert.Equal(5m, material.RequiredQuantity);
+        Assert.Equal(new[] { 0.1m, 0.2m }, material.Contributions.Select(x => x.Material.GrossQuantityPerServing));
+        Assert.Equal(new[] { 10, 20 }, material.Contributions.Select(x => x.FinalServings));
+        Assert.Equal(new[] { new DateOnly(2026, 8, 25), nextDay }, material.Contributions.Select(x => x.ServiceDate));
+        var searched = Payload<QuantityInspectionPageDto<QuantityMaterialInspectionDto>>(await fixture.InspectionController.MaterialInspection(
+            versionId, new PagedRequestDto { SearchKeyword = "ING-1", PageSize = 1 }, default));
+        Assert.Equal(1, searched.Page.TotalCount);
+        Assert.Equal(5m, Assert.Single(searched.Page.Items).RequiredQuantity);
+        var shifts = Payload<QuantityInspectionPageDto<QuantityPlanInspectionDto>>(await fixture.InspectionController.PlanInspection(
+            versionId, new PagedRequestDto { PageSize = 1, PageNumber = 2 }, default));
+        Assert.Equal(2, shifts.Page.TotalCount);
+        var shift = Assert.Single(shifts.Page.Items);
+        Assert.Equal(nextDay, shift.ServiceDate);
+        Assert.Equal("AFTERNOON", shift.Line.Shift);
+        Assert.Equal(20, shift.Line.FinalServings);
+        Assert.Equal(first.ContentFingerprint, second.ContentFingerprint);
+        Assert.Equal(first.ContentFingerprint, shifts.ContentFingerprint);
+        Assert.Equal(3, first.FingerprintFormatVersion);
+        Assert.Equal(0, fixture.CacheEntryCount);
+        Assert.False(context.ChangeTracker.HasChanges());
+        Assert.Empty(context.Quantityimportbatches);
+        Assert.Empty(context.Reconciliationbatches);
+        Assert.Empty(context.Auditlogs);
+        Assert.All(context.Mealquantityplans, item => Assert.Null(item.ImportBatchId));
+    }
+
+    [Fact]
+    public async Task Inspection_reports_partial_BOM_diagnostics_and_preserves_source_prerequisite_errors()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.Context.Dishboms.RemoveRange(fixture.Context.Dishboms);
+        await fixture.Context.SaveChangesAsync();
+        var versionId = GuidHelper.ToGuidString(fixture.MenuVersionId);
+        var read = Payload<QuantityInspectionPageDto<QuantityMaterialInspectionDto>>(await fixture.InspectionController.MaterialInspection(
+            versionId, new PagedRequestDto(), default));
+        Assert.NotEmpty(read.Diagnostics);
+        Assert.Empty(read.Page.Items);
+        var version = await fixture.Context.Menuversions.SingleAsync();
+        version.Status = "DRAFT";
+        await fixture.Context.SaveChangesAsync();
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.InspectionController.PlanInspection(
+            versionId, new PagedRequestDto(), default));
+        Assert.Equal("Phiên bản thực đơn chưa được phát hành.", error.Message);
+        Assert.Equal(0, fixture.CacheEntryCount);
+    }
+
+    [Theory]
+    [InlineData(25000, 1)]
+    [InlineData(30000, 2)]
+    public async Task Imported_selected_tier_persists_and_projects_exact_customer_BOM_quantity(decimal tier, decimal expectedKilograms)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var context = fixture.Context;
+        var customer = await context.Customers.SingleAsync();
+        var dish = await context.Dishes.SingleAsync();
+        var originalBom = await context.Dishboms.SingleAsync();
+        var roleId = GuidHelper.NewId();
+        context.Roles.Add(new Role { RoleId = roleId, RoleCode = "COORDINATOR", RoleName = "Coordinator" });
+        context.Users.Add(new User { UserId = fixture.ActorId, RoleId = roleId, Username = "tier-importer", FullName = "Tier Importer", PasswordHash = "test-only", IsActive = true });
+        var overrideBom = new DishBom
+        {
+            BomId = GuidHelper.NewId(), DishId = fixture.DishId, CustomerId = fixture.CustomerId,
+            IngredientId = fixture.IngredientId, UnitId = originalBom.UnitId, GrossQtyPerServing = 0.2m,
+            PriceTierAmount = 30000m, BomStatus = "PUBLISHED", EffectiveFrom = new DateOnly(2026, 8, 1)
+        };
+        context.Dishboms.AddRange(overrideBom, new DishBom
+        {
+            BomId = GuidHelper.NewId(), DishId = fixture.DishId, IngredientId = fixture.IngredientId,
+            UnitId = originalBom.UnitId, GrossQtyPerServing = 0.9m, PriceTierAmount = 30000m,
+            BomStatus = "PUBLISHED", EffectiveFrom = new DateOnly(2026, 8, 1)
+        });
+        await context.SaveChangesAsync();
+        var week = new DateOnly(2026, 8, 31);
+        var day = new DateOnly(2026, 9, 1);
+        var plan = new WeeklyMenuImportPlan("tier-menu.xlsx", "Customer tier sheet", "C", week, week.AddDays(6), 1,
+            [new WeeklyMenuImportDayColumn("D", day, "t3", "Thứ ba", 7)], week);
+        plan.Items.Add(new ParsedWeeklyMenuItem
+        {
+            SourceOrder = 1, ServiceDate = day, DayKey = "t3", SourceRowNumber = 9, SourceColumn = "D",
+            SectionLabel = "MENU MẶN - CA SÁNG", SectionKey = "savory-morning", SourceShift = "MORNING",
+            SourceShiftLabel = "Ca sáng", DbShiftName = "MORNING", VariantKey = "savory", VariantLabel = "Mặn",
+            Slot = "main", SlotLabel = "Món chính", DishName = dish.DishName
+        });
+        var imported = await new WeeklyMenuImportPersistence(context, new WeeklyMenuImportResultBuilder(context), new WeeklyMenuAuditActorResolver(context))
+            .CommitAsync(plan, customer, tier, GuidHelper.ToGuidString(fixture.ActorId), default);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var versionId = GuidHelper.ParseGuidString(imported.MenuVersionId)!;
+        var schedule = await context.Menuschedules.SingleAsync(item => item.MenuVersionId == versionId);
+        Assert.Equal(tier, schedule.MenuPrice);
+        Assert.Equal(fixture.DishId, await context.Menuitems.Where(item => item.MenuId == schedule.MenuId).Select(item => item.DishId).SingleAsync());
+        await new MenuScheduleService(context, new ImmediateTransactionRunner()).UpdateMenuScheduleVersionAsync(
+            GuidHelper.ToGuidString(schedule.MenuScheduleId), new UpdateMenuScheduleVersionRequest { Status = "ACTIVE", Reason = "Publish imported tier proof" }, GuidHelper.ToGuidString(fixture.ActorId));
+        var quantityPlan = new MealQuantityPlan { QuantityPlanId = GuidHelper.NewId(), PlanCode = "QTY-TIER", ServiceDate = day, Status = "COMPLETED", CompletedAt = DateTime.UtcNow, RowVersion = DateTime.UtcNow };
+        context.AddRange(quantityPlan, new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = quantityPlan.QuantityPlanId,
+            MenuScheduleId = schedule.MenuScheduleId, CustomerId = fixture.CustomerId, MenuId = schedule.MenuId,
+            ShiftName = "MORNING", ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10,
+            SavoryServings = 10, VegetarianServings = 0, UpdatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(new(imported.MenuVersionId!, "Selected tier source"), default));
+        var committed = Payload<QuantityImportCommitDto>(await fixture.Controller.CommitQuantityImport(new(preview.Token, preview.ContentFingerprint, "Selected tier source"), default));
+        context.ChangeTracker.Clear();
+        var batch = Payload<ReconciliationBatchDto>(await fixture.Controller.Get(committed.ReconciliationBatchId, default));
+        var line = Assert.Single(batch.Lines);
+        Assert.Equal(expectedKilograms, line.RequiredQuantity);
+        Assert.Equal(GuidHelper.ToGuidString(fixture.IngredientId), line.IngredientId);
+        var persisted = await context.Reconciliationbatchcontributors.AsNoTracking().Where(item => item.BatchLineId == GuidHelper.ParseGuidString(line.BatchLineId)).ToListAsync();
+        Assert.Equal(tier == 25000m ? fixture.BomId : overrideBom.BomId, Assert.Single(persisted).DishBomId);
+        Assert.Equal(expectedKilograms, persisted[0].SourceQuantity);
     }
 
     [Fact]
@@ -68,6 +240,48 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         Assert.Contains("hoàn tất định mức", error.Message);
         Assert.Empty(fixture.Context.Quantityimportbatches);
         Assert.Empty(fixture.Context.Reconciliationbatches);
+    }
+
+    [Theory]
+    [InlineData("100", 10, "0.1", "1")]
+    [InlineData("0.0004", 1000, "0.0000004", "0.0004")]
+    public async Task Committed_lineage_preserves_canonical_rate_before_serving_rounding(string raw, int servings, string rate, string total)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var context = fixture.Context;
+        var bom = await context.Dishboms.SingleAsync();
+        bom.UnitId = fixture.AlternateUnitId;
+        bom.Unit = await context.Units.SingleAsync(unit => unit.UnitId == fixture.AlternateUnitId);
+        bom.GrossQtyPerServing = decimal.Parse(raw, System.Globalization.CultureInfo.InvariantCulture);
+        var plan = await context.Mealquantityplanlines.SingleAsync();
+        plan.FinalServings = servings;
+        plan.SavoryServings = servings;
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Frozen conversion regression"), default));
+        var committed = Payload<QuantityImportCommitDto>(await fixture.Controller.CommitQuantityImport(
+            new(preview.Token, preview.ContentFingerprint, "Frozen conversion regression"), default));
+        context.ChangeTracker.Clear();
+        var expectedRate = decimal.Parse(rate, System.Globalization.CultureInfo.InvariantCulture);
+        var expectedTotal = decimal.Parse(total, System.Globalization.CultureInfo.InvariantCulture);
+        var contributor = Assert.Single(await context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
+        Assert.Equal(expectedTotal, contributor.SourceQuantity);
+        var dishes = Payload<IReadOnlyList<ReconciliationBatchDishSummaryDto>>(await fixture.Controller.Dishes(committed.ReconciliationBatchId, default));
+        Assert.Equal(expectedRate, Assert.Single(Assert.Single(dishes).Materials).CanonicalQtyPerServing);
+        Assert.Equal(expectedTotal, DecimalPolicy.RoundQuantity(expectedRate * servings));
+        var kitchen = await new ReconciliationKitchenExportService(context).GetAsync(committed.ReconciliationBatchId);
+        Assert.Equal(expectedRate, Assert.Single(kitchen!.Rows).BomQuantityPerServing);
+        Assert.Equal(expectedTotal, Assert.Single(kitchen.Rows).TotalRequiredQuantity);
+
+        bom = await context.Dishboms.SingleAsync();
+        bom.GrossQtyPerServing = 999m;
+        (await context.Units.SingleAsync(unit => unit.UnitId == fixture.AlternateUnitId)).ConvertRateToBase = 2m;
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        dishes = Payload<IReadOnlyList<ReconciliationBatchDishSummaryDto>>(await fixture.Controller.Dishes(committed.ReconciliationBatchId, default));
+        Assert.Equal(expectedRate, Assert.Single(Assert.Single(dishes).Materials).CanonicalQtyPerServing);
     }
 
     [Fact]
@@ -228,7 +442,9 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         await using var fixture = await Fixture.CreateAsync();
         var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
             new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn chuẩn"), default));
-        fixture.Context.Mealquantityplanlines.Single().FinalServings++;
+        var staleLine = fixture.Context.Mealquantityplanlines.Single();
+        staleLine.FinalServings++;
+        staleLine.SavoryServings++; // giữ số suất Mặn/Chay khớp tổng để kiểm đúng nguồn cũ (stale).
         await fixture.Context.SaveChangesAsync();
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => fixture.Controller.CommitQuantityImport(
@@ -297,6 +513,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         private readonly ServiceProvider serviceProvider;
         public ImportTestContext Context { get; }
         public ReconciliationBatchesController Controller { get; }
+        public ReconciliationQuantityInspectionController InspectionController { get; private init; } = null!;
         public byte[] MenuVersionId { get; }
         public byte[] ActorId { get; }
         public byte[] CustomerId { get; }
@@ -321,6 +538,8 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             BomId = bomId;
             WarehouseId = warehouseId;
         }
+
+        public int CacheEntryCount => serviceProvider.GetRequiredService<MemoryCache>().Count;
 
         public static async Task<Fixture> CreateAsync()
         {
@@ -349,7 +568,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             var menuVersion = new MenuVersion { MenuVersionId = menuVersionId, CustomerId = customerId, WeekStartDate = new DateOnly(2026, 8, 24), VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
             var schedule = new MenuSchedule { MenuScheduleId = scheduleId, CustomerId = customerId, MenuId = menuId, Menu = menu, MenuVersionId = menuVersionId, MenuVersion = menuVersion, MenuPrice = 25000m, ServiceDate = new DateOnly(2026, 8, 25), WeekStartDate = new DateOnly(2026, 8, 24), ShiftName = "MORNING", Status = "ACTIVE" };
             var plan = new MealQuantityPlan { QuantityPlanId = planId, PlanCode = "QTY-1", ServiceDate = schedule.ServiceDate, Status = "COMPLETED", CompletedAt = DateTime.UtcNow, RowVersion = DateTime.UtcNow };
-            var line = new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, Menu = menu, ShiftName = "MORNING", ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, UpdatedAt = DateTime.UtcNow };
+            var line = new MealQuantityPlanLine { QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan, MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = customerId, MenuId = menuId, Menu = menu, ShiftName = "MORNING", ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, SavoryServings = 10, VegetarianServings = 0, UpdatedAt = DateTime.UtcNow };
             context.AddRange(unit, alternateUnit, customer, ingredient, dish, menu, menuItem, bom, tolerance, menuVersion, schedule, plan, line);
             await context.SaveChangesAsync();
 
@@ -363,11 +582,13 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             services.AddControllers().AddApplicationPart(typeof(ReconciliationBatchesController).Assembly).AddControllersAsServices();
             services.AddSingleton(batchService);
             services.AddSingleton(importService);
+            services.AddSingleton(cache);
             services.AddSingleton(completionService);
             services.AddSingleton<ICurrentUserService>(new StubCurrentUser(GuidHelper.ToGuidString(actorId)));
             var serviceProvider = services.BuildServiceProvider();
             var controller = serviceProvider.GetRequiredService<ReconciliationBatchesController>();
-            return new Fixture(connection, serviceProvider, context, controller, menuVersionId, actorId, customerId, ingredient.IngredientId, alternateUnit.UnitId, dish.DishId, bom.BomId, warehouseId);
+            return new Fixture(connection, serviceProvider, context, controller, menuVersionId, actorId, customerId, ingredient.IngredientId, alternateUnit.UnitId, dish.DishId, bom.BomId, warehouseId)
+            { InspectionController = new ReconciliationQuantityInspectionController(importService) };
         }
 
         public async Task<IReadOnlyList<string>> PersistedIdentityProjectionAsync(string batchId)
@@ -431,7 +652,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             {
                 QuantityPlanLineId = GuidHelper.NewId(), QuantityPlanId = planId, QuantityPlan = plan,
                 MenuScheduleId = scheduleId, MenuSchedule = schedule, CustomerId = existingLine.CustomerId, MenuId = existingLine.MenuId,
-                ShiftName = existingLine.ShiftName, ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, UpdatedAt = DateTime.UtcNow
+                ShiftName = existingLine.ShiftName, ForecastServings = 10, ConfirmedServings = 10, FinalServings = 10, SavoryServings = 10, VegetarianServings = 0, UpdatedAt = DateTime.UtcNow
             };
             Context.AddRange(version, schedule, plan, line);
             await Context.SaveChangesAsync();

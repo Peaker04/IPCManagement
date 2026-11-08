@@ -8,6 +8,16 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     manifest: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('lucide-react')) return 'vendor-icons';
+            if (id.includes('react-router') || id.includes('react-dom') || id.includes('react')) return 'vendor-react';
+          }
+        },
+      },
+    },
   },
   resolve: {
     alias: {
@@ -15,10 +25,11 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:5262',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://127.0.0.1:5262',
         changeOrigin: true,
       },
     },
@@ -26,36 +37,18 @@ export default defineConfig({
   preview: {
     proxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:5262',
+        target: process.env.VITE_PROXY_TARGET ?? 'http://127.0.0.1:5262',
         changeOrigin: true,
       },
     },
   },
   test: {
     environment: 'jsdom',
+    maxWorkers: 1, // Bound aggregate worker memory on the qualification workstation.
     setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 15000,
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
-    // These validators consume immutable local browser-recovery evidence that is intentionally
-    // excluded from Git. CI verifies source/unit contracts; operators run evidence validators
-    // only in the sealed workspace that owns those artifacts.
-    exclude: process.env.CI ? [
-      'tests/pcActionCompletenessDisposition.test.ts',
-      'tests/phase35GeometryDenominator.test.ts',
-      'tests/uiOwnershipInstrumentationContract.test.tsx',
-      'tests/uiStatePurityContract.test.ts',
-      'tests/uiAuditBaselineDelta.test.ts',
-      'tests/uiAuditBaselineReconciliation.emit.test.ts',
-      'tests/uiAuditBaselineReconciliation.test.ts',
-      'tests/uiAuditBlindReviewValidator.test.ts',
-      'tests/uiAuditRemediationAttribution.test.ts',
-      'tests/uiAuditRemediationReconciliation.test.ts',
-      'tests/uiAuditRemediationReconciliation.emit.test.ts',
-      'tests/uiAuditRouteOwnerRegression.test.tsx',
-      'tests/validatePhase271PlanResult.test.ts',
-      'tests/validatePhase271Reseal.test.ts',
-      'tests/validateVisualReconciliation.test.ts',
-      'src/features/purchasing/pages/PurchasingPage.state.test.tsx',
-    ] : [],
+    exclude: ['**/node_modules/**', '**/dist/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

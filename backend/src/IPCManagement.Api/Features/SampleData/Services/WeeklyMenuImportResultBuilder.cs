@@ -15,7 +15,6 @@ internal sealed class WeeklyMenuImportResultBuilder(IpcManagementContext context
         CancellationToken cancellationToken)
     {
         var existingDishes = await context.Dishes
-            .Include(dish => dish.Dishboms)
             .ToListAsync(cancellationToken);
         var existingByName = existingDishes
             .GroupBy(

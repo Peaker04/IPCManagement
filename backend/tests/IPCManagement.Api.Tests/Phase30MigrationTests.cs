@@ -37,8 +37,8 @@ public sealed class Phase30MigrationTests
 
     private static string FindRoot()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
+        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "package.json")))
             directory = directory.Parent;
         return directory?.FullName ?? throw new DirectoryNotFoundException();
     }

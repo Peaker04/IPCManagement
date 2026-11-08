@@ -16,4 +16,5 @@ public sealed class ReconciliationBatchLine
     public Unit CanonicalUnit { get; set; } = null!;
     public ICollection<ReconciliationBatchContributor> Contributors { get; set; } = [];
     public ICollection<ReconciliationBatchDailyLine> DailyLines { get; set; } = [];
+    public ICollection<ReconciliationDisposition> Dispositions { get; set; } = [];
 }

@@ -14,9 +14,7 @@ internal sealed class WeeklyMenuImportHistoryService(
     WeeklyMenuAuditActorResolver actorResolver) : IWeeklyMenuImportHistoryService
 {
     public async Task<PagedResponseDto<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
-        string? customerId,
-        DateOnly? fromDate,
-        DateOnly? toDate,
+        WeeklyMenuImportHistoryQueryDto filter,
         PagedRequestDto request,
         CancellationToken cancellationToken = default)
     {
@@ -24,15 +22,29 @@ internal sealed class WeeklyMenuImportHistoryService(
             .AsNoTracking()
             .Include(version => version.Customer)
             .AsQueryable();
-        if (!string.IsNullOrWhiteSpace(customerId))
+        if (!string.IsNullOrWhiteSpace(filter.CustomerId))
         {
-            var customerBytes = GuidHelper.ParseGuidString(customerId)
+            var customerBytes = GuidHelper.ParseGuidString(filter.CustomerId)
                 ?? throw new ArgumentException("Khách hàng không hợp lệ.");
             query = query.Where(version => version.CustomerId.SequenceEqual(customerBytes));
         }
 
-        if (fromDate.HasValue) query = query.Where(version => version.WeekStartDate >= fromDate.Value);
-        if (toDate.HasValue) query = query.Where(version => version.WeekStartDate <= toDate.Value);
+        if (filter.FromDate.HasValue) query = query.Where(version => version.WeekStartDate >= filter.FromDate.Value);
+        if (filter.ToDate.HasValue) query = query.Where(version => version.WeekStartDate <= filter.ToDate.Value);
+        if (filter.SourceChecksum is not null)
+        {
+            if (string.IsNullOrWhiteSpace(filter.CustomerId) || filter.SourceChecksum.Length != 64
+                || !filter.SourceChecksum.All(Uri.IsHexDigit) || filter.PriceTierAmount is null
+                || !MenuPriceTierPolicy.SupportedPriceTiers.Contains(filter.PriceTierAmount.Value))
+                throw new BusinessRuleException("Nhận diện bản nháp cần khách hàng, checksum SHA-256 và mức giá hợp lệ.");
+            var tier = MenuPriceTierPolicy.Normalize(filter.PriceTierAmount.Value);
+            var checksum = filter.SourceChecksum.ToUpperInvariant();
+            query = query.Where(version => version.SourceChecksum == checksum && version.Status == "DRAFT"
+                && version.Menuschedules.Any()
+                && version.Menuschedules.All(schedule => schedule.Status == "DRAFT" && schedule.MenuPrice == tier));
+        }
+        else if (filter.PriceTierAmount is not null)
+            throw new BusinessRuleException("Nhận diện bản nháp cần checksum SHA-256 của file.");
 
         var totalCount = await query.CountAsync(cancellationToken);
         var pageQuery = query
@@ -151,6 +163,20 @@ internal sealed class WeeklyMenuImportHistoryService(
         DateOnly ServiceDate,
         string Status);
 
+    public async Task<WeeklyMenuImportSnapshotDto> GetWeeklyMenuImportSnapshotAsync(
+        string menuVersionId,
+        CancellationToken cancellationToken = default)
+    {
+        var versionBytes = GuidHelper.ParseGuidString(menuVersionId)
+            ?? throw new ArgumentException("Phiên import không hợp lệ.");
+        var version = await context.Menuversions.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.MenuVersionId == versionBytes, cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy phiên import.");
+        if (string.IsNullOrWhiteSpace(version.NormalizedSourceSnapshotJson))
+            throw new IPCManagement.Api.Exceptions.ResourceNotFoundException("Không có dữ liệu nguồn được lưu cho phiên nhập này.");
+        return WeeklyMenuImportSnapshotSerializer.Deserialize(version.NormalizedSourceSnapshotJson);
+    }
+
     public async Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(
         string menuVersionId,
         string? actorUserId,
@@ -173,6 +199,12 @@ internal sealed class WeeklyMenuImportHistoryService(
                 schedule.MenuVersionId != null &&
                 schedule.MenuVersionId.SequenceEqual(version.MenuVersionId))
             .ToListAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(version.NormalizedSourceSnapshotJson))
+        {
+            var snapshot = await WeeklyMenuImportSnapshotSerializer.FromPersistedProjectionAsync(
+                context, version, cancellationToken);
+            version.NormalizedSourceSnapshotJson = WeeklyMenuImportSnapshotSerializer.Serialize(snapshot);
+        }
         var scheduleCountForScope = await context.Menuschedules
             .AsNoTracking()
             .CountAsync(schedule =>

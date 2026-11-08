@@ -165,6 +165,8 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<ReconciliationBatchLine> Reconciliationbatchlines { get; set; }
     public virtual DbSet<ReconciliationBatchDailyLine> Reconciliationbatchdailylines { get; set; }
     public virtual DbSet<ReconciliationBatchContributor> Reconciliationbatchcontributors { get; set; }
+    public virtual DbSet<ReconciliationSourceRevision> Reconciliationsourcerevisions { get; set; }
+    public virtual DbSet<ReconciliationSourceDelta> Reconciliationsourcedeltas { get; set; }
     public virtual DbSet<ReconciliationTolerance> Reconciliationtolerances { get; set; }
     public virtual DbSet<ReconciliationActual> Reconciliationactuals { get; set; }
     public virtual DbSet<ReconciliationActualRevision> Reconciliationactualrevisions { get; set; }

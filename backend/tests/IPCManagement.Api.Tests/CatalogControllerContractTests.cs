@@ -14,6 +14,7 @@ public class CatalogControllerContractTests
 {
     private static readonly IReadOnlyList<RouteContract> ExpectedRoutes =
     [
+        new("GET", "api/Dishes/bom-price-tiers", AuthorizationPolicies.CatalogReadAccess),
         new("GET", "api/Dishes/catalog", AuthorizationPolicies.CatalogReadAccess),
         new("GET", "api/Dishes/bom-coverage", AuthorizationPolicies.CatalogReadAccess),
         new("GET", "api/Dishes/bom-validation", AuthorizationPolicies.CatalogReadAccess),

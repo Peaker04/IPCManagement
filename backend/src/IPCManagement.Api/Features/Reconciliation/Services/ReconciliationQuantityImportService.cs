@@ -8,6 +8,7 @@ using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using MySqlConnector;
@@ -21,7 +22,7 @@ public sealed class ReconciliationQuantityImportService(
     IMemoryCache cache,
     ReconciliationBatchService batchService)
 {
-    internal const int CurrentFingerprintFormatVersion = 2;
+    internal const int CurrentFingerprintFormatVersion = 3;
     private static readonly TimeSpan PreviewLifetime = TimeSpan.FromMinutes(15);
     private const string TicketPrefix = "ReconciliationQuantityImport:";
 
@@ -35,6 +36,55 @@ public sealed class ReconciliationQuantityImportService(
         cache.Set(TicketPrefix + previewToken, new PreviewTicket(menuVersionId, fingerprint, expiresAt), expiresAt);
         return new(previewToken, expiresAt, fingerprint, CurrentFingerprintFormatVersion, snapshot.Plans.Select(Map).ToList(), snapshot.Diagnostics);
     }
+
+    public async Task<QuantityInspectionPageDto<QuantityMaterialInspectionDto>> GetMaterialInspectionAsync(
+        string menuVersionId, PagedRequestDto request, CancellationToken token = default)
+    {
+        var snapshot = await LoadSnapshotAsync(ReconciliationBatchService.RequiredId(menuVersionId), token);
+        var contributions = from plan in snapshot.Plans
+                            from line in plan.Lines
+                            from dish in line.Dishes
+                            from material in dish.Materials
+                            select new QuantityMaterialInspectionContributionDto(
+                                plan.Entity.ServiceDate, line.Source.ShiftName, GuidHelper.ToGuidString(line.Source.QuantityPlanLineId),
+                                GuidHelper.ToGuidString(dish.MenuItem.DishId), dish.MenuItem.Dish.DishName, dish.MenuItem.DishSlot,
+                                dish.Servings, MapMaterial(material));
+        var keyword = request.SearchKeyword?.Trim() ?? string.Empty;
+        var rows = contributions.GroupBy(x => new { x.Material.IngredientId, x.Material.CanonicalUnitId })
+            .Select(group => {
+                var first = group.First().Material;
+                return new QuantityMaterialInspectionDto(first.IngredientId, first.IngredientCode, first.IngredientName,
+                    first.CanonicalUnitId, first.CanonicalUnitName, group.Sum(x => x.Material.RequiredQuantity), group.ToList());
+            })
+            .Where(x => x.IngredientName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.IngredientCode.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(x => x.IngredientName, StringComparer.OrdinalIgnoreCase).ThenBy(x => x.IngredientId, StringComparer.Ordinal)
+            .ThenBy(x => x.CanonicalUnitId, StringComparer.Ordinal).ToList();
+        return new(GuidHelper.ToGuidString(snapshot.MenuVersionId), Fingerprint(snapshot), CurrentFingerprintFormatVersion,
+            snapshot.Diagnostics, Page(rows, request));
+    }
+
+    public async Task<QuantityInspectionPageDto<QuantityPlanInspectionDto>> GetPlanInspectionAsync(
+        string menuVersionId, PagedRequestDto request, CancellationToken token = default)
+    {
+        var snapshot = await LoadSnapshotAsync(ReconciliationBatchService.RequiredId(menuVersionId), token);
+        var keyword = request.SearchKeyword?.Trim() ?? string.Empty;
+        var rows = snapshot.Plans.Select(Map).SelectMany(plan => plan.Lines.Select(line =>
+                new QuantityPlanInspectionDto(plan.ServiceDate, plan.PlanCode, line)))
+            .Where(x => x.PlanCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.Line.MenuName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.Line.MenuCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                || x.Line.Dishes.Any(dish => dish.DishName.Contains(keyword, StringComparison.OrdinalIgnoreCase)
+                    || dish.DishCode.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(x => x.ServiceDate).ThenBy(x => x.Line.Shift == "MORNING" ? 0 : x.Line.Shift == "AFTERNOON" ? 1 : 2)
+            .ThenBy(x => x.Line.Shift, StringComparer.Ordinal).ThenBy(x => x.Line.QuantityPlanLineId, StringComparer.Ordinal).ToList();
+        return new(GuidHelper.ToGuidString(snapshot.MenuVersionId), Fingerprint(snapshot), CurrentFingerprintFormatVersion,
+            snapshot.Diagnostics, Page(rows, request));
+    }
+
+    private static PagedResponseDto<T> Page<T>(IReadOnlyList<T> rows, PagedRequestDto request)
+        => PagedResponseDto<T>.Create(rows.Skip((int)Math.Min((long)(request.PageNumber - 1) * request.PageSize, rows.Count))
+            .Take(request.PageSize).ToList(), rows.Count, request.PageNumber, request.PageSize);
 
     public async Task<QuantityImportCommitDto> CommitAsync(CommitQuantityImportRequest request, string actorId, CancellationToken token = default)
     {
@@ -57,6 +107,7 @@ public sealed class ReconciliationQuantityImportService(
                     if (existing is not null) return existing;
 
                     var snapshot = await LoadSnapshotAsync(ticket.MenuVersionId, operationToken);
+                    foreach (var plan in snapshot.Plans) ServiceCalendar.EnsureServiceDay(plan.Entity.ServiceDate);
                     var currentFingerprint = Fingerprint(snapshot);
                     if (snapshot.Diagnostics.Count > 0)
                         throw new BusinessRuleException("Cần hoàn tất định mức nguyên liệu cho mọi món trước khi tạo lô.");
@@ -150,7 +201,7 @@ public sealed class ReconciliationQuantityImportService(
 
     private static string Fingerprint(CanonicalSnapshot snapshot)
     {
-        var builder = new StringBuilder().Append("v2|").Append(GuidHelper.ToGuidString(snapshot.MenuVersionId));
+        var builder = new StringBuilder().Append("v3|").Append(GuidHelper.ToGuidString(snapshot.MenuVersionId));
         foreach (var plan in snapshot.Plans)
         {
             builder.Append("|p:").Append(GuidHelper.ToGuidString(plan.Entity.QuantityPlanId)).Append(':')
@@ -164,13 +215,16 @@ public sealed class ReconciliationQuantityImportService(
                     .Append(GuidHelper.ToGuidString(line.MenuScheduleId)).Append(':').Append(GuidHelper.ToGuidString(line.CustomerId)).Append(':')
                     .Append(GuidHelper.ToGuidString(line.MenuId)).Append(':').Append(line.ShiftName).Append(':')
                     .Append(line.FinalServings.ToString(CultureInfo.InvariantCulture)).Append(':')
+                    .Append(line.SavoryServings!.Value.ToString(CultureInfo.InvariantCulture)).Append(':')
+                    .Append(line.VegetarianServings!.Value.ToString(CultureInfo.InvariantCulture)).Append(':')
                     .Append(line.MenuSchedule.MenuPrice.ToString(CultureInfo.InvariantCulture)).Append(':')
                     .Append(line.MenuSchedule.ServiceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
                 foreach (var dish in projectedLine.Dishes)
                 {
                     var item = dish.MenuItem;
                     builder.Append("|d:").Append(GuidHelper.ToGuidString(item.MenuItemId)).Append(':')
-                        .Append(GuidHelper.ToGuidString(item.DishId)).Append(':').Append(item.DisplayOrder).Append(':').Append(item.DishSlot);
+                        .Append(GuidHelper.ToGuidString(item.DishId)).Append(':').Append(item.DisplayOrder).Append(':').Append(item.DishSlot).Append(':')
+                        .Append(dish.MenuVariant).Append(':').Append(dish.Servings.ToString(CultureInfo.InvariantCulture));
                     foreach (var material in dish.Materials)
                     {
                         var bom = material.Bom;
@@ -203,12 +257,14 @@ public sealed class ReconciliationQuantityImportService(
                 projectedLine.Dishes.Select(dish => new QuantityImportDishDto(
                     GuidHelper.ToGuidString(dish.MenuItem.DishId), dish.MenuItem.Dish.DishCode, dish.MenuItem.Dish.DishName,
                     dish.MenuItem.DishSlot, dish.MenuItem.DisplayOrder,
-                    dish.Materials.Select(material => new QuantityImportMaterialContributionDto(
-                        GuidHelper.ToGuidString(material.Bom.BomId), GuidHelper.ToGuidString(material.Bom.IngredientId),
-                        material.Bom.Ingredient.IngredientCode, material.Bom.Ingredient.IngredientName,
-                        material.Bom.GrossQtyPerServing, GuidHelper.ToGuidString(material.Bom.UnitId), material.Bom.Unit.UnitName,
-                        material.RequiredQuantity, GuidHelper.ToGuidString(material.Bom.Ingredient.UnitId), material.Bom.Ingredient.Unit.UnitName)).ToList())).ToList());
+                    dish.Materials.Select(MapMaterial).ToList())).ToList());
         }).ToList());
+
+    private static QuantityImportMaterialContributionDto MapMaterial(ProjectedMaterial material) => new(
+        GuidHelper.ToGuidString(material.Bom.BomId), GuidHelper.ToGuidString(material.Bom.IngredientId),
+        material.Bom.Ingredient.IngredientCode, material.Bom.Ingredient.IngredientName,
+        material.Bom.GrossQtyPerServing, GuidHelper.ToGuidString(material.Bom.UnitId), material.Bom.Unit.UnitName,
+        material.RequiredQuantity, GuidHelper.ToGuidString(material.Bom.Ingredient.UnitId), material.Bom.Ingredient.Unit.UnitName);
 
     private (string OperationKey, long ExpectedVersion) RequiredProtection() =>
         (requestContext.OperationKey, requestContext.ExpectedModeVersion) switch

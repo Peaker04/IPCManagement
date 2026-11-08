@@ -6,8 +6,9 @@
 // ⚠ QUAN TRỌNG: backend đang giới hạn 100 request/phút cho MỖI user
 //   (policy "api-general" trong Program.cs). Toàn bộ VU dùng chung một
 //   tài khoản nên sẽ dính 429 ngay ở mức tải thấp.
-//   → Trước khi chạy load test, tăng tạm PermitLimit lên 100000
-//     (xem RUNBOOK.md mục "Nới rate limit khi đo tải").
+//   → 429 là bằng chứng rate-limit, không phải successful throughput.
+//     Không tự nới security gate; mọi thay đổi rate limit cần ủy quyền riêng.
+//     Xem tools/perf/RUNBOOK.md; single-identity load không chứng minh multi-user correctness.
 //
 // Chạy:  k6 run load.js
 // Env:   BASE_URL, K6_USERNAME, K6_PASSWORD, K6_MAX_VUS (mặc định 20)

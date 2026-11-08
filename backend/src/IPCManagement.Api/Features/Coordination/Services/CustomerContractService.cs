@@ -52,6 +52,9 @@ public sealed class CustomerContractService : ICustomerContractService
             throw new ArgumentException("Mã khách hàng đã tồn tại.");
         }
 
+        var defaultMenuPrice = request.DefaultMenuPrice is { } price
+            ? MenuPriceTierPolicy.Normalize(price)
+            : (decimal?)null;
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
         var customer = new Customer
@@ -67,17 +70,20 @@ public sealed class CustomerContractService : ICustomerContractService
         AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
             "CustomerCreated", null, customer.CustomerCode, "Tạo khách hàng từ màn contract");
 
-        var contractRequest = new UpdateCustomerContractRequest
+        if (defaultMenuPrice is not null)
         {
-            EffectiveFrom = request.EffectiveFrom,
-            EffectiveTo = request.EffectiveTo,
-            ActiveWeekDays = request.ActiveWeekDays,
-            ShiftNames = request.ShiftNames,
-            DefaultMenuPrice = request.DefaultMenuPrice,
-            DefaultBomRatePercent = request.DefaultBomRatePercent
-        };
-        var contract = ResolveMutableContract(customer, [], contractRequest, actorId, changedAt);
-        ValidateNoOverlappingContract(customer.Customercontracts, contract);
+            var contractRequest = new UpdateCustomerContractRequest
+            {
+                EffectiveFrom = request.EffectiveFrom,
+                EffectiveTo = request.EffectiveTo,
+                ActiveWeekDays = request.ActiveWeekDays,
+                ShiftNames = request.ShiftNames,
+                DefaultMenuPrice = defaultMenuPrice,
+                DefaultBomRatePercent = request.DefaultBomRatePercent
+            };
+            var contract = ResolveMutableContract(customer, [], contractRequest, actorId, changedAt);
+            ValidateNoOverlappingContract(customer.Customercontracts, contract);
+        }
 
         await _context.SaveChangesAsync();
         return MapCustomerContract(customer);
@@ -103,6 +109,13 @@ public sealed class CustomerContractService : ICustomerContractService
         {
             return null;
         }
+
+        var schedules = customer.Menuschedules
+            .OrderBy(schedule => schedule.ServiceDate)
+            .ThenBy(schedule => schedule.ShiftName)
+            .ToList();
+        if (request.DefaultMenuPrice is not null)
+            MenuPriceTierPolicy.Normalize(request.DefaultMenuPrice.Value);
 
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
@@ -134,10 +147,15 @@ public sealed class CustomerContractService : ICustomerContractService
             customer.IsActive = request.IsActive.Value;
         }
 
-        var schedules = customer.Menuschedules
-            .OrderBy(schedule => schedule.ServiceDate)
-            .ThenBy(schedule => schedule.ShiftName)
-            .ToList();
+        var changesContract = request.EffectiveFrom is not null || request.EffectiveTo is not null ||
+            request.ActiveWeekDays is not null || request.ShiftNames is not null ||
+            request.DefaultMenuPrice is not null || request.DefaultBomRatePercent is not null;
+        if (!changesContract)
+        {
+            await _context.SaveChangesAsync();
+            return MapCustomerContract(customer);
+        }
+
         var contract = ResolveMutableContract(customer, schedules, request, actorId, changedAt, auditCorrelationId);
 
         if (request.EffectiveFrom is not null || request.EffectiveTo is not null)
@@ -175,11 +193,7 @@ public sealed class CustomerContractService : ICustomerContractService
 
         if (request.DefaultMenuPrice is not null)
         {
-            var nextPrice = DecimalPolicy.RoundMoney(request.DefaultMenuPrice.Value);
-            if (nextPrice < 0)
-            {
-                throw new ArgumentException("Đơn giá menu mặc định không được âm.");
-            }
+            var nextPrice = MenuPriceTierPolicy.Normalize(request.DefaultMenuPrice.Value);
 
             UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.DefaultMenuPrice),
                 contract.DefaultMenuPrice.ToString(), nextPrice.ToString(),
@@ -229,13 +243,9 @@ public sealed class CustomerContractService : ICustomerContractService
         }
 
         var defaultMenuPrice = request.DefaultMenuPrice is null
-            ? ResolveDefaultMenuPrice(schedules)
-            : DecimalPolicy.RoundMoney(request.DefaultMenuPrice.Value);
+            ? ResolveDefaultMenuPrice(schedules) ?? throw new ArgumentException("Vui lòng chọn mốc giá suất ăn hợp lệ.")
+            : MenuPriceTierPolicy.Normalize(request.DefaultMenuPrice.Value);
         var defaultBomRate = FixedBomRatePercent;
-        if (defaultMenuPrice < 0)
-        {
-            throw new ArgumentException("Đơn giá menu mặc định không được âm.");
-        }
         var contract = new CustomerContract
         {
             ContractId = GuidHelper.NewId(),
@@ -461,10 +471,11 @@ public sealed class CustomerContractService : ICustomerContractService
         throw new ArgumentException($"{fieldName} không hợp lệ.");
     }
 
-    private static decimal ResolveDefaultMenuPrice(IReadOnlyList<MenuSchedule> schedules)
-        => schedules.Count == 0
-            ? 25000
-            : DecimalPolicy.RoundMoney(schedules.Average(schedule => schedule.MenuPrice));
+    private static decimal? ResolveDefaultMenuPrice(IReadOnlyList<MenuSchedule> schedules)
+    {
+        var prices = schedules.Select(schedule => DecimalPolicy.RoundMoney(schedule.MenuPrice)).Distinct().ToList();
+        return prices.Count == 1 && MenuPriceTierPolicy.SupportedPriceTiers.Contains(prices[0]) ? prices[0] : null;
+    }
 
     private static decimal ResolveDefaultBomRate(IReadOnlyList<MenuSchedule> schedules)
         => FixedBomRatePercent;
@@ -507,7 +518,7 @@ public sealed class CustomerContractService : ICustomerContractService
             MenuScheduleCount = schedules.Count,
             ActiveWeekDays = activeWeekDays,
             ShiftNames = shiftNames,
-            DefaultMenuPrice = contract is null ? (schedules.Count == 0 ? null : ResolveDefaultMenuPrice(schedules)) : contract.DefaultMenuPrice,
+            DefaultMenuPrice = contract is null ? ResolveDefaultMenuPrice(schedules) : contract.DefaultMenuPrice,
             DefaultBomRatePercent = FixedBomRatePercent,
             LatestServiceDate = schedules.LastOrDefault()?.ServiceDate.ToString("yyyy-MM-dd")
         };

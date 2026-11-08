@@ -535,7 +535,11 @@ public sealed class Phase30InactiveDefaultInventoryOwnerTests
                         reason TEXT NOT NULL,
                         version INTEGER NOT NULL,
                         disposedBy BLOB NOT NULL,
-                        disposedAt TEXT NOT NULL
+                        disposedAt TEXT NOT NULL,
+                        InvalidatedAt TEXT NULL,
+                        InvalidatedBy BLOB NULL,
+                        InvalidationReason TEXT NULL,
+                        ActiveOwnerKey BLOB GENERATED ALWAYS AS (CASE WHEN InvalidatedAt IS NULL THEN batchLineId ELSE NULL END) VIRTUAL
                     );
                     """;
                 await command.ExecuteNonQueryAsync();

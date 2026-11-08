@@ -597,7 +597,8 @@ public partial class WorkflowGenerationTests
                     updatedAt TEXT NOT NULL,
                     successRowCount INTEGER NOT NULL DEFAULT 0,
                     errorRowCount INTEGER NOT NULL DEFAULT 0,
-                    warningRowCount INTEGER NOT NULL DEFAULT 0
+                    warningRowCount INTEGER NOT NULL DEFAULT 0,
+                    normalizedSourceSnapshotJson TEXT NULL
                 );
                 CREATE TABLE menuamendments (
                     menuAmendmentId BLOB PRIMARY KEY,
@@ -660,7 +661,7 @@ public partial class WorkflowGenerationTests
                     forecastServings INTEGER NOT NULL,
                     confirmedServings INTEGER NOT NULL,
                     adjustedServings INTEGER NOT NULL,
-                    finalServings INTEGER NOT NULL,
+                    finalServings INTEGER NOT NULL, savoryServings INTEGER NULL, vegetarianServings INTEGER NULL,
                     updatedAt TEXT NOT NULL DEFAULT '2026-01-01 00:00:00'
                 );
                 CREATE TABLE productionplans (
@@ -989,6 +990,7 @@ public partial class WorkflowGenerationTests
                     warehouseId BLOB NOT NULL,
                     materialRequestId BLOB NULL,
                     reconciliationBatchId BLOB NULL,
+                    preparationGroupId BLOB NULL,
                     issuedBy BLOB NOT NULL,
                     receivedBy BLOB NULL,
                     receivedAt TEXT NULL,
@@ -1030,6 +1032,8 @@ public partial class WorkflowGenerationTests
                     returnType TEXT NOT NULL DEFAULT 'RETURN',
                     warehouseId BLOB NOT NULL,
                     issueId BLOB NOT NULL,
+                    reconciliationSourceDeltaId BLOB NULL,
+                    reconciliationSourceDeltaVersion INTEGER NULL,
                     reason TEXT NULL,
                     createdBy BLOB NOT NULL,
                     createdAt TEXT NOT NULL,

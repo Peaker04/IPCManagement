@@ -1,62 +1,184 @@
-# IPC Management làm gì?
+# Domain — shared business contract
 
-IPC Management điều phối bữa ăn công nghiệp từ thực đơn và số suất đến nguyên liệu, mua hàng, kho và bếp. Mục tiêu không chỉ là lưu chứng từ: hệ thống phải cho thấy mỗi việc đang ở đâu, ai được hành động tiếp và tồn kho thay đổi từ nguồn nào.
+IPCManagement coordinates meals from customer menus/servings through materials, purchasing, physical stock and kitchen handoff. Current source, behavior tests and machine contracts determine implemented truth. This owner defines shared language, identity, grain and cross-domain invariants; bounded rules belong to [weekly menu](domain/weekly-menu.md), [warehouse](domain/warehouse-contract.md) and [MRX](domain/material-reconciliation.md).
 
-Contract riêng của operation mode `MATERIAL_RECONCILIATION` nằm tại [domain/material-reconciliation.md](domain/material-reconciliation.md); tài liệu này chỉ giữ vocabulary/luồng chung.
+## Modes and roles (DOM-MODE-1, DOM-ROLE-1)
 
-## Bốn vai trò vận hành
+`DEFAULT != MATERIAL_RECONCILIATION`. They share master data, never workflow records, lineage, query/mutation authority or audit families. Physical-stock admission and posting belong to DEFAULT; MRX assumes sufficient stock and records reconciliation quantities without checking or changing physical stock. Retained MRX stock movements remain immutable historical evidence. Mode is server authority and does not grant permission. Backend actor/mode/version checks remain final; hidden controls are not security boundaries.
 
-| Vai trò | Trách nhiệm chính | Bàn giao cho |
-|---|---|---|
-| Điều phối | Chọn khách hàng/tuần, chốt số suất theo ngày và ca, kích hoạt nhu cầu nguyên liệu. | Thu mua và Kho qua demand đã đủ điều kiện. |
-| Thu mua | Xử lý phần thiếu, chọn báo giá/nhà cung cấp, lập đề xuất và đơn mua sau phê duyệt. | Kho qua purchase order và lịch nhận. |
-| Kho | Nhận hàng, ghi stock movement, theo dõi current-stock snapshot, lập phiếu xuất theo nhu cầu và xử lý cấp bổ sung. | Bếp qua inventory issue/source-line. |
-| Bếp | Xem kế hoạch sản xuất, kiểm đếm và xác nhận phiếu xuất; khai báo thiếu, dư, trả hoặc hao hụt. | Khép workflow hoặc tạo vòng bổ sung mới. |
-
-Admin và Manager là lớp quản trị/phê duyệt xuyên luồng: quản lý master data, permission và các quyết định cần separation of duties. Họ không thay thế bốn owner vận hành bên trên.
-
-### Thay đổi thực đơn đã khóa
-
-Một thay đổi thực đơn đã gửi phải giữ snapshot impact tại lúc tạo. Luồng chuẩn là **Điều phối tạo → Manager hậu kiểm → Admin thực thi**; ba thao tác dùng ba danh tính khác nhau. Khi đã có PO, nhập hoặc xuất kho, thay đổi chuyển sang đối soát append-only và không được regeneration trực tiếp. Admin vẫn có break-glass cho yêu cầu chưa phát sinh chứng từ vật lý, nhưng phải nêu lý do; hành động đó ghi audit `BreakGlassExecute` để hậu kiểm.
-
-## Luồng lõi
-
-```text
-Thực đơn + số suất đã chốt
-  → nhu cầu theo ngày
-  → Kho cấp phần có sẵn
-  → phần thiếu / yêu cầu bổ sung
-  → Thu mua chọn nhà cung cấp và xin duyệt
-  → purchase order
-  → Kho nhập hàng và ghi movement
-  → Kho cấp phần còn lại
-  → Bếp kiểm đếm, xác nhận hoặc ghi chênh lệch
-  → workflow terminal hoặc mở vòng bổ sung/trả kho
-```
-
-Mỗi bước phải giữ ID dòng nguồn. UI có thể gộp dòng để dễ đọc, nhưng nhận hàng, xuất kho, ký nhận và audit luôn thao tác trên chứng từ/source-line thật. Contract grain chi tiết nằm ở [DATA-GRAIN-MATRIX.md](DATA-GRAIN-MATRIX.md).
-
-## Customer, tier và week
-
-- **Customer** là đơn vị được phục vụ. Cùng một món có thể có scope/BOM/quy tắc khác nhau theo khách hàng.
-- **Tier** là bậc đơn giá áp dụng cho menu của một customer trong một tuần. Tier tham gia lookup BOM và cost; không được trộn nhiều tier trong cùng scope customer/week.
-- **Week** là work object lập kế hoạch. Menu được nhìn theo tuần, nhưng demand, cấp kho và xác nhận Bếp vẫn có grain ngày/ca; màn nhiều ngày phải hiển thị ngày.
-
-## Trạng thái và quyền
-
-Action chỉ xuất hiện khi role có permission và object ở đúng state. UI phải hiển thị lý do bị chặn; backend vẫn là nơi enforce cuối cùng. Phê duyệt, nhận hàng, xuất kho và xác nhận Bếp là các transition có audit, không phải các nút “đánh dấu xong” cục bộ trên frontend.
-
-## Thuật ngữ phải dùng nhất quán
-
-| Thuật ngữ | Nghĩa trong IPC |
+| Role / canonical UI label | DEFAULT responsibility |
 |---|---|
-| **Grain** | Mức chi tiết mà một dòng đại diện: ngày/ca, tổng tuần, snapshot, source-line hay movement. Hai dòng cùng tên chưa chắc trùng grain. |
-| **Lane** | Database/môi trường cô lập dùng cho một luồng test. Lane không được reset hay nạp lại chỉ để làm test xanh. |
-| **Source-line** | ID dòng chứng từ gốc mà action nghiệp vụ tác động. Tên nguyên liệu chỉ là nhãn hiển thị, không thay thế source-line ID. |
-| **Movement** | Bút toán bất biến ghi một lần thay đổi tồn kho, có loại, số lượng, tham chiếu nguồn và người thao tác. |
-| **Supplemental** | Vòng cấp bổ sung khi Bếp thiếu so với phiếu đã nhận; có thể được Kho cấp tiếp hoặc chuyển Thu mua. |
-| **Legacy lineage disposition** | Work object đối soát một dòng chứng từ lịch sử chưa có source-line: Admin đề xuất mapping có lý do, Manager khác danh tính duyệt, rồi Admin mới áp dụng provenance đã duyệt. Không được suy đoán theo tên nguyên liệu hoặc header. |
-| **Signoff** | Xác nhận có danh tính và audit rằng người nhận đã kiểm đếm/kết thúc trách nhiệm ở một transition. |
-| **Protected fingerprint** | Dấu vân checksum/identity của artifact hoặc dữ liệu cần bảo toàn; thay đổi phải bị gate phát hiện. |
-| **Sanitizer** | Luồng dọn dữ liệu có allowlist, precondition, audit và rollback; không đồng nghĩa seed/reset. |
-| **Quick-completion** | Nhánh hoàn tất nhanh chỉ hợp lệ khi precondition nghiệp vụ chứng minh không còn bước vật lý hay chứng từ bắt buộc. |
+| Điều phối | Customer/week/tier, menu/servings, demand readiness and selected date/shift kitchen handoff |
+| Thu mua | Authorized shortage/proposal, supplier quotation, approval and purchase order |
+| Kho | Receipt quality, stock movements/current snapshot, issue and supplemental source lines |
+| Bếp | Production plan, check all issue lines, whole-issue acknowledgement, shortage/surplus/return |
+| Quản lý | Approval/review with separation of duties |
+| Quản trị viên | Master/permission administration and explicitly allowed execution |
+
+MRX has a different role matrix: Coordination owns source/freeze/transfer, Warehouse daily issues, Manager discrepancy/completion, Chef cooking export; Purchasing is not part of that mode. Use its bounded contract, not the DEFAULT responsibility table as permission evidence.
+
+DEFAULT flow: menu + locked servings → daily demand → Warehouse supply → authorized shortage/purchasing → PO → quality/approval/posted receipt → remaining issue → whole-issue kitchen acknowledgement → ServiceRun reconciliation/close or compensating supplemental/return. Projections do not prove physical handoff.
+
+## Language and status ownership (DOM-LANG-1, DOM-STATUS-1)
+
+Use Vietnamese work vocabulary in UI; enum/table/column names, UUID/hash and technical identity are detail/copy data, not primary headings. One concept has one label and contextual semantic tone. Human name precedes code. Units accompany quantities; source formatters/status dictionaries implement these projections.
+
+| Term | Meaning |
+|---|---|
+| Thực đơn tuần | Customer/week planning work object |
+| Nhu cầu nguyên liệu | Requirements by service date/shift and serving scope |
+| Đề xuất mua hàng | Authorized shortage proposal, not a stock snapshot |
+| Đơn mua | Purchase commitment; receipt progress is a separate lifecycle |
+| Phiếu nhập / Phiếu xuất | DEFAULT: actual source documents whose posting/issue owns physical stock effect. MRX issue: exact frozen-source quantities for reconciliation, no physical-stock effect |
+| Cấp bổ sung | New supply loop retaining origin issue/source-line/unit |
+| Dòng nguồn / Source-line | Exact document-line mutation identity, never ingredient name or UI group ID |
+| Bút toán tồn kho / Movement | Immutable stock event with type, quantity, source and actor |
+| Grain | Detail represented by a row: day/shift, week aggregate, snapshot, source-line or movement |
+| Lane | Isolated test/environment target; not disposable without explicit authorization |
+| Legacy lineage disposition | Admin proposal → different Manager approval → approved Admin apply with exact source/unit compatibility |
+| Signoff | Identified/audited acknowledgement at an owned transition |
+| Quick-completion | Only when business preconditions prove no remaining required physical/document steps |
+
+Each entity has one primary lifecycle/status column; secondary approval/delivery/readiness facts use distinct fields/progress, not competing primary statuses. Missing metadata uses `—`, but loading/denial/errors and `Chưa xuất` never become a dash. Routine states are quiet neutral; danger/warning highlight exceptions. MRX retains its approved info/success mapping, not a forced DEFAULT palette.
+
+| Entity | Primary lifecycle / labels | Secondary dimension |
+|---|---|---|
+| WeeklyMenu | CREATION: Bản nháp / Sẵn sàng / Hoàn tất (neutral) | Header approval: Chờ duyệt / Đã duyệt / Bị từ chối |
+| PurchaseRequest | APPROVAL: Chờ duyệt (warning) / Đã duyệt (neutral) / Bị từ chối (danger) | Document cancellation |
+| PurchaseOrder | PO: Bản nháp / Đã đặt hàng / Hoàn tất (neutral) | Partial receipt progress |
+| WarehouseReceipt | RECEIPT: Nhận một phần (warning) / Hoàn tất (neutral) | Cancellation |
+| WarehouseIssue | ISSUE: Chờ vật tư (warning) / Đã xuất kho (neutral) | Cancellation |
+| MaterialDemandItem | PROCUREMENT: Chờ vật tư (warning) / Sẵn sàng / Hoàn tất (neutral) | Quantitative shortage/stock chip |
+| ServiceRun | RUN: Bản nháp / Sẵn sàng (neutral), Đang mở (warning), Bị chặn (danger), Hoàn tất (neutral) | Four readiness tracks |
+| MealOrderCoordination | COORDINATION: Bản nháp / Đã xác nhận / Hoàn tất (neutral) | Serving variance |
+| SupplierQuotation | APPROVAL: Chờ duyệt (warning) / Đã duyệt (neutral) / Bị từ chối (danger) | Effective dates |
+| InventoryMovement | FULFILLMENT: Hoàn tất (neutral) | Movement type |
+| ReconciliationBatch | MRX: Đang chuẩn bị / Chờ Kho xuất (warning), Đã khóa / Đang đối chiếu (info), Hoàn tất (success) | Same labels in lifecycle/actions/audit |
+
+Query language is distinct: Đang tải, Đang cập nhật, Chưa có dữ liệu, Không tìm thấy kết quả, Không tải được dữ liệu, Không có quyền. Refresh retains only allowed scoped data; [DESIGN](DESIGN.md) owns interaction surfaces and bounded contracts control denial/readiness.
+
+## Identity and canonical grains (DOM-GRAIN-1)
+
+Customer is the served organization; tier selects scoped menu/BOM/cost and cannot be mixed within customer/week; week is a planning object, not the mutation grain of every physical transaction. BOM is per serving, never current stock/receipt authority. Ingredient, SKU, brand, specification/package, supplier and unit are distinct identities. Do not merge names or round fractional BOM quantities to integers. Unknown date/unit/conversion or ambiguous mapping is HOLD_IMPORT; conversion needs reviewed unit/provenance evidence, not guesses.
+
+| Data | Required key / grain | Meaning |
+|---|---|---|
+| Daily operational demand | serviceDate + customerId + priceTierAmount + ingredientId + unitId | Multiple dish/BOM contributors may sum; sources remain inspectable |
+| Weekly projected BOM | weekStartDate + customerId + priceTierAmount + ingredientId + unitId | Explicitly “tổng BOM cả tuần”; never daily shortage/current stock |
+| Current stock | warehouseId + ingredientId; unitId stored on snapshot | One present snapshot; never add movements again |
+| Period stock snapshot | period + warehouseId + ingredientId + unitId | Keep snapshot period separate from current stock |
+| Document | documentId + sourceLineId | Grouped ingredient/unit rows must drill into original lines for commands |
+| Stock movement | movementId | Preserve every receipt/issue/return/adjustment event |
+| Dish BOM | dishId + customer scope + priceTierAmount + effective range + bomLineId | Per-serving effective requirement; names cannot merge IDs |
+| Ingredient catalog | ingredientId | Duplicate names require approved data-quality disposition |
+
+Cross-screen projections:
+- Planning schedule: day + shift + dish slot, customer/tier context. Demand: selected day; source KHSX shows date/shift. Weekly purchase summary: daily customer/tier/ingredient/unit rows, with date and full grain caption; pre-stock fallback explicitly projected weekly BOM.
+- Cost: scoped weekly dish lines, not stock. Dish materials: dish/serving/effective BOM date (“một khay”).
+- Purchasing worklist: day mandatory; ingredient/unit grouping is presentation, actions use purchaseRequestLineId. Quotation: ingredient/supplier/unit/effective range, not demand.
+- Warehouse current stock: warehouse/ingredient snapshot. Requests/issues/PO receipts: original request/issue/purchaseOrderLineId and document. Movements: time/type/source/warehouse.
+- Chef: date/shift plan and issue lines; grouped checklist drilldown acknowledges the correct whole issue. Return/supplemental retains issue/ingredient/unit.
+- Reports: demand date grain; supplier prices ingredient/supplier/unit, monthly prices ingredient/unit/calendar month. Both price tables include unit metadata, current-page CSV and unitId in row keys. Purchase plan declares day/week and period control. Stock is current snapshot, movement is audit event, kitchen use is date/shift/issue/ingredient/unit.
+- Admin ingredients use ingredient IDs; BOM search/filter never changes dish/scope/tier/effective-range/line grain.
+
+Never add a repeated stock snapshot on every BOM row. Allocation sums only when the backend contract gives allocations; repeated snapshots need contract normalization, not guessed FE `Max`. Duplicate means same source-line/owned unique key, not a similar name. Multi-day rows expose dates; grouped mutation uses original line IDs, never aggregate IDs.
+
+## Operational warehouse identity (DOM-INVAR-1)
+
+A passive one-warehouse UI does not remove warehouseId from FK, lots/snapshots, stock, purchasing fingerprints, authorization/audit/lineage, reports/cache/deep links/exports. Historical/inactive rows and IDs remain; no merge/reassign/delete. Zero/multiple operational rows block commands; no fallback by name/code/index/order/activity.
+
+MySQL-generated nullable `OperationalSingletonKey` enforces **at-most-one**, not exactly-one readiness. Application/API never writes it. Activation is separately authorized; startup observes and fails closed, never repairs. [OPERATIONS](OPERATIONS.md) owns activation pre/post checks and recovery.
+
+## DEFAULT demand versus physical handoff
+
+`GET /api/workflow-reports/ingredient-demand/aggregate/page` keeps daily customer/tier/ingredient/unit grain. `CurrentStockQty` is historical allocation at generation, not current stock; `SuggestedPurchaseQty` is a generation-time suggestion, not current purchasing entitlement.
+
+Physical fields `IssuedQty`, `ReceivedByKitchenQty`, `RemainingToIssueQty` count exact DEFAULT MaterialRequestLineId/header issue lineage, excluding reconciliation. Kitchen received means issue `ReceivedAt`; remaining is the sum of each line's positive required-minus-issued. These are **gross handoff history**: confirmed returns compensate separately and do not reopen original issue allowance. MRX instead nets confirmed returns under its own contract.
+
+Compatibility fields `FulfilledQty`, `PendingKitchenReceiptQty`, `UnissuedQty`, `OutstandingQty`, `FulfillmentStatus`, `ShortageCount` retain historical formulas; before EXPORTED they may derive from allocation/purchase suggestion. Do not relabel them physical stock or purchasing authority, or silently change ShortageCount.
+
+Frontend aggregate discriminator `projection: physical-handoff` carries explicit issued/received/remaining and historicalAllocatedQty. Aggregate alias `available` means gross issued, unissuedQty remaining, pendingKitchenReceiptQty issued-not-received. Generic DemandLine retains its own allocation meaning. Operational tables/exports use Đã xuất / Chưa xuất / Bếp đã nhận / Chờ Bếp nhận.
+
+Whole-filter, pre-page `RemainingToIssueCount` and `PendingKitchenReceiptCount` sets overlap. Issued-complete is total minus remaining count, not kitchen-complete; never subtract both sets to invent completion. Weekly counters use server scope, not page-local rows. Empty filtered daily results do not become weekly BOM; fallback without physical projection remains analytical only. Purchase reports/readiness keep their own eligibility authority.
+
+Aggregate rows lack exact command source identity/current purchase eligibility. Preserve read customer/date/tier/ingredient/unit/source; use text handoff hints, not inferred purchasing/kitchen commands. Permission does not enter the response mapper. Existing generation/issue candidate workbenches choose documents and enforce commands.
+
+## Lifecycle and immutable corrections
+
+Shared vocabulary describes, not replaces feature enums: MUTABLE draft/cutoff; AWAITING_APPROVAL actor decision; POSTABLE complete prerequisites but explicit post still needed; POSTED exactly-once physical/financial effect; RECONCILIATION_REQUIRED differing physical evidence; TERMINAL immutable with compensation.
+
+- Menu preview distinguishes unmatched valid dishes from malformed/ambiguous names. Commit is transactional and retains provenance. Each committed `MenuVersion` owns a deterministic normalized source snapshot; rollback preserves that snapshot as inactive history while removing only its mutable DRAFT projection. Missing legacy snapshots remain explicitly unavailable and are never reconstructed from another version. Missing BOM allows source drafts, not complete demand; generation fails closed before persistence for any missing effective published BOM.
+- Coordination sends the selected date/shift. Locked baseline, adjusted servings and signed variance are different; changed servings need demand review. Chef reads handoff, not a fabricated sending action.
+- Purchasing reads week/date/stage but decisions/receipts retain exact lines; no silent repricing or entitlement from allocation.
+- Receipt: Coordinator draft → Warehouse quality accept/reject → Manager approval → Admin posting. Only post changes stock. Partial quality acceptance/rework/pre-post void retains provenance; posted ledger is immutable.
+- Chef counting is local; persisted acknowledgement is atomic whole-issue after every line is checked, not ServiceRun close.
+- Locked-menu amendment: Coordinator creates impact snapshot → different Manager reviews → different Admin executes; all three identities distinct. Physical PO/receipt/issue cases require append-only reconciliation, not regeneration. Admin break-glass before physical documents needs reason and BreakGlassExecute audit.
+- Returns/supplemental/dispositions retain original issue/unit; cross-customer return disposition is Admin-only. Confirmed return affects stock through its owner, not rewritten issue.
+- ServiceRun planning/material/service/reconciliation tracks stay distinct. Source handoff precedes open; open/retry is idempotent. CONFIRMED and WAIVED actual-serving variance decisions are exclusive; re-recording invalidates prior confirmation. Close resolves all blockers and freezes ClosedAt/cost/servings; later corrections are deltas. Behavioral owner: ServiceRunLifecycleTests.
+- Commands bind actor/permission, command ID, expected version, exact sources and exception reason: authorize → load/version → preconditions → atomic state/audit/outbox/idempotency → projection. Outbox delivery is separate; [ARCHITECTURE](ARCHITECTURE.md) owns retry mechanics.
+- Nullable legacy provenance requires reviewed proposal → different-actor approval → approved apply, rechecking exact source/unit at create/apply. No name/header/first-candidate backfill, quantity rewrite or destructive history repair.
+
+Private source rows/workbooks remain local. Fixture/distribution boundaries are in [ENGINEERING](ENGINEERING.md#private-inputs-and-fixtures); operational restore/migration authority is in [OPERATIONS](OPERATIONS.md).
+
+---
+
+## Project-Wide Requirements Contract (BR, FR, NFR)
+
+Ma trận yêu cầu chuẩn hóa toàn diện liên kết 12 Phân hệ Backend và 14 Routes Frontend.
+
+### 1. Global Business Rules (BR-GLOBAL)
+
+| Rule ID | Tiêu đề | Đặc tả nghiệp vụ bất biến | Ràng buộc kiến trúc |
+|---|---|---|---|
+| `BR-GLOBAL-01` | Mode Isolation | Chế độ `DEFAULT` và `MATERIAL_RECONCILIATION` chia sẻ danh mục dùng chung nhưng tuyệt đối tách biệt 100% về quy trình nghiệp vụ, dòng chứng từ, lệnh command, truy vấn projection và nhật ký kiểm toán (`DOM-MODE-1`). MRX mặc định đủ kho, chỉ ghi nhận số lượng đối soát, không kiểm tra hay tác động tồn kho vật lý của DEFAULT. | Cấm trộn lẫn các API endpoints, bảng cơ sở dữ liệu hoặc state machine giữa hai chế độ. |
+| `BR-GLOBAL-02` | Quantitative Traceability Chain | Mọi đơn vị nguyên liệu từ lúc tính định mức thực đơn → nhu cầu ngày → phiếu xuất kho → bếp nhận bàn giao → đối soát đóng ca phải đảm bảo cân bằng định lượng chính xác; không có hao hụt ngầm hoặc phân bổ ảo. | Mọi chênh lệch số lượng phải được giải trình qua chứng từ cấp bổ sung hoặc phiếu trả hàng. |
+| `BR-GLOBAL-03` | Ledger Immutability | Các chứng từ sau khi chốt sổ hoặc ghi sổ kế toán kho (`Approved`, `Posted`, `Locked`, `Closed`) là bất biến (append-only); nghiêm cấm cập nhật đè (update) hoặc xóa vật lý (hard delete). | Sai sót chỉ được điều chỉnh bằng các bút toán bù trừ nghịch đảo mang đầy đủ dấu vết kiểm toán. |
+| `BR-GLOBAL-04` | Explicit Blocker Evidence | Khi một tiến trình vận hành bị chặn (ví dụ: `ServiceRun` bị kẹt, phiếu PO chưa duyệt, kho chưa đủ hàng), hệ thống phải cung cấp đầy đủ bằng chứng nguyên nhân, điều kiện tiên quyết và hướng dẫn khắc phục cụ thể (`UXR-02`). | Cấm hiển thị trạng thái bị khóa mà không chỉ rõ mắt xích bị tắc hoặc người chịu trách nhiệm. |
+
+### 1.1. Material Reconciliation Source Rules (BR-MRX)
+
+| Rule ID | Tiêu đề | Đặc tả nghiệp vụ bất biến | Ràng buộc kiến trúc |
+|---|---|---|---|
+| `BR-MRX-EDIT-1` | Source Change Roles | Admin/Quản lý áp dụng trực tiếp; Điều phối gửi duyệt; Thủ kho/Bếp trưởng không sửa nguồn. Lý do áp dụng và lý do từ chối đều bắt buộc ở đúng decision path. | Backend authorization và MRX action guards phải cùng vai trò; ẩn nút không thay thế API guard. |
+| `BR-MRX-EDIT-2` | Editable Source Grain | Cho phép sửa món theo ngày × ca × slot, số suất Mặn/Chay theo căn tin × ngày × ca và reimport thực đơn tuần. | Payload phải dùng exact source identity và split-serving fields; không dùng total-serving shortcut. |
+| `BR-MRX-EDIT-3` | Day Lock | Ngày có issue cùng batch/date bị khóa; `COMPLETED` khóa toàn lô, còn `DRAFT|READY|TRANSFERRED|IN_PROGRESS` cho sửa ngày chưa khóa. | Lock được suy ra từ immutable issue lineage, không lưu cờ UI hay batch-wide shortcut. |
+| `BR-MRX-EDIT-4` | Atomic Locked-Date Rejection | Yêu cầu chạm một ngày khóa bị từ chối toàn bộ và trả danh sách ngày khóa. | Transaction không được partial-write menu, servings, projection, contributor, revision hoặc delta. |
+| `BR-MRX-EDIT-5` | Cross-Projection Synchronization | Ngày mở cập nhật đồng bộ menu version, split servings, daily/weekly material quantities và cooking contributors; ngày khóa giữ nguyên. | Một protected transaction và một applier owner; Kho/Bếp/Đối chiếu/Dashboard đọc cùng revision mới. |
+| `BR-MRX-EDIT-6` | Single Source-Change Path | Khi căn tin × tuần đã có batch, mọi direct edit, approved request và reimport đi qua source-change applier; legacy quick-servings/bulk-update bị chặn. | Cấm bypass qua shared Coordination mutation sau khi batch tồn tại. |
+| `BR-MRX-EDIT-7` | Per-Day Freeze | Frozen value của một ngày bất biến kể từ issue đầu tiên của ngày đó, không phải chỉ vì batch vào `READY`. | Batch lifecycle và date lock là hai authority khác nhau; không dùng `READY` làm khóa toàn tuần. |
+| `BR-MRX-EDIT-8` | Append-Only Revision History | Mỗi lần áp dụng giữ actor, role, apply mode, reason, time và delta trước/sau theo ngày × nguyên liệu. | Không hard-delete revision/delta; legacy pending delta chỉ là lịch sử và không chặn completion. |
+| `BR-MRX-EDIT-9` | Apply-vs-Issue Concurrency | Nếu Kho khóa ngày giữa preview và apply, apply trả `MRX_DAY_LOCKED`, giữ draft và yêu cầu reload. | Protected transaction/version fence bảo đảm đúng một nhánh thắng và không có post-issue rewrite. |
+| `BR-MRX-TRUTH-1` | Canonical Net Issued | Thực xuất MRX theo daily line bằng tổng issue liên kết trừ tổng return đã nhận, làm tròn quantity cuối đến 6 chữ số; thiếu issue nghĩa là chưa có bằng chứng, không phải zero. | `ReconciliationNetIssueProjection` là owner dùng chung cho Kho, disposition, variance và completed register; cấm công thức song song hoặc suy từ status. |
+| `BR-MRX-TRUTH-2` | Truthful Completed Register | Lô `COMPLETED` vẫn có thể có accepted variance khác zero; báo cáo phải giữ net issued/variance thật. Legacy batch thiếu daily lineage hiển thị unavailable. | Cấm copy `TotalRequired` sang `TotalIssued`; DTO nullable và CSV rỗng biểu diễn evidence unavailable. |
+| `BR-MRX-HIST-1` | Append-Only Decision Evidence | Contributor và disposition đã persisted không bị hard-delete khi nguồn hoặc ledger đổi; row cũ được invalidation bằng actor/time/reason/revision và row active mới được append. | Current projection chỉ đọc `InvalidatedAt == null`; history/audit đọc cả active và invalidated; nullable generated owner key giữ tối đa một active row. |
+| `BR-MRX-HIST-2` | Five-Year MRX Evidence | Operational MRX history remains queryable for at least five calendar years, independently of the encrypted immutable off-host archive retained through `archiveCreatedAtUtc.AddYears(5)`. | No automatic purge in this scope; live provider lock and restore certification remain operational evidence, not a repository-test claim. |
+| `BR-MRX-SERV-1` | Savory/Vegetarian Servings | Slot `vegetarian-*` nhân số suất Chay; slot khác nhân số suất Mặn; tổng suất bằng tổng hai loại. | Projection/fingerprint/contributor phải giữ đúng variant; không nhân mọi món với tổng suất. |
+| `BR-MRX-SERV-2` | No Fabricated Servings | Import không tự ghi số suất; thiếu split hiển thị `Chưa nhập` và chặn quantity preview/batch creation. | Cấm default `100`, fake completion hoặc nuốt lỗi quick-servings để tạo PASS giả. |
+
+### 2. Functional Requirements Matrix (13 FRs — 12 BE Features <-> 14 FE Routes)
+
+| FR Code | Tên phân hệ nghiệp vụ | Phân hệ Backend (`backend/.../Features/`) | Route & Feature Frontend (`frontend/.../`) | Primary Work Object & Năng lực chính |
+|---|---|---|---|---|
+| `FR-AUTH` | Xác thực & Phân quyền | `Auth` | `/login`, `/forbidden`<br>(`features/auth/`) | Quản lý phiên làm việc, JWT tokens, kiểm soát vai trò (`AppRole`), chuyển hướng người dùng khi không đủ quyền hạn. |
+| `FR-DASH` | Bàn điều hành tổng quan | Aggregated (`Planning`, `Inventory`, `Approvals`) | `/`<br>(`features/dashboard/`) | `OperationalFrame`: Theo dõi điểm tắc luồng vận hành hôm nay, tiến độ KHSX các ca, cảnh báo thiếu nguyên liệu tức thời. |
+| `FR-CAT` | Quản trị danh mục & BOM gốc | `Catalog` | `/admin-data`<br>(`features/admin/`, `features/projects/`) | `SplitWorkbench`: Quản lý danh mục nguyên liệu, danh mục món ăn, công thức định mức BOM gốc theo khay/suất chuẩn. |
+| `FR-ADMIN`| Quản trị hệ thống & Quy tắc duyệt | `Admin` | `/admin-data`, `/settings/approval-rules`, `/settings/advanced`<br>(`features/admin/`) | Thiết lập tổ chức/khách hàng, bảng giá theo đối tượng, quy tắc phân cấp phê duyệt chứng từ, cấu hình thông số hệ thống. |
+| `FR-MENU` | Lập thực đơn & Kế hoạch tuần | `Planning`, `Coordination` | `/weekly-menu`<br>(`features/planning/`, `features/coordination/`) | `WeeklyMenuWorkspaceShell` & `SplitWorkbench`: Lập thực đơn tuần, ma trận món Thứ Hai–Thứ Bảy, tổng hợp nhu cầu vật tư, bàn giao bếp, giá vốn BOM. |
+| `FR-COORD`| Điều phối suất ăn khách hàng | `Coordination` | `/meal-orders`<br>(`features/coordination/`) | `OperationalFrame`: Tiếp nhận và chốt số lượng suất ăn theo ca/ngày cho từng khách hàng, xử lý lệch suất đột xuất. |
+| `FR-CHEF` | Bếp sản xuất & Bàn giao ca | `Planning` | `/chef`<br>(`features/chef/`, `features/planning/`) | `OperationalFrame`: Theo dõi KHSX theo ca, checklist kiểm đếm nhận nguyên liệu từ kho, xác nhận bàn giao toàn bộ, tạo phiếu trả hàng thừa. |
+| `FR-APPR` | Phê duyệt vận hành | `Approvals` | `/approvals`<br>(`features/approvals/`) | `OperationalFrame`: Trung tâm duyệt tập trung các đề xuất mua hàng (Purchase Request), bảng báo giá nhà cung cấp, duyệt phiếu nhập kho. |
+| `FR-PUR`  | Thu mua & Nhà cung cấp | `Purchasing` | `/purchasing`<br>(`features/purchasing/`) | `SplitWorkbench`: Tổng hợp nhu cầu thiếu hụt từ kho, tạo đề xuất mua hàng, quản lý đơn mua (PO), theo dõi tiến độ giao hàng từ NCC. |
+| `FR-WH`   | Quản lý kho & Tồn trữ | `Inventory` | `/warehouse`<br>(`features/warehouse/`) | `OperationalFrame` & `TableViewport`: Quản lý tồn kho tức thời, lập và duyệt phiếu nhập/xuất kho, ghi sổ thẻ kho bất biến. |
+| `FR-RECON`| Đối soát nguyên liệu (MRX) | `Reconciliation` | `/reconciliation`<br>(`features/reconciliation/`) | `OperationalFrame` (MRX mode): Đối soát lượng xuất kho sổ sách với lượng tiêu hao thực tế của ca nấu ăn, lập biên bản xử lý sai lệch. |
+| `FR-REP`  | Báo cáo vận hành & Chi phí | `Reports` | `/reports`<br>(`features/reports/`) | `OperationalFrame` & `TableViewport`: Báo cáo chi phí thực phẩm (Food Cost %), biến động giá nguyên liệu, báo cáo tồn kho định kỳ. |
+| `FR-SYS`  | Vận hành & Chẩn đoán hệ thống | `SystemOperation`, `SampleData` | `/settings/advanced`<br>(`features/system-operation/`) | `SectionPanel`: Chuyển đổi linh hoạt chế độ vận hành (`DEFAULT` / `MRX`), nạp và dọn dẹp dữ liệu mẫu, theo dõi sức khỏe hệ thống. |
+
+### 3. Non-Functional Requirements (NFR)
+
+| NFR Code | Nhóm tiêu chuẩn | Chỉ số định lượng bắt buộc | Phương pháp kiểm chứng |
+|---|---|---|---|
+| `NFR-PERF-01` | Thời gian phản hồi (Latency) | P75 API latency <= 300ms; thời gian render khung đầu tiên của FE < 100ms; tải hoàn tất dữ liệu màn hình < 1.0s. | Playwright performance trace và kiểm thử tải `perf:load`. |
+| `NFR-PERF-02` | Khả năng mở rộng bảng dữ liệu | Mọi bảng dữ liệu > 50 dòng phải bọc trong `TableViewport` (`T7`) kết hợp phân trang server hoặc ảo hóa; chỉ số CLS <= 0.1. | Vitest contract tests và Playwright layout-shift audit. |
+| `NFR-SEC-01` | Bảo mật phân quyền 3 lớp | RBAC đa tầng: (1) Route Guard tại React Router, (2) Navigation display filtering, (3) Component/Action token-permission guard. | `FrontendPermissionVocabularyTests` và `*.contract.test.tsx`. |
+| `NFR-REL-01` | Độ tin cậy & Tính giao dịch | Sử dụng Outbox pattern cho các sự kiện bất đồng bộ; 100% nghiệp vụ ghi sổ kho và chốt đơn đảm bảo ACID transaction. | Unit/Integration tests với database transaction rollbacks. |
+| `NFR-I18N-01` | Bản địa hóa & Ngôn ngữ vận hành | 100% giao diện sử dụng tiếng Việt chuyên ngành công nghiệp (`DOM-LANG-1`); múi giờ hiển thị đồng nhất `Asia/Ho_Chi_Minh`. | UI audit specs và static analysis kiểm tra chuỗi giao diện. |

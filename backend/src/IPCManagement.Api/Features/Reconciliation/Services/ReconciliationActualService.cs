@@ -1,6 +1,7 @@
 using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -43,7 +44,9 @@ public sealed class ReconciliationActualService(
                     if (string.IsNullOrWhiteSpace(request.CorrectionReason)) throw new ArgumentException("Cần nhập lý do điều chỉnh.");
                     context.Entry(actual).Property(x => x.Version).OriginalValue = request.ExpectedVersion!.Value;
                     context.Reconciliationactualrevisions.Add(new ReconciliationActualRevision { RevisionId = GuidHelper.NewId(), ActualId = actual.ActualId, OldQuantity = actual.Quantity, NewQuantity = request.Quantity, Reason = request.CorrectionReason.Trim(), ChangedBy = actor, ChangedAt = DateTime.UtcNow });
-                    var disposition = await context.Reconciliationdispositions.SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken);
+                    var disposition = await context.Reconciliationdispositions.SingleOrDefaultAsync(
+                        x => x.InvalidatedAt == null && x.BatchLineId == lineBytes,
+                        operationToken);
                     if (disposition is not null)
                     {
                         context.Auditlogs.Add(new AuditLog
@@ -53,7 +56,9 @@ public sealed class ReconciliationActualService(
                             FieldName = "Validity", OldValue = $"{disposition.Category}|{disposition.Reason}|v{disposition.Version}", NewValue = "INVALIDATED",
                             Reason = $"Actual {side} corrected from v{actual.Version}."
                         });
-                        context.Reconciliationdispositions.Remove(disposition);
+                        disposition.InvalidatedAt = DateTime.UtcNow;
+                        disposition.InvalidatedBy = actor;
+                        disposition.InvalidationReason = $"Actual {side} corrected from v{actual.Version}.";
                     }
                     actual.Quantity = request.Quantity; actual.Version++; actual.EnteredBy = actor; actual.EnteredAt = DateTime.UtcNow;
                 }
@@ -108,57 +113,65 @@ public sealed class ReconciliationActualService(
                 }
                 if (batchStatus != "IN_PROGRESS")
                     throw new InvalidOperationException("Chỉ lô đang đối chiếu mới được cập nhật hướng xử lý theo ngày.");
-                var issueRows = inMemory
-                    ? (await context.Inventoryissuelines.AsNoTracking().ToListAsync(operationToken))
-                        .Where(line => line.ReconciliationBatchDailyLineId is not null && line.ReconciliationBatchDailyLineId.SequenceEqual(dailyLineBytes)).ToList()
-                    : await context.Inventoryissuelines.AsNoTracking()
-                        .Where(line => line.ReconciliationBatchDailyLineId == dailyLineBytes).ToListAsync(operationToken);
-                if (issueRows.Count == 0) throw new InvalidOperationException("Cần có phiếu xuất kho theo ngày liên kết trước khi xử lý chênh lệch.");
-                var issueLineIds = issueRows.Select(line => line.IssueLineId).ToList();
-                var returns = inMemory
-                    ? (await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return).ToListAsync(operationToken))
-                        .Where(line => line.SourceIssueLineId is not null && line.Return.ReceivedAt is not null
-                            && issueLineIds.Any(idValue => idValue.SequenceEqual(line.SourceIssueLineId))).ToList()
-                    : await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return)
-                        .Where(line => line.SourceIssueLineId != null && issueLineIds.Contains(line.SourceIssueLineId) && line.Return.ReceivedAt != null)
-                        .ToListAsync(operationToken);
-                var returnedByIssueLine = returns.GroupBy(line => Convert.ToHexString(line.SourceIssueLineId!))
-                    .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity), StringComparer.Ordinal);
-                var netIssued = issueRows.Sum(line => line.IssuedQty - returnedByIssueLine.GetValueOrDefault(Convert.ToHexString(line.IssueLineId)));
-                var lineStatus = ReconciliationDailyIssuePolicy.ResolveLineStatus(dailyLine.RequiredQuantity, netIssued, false);
+                var netIssueFacts = await new ReconciliationNetIssueProjection(context)
+                    .LoadByDailyLineIdsAsync([dailyLineBytes], operationToken);
+                if (!netIssueFacts.TryGetValue(Convert.ToHexString(dailyLineBytes), out var netIssue))
+                    throw new InvalidOperationException("Cần có phiếu xuất kho theo ngày liên kết trước khi xử lý chênh lệch.");
+                var lineStatus = ReconciliationDailyIssuePolicy.ResolveLineStatus(
+                    dailyLine.RequiredQuantity,
+                    netIssue.NetIssuedQuantity,
+                    false);
                 if (lineStatus.QuantityStatus != "OVER_ISSUED")
-                    throw new InvalidOperationException("Chỉ dòng xuất vượt theo ngày mới cần hướng xử lý hoàn tất.");
+                    throw new BusinessRuleException("Chỉ dòng xuất vượt định mức mới được xử lý chênh lệch; xuất thiếu phải được xuất bổ sung.");
 
                 var current = inMemory
                     ? (await context.Reconciliationdailydispositions.ToListAsync(operationToken))
-                        .SingleOrDefault(item => item.DailyLineId.SequenceEqual(dailyLineBytes))
-                    : await context.Reconciliationdailydispositions.SingleOrDefaultAsync(item => item.DailyLineId == dailyLineBytes, operationToken);
-                if (current is null)
-                {
-                    if (request.ExpectedVersion.HasValue) throw new DbUpdateConcurrencyException("Hướng xử lý theo ngày đã thay đổi.");
-                    current = new ReconciliationDailyDisposition
-                    {
-                        DispositionId = GuidHelper.NewId(), DailyLineId = dailyLineBytes, Category = category,
-                        Reason = request.Reason.Trim(), Version = 1, DisposedBy = actor, DisposedAt = DateTime.UtcNow
-                    };
-                    context.Reconciliationdailydispositions.Add(current);
-                }
-                else
+                        .SingleOrDefault(item => item.InvalidatedAt == null && item.DailyLineId.SequenceEqual(dailyLineBytes))
+                    : await context.Reconciliationdailydispositions.SingleOrDefaultAsync(
+                        item => item.InvalidatedAt == null && item.DailyLineId == dailyLineBytes,
+                        operationToken);
+                if (current is null && request.ExpectedVersion.HasValue)
+                    throw new DbUpdateConcurrencyException("Hướng xử lý theo ngày đã thay đổi.");
+                var nextVersion = (await context.Reconciliationdailydispositions
+                    .Where(item => item.DailyLineId == dailyLineBytes)
+                    .MaxAsync(item => (long?)item.Version, operationToken) ?? 0) + 1;
+                var now = DateTime.UtcNow;
+                if (current is not null)
                 {
                     if (current.Version != request.ExpectedVersion) throw new DbUpdateConcurrencyException("Hướng xử lý theo ngày đã thay đổi.");
-                    context.Entry(current).Property(item => item.Version).OriginalValue = request.ExpectedVersion!.Value;
-                    current.Category = category;
-                    current.Reason = request.Reason.Trim();
-                    current.Version++;
-                    current.DisposedBy = actor;
-                    current.DisposedAt = DateTime.UtcNow;
+                    if (context.Database.IsRelational())
+                    {
+                        var changed = await context.Reconciliationdailydispositions
+                            .Where(item => item.DispositionId == current.DispositionId
+                                && item.Version == request.ExpectedVersion && item.InvalidatedAt == null)
+                            .ExecuteUpdateAsync(setters => setters
+                                .SetProperty(item => item.InvalidatedAt, now)
+                                .SetProperty(item => item.InvalidatedBy, actor)
+                                .SetProperty(item => item.InvalidationReason, "Decision corrected."), operationToken);
+                        if (changed != 1) throw new DbUpdateConcurrencyException("Hướng xử lý theo ngày đã thay đổi.");
+                        context.Entry(current).State = EntityState.Detached;
+                    }
+                    else
+                    {
+                        current.InvalidatedAt = now;
+                        current.InvalidatedBy = actor;
+                        current.InvalidationReason = "Decision corrected.";
+                    }
                 }
+                current = new ReconciliationDailyDisposition
+                {
+                    DispositionId = GuidHelper.NewId(), DailyLineId = dailyLineBytes, Category = category,
+                    Reason = request.Reason.Trim(), Version = nextVersion, DisposedBy = actor, DisposedAt = now
+                };
+                context.Reconciliationdailydispositions.Add(current);
                 resultingVersion = current.Version;
                 await context.SaveChangesAsync(operationToken);
                 return true;
             },
             verifySucceeded: verifyToken => context.Reconciliationdailydispositions.AsNoTracking()
-                .AnyAsync(item => item.DailyLineId == dailyLineBytes && item.Version == resultingVersion, verifyToken),
+                .AnyAsync(item => item.InvalidatedAt == null
+                    && item.DailyLineId == dailyLineBytes
+                    && item.Version == resultingVersion, verifyToken),
             isolationLevel: IsolationLevel.Serializable,
             cancellationToken: token);
     }
@@ -193,24 +206,51 @@ public sealed class ReconciliationActualService(
                     returns.Select(x => (x.SourceIssueLineId!, x.Quantity)));
                 var comparison = ReconciliationComparisonService.Map(line, [], null, ReconciliationBatchService.LinkedQuantity(linkedIssued, lineBytes));
                 if (comparison.Triggers.Count == 0) throw new InvalidOperationException("Dòng không có chênh lệch hiện hành cần xử lý.");
-                var current = await context.Reconciliationdispositions.SingleOrDefaultAsync(x => x.BatchLineId == lineBytes, operationToken);
-                if (current is null)
-                {
-                    if (request.ExpectedVersion.HasValue) throw new DbUpdateConcurrencyException("Hướng xử lý đã thay đổi.");
-                    current = new ReconciliationDisposition { DispositionId = GuidHelper.NewId(), BatchLineId = lineBytes, Category = category, Reason = request.Reason.Trim(), Version = 1, DisposedBy = actor, DisposedAt = DateTime.UtcNow };
-                    context.Reconciliationdispositions.Add(current);
-                }
-                else
+                var current = await context.Reconciliationdispositions.SingleOrDefaultAsync(
+                    x => x.InvalidatedAt == null && x.BatchLineId == lineBytes,
+                    operationToken);
+                if (current is null && request.ExpectedVersion.HasValue)
+                    throw new DbUpdateConcurrencyException("Hướng xử lý đã thay đổi.");
+                var nextVersion = (await context.Reconciliationdispositions
+                    .Where(item => item.BatchLineId == lineBytes)
+                    .MaxAsync(item => (long?)item.Version, operationToken) ?? 0) + 1;
+                var now = DateTime.UtcNow;
+                if (current is not null)
                 {
                     if (current.Version != request.ExpectedVersion) throw new DbUpdateConcurrencyException("Hướng xử lý đã thay đổi.");
-                    context.Entry(current).Property(x => x.Version).OriginalValue = request.ExpectedVersion!.Value;
-                    current.Category = category; current.Reason = request.Reason.Trim(); current.Version++; current.DisposedBy = actor; current.DisposedAt = DateTime.UtcNow;
+                    if (context.Database.IsRelational())
+                    {
+                        var changed = await context.Reconciliationdispositions
+                            .Where(item => item.DispositionId == current.DispositionId
+                                && item.Version == request.ExpectedVersion && item.InvalidatedAt == null)
+                            .ExecuteUpdateAsync(setters => setters
+                                .SetProperty(item => item.InvalidatedAt, now)
+                                .SetProperty(item => item.InvalidatedBy, actor)
+                                .SetProperty(item => item.InvalidationReason, "Decision corrected."), operationToken);
+                        if (changed != 1) throw new DbUpdateConcurrencyException("Hướng xử lý đã thay đổi.");
+                        context.Entry(current).State = EntityState.Detached;
+                    }
+                    else
+                    {
+                        current.InvalidatedAt = now;
+                        current.InvalidatedBy = actor;
+                        current.InvalidationReason = "Decision corrected.";
+                    }
                 }
+                current = new ReconciliationDisposition
+                {
+                    DispositionId = GuidHelper.NewId(), BatchLineId = lineBytes, Category = category,
+                    Reason = request.Reason.Trim(), Version = nextVersion, DisposedBy = actor, DisposedAt = now
+                };
+                context.Reconciliationdispositions.Add(current);
                 resultingVersion = current.Version;
                 await context.SaveChangesAsync(operationToken);
                 return true;
             },
-            verifySucceeded: verifyToken => context.Reconciliationdispositions.AsNoTracking().AnyAsync(x => x.BatchLineId == lineBytes && x.Version == resultingVersion, verifyToken),
+            verifySucceeded: verifyToken => context.Reconciliationdispositions.AsNoTracking()
+                .AnyAsync(x => x.InvalidatedAt == null
+                    && x.BatchLineId == lineBytes
+                    && x.Version == resultingVersion, verifyToken),
             isolationLevel: IsolationLevel.Serializable,
             cancellationToken: token);
     }

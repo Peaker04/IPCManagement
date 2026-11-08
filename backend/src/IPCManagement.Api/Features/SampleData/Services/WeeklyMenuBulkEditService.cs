@@ -1,7 +1,9 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +12,8 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class WeeklyMenuBulkEditService(
     IpcManagementContext context,
-    IEfTransactionRunner transactionRunner) : IWeeklyMenuBulkEditService
+    IEfTransactionRunner transactionRunner,
+    SystemOperationRequestContext? requestContext = null) : IWeeklyMenuBulkEditService
 {
     public async Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
         BulkUpdateWeeklyMenuRequest request,
@@ -84,6 +87,15 @@ internal sealed class WeeklyMenuBulkEditService(
                             return (false,
                                 $"Không tìm thấy lịch thực đơn cho ngày {slot.ServiceDate:dd/MM/yyyy} {slot.ShiftName}. Vui lòng import thực đơn Excel trước.",
                                 []);
+                        }
+
+                        if (string.Equals(
+                                requestContext?.Mode,
+                                SystemOperationEligibility.MaterialReconciliation,
+                                StringComparison.Ordinal) &&
+                            await MrxReconBatchGuard.AnyBatchAsync(context, schedule.WeekStartDate, customerBytes, token))
+                        {
+                            return (false, MrxReconBatchGuard.BatchExistsMessage, []);
                         }
 
                         if (!string.Equals(schedule.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))

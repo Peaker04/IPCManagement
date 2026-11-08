@@ -7,6 +7,7 @@ public interface IInventoryIssueRepository : IGenericRepository<InventoryIssue>
 {
     Task<(IEnumerable<InventoryIssue> Items, int TotalCount)> GetPagedAsync(InventoryIssueFilterRequestDto request);
     Task<InventoryIssue?> GetByIdWithLinesAsync(byte[] id, string? sourceFamily = null);
+    Task<InventoryIssue?> GetByCodeWithLinesAsync(string code, string? sourceFamily = null);
     Task<MaterialRequest?> GetMaterialRequestForIssueAsync(byte[] id);
     Task<IReadOnlyList<InventoryIssueLine>> GetIssuedLinesForMaterialRequestAsync(byte[] materialRequestId);
 }

@@ -18,7 +18,7 @@ using NSubstitute;
 
 namespace IPCManagement.Api.Tests;
 
-public sealed class ReconciliationWarehouseIssueApplicationPathTests
+public sealed partial class ReconciliationWarehouseIssueApplicationPathTests
 {
     [Fact]
     public async Task Ready_snapshot_remains_exact_after_shared_master_edits_and_only_new_version_reflects_authority()
@@ -87,7 +87,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
-    public async Task Frozen_batch_transfers_without_stock_mutation_then_real_issue_projects_exact_issued_quantity()
+    public async Task Frozen_batch_transfers_then_logical_issue_projects_exact_quantity_without_stock_mutation()
     {
         await using var context = CreateContext();
         var actorId = Guid.NewGuid().ToString();
@@ -95,7 +95,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var batchId = GuidHelper.NewId();
         var lineId = GuidHelper.NewId();
         var dailyLineId = GuidHelper.NewId();
-        var serviceDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        var serviceDate = ServiceCalendar.StartOfWeek(ServiceCalendar.Today());
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
         var warehouseId = GuidHelper.NewId();
@@ -198,9 +198,8 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var issuedBatch = Assert.Single(context.Reconciliationbatches.Local);
         Assert.Equal("IN_PROGRESS", issuedBatch.Status);
         Assert.Equal(4, issuedBatch.Version);
-        await ledger.Received(1).RemoveStockWithCheckAsync(
-            warehouseId, ingredientId, unitId, 7.5m, "ISSUE", "inventoryissues",
-            Arg.Any<byte[]>(), Arg.Is<byte[]>(value => value.SequenceEqual(actor)), "Xuất kho đối chiếu", Arg.Any<string>());
+        await ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(
+            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
 
         var storedIssueLine = Assert.Single(context.Inventoryissuelines.Local);
         Assert.True(storedIssueLine.ReconciliationBatchLineId!.SequenceEqual(lineId));
@@ -208,6 +207,31 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.Equal(7.5m, comparison.IssuedQuantity);
         Assert.Equal(0m, comparison.IssuedRequiredDifference);
         Assert.Equal("MATCHED", comparison.Status);
+    }
+
+    [Fact]
+    public async Task Reconciliation_issue_rejects_new_sunday_write_even_with_frozen_lineage_and_zero_effects()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        var sunday = ServiceCalendar.StartOfWeek(fixture.Request.IssueDate).AddDays(6);
+        var source = Assert.Single(context.Reconciliationbatchdailylines.Local);
+        var history = new ReconciliationBatchDailyLine
+        {
+            DailyLineId = GuidHelper.NewId(), BatchLineId = source.BatchLineId, BatchId = source.BatchId,
+            IngredientId = source.IngredientId, CanonicalUnitId = source.CanonicalUnitId,
+            ServiceDate = sunday, RequiredQuantity = source.RequiredQuantity, Version = 1
+        };
+        context.Reconciliationbatchdailylines.Add(history);
+        Assert.Single(context.Reconciliationbatchlines.Local).RequiredQuantity += history.RequiredQuantity;
+        fixture.Request.IssueDate = sunday;
+        fixture.Request.Lines[0].ReconciliationBatchDailyLineId = GuidHelper.ToGuidString(history.DailyLineId);
+        await context.SaveChangesAsync();
+        var before = CaptureEffects(context);
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
+        Assert.Contains("Thứ Hai đến Thứ Bảy", error.Message);
+        Assert.Equal(before, CaptureEffects(context));
+        Assert.Equal(sunday, Assert.Single(context.Reconciliationbatchdailylines.Local, line => line.ServiceDate == sunday).ServiceDate);
     }
 
     [Fact]
@@ -362,25 +386,76 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var fixture = await CreateReconciliationIssueFixtureAsync(context);
         fixture.Request.Lines[0].IssuedQty = 1.5m;
 
-        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+        var result = await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
 
+        Assert.Empty(result!.Provisions);
         var stored = Assert.Single(context.Inventoryissuelines.Local);
         Assert.Equal(2m, stored.RequestedQty);
         Assert.Equal(1.5m, stored.IssuedQty);
-        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
-            Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 1.5m, "ISSUE", "inventoryissues",
-            Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(
+            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
         var source = Assert.Single(context.Reconciliationbatchlines.Local);
         var comparison = ReconciliationComparisonService.Map(source, [], null, stored.IssuedQty);
         Assert.Equal(-0.5m, comparison.IssuedRequiredDifference);
         Assert.Contains("ISSUED_REQUIRED", comparison.Triggers);
         Assert.Equal("NEEDS_REVIEW", comparison.Status);
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().AddStockAsync(
+            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+    }
+
+    [Fact]
+    public async Task Pending_positive_source_delta_resolves_only_with_exact_supplemental_issue_transaction()
+    {
+        await using var context = CreateContext();
+        var fixture = await CreateReconciliationIssueFixtureAsync(context);
+        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+        var batch = await context.Reconciliationbatches.SingleAsync();
+        var daily = await context.Reconciliationbatchdailylines.SingleAsync();
+        var deltaId = GuidHelper.NewId();
+        context.Reconciliationsourcerevisions.Add(new ReconciliationSourceRevision
+        {
+            SourceRevisionId = GuidHelper.NewId(), MenuAmendmentId = GuidHelper.NewId(), BatchId = batch.BatchId,
+            PreviousMenuVersionId = batch.MenuVersionId, AppliedMenuVersionId = GuidHelper.NewId(), RevisionNumber = 1,
+            Status = "APPLIED", Reason = "Tăng định lượng", AppliedBy = fixture.Actor, AppliedAt = DateTime.UtcNow,
+            Deltas = [new ReconciliationSourceDelta
+            {
+                SourceDeltaId = deltaId, BatchId = batch.BatchId, DailyLineId = daily.DailyLineId, ServiceDate = daily.ServiceDate,
+                IngredientId = daily.IngredientId, CanonicalUnitId = daily.CanonicalUnitId,
+                PreviousRequiredQuantity = 2m, NewRequiredQuantity = 2.5m, DeltaQuantity = 0.5m,
+                WorkKind = "SUPPLEMENTAL_ISSUE", Status = "PENDING", Version = 1, CreatedAt = DateTime.UtcNow
+            }]
+        });
+        await context.SaveChangesAsync();
+        fixture.Request.CommandId = "resolve-delta-" + Guid.NewGuid().ToString("N");
+        fixture.Request.ExpectedVersion = batch.Version;
+        fixture.Request.IsSupplemental = true;
+        fixture.Request.ReconciliationSourceDeltaId = GuidHelper.ToGuidString(deltaId);
+        fixture.Request.ExpectedSourceDeltaVersion = 1;
+        fixture.Request.Lines[0].RequestedQty = 0.5m;
+        fixture.Request.Lines[0].IssuedQty = 0.5m;
+        fixture.Request.Lines[0].VarianceReason = "Xuất bổ sung theo thay đổi nguồn";
+
+        var result = await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
+
+        context.ChangeTracker.Clear();
+        var resolved = await context.Reconciliationsourcedeltas.SingleAsync();
+        Assert.Equal("RESOLVED", resolved.Status);
+        Assert.Equal(2, resolved.Version);
+        Assert.Equal(nameof(InventoryIssue), resolved.ResolutionEntity);
+        Assert.True(resolved.ResolutionId!.SequenceEqual(GuidHelper.ParseGuidString(result!.IssueId)!));
+        Assert.True(resolved.ResolvedBy!.SequenceEqual(fixture.Actor));
+        Assert.Equal(fixture.Request.CommandId, resolved.ResolutionCommandId);
     }
 
     [Fact]
     public async Task Supplemental_issue_adds_a_new_transaction_for_an_existing_frozen_line()
     {
-        await using var context = CreateContext();
+        var commands = new List<string>();
+        await using var connection = new SqliteConnection("Data Source=:memory:;Foreign Keys=False");
+        await connection.OpenAsync();
+        await using var context = new RelationalIssueContext(new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection).LogTo(commands.Add, [Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.CommandExecuted]).Options);
+        await context.Database.EnsureCreatedAsync();
         var fixture = await CreateReconciliationIssueFixtureAsync(context);
         await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
         var frozenLine = Assert.Single(context.Reconciliationbatchlines.Local);
@@ -404,6 +479,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         fixture.Request.Lines[0].RequestedQty = 0.4m;
         fixture.Request.Lines[0].IssuedQty = 0.4m;
         fixture.Request.Lines[0].VarianceReason = "Bếp đề nghị bổ sung cho ca trưa";
+        commands.Clear();
         await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
 
         Assert.Equal(2, context.Inventoryissues.Local.Count);
@@ -412,8 +488,14 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.All(context.Inventoryissuelines.Local, line => Assert.True(line.ReconciliationBatchLineId!.SequenceEqual(frozenLineId)));
         Assert.Equal(2.4m, context.Inventoryissuelines.Local.Sum(line => line.IssuedQty));
         Assert.Contains(context.Auditlogs.Local, audit => audit.Reason == "Bếp đề nghị bổ sung cho ca trưa");
-        Assert.Empty(context.Reconciliationdispositions);
-        Assert.Empty(context.Reconciliationdailydispositions);
+        var retainedWeekly = Assert.Single(context.Reconciliationdispositions);
+        Assert.NotNull(retainedWeekly.InvalidatedAt);
+        Assert.Equal(GuidHelper.ParseGuidString(fixture.ActorId), retainedWeekly.InvalidatedBy);
+        Assert.Contains("Supplemental inventory issue", retainedWeekly.InvalidationReason);
+        var retainedDaily = Assert.Single(context.Reconciliationdailydispositions);
+        Assert.NotNull(retainedDaily.InvalidatedAt);
+        Assert.Equal(GuidHelper.ParseGuidString(fixture.ActorId), retainedDaily.InvalidatedBy);
+        Assert.Contains("Supplemental inventory issue", retainedDaily.InvalidationReason);
         Assert.Contains(context.Auditlogs.Local, audit => audit.EntityName == nameof(ReconciliationDisposition) && audit.NewValue == "INVALIDATED");
         Assert.Contains(context.Auditlogs.Local, audit => audit.EntityName == nameof(ReconciliationDailyDisposition) && audit.NewValue == "INVALIDATED");
         Assert.Equal(5, Assert.Single(context.Reconciliationbatches.Local).Version);
@@ -421,6 +503,13 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.Equal(2, transitions.Count);
         Assert.Equal(2, transitions.Select(item => item.AggregateSequence).Distinct().Count());
         Assert.Contains(transitions, item => item.ToState == "SUPPLEMENTAL_ISSUED");
+        foreach (var table in new[] { "reconciliationdispositions", "reconciliationdailydispositions" })
+        {
+            var select = commands.First(command => command.Contains("SELECT") && command.Contains($"FROM \"{table}\""));
+            Assert.Contains("WHERE", select);
+            Assert.Contains("IS NULL", select);
+            Assert.Contains(" IN ", select);
+        }
     }
 
     [Fact]
@@ -457,28 +546,6 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
-    public async Task Reconciliation_issue_accepts_manual_quantity_above_required_with_audited_reason()
-    {
-        await using var context = CreateContext();
-        var fixture = await CreateReconciliationIssueFixtureAsync(context);
-        fixture.Request.Lines[0].IssuedQty = 2.1m;
-        fixture.Request.Lines[0].VarianceReason = "Bao bì thực tế cần thêm nguyên liệu";
-
-        await fixture.Service.CreateAsync(fixture.Request, fixture.ActorId);
-
-        var stored = Assert.Single(context.Inventoryissuelines.Local);
-        Assert.Equal(2m, stored.RequestedQty);
-        Assert.Equal(2.1m, stored.IssuedQty);
-        var audit = Assert.Single(context.Auditlogs.Local.Where(item => item.FieldName == nameof(InventoryIssueLine.IssuedQty)));
-        Assert.Equal("Bao bì thực tế cần thêm nguyên liệu", audit.Reason);
-        Assert.Equal("2", audit.OldValue);
-        Assert.Equal("2.1", audit.NewValue);
-        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
-            Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 2.1m, "ISSUE", "inventoryissues",
-            Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
-    }
-
-    [Fact]
     public async Task Reconciliation_issue_rejects_tampered_requested_quantity_with_atomic_zero_effects()
     {
         await using var context = CreateContext();
@@ -494,7 +561,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
     }
 
     [Fact]
-    public async Task Reconciliation_issue_provisions_declared_shortage_then_creates_the_real_issue()
+    public async Task Reconciliation_issue_records_quantities_without_provision_or_physical_issue()
     {
         await using var context = CreateContext();
         var fixture = await CreateReconciliationIssueFixtureAsync(context);
@@ -509,53 +576,12 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.Single(context.Inventoryissuelines.Local);
         Assert.Equal("IN_PROGRESS", batch.Status);
         Assert.Equal(4, batch.Version);
-        await fixture.Ledger.Received(1).AddStockAsync(
-            Arg.Any<byte[]>(),
-            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.IngredientId)),
-            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.UnitId)),
-            Arg.Is<decimal>(value => value > 0),
-            "ADJUSTMENT", nameof(ReconciliationBatch),
-            Arg.Is<byte[]>(value => value.SequenceEqual(batch.BatchId)),
-            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.Actor)),
-            "Bảo đảm đủ tồn kho cho chế độ đối chiếu nguyên liệu", Arg.Any<string>());
-        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(
-            Arg.Any<byte[]>(),
-            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.IngredientId)),
-            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.UnitId)),
-            Arg.Any<decimal>(), "ISSUE", "inventoryissues", Arg.Any<byte[]>(),
-            Arg.Is<byte[]>(value => value.SequenceEqual(fixture.Actor)),
-            "Xuất kho đối chiếu", Arg.Any<string>());
-    }
-
-    [Fact]
-    public async Task Reconciliation_issue_requires_every_frozen_line_exactly_once()
-    {
-        await using var context = CreateContext();
-        var fixture = await CreateReconciliationIssueFixtureAsync(context);
-        var batch = Assert.Single(context.Reconciliationbatches.Local);
-        var secondLineId = GuidHelper.NewId();
-        batch.Lines.Add(new ReconciliationBatchLine
-        {
-            BatchLineId = secondLineId, BatchId = batch.BatchId, IngredientId = fixture.IngredientId,
-            CanonicalUnitId = fixture.UnitId, RequiredQuantity = 1m, FrozenTolerance = 0.1m,
-            ToleranceSourceKind = "SYSTEM_DEFAULT", ToleranceSourceVersion = "1", Version = 1,
-            DailyLines =
-            [
-                new ReconciliationBatchDailyLine
-                {
-                    DailyLineId = GuidHelper.NewId(), BatchLineId = secondLineId, BatchId = batch.BatchId,
-                    IngredientId = fixture.IngredientId, CanonicalUnitId = fixture.UnitId,
-                    ServiceDate = fixture.Request.IssueDate, RequiredQuantity = 1m, Version = 1
-                }
-            ]
-        });
-        await context.SaveChangesAsync();
-        var before = CaptureEffects(context);
-
-        await Assert.ThrowsAsync<BusinessRuleException>(() => fixture.Service.CreateAsync(fixture.Request, fixture.ActorId));
-
-        Assert.Equal(before, CaptureEffects(context));
-        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+        Assert.Empty(result.Provisions);
+        Assert.Equal(1m, Assert.Single(context.Currentstocks.Local).CurrentQty);
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().AddStockAsync(
+            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(
+            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
     }
 
     [Fact]
@@ -606,8 +632,8 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         Assert.Contains(context.Inventoryissuelines.Local, line => line.ReconciliationBatchLineId!.SequenceEqual(GuidHelper.ParseGuidString(fixture.Request.Lines[0].ReconciliationBatchLineId!)!) && line.IssuedQty == 1.5m);
         Assert.Contains(context.Inventoryissuelines.Local, line => line.ReconciliationBatchLineId!.SequenceEqual(secondLineId) && line.IssuedQty == 1.25m);
         Assert.All(context.Reconciliationbatches.Local, item => Assert.Equal("IN_PROGRESS", item.Status));
-        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 1.5m, "ISSUE", "inventoryissues", Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
-        await fixture.Ledger.Received(1).RemoveStockWithCheckAsync(Arg.Any<byte[]>(), fixture.IngredientId, fixture.UnitId, 1.25m, "ISSUE", "inventoryissues", Arg.Any<byte[]>(), Arg.Any<byte[]>(), "Xuất kho đối chiếu", Arg.Any<string>());
+        await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(
+            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
     }
 
     [Fact]
@@ -819,6 +845,77 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         await fixture.Ledger.DidNotReceiveWithAnyArgs().RemoveStockWithCheckAsync(default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(20)]
+    public async Task Reconciliation_issue_and_supplemental_ignore_physical_stock_and_replay_without_movements(int? physicalQuantity)
+    {
+        var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-mrx-logical-{Guid.NewGuid():N}.db");
+        try
+        {
+            var source = await SeedRelationalIssueDatabaseAsync(databasePath, "mrx-logical-replay");
+            await using (var setup = CreateRelationalContext(databasePath))
+            {
+                var stock = await setup.Currentstocks.SingleAsync();
+                if (physicalQuantity is null) setup.Currentstocks.Remove(stock);
+                else stock.CurrentQty = physicalQuantity.Value;
+                await setup.SaveChangesAsync();
+            }
+            InventoryIssueCreatedDto created;
+            await using (var command = await CreateRelationalIssueServiceAsync(databasePath, source))
+                created = (await command.Service.CreateAsync(CloneRequest(source.Request), source.ActorId))!;
+            Assert.Empty(created.Provisions);
+            await using (var detailService = await CreateRelationalIssueServiceAsync(databasePath, source))
+            {
+                var detail = await detailService.Service.GetByIdAsync(created.IssueId, InventoryIssueSourceFamilies.MaterialReconciliation);
+                Assert.Empty(detail!.Provisions);
+                Assert.Equal(2m, Assert.Single(detail.Lines).IssuedQty);
+            }
+            await using (var replayService = await CreateRelationalIssueServiceAsync(databasePath, source))
+            {
+                var replay = await replayService.Service.CreateAsync(CloneRequest(source.Request), source.ActorId);
+                Assert.Equal(created.IssueId, replay!.IssueId);
+                Assert.Empty(replay.Provisions);
+            }
+            var supplemental = CloneRequest(source.Request);
+            supplemental.CommandId = "mrx-logical-supplemental";
+            supplemental.ExpectedVersion = 4;
+            supplemental.IsSupplemental = true;
+            supplemental.Lines[0].RequestedQty = 0.5m;
+            supplemental.Lines[0].IssuedQty = 0.5m;
+            supplemental.Lines[0].VarianceReason = "Ghi nhận xuất thêm để đối soát";
+            await using (var command = await CreateRelationalIssueServiceAsync(databasePath, source))
+            {
+                var additional = await command.Service.CreateAsync(supplemental, source.ActorId);
+                Assert.NotEqual(created.IssueId, additional!.IssueId);
+                Assert.Empty(additional.Provisions);
+            }
+            await using var verify = CreateRelationalContext(databasePath);
+            Assert.Empty(await verify.Stockmovements.ToListAsync());
+            var stocks = await verify.Currentstocks.ToListAsync();
+            if (physicalQuantity is null) Assert.Empty(stocks);
+            else Assert.Equal((decimal)physicalQuantity.Value, Assert.Single(stocks).CurrentQty);
+            var lines = await verify.Inventoryissuelines.ToListAsync();
+            Assert.Equal(2, lines.Count);
+            Assert.Equal(2.5m, lines.Sum(line => line.IssuedQty));
+            Assert.All(lines, line => Assert.Equal(
+                GuidHelper.ParseGuidString(source.Request.Lines[0].ReconciliationBatchDailyLineId!),
+                line.ReconciliationBatchDailyLineId));
+            var batch = await verify.Reconciliationbatches.SingleAsync();
+            Assert.Equal("IN_PROGRESS", batch.Status);
+            Assert.Equal(5, batch.Version);
+            Assert.Equal(2, await verify.Lifecycletransitions.CountAsync());
+            Assert.Equal(2, await verify.Lifecyclecommandreceipts.CountAsync());
+            Assert.Contains(await verify.Auditlogs.ToListAsync(), item => item.Reason == supplemental.Lines[0].VarianceReason);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools(); File.Delete(databasePath);
+        }
+    }
+
     [Fact]
     public async Task Reconciliation_manual_issue_response_loss_replay_and_true_relational_duplicate_are_exactly_once()
     {
@@ -846,8 +943,8 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             var response = results.Single(result => result.Result is not null).Result!;
             Assert.Equal(GuidHelper.ToGuidString(winner.IssueId), response.IssueId);
             Assert.Single(await verify.Inventoryissuelines.AsNoTracking().ToListAsync());
-            Assert.Single(await verify.Stockmovements.AsNoTracking().ToListAsync());
-            Assert.Equal(18.5m, await verify.Currentstocks.AsNoTracking().Select(stock => stock.CurrentQty).SingleAsync());
+            Assert.Empty(await verify.Stockmovements.AsNoTracking().ToListAsync());
+            Assert.Equal(20m, await verify.Currentstocks.AsNoTracking().Select(stock => stock.CurrentQty).SingleAsync());
             Assert.Single(await verify.Lifecycletransitions.AsNoTracking().ToListAsync());
             Assert.Single(await verify.Lifecyclecommandreceipts.AsNoTracking().ToListAsync());
 
@@ -855,8 +952,8 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
             var replay = await replayService.Service.CreateAsync(CloneRequest(source.Request), source.ActorId);
             Assert.Equal(response.IssueId, replay!.IssueId);
             Assert.Equal(1, await verify.Inventoryissues.CountAsync());
-            Assert.Equal(1, await verify.Stockmovements.CountAsync());
-            Assert.Equal(18.5m, await verify.Currentstocks.Select(stock => stock.CurrentQty).SingleAsync());
+            Assert.Equal(0, await verify.Stockmovements.CountAsync());
+            Assert.Equal(20m, await verify.Currentstocks.Select(stock => stock.CurrentQty).SingleAsync());
         }
         finally
         {
@@ -935,10 +1032,16 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
         var warehouseId = GuidHelper.NewId();
+        var role = new Role { RoleId = GuidHelper.NewId(), RoleCode = "WAREHOUSE", RoleName = "Thủ kho" };
+        var user = new User
+        {
+            UserId = actor, FullName = "Relational warehouse actor", Username = $"warehouse-{Guid.NewGuid():N}",
+            PasswordHash = "fixture", RoleId = role.RoleId, Role = role, IsActive = true, CreatedAt = DateTime.UtcNow
+        };
         var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", BaseUnitCode = "KG", ConvertRateToBase = 1 };
         var warehouse = new Warehouse { WarehouseId = warehouseId, WarehouseCode = "WH-R", WarehouseName = "Relational warehouse", WarehouseType = "MAIN", IsOperationalActive = true };
         var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "ING-R", IngredientName = "Relational ingredient", UnitId = unitId, WarehouseId = warehouseId, Unit = unit, Warehouse = warehouse, IsActive = true };
-        context.AddRange(unit, warehouse, ingredient,
+        context.AddRange(role, user, unit, warehouse, ingredient,
             new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 20 },
             new SystemOperationMode { Id = 1, Mode = SystemOperationEligibility.MaterialReconciliation, Version = 7, UpdatedAt = DateTime.UtcNow, UpdatedBy = actor },
             new ReconciliationBatch
@@ -1153,7 +1256,7 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         var batchId = GuidHelper.NewId();
         var lineId = GuidHelper.NewId();
         var dailyLineId = GuidHelper.NewId();
-        var serviceDate = DateOnly.FromDateTime(DateTime.UtcNow);
+        var serviceDate = ServiceCalendar.StartOfWeek(ServiceCalendar.Today());
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
         var warehouseId = GuidHelper.NewId();
@@ -1289,6 +1392,8 @@ public sealed class ReconciliationWarehouseIssueApplicationPathTests
         WarehouseId = source.WarehouseId,
         MaterialRequestId = source.MaterialRequestId,
         ReconciliationBatchId = source.ReconciliationBatchId,
+        ReconciliationSourceDeltaId = source.ReconciliationSourceDeltaId,
+        ExpectedSourceDeltaVersion = source.ExpectedSourceDeltaVersion,
         Lines = source.Lines.Select(line => new CreateInventoryIssueLineRequest
         {
             MaterialRequestLineId = line.MaterialRequestLineId,

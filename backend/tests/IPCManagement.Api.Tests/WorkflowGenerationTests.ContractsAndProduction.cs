@@ -27,6 +27,7 @@ using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
+using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Shared.Contracts;
 using IPCManagement.Api.Security;
@@ -148,6 +149,119 @@ public partial class WorkflowGenerationTests
         ]);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(50000)]
+    public async Task CustomerContract_Should_RejectUnsupportedCreatePriceWithoutTrackingWrites(int? price)
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var service = new CoordinationConfigurationTestHarness(context);
+        Func<Task> create = async () => await service.CreateCustomerContractAsync(
+            new CreateCustomerContractRequest { CustomerCode = "NEW", CustomerName = "New Customer", DefaultMenuPrice = price }, fixture.UserIdString);
+
+        await create.Should().ThrowAsync<ArgumentException>();
+
+        context.ChangeTracker.Entries().Where(entry => entry.State is EntityState.Added or EntityState.Modified).Should().BeEmpty();
+        await context.SaveChangesAsync();
+        (await context.Customers.CountAsync()).Should().Be(0);
+        (await context.Customercontracts.CountAsync()).Should().Be(0);
+        (await context.Auditlogs.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task CustomerContract_Should_CreateCustomerWithoutInventingPriceOrContract()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var service = new CoordinationConfigurationTestHarness(context);
+        var created = await service.CreateCustomerContractAsync(
+            new CreateCustomerContractRequest { CustomerCode = "NEW", CustomerName = "New Customer", Note = "Giao tại cổng" }, fixture.UserIdString);
+
+        created.DefaultMenuPrice.Should().BeNull();
+        created.ContractId.Should().BeNull();
+        created.IsActive.Should().BeTrue();
+        (await context.Customers.SingleAsync()).Note.Should().Be("Giao tại cổng");
+        (await context.Customercontracts.CountAsync()).Should().Be(0);
+        (await context.Auditlogs.CountAsync()).Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CustomerStatusOnly_Should_NotCreateContractOrRepriceImportedSchedules(bool hasContract)
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var schedule = await context.Menuschedules.SingleAsync();
+        schedule.MenuPrice = 34000;
+        if (hasContract)
+            context.Customercontracts.Add(new CustomerContract
+            {
+                ContractId = GuidHelper.NewId(), CustomerId = schedule.CustomerId,
+                EffectiveFrom = schedule.WeekStartDate, ActiveWeekDays = "t2,t3,t4,t5,t6,t7",
+                ShiftNames = "MORNING,AFTERNOON", DefaultMenuPrice = 25000,
+                DefaultBomRatePercent = 100, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow
+            });
+        await context.SaveChangesAsync();
+        var customerId = GuidHelper.ToGuidString(schedule.CustomerId);
+        var auditCount = await context.Auditlogs.CountAsync();
+        var service = new CoordinationConfigurationTestHarness(context);
+
+        var stopped = await service.UpdateCustomerContractAsync(customerId, new UpdateCustomerContractRequest { IsActive = false }, fixture.UserIdString);
+        stopped!.IsActive.Should().BeFalse();
+        var restored = await service.UpdateCustomerContractAsync(customerId, new UpdateCustomerContractRequest { IsActive = true }, fixture.UserIdString);
+        restored!.IsActive.Should().BeTrue();
+        (await context.Menuschedules.SingleAsync()).MenuPrice.Should().Be(34000);
+        (await context.Customercontracts.CountAsync()).Should().Be(hasContract ? 1 : 0);
+        (await context.Auditlogs.CountAsync()).Should().Be(auditCount + 2);
+    }
+
+    [Theory]
+    [InlineData(25000, 0, 25000)]
+    [InlineData(50000, 0, null)]
+    [InlineData(25000, 34000, null)]
+    public async Task CustomerContract_Should_DeriveOnlyOneDistinctSupportedSchedulePrice(int firstPrice, int secondPrice, int? expectedPrice)
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var schedule = await context.Menuschedules.SingleAsync();
+        schedule.MenuPrice = firstPrice;
+        if (secondPrice > 0)
+            context.Menuschedules.Add(new MenuSchedule
+            {
+                MenuScheduleId = GuidHelper.NewId(), CustomerId = schedule.CustomerId, MenuId = schedule.MenuId,
+                ServiceDate = schedule.ServiceDate.AddDays(7), WeekStartDate = schedule.WeekStartDate.AddDays(7),
+                ShiftName = schedule.ShiftName, MenuPrice = secondPrice, BomRatePercent = 100, Status = "DRAFT"
+            });
+        await context.SaveChangesAsync();
+
+        var result = (await new CoordinationConfigurationTestHarness(context).GetCustomerContractsAsync()).Should().ContainSingle().Subject;
+
+        result.DefaultMenuPrice.Should().Be(expectedPrice);
+    }
+
+    [Fact]
+    public async Task CustomerContract_Should_RejectExplicitUnsupportedUpdateBeforeChangesAndPreserveOmittedPrice()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var service = new CoordinationConfigurationTestHarness(context);
+        var created = await service.CreateCustomerContractAsync(
+            new CreateCustomerContractRequest { CustomerCode = "NEW", CustomerName = "New Customer", DefaultMenuPrice = 30000 }, fixture.UserIdString);
+        context.ChangeTracker.Clear();
+        Func<Task> update = async () => await service.UpdateCustomerContractAsync(created.CustomerId,
+            new UpdateCustomerContractRequest { CustomerName = "Must not change", DefaultMenuPrice = 50000 }, fixture.UserIdString);
+
+        await update.Should().ThrowAsync<ArgumentException>();
+        context.ChangeTracker.Entries().Where(entry => entry.State is EntityState.Added or EntityState.Modified).Should().BeEmpty();
+        var result = await service.UpdateCustomerContractAsync(created.CustomerId, new UpdateCustomerContractRequest { Note = "Note only" }, fixture.UserIdString);
+        result!.DefaultMenuPrice.Should().Be(30000);
+        result.CustomerName.Should().Be("New Customer");
+    }
+
     [Fact]
     public async Task CustomerContract_Should_CreateCustomerAndContract_AndBlockDuplicateCode()
     {
@@ -165,7 +279,7 @@ public partial class WorkflowGenerationTests
                 EffectiveFrom = "2026-06-15",
                 ActiveWeekDays = ["t2", "t3"],
                 ShiftNames = ["MORNING", "AFTERNOON"],
-                DefaultMenuPrice = 50000,
+                DefaultMenuPrice = 30000,
                 DefaultBomRatePercent = 120
             },
             fixture.UserIdString);
@@ -177,7 +291,7 @@ public partial class WorkflowGenerationTests
         created.ContractStatus.Should().Be("ACTIVE");
         created.ActiveWeekDays.Should().Equal("t2", "t3");
         created.ShiftNames.Should().Equal("AFTERNOON", "MORNING");
-        created.DefaultMenuPrice.Should().Be(50000);
+        created.DefaultMenuPrice.Should().Be(30000);
         created.DefaultBomRatePercent.Should().Be(100);
 
         (await context.Customers.AsNoTracking().CountAsync()).Should().Be(1);
@@ -255,7 +369,7 @@ public partial class WorkflowGenerationTests
                     EffectiveFrom = "2026-06-15",
                     ActiveWeekDays = ["t2"],
                     ShiftNames = ["MORNING"],
-                    DefaultMenuPrice = 46000,
+                    DefaultMenuPrice = 34000,
                     DefaultBomRatePercent = 140
                 },
                 fixture.UserIdString);
@@ -985,7 +1099,7 @@ public partial class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task CustomerWeekMenuTierIntegrity_RollbackLastDraftVersionShouldReleaseEmptyWeekTier()
+    public async Task Rollback_materializes_missing_legacy_snapshot_before_removing_draft_projection()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -1016,6 +1130,9 @@ public partial class WorkflowGenerationTests
             context,
             new WeeklyMenuAuditActorResolver(context));
 
+        var missingSnapshot = () => service.GetWeeklyMenuImportSnapshotAsync(GuidHelper.ToGuidString(version.MenuVersionId));
+        await missingSnapshot.Should().ThrowAsync<IPCManagement.Api.Exceptions.ResourceNotFoundException>();
+
         var result = await service.RollbackWeeklyMenuImportAsync(
             GuidHelper.ToGuidString(version.MenuVersionId),
             fixture.UserIdString);
@@ -1024,6 +1141,10 @@ public partial class WorkflowGenerationTests
         (await context.Menuschedules.AsNoTracking().CountAsync()).Should().Be(0);
         (await context.Customerweekmenutiers.AsNoTracking().CountAsync()).Should().Be(0);
         (await context.Menuversions.AsNoTracking().SingleAsync()).Status.Should().Be("ROLLED_BACK");
+        var snapshot = await service.GetWeeklyMenuImportSnapshotAsync(GuidHelper.ToGuidString(version.MenuVersionId));
+        snapshot.Rows.Should().ContainSingle();
+        snapshot.Rows.Single().ServiceDate.Should().Be(schedule.ServiceDate);
+        snapshot.Rows.Single().DishId.Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
@@ -1062,9 +1183,7 @@ public partial class WorkflowGenerationTests
             context,
             new WeeklyMenuAuditActorResolver(context));
         var result = await service.GetWeeklyMenuImportHistoryAsync(
-            fixture.CustomerIdString,
-            null,
-            null,
+            new WeeklyMenuImportHistoryQueryDto { CustomerId = fixture.CustomerIdString },
             new PagedRequestDto { PageNumber = 1, PageSize = 10 });
 
         result.Items.Should().ContainSingle();
@@ -1074,6 +1193,72 @@ public partial class WorkflowGenerationTests
         queryCounter.SelectCommands.Should().Contain(command =>
             command.Contains("LIMIT", StringComparison.OrdinalIgnoreCase),
             "the history list must be bounded at the database page boundary");
+    }
+
+    [Fact]
+    public async Task WeeklyMenuImportHistory_ShouldMatchPersistedDraftIdentityBeforePaging()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        var checksum = new string('A', 64);
+        await using (var setup = fixture.CreateContext())
+        {
+            var source = await setup.Menuschedules.SingleAsync();
+            for (var index = 0; index < 7; index++)
+            {
+                var week = new DateOnly(2024, 1, 1).AddDays(index * 7);
+                var version = new MenuVersion
+                {
+                    MenuVersionId = GuidHelper.NewId(), CustomerId = fixture.CustomerId,
+                    WeekStartDate = week, VersionNo = 1, Status = index == 2 ? "SUPERSEDED" : "DRAFT",
+                    SourceFileName = "same-name.xlsx", SourceChecksum = index == 3 ? new string('B', 64) : checksum,
+                    CreatedBy = fixture.UserId, CreatedAt = new DateTime(2024, 1, 1).AddDays(index), UpdatedAt = new DateTime(2024, 1, 1)
+                };
+                setup.Menuversions.Add(version);
+                if (index == 6) continue;
+                setup.Menuschedules.Add(new MenuSchedule
+                {
+                    MenuScheduleId = GuidHelper.NewId(), CustomerId = fixture.CustomerId, MenuId = source.MenuId,
+                    MenuVersionId = version.MenuVersionId, WeekStartDate = week, ServiceDate = week, ShiftName = "MORNING",
+                    MenuPrice = index == 4 ? 30000m : 25000m, BomRatePercent = source.BomRatePercent,
+                    Status = index == 5 ? "PUBLISHED" : "DRAFT"
+                });
+            }
+            await setup.SaveChangesAsync();
+        }
+        await using var context = fixture.CreateContext();
+        var service = new WeeklyMenuImportHistoryService(context, new WeeklyMenuAuditActorResolver(context));
+        var query = new WeeklyMenuImportHistoryQueryDto
+        {
+            CustomerId = fixture.CustomerIdString, SourceChecksum = checksum.ToLowerInvariant(), PriceTierAmount = 25000m
+        };
+        var first = await service.GetWeeklyMenuImportHistoryAsync(query, new PagedRequestDto { PageSize = 1, PageNumber = 1 });
+        first.TotalCount.Should().Be(2);
+        first.Items.Single().WeekStartDate.Should().Be(new DateOnly(2024, 1, 8));
+        first.Items.Single().CreatedAt.Should().Be(new DateTime(2024, 1, 2));
+        var second = await service.GetWeeklyMenuImportHistoryAsync(query, new PagedRequestDto { PageSize = 1, PageNumber = 2 });
+        second.Items.Single().WeekStartDate.Should().Be(new DateOnly(2024, 1, 1));
+        query.CustomerId = Guid.NewGuid().ToString();
+        (await service.GetWeeklyMenuImportHistoryAsync(query, new PagedRequestDto())).TotalCount.Should().Be(0);
+        (await context.Menuversions.AsNoTracking().CountAsync()).Should().Be(7);
+        context.ChangeTracker.HasChanges().Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("bad-checksum", 25000)]
+    [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 50000)]
+    [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", 25000.1)]
+    public async Task WeeklyMenuImportHistory_ShouldRejectInvalidDraftIdentity(string checksum, double tier)
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var service = new WeeklyMenuImportHistoryService(context, new WeeklyMenuAuditActorResolver(context));
+        var action = () => service.GetWeeklyMenuImportHistoryAsync(new WeeklyMenuImportHistoryQueryDto
+        {
+            CustomerId = fixture.CustomerIdString, SourceChecksum = checksum, PriceTierAmount = (decimal)tier
+        }, new PagedRequestDto());
+        await action.Should().ThrowAsync<BusinessRuleException>();
+        context.ChangeTracker.HasChanges().Should().BeFalse();
     }
 
     [Fact]
@@ -1110,9 +1295,7 @@ public partial class WorkflowGenerationTests
             context,
             new WeeklyMenuAuditActorResolver(context));
         var result = await service.GetWeeklyMenuImportHistoryAsync(
-            fixture.CustomerIdString,
-            new DateOnly(2026, 6, 15),
-            new DateOnly(2030, 1, 7),
+            new WeeklyMenuImportHistoryQueryDto { CustomerId = fixture.CustomerIdString, FromDate = new DateOnly(2026, 6, 15), ToDate = new DateOnly(2030, 1, 7) },
             new PagedRequestDto { PageNumber = 1, PageSize = 10 });
 
         result.TotalCount.Should().Be(2);
@@ -1120,9 +1303,7 @@ public partial class WorkflowGenerationTests
             .Should().Equal(new DateOnly(2030, 1, 7), new DateOnly(2026, 6, 15));
 
         var pageOne = await service.GetWeeklyMenuImportHistoryAsync(
-            fixture.CustomerIdString,
-            new DateOnly(2026, 6, 15),
-            new DateOnly(2030, 1, 7),
+            new WeeklyMenuImportHistoryQueryDto { CustomerId = fixture.CustomerIdString, FromDate = new DateOnly(2026, 6, 15), ToDate = new DateOnly(2030, 1, 7) },
             new PagedRequestDto { PageNumber = 1, PageSize = 1 });
         pageOne.Items.Should().ContainSingle();
         JsonSerializer.Serialize(pageOne.Items).Length

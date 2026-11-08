@@ -11,7 +11,10 @@ namespace IPCManagement.Api.Features.Reconciliation.Controllers;
 [ApiController, Route("api/reconciliation/lines"), Authorize]
 public sealed class ReconciliationActualsController(ReconciliationActualService service, ICurrentUserService currentUser) : ControllerBase
 {
-    [HttpGet("disposition-categories"), Authorize(Policy = AuthorizationPolicies.ReportAccess), ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReconciliationDispositionCategoryDto>>), StatusCodes.Status200OK)]
+    [HttpGet("disposition-categories")]
+    [SystemOperation("reconciliation.disposition-categories.read", OperationDisposition.ReconciliationOnly)]
+    [Authorize(Policy = AuthorizationPolicies.ReconciliationDispositionAccess)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReconciliationDispositionCategoryDto>>), StatusCodes.Status200OK)]
     public IActionResult DispositionCategories() => Ok(ApiResponse<IReadOnlyList<ReconciliationDispositionCategoryDto>>.SuccessResult(ReconciliationDispositionCategories.Options));
 
     [HttpPut("{lineId}/purchased"), SystemOperationNeutral, Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]

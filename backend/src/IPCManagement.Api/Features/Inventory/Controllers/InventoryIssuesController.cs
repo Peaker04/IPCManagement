@@ -100,9 +100,12 @@ public class InventoryIssuesController : ControllerBase
             if (result is null)
                 return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
+            var sourceFamily = string.IsNullOrWhiteSpace(dto.ReconciliationBatchId)
+                ? InventoryIssueSourceFamilies.Default
+                : InventoryIssueSourceFamilies.MaterialReconciliation;
             return CreatedAtAction(
                 "GetById",
-                new { id = result.IssueId },
+                new { id = result.IssueId, sourceFamily },
                 ApiResponse<InventoryIssueCreatedDto>.SuccessResult(result, "Tạo phiếu xuất kho thành công."));
         }
         catch (StockShortageException ex)
@@ -159,7 +162,8 @@ public class InventoryIssuesController : ControllerBase
         var knownFamily = sourceFamily.Equals(InventoryIssueSourceFamilies.Default, StringComparison.OrdinalIgnoreCase)
             || sourceFamily.Equals(InventoryIssueSourceFamilies.MaterialReconciliation, StringComparison.OrdinalIgnoreCase)
             || sourceFamily.Equals(InventoryIssueSourceFamilies.LegacyUnclassified, StringComparison.OrdinalIgnoreCase);
-        if (!knownFamily) return;
+        if (!knownFamily)
+            throw new ArgumentException($"Nguồn phiếu xuất kho không hợp lệ: {sourceFamily}.", nameof(sourceFamily));
 
         var expectedFamily = _operationContext.Mode == SystemOperationEligibility.MaterialReconciliation
             ? InventoryIssueSourceFamilies.MaterialReconciliation

@@ -1,5 +1,6 @@
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SampleData.Services;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using Microsoft.AspNetCore.Mvc;
@@ -42,7 +43,7 @@ public sealed partial class WeeklyMenuImportsController
 
         try
         {
-            var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+            var parsedWeekStart = WeeklyMenuImportValidationPolicy.ParseRequestedWeekStart(weekStartDate);
             using var stream = file.OpenReadStream();
             var result = await _importService.PreviewWeeklyMenuImportAsync(
                 stream,
@@ -87,7 +88,7 @@ public sealed partial class WeeklyMenuImportsController
 
         try
         {
-            var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+            var parsedWeekStart = WeeklyMenuImportValidationPolicy.ParseRequestedWeekStart(weekStartDate);
             var userId = _currentUserService.GetUserId(User);
             using var stream = file.OpenReadStream();
             var result = await _importService.CommitWeeklyMenuImportAsync(
@@ -97,7 +98,8 @@ public sealed partial class WeeklyMenuImportsController
                 parsedWeekStart,
                 priceTierAmount, previewToken,
                 userId,
-                cancellationToken);
+                cancellationToken,
+                _currentUserService.GetRoleNames(User));
 
             return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(
                 result,

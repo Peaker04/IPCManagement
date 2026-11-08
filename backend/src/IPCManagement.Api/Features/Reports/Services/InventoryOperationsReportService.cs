@@ -57,7 +57,7 @@ public class InventoryOperationsReportService : IInventoryOperationsReportServic
                 ShiftName = item.RequestScope == "FULLDAY" ? null : item.RequestScope,
                 Status = item.Status,
                 OwnerLane = "Bếp trưởng",
-                Route = "/chef",
+                Route = "/chef-dashboard",
                 Summary = "Danh sách nhu cầu nguyên liệu đã tính từ suất ăn đã chốt"
             })
             .ToListAsync());

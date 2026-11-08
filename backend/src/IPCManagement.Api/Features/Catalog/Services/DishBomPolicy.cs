@@ -10,17 +10,9 @@ public static class DishBomPolicy
     public const string Published = "PUBLISHED";
     public const string Archived = "ARCHIVED";
 
-    public static readonly decimal[] SupportedPriceTiers = [25000m, 30000m, 34000m];
+    public static readonly decimal[] SupportedPriceTiers = MenuPriceTierPolicy.SupportedPriceTiers;
 
-    public static decimal NormalizePriceTier(decimal tier)
-    {
-        var normalized = decimal.Round(tier, 0);
-        return normalized switch
-        {
-            25000m or 30000m or 34000m => normalized,
-            _ => throw new ArgumentException("Đơn giá BOM chỉ được là 25000, 30000 hoặc 34000.")
-        };
-    }
+    public static decimal NormalizePriceTier(decimal tier) => MenuPriceTierPolicy.Normalize(tier);
 
     public static bool TryNormalizeImportPriceTier(string value, out decimal normalized)
     {

@@ -225,7 +225,8 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
  ContributorId BLOB NOT NULL PRIMARY KEY, BatchLineId BLOB NOT NULL, MenuScheduleId BLOB NOT NULL,
  MealQuantityPlanLineId BLOB NOT NULL, DishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL,
  FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL,
- FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, SourceQuantity TEXT NOT NULL);
+ FrozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, FrozenWasteRatePercent TEXT NULL, SourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL,
+ InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
 """);
         var line = new ReconciliationBatchLine
         {
@@ -862,6 +863,38 @@ CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (
         (await context.Menuversions.CountAsync()).Should().Be(existingVersionCount);
         (await context.Auditlogs.CountAsync()).Should().Be(0);
         (await context.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(OrderStatus.Completed);
+    }
+
+    [Fact]
+    public async Task WeeklyMenuImport_Should_Not_Attach_Unrelated_Weekly_Menu_Graphs()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await using var context = fixture.CreateContext();
+        var customer = await context.Customers.SingleAsync();
+        var unrelatedMenu = await context.Menus.AsNoTracking().Select(item => item.MenuId).SingleAsync();
+        var date = new DateOnly(2026, 7, 20);
+        var plan = new WeeklyMenuImportPlan("bounded.xlsx", "CUS 25k", "C", date, date, 1,
+            [new WeeklyMenuImportDayColumn("D", date, "t2", "D - 20/07/2026", 7)], date)
+        { SourceChecksum = "BOUNDED-WEEKLY-IMPORT" };
+        plan.Sections.Add("MENU MẶN- CA SÁNG");
+        plan.Items.Add(new ParsedWeeklyMenuItem
+        {
+            SourceOrder = 1, ServiceDate = date, DayKey = "t2", SourceRowNumber = 9, SourceColumn = "D",
+            SectionLabel = "MENU MẶN- CA SÁNG", SectionKey = "savory-morning", SourceShift = "MORNING",
+            SourceShiftLabel = "Ca sáng", DbShiftName = "MORNING", VariantKey = "savory", VariantLabel = "Mặn",
+            Slot = "main", SlotLabel = "Món chính", DishName = "Dish with BOM"
+        });
+
+        await CreateWeeklyMenuImportPersistence(context).CommitAsync(plan, customer, 25000m, fixture.UserIdString, CancellationToken.None);
+
+        context.ChangeTracker.Entries<Menu>().Should().NotContain(entry => entry.Entity.MenuId.SequenceEqual(unrelatedMenu),
+            "an import must not materialize unrelated weekly menu graphs into its write unit of work");
+        context.ChangeTracker.Entries<MenuItem>().Should().NotContain(entry => entry.Entity.MenuId.SequenceEqual(unrelatedMenu));
+        context.ChangeTracker.Entries<MenuSchedule>().Should().OnlyContain(entry => entry.Entity.ServiceDate == date);
+        await context.SaveChangesAsync();
+        (await context.Menus.AsNoTracking().CountAsync()).Should().Be(2);
+        (await context.Menuschedules.AsNoTracking().CountAsync()).Should().Be(2);
     }
 
     [Fact]

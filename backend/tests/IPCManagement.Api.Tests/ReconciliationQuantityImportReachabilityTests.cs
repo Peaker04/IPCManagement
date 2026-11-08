@@ -80,6 +80,7 @@ public sealed class ReconciliationQuantityImportReachabilityTests
 
         var line = await fixture.Context.Mealquantityplanlines.SingleAsync();
         line.FinalServings++;
+        line.SavoryServings++; // giữ số suất Mặn/Chay khớp tổng để kiểm đúng nguồn cũ (stale).
         await fixture.Context.SaveChangesAsync();
 
         await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => fixture.ReconciliationController.CommitQuantityImport(
@@ -136,10 +137,15 @@ public sealed class ReconciliationQuantityImportReachabilityTests
 
     private static string RepositoryRoot()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, ".git")))
-            directory = directory.Parent;
-        return directory?.FullName ?? throw new DirectoryNotFoundException("Repository root not found.");
+        foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
+        {
+            var git = Path.Combine(directory.FullName, ".git");
+            if (File.Exists(git) || Directory.Exists(git))
+                return directory.FullName;
+        }
+
+        throw new DirectoryNotFoundException("Repository root not found.");
     }
 
     public enum MaterialDefect
@@ -243,7 +249,8 @@ public sealed class ReconciliationQuantityImportReachabilityTests
             {
                 ControllerContext = ControllerContext()
             };
-            var quantityController = new MealQuantityPlansController(new MealQuantityPlanService(context, transactionRunner), currentUser)
+            var quantityController = new MealQuantityPlansController(new MealQuantityPlanService(context, transactionRunner,
+                new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation }), currentUser)
             {
                 ControllerContext = ControllerContext()
             };
@@ -380,10 +387,16 @@ public sealed class ReconciliationQuantityImportReachabilityTests
                     CustomerId = CustomerIdString,
                     ServiceDate = schedule.ServiceDate.ToString("yyyy-MM-dd"),
                     ShiftName = schedule.ShiftName,
-                    Servings = servings,
+                    SavoryServings = servings,
+                    VegetarianServings = 0,
                     Complete = true
                 }));
             Assert.Equal("COMPLETED", quantity.Status);
+            // BR-MRX-SERV-1: quick-servings MRX ghi tách Mặn/Chay; toàn bộ số suất vào Mặn để giữ nguyên định lượng mong đợi.
+            var sourceLine = await Context.Mealquantityplanlines.AsNoTracking().SingleAsync(line => line.MenuScheduleId == schedule.MenuScheduleId);
+            Assert.Equal(servings, sourceLine.FinalServings);
+            Assert.Equal(servings, sourceLine.SavoryServings);
+            Assert.Equal(0, sourceLine.VegetarianServings);
 
             var sourceLabel = $"{sourceMarker}-{committedMenu.SourceChecksum}";
             Assert.False(string.IsNullOrWhiteSpace(committedMenu.MenuVersionId));

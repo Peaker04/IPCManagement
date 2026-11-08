@@ -1,57 +1,83 @@
-# IPCManagement — agent entry contract
+# IPCManagement — Agent Governance & Governance Architecture
 
-## Authority and startup
+Read this file and [current task](.planning/WORK.md) at intake. Load only the canonical owners relevant to the task; [documentation router](docs/README.md) is optional navigation, not a full-doc preload requirement. Technical truth resides in source, tests, and machine contracts.
 
-- Pi CLI is the sole active runtime. A Codex API/model connection inside Pi remains Pi, not a Codex app/CLI session. Codex app, Codex CLI and Claude Code are outside the target workflow unless Kỳ separately requests them.
-- GSD is the only process/state owner. Follow `docs/harness/DELIVERY.md` for L0/L1/L2 and `docs/harness/RUNTIMES.md` for runtime/skill/subagent mapping. No parallel task system from Shipyard, Ponytail or another skill.
-- Start with this file, then `MEMORY.md`; compare branch and `git status --short --branch`. Follow the active checkpoint pointer before resuming. Source/runtime wins over stale narrative; do not ask Kỳ to repeat the whole chat.
-- Use `docs/README.md` as the authority map. Do not auto-load HISTORY, LESSONS, all docs, planning trees or evidence. Read `LESSONS.md` before migration, restore or browser measurement; read relevant evidence/lineage before touching a database lane.
-- Task state/checklist stays in GSD `.planning/`; MEMORY holds current pointers/runtime, HISTORY holds completed work, evidence hashes belong only in `docs/EVIDENCE-INDEX.md`. Link rather than copy gates or counters.
+## 1. Hard Safety Invariants
 
-## Non-negotiable boundaries
+- **No Destructive Operations**: No `git reset`, `git restore`, `git clean`, forced push, unauthorized deploy, package installation, or DB schema/data mutation without explicit current scope and user authorization.
+- **Operational Mode Isolation (`DOM-MODE-1`)**: `DEFAULT != MATERIAL_RECONCILIATION`. Shared master data and physical stock never merge workflows, commands, queries, lineages, or audit logs.
+- **No Synthetic Evidence**: No fabricated business evidence, mock seeds in production paths, lowered permissions, or weakened tests to manufacture PASS. Synthetic fixture creation requires its own authorized scope.
+- **Single Styling Authority**: Zero ad-hoc colors, inline styles, or external CSS tokens outside `frontend/src/styles/index.css`. Redesign and preview tokens are prohibited in production.
+- **Environment & Process Safety**: Dedicated browser instances (separate Chrome profile), confirmed credentials, no publishing credentials or secrets from `.docs/` or workbook rows.
+- **Runtime Authority**: Pi is the runtime. Other CLI runtimes, auto-installation, indexing, or unprompted subagents require explicit user authorization.
 
-- Preserve inherited dirty files. No unsolicited commit/push, reset/restore, seed, operation-mode switch, schema/data mutation or destructive cleanup. A skill's auto-commit/ship instruction is not user authorization.
-- Never assume a database lane is empty. Do not create credentials, default accounts, BOMs, inventory, lineage or business records merely to make a test pass. Preserve DEFAULT/MATERIAL_RECONCILIATION separation and the current contract in `docs/domain/material-reconciliation.md`; `MEMORY.md` only points to it.
-- No secrets, tokens, real connection strings or personal data in docs/reports. Read only required configuration metadata; do not dump auth files or secret environments.
-- Never rename symbols with blind find-and-replace. Use language-aware tooling/callsite verification; opt-in graph-aware changes follow the policy below.
-- Code changes require relevant docs updated in the same task. Preserve invariants, input validation, data-loss handling, security and accessibility regardless of Ponytail simplification.
+## 2. 5-Layer Governance Architecture
 
-## GitNexus: opt-in only
+Mô hình kiến trúc quản trị 5 tầng áp dụng xuyên suốt 12 phân hệ Backend và 14 Routes Frontend:
 
-Do not call GitNexus MCP/CLI, inspect index or generate graph evidence unless Kỳ explicitly requests GitNexus/impact/blast radius/context/detect_changes for this task. Then read `docs/GITNEXUS-POLICY.md` before the first call: classify final diff, use branch-aware rigor and warn on HIGH/CRITICAL. Graph-free work requires no graph calls even when the tool is installed. Missing graph capability is a limitation, not fabricated evidence.
+- **Layer 1 — Requirements (`BR · FR · NFR · UXR · Acceptance Criteria`)**:
+  - *Chủ sở hữu*: `docs/DOMAIN.md` (nghiệp vụ, bất biến, BR/FR/NFR matrix), `docs/FLOWS.md` (luồng dữ liệu & bàn giao), `docs/DESIGN.md` (UXR/NFR-UI), `docs/ENGINEERING.md` (tiêu chuẩn kỹ thuật).
+- **Layer 2 — UX Architecture (`IA · Navigation · User Flow · IxD · UI State Matrix`)**:
+  - *Chủ sở hữu*: `frontend/src/routes/routeRegistry.ts` (14 canonical routes), `docs/DESIGN.md` (`N1–N6`, 6-state gate), `QueryViewBoundary.tsx`.
+- **Layer 3 — UI Design (`Design System · UI Kit · Tokens · Components · Responsive`)**:
+  - *Chủ sở hữu*: `docs/DESIGN.md` (`D1–D7`, `T1–T8`, `M1–M3`), catalog trong `docs/UI-KIT.md`, semantic tokens trong `frontend/src/styles/index.css`, 13 UI primitives trong `frontend/src/components/ui/`, 4 họ composites trong `frontend/src/components/common/`.
+- **Layer 4 — FE Implementation (`Component Architecture · State · API · RBAC`)**:
+  - *Chủ sở hữu*: Phân hệ tính năng tại `frontend/src/features/*`, hợp đồng bảng tại `docs/table-contracts.json`, kiểm soát bảo mật tại `ProtectedRoute.tsx`, `RoleGuard.tsx`, `ActionGuard.tsx`, `ActionAvailability.tsx`.
+- **Layer 5 — Quality & Validation (`A11y · Performance · Usability · Contract Tests`)**:
+  - *Chủ sở hữu*: Quality gates tại `.pi/skills/ipc-ui-review/SKILL.md`, `.pi/skills/ipc-code-review/SKILL.md`, `.pi/skills/ipc-test-audit/SKILL.md`, bộ kiểm thử hợp đồng `*.contract.test.tsx`, `operationalPageContracts.test.ts`, và Playwright audits.
 
-## Skill routing
+## 3. Lifecycle & Mandatory Phase Gates
 
-Read the selected SKILL.md before applying it. In Pi use `read` or `/skill:<name>`; `Skill(...)`, `Task(...)`, `Agent(...)` and Codex `spawn_agent` are not Pi tools. Use only live capabilities. Runtime mapping and on-demand source paths: `docs/harness/RUNTIMES.md`.
+Vòng đời cố định: `IDLE → INTAKE → PLAN → EXECUTE → VERIFY → CLOSE → IDLE`. Các skill gates nâng cấp từ khuyến nghị thành **BẮT BUỘC (MANDATORY)**:
 
-| Task | Minimum discipline |
-|---|---|
-| Code write/review/refactor | `karpathy-guidelines` |
-| Runtime/repeated bug | add `diagnosing-bugs`, lock a red-capable seam first |
-| Behavior regression | add `tdd`; behavior tests over source-string assertions when feasible |
-| Any frontend/UI review or change | project UI rules → `frontend-checklist-global` |
-| React/shadcn/Tailwind interface implementation | add `ui-styling` |
-| SAP Fiori Template Studio, range mapping, validation/diagnostics | `sketch-findings-ipcmanagement` |
-| Docs/rules | `gsd-docs-update` discipline, inline for bounded changes |
-| Planning/task execution | matching GSD skill + Lean lane; not mandatory fan-out |
+1. **INTAKE**:
+   - Chạy kiểm tra workspace: `git status --short --branch`, `git rev-parse HEAD`, `git diff --cached --name-only`.
+   - Đọc `.planning/WORK.md`. Xác định đúng mã `FR-*`, `BR-*`, `NFR-*` của phân hệ liên quan.
+   - Bảo toàn thay đổi kế thừa; không tự ý xóa bỏ các tệp chưa theo dõi (untracked) hoặc thay đổi dở dang.
+2. **PLAN (Mandatory Gate Loading)**:
+   - *Architecture / Module Refactor*: BẮT BUỘC nạp `.pi/skills/ipc-codebase-design/SKILL.md`.
+   - *Bug / Root-cause investigation*: BẮT BUỘC nạp `.pi/skills/ipc-debugging/SKILL.md`.
+   - *UI / Frontend Work*: BẮT BUỘC xuất ra **Scoped Pre-Code UI Gate Block** trước khi sửa bất kỳ file `.tsx`/`.css` nào:
+     ```markdown
+     ### Scoped Pre-Code UI Gate Block
+     - Route: [ví dụ: /weekly-menu]
+     - Single Primary Work Object: [OperationalFrame | SplitWorkbench]
+     - Server Mode: [DEFAULT | MATERIAL_RECONCILIATION] (DOM-MODE-1)
+     - RBAC Guards: [RoleGuard | ActionGuard | ActionAvailability with token permission]
+     - 6 UI States: [loading | empty | error | permission-denied | partial | write-reconciliation]
+     - Primitives & Composites: [components/ui/*, components/common/*]
+     - Compliance Pledges: D6 (>=12px), D7 (1 primary), T7 (frozen header/col), T8 (compact density 36-40px), M1.2 (1 blocking modal), N6 (nested sidebar v2)
+     ```
+3. **EXECUTE**:
+   - Can thiệp đúng chủ sở hữu (surgical changes at existing owners). 1 writer per cwd/worktree.
+   - Cấm tạo token styling ngoài `index.css`. Cấm duplicate primitive components (no BadgeV2, TableNew).
+4. **VERIFY (Mandatory Verification Gates)**:
+   - *Test Audit & Anti-Tautology*: BẮT BUỘC tuân thủ `.pi/skills/ipc-test-audit/SKILL.md` (Rule TA-1 đến TA-4: fixture bám sát C# DTO, không mock component dưới test, zero allowlist padding).
+   - *UI / Frontend Work*: BẮT BUỘC nạp `.pi/skills/ipc-ui-review/SKILL.md` và chạy bộ contract tests (`operationalPageContracts.test.ts`, `*.contract.test.tsx`).
+   - *Mọi thay đổi code*: BẮT BUỘC nạp `.pi/skills/ipc-code-review/SKILL.md` và chạy build/lint/tests liên quan.
+   - Định dạng báo cáo: `Skill; Task type; Baseline missed; Skill added; Was it correct; Noise; Decision impact`.
+5. **CLOSE**:
+   - Báo cáo PASS/FAIL/NEEDS_EVIDENCE/BLOCKED theo từng tiêu chí trong scope.
+   - Cập nhật `.planning/WORK.md` và đưa trạng thái về `IDLE`.
 
-- L0/L1 uses at most three discipline skills by default, aside from the GSD process selection and already-active Ponytail. Do not add skill layers simply because descriptions overlap. If mandatory domain coverage exceeds the default, name the reason and keep scope fixed.
-- Design-system/brand/banner/slides and UX pattern lookup are on-demand, not mandatory for UI bugs. `ui-ux-pro-max` may fill an undecided interaction, never override Fiori/project contracts. `design-taste-frontend` is not for dashboards/data tables/multi-step product UI.
-- `qa` collects issues, not fixes. External `handoff` may create an OS-temp draft only; the GSD parent fact-checks and promotes it. `implement`, `to-spec`, `to-tickets`, `triage`, `wayfinder`, `ask-matt`, Claude-only routers and Shipyard feature orchestration are not execution paths here.
+## 4. Task Routing Table (12 BE Features <-> 14 FE Routes)
 
-## UI and browser evidence
+| FR Code | Phân hệ Backend (`backend/.../Features/`) | Route Frontend (`frontend/.../routes/`) | Feature Frontend (`frontend/.../features/`) | Tài liệu & Phạm vi nghiệp vụ |
+|---|---|---|---|---|
+| `FR-AUTH` | `Auth` | `/login`, `/forbidden` | `features/auth/` | Xác thực JWT, phân quyền truy cập, trang báo lỗi 403 |
+| `FR-DASH` | Aggregated (`Planning`, `Inventory`, `Approvals`) | `/` | `features/dashboard/` | Tổng quan điều hành hôm nay, điểm tắc luồng, KPI ca sản xuất |
+| `FR-CAT` | `Catalog` | `/admin-data` | `features/admin/`, `features/projects/` | Danh mục nguyên liệu, món ăn, định mức BOM gốc, quy cách |
+| `FR-ADMIN`| `Admin` | `/admin-data`, `/settings/approval-rules`, `/settings/advanced` | `features/admin/` | Quản trị khách hàng, quy tắc phê duyệt, cấu hình hệ thống |
+| `FR-MENU` | `Planning`, `Coordination` | `/weekly-menu` | `features/planning/`, `features/coordination/` | [Weekly Menu](docs/domain/weekly-menu.md): Thực đơn, KHSX, bàn giao, giá vốn BOM |
+| `FR-COORD`| `Coordination` | `/meal-orders` | `features/coordination/` | Điều phối đơn ăn khách hàng, chốt số suất, xử lý lệch suất |
+| `FR-CHEF` | `Planning` | `/chef` | `features/chef/`, `features/planning/` | Bếp trưởng: KHSX ca, checklist nhận vật tư, trả hàng thừa |
+| `FR-APPR` | `Approvals` | `/approvals` | `features/approvals/` | Duyệt yêu cầu mua hàng, bảng báo giá nhà cung cấp, duyệt nhập kho |
+| `FR-PUR`  | `Purchasing` | `/purchasing` | `features/purchasing/` | Tổng hợp thiếu hụt, đề xuất mua hàng, PO, quản lý nhà cung cấp |
+| `FR-WH`   | `Inventory` | `/warehouse` | `features/warehouse/` | [Warehouse](docs/domain/warehouse-contract.md): Tồn kho, phiếu nhập/xuất, thẻ kho |
+| `FR-RECON`| `Reconciliation` | `/reconciliation` | `features/reconciliation/` | [MRX](docs/domain/material-reconciliation.md): Đối soát nguyên liệu ngày, sai lệch ca |
+| `FR-REP`  | `Reports` | `/reports` | `features/reports/` | Báo cáo chi phí suất ăn, tiêu hao, biến động giá, lịch sử xuất kho |
+| `FR-SYS`  | `SystemOperation`, `SampleData` | `/settings/advanced` | `features/system-operation/` | Chuyển đổi chế độ vận hành (DEFAULT / MRX), nạp dữ liệu mẫu |
 
-- Before UI audit/change read `docs/UI-UX-EXECUTION-HARNESS.md`; before JSX lock floorplan/surface/geometry using `docs/DESIGN.md`. Normative rules: `docs/DASHBOARD-UI-RULES.md`; checklist adaptation: `docs/FRONT-END-CHECKLIST-INTEGRATION.md`.
-- A screenshot showing orphan controls/headings, blank surfaces or duplicate state is a candidate finding: convert it into a DOM/source oracle. Do not ignore it, and do not use screenshot alone as PASS/FAIL.
-- Browser-use must open real headed Chrome directly on the app URL, not a blank tab followed by API-only tests. Resolve current ports, lane, credential source and viewport matrix from MEMORY; do not try stale/default passwords. Add tablet/mobile only when Kỳ asks.
-- Before actions/capture, verify aligned FE/BE listener/build identity and authenticated operation-mode/version/capabilities. Stale/dev-only runtime cannot certify production performance. Do not switch the user's mode to obtain evidence.
-- If agent-browser is unavailable, use `.artifacts/shipyard-live/live-visual-audit.mjs` from project root, not frontend/. It uses a separate persistent profile `.artifacts/browser-use-visual-audit`, not the user's existing Chrome tabs. Reusing an existing browser requires a real attach/CDP session.
-- Evidence: immutable run directory, final screenshot, post-action API request/response, console/page errors, DOM/focus measurements; add long tasks/CLS when claiming performance. Mutation E2E requires FE control → BE request → DB transition → reload render, not API-only PASS.
-- Refresh locators/snapshots after navigation/DOM changes. On helper failure verify timestamp/content of live-visual-audit-error.txt. Stop only helper/Chrome processes created by the current run, never all Chrome.
-- Chrome DevTools is on-demand diagnostics only, not a replacement for Playwright JSON gates. Configured in Codex does not mean available in Pi.
+## 5. Single State Owner
 
-## Completion and context limits
-
-Use Lean standard's per-claim PASS/FAIL/NEEDS_EVIDENCE/BLOCKED gates. Distinguish tool/report-parser failure from test failure and task acceptance; never promote focused tests to whole-UI PASS. One plan/checklist per objective, one writer per cwd, checkpoint after each verified step and before long commands/context switches. On timeout preserve evidence, record the exact command and owned processes, then resume only the missing gate. Do not automatically continue a paused campaign.
-
-Monitor practical context pressure rather than inventing an unsupported exact token limit. Before a long gate or when a session is becoming hard to hand off safely, finish the current verified wave, update the active checklist/MEMORY pointer, and write a fresh-session handover containing the goal, completed commits, current HEAD/status/index, exact next step, tests/evidence, owned processes, blockers and authoritative pointers. When commit authority exists, make a bounded local checkpoint that stages only task-owned hunks, verify the cached diff, and do not push. Resume in a fresh session from those durable pointers, or stop with the exact resume command; a new session does not inherit unpersisted chat state.
+`.planning/WORK.md` là Single Source of Truth duy nhất cho trạng thái tác vụ. Lịch sử git là bản lưu trữ vĩnh viễn; không tạo thêm file trạng thái tạm bợ (không dùng MEMORY/STATE/CHECKPOINT ngoài luồng).

@@ -2,12 +2,14 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Security;
 using System.Text;
+using IPCManagement.Api.Helpers;
 
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal static class WeeklyMenuTemplateWorkbookBuilder
 {
-    private static readonly decimal[] PriceTiers = [25000m, 30000m, 34000m];
+    private static readonly DateTimeOffset ZipTimestamp = new(2026, 7, 17, 0, 0, 0, TimeSpan.Zero);
+    private static readonly decimal[] PriceTiers = MenuPriceTierPolicy.SupportedPriceTiers;
 
     private static readonly string[] DayLabels =
     [
@@ -382,6 +384,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
     private static void AddEntry(ZipArchive archive, string path, string content)
     {
         var entry = archive.CreateEntry(path);
+        entry.LastWriteTime = ZipTimestamp;
         using var writer = new StreamWriter(entry.Open(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         writer.Write(content);
     }

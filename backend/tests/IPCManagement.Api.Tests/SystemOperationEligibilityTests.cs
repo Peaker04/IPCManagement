@@ -9,6 +9,7 @@ public sealed class SystemOperationEligibilityTests
     [Theory]
     [InlineData("Approvals", false)]
     [InlineData("Coordination", false)]
+    [InlineData("CustomerContracts", true)]
     [InlineData("ReconciliationBatches", true)]
     [InlineData("Reports", true)]
     public void Material_reconciliation_has_explicit_controller_matrix(string controller, bool allowed)
@@ -21,6 +22,7 @@ public sealed class SystemOperationEligibilityTests
     [Theory]
     [InlineData(typeof(ReconciliationBatchesController), "reconciliation.batches.read")]
     [InlineData(typeof(ReconciliationReportsController), "reconciliation.reports.read")]
+    [InlineData(typeof(ReconciliationReportWorkbooksController), "reconciliation.reports.read")]
     public void Reconciliation_read_surfaces_are_explicitly_reconciliation_only(Type controller, string operationKey)
     {
         var metadata = Assert.Single(controller
@@ -34,7 +36,7 @@ public sealed class SystemOperationEligibilityTests
     }
 
     [Fact]
-    public void Admin_audit_read_surface_is_explicitly_retained_without_enabling_reports_navigation()
+    public void Admin_audit_read_endpoint_is_retained_without_advertising_an_unimplemented_navigation_surface()
     {
         var metadata = Assert.Single(typeof(AuditReportsController)
             .GetCustomAttributes(typeof(SystemOperationAttribute), inherit: true)
@@ -44,7 +46,7 @@ public sealed class SystemOperationEligibilityTests
         Assert.Equal(OperationDisposition.Retained, metadata.Disposition);
         Assert.DoesNotContain("reports", SystemOperationEligibility
             .CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation).Navigation);
-        Assert.Contains("audit", SystemOperationEligibility
+        Assert.DoesNotContain("audit", SystemOperationEligibility
             .CapabilitiesFor(SystemOperationEligibility.MaterialReconciliation).PageTabs["admin-data"]);
     }
 

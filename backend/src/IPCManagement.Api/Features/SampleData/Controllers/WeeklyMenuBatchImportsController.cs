@@ -1,4 +1,3 @@
-using System.Globalization;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
@@ -64,7 +63,7 @@ public sealed class WeeklyMenuBatchImportsController(
                     stream,
                     files[index].FileName,
                     customerIds[index],
-                    ParseWeekStartDate(weekStartDates[index]),
+                    WeeklyMenuImportValidationPolicy.ParseRequestedWeekStart(weekStartDates[index]),
                     priceTierAmounts[index],
                     previewTokens[index]));
             }
@@ -94,15 +93,4 @@ public sealed class WeeklyMenuBatchImportsController(
         }
     }
 
-    private static DateOnly? ParseWeekStartDate(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return null;
-        }
-
-        return DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)
-            ? parsed
-            : throw new ArgumentException("Ngày bắt đầu tuần không hợp lệ. Dùng định dạng yyyy-MM-dd.");
-    }
 }

@@ -2,13 +2,19 @@
 <html lang="vi-VN">
   <head>
     <meta charset="UTF-8" />
+    <meta name="color-scheme" content="light" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="IPC Management - Hệ thống quản lý bếp ăn công nghiệp" />
     <title>IPC Management</title>
+    <link rel="stylesheet" href="/src/styles/index.css" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="app-bootstrap" role="status" aria-label="Đang tải không gian làm việc">
+        <p>Đang tải không gian làm việc…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

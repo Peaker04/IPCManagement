@@ -16,6 +16,33 @@ namespace IPCManagement.Api.Tests;
 
 public class WeeklyMenuImportParserTests
 {
+    [Theory]
+    [InlineData(12, true)]
+    [InlineData(13, false)]
+    public void WorkbookWeekValidation_Should_RequireMondayWithoutRejectingHistory(int day, bool valid)
+    {
+        var start = new DateOnly(2026, 10, day);
+        var plan = new WeeklyMenuImportPlan("menu.xlsx", "25k", "A", start, start.AddDays(5), 0, [], null);
+
+        var result = WeeklyMenuImportValidationPolicy.Build(plan, []);
+
+        result.IsValid.Should().Be(valid);
+        result.Issues.Any(issue => issue.Code == "WEEK_START_NOT_MONDAY").Should().Be(!valid);
+    }
+
+    [Theory]
+    [InlineData(5, true)]
+    [InlineData(6, false)]
+    public void WorkbookWeekValidation_RejectsSundayButIncludesSaturday(int offset, bool valid)
+    {
+        var monday = new DateOnly(2026, 10, 12);
+        var plan = new WeeklyMenuImportPlan("menu.xlsx", "25k", "A", monday, monday.AddDays(offset), 0,
+            [new WeeklyMenuImportDayColumn("I", monday.AddDays(offset), offset == 5 ? "t7" : "cn", "Ngày", 5)], null);
+        var result = WeeklyMenuImportValidationPolicy.Build(plan, []);
+        result.IsValid.Should().Be(valid);
+        result.Issues.Any(issue => issue.Code == "NON_SERVICE_DAY").Should().Be(!valid);
+    }
+
     [Fact]
     public void ParseWeeklyMenuWorkbook_Should_RejectLegacyCustomerPrefixedFixture()
     {
@@ -1010,6 +1037,53 @@ public class WeeklyMenuImportParserTests
         {
             DeleteTemp(tempFile);
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Coverage_four_sections_preserve_date_slot_members_for_horizontal_vertical_and_rectangular_merges(bool rectangular)
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            List<IReadOnlyList<string>> rows =
+            [
+                ["", "", "THỰC ĐƠN AMANN"],
+                ["", "", "", "09/11/2026", "10/11/2026", "11/11/2026"]
+            ];
+            var merges = new List<string>();
+            foreach (var (label, prefix) in new[] {
+                ("MENU MẶN - CA SÁNG", "MS"), ("MENU CHAY - CA SÁNG", "CS"),
+                ("MENU MẶN - CA CHIỀU", "MC"), ("MENU CHAY - CA CHIỀU", "CC") })
+            {
+                rows.Add(["", "", label]);
+                var mainRow = rows.Count + 1;
+                rows.Add(["", "", "Món mặn 1", $"{prefix} A", "", $"{prefix} B"]);
+                rows.Add(["", "", "Món mặn 2", rectangular ? "" : $"{prefix} C", rectangular ? "" : $"{prefix} D", ""]);
+                merges.Add(rectangular ? $"D{mainRow}:E{mainRow + 1}" : $"D{mainRow}:E{mainRow}");
+                merges.Add($"F{mainRow}:F{mainRow + 1}");
+            }
+            CreateWorkbook(tempFile, "25k", rows, merges);
+
+            var plan = (WeeklyMenuImportPlan)InvokeParse(tempFile, "coverage.xlsx", new DateOnly(2026, 11, 9), null, 25000m);
+
+            plan.Items.Should().HaveCount(24);
+            foreach (var (section, prefix) in new[] {
+                ("savory-morning", "MS"), ("vegetarian-morning", "CS"),
+                ("savory-afternoon", "MC"), ("vegetarian-afternoon", "CC") })
+            {
+                var items = plan.Items.Where(item => item.SectionKey == section).ToList();
+                items.Select(item => (item.ServiceDate.Day, item.Slot, item.DishName)).Should().Equal(
+                    (9, "main", $"{prefix} A"), (10, "main", $"{prefix} A"), (11, "main", $"{prefix} B"),
+                    (9, "sub1", rectangular ? $"{prefix} A" : $"{prefix} C"),
+                    (10, "sub1", rectangular ? $"{prefix} A" : $"{prefix} D"), (11, "sub1", $"{prefix} B"));
+                items.Single(item => item.ServiceDate.Day == 11 && item.Slot == "main").RowSpan.Should().Be(2);
+                items.Single(item => item.ServiceDate.Day == 11 && item.Slot == "sub1").IsMergedContinuation.Should().BeTrue();
+                items.Where(item => item.ServiceDate.Day != 11).Should().OnlyContain(item => !item.IsMergedContinuation);
+            }
+        }
+        finally { DeleteTemp(tempFile); }
     }
 
     private static object InvokeParse(

@@ -1,5 +1,3 @@
-# Ensure shell scripts always use LF (Unix line endings)
-# so Husky hooks work on all platforms after git pull
-.husky/* text eol=lf
+# Cross-platform executable text and immutable request-contract bytes
 *.sh text eol=lf
 contracts/phase30/reconciliation-stale-request.json text eol=lf

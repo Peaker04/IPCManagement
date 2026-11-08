@@ -1,0 +1,17 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    ".docs": true,
+    ".dotnet-tools": true,
+    "Project_Tracking*.xlsx": true
+  },
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "package.json": "package-lock.json,.dependency-cruiser.cjs,.dependency-cruiser-known-violations.json",
+    "Directory.Build.props": "global.json,dotnet-tools.json",
+    "playwright.config.ts": "playwright.*.config.ts",
+    "tsconfig.json": "tsconfig.*.json"
+  }
+}

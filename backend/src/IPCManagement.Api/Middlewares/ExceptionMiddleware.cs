@@ -50,6 +50,7 @@ public class ExceptionMiddleware
             ResourceNotFoundException => (HttpStatusCode.NotFound,             ex.Message),
             ResourceConflictException => (HttpStatusCode.Conflict,             ex.Message),
             ReconciliationToleranceAuthorityException => (HttpStatusCode.Conflict, ex.Message),
+            MrxSourceChangeException mrx => ((HttpStatusCode)mrx.StatusCode, mrx.Message),
 
             // ── Exception hạ tầng / .NET ───────────────────────────────────────
             // Kestrel ném BadHttpRequestException ngay trong lúc model-binding (vd. [RequestSizeLimit]
@@ -76,10 +77,14 @@ public class ExceptionMiddleware
                 ? tracked
                 : context.TraceIdentifier;
 
+        var mrxError = ex as MrxSourceChangeException;
         var response = new
         {
             success = false,
+            // Chỉ lỗi MRX có mã ổn định; các lỗi khác giữ nguyên hình dạng cũ (code/lockedDates = null).
+            code = mrxError?.Code,
             message,
+            lockedDates = mrxError?.LockedDates?.Select(d => d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)).ToArray(),
             // Chỉ expose chi tiết lỗi ở môi trường development
             errors = _env.IsDevelopment() ? new { detail = ex.ToString() } : null,
             correlationId

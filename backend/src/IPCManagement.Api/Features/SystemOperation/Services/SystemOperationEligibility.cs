@@ -22,17 +22,18 @@ public static class SystemOperationEligibility
         });
 
     private static readonly SystemOperationCapabilitiesDto MaterialReconciliationCapabilities = CreateCapabilities(
-        ["dashboard", "weekly-menu", "warehouse", "reconciliation", "admin-data"],
+        ["weekly-menu", "reconciliation", "warehouse", "chef", "admin-data", "advanced-settings"],
         new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
-            ["weekly-menu"] = ["schedule", "material-demand"],
-            ["warehouse"] = ["demand", "movement"],
-            ["admin-data"] = ["bom-import", "audit"]
+            ["weekly-menu"] = ["mrx-batch", "mrx-materials", "mrx-plans"],
+            ["warehouse"] = ["mrx-daily", "mrx-issues"],
+            ["chef"] = ["mrx-cooking"],
+            ["admin-data"] = ["ingredients", "dishes", "customers"]
         });
 
     private static readonly HashSet<string> ExcludedControllers = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Approvals", "ApprovalHistory", "ApprovalRules", "Coordination", "CustomerContracts",
+        "Approvals", "ApprovalHistory", "ApprovalRules", "Coordination",
         "MealQuantityPlans", "MenuSchedules", "OrderAdjustments", "OrderPlans", "OrderSignoffs",
         "PortionRules", "Production", "ServiceRuns",
         "AuditReports", "DataQualityDispositions", "DemandReports", "InventoryOperationsReports",

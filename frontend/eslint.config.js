@@ -162,7 +162,17 @@ const DECISION_SCREEN_FILES = [
 ]
 
 export default defineConfig([
-  globalIgnores(['dist', 'test-results', 'playwright-report', 'coverage']),
+  globalIgnores([
+    'dist',
+    'test-results',
+    'playwright-report',
+    'coverage',
+    // Specimens là file showcase UI variations cho designer review (UI-KIT §1).
+    // Owner: design system. Chúng import nhiều biến thể không nhất thiết dùng hết
+    // (đó là design choice). Nếu muốn lint chúng, tách ra scope riêng có
+    // rule permissive riêng — không sửa từng file ở đây.
+    'tests/fixtures/specimens/**',
+  ]),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

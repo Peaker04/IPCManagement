@@ -101,6 +101,7 @@ public sealed class OrderSignoffService : IOrderSignoffService
         }
 
         var serviceDate = OrderLifecyclePolicy.ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
+        ServiceCalendar.EnsureServiceDay(serviceDate);
         var shiftName = OrderLifecyclePolicy.NormalizeShiftName(request.ShiftName ?? request.Shift);
         if (shiftName is null)
         {
