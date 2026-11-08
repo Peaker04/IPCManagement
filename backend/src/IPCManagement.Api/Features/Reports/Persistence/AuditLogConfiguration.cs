@@ -15,6 +15,7 @@ internal sealed class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
         entity.Property(e => e.BusinessArea).HasMaxLength(100).HasColumnName("businessArea");
         entity.Property(e => e.ChangedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("changedAt");
         entity.Property(e => e.ChangedBy).HasMaxLength(16).IsFixedLength().HasColumnName("changedBy");
+        entity.Property(e => e.CorrelationId).HasMaxLength(128).HasColumnName("correlationId");
         entity.Property(e => e.EntityId).HasMaxLength(16).IsFixedLength().HasColumnName("entityId");
         entity.Property(e => e.EntityName).HasMaxLength(100).HasColumnName("entityName");
         entity.Property(e => e.FieldName).HasMaxLength(100).HasColumnName("fieldName");

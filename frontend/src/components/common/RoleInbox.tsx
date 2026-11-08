@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { EmptyState } from './EmptyState';
 import { TableViewport } from './TableViewport';
 import { StatusBadge } from './StatusBadge';
 import type { RoleInboxItem } from '@/types/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
-import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
 interface RoleInboxProps {
   items: RoleInboxItem[];
@@ -28,14 +28,19 @@ export function RoleInbox({
   items,
   title = 'Việc đang chờ theo vai trò',
   actionForItem,
-  emptyText = 'Chưa có dữ liệu để hiển thị',
+  emptyText = 'Chưa có công việc cần xử lý.',
   pageSize = 4,
   className,
 }: RoleInboxProps) {
   const { page, rows: pageItems, totalItems, setPage } = useLocalPagination(items, pageSize);
 
   if (!items.length) {
-    return <div className={cn('ipc-role-inbox is-empty', className)}>{emptyText}</div>;
+    return (
+      <EmptyState
+        title={emptyText}
+        className={cn('ipc-role-inbox is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   const hasActions = Boolean(actionForItem);
@@ -72,7 +77,7 @@ export function RoleInbox({
                 </td>
                 {hasActions ? (
                   <td className="ipc-row-action-cell !text-right">
-                    {actionForItem?.({ ...item, nextAction: formatWorkflowStatus(item.nextAction) })}
+                    {actionForItem?.(item)}
                   </td>
                 ) : null}
               </tr>

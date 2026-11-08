@@ -357,7 +357,9 @@ public sealed class DataQualityCommandService : IDataQualityCommandService
             var orphanIssues = await _context.Inventoryissues
                 .Include(issue => issue.Inventoryissuelines)
                 .Include(issue => issue.Inventoryreturns)
-                .Where(issue => !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
+                .Where(issue =>
+                    issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+                    !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
                 .OrderBy(issue => issue.IssueCode)
                 .Take(limit)
                 .ToListAsync();
@@ -378,7 +380,7 @@ public sealed class DataQualityCommandService : IDataQualityCommandService
                     issue.IssueCode,
                     "removed",
                     "Phiếu xuất không còn demand gốc và chưa phát sinh nhận bếp/hoàn kho/stock movement.",
-                    GuidHelper.ToGuidString(issue.MaterialRequestId));
+                    GuidHelper.ToGuidString(issue.MaterialRequestId!));
 
                 result.RemovedInventoryIssueLines += issue.Inventoryissuelines.Count;
                 result.RemovedInventoryIssues++;

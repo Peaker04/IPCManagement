@@ -1,10 +1,15 @@
 import { useMemo, useState } from 'react'
-import { useAppDispatch } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
 import { apiSlice } from '@/api/apiSlice'
-import { useGenerateMaterialDemandMutation, useGetApprovalHistoryQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetMaterialDemandStalenessQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
+import { workflowCacheTags } from '@/api/workflowCacheTags'
+import { useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery } from '@/api/reportsApi'
+import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery } from '@/api/purchasingApi'
+import { useGetApprovalHistoryQuery } from '@/api/approvalsApi'
+import { useGetWorkflowDocumentsQuery } from '@/api/workflowDocumentsApi'
 import type { DemandLine } from '@/types/workflow'
-import { useUpsertQuickServingsMutation } from '../../../coordination/coordinationApi'
-import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
+import { useUpsertQuickServingsMutation } from '@/api/coordinationApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
+import { aggregateDemandLinesByMaterial, buildPlanRowsMaterialSummary, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
 import { toQueryView } from '@/lib/queryView'
 import type { WeeklyPlanRow } from '../model/types'
@@ -24,6 +29,8 @@ type Options = {
   weeklyPlanRows: WeeklyPlanRow[]
   invalidScheduleMenuPrices: number[]
   quickServingRows: QuickServingRow[]
+  dishesById?: Map<string, CatalogDish>
+  dishesByName?: Map<string, CatalogDish>
 }
 
 const EMPTY_QUERY_ROWS: never[] = []
@@ -41,6 +48,8 @@ export function useMaterialDemand({
   weeklyPlanRows,
   invalidScheduleMenuPrices,
   quickServingRows,
+  dishesById,
+  dishesByName,
 }: Options) {
   const reduxDispatch = useAppDispatch()
   const scopeKey = `${scope.customerId}:${scope.weekStartDate}`
@@ -162,7 +171,18 @@ export function useMaterialDemand({
       targetId: demandApprovalStatus.targetId,
     })
     : undefined
-  const aggregateLines = attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate)
+  const activeDayPlanSummary = useMemo(() => {
+    const rows = activeDay?.rows?.length
+      ? activeDay.rows
+      : weeklyPlanRows.filter((row) => row.serviceDate === activeDate)
+    if (!rows.length || !dishesById) return undefined
+    return buildPlanRowsMaterialSummary(rows, dishesById, dishesByName ?? new Map(), {
+      customerId: scope.customerId,
+      priceTier: scope.menuPrice,
+    })
+  }, [activeDate, activeDay, dishesById, dishesByName, scope.customerId, scope.menuPrice, weeklyPlanRows])
+
+  const aggregateLines = attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate, activeDayPlanSummary)
   const inventoryStatus = getDemandInventoryStatus(aggregateLines, aggregatePage?.totalCount, aggregatePage?.shortageCount)
   const inventoryGroups = partitionDemandLines(aggregateLines)
   const activeQuickServingRows = activeDay ? quickServingRows.filter((row) => row.serviceDate === activeDate) : []
@@ -247,7 +267,13 @@ export function useMaterialDemand({
       setFeedback({ title: 'Chưa tạo được nhu cầu', message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'), variant: 'danger' })
       return
     }
-    reduxDispatch(apiSlice.util.invalidateTags(['Coordination']))
+    reduxDispatch(apiSlice.util.invalidateTags([
+      workflowCacheTags.ingredientDemand,
+      workflowCacheTags.materialRequestCandidates,
+      workflowCacheTags.purchasePlan,
+      workflowCacheTags.purchaseRequests,
+      workflowCacheTags.documents,
+    ]))
     const skipped = results.length - succeeded.length
     const demandLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.length, 0)
     const shortageLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length, 0)

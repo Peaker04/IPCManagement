@@ -1,5 +1,6 @@
 import { store } from '../app/store';
 import { ROUTES } from '@/lib/routeConfig';
+import { isRouteEligible, type SystemOperationMode } from '@/lib/systemOperationEligibility';
 
 const dataPrefetchOptions = { ifOlderThan: 5 * 60 } as const;
 
@@ -14,7 +15,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   },
   [ROUTES.WEEKLY_MENU]: async () => {
     const [{ coordinationApi }, { dishCatalogApi }] = await Promise.all([
-      import('../features/coordination/coordinationApi'),
+      import('@/api/coordinationApi'),
       import('../api/dishCatalogApi'),
     ]);
     store.dispatch(dishCatalogApi.util.prefetch('getDishCatalog', undefined, dataPrefetchOptions));
@@ -31,7 +32,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
     }, dataPrefetchOptions));
   },
   [ROUTES.MEAL_ORDERS]: async () => {
-    const { coordinationApi } = await import('../features/coordination/coordinationApi');
+    const { coordinationApi } = await import('@/api/coordinationApi');
     const { currentDayOfWeek, currentShift } = store.getState().coordination;
     const shiftName = currentShift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON';
     store.dispatch(coordinationApi.util.prefetch('getCoordinationOrders', {
@@ -91,6 +92,22 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   },
 };
 
-export function prefetchRouteData(path: string): Promise<void> {
-  return routeDataPreloaders[path]?.() ?? Promise.resolve();
+export async function prefetchRouteData(path: string, mode: SystemOperationMode = 'DEFAULT'): Promise<void> {
+  if (!isRouteEligible(mode, path)) return;
+  if (mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.DASHBOARD) return;
+  if (mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.WEEKLY_MENU) {
+    const [{ coordinationApi }, { dishCatalogApi }] = await Promise.all([
+      import('@/api/coordinationApi'),
+      import('../api/dishCatalogApi'),
+    ]);
+    store.dispatch(dishCatalogApi.util.prefetch('getDishCatalog', undefined, dataPrefetchOptions));
+    store.dispatch(coordinationApi.util.prefetch('getCoordinationCustomers', undefined, dataPrefetchOptions));
+    return;
+  }
+  if (mode === 'MATERIAL_RECONCILIATION' && path === ROUTES.WAREHOUSE) {
+    const { warehouseApi } = await import('@/api/warehouseApi');
+    store.dispatch(warehouseApi.util.prefetch('getWarehouseSelector', undefined, dataPrefetchOptions));
+    return;
+  }
+  await (routeDataPreloaders[path]?.() ?? Promise.resolve());
 }

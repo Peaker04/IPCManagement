@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "project": "IPCManagement",
+  "sourceRepo": "D:/Kì 7/PRN222 Doanh Nghiệp/IPCManagement",
+  "harnessRepo": "D:/Kì 7/PRN222 Doanh Nghiệp/shipyard",
+  "lanesRoot": "D:/Kì 7/PRN222 Doanh Nghiệp/shipyard-lanes",
+  "artifactRoot": ".artifacts/shipyard-live",
+  "profiles": {
+    "protected": { "database": "ipc_lane1", "apiPort": 8001, "frontendPort": 3001, "mutation": false },
+    "mutation": { "database": "ipc_lane9", "apiPort": 8010, "frontendPort": 3010, "mutation": true },
+    "template": { "database": "ipc_e2e_template", "apiPort": 8010, "frontendPort": 3010, "mutation": true }
+  },
+  "database": {
+    "mutationLanes": ["ipc_lane9", "ipc_e2e_template"],
+    "protectedLanes": ["ipc_lane1"],
+    "requiredGates": ["lane-preflight", "migration-history", "model-pending-check", "sql-review", "apply", "postflight", "rollback-evidence"]
+  },
+  "evidence": {
+    "requiredFiles": ["manifest.json", "screenshots", "api", "browser", "performance"],
+    "oneManifestPerRun": true,
+    "noSecrets": true
+  },
+  "lifecycle": ["preflight", "boot", "health", "database-sync", "test", "browser", "evidence", "teardown", "archive"]
+}

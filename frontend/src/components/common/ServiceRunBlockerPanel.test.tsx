@@ -1,0 +1,29 @@
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+
+import { ServiceRunTrackPanel } from './ServiceRunBlockerPanel'
+
+describe('ServiceRunTrackPanel', () => {
+  it('keeps planning, supply, execution and reconciliation distinct from backend blockers', () => {
+    render(<ServiceRunTrackPanel run={{
+      serviceRunId: 'run-1', planId: 'plan-1', planCode: 'KHSX-01', serviceDate: '2026-08-12', shiftName: 'MORNING', status: 'RECONCILIATION_REQUIRED',
+      blockers: ['OPEN_SUPPLY', 'UNRESOLVED_VARIANCE'], canStartService: false, canRecordActualServings: false, canConfirmService: false,
+      canWaiveServiceConfirmation: false, canResolveVariance: true, canResolveServingVariance: false, canClose: false, serviceConfirmationOutcome: 'PENDING',
+      plannedServings: 40, actualServings: 39, materialRequestLineCount: 2, issueCount: 1, unreceivedIssueCount: 0, openSupplementalCount: 1,
+      unreceivedReturnCount: 0, hasBomBlocker: false, adjustmentCount: 0,
+      allowedActions: [], closeSnapshot: { actualServings: null, closedAt: null, isImmutable: false },
+      correctionOverlay: { actualServingsDelta: null, correctedActualServings: null, reason: null, state: 'NONE' },
+      currentVersion: 1, customerId: 'customer-1', customerLabel: 'ANV', priceTierAmount: 25000, tracks: [],
+      sourceLineOptions: [], pendingVarianceDeclarations: [],
+    }} />)
+
+    expect(screen.getByText('Kế hoạch')).toBeInTheDocument()
+    expect(screen.getByText('Vật tư / cấp phát')).toBeInTheDocument()
+    expect(screen.getByText('Thực hiện phục vụ')).toBeInTheDocument()
+    expect(screen.getByText('Đối soát')).toBeInTheDocument()
+    expect(screen.getByText('Còn chứng từ cấp phát chưa hoàn tất')).toBeInTheDocument()
+    expect(screen.getByText('Chênh lệch vật tư chưa được quyết toán')).toBeInTheDocument()
+    expect(screen.queryByText('OPEN_SUPPLY')).not.toBeInTheDocument()
+    expect(screen.queryByText('UNRESOLVED_VARIANCE')).not.toBeInTheDocument()
+  })
+})

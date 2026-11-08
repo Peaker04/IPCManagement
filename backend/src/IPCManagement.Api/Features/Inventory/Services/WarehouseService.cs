@@ -9,10 +9,14 @@ namespace IPCManagement.Api.Features.Inventory.Services;
 public class WarehouseService : IWarehouseService
 {
     private readonly IWarehouseRepository _warehouseRepository;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
-    public WarehouseService(IWarehouseRepository warehouseRepository)
+    public WarehouseService(
+        IWarehouseRepository warehouseRepository,
+        IOperationalWarehouseResolver operationalWarehouseResolver)
     {
         _warehouseRepository = warehouseRepository;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
     public async Task<PagedResponseDto<WarehouseDto>> GetPagedAsync(PagedRequestDto request)
@@ -36,6 +40,14 @@ public class WarehouseService : IWarehouseService
 
         var warehouse = await _warehouseRepository.GetByIdAsync(bytes);
         return warehouse is null ? null : MapToDto(warehouse);
+    }
+
+    public async Task<WarehouseDto> GetOperationalAsync(CancellationToken cancellationToken = default)
+    {
+        var warehouseId = await _operationalWarehouseResolver.ResolveAsync(cancellationToken);
+        var warehouse = await _warehouseRepository.GetByIdAsync(warehouseId)
+            ?? throw new InvalidOperationException("Kho vận hành đã cấu hình không tồn tại.");
+        return MapToDto(warehouse);
     }
 
     private static WarehouseDto MapToDto(Warehouse warehouse) => new()

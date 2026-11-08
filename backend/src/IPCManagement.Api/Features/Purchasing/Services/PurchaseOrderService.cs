@@ -3,6 +3,7 @@ using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using static IPCManagement.Api.Features.Purchasing.Services.PurchaseOrderDecisionValidator;
 using System.Collections.Concurrent;
 using System.Data;
 using System.Security.Cryptography;
@@ -110,22 +111,28 @@ public class PurchaseOrderService : IPurchaseOrderService
 
                 var now = DateTime.UtcNow;
                 var orderDate = DateOnly.FromDateTime(now);
-                foreach (var supplierGroup in expectedLines.GroupBy(item => Convert.ToHexString(item.Decision.SupplierId)))
+                foreach (var compatibilityGroup in expectedLines.GroupBy(
+                             item => CreateCompatibilityKey(item.Decision)))
                 {
-                    var supplierId = supplierGroup.First().Decision.SupplierId;
+                    var compatibility = compatibilityGroup.Key;
+                    var firstDecision = compatibilityGroup.First().Decision;
+                    var supplierId = firstDecision.SupplierId;
                     var order = new PurchaseOrder
                     {
                         PurchaseOrderId = GuidHelper.NewId(),
-                        PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, supplierId),
+                        PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, compatibility),
                         PurchaseRequestId = purchaseRequestId,
                         SupplierId = supplierId,
+                        ProposedDeliveryDate = compatibility.ProposedDeliveryDate,
+                        ReceivingWarehouseId = firstDecision.ReceivingWarehouseId,
+                        PurchasingTerms = compatibility.PurchasingTerms,
                         OrderDate = orderDate,
                         Status = StatusOrdered,
                         CreatedBy = userId,
                         CreatedAt = now,
                         UpdatedAt = now
                     };
-                    foreach (var expected in supplierGroup)
+                    foreach (var expected in compatibilityGroup)
                     {
                         order.Purchaseorderlines.Add(new PurchaseOrderLine
                         {
@@ -191,7 +198,8 @@ public class PurchaseOrderService : IPurchaseOrderService
             .OrderByDescending(po => po.CreatedAt)
             .ToListAsync(cancellationToken);
 
-        return orders.Select(MapToDto).ToList();
+        var activeReceipts = await LoadActiveReceiptSummariesAsync(cancellationToken);
+        return orders.Select(order => MapToDto(order, activeReceipts)).ToList();
     }
 
     public async Task<PurchaseOrderPageDto> GetPageAsync(PurchaseOrderPageQueryDto query, CancellationToken cancellationToken = default)
@@ -211,10 +219,11 @@ public class PurchaseOrderService : IPurchaseOrderService
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
+        var activeReceipts = await LoadActiveReceiptSummariesAsync(cancellationToken);
 
         return new PurchaseOrderPageDto
         {
-            Page = PagedResponseDto<PurchaseOrderDto>.Create(orders.Select(MapToDto).ToList(), totalCount, pageNumber, pageSize),
+            Page = PagedResponseDto<PurchaseOrderDto>.Create(orders.Select(order => MapToDto(order, activeReceipts)).ToList(), totalCount, pageNumber, pageSize),
             OrderCountByRequest = counts,
         };
     }
@@ -228,7 +237,12 @@ public class PurchaseOrderService : IPurchaseOrderService
         }
 
         var order = await LoadOrderAsync(purchaseOrderIdBytes, cancellationToken);
-        return order is null ? null : MapToDto(order);
+        if (order is null)
+        {
+            return null;
+        }
+
+        return MapToDto(order, await LoadActiveReceiptSummariesAsync(cancellationToken));
     }
 
     public async Task<PurchaseOrderDto> CancelAsync(string purchaseOrderId, CancellationToken cancellationToken = default)
@@ -439,116 +453,17 @@ public class PurchaseOrderService : IPurchaseOrderService
         return orders.OrderBy(order => order.PurchaseOrderCode, StringComparer.Ordinal).ToList();
     }
 
-    private static List<ExpectedOrderLine> ValidateCurrentOrderDecisions(
-        IReadOnlyCollection<PurchaseRequestLine> purchaseRequestLines)
-    {
-        if (purchaseRequestLines.Count == 0)
-        {
-            throw new BusinessRuleException("Đề xuất mua hàng không có dòng nào để tạo đơn.");
-        }
-
-        var expectedLines = new List<ExpectedOrderLine>(purchaseRequestLines.Count);
-        foreach (var line in purchaseRequestLines)
-        {
-            var currentDecisions = line.SupplierDecisions
-                .Where(decision => string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal))
-                .ToList();
-            if (currentDecisions.Count != 1)
-            {
-                throw new BusinessRuleException("Mỗi dòng mua phải có đúng một quyết định nhà cung cấp hiện hành trước khi tạo đơn mua hàng.");
-            }
-
-            var decision = currentDecisions[0];
-            if (line.SupplierId is null ||
-                !line.SupplierId.AsSpan().SequenceEqual(decision.SupplierId) ||
-                DecimalPolicy.RoundMoney(line.EstimatedUnitPrice) != DecimalPolicy.RoundMoney(decision.ProposedUnitPrice) ||
-                line.ExpectedDeliveryDate != decision.ProposedDeliveryDate)
-            {
-                throw new DbUpdateConcurrencyException("Dòng mua không còn khớp với quyết định nhà cung cấp hiện hành.");
-            }
-
-            var variancePercent = PurchasePricePolicy.CalculateVariancePercent(
-                decision.EvidenceReferencePrice,
-                decision.ProposedUnitPrice);
-            if (PurchasePricePolicy.RequiresException(variancePercent) &&
-                !decision.Purchasepriceexceptions.Any(priceException =>
-                    string.Equals(priceException.ProposalFingerprint, decision.DecisionFingerprint, StringComparison.Ordinal) &&
-                    priceException.ProposalVersion == decision.Version &&
-                    priceException.ReferencePrice == decision.EvidenceReferencePrice &&
-                    priceException.ProposedPrice == decision.ProposedUnitPrice &&
-                    string.Equals(priceException.EvidenceType, decision.EvidenceType, StringComparison.Ordinal) &&
-                    priceException.EvidenceId.AsSpan().SequenceEqual(decision.EvidenceId) &&
-                    priceException.EvidenceDate == decision.EvidenceDate &&
-                    string.Equals(priceException.Status, "APPROVED", StringComparison.Ordinal)))
-            {
-                throw new BusinessRuleException("Ngoại lệ giá của quyết định nhà cung cấp hiện hành chưa được Quản lý duyệt.");
-            }
-
-            expectedLines.Add(new ExpectedOrderLine(line, decision));
-        }
-
-        return expectedLines;
-    }
-
-    private static void ValidateEstablishedOrders(
-        IReadOnlyCollection<PurchaseOrder> orders,
-        IReadOnlyCollection<ExpectedOrderLine> expectedLines,
-        Exception? innerException = null)
-    {
-        var expectedSupplierCount = expectedLines
-            .Select(expected => Convert.ToHexString(expected.Decision.SupplierId))
-            .Distinct(StringComparer.Ordinal)
-            .Count();
-        var establishedLines = orders.SelectMany(order => order.Purchaseorderlines).ToList();
-        var matches = orders.Count == expectedSupplierCount &&
-            establishedLines.Count == expectedLines.Count &&
-            expectedLines.All(expected =>
-            {
-                var expectedLineId = BuildDecisionSnapshotId(
-                    expected.Line.PurchaseRequestLineId,
-                    expected.Decision.DecisionFingerprint);
-                return orders.Any(order =>
-                    order.SupplierId.AsSpan().SequenceEqual(expected.Decision.SupplierId) &&
-                    order.CreatedAt >= expected.Decision.ConfirmedAt &&
-                    order.Purchaseorderlines.Any(line =>
-                        line.PurchaseOrderLineId.AsSpan().SequenceEqual(expectedLineId) &&
-                        line.PurchaseRequestLineId.AsSpan().SequenceEqual(expected.Line.PurchaseRequestLineId) &&
-                        line.IngredientId.AsSpan().SequenceEqual(expected.Line.IngredientId) &&
-                        line.UnitId.AsSpan().SequenceEqual(expected.Line.UnitId) &&
-                        line.OrderedQty == DecimalPolicy.RoundQuantity(expected.Line.PurchaseQty) &&
-                        line.UnitPrice == DecimalPolicy.RoundMoney(expected.Decision.ProposedUnitPrice)));
-            });
-
-        if (!matches)
-        {
-            const string message = "Tập đơn mua hàng đã tạo không còn khớp với quyết định nhà cung cấp hiện hành.";
-            throw innerException is null
-                ? new DbUpdateConcurrencyException(message)
-                : new DbUpdateConcurrencyException(message, innerException);
-        }
-    }
-
     private bool IsInMemoryProvider()
         => string.Equals(
             _context.Database.ProviderName,
             "Microsoft.EntityFrameworkCore.InMemory",
             StringComparison.Ordinal);
 
-    private static byte[] BuildDecisionSnapshotId(byte[] purchaseRequestLineId, string decisionFingerprint)
-    {
-        var snapshotKey = $"{GuidHelper.ToGuidString(purchaseRequestLineId)}|{decisionFingerprint}";
-        return SHA256.HashData(Encoding.UTF8.GetBytes(snapshotKey)).AsSpan(0, 16).ToArray();
-    }
-
     private async Task<IReadOnlyList<PurchaseOrderDto>> GetByPurchaseRequestAsync(byte[] purchaseRequestId, CancellationToken cancellationToken)
     {
         var orders = await LoadOrdersForRequestAsync(purchaseRequestId, cancellationToken);
         return orders.Select(MapToDto).ToList();
     }
-
-    private sealed record ExpectedOrderLine(
-        PurchaseRequestLine Line,
-        PurchaseLineSupplierDecision Decision);
 
     private sealed record PurchaseRequestOrderSource(
         PurchaseRequest Request,
@@ -565,10 +480,34 @@ public class PurchaseOrderService : IPurchaseOrderService
         return lineList.Any(line => line.ReceivedQty > 0) ? StatusPartiallyReceived : StatusOrdered;
     }
 
-    private static string BuildPurchaseOrderCode(string purchaseRequestCode, byte[] supplierId)
-        => $"PO-{purchaseRequestCode}-{GuidHelper.ToGuidString(supplierId)[..8]}";
+    private async Task<IReadOnlyDictionary<string, ActiveReceiptSummary>> LoadActiveReceiptSummariesAsync(
+        CancellationToken cancellationToken)
+    {
+        var activeStatuses = new[] { "DRAFT", "PENDING_APPROVAL", "APPROVED" };
+        var activeLines = await _context.Inventoryreceiptlines
+            .AsNoTracking()
+            .Include(line => line.Receipt)
+            .Where(line => line.PurchaseOrderLineId != null && activeStatuses.Contains(line.Receipt.Status))
+            .ToListAsync(cancellationToken);
+        return activeLines
+            .GroupBy(line => GuidHelper.ToGuidString(line.PurchaseOrderLineId!), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => new ActiveReceiptSummary(
+                    GuidHelper.ToGuidString(group.First().Receipt.ReceiptId),
+                    group.First().Receipt.ReceiptCode,
+                    group.First().Receipt.Status),
+                StringComparer.OrdinalIgnoreCase);
+    }
 
-    private static PurchaseOrderDto MapToDto(PurchaseOrder order) => new()
+    private sealed record ActiveReceiptSummary(string ReceiptId, string ReceiptCode, string Status);
+
+    private static PurchaseOrderDto MapToDto(PurchaseOrder order)
+        => MapToDto(order, new Dictionary<string, ActiveReceiptSummary>(StringComparer.OrdinalIgnoreCase));
+
+    private static PurchaseOrderDto MapToDto(
+        PurchaseOrder order,
+        IReadOnlyDictionary<string, ActiveReceiptSummary> activeReceipts) => new()
     {
         PurchaseOrderId = GuidHelper.ToGuidString(order.PurchaseOrderId),
         PurchaseOrderCode = order.PurchaseOrderCode,
@@ -580,8 +519,11 @@ public class PurchaseOrderService : IPurchaseOrderService
         Status = order.Status,
         Lines = order.Purchaseorderlines
             .OrderBy(line => line.Ingredient.IngredientName)
-            .Select(line => new PurchaseOrderLineDto
+            .Select(line =>
             {
+                activeReceipts.TryGetValue(GuidHelper.ToGuidString(line.PurchaseOrderLineId), out var activeReceipt);
+                return new PurchaseOrderLineDto
+                {
                 PurchaseOrderLineId = GuidHelper.ToGuidString(line.PurchaseOrderLineId),
                 PurchaseRequestLineId = GuidHelper.ToGuidString(line.PurchaseRequestLineId),
                 IngredientId = GuidHelper.ToGuidString(line.IngredientId),
@@ -596,7 +538,11 @@ public class PurchaseOrderService : IPurchaseOrderService
                 ExpiryDateRequired = line.Ingredient.IsFreshDaily,
                 BlockerReason = line.Ingredient.IsActive == true
                     ? null
-                    : $"Nguyên liệu {line.Ingredient.IngredientName} đã ngừng hoạt động."
+                    : $"Nguyên liệu {line.Ingredient.IngredientName} đã ngừng hoạt động.",
+                ActiveReceiptId = activeReceipt?.ReceiptId,
+                ActiveReceiptCode = activeReceipt?.ReceiptCode,
+                ActiveReceiptStatus = activeReceipt?.Status
+                };
             })
             .ToList()
     };

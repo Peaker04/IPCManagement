@@ -1,66 +1,95 @@
-import { Download, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
-import { ContextStrip, FieldRow, InlineAlert, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, DataTableShell, ViewSwitcher } from '@/components/common';
+import { useState } from 'react';
+import { Download, HelpCircle, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
+import { ConfirmDialog, FieldRow, InlineAlert, KeepAliveTabPanel, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { formatDateOnly, formatNumber, formatPercent, formatQuantity, formatUnit } from '@/lib/formatters';
+import { getWorkflowStatusPresentation } from '@/lib/workflowConfig';
 import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import type { ReconciliationAdminDataPageModel } from './useReconciliationAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 
-type AdminBomPanelProps = { model: AdminDataPageModel };
+type AdminBomPanelProps = { model: AdminDataPageModel | ReconciliationAdminDataPageModel };
+
+const EMPTY_BOM_SELECT_VALUE = '__empty_bom_select__';
 
 export function AdminBomPanel({ model }: AdminBomPanelProps) {
-  const { bomForm, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
+  const [isGuidanceOpen, setIsGuidanceOpen] = useState(false);
+  const { bomForm, bomFormErrors, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
+  const isReconciliationMode = 'isReconciliationMode' in model && model.isReconciliationMode;
+  const selectedImportContract = customerContracts?.find((contract) => contract.customerId === bomImportCustomerId);
+  const selectedDish = dishCatalog.find((dish) => dish.id === bomForm.dishId);
+  const selectedIngredient = ingredientCatalog.find((ingredient) => ingredient.ingredientId === bomForm.ingredientId);
   return (
     <>
-      {effectiveActiveView === 'bom-import' && (
-        <div id="admin-bom-import-panel" role="tabpanel" aria-labelledby="admin-bom-import-tab" className="flex flex-col gap-4">
-          <AdminQueryBoundary queries={[
-            { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
-            { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
-            { label: 'customer contract', view: queryViews.contracts },
-          ]}>
-          <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
-            <div className="grid gap-4 xl:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
-              <div className="grid self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+      <KeepAliveTabPanel id="admin-bom-import" active={effectiveActiveView === 'bom-import'} className="flex flex-col gap-4">
+        <AdminQueryBoundary queries={[
+          { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
+          { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
+          ...(!isReconciliationMode ? [{ label: 'hợp đồng khách hàng', view: queryViews.contracts }] : []),
+        ]}>
+          <SectionPanel
+            title="Import BOM theo đơn giá"
+            icon={<Upload size={18} />}
+            description="Tải lên tệp định mức BOM chuẩn theo từng mức giá suất ăn và áp dụng cho các khách hàng."
+          >
+            <div className="grid min-w-0 gap-4" style={{ maxWidth: 'calc(100vw - 2rem)' }}>
+              <div className="grid w-full min-w-0 max-w-full self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                 <FieldRow label="Đơn giá BOM">
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {[25000, 30000, 34000].map((tier) => (
-                      <button
+                      <Button
                         key={tier}
                         type="button"
-                        className={`ipc-button ${bomImportTier === tier ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
+                        variant={bomImportTier === tier ? 'default' : 'outline'}
+                        size="sm"
                         onClick={() => {
                           setBomImportTier(tier);
                           setBomImportPreview(null);
                         }}
                       >
-                        {(tier / 1000).toFixed(0)}k
-                      </button>
+                        {formatNumber(tier / 1000)}k
+                      </Button>
                     ))}
                   </div>
                 </FieldRow>
 
-                <FieldRow label="Khách hàng">
-                  <select
-                    className="ipc-select w-full"
-                    value={bomImportCustomerId}
-                    onChange={(event) => {
-                      setBomImportCustomerId(event.target.value);
-                      setBomImportPreview(null);
-                    }}
-                  >
-                    <option value="">BOM global</option>
-                    {customerContracts.map((contract) => (
-                      <option key={contract.customerId} value={contract.customerId}>
-                        {contract.customerCode} - {contract.customerName}
-                      </option>
-                    ))}
-                  </select>
-                </FieldRow>
+                {!isReconciliationMode && (
+                  <FieldRow label="Khách hàng">
+                    <Select
+                      value={bomImportCustomerId || EMPTY_BOM_SELECT_VALUE}
+                      onValueChange={(value) => {
+                        setBomImportCustomerId(!value || value === EMPTY_BOM_SELECT_VALUE ? '' : value);
+                        setBomImportPreview(null);
+                      }}
+                      >
+                        <SelectTrigger className="w-full">
+                        <SelectValue>
+                          {selectedImportContract
+                            ? `${selectedImportContract.customerCode} - ${selectedImportContract.customerName}`
+                            : 'BOM dùng chung'}
+                        </SelectValue>
+                        </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={EMPTY_BOM_SELECT_VALUE}>BOM dùng chung</SelectItem>
+                        {customerContracts.map((contract) => (
+                          <SelectItem key={contract.customerId} value={contract.customerId}>
+                            {contract.customerCode} - {contract.customerName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+                )}
 
                 <FieldRow label="Hiệu lực từ">
-                  <input
-                    className="ipc-input w-full"
+                  <Input
+                    className="w-full"
                     type="date"
                     value={bomImportEffectiveFrom}
                     onChange={(event) => setBomImportEffectiveFrom(event.target.value)}
@@ -68,258 +97,260 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
                 </FieldRow>
 
                 <FieldRow label="Tải file Excel">
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      className="ipc-button ipc-button-ghost justify-center"
-                      type="button"
-                      disabled={downloadBomTemplateState.isLoading}
-                      onClick={() => void handleDownloadBomTemplate('missing')}
-                    >
-                      <Download size={15} />
-                      BOM thiếu
-                    </button>
-                    <button
-                      className="ipc-button ipc-button-ghost justify-center"
-                      type="button"
-                      disabled={downloadBomTemplateState.isLoading}
-                      onClick={() => void handleDownloadBomTemplate('blank')}
-                    >
-                      <Download size={15} />
-                      Mẫu trống
-                    </button>
-                    {bomTemplateDishId && (
-                      <button
-                        className="ipc-button ipc-button-ghost justify-center"
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
                         type="button"
-                        disabled={downloadBomTemplateState.isLoading}
-                        onClick={() => void handleDownloadBomTemplate('dish')}
+                        disabled={Boolean(downloadBomTemplateState?.isLoading)}
+                        onClick={() => void handleDownloadBomTemplate('missing')}
+                        title="Tải danh sách các món đang thiếu định lượng BOM theo mức giá đã chọn"
                       >
                         <Download size={15} />
-                        Món này
-                      </button>
-                    )}
+                        BOM thiếu
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        type="button"
+                        disabled={Boolean(downloadBomTemplateState?.isLoading)}
+                        onClick={() => void handleDownloadBomTemplate('blank')}
+                        title="Tải mẫu Excel trống kèm hướng dẫn để nhập định lượng món mới"
+                      >
+                        <Download size={15} />
+                        Mẫu trống
+                      </Button>
+                      {bomTemplateDishId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          type="button"
+                          disabled={Boolean(downloadBomTemplateState?.isLoading)}
+                          onClick={() => void handleDownloadBomTemplate('dish')}
+                        >
+                          <Download size={15} />
+                          Món này
+                        </Button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsGuidanceOpen(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 hover:underline self-start pt-0.5"
+                    >
+                      <HelpCircle size={14} />
+                      <span>Xem hướng dẫn điền file & các cột tự điền</span>
+                    </button>
                   </div>
                 </FieldRow>
 
                 <FieldRow label="File import">
-                  <input
-                    className="ipc-input w-full"
-                    type="file"
-                    accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
-                    onChange={(event) => {
-                      setBomImportFile(event.target.files?.[0] ?? null);
-                      setBomImportPreview(null);
-                    }}
-                  />
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-blue-500">
+                      <Upload size={15} className="text-slate-500" />
+                      <span>{bomImportFile ? 'Đổi file Excel' : 'Chọn file Excel'}</span>
+                      <input
+                        className="sr-only"
+                        type="file"
+                        accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                        onChange={(event) => {
+                          setBomImportFile(event.target.files?.[0] ?? null);
+                          setBomImportPreview(null);
+                        }}
+                      />
+                    </label>
+                    <span className="min-w-0 flex-1 truncate text-xs text-slate-600">
+                      {bomImportFile ? bomImportFile.name : 'Chưa chọn file (.xlsx, .csv)'}
+                    </span>
+                  </div>
                 </FieldRow>
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  <button
-                    className="ipc-button ipc-button-primary"
+                  <Button
+                    variant={bomImportPreview?.canCommit ? "outline" : "default"}
+                    size="sm"
                     type="button"
-                    disabled={previewBomImportState.isLoading || !bomImportFile}
+                    disabled={Boolean(previewBomImportState?.isLoading || !bomImportFile)}
                     aria-describedby="bom-import-action-guidance"
-                    title={previewBomImportState.isLoading ? 'Đang kiểm tra file BOM.' : !bomImportFile ? 'Chọn file BOM trước khi kiểm tra.' : undefined}
+                    title={previewBomImportState?.isLoading ? 'Đang kiểm tra file BOM.' : !bomImportFile ? 'Chọn file BOM trước khi kiểm tra.' : undefined}
                     onClick={() => void handlePreviewBomImport()}
                   >
                     <Search size={15} />
                     Kiểm tra file
-                  </button>
-                  <button
-                    className="ipc-button ipc-button-primary"
+                  </Button>
+                  <Button
+                    variant={bomImportPreview?.canCommit ? "default" : "outline"}
+                    size="sm"
                     type="button"
-                    disabled={commitBomImportState.isLoading || !bomImportPreview?.canCommit}
+                    disabled={Boolean(commitBomImportState?.isLoading || !bomImportPreview?.canCommit)}
                     aria-describedby="bom-import-action-guidance"
-                    title={commitBomImportState.isLoading ? 'Đang nhập dữ liệu BOM.' : !bomImportPreview ? 'Kiểm tra file trước khi nhập dữ liệu.' : !bomImportPreview.canCommit ? 'Preview còn lỗi chặn; sửa file rồi kiểm tra lại.' : undefined}
+                    title={commitBomImportState?.isLoading ? 'Đang nhập dữ liệu BOM.' : !bomImportPreview ? 'Kiểm tra file trước khi nhập dữ liệu.' : !bomImportPreview.canCommit ? 'Kết quả kiểm tra còn lỗi chặn; sửa file rồi kiểm tra lại.' : undefined}
                     onClick={() => void handleCommitBomImport()}
                   >
                     <Save size={15} />
                     Nhập dữ liệu
-                  </button>
+                  </Button>
                 </div>
 
                 {bomImportFeedback && (
-                  <InlineAlert title={bomImportFeedback.type === 'success' ? 'BOM import' : 'Cần kiểm tra'} variant={bomImportFeedback.type === 'success' ? 'info' : 'danger'}>
+                  <InlineAlert title={bomImportFeedback.type === 'success' ? 'Đã nhập định lượng' : 'Cần kiểm tra'} variant={bomImportFeedback.type === 'success' ? 'info' : 'danger'}>
                     {bomImportFeedback.message}
                   </InlineAlert>
                 )}
 
                 {bomTemplateDishId && (
                   <InlineAlert title="Mẫu theo món thiếu BOM" variant="info">
-                    File tải xuống ưu tiên món đang được chọn từ danh sách lỗi. IngredientCode không cần nhập; chỉ điền IngredientName, UnitCode, định lượng và import lại.
+                    File tải xuống ưu tiên món đang được chọn từ danh sách lỗi. Mã nguyên liệu và mã đơn vị có thể điền tên nguyên liệu, đơn vị, định lượng rồi tải lên lại.
                   </InlineAlert>
                 )}
 
-                <InlineAlert title="Cấu trúc nhập BOM mới" variant="info">
-                  <span id="bom-import-action-guidance">Tải BOM thiếu để nhập nhanh các món còn thiếu định lượng. Chọn file, kiểm tra preview và xử lý hết lỗi chặn trước khi nhập dữ liệu.</span>
+                <InlineAlert title="Chỉ cần nhập 3 thông tin" variant="info">
+                  <span id="bom-import-action-guidance">
+                    Chọn <strong>Nguyên liệu chính</strong>, <strong>Đơn vị</strong> và nhập <strong>Định lượng/suất</strong>. Các ô món, mức giá, phạm vi và trạng thái đã được hệ thống khóa.
+                  </span>
                 </InlineAlert>
               </div>
 
-              <div className="flex flex-col gap-3">
-                <ContextStrip
-                  items={[
-                    { label: 'Tier', value: `${(bomImportTier / 1000).toFixed(0)}k`, tone: 'info' },
-                    { label: 'Scope', value: bomImportCustomerId ? 'Customer override' : 'Global', tone: bomImportCustomerId ? 'warning' : 'neutral' },
-                    { label: 'BOM hiện tại', value: `${currentBomRows.length} dòng`, tone: currentBomRows.length ? 'success' : 'neutral' },
-                    { label: 'Kết quả kiểm tra', value: bomImportPreview ? `${bomImportPreview.validRows}/${bomImportPreview.totalRows} hợp lệ` : 'Chưa kiểm tra', tone: bomImportPreview?.errorRows ? 'danger' : bomImportPreview ? 'success' : 'neutral' },
-                  ]}
-                />
-
+              <div className="flex min-w-0 flex-col gap-3">
                 <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
-                  <ViewSwitcher
-                    compact
-                    ariaLabel="Chọn dữ liệu BOM hiển thị"
-                    tabs={[
-                      { id: 'bom-current', label: 'BOM hiện tại' },
-                      { id: 'bom-preview', label: 'Bản xem trước' },
-                    ]}
-                    activeTab={`bom-${bomPanelMode}`}
-                    onTabChange={(id) => setBomPanelMode(id === 'bom-preview' ? 'preview' : 'current')}
-                  />
+                  <div className="text-xs font-semibold text-slate-600" role="status">
+                    {bomPanelMode === 'preview' ? 'Đang xem kết quả kiểm tra file — nhập dữ liệu để áp dụng.' : 'BOM đang áp dụng'}
+                  </div>
                   {bomPanelMode === 'current' && (
                     <div className="flex min-w-0 flex-1 gap-2 sm:max-w-xl sm:justify-end">
                       <label className="relative min-w-0 flex-1 sm:max-w-xs">
                         <span className="sr-only">Tìm món hoặc nguyên liệu</span>
                         <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
-                        <input
-                          className="ipc-input w-full !pl-9"
+                        <Input
+                          className="w-full pl-9"
                           value={bomSearch}
                           onChange={(event) => setBomSearch(event.target.value)}
                           placeholder="Tìm món, nguyên liệu..."
                         />
                       </label>
-                      <button className="ipc-button ipc-button-primary shrink-0" type="button" onClick={openCreateBomDialog}>
+                      <Button variant="default" size="sm" type="button" onClick={openCreateBomDialog}>
                         <PlusCircle size={15} />
                         Thêm dòng
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
 
-                {bomPanelMode === 'current' ? (
-                  <div id="bom-current-panel" role="tabpanel" aria-labelledby="bom-current-tab" className="min-w-0">
-                    <DataTableShell className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
-                      <table className="ipc-data-table min-w-[1038px] table-fixed">
-                      <colgroup>
-                        <col className="w-[215px]" />
-                        <col className="w-[190px]" />
-                        <col className="w-[80px]" />
-                        <col className="w-[85px]" />
-                        <col className="w-[70px]" />
-                        <col className="w-[115px]" />
-                        <col className="w-[115px]" />
-                        <col className="w-[168px]" />
-                      </colgroup>
-                      <thead>
-                        <tr>
-                          <th>Món</th>
-                          <th>Nguyên liệu</th>
-                          <th>ĐVT</th>
-                          <th>Qty/suất</th>
-                          <th>Hao hụt</th>
-                          <th>Hiệu lực</th>
-                          <th>Trạng thái</th>
-                          <th className="whitespace-nowrap">Thao tác</th>
+                <KeepAliveTabPanel id="bom-current" active={bomPanelMode === 'current'} className="min-w-0">
+                  <div className="min-w-0 max-w-full">
+                    <TableViewport ariaLabel="BOM hiện tại theo đơn giá">
+                      <table className="ipc-data-table ipc-erp-grid-table ipc-bom-current-table w-full table-fixed">
+                    <colgroup>
+                      <col className="w-[16%]" />
+                      <col className="w-[22%]" />
+                      <col className="w-[8%]" />
+                      <col className="w-[12%]" />
+                      <col className="w-[10%]" />
+                      <col className="w-[14%]" />
+                      <col className="w-[8%]" />
+                      <col className="w-[10%]" />
+                    </colgroup>
+                    <thead>
+                      <tr>
+                        <th className="text-left">Món</th>
+                        <th className="text-left">Nguyên liệu</th>
+                        <th className="text-center">ĐVT</th>
+                        <th className="text-right">Định lượng/suất</th>
+                        <th className="text-right">Hao hụt</th>
+                        <th className="text-left">Hiệu lực</th>
+                        <th className="text-center">Trạng thái</th>
+                        <th className="whitespace-nowrap text-center">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(currentBomPagination?.rows ?? []).map(({ dish, line }) => (
+                        <tr key={line.bomId}>
+                          <td className="align-top text-left"><div className="font-semibold text-slate-900">{dish.name}</div><div className="text-xs text-slate-500">{dish.code}</div></td>
+                          <td className="align-top text-left"><div className="font-medium text-slate-800">{line.name}</div><div className="text-xs text-slate-500">{line.ingredientCode}</div></td>
+                          <td className="align-top whitespace-nowrap text-center text-slate-600">{formatUnit(line.unit)}</td>
+                          <td className="align-top text-right font-semibold tabular-nums">{formatQuantity(line.grossQtyPerServing)}</td>
+                          <td className="align-top text-right tabular-nums">{formatPercent(line.wasteRatePercent)}</td>
+                          <td className="align-top text-left text-slate-700"><div>{formatDateOnly(line.effectiveFrom)}</div><div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${formatDateOnly(line.effectiveTo)}` : 'Không giới hạn'}</div></td>
+                          <td className="align-top text-center"><StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'} size="sm">{getWorkflowStatusPresentation(line.bomStatus).label}</StatusBadge></td>
+                          <td className="align-top text-center">
+                            <div className="flex flex-wrap justify-center gap-1">
+                              <Button variant="outline" size="xs" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
+                                <Pencil size={14} /> Sửa
+                              </Button>
+                              <Button variant="outline" size="xs" className="text-rose-700 hover:text-rose-800" type="button" onClick={() => setClosingBom({ dishId: dish.id, dishName: dish.name, line })}>
+                                <Power size={14} /> Ngừng
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {currentBomPagination.rows.map(({ dish, line }) => (
-                          <tr key={line.bomId}>
-                            <td>
-                              <div className="font-semibold text-slate-900">{dish.name}</div>
-                              <div className="text-xs text-slate-500">{dish.code}</div>
-                            </td>
-                            <td>
-                              <div className="font-semibold text-slate-900">{line.name}</div>
-                              <div className="text-xs text-slate-500">{line.ingredientCode}</div>
-                            </td>
-                            <td>{line.unit}</td>
-                            <td className="ipc-numeric-cell">{line.grossQtyPerServing}</td>
-                            <td className="ipc-numeric-cell">{line.wasteRatePercent}%</td>
-                            <td>
-                              <div>{line.effectiveFrom}</div>
-                              <div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div>
-                            </td>
-                            <td>
-                              <StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>
-                                {line.bomStatusLabel || line.bomStatus}
-                              </StatusBadge>
-                            </td>
-                            <td className="whitespace-nowrap">
-                              <div className="flex flex-nowrap justify-center gap-1">
-                                <button className="ipc-button ipc-button-ghost shrink-0 whitespace-nowrap" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
-                                  <Pencil size={14} /> Sửa
-                                </button>
-                                <button className="ipc-button ipc-button-ghost shrink-0 whitespace-nowrap text-rose-700" type="button" onClick={() => setClosingBom({ dishId: dish.id, dishName: dish.name, line })}>
-                                  <Power size={14} /> Ngừng
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {!isDishCatalogLoading && currentBomRows.length === 0 && <EmptyRow colSpan={8} />}
-                        {isDishCatalogLoading && (
-                          <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
-                        )}
+                      ))}
+                      {!isDishCatalogLoading && (!currentBomRows || currentBomRows.length === 0) && <EmptyRow colSpan={8} />}
+                      {isDishCatalogLoading && (
+                        <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
+                      )}
                       </tbody>
                       </table>
-                    </DataTableShell>
-                    <PaginationBar
-                      page={currentBomPagination.page}
-                      pageSize={currentBomPagination.pageSize}
-                      totalItems={currentBomPagination.totalItems}
-                      onPageChange={currentBomPagination.setPage}
-                    />
+                    </TableViewport>
                   </div>
-                ) : (
-                  <div id="bom-preview-panel" role="tabpanel" aria-labelledby="bom-preview-tab" className="min-w-0">
-                    <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
-                    <table className="ipc-data-table">
-                      <thead>
-                        <tr>
-                          <th>Dòng</th>
-                          <th>Món</th>
-                          <th>Nguyên liệu</th>
-                          <th>ĐVT</th>
-                          <th>Qty/suất</th>
-                          <th>Hao hụt</th>
-                          <th>Action</th>
-                          <th>Trạng thái</th>
+                  <PaginationBar
+                    page={currentBomPagination?.page ?? 1}
+                    pageSize={currentBomPagination?.pageSize ?? 8}
+                    totalItems={currentBomPagination?.totalItems ?? 0}
+                    onPageChange={currentBomPagination?.setPage ?? (() => {})}
+                  />
+                </KeepAliveTabPanel>
+
+                <KeepAliveTabPanel id="bom-preview" active={bomPanelMode === 'preview'} className="min-w-0">
+                  <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
+                  <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full">
+                    <thead>
+                      <tr>
+                        <th className="w-16 text-center">Dòng</th>
+                        <th className="text-left">Món ăn</th>
+                        <th className="text-left">Nguyên liệu</th>
+                        <th className="text-center">ĐVT</th>
+                        <th className="text-right">Định lượng/suất</th>
+                        <th className="text-right">Hao hụt</th>
+                        <th className="text-left">Thao tác</th>
+                        <th className="text-center">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                       {(bomPreviewPagination?.rows ?? []).map((row) => (
+                        <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
+                          <td>{row.rowNumber}</td>
+                          <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
+                          <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode}</div></td>
+                          <td>{row.unitCode}</td>
+                          <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantity(row.grossQtyPerServing)}</td>
+                          <td className="text-right tabular-nums font-medium text-slate-700">{formatPercent(row.wasteRatePercent)}</td>
+                          <td>{row.action === 'INSERT' ? 'Thêm mới' : row.action === 'UPDATE' ? 'Cập nhật' : row.action === 'DELETE' ? 'Xóa' : row.action === 'NONE' ? 'Giữ nguyên' : row.action}</td>
+                          <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.status === 'error' ? (row.errors?.[0] ?? 'Lỗi') : row.status === 'warning' ? (row.warnings?.[0] ?? 'Cảnh báo') : 'Hợp lệ'}</StatusBadge></td>
                         </tr>
-                      </thead>
-                      <tbody>
-                         {bomPreviewPagination.rows.map((row) => (
-                          <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
-                            <td>{row.rowNumber}</td>
-                            <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
-                            <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode}</div></td>
-                            <td>{row.unitCode}</td>
-                            <td>{row.grossQtyPerServing}</td>
-                            <td>{row.wasteRatePercent}%</td>
-                            <td>{row.action}</td>
-                            <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.errors?.[0] ?? row.warnings?.[0] ?? 'Hợp lệ'}</StatusBadge></td>
-                          </tr>
-                        ))}
-                        {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}
-                      </tbody>
-                    </table>
-                     </PaginatedTableFrame>
-                    <PaginationBar page={bomPreviewPagination.page} pageSize={bomPreviewPagination.pageSize} totalItems={bomPreviewPagination.totalItems} onPageChange={bomPreviewPagination.setPage} />
-                  </div>
-                )}
+                      ))}
+                      {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}
+                    </tbody>
+                  </table>
+                  </PaginatedTableFrame>
+                  <PaginationBar page={bomPreviewPagination?.page ?? 1} pageSize={bomPreviewPagination?.pageSize ?? 8} totalItems={bomPreviewPagination?.totalItems ?? 0} onPageChange={bomPreviewPagination?.setPage ?? (() => {})} />
+                </KeepAliveTabPanel>
               </div>
             </div>
           </SectionPanel>
           </AdminQueryBoundary>
-        </div>
-      )}
+        </KeepAliveTabPanel>
 
       {isBomDialogOpen && <Dialog open onOpenChange={setIsBomDialogOpen}>
-        <DialogContent aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'} className="max-w-2xl">
+        <DialogContent
+          aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'}
+          size="lg"
+          className="min-w-0"
+        >
           <DialogHeader>
             <DialogTitle>{editingBom ? 'Chỉnh nhanh dòng BOM' : 'Thêm dòng BOM thủ công'}</DialogTitle>
             <DialogDescription>
-              Tier {(bomImportTier / 1000).toFixed(0)}k · {bomImportCustomerId ? 'BOM theo khách hàng' : 'BOM global'}. Dòng published được điều chỉnh bằng version mới để giữ lịch sử.
+              Mức định lượng {formatNumber(bomImportTier / 1000)}k · {bomImportCustomerId ? 'BOM theo khách hàng' : 'BOM dùng chung'}. Dòng đang áp dụng được điều chỉnh bằng phiên bản mới để giữ lịch sử.
             </DialogDescription>
           </DialogHeader>
 
@@ -331,72 +362,109 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-dish">
                 Món ăn <span className="text-rose-600" aria-hidden="true">*</span>
-                <select
-                  id="manual-bom-dish"
-                  className="ipc-select"
-                  value={bomForm.dishId}
+                <Select
+                  value={bomForm.dishId || null}
                   disabled={Boolean(editingBom)}
                   required
-                  onChange={(event) => setBomForm((prev) => ({ ...prev, dishId: event.target.value }))}
+                  onValueChange={(value) => setBomForm((prev) => ({
+                    ...prev,
+                    dishId: !value || value === EMPTY_BOM_SELECT_VALUE ? '' : value,
+                  }))}
                 >
-                  <option value="">Chọn món</option>
-                  {dishCatalog.filter((dish) => dish.isActive).map((dish) => (
-                    <option key={dish.id} value={dish.id}>{dish.code} - {dish.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    id="manual-bom-dish"
+                    className="w-full"
+                    aria-invalid={Boolean(bomFormErrors.dishId) || undefined}
+                    aria-describedby={bomFormErrors.dishId ? 'manual-bom-dish-error' : undefined}
+                  >
+                    <SelectValue>{selectedDish ? `${selectedDish.code} - ${selectedDish.name}` : 'Chọn món'}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EMPTY_BOM_SELECT_VALUE}>Chọn món</SelectItem>
+                    {dishCatalog.filter((dish) => dish.isActive).map((dish) => (
+                      <SelectItem key={dish.id} value={dish.id}>{dish.code} - {dish.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {bomFormErrors.dishId && <span id="manual-bom-dish-error" className="text-xs font-normal text-red-700">{bomFormErrors.dishId}</span>}
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-ingredient">
                 Nguyên liệu <span className="text-rose-600" aria-hidden="true">*</span>
-                <select
-                  id="manual-bom-ingredient"
-                  className="ipc-select"
-                  value={bomForm.ingredientId}
+                <Select
+                  value={bomForm.ingredientId || null}
                   required
                   disabled={isIngredientCatalogLoading}
-                  onChange={(event) => setBomForm((prev) => ({ ...prev, ingredientId: event.target.value }))}
+                  onValueChange={(value) => setBomForm((prev) => ({
+                    ...prev,
+                    ingredientId: !value || value === EMPTY_BOM_SELECT_VALUE ? '' : value,
+                  }))}
                 >
-                  <option value="">Chọn nguyên liệu</option>
-                  {ingredientCatalog.map((ingredient) => (
-                    <option key={ingredient.ingredientId} value={ingredient.ingredientId}>
-                      {ingredient.ingredientCode} - {ingredient.ingredientName} ({ingredient.unitName ?? 'ĐVT'})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger
+                    id="manual-bom-ingredient"
+                    className="w-full"
+                    aria-invalid={Boolean(bomFormErrors.ingredientId) || undefined}
+                    aria-describedby={bomFormErrors.ingredientId ? 'manual-bom-ingredient-error' : undefined}
+                  >
+                    <SelectValue>
+                      {selectedIngredient
+                        ? `${selectedIngredient.ingredientCode} - ${selectedIngredient.ingredientName} (${selectedIngredient.unitName ?? 'ĐVT'})`
+                        : 'Chọn nguyên liệu'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EMPTY_BOM_SELECT_VALUE}>Chọn nguyên liệu</SelectItem>
+                    {ingredientCatalog.map((ingredient) => (
+                      <SelectItem key={ingredient.ingredientId} value={ingredient.ingredientId}>
+                        {ingredient.ingredientCode} - {ingredient.ingredientName} ({ingredient.unitName ?? 'ĐVT'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {bomFormErrors.ingredientId && <span id="manual-bom-ingredient-error" className="text-xs font-normal text-red-700">{bomFormErrors.ingredientId}</span>}
               </label>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-qty">
-                Qty/suất <span className="text-rose-600" aria-hidden="true">*</span>
-                <input id="manual-bom-qty" className="ipc-input" type="number" min="0.000001" step="0.000001" required value={bomForm.grossQtyPerServing} onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))} />
+                Định lượng/suất <span className="text-rose-600" aria-hidden="true">*</span>
+                <Input id="manual-bom-qty" type="number" min="0.000001" step="0.000001" required aria-invalid={Boolean(bomFormErrors.grossQtyPerServing) || undefined} aria-describedby={bomFormErrors.grossQtyPerServing ? 'manual-bom-qty-error' : undefined} value={bomForm.grossQtyPerServing} onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))} />
+                {bomFormErrors.grossQtyPerServing && <span id="manual-bom-qty-error" className="text-xs font-normal text-red-700">{bomFormErrors.grossQtyPerServing}</span>}
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-waste">
                 Hao hụt (%)
-                <input id="manual-bom-waste" className="ipc-input" type="number" min="0" max="100" step="0.01" value={bomForm.wasteRatePercent} onChange={(event) => setBomForm((prev) => ({ ...prev, wasteRatePercent: event.target.value }))} />
+                <Input id="manual-bom-waste" type="number" min="0" max="100" step="0.01" aria-invalid={Boolean(bomFormErrors.wasteRatePercent) || undefined} aria-describedby={bomFormErrors.wasteRatePercent ? 'manual-bom-waste-error' : undefined} value={bomForm.wasteRatePercent} onChange={(event) => setBomForm((prev) => ({ ...prev, wasteRatePercent: event.target.value }))} />
+                {bomFormErrors.wasteRatePercent && <span id="manual-bom-waste-error" className="text-xs font-normal text-red-700">{bomFormErrors.wasteRatePercent}</span>}
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-status">
                 Trạng thái
-                <select id="manual-bom-status" className="ipc-select" value={bomForm.bomStatus} onChange={(event) => setBomForm((prev) => ({ ...prev, bomStatus: event.target.value as BomFormState['bomStatus'] }))}>
-                  <option value="PUBLISHED">Áp dụng</option>
-                  <option value="DRAFT">Bản nháp</option>
-                </select>
+                <Select value={bomForm.bomStatus} onValueChange={(value) => setBomForm((prev) => ({ ...prev, bomStatus: value ?? prev.bomStatus as BomFormState['bomStatus'] }))}>
+                  <SelectTrigger id="manual-bom-status" className="w-full">
+                    <SelectValue>{bomForm.bomStatus === 'PUBLISHED' ? 'Áp dụng' : 'Bản nháp'}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PUBLISHED">Áp dụng</SelectItem>
+                    <SelectItem value="DRAFT">Bản nháp</SelectItem>
+                  </SelectContent>
+                </Select>
               </label>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-from">
                 Hiệu lực từ <span className="text-rose-600" aria-hidden="true">*</span>
-                <input id="manual-bom-from" className="ipc-input" type="date" required value={bomForm.effectiveFrom} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))} />
+                <Input id="manual-bom-from" type="date" required value={bomForm.effectiveFrom} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))} />
               </label>
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-to">
                 Hiệu lực đến
-                <input id="manual-bom-to" className="ipc-input" type="date" value={bomForm.effectiveTo} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveTo: event.target.value }))} />
+                <Input id="manual-bom-to" type="date" aria-invalid={Boolean(bomFormErrors.effectiveTo) || undefined} aria-describedby={bomFormErrors.effectiveTo ? 'manual-bom-to-error' : undefined} value={bomForm.effectiveTo} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveTo: event.target.value }))} />
+                {bomFormErrors.effectiveTo && <span id="manual-bom-to-error" className="text-xs font-normal text-red-700">{bomFormErrors.effectiveTo}</span>}
               </label>
             </div>
 
             <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-reason">
               Lý do điều chỉnh {editingBom && <span className="text-rose-600">*</span>}
-              <textarea id="manual-bom-reason" className="ipc-input min-h-20 py-2" maxLength={500} required={Boolean(editingBom)} value={bomForm.reason} onChange={(event) => setBomForm((prev) => ({ ...prev, reason: event.target.value }))} placeholder={editingBom ? 'Ví dụ: cập nhật định lượng theo bảng tháng 07/2026' : 'Ghi chú nếu cần'} />
+              <Textarea id="manual-bom-reason" className="min-h-20" maxLength={500} required={Boolean(editingBom)} aria-invalid={Boolean(bomFormErrors.reason) || undefined} aria-describedby={bomFormErrors.reason ? 'manual-bom-reason-error' : undefined} value={bomForm.reason} onChange={(event) => setBomForm((prev) => ({ ...prev, reason: event.target.value }))} placeholder={editingBom ? 'Ví dụ: cập nhật định lượng theo bảng tháng 07/2026' : 'Ghi chú nếu cần'} />
+              {bomFormErrors.reason && <span id="manual-bom-reason-error" className="text-xs font-normal text-red-700">{bomFormErrors.reason}</span>}
             </label>
 
             {bomImportFeedback?.type === 'error' && (
@@ -404,33 +472,45 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
             )}
 
             <DialogFooter>
-              <button className="ipc-button ipc-button-ghost" type="button" disabled={isSavingBom} onClick={() => setIsBomDialogOpen(false)}>Hủy</button>
-              <button className="ipc-button ipc-button-primary" type="submit" disabled={isSavingBom || isDishCatalogLoading || isIngredientCatalogLoading}>
-                <Save size={15} /> {isSavingBom ? 'Đang lưu...' : editingBom ? 'Lưu version mới' : 'Thêm dòng BOM'}
-              </button>
+              <Button variant="outline" type="button" disabled={isSavingBom} onClick={() => setIsBomDialogOpen(false)}>Hủy</Button>
+              <Button variant="default" type="submit" disabled={isSavingBom || isDishCatalogLoading || isIngredientCatalogLoading}>
+                <Save size={15} /> {isSavingBom ? 'Đang lưu...' : editingBom ? 'Lưu phiên bản mới' : 'Thêm dòng BOM'}
+              </Button>
             </DialogFooter>
           </form>
           </AdminQueryBoundary>
         </DialogContent>
       </Dialog>}
 
-      {closingBom && <Dialog open onOpenChange={(open) => { if (!open) setClosingBom(null); }}>
-        <DialogContent aria-label="Ngừng áp dụng dòng BOM" className="max-w-md">
+      {closingBom && <ConfirmDialog open
+        title="Ngừng áp dụng dòng BOM?"
+        description={`${closingBom.dishName} · ${closingBom.line.name}. Dữ liệu không bị xóa cứng và vẫn còn trong lịch sử/audit.`}
+        confirmLabel="Ngừng áp dụng"
+        busy={closeDishBomLineState.isLoading}
+        onConfirm={() => void handleCloseBomLine()}
+        onOpenChange={(open) => { if (!open) setClosingBom(null); }}
+      />}
+
+      {/* Hướng dẫn ngắn, cùng vocabulary với file Excel. */}
+      <Dialog open={isGuidanceOpen} onOpenChange={setIsGuidanceOpen}>
+        <DialogContent size="md">
           <DialogHeader>
-            <DialogTitle>Ngừng áp dụng dòng BOM?</DialogTitle>
-            <DialogDescription>
-              {closingBom ? `${closingBom.dishName} · ${closingBom.line.name}` : ''}. Dữ liệu không bị xóa cứng và vẫn còn trong lịch sử/audit.
-            </DialogDescription>
+            <DialogTitle>Nhập định lượng bằng Excel</DialogTitle>
+            <DialogDescription>File đã khóa các thông tin do hệ thống quản lý. Bạn chỉ nhập dữ liệu nguyên liệu.</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-5">
-            <button className="ipc-button ipc-button-ghost" type="button" disabled={closeDishBomLineState.isLoading} onClick={() => setClosingBom(null)}>Hủy</button>
-            <button className="ipc-button ipc-button-primary bg-rose-700 hover:bg-rose-800" type="button" disabled={closeDishBomLineState.isLoading} onClick={() => void handleCloseBomLine()}>
-              <Power size={15} /> {closeDishBomLineState.isLoading ? 'Đang xử lý...' : 'Ngừng áp dụng'}
-            </button>
+          <ol className="space-y-3 text-sm text-slate-700">
+            <li><strong>1. Chọn món hoặc tải danh sách món thiếu định lượng.</strong></li>
+            <li><strong>2. Nhập ba cột bắt buộc:</strong> chọn Nguyên liệu chính, Đơn vị và nhập Định lượng/suất.</li>
+            <li><strong>3. Tải file lên và chọn Kiểm tra file.</strong> Hệ thống sẽ chỉ đúng dòng cần sửa trước khi nhập.</li>
+          </ol>
+          <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+            Hao hụt và Ghi chú là tùy chọn. Không mở khóa hoặc sửa các cột đã được hệ thống điền sẵn.
+          </div>
+          <DialogFooter>
+            <Button type="button" onClick={() => setIsGuidanceOpen(false)}>Đóng</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>}
-
+      </Dialog>
     </>
   );
 }

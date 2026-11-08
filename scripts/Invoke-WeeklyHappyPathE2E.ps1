@@ -7,7 +7,8 @@ param(
     [decimal]$PriceTierAmount = 25000,
     [string]$WeeklyMenuTemplatePath = "",
     [string]$OutputRoot = ".artifacts/e2e",
-    [switch]$SkipSeedReset
+    [switch]$SkipSeedReset,
+    [switch]$SkipInitialWeeklyMenuImport
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,7 +46,8 @@ function Invoke-DailyLifecycle {
     param(
         [string]$Date,
         [switch]$ReusePublishedMenu,
-        [switch]$PreserveDatabase
+        [switch]$PreserveDatabase,
+        [string]$AccessToken = ""
     )
 
     $arguments = @{
@@ -60,13 +62,16 @@ function Invoke-DailyLifecycle {
         SkipSeedReset = $SkipSeedReset -or $PreserveDatabase
         SkipWeeklyMenuImport = $ReusePublishedMenu
     }
+    if (-not [string]::IsNullOrWhiteSpace($AccessToken)) {
+        $arguments.AccessToken = $AccessToken
+    }
     & $dailyRunner @arguments
     if (-not $?) {
         throw "Daily E2E lifecycle failed for $Date."
     }
 }
 
-Invoke-DailyLifecycle -Date $WeekStartDate
+Invoke-DailyLifecycle -Date $WeekStartDate -ReusePublishedMenu:$SkipInitialWeeklyMenuImport
 
 $login = Invoke-RestMethod -Method Post -Uri "$BaseUrl/api/auth/login" -ContentType "application/json" -Body (@{
     username = $Username
@@ -85,7 +90,7 @@ if ($serviceDates.Count -eq 0) { throw "The imported template created no schedul
 if ($serviceDates -notcontains $WeekStartDate) { throw "The imported template did not create a schedule for week start $WeekStartDate." }
 
 foreach ($serviceDate in @($serviceDates | Where-Object { $_ -ne $WeekStartDate })) {
-    Invoke-DailyLifecycle -Date $serviceDate -ReusePublishedMenu -PreserveDatabase
+    Invoke-DailyLifecycle -Date $serviceDate -ReusePublishedMenu -PreserveDatabase -AccessToken $login.data.accessToken
 }
 
 $daySummaries = @(Get-ChildItem -LiteralPath $dayOutputRoot -Filter "happy-path-e2e-summary.md" -Recurse | Sort-Object FullName)

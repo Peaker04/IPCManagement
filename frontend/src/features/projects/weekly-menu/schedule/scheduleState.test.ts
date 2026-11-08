@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { initialWeeklyScheduleState, weeklyScheduleReducer } from './scheduleState'
-import type { WeeklyMenuState } from '../../../coordination/types'
+import type { WeeklyMenuState } from '@/types/coordination'
 
 const menu: WeeklyMenuState = {
   t2: {

@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "requirementsTotal": 10,
+  "selectorContract": {
+    "retiredSelectors": ["package-export", "authority-check", "business-authority-check"],
+    "retiredFunctions": ["Invoke-PackageExport", "Invoke-AuthorityCheck", "Invoke-BusinessAuthorityCheck"],
+    "retiredAuthorityTokens": ["FINANCE_SOURCE_OWNER", "CATALOG_SOURCE_OWNER"],
+    "activeStopAfterSelectors": ["local-archive"],
+    "activeOnlySelectors": [
+      "gap-source-contract",
+      "d03-rebind-check",
+      "d03-restore-drill",
+      "d03-seven-table-retention",
+      "d04-role-rebind-check",
+      "d05-evidence-release",
+      "approval-check"
+    ]
+  },
+  "requiredExecutionInputs": ["runId", "archiveRunId", "target", "migrationHead", "evidenceRoot", "archiveReceipt", "approvalReceipt"],
+  "requiredEvidenceFields": [
+    "gateId",
+    "requirementId",
+    "command",
+    "commandVersion",
+    "sourceCommit",
+    "target",
+    "migrationHead",
+    "inputHashes",
+    "artifactPath",
+    "status",
+    "exitCode",
+    "counts",
+    "stdoutSha256",
+    "stderrSha256",
+    "redactedError"
+  ],
+  "failureStatuses": [
+    "BLOCKED_BUSINESS",
+    "BLOCKED_EXTERNAL",
+    "NEEDS_CONFIRMATION",
+    "STALE",
+    "EXPIRED",
+    "PLACEHOLDER",
+    "MISSING_ARTIFACT",
+    "FAILED"
+  ],
+  "gates": [
+    {
+      "order": 1,
+      "id": "w0-application-tests",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "dotnet test backend/tests/IPCManagement.Application.Tests/IPCManagement.Application.Tests.csproj --no-restore -p:BaseOutputPath=backend/.artifacts/phase42-{runId}-application/ -p:EnableDefaultContentItems=false -p:UseAppHost=false",
+      "versionCommand": "dotnet --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 2,
+      "id": "w0-api-tests",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore -p:BaseOutputPath=backend/tests/IPCManagement.Api.Tests/bin-phase42-{runId}/ -p:EnableDefaultContentItems=false -p:UseAppHost=false",
+      "versionCommand": "dotnet --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 3,
+      "id": "w0-frontend-tests",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "npm run test:fe:unit",
+      "versionCommand": "npm --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 4,
+      "id": "w0-backend-build",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "dotnet build backend/IPCManagement.slnx --no-restore -p:BaseOutputPath=backend/.artifacts/phase42-{runId}-solution/ -p:EnableDefaultContentItems=false -p:UseAppHost=false",
+      "versionCommand": "dotnet --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 5,
+      "id": "w0-frontend-build",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "npm run build -w frontend",
+      "versionCommand": "npm --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 6,
+      "id": "w0-frontend-lint",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "npm run lint -w frontend",
+      "versionCommand": "npm --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 7,
+      "id": "w0-dependency-graph",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "npm run depcruise -w frontend",
+      "versionCommand": "npm --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 8,
+      "id": "w0-pending-model",
+      "stage": "W0",
+      "requirementId": null,
+      "kind": "command",
+      "command": "powershell -NoProfile -Command $env:BaseOutputPath='backend/.artifacts/phase42-{runId}-ef/';$env:EnableDefaultContentItems='false';$env:UseAppHost='false';dotnet ef migrations has-pending-model-changes --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj",
+      "versionCommand": "dotnet ef --version",
+      "targetMode": "none",
+      "requiredArtifacts": ["migration-model-check"]
+    },
+    {
+      "order": 9,
+      "id": "dcr-01-movement-closure",
+      "stage": "W1",
+      "requirementId": "DCR-01",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-01-movement-closure.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-01-movement-closure"]
+    },
+    {
+      "order": 10,
+      "id": "dcr-02-menu-closure",
+      "stage": "W1",
+      "requirementId": "DCR-02",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-02-menu-closure.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-02-menu-closure"]
+    },
+    {
+      "order": 11,
+      "id": "dcr-03-unit-closure",
+      "stage": "W1",
+      "requirementId": "DCR-03",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-03-unit-closure.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-03-unit-closure"]
+    },
+    {
+      "order": 12,
+      "id": "dcr-04-quotation-closure",
+      "stage": "W1",
+      "requirementId": "DCR-04",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-04-quotation-closure.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-04-quotation-closure"]
+    },
+    {
+      "order": 13,
+      "id": "dcr-05-bom-closure",
+      "stage": "W1",
+      "requirementId": "DCR-05",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-05-bom-closure.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-05-bom-closure"]
+    },
+    {
+      "order": 14,
+      "id": "dcr-06-duplicate-closure",
+      "stage": "W1",
+      "requirementId": "DCR-06",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-06-duplicate-closure.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["d05-evidence-only-release", "accepted-unverified-business-risk", "fixed-no-correction-outcomes", "zero-business-execution", "dcr-06-duplicate-closure"]
+    },
+    {
+      "order": 15,
+      "id": "dcr-07-local-archive-risk",
+      "stage": "W2",
+      "requirementId": "DCR-07",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-07-local-archive.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["accepted-local-only-risk", "encrypted-local-archive", "opaque-dpapi-key-reference"]
+    },
+    {
+      "order": 16,
+      "id": "dcr-08-approved-local-restore",
+      "stage": "W2",
+      "requirementId": "DCR-08",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-08-approved-local-restore.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["approved-local-archive-only", "ordered-migration-ids", "restore-teardown", "plaintext-teardown"]
+    },
+    {
+      "order": 17,
+      "id": "dcr-09-seven-table-retention",
+      "stage": "W2",
+      "requirementId": "DCR-09",
+      "kind": "artifact",
+      "command": "validate-artifact dcr-09-seven-table-retention.json",
+      "versionCommand": "phase42-verifier --version",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["seven-table-retention", "zero-consumer-scan", "destructive-path-dormancy"]
+    },
+    {
+      "order": 18,
+      "id": "ver-03-secret-stub-d03-dormancy",
+      "stage": "VER",
+      "requirementId": "VER-03",
+      "kind": "command",
+      "command": "powershell -NoProfile -File scripts/standardization/Invoke-Phase42AggregateVerification.ps1 -HygieneOnly -RunId {runId} -ArchiveRunId {archiveRunId} -ArchiveReceipt \"{archiveReceipt}\" -ApprovalReceipt \"{approvalReceipt}\" -Target {target} -MigrationHead {migrationHead} -Manifest \"{manifest}\" -EvidenceRoot {evidenceRoot} -Output {artifactPath}",
+      "versionCommand": "powershell -NoProfile -Command $PSVersionTable.PSVersion.ToString()",
+      "targetMode": "explicit",
+      "requiredArtifacts": ["secret-scan", "raw-key-scan", "d03-topology-scan", "destructive-dormancy-scan", "teardown-reconciliation"]
+    },
+    {
+      "order": 19,
+      "id": "ver-03-root-verify",
+      "stage": "VER",
+      "requirementId": "VER-03",
+      "kind": "command",
+      "command": "powershell -NoProfile -Command $env:BaseOutputPath='backend/.artifacts/phase42-{runId}-root/';$env:EnableDefaultContentItems='false';$env:UseAppHost='false';npm run verify",
+      "versionCommand": "npm --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    },
+    {
+      "order": 20,
+      "id": "ver-03-diff-hygiene",
+      "stage": "VER",
+      "requirementId": "VER-03",
+      "kind": "command",
+      "command": "git diff --check",
+      "versionCommand": "git --version",
+      "targetMode": "none",
+      "requiredArtifacts": []
+    }
+  ]
+}

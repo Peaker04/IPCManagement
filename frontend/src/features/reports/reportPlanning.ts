@@ -1,4 +1,4 @@
-import type { PurchasePlanRow } from '@/api/workflowApi';
+import type { PurchasePlanRow } from '@/api/workflowApiTypes';
 
 export type PurchasePlanSummary = {
   rowCount: number;

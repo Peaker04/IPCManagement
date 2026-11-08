@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { MealQuantityPlanDto, OrderRow } from '../../../coordination/types'
+import type { MealQuantityPlanDto, OrderRow } from '@/types/coordination'
 import { buildQuantityPlanByDateShift, buildQuickServingRows, getShiftServingInfo, resolveSlotServingInfo } from './scheduleModel'
 import type { WeeklyMenuScope } from './types'
 

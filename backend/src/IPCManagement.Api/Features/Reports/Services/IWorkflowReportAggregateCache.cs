@@ -12,5 +12,11 @@ public interface IWorkflowReportAggregateCache
         WorkflowReportQueryDto query,
         Func<WorkflowReportQueryDto, Task<DataQualityReportDto>> factory);
 
+    Task<T> GetOrCreateReportAsync<T>(
+        string reportType,
+        object query,
+        Func<Task<T>> factory)
+        where T : class;
+
     void Invalidate();
 }

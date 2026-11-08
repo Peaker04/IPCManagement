@@ -8,4 +8,13 @@ namespace IPCManagement.Api.Features.Reports.Contracts;
 /// </summary>
 public sealed class CurrentStockPageQueryDto : WorkflowReportPageQueryDto
 {
+    public string? SearchKeyword { get; set; }
+}
+
+/// <summary>
+/// Cursor-page contract for stock movements with server-side text search.
+/// </summary>
+public sealed class StockMovementPageQueryDto : WorkflowReportQueryDto
+{
+    public string? SearchKeyword { get; set; }
 }

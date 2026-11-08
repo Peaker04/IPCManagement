@@ -1,8 +1,18 @@
 import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
-import type { RootState, AppDispatch } from './store';
+import type { AppDispatch, RootState } from './store';
 
 export { useHasRole } from '@/lib/useHasRole'
+export { useHasPermission } from '@/lib/useHasPermission'
+export {
+  useAuditLogs,
+  useCoordinationState,
+  useCurrentShift,
+  useError,
+  useIsLocked,
+  useLoading,
+  useOrders,
+} from '@/features/coordination/coordinationHooks'
 
 // Use throughout your app instead of plain `useDispatch` and `useSelector`
 export const useAppDispatch = () => useDispatch<AppDispatch>();
@@ -12,35 +22,5 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 export const useIsAdmin = () =>
   useAppSelector((state) => state.auth.user?.isAdminFullAccess ?? false)
 
-export const useHasPermission = (permission: string) =>
-  useAppSelector((state) => {
-    const user = state.auth.user
-    if (!user) return false
-    if (user.isAdminFullAccess || user.permissions.includes('*')) return true
-    return user.permissions.includes(permission)
-  })
-
 export const useCurrentRole = () =>
   useAppSelector((state) => state.auth.user?.role ?? null)
-
-// Coordination-specific selectors
-export const useCoordinationState = () =>
-  useAppSelector((state) => state.coordination)
-
-export const useOrders = () =>
-  useAppSelector((state) => state.coordination.orders)
-
-export const useCurrentShift = () =>
-  useAppSelector((state) => state.coordination.currentShift)
-
-export const useIsLocked = () =>
-  useAppSelector((state) => state.coordination.isLocked)
-
-export const useAuditLogs = () =>
-  useAppSelector((state) => state.coordination.auditLogs)
-
-export const useLoading = () =>
-  useAppSelector((state) => state.coordination.loading)
-
-export const useError = () =>
-  useAppSelector((state) => state.coordination.error)

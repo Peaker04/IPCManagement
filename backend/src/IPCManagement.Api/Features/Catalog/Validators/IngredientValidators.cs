@@ -23,8 +23,8 @@ public class CreateIngredientDtoValidator : AbstractValidator<CreateIngredientRe
             .Must(BeValidGuid).WithMessage("UnitId phải là GUID hợp lệ.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
     }
 
     private static bool BeValidGuid(string value)

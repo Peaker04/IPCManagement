@@ -1,4 +1,5 @@
 import { RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { InlineAlert } from './InlineAlert';
 
 interface QueryErrorAlertProps {
@@ -17,15 +18,16 @@ export function QueryErrorAlert({ title, children, onRetry, isRetrying = false, 
         variant="danger"
         className={className}
         action={(
-          <button
+          <Button
             type="button"
-            className="ipc-button ipc-button-ghost min-h-11"
+            variant="outline"
+            className="min-h-11"
             onClick={() => onRetry()}
             disabled={isRetrying}
           >
             <RefreshCw size={16} aria-hidden="true" />
             {isRetrying ? 'Đang tải lại…' : 'Thử tải lại'}
-          </button>
+          </Button>
         )}
       >
         {children}

@@ -23,7 +23,19 @@ public class InventoryIssueRepository : GenericRepository<InventoryIssue>, IInve
             .Include(issue => issue.Warehouse)
             .Include(issue => issue.IssuedByNavigation)
             .Include(issue => issue.ReceivedByNavigation)
+            .Include(issue => issue.Inventoryissuelines)
             .AsQueryable();
+
+        query = ApplyExactSourceFamily(query, request.SourceFamily);
+
+        if (!string.IsNullOrWhiteSpace(request.ReconciliationBatchId))
+        {
+            if (!string.Equals(request.SourceFamily, InventoryIssueSourceFamilies.MaterialReconciliation, StringComparison.OrdinalIgnoreCase))
+                throw new ArgumentException("ReconciliationBatchId chỉ hợp lệ với sourceFamily MATERIAL_RECONCILIATION.");
+            var batchId = GuidHelper.ParseGuidString(request.ReconciliationBatchId)
+                ?? throw new ArgumentException("ReconciliationBatchId không hợp lệ.");
+            query = query.Where(issue => issue.ReconciliationBatchId == batchId);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.WarehouseId))
         {
@@ -65,8 +77,11 @@ public class InventoryIssueRepository : GenericRepository<InventoryIssue>, IInve
         return (items, totalCount);
     }
 
-    public async Task<InventoryIssue?> GetByIdWithLinesAsync(byte[] id)
-        => await _context.Inventoryissues
+    public async Task<InventoryIssue?> GetByIdWithLinesAsync(
+        byte[] id,
+        string? sourceFamily = null)
+    {
+        var query = _context.Inventoryissues
             .AsNoTracking()
             .Include(issue => issue.Warehouse)
             .Include(issue => issue.IssuedByNavigation)
@@ -75,7 +90,53 @@ public class InventoryIssueRepository : GenericRepository<InventoryIssue>, IInve
                 .ThenInclude(line => line.Ingredient)
             .Include(issue => issue.Inventoryissuelines)
                 .ThenInclude(line => line.Unit)
-            .FirstOrDefaultAsync(issue => issue.IssueId == id);
+            .AsQueryable();
+        if (!string.IsNullOrWhiteSpace(sourceFamily))
+            query = ApplyExactSourceFamily(query, sourceFamily);
+        return await query.FirstOrDefaultAsync(issue => issue.IssueId == id);
+    }
+
+    private static IQueryable<InventoryIssue> ApplyExactSourceFamily(
+        IQueryable<InventoryIssue> query,
+        string sourceFamily)
+    {
+        if (string.Equals(sourceFamily, InventoryIssueSourceFamilies.Default, StringComparison.OrdinalIgnoreCase))
+        {
+            return query.Where(issue =>
+                issue.MaterialRequestId != null &&
+                issue.ReconciliationBatchId == null &&
+                issue.Inventoryissuelines.Any() &&
+                issue.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId != null &&
+                    line.ReconciliationBatchLineId == null));
+        }
+
+        if (string.Equals(sourceFamily, InventoryIssueSourceFamilies.MaterialReconciliation, StringComparison.OrdinalIgnoreCase))
+        {
+            return query.Where(issue =>
+                issue.MaterialRequestId == null &&
+                issue.ReconciliationBatchId != null &&
+                issue.Inventoryissuelines.Any() &&
+                issue.Inventoryissuelines.All(line =>
+                    line.MaterialRequestLineId == null &&
+                    line.ReconciliationBatchLineId != null));
+        }
+
+        if (string.Equals(sourceFamily, InventoryIssueSourceFamilies.LegacyUnclassified, StringComparison.OrdinalIgnoreCase))
+        {
+            return query.Where(issue => !(
+                issue.MaterialRequestId != null &&
+                issue.ReconciliationBatchId == null &&
+                issue.Inventoryissuelines.Any() &&
+                issue.Inventoryissuelines.All(line => line.MaterialRequestLineId != null && line.ReconciliationBatchLineId == null)) && !(
+                issue.MaterialRequestId == null &&
+                issue.ReconciliationBatchId != null &&
+                issue.Inventoryissuelines.Any() &&
+                issue.Inventoryissuelines.All(line => line.MaterialRequestLineId == null && line.ReconciliationBatchLineId != null)));
+        }
+
+        throw new ArgumentException("sourceFamily phải là DEFAULT, MATERIAL_RECONCILIATION hoặc LEGACY_UNCLASSIFIED.");
+    }
 
     public async Task<MaterialRequest?> GetMaterialRequestForIssueAsync(byte[] id)
         => await _context.Materialrequests

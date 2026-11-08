@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-02R",
+  "status": "READY_TO_SEAL",
+  "waveBaseCommit": "47d13805196fd9ab51d0f08c5de44db7fa26a71b",
+  "currentHead": "8826abf1ef016d63144049377f4e537237c47d51",
+  "partialCommit": "235fbd499e0fb5e2f247ea0efa0bb92ea58eff32",
+  "partialDisposition": "PRESERVED_EXACT_AUTHORIZED_THREE_MEMBER_DELTA",
+  "orderedCommits": [
+    {"commit":"235fbd499e0fb5e2f247ea0efa0bb92ea58eff32","parent":"47d13805196fd9ab51d0f08c5de44db7fa26a71b"},
+    {"commit":"8826abf1ef016d63144049377f4e537237c47d51","parent":"235fbd499e0fb5e2f247ea0efa0bb92ea58eff32"}
+  ],
+  "authorityRootCountAfterMarker": 7,
+  "tests": {"files":2,"tests":52,"status":"PASS"},
+  "browserRun": false,
+  "productionChanged": false,
+  "snapshotsChanged": false,
+  "blockers": []
+}

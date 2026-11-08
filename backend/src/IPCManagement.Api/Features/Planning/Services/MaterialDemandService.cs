@@ -11,10 +11,10 @@ namespace IPCManagement.Api.Features.Planning.Services;
 public class MaterialDemandService : IMaterialDemandService
 {
     private readonly IpcManagementContext _context;
-    private const string PublishedBomStatus = "PUBLISHED";
     private const string DemandApprovedStatus = "MANAGERAPPROVED";
     private const string DemandDraftStatus = "DRAFT";
     private const string PurchaseDraftStatus = "DRAFT";
+    private const string CompletedQuantityPlanStatus = "COMPLETED";
     private const decimal FixedBomRatePercent = 100m;
 
     public MaterialDemandService(IpcManagementContext context)
@@ -65,6 +65,12 @@ public class MaterialDemandService : IMaterialDemandService
             return null;
         }
 
+        await EnsureMenusPublishedForDemandAsync(
+            serviceDate,
+            shiftName,
+            customerId,
+            cancellationToken);
+
         var planContext = await ResolveProductionPlanContextAsync(quantityLines, customerId, cancellationToken);
         var plan = await EnsureProductionPlanAsync(serviceDate, scope, planContext, userIdBytes, cancellationToken);
         var (materialRequest, isRecalculate) = await EnsureMaterialRequestAsync(plan, serviceDate, scope, planContext.CustomerCode, userIdBytes, cancellationToken);
@@ -86,7 +92,18 @@ public class MaterialDemandService : IMaterialDemandService
 
         var stockDict = currentStocks
             .GroupBy(s => Convert.ToBase64String(s.IngredientId))
-            .ToDictionary(g => g.Key, g => g.ToList());
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(stock => Convert.ToBase64String(stock.WarehouseId), StringComparer.Ordinal)
+                    .ThenBy(stock => Convert.ToBase64String(stock.UnitId), StringComparer.Ordinal)
+                    .ToList());
+        await MaterialDemandStockReservation.ReserveAsync(
+            _context,
+            stockDict,
+            materialRequest.RequestId,
+            serviceDate,
+            requiredIngredientIds,
+            cancellationToken);
         var effectivePortionRules = await LoadEffectivePortionRulesAsync(serviceDate, cancellationToken);
 
         var outputLines = new Dictionary<string, MaterialDemandLineDto>();
@@ -96,13 +113,15 @@ public class MaterialDemandService : IMaterialDemandService
         var generatedRequestLineKeys = new HashSet<string>();
         foreach (var quantityLine in quantityLines)
         {
-            foreach (var menuItem in quantityLine.Menu.Menuitems.OrderBy(item => item.DisplayOrder))
+            foreach (var menuItem in quantityLine.Menu.Menuitems
+                         .OrderBy(item => item.DisplayOrder)
+                         .DistinctBy(item => Convert.ToBase64String(item.DishId)))
             {
                 var productionLine = EnsureProductionPlanLine(plan, quantityLine, menuItem);
                 generatedPlanLineIds.Add(BuildKey(productionLine.PlanLineId));
                 var portionRule = ResolvePortionRule(effectivePortionRules, quantityLine, menuItem, serviceDate);
-                var priceTier = NormalizePriceTier(quantityLine.MenuSchedule.MenuPrice);
-                var activeBomLines = ResolveBomLines(menuItem.Dish.Dishboms, quantityLine.CustomerId, priceTier, serviceDate);
+                var priceTier = BomSelectionResolver.NormalizePriceTier(quantityLine.MenuSchedule.MenuPrice);
+                var activeBomLines = BomSelectionResolver.Resolve(menuItem.Dish.Dishboms, quantityLine.CustomerId, priceTier, serviceDate);
                 if (activeBomLines.Count == 0)
                 {
                     missingBomDishes.Add(MapMissingBomDish(
@@ -114,9 +133,8 @@ public class MaterialDemandService : IMaterialDemandService
 
                 foreach (var bom in activeBomLines)
                 {
-                    var stockConversion = CalculateStockInBomUnit(
-                        stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), []),
-                        bom.Unit);
+                    var ingredientStocks = stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), []);
+                    var stockConversion = MaterialDemandStockConversion.Calculate(ingredientStocks, bom.Unit);
                     missingConversionIssues.AddRange(stockConversion.MissingConversionIssues.Select(issue =>
                     {
                         var ingredientId = GuidHelper.ToGuidString(bom.IngredientId);
@@ -132,6 +150,8 @@ public class MaterialDemandService : IMaterialDemandService
                         stockConversion.Quantity,
                         portionRule.PortionRatePercent,
                         portionRule.YieldLossPercent);
+                    var stockAllocatedToLine = Math.Min(numbers.TotalRequiredQty, numbers.CurrentStockQty);
+                    MaterialStockPool.ConsumeInBomUnit(ingredientStocks, bom.Unit, stockAllocatedToLine);
                     var requestLine = EnsureMaterialRequestLine(
                         materialRequest,
                         productionLine,
@@ -176,7 +196,7 @@ public class MaterialDemandService : IMaterialDemandService
             ProductionPlanLineCount = plan.Productionplanlines.Count,
             Lines = outputLines.Values.ToList(),
             MissingBomDishes = missingBomDishes,
-            MissingConversionIssues = DeduplicateConversionIssues(missingConversionIssues)
+            MissingConversionIssues = MaterialDemandStockConversion.Deduplicate(missingConversionIssues)
         };
     }
 
@@ -251,7 +271,9 @@ public class MaterialDemandService : IMaterialDemandService
             }
             else if (await _context.Inventoryissues
                          .AsNoTracking()
-                         .AnyAsync(issue => issue.MaterialRequestId.SequenceEqual(materialRequest.RequestId), cancellationToken))
+                         .AnyAsync(issue =>
+                             issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+                             issue.MaterialRequestId.SequenceEqual(materialRequest.RequestId), cancellationToken))
             {
                 regenerationBlockReason =
                     "Nhu cầu đã phát sinh phiếu xuất kho nên được giữ ở chế độ chỉ đọc. Hãy dùng luồng điều chỉnh riêng.";
@@ -512,6 +534,43 @@ public class MaterialDemandService : IMaterialDemandService
         return query;
     }
 
+    private async Task EnsureMenusPublishedForDemandAsync(
+        DateOnly serviceDate,
+        string? shiftName,
+        byte[]? customerId,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Mealquantityplanlines
+            .AsNoTracking()
+            .Where(line =>
+                line.QuantityPlan.ServiceDate == serviceDate &&
+                line.QuantityPlan.Status == CompletedQuantityPlanStatus);
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            query = query.Where(line => line.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            query = query.Where(line => line.CustomerId.SequenceEqual(customerId));
+        }
+
+        var hasUnpublishedMenu = await query.AnyAsync(line =>
+            line.MenuSchedule.Status != "ACTIVE" ||
+            (line.MenuSchedule.MenuVersionId != null &&
+             !_context.Menuversions.Any(version =>
+                 version.MenuVersionId == line.MenuSchedule.MenuVersionId &&
+                 MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(version.Status))),
+            cancellationToken);
+        if (hasUnpublishedMenu)
+        {
+            throw new BusinessRuleException(
+                "Không thể tạo nhu cầu nguyên liệu khi thực đơn chưa được phát hành. " +
+                "Hãy phát hành phiên bản thực đơn trước khi tiếp tục.");
+        }
+    }
+
     private async Task<bool> HasUnsignedOffQuantityLinesAsync(
         DateOnly serviceDate,
         string? shiftName,
@@ -742,6 +801,7 @@ public class MaterialDemandService : IMaterialDemandService
                 .AsNoTracking()
                 .Where(version => version.WeekStartDate == weekStartDate.Value)
                 .Where(version => version.CustomerId.SequenceEqual(customerId))
+                .Where(version => MenuVersionStatusPolicy.PublishedCompatibleStatuses.Contains(version.Status))
                 .OrderByDescending(version => version.PublishedAt.HasValue)
                 .ThenByDescending(version => version.VersionNo)
                 .Select(version => version.MenuVersionId)
@@ -787,7 +847,9 @@ public class MaterialDemandService : IMaterialDemandService
 
             var hasInventoryIssue = await _context.Inventoryissues
                 .AsNoTracking()
-                .AnyAsync(issue => issue.MaterialRequestId.SequenceEqual(existing.RequestId), cancellationToken);
+                .AnyAsync(issue =>
+                    issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+                    issue.MaterialRequestId.SequenceEqual(existing.RequestId), cancellationToken);
             if (hasInventoryIssue)
             {
                 throw new BusinessRuleException(
@@ -1244,8 +1306,6 @@ public class MaterialDemandService : IMaterialDemandService
             ? null
             : value.Trim();
 
-    private sealed record StockConversionResult(decimal Quantity, IReadOnlyList<MissingUnitConversionIssueDto> MissingConversionIssues);
-
     private static string BuildMaterialRequestLineKey(byte[] planLineId, byte[] ingredientId)
         => $"{BuildKey(planLineId)}:{BuildKey(ingredientId)}";
 
@@ -1253,110 +1313,9 @@ public class MaterialDemandService : IMaterialDemandService
         => Convert.ToBase64String(value);
 
     private static bool IsPublishedAndEffective(DishBom bom, DateOnly serviceDate)
-        => bom.BomStatus == PublishedBomStatus &&
+        => bom.BomStatus == "PUBLISHED" &&
            bom.EffectiveFrom <= serviceDate &&
            (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate);
-
-    private static List<DishBom> ResolveBomLines(
-        IEnumerable<DishBom> lines,
-        byte[] customerId,
-        decimal priceTier,
-        DateOnly serviceDate)
-    {
-        var effectiveLines = lines
-            .Where(bom => IsPublishedAndEffective(bom, serviceDate))
-            .Where(bom => bom.PriceTierAmount == priceTier)
-            .ToList();
-        var customerLines = effectiveLines
-            .Where(bom => bom.CustomerId is not null && bom.CustomerId.SequenceEqual(customerId))
-            .ToList();
-
-        return customerLines.Count > 0
-            ? customerLines
-            : effectiveLines.Where(bom => bom.CustomerId is null).ToList();
-    }
-
-    private static decimal NormalizePriceTier(decimal menuPrice)
-    {
-        var normalized = decimal.Round(menuPrice, 0);
-        return normalized switch
-        {
-            25000m or 30000m or 34000m => normalized,
-            _ => throw new BusinessRuleException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM 25000/30000/34000.")
-        };
-    }
-
-    private static StockConversionResult CalculateStockInBomUnit(IReadOnlyList<CurrentStock> stocks, Unit bomUnit)
-    {
-        if (stocks.Count == 0)
-        {
-            return new StockConversionResult(0m, []);
-        }
-
-        var total = 0m;
-        var issues = new List<MissingUnitConversionIssueDto>();
-        foreach (var stock in stocks)
-        {
-            if (TryConvertQuantity(stock.CurrentQty, stock.Unit, bomUnit, out var convertedQty))
-            {
-                total += convertedQty;
-                continue;
-            }
-
-            issues.Add(BuildMissingConversionIssue(stock.Unit, bomUnit));
-        }
-
-        return new StockConversionResult(DecimalPolicy.RoundQuantity(total), DeduplicateConversionIssues(issues));
-    }
-
-    private static bool TryConvertQuantity(decimal quantity, Unit sourceUnit, Unit targetUnit, out decimal convertedQty)
-    {
-        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
-        {
-            convertedQty = quantity;
-            return true;
-        }
-
-        if (!CanConvertUnits(sourceUnit, targetUnit))
-        {
-            convertedQty = 0m;
-            return false;
-        }
-
-        convertedQty = DecimalPolicy.RoundQuantity(quantity * sourceUnit.ConvertRateToBase / targetUnit.ConvertRateToBase);
-        return true;
-    }
-
-    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
-        => sourceUnit.ConvertRateToBase > 0 &&
-           targetUnit.ConvertRateToBase > 0 &&
-           string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
-
-    private static string NormalizedBaseUnitCode(Unit unit)
-        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
-            ? unit.UnitCode.Trim().ToUpperInvariant()
-            : unit.BaseUnitCode.Trim().ToUpperInvariant();
-
-    private static MissingUnitConversionIssueDto BuildMissingConversionIssue(Unit sourceUnit, Unit targetUnit)
-    {
-        var sourceUnitId = GuidHelper.ToGuidString(sourceUnit.UnitId);
-        var targetUnitId = GuidHelper.ToGuidString(targetUnit.UnitId);
-        return new MissingUnitConversionIssueDto
-        {
-            IssueId = $"missing_conversion:{sourceUnitId}:{targetUnitId}",
-            SourceUnitId = sourceUnitId,
-            SourceUnitName = sourceUnit.UnitName,
-            TargetUnitId = targetUnitId,
-            TargetUnitName = targetUnit.UnitName,
-            Message = $"Thiếu cấu hình quy đổi từ {sourceUnit.UnitName} sang {targetUnit.UnitName}."
-        };
-    }
-
-    private static IReadOnlyList<MissingUnitConversionIssueDto> DeduplicateConversionIssues(IEnumerable<MissingUnitConversionIssueDto> issues)
-        => issues
-            .GroupBy(issue => issue.IssueId)
-            .Select(group => group.First())
-            .ToList();
 
     private static string NormalizeScope(string? scope, string? shiftName)
     {

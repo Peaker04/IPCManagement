@@ -42,7 +42,7 @@ public class StockMovementReportsController : ControllerBase
 
     [HttpGet("stock-movements/page")]
     [ProducesResponseType(typeof(ApiResponse<CursorPageDto<StockMovementViewDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStockMovementPageAsync([FromQuery] WorkflowReportQueryDto query)
+    public async Task<IActionResult> GetStockMovementPageAsync([FromQuery] StockMovementPageQueryDto query)
         => Ok(ApiResponse<CursorPageDto<StockMovementViewDto>>.SuccessResult(
             await _reportService.GetStockMovementPageAsync(query)));
 }

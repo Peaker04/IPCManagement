@@ -1,5 +1,5 @@
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
-import type { WeeklyMenuState } from '../../../coordination/types'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
+import type { WeeklyMenuState } from '@/types/coordination'
 import type { CatalogDish } from '@/api/dishCatalogApi'
 import {
   formatImportDate,

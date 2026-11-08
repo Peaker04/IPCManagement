@@ -19,6 +19,11 @@ const demand = (ingredientId: string, required: number): DemandLine => ({
   tone: 'success',
 });
 
+const demandLine = (id: string, ingredientId: string, required: number): DemandLine => ({
+  ...demand(ingredientId, required),
+  id,
+});
+
 const stock = (warehouseId: string, ingredientId: string, currentQty: number): CurrentStockRow => ({
   id: `${warehouseId}-${ingredientId}`,
   warehouseId,
@@ -62,7 +67,7 @@ describe('buildWarehouseIssueAllocation', () => {
     expect(result).toEqual({
       remainingLineCount: 2,
       fullyCoveredLineCount: 1,
-      lines: [{ ingredientId: 'fish', unitId: 'kg', requestedQty: 6, issuedQty: 6 }],
+      lines: [{ materialRequestLineId: 'demand-fish', ingredientId: 'fish', unitId: 'kg', requestedQty: 6, issuedQty: 6 }],
     });
   });
 
@@ -76,7 +81,7 @@ describe('buildWarehouseIssueAllocation', () => {
     );
 
     expect(result.lines).toEqual([
-      { ingredientId: 'tomato', unitId: 'kg', requestedQty: 6, issuedQty: 6 },
+      { materialRequestLineId: 'demand-tomato', ingredientId: 'tomato', unitId: 'kg', requestedQty: 6, issuedQty: 6 },
     ]);
     expect(result.remainingLineCount).toBe(1);
     expect(result.fullyCoveredLineCount).toBe(1);
@@ -93,5 +98,20 @@ describe('buildWarehouseIssueAllocation', () => {
 
     expect(result.lines[0]).toMatchObject({ requestedQty: 3, issuedQty: 3 });
     expect(result.fullyCoveredLineCount).toBe(0);
+  });
+
+  it('preserves each source line when one ingredient and unit occur more than once', () => {
+    const result = buildWarehouseIssueAllocation(
+      'request-1',
+      'warehouse-b',
+      [demandLine('source-a', 'tomato', 2), demandLine('source-b', 'tomato', 3)],
+      [stock('warehouse-b', 'tomato', 5)],
+      [],
+    );
+
+    expect(result.lines).toEqual([
+      { materialRequestLineId: 'source-a', ingredientId: 'tomato', unitId: 'kg', requestedQty: 2, issuedQty: 2 },
+      { materialRequestLineId: 'source-b', ingredientId: 'tomato', unitId: 'kg', requestedQty: 3, issuedQty: 3 },
+    ]);
   });
 });

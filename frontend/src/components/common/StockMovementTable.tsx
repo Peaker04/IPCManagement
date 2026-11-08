@@ -1,7 +1,9 @@
 import { Copy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { CursorPaginationBar } from './CursorPaginationBar';
+import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
@@ -9,6 +11,7 @@ import type { StockMovement } from '@/types/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { useToast } from './useToast';
+import { typography } from '@/lib/typography';
 
 interface StockMovementTableProps {
   movements: StockMovement[];
@@ -39,6 +42,11 @@ const typeClasses = {
   return: 'bg-white text-slate-700 border-slate-200',
   adjustment: 'bg-white text-slate-700 border-slate-200',
 };
+
+function displayWorkflowText(value: string): string {
+  const formatted = formatWorkflowStatus(value);
+  return formatted === 'Chưa cập nhật' && value.trim() ? value : formatted;
+}
 
 function shortenDocumentNo(docNo: string): string {
   if (!docNo) return '';
@@ -91,54 +99,61 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
   };
 
   if (!movements.length) {
-    return <div className={cn('ipc-stock-movement-table is-empty text-slate-500 text-center py-8 border border-dashed border-slate-200 bg-slate-50 rounded-sm', className)}>Chưa có dữ liệu để hiển thị</div>;
+    return (
+      <EmptyState
+        title="Chưa phát sinh bút toán kho."
+        className={cn('ipc-stock-movement-table is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
       <TableViewport ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell" caption="Danh sách biến động kho">
-        <table className="ipc-data-table ipc-stock-table ipc-status-action-table">
+        <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]">
           <thead>
             <tr>
               <th className="text-left">Chứng từ</th>
-              <th>Loại</th>
-              <th>Nguyên liệu</th>
+              <th className="text-center">Loại</th>
+              <th className="text-left">Nguyên liệu</th>
               <th className="text-right">Số lượng</th>
-              <th>Phụ trách</th>
-              <th>Trạng thái</th>
-              <th>Tiếp theo</th>
+              <th className="text-left">Phụ trách</th>
+              <th className="text-center">Trạng thái</th>
+              <th className="text-left">Tiếp theo</th>
             </tr>
           </thead>
           <tbody>
             {visibleMovements.map((movement) => (
-              <tr key={movement.id} className="transition-colors hover:bg-slate-50/50">
-                <td className="font-mono text-[13px] font-semibold text-slate-700 text-left">
+              <tr key={movement.id}>
+                <td className={cn(typography.code, 'text-sm font-semibold text-left text-slate-700')}>
                   <div className="flex items-center gap-1.5 justify-start">
                     <span title={movement.documentNo}>
                       {shortenDocumentNo(movement.documentNo)}
                     </span>
-                    <button
+                    <Button
                       type="button"
-                      className="ipc-document-copy-button flex-shrink-0"
+                      variant="outline"
+                      size="icon-xs"
+                      className="size-7"
                       aria-label={`Sao chép mã chứng từ ${movement.documentNo}`}
                       title="Sao chép mã chứng từ"
                       onClick={() => void handleCopyDocumentNo(movement.documentNo)}
                     >
                       <Copy size={11} />
-                    </button>
+                    </Button>
                   </div>
                 </td>
                 <td className="ipc-badge-cell">
-                  <span className={cn('ipc-table-badge ipc-table-badge--type rounded-sm border text-[11.5px] font-semibold leading-normal', typeClasses[movement.type])}>
+                  <span className={cn('ipc-table-badge ipc-table-badge--type rounded-sm border text-xs font-semibold leading-normal', typeClasses[movement.type])}>
                     <span className="ipc-table-badge-dot" aria-hidden="true" />
                     <span className="ipc-table-badge-label">{movementLabel[movement.type]}</span>
                   </span>
                 </td>
                 <td className="font-medium text-slate-800">{movement.material}</td>
-                <td className="text-right font-mono font-bold text-slate-900">
-                  <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-400 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
+                <td className={cn(typography.code, 'text-right font-bold text-slate-900')}>
+                  <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-600 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
                   {movement.beforeQty !== undefined && movement.afterQty !== undefined && (
-                    <div className="text-[11px] font-normal text-slate-500">
+                    <div className="text-xs font-normal text-slate-500">
                       {formatQuantity(movement.beforeQty)} -&gt; {formatQuantity(movement.afterQty)}
                     </div>
                   )}
@@ -146,10 +161,10 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                 <td>{movement.owner}</td>
                 <td className="ipc-badge-cell">
                   <StatusBadge variant={movement.tone} className="ipc-table-badge ipc-table-badge--status">
-                    {formatWorkflowStatus(movement.status)}
+                    {displayWorkflowText(movement.status)}
                   </StatusBadge>
                 </td>
-                <td className="text-slate-600 text-[13px]">{formatWorkflowStatus(movement.nextAction)}</td>
+                <td className="text-slate-600 text-sm">{displayWorkflowText(movement.nextAction)}</td>
               </tr>
             ))}
           </tbody>

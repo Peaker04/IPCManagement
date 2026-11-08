@@ -8,11 +8,13 @@ public interface IMenuScheduleService
     Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
         string menuScheduleId,
         UpdateMenuScheduleRulesRequest request,
-        string? userId);
+        string? userId,
+        string? correlationId = null);
     Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
         string menuScheduleId,
         UpdateMenuScheduleVersionRequest request,
-        string? userId);
+        string? userId,
+        string? correlationId = null);
     Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(
         RollbackMenuVersionRequest request,
         string? userId);

@@ -1,16 +1,41 @@
-import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
+import { PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { formatImportDate } from '../model/formatters'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
+import { matchesWeeklyMenuImportHistorySearch } from './weeklyMenuImportHistorySearch'
 
 export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImportWorkflow }) {
-  const { history, status, actions } = workflow
+  const { history, historyPage, historyPageInfo, setHistoryPage, status, actions } = workflow
+  const [search, setSearch] = useState('')
+  const filteredHistory = useMemo(() => {
+    return history.filter((item) => matchesWeeklyMenuImportHistorySearch(item, search))
+  }, [history, search])
+
   return (
-    <SectionPanel title="Lịch sử import thực đơn tuần">
+    <SectionPanel
+      title="Lịch sử import thực đơn tuần"
+      description="Danh sách các phiên import thực đơn đã thực hiện, trạng thái và khả năng hủy phiên."
+      actions={
+        <div className="relative w-64 max-w-full">
+          <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Tìm khách hàng, tuần, phiên bản..."
+            aria-label="Tìm trong lịch sử import thực đơn"
+            className="h-8 pl-8 text-xs bg-slate-50 border-slate-300 focus:bg-white"
+          />
+        </div>
+      }
+    >
       <QueryViewBoundary preserveFallback={history.length > 0} queries={[{ label: 'lịch sử import thực đơn tuần', view: workflow.historyDataState }]} refreshLabel="Đang cập nhật lịch sử import">
-        <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
-          <table className="ipc-data-table">
+        <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần" frozenFirstIdentifier={false}>
+          <table className="ipc-data-table table-fixed">
             <thead>
               <tr>
                 <th className="text-left">Khách hàng</th><th className="text-left">Tuần</th><th className="text-center">Phiên bản</th>
@@ -18,7 +43,7 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
               </tr>
             </thead>
             <tbody>
-              {history.map((item) => {
+              {filteredHistory.map((item) => {
                 const label = `${item.customerCode} - tuần ${formatImportDate(item.weekStartDate)} (v${item.versionNo})`
                 const statusPresentation = getWorkflowStatusPresentation(item.status)
                 return (
@@ -27,20 +52,21 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
                     <td>{formatImportDate(item.weekStartDate)}</td>
                     <td className="text-center">v{item.versionNo}</td>
                     <td className="text-center"><StatusBadge variant={statusPresentation.tone}>{statusPresentation.label}</StatusBadge></td>
-                    <td className="text-center text-xs">
+                    <td className="text-center text-xs tabular-nums">
                       {item.successRowCount} thành công{item.errorRowCount > 0 ? ` / ${item.errorRowCount} lỗi` : ''}{item.warningRowCount > 0 ? ` / ${item.warningRowCount} cảnh báo` : ''}
                     </td>
                     <td>{item.createdByName ?? '-'}</td>
                     <td className="text-right">
-                      <button
+                      <Button
                         type="button"
+                        variant="outline"
+                        size="xs"
                         onClick={() => actions.requestRollback(item.menuVersionId, label)}
                         disabled={!item.canRollback || status.isRollingBack}
-                        title={item.canRollback ? undefined : item.cannotRollbackReason ?? 'Không thể rollback'}
-                        className="ipc-button ipc-button-ghost ipc-button-bounded"
+                        title={item.canRollback ? undefined : item.cannotRollbackReason ?? 'Không thể hủy phiên import'}
                       >
-                        Rollback
-                      </button>
+                        Hủy phiên
+                      </Button>
                     </td>
                   </tr>
                 )
@@ -48,9 +74,18 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
               {history.length === 0 && (
                 <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có lịch sử import thực đơn tuần.</td></tr>
               )}
+              {history.length > 0 && filteredHistory.length === 0 && (
+                <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Không tìm thấy lịch sử import thực đơn phù hợp.</td></tr>
+              )}
             </tbody>
           </table>
         </TableViewport>
+        <PaginationBar
+          page={historyPage}
+          pageSize={historyPageInfo?.pageSize ?? 8}
+          totalItems={historyPageInfo?.totalCount ?? 0}
+          onPageChange={setHistoryPage}
+        />
       </QueryViewBoundary>
     </SectionPanel>
   )

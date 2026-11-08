@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-01V",
+  "status": "COMPLETE",
+  "authority": "TOPOLOGY_VALIDATOR_ONLY",
+  "frozenOperationalBase": "06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c",
+  "planningHead": "cee4444ef0c3c38305df082f65779f6bf2b248c1",
+  "planningDelta": {
+    "base": "06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c",
+    "head": "cee4444ef0c3c38305df082f65779f6bf2b248c1",
+    "commits": [
+      {
+        "commit": "8b4aeac358d8cb1d032f197efaff4d484b5b1edf",
+        "parent": "06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c",
+        "paths": [
+          {
+            "status": "A",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01V-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-02-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-03-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-04-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-05-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-06-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-07-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-RESEARCH.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-VALIDATION.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/ROADMAP.md"
+          }
+        ]
+      },
+      {
+        "commit": "cee4444ef0c3c38305df082f65779f6bf2b248c1",
+        "parent": "8b4aeac358d8cb1d032f197efaff4d484b5b1edf",
+        "paths": [
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01V-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-02-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-03-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-04-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-05-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-06-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-07-PLAN.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-RESEARCH.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-VALIDATION.md"
+          },
+          {
+            "status": "M",
+            "path": ".planning/ROADMAP.md"
+          }
+        ]
+      }
+    ]
+  },
+  "planningDeltaSha256": "08c0c04302c07f4cde833f38e94b4b1b452b65fc11a5506895a359071b7e53d2",
+  "expectedLiveHead": "cee4444ef0c3c38305df082f65779f6bf2b248c1",
+  "validatorPins": [
+    {
+      "path": "frontend/tests/validatePhase271Reseal.test.ts",
+      "sha256": "8bc947eb05a9a6bcbc745222668f986561b96c46b3e375b826e7bb23fc2ef8cc",
+      "gitBlobId": "0b77ff5093bdc90b371ab75b766c3d52f5095507"
+    },
+    {
+      "path": "frontend/tests/validatePhase271Reseal.ts",
+      "sha256": "d056b248aca7392ae009e84c17f01e8c9da4c2a25c90bc507baec24c2b5363e4",
+      "gitBlobId": "444323643329bfe32253d7b111578a738389e5ab"
+    }
+  ],
+  "payloadMembers": [
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01V-SUMMARY.md",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-01V-topology-validator-manifest.json",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-01V-topology-validator.json",
+    "frontend/tests/validatePhase271Reseal.test.ts",
+    "frontend/tests/validatePhase271Reseal.ts"
+  ],
+  "blockers": [],
+  "payloadCommit": "6fc5678735eb09e02b34948c59bffcd1b7d42b64"
+}

@@ -15,7 +15,9 @@ public partial class InventoryIssue
 
     public byte[] WarehouseId { get; set; } = null!;
 
-    public byte[] MaterialRequestId { get; set; } = null!;
+    public byte[]? MaterialRequestId { get; set; }
+
+    public byte[]? ReconciliationBatchId { get; set; }
 
     public byte[] IssuedBy { get; set; } = null!;
 
@@ -31,7 +33,9 @@ public partial class InventoryIssue
 
     public virtual User IssuedByNavigation { get; set; } = null!;
 
-    public virtual MaterialRequest MaterialRequest { get; set; } = null!;
+    public virtual MaterialRequest? MaterialRequest { get; set; }
+
+    public virtual ReconciliationBatch? ReconciliationBatch { get; set; }
 
     public virtual User? ReceivedByNavigation { get; set; }
 

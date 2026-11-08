@@ -11,9 +11,10 @@ const ready = (overrides: Partial<Extract<QueryView<unknown>, { phase: 'ready' }
   ...overrides,
 })
 
-const renderBoundary = (views: QueryView<unknown>[], preserveFallback = false) => render(
+const renderBoundary = (views: QueryView<unknown>[], preserveFallback = false, noticePlacement: 'inline' | 'overlay' = 'inline') => render(
   <QueryViewBoundary
     preserveFallback={preserveFallback}
+    noticePlacement={noticePlacement}
     queries={views.map((view, index) => ({ label: `nguồn ${index + 1}`, view }))}
   >
     <div>Kết quả điều phối</div>
@@ -24,6 +25,20 @@ describe('QueryViewBoundary', () => {
   it('keeps uninitialized distinct from empty', () => {
     renderBoundary([{ phase: 'uninitialized', instruction: 'Chọn khách hàng.' }])
     expect(screen.getByText('Chọn khách hàng.')).toBeInTheDocument()
+    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+  })
+
+  it('keeps compact controls content-sized instead of applying a table placeholder', () => {
+    render(<QueryViewBoundary geometry="compact" queries={[{ label: 'bộ lọc', view: ready() }]}><label>Phạm vi<select aria-label="Phạm vi"><option>Tuần này</option></select></label></QueryViewBoundary>)
+    const boundary = screen.getByLabelText('Phạm vi').closest('[data-query-geometry]')
+    expect(boundary).toHaveAttribute('data-query-geometry', 'compact')
+    expect(boundary).toHaveClass('min-h-0')
+    expect(boundary).not.toHaveClass('min-h-[380px]')
+  })
+
+  it('blocks children when any required dependency is still uninitialized', () => {
+    renderBoundary([ready(), { phase: 'uninitialized', instruction: 'Chọn phạm vi.' }])
+    expect(screen.getByText('Chọn phạm vi.')).toBeInTheDocument()
     expect(screen.queryByText('Kết quả điều phối')).toBeNull()
   })
 
@@ -47,15 +62,29 @@ describe('QueryViewBoundary', () => {
     expect(screen.queryByText('Kết quả điều phối')).toBeNull()
   })
 
+  it('prioritizes an actionable failure over an earlier passive loading state', () => {
+    renderBoundary([
+      { phase: 'loading' },
+      { phase: 'error', message: 'Lỗi chỉ số.', retry: vi.fn(), isRetrying: false },
+    ])
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Lỗi chỉ số.')
+    expect(screen.queryByText('Đang tải nguồn 1')).toBeNull()
+    expect(screen.queryByText('Kết quả điều phối')).toBeNull()
+  })
+
   it('renders ready-empty as an authoritative result', () => {
     renderBoundary([ready()])
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
   })
 
-  it('keeps stale content while refreshing without changing document flow', () => {
+  it('keeps stale content while refreshing in a non-overlapping flow slot', () => {
     renderBoundary([ready({ isRefreshing: true })])
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveClass('absolute')
+    const status = screen.getByRole('status')
+    expect(status).toHaveAttribute('data-refresh-status', 'true')
+    expect(status).not.toHaveClass('absolute')
+    expect(status).not.toHaveClass('fixed')
   })
 
   it('shows partial evidence without hiding ready data', () => {
@@ -68,5 +97,12 @@ describe('QueryViewBoundary', () => {
     renderBoundary([{ phase: 'error', message: 'Lỗi tải.', retry: vi.fn(), isRetrying: false }], true)
     expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
     expect(screen.getByText(/Lỗi tải/)).toBeInTheDocument()
+  })
+
+  it('supports overlay notices without changing the fallback flow', () => {
+    renderBoundary([{ phase: 'error', message: 'Lỗi overlay.', retry: vi.fn(), isRetrying: false }], true, 'overlay')
+    expect(screen.getByText('Kết quả điều phối')).toBeInTheDocument()
+    expect(screen.getByText(/Lỗi overlay/)).toBeInTheDocument()
+    expect(screen.getByRole('alert').parentElement?.parentElement).toHaveClass('absolute')
   })
 })

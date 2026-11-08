@@ -31,6 +31,7 @@ public class WorkflowReportQueryDto
     public string? EntityName { get; set; }
     public string? FieldName { get; set; }
     public string? MovementType { get; set; }
+    public string? SourceFamily { get; set; }
     public string? GroupBy { get; set; }
     public decimal? PriceTier { get; set; }
     public bool WarningOnly { get; set; }

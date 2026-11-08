@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertTriangle, CircleCheck, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EmptyState } from './EmptyState';
 
 export interface ExceptionLaneItem {
   title: ReactNode;
@@ -14,6 +15,7 @@ interface ExceptionLaneProps {
   items: ExceptionLaneItem[];
   empty?: ReactNode;
   className?: string;
+  scrollLabel?: string;
 }
 
 const exceptionToneClasses = {
@@ -30,12 +32,15 @@ const exceptionIcons = {
   danger: <AlertTriangle size={16} />,
 };
 
-export function ExceptionLane({ title, items, empty, className }: ExceptionLaneProps) {
+export function ExceptionLane({ title, items, empty, className, scrollLabel }: ExceptionLaneProps) {
   return (
-    <aside className={cn('ipc-exception-lane', className)}>
+    <aside className={cn('ipc-exception-lane min-h-[145px] flex flex-col', className)} tabIndex={scrollLabel ? 0 : undefined} aria-label={scrollLabel}>
       {title && <div className="ipc-exception-lane-title">{title}</div>}
       {items.length === 0 ? (
-        <div className="ipc-exception-lane-empty">{empty ?? 'Không có ngoại lệ đang mở.'}</div>
+        <EmptyState
+          title={empty ?? 'Không có ngoại lệ đang mở.'}
+          className="ipc-exception-lane-empty min-h-[100px] !items-stretch !justify-start !p-3 !text-left"
+        />
       ) : (
         <div className="ipc-exception-lane-list">
           {items.map((item, index) => {

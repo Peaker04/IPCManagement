@@ -1,0 +1,12 @@
+# IPC Management System
+
+> Hệ thống quản lý suất ăn công nghiệp và điều phối bếp ăn.
+
+## Core Workflows
+- [Thực đơn tuần](/weekly-menu)
+- [Điều phối đơn](/meal-orders)
+- [Bếp ăn & Thực thi ca](/chef-dashboard)
+- [Kho & Vật tư](/warehouse)
+- [Thu mua](/purchasing)
+- [Hàng đợi phê duyệt](/approvals)
+- [Báo cáo & Giám sát](/reports)

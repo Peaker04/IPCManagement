@@ -1,11 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ToastProvider } from '@/components/common';
 
-import authReducer from '@/features/auth/authSlice';
-import type { User } from '@/features/auth/authTypes';
+import authReducer from '@/lib/auth/authSlice';
+import type { User } from '@/lib/auth/authTypes';
 
 const emptyResult = () => ({ data: undefined, isFetching: false, isError: false, refetch: vi.fn() });
 
@@ -21,7 +23,7 @@ const uninitializedResult = () => ({
   refetch: vi.fn(),
 });
 
-const failedResult = (status: number, refetch = vi.fn()) => ({
+const failedResult = (status: number | 'FETCH_ERROR', refetch = vi.fn()) => ({
   ...uninitializedResult(),
   isUninitialized: false,
   isError: true,
@@ -80,13 +82,16 @@ const mocks = vi.hoisted(() => ({
   priceVarianceByDishGroupPage: vi.fn(),
   purchasePlanPage: vi.fn(),
   stockMovementPage: vi.fn(),
+  serviceRunPage: vi.fn(),
+  supplyLineReconciliation: vi.fn(),
 }));
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/api/reportsApi', () => ({
   useGetAuditChangePageQuery: mocks.auditChangePage,
   useGetCurrentStockPageQuery: mocks.currentStockPage,
   useGetDataQualityPageQuery: mocks.dataQualityPage,
   useGetIngredientDemandPageQuery: mocks.ingredientDemandPage,
+  useGetIngredientDemandAggregatePageQuery: mocks.ingredientDemandPage,
   useGetIssueVsReturnUsagePageQuery: mocks.issueVsReturnPage,
   useGetKitchenIssuesPageQuery: mocks.kitchenIssuesPage,
   useGetPriceVariancePageQuery: mocks.priceVariancePage,
@@ -95,6 +100,12 @@ vi.mock('@/api/workflowApi', () => ({
   useGetPriceVarianceByDishGroupPageQuery: mocks.priceVarianceByDishGroupPage,
   useGetPurchasePlanPageQuery: mocks.purchasePlanPage,
   useGetStockMovementPageQuery: mocks.stockMovementPage,
+  useGetServiceRunPageQuery: mocks.serviceRunPage,
+  useGetSupplyLineReconciliationQuery: mocks.supplyLineReconciliation,
+}));
+
+vi.mock('@/api/chefApi', () => ({
+  useGetServiceRunPageQuery: mocks.serviceRunPage,
 }));
 
 import ReportsPage from './ReportsPage';
@@ -130,10 +141,17 @@ const renderReportsPage = (role: TestRole, initialPath = '/reports') => {
   return render(
     <Provider store={store}>
       <MemoryRouter initialEntries={[initialPath]}>
-        <ReportsPage />
+        <ToastProvider><ReportsPage /></ToastProvider>
       </MemoryRouter>
     </Provider>,
   );
+};
+
+const renderPriceReportsPage = async (role: TestRole, initialPath = '/reports') => {
+  // Resolve the lazy price panel before rendering so aggregate CPU contention cannot
+  // consume the assertion window while Vite transforms the dynamic import.
+  await import('./ReportsPricePanel');
+  return renderReportsPage(role, initialPath);
 };
 
 const tabNames = () => screen.getAllByRole('tab').map((tab) => tab.textContent);
@@ -174,26 +192,23 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
     });
   });
 
-  it('shows price tabs to Thu mua but keeps the audit log admin-only', () => {
-    renderReportsPage('thumua');
+  it('shows price tabs to Thu mua but keeps the audit log admin-only', async () => {
+    await renderPriceReportsPage('thumua');
 
     PURCHASE_ACCESS_TABS.forEach((label) => {
       expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
     });
     expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
     // PurchaseAccess cũng mở 3 cách phân tích tổng hợp của price-variance/*.
-    expect(screen.getByRole('tab', { name: 'Theo nhà cung cấp' })).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
   });
 
-  it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', () => {
-    renderReportsPage('thukho');
+  it('gives Thủ kho only the receipt-price-variance sub tab, not the PurchaseAccess aggregates', async () => {
+    await renderPriceReportsPage('thukho');
 
     // receipt-price-variance dùng PurchaseOrderReadAccess nên Thủ kho vẫn xem được dòng nhập.
     expect(screen.getByRole('tab', { name: 'Biến động giá' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: 'Theo dòng nhập' })).toBeInTheDocument();
-    ['Theo nhà cung cấp', 'Theo thời gian', 'Theo nhóm món'].forEach((label) => {
-      expect(screen.queryByRole('tab', { name: label })).not.toBeInTheDocument();
-    });
+    expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Kế hoạch thu mua' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: ADMIN_ACCESS_TAB })).not.toBeInTheDocument();
   });
@@ -220,10 +235,10 @@ describe('ReportsPage falls back when the URL points at a forbidden tab', () => 
     expect(mocks.purchasePlanPage).toHaveBeenCalledWith(expect.anything(), { skip: true });
   });
 
-  it('keeps Thủ kho on the allowed price sub tab when the URL asks for a PurchaseAccess aggregate', () => {
-    renderReportsPage('thukho', '/reports?view=price&subview=supplier');
+  it('keeps Thủ kho on the allowed price sub tab when the URL asks for a PurchaseAccess aggregate', async () => {
+    await renderPriceReportsPage('thukho', '/reports?view=price&subview=supplier');
 
-    expect(screen.getByRole('tab', { name: 'Theo dòng nhập' })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('combobox', { name: 'Góc nhìn phân tích biến động giá' })).toBeInTheDocument();
     expect(mocks.priceVarianceBySupplierPage).toHaveBeenCalledWith(expect.anything(), { skip: true });
     expect(mocks.priceVariancePage).toHaveBeenCalledWith(expect.anything(), { skip: false });
   });
@@ -277,6 +292,18 @@ describe('ReportsPage query state boundary', () => {
     expect(refetch).toHaveBeenCalledOnce();
   });
 
+  it('renders an offline request failure as recoverable without a false empty result', () => {
+    const refetch = vi.fn();
+    mocks.purchasePlanPage.mockReturnValue(failedResult('FETCH_ERROR', refetch));
+
+    renderReportsPage('thumua', '/reports?view=purchase');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Không tải được dữ liệu báo cáo');
+    expect(screen.queryByText('Chưa có bản ghi báo cáo.')).toBeNull();
+    screen.getByRole('button', { name: 'Thử tải lại' }).click();
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
   it('renders an empty table only after the active report is ready', () => {
     mocks.purchasePlanPage.mockReturnValue(readyResult({
       items: [],
@@ -292,15 +319,85 @@ describe('ReportsPage query state boundary', () => {
 
     renderReportsPage('thumua', '/reports?view=purchase');
 
-    expect(screen.getByText('Chưa có dữ liệu để hiển thị')).toBeInTheDocument();
+    expect(screen.getByText('Chưa có bản ghi báo cáo.')).toBeInTheDocument();
   });
 
-  it('keeps stale price rows visible while refreshing', () => {
+  it('renders source-line reconciliation without grouping legacy lineage into a demand row', async () => {
+    const user = userEvent.setup();
+    mocks.issueVsReturnPage.mockReturnValue(readyResult(emptyReadyPage));
+    mocks.supplyLineReconciliation.mockImplementation((_args: unknown, options?: { skip?: boolean }) => options?.skip
+      ? uninitializedResult()
+      : readyResult([{
+        materialRequestId: 'MR-1',
+        materialRequestLineId: 'MRL-1',
+        materialRequestCode: 'MR-TEST-001',
+        requestDate: '2026-08-09',
+        ingredientId: 'ING-1',
+        ingredientName: 'Gạo',
+        unitId: 'UNIT-1',
+        unitName: 'kg',
+        demandQty: 10,
+        purchaseRequestAllocatedQty: 10,
+        purchaseOrderAllocatedQty: 10,
+        postedAcceptedReceiptQty: 10,
+        issuedQty: 10,
+        kitchenAcknowledgedQty: 8,
+        returnedQty: 0,
+        wastedQty: 0,
+        supplementalRequestedQty: 3,
+        supplementalFulfilledQty: 2,
+        supplementalPurchaseAllocatedQty: 2.5,
+        deltaQty: 0,
+        disposition: 'LEGACY_LINEAGE_RECONCILIATION_REQUIRED',
+        legacyLineageExceptionCount: 3,
+      }]));
+    renderReportsPage('admin');
+    await user.click(screen.getByRole('tab', { name: 'Sử dụng thực tế' }));
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Sử dụng thực tế' })).toHaveAttribute('aria-selected', 'true'));
+
+    expect(await screen.findByText('Đối soát lifecycle theo dòng nhu cầu')).toBeInTheDocument();
+    expect(screen.getByText('MR-TEST-001')).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader', { name: 'Đã xuất' })).toHaveLength(2);
+    expect(screen.getByRole('columnheader', { name: /Bổ sung/ })).toBeInTheDocument();
+    expect(screen.getByText('3 kg / 2 kg / 2,5 kg')).toBeInTheDocument();
+    expect(screen.getByText('Cần quyết định · 3 dòng')).toBeInTheDocument();
+  });
+
+  it('bounds long audit values in a fixed-layout seven-column table', () => {
+    mocks.auditChangePage.mockReturnValue(readyResult({
+      items: [{
+        id: 'audit-1',
+        timestamp: '2026-07-30T01:11:07Z',
+        actor: 'Admin User',
+        businessArea: 'StorekeeperReturnReceipt',
+        entityName: 'InventoryReturn',
+        fieldName: 'StorekeeperReceived',
+        fieldAffected: 'InventoryReturn / StorekeeperReceived',
+        oldValue: 'receivedAt=2026-07-29T18:11:07Z',
+        newValue: 'receivedAt=2026-07-30T01:11:07Z',
+        reason: 'Warehouse receipt reconciled from the source document',
+      }],
+      hasNext: false,
+    }));
+
+    renderReportsPage('admin', '/reports?view=audit');
+
+    const table = document.querySelector<HTMLTableElement>('table.ipc-reports-audit-table');
+    if (!table) throw new Error('Không tìm thấy bảng Audit.')
+    expect(table).toHaveClass('ipc-reports-audit-table');
+    expect(table.querySelectorAll('thead th')).toHaveLength(7);
+    expect(table.querySelectorAll('.ipc-reports-audit-value')).toHaveLength(3);
+  });
+
+  it('keeps stale price rows visible while refreshing', async () => {
     mocks.priceVariancePage.mockReturnValue(readyResult({
       items: [{
         id: 'price-1',
         name: 'Gạo tẻ',
         unit: 'kg',
+        receiptCode: 'PN-20260729-01',
+        receiptDate: '2026-07-29',
+        quantity: 120,
         pricePrev: 20_000,
         priceCurrent: 22_000,
         supplier: 'NCC A',
@@ -317,7 +414,51 @@ describe('ReportsPage query state boundary', () => {
 
     renderReportsPage('admin');
 
-    expect(screen.getAllByText('Gạo tẻ').length).toBeGreaterThan(0);
-    expect(screen.getByText('Đang cập nhật báo cáo')).toBeInTheDocument();
+    expect((await screen.findAllByText('Gạo tẻ')).length).toBeGreaterThan(0);
+    expect(screen.getByText('PN-20260729-01')).toBeInTheDocument();
+    expect(screen.getByText('29/07/2026')).toBeInTheDocument();
+    expect(screen.getByText('120 kg')).toBeInTheDocument();
+    expect(screen.getByText('Đang cập nhật...')).toBeInTheDocument();
+  });
+
+  it('renders the report shift label instead of its enum value', async () => {
+    const user = userEvent.setup();
+    renderReportsPage('admin');
+
+    const shift = await screen.findByRole('combobox', { name: 'Ca' });
+    await user.click(shift);
+    await user.click(await screen.findByRole('option', { name: 'Ca sáng' }));
+
+    expect(shift).toHaveTextContent('Ca sáng');
+    expect(shift).not.toHaveTextContent('MORNING');
+  });
+});
+
+describe('ReportsPage server-side stock search', () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((mock) => mock.mockReset().mockImplementation(readyWhenActive));
+    mocks.supplyLineReconciliation.mockImplementation((_args: unknown, options?: { skip?: boolean }) => options?.skip
+      ? uninitializedResult()
+      : readyResult([]));
+  });
+
+  it('filters the current-stock snapshot before page-number pagination', async () => {
+    renderReportsPage('admin', '/reports?view=stock');
+    fireEvent.change(screen.getByLabelText('Tìm trong snapshot tồn kho hiện tại'), { target: { value: 'Lá lốt' } });
+
+    await waitFor(() => expect(mocks.currentStockPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ searchKeyword: 'Lá lốt', pageNumber: 1 }),
+      { skip: false },
+    ));
+  });
+
+  it('filters stock movements before cursor pagination', async () => {
+    renderReportsPage('admin', '/reports?view=movement');
+    fireEvent.change(screen.getByLabelText('Tìm bút toán trong khoảng ngày'), { target: { value: 'RETURN' } });
+
+    await waitFor(() => expect(mocks.stockMovementPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ searchKeyword: 'RETURN', cursorDate: undefined, cursorOffset: undefined }),
+      { skip: false },
+    ));
   });
 });

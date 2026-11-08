@@ -66,7 +66,18 @@ $env:K6_MAX_VUS = '50'; k6 run load.js   # thử mức cao hơn
 
 Mô phỏng nhân viên thao tác có think-time 0.5–2s. PASS khi mọi threshold p95 đạt và tỷ lệ lỗi < 1%.
 
-### Bước 3 — Stress test (tìm điểm gãy)
+### Bước 3 — Read-only throughput probe, chưa phải D04 qualification
+
+```powershell
+$env:K6_RUN_ID = '<timestamp-or-run-id>'
+k6 run read-only-throughput-probe.js
+```
+
+Probe chỉ dùng một authenticated identity và các GET hiện có để kiểm 10 RPS/15 phút rồi burst 30 RPS/60 giây. Nó fail khi có dropped iteration và ghi file run-unique `results-readonly-<run-id>.json`. **Không** dùng probe này để claim 50 authenticated users, 20 active workers, 80/20 read/write, import preview, p99 class budgets hoặc business correctness.
+
+D04 qualification chỉ được triển khai khi có disposable dataset, nhiều authorized identities, write/import actions an toàn và business-invariant oracle. Khi đó manifest phải ghi aligned Release FE/BE identity, mode/version/capabilities, cold/warm namespace, achieved request count, class p95+p99, error/timeout và zero duplicate transition/stock effect/cross-customer leakage/lost committed write.
+
+### Bước 4 — Stress test (tìm điểm gãy)
 
 ```powershell
 k6 run stress.js                    # 5 → 60 request/giây trong 6 phút
@@ -77,7 +88,7 @@ Quan sát mức RPS mà tỷ lệ lỗi vượt 1% hoặc p95 danh sách vượt
 
 Kết quả mỗi lần chạy được lưu `results-*.json` cạnh script.
 
-## 4. Chẩn đoán nguyên nhân gốc khi có endpoint VƯỢT
+## 5. Chẩn đoán nguyên nhân gốc khi có endpoint VƯỢT
 
 Chạy song song với phiên đo (MySQL client, quyền root):
 
@@ -91,7 +102,7 @@ Chạy song song với phiên đo (MySQL client, quyền root):
 
 Đối chiếu thêm phía EF Core: `appsettings.Development.json` đã bật `Microsoft.EntityFrameworkCore.Database.Command: Information` — đếm số dòng SQL log ra khi mở một màn hình; nếu một lần mở màn hình sinh hàng chục truy vấn thì là N+1 (tài liệu hiệu năng mục 3.1 yêu cầu đưa việc đếm này vào test tự động).
 
-## 5. Mẫu bảng kết quả NFR (điền vào báo cáo)
+## 6. Mẫu bảng kết quả NFR (điền vào báo cáo)
 
 Kết quả đo ngày 26/07/2026 (backend Release cổng 8001, DB `ipcmanagement`, sau fix price-variance `110e3c0`):
 
@@ -110,7 +121,7 @@ Cold-run đầu tiên sau khi khởi động backend cho số cao hơn ~2× (JIT
 
 Kèm minh chứng: `results-smoke.json`, `results-load.json`, `results-stress.json`, ảnh chụp khối A của `02-diagnose.sql`.
 
-## 6. Thứ tự sửa đề xuất (khớp với điểm nóng mục 0)
+## 7. Thứ tự sửa đề xuất (khớp với điểm nóng mục 0)
 
 1. ~~Thêm `OrderBy` ổn định vào mọi `Skip/Take`~~ **ĐÃ LÀM 26/07/2026** — `GenericRepository.ApplyStableOrdering` theo khóa chính.
 2. ~~Chuyển các báo cáo `price-variance/*` và các bản `/page` của chúng sang `GroupBy` dịch xuống SQL~~ **ĐÃ LÀM 26/07/2026** (commit `110e3c0`, số liệu ở mục 5). `BuildPurchasePlanRowsAsync` cũng đã bỏ Include, dùng projection + subquery. KPI `/operational-kpis` đã có cache controller TTL 15 s + single-flight (cold 123 ms → hit 4–5 ms).

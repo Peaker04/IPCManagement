@@ -1,7 +1,7 @@
 import { Fragment } from 'react'
 import { TableViewport } from '@/components/common'
 import { cn } from '@/lib/utils'
-import type { WeeklyMenuImportResult } from '@/features/coordination/coordinationApi'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 
 export type ImportedLayoutRow = {
   key: string
@@ -17,6 +17,7 @@ interface ImportedLayoutMatrixProps {
   displayDays: Array<{ key: string; label: string; date: string }>
   activeDayKey?: string
   maxBodyHeight?: string
+  dishNamesById?: ReadonlyMap<string, string>
 }
 
 const formatDishName = (value?: string | null) => {
@@ -68,21 +69,26 @@ const buildCellSpans = (rows: ImportedLayoutRow[], displayDays: Array<{ key: str
   return spans
 }
 
-export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyHeight = 'max-h-[440px]' }: ImportedLayoutMatrixProps) {
+export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyHeight = 'max-h-[440px]', dishNamesById }: ImportedLayoutMatrixProps) {
   const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)))
 
   return (
-    <TableViewport caption="Bố cục thực đơn theo file khách hàng" className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
-      <table className="ipc-data-table ipc-schedule-table">
+    <TableViewport
+      caption="Bố cục thực đơn theo file khách hàng"
+      className={cn('ipc-weekly-menu-shell', maxBodyHeight)}
+      ariaLabel="Bảng bố cục thực đơn theo file khách hàng"
+      frozenFirstIdentifier={false}
+    >
+      <table className="ipc-data-table ipc-matrix-grid-table table-fixed w-full border-collapse">
         <thead>
           <tr>
-            <th className="w-[190px] min-w-[190px] border-r border-slate-200 bg-slate-100 text-left">Bố cục / dòng</th>
-            {displayDays.map((day, index) => (
-              <th key={day.key} className={cn('text-center border-r border-slate-200 transition-colors', index % 2 === 1 ? 'bg-slate-100' : 'bg-slate-50', day.key === activeDayKey && 'bg-blue-50 text-blue-900 ring-1 ring-inset ring-blue-200')}>
+            <th scope="col" className="w-[190px] min-w-[190px] text-left">Bố cục / dòng</th>
+            {displayDays.map((day) => (
+              <th key={day.key} scope="col" className={cn('text-center transition-colors', day.key === activeDayKey && 'bg-blue-100/70 text-blue-900')}>
                 <div className="flex flex-col items-center justify-center gap-0.5 py-1">
-                  <span className="text-[13px] font-bold text-slate-800">{day.label}</span>
-                  <span className="text-[10.5px] font-medium text-slate-500">{day.date}</span>
-                  {day.key === activeDayKey && <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Hôm nay</span>}
+                  <span className="text-xs font-bold text-slate-800">{day.label}</span>
+                  <span className="text-xs font-medium text-slate-500">{day.date}</span>
+                  {day.key === activeDayKey && <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-xs font-bold uppercase text-white">Hôm nay</span>}
                 </div>
               </th>
             ))}
@@ -94,26 +100,55 @@ export function ImportedLayoutMatrix({ rows, displayDays, activeDayKey, maxBodyH
             const cellSpans = buildCellSpans(sectionRows, displayDays)
             return (
               <Fragment key={sectionName}>
-                <tr><td colSpan={displayDays.length + 1} className="border-b border-r border-slate-300 bg-slate-200 py-2.5 text-center text-[12.5px] font-bold uppercase tracking-wide text-slate-900">{sectionName}</td></tr>
+                <tr>
+                  <td
+                    colSpan={displayDays.length + 1}
+                    className="ipc-menu-section-header border-b border-r border-slate-300 bg-slate-200 py-2.5 !text-center text-xs font-bold uppercase tracking-wide text-slate-900"
+                    style={{ textAlign: 'center', position: 'static' }}
+                  >
+                    <div className="w-full text-center">
+                      {sectionName}
+                    </div>
+                  </td>
+                </tr>
                 {sectionRows.map((row) => (
                   <tr key={row.key}>
-                    <td className="border-r border-slate-200 bg-slate-50 p-2 text-left align-middle"><span className="text-[12.5px] font-semibold text-slate-800">{row.slotLabel}</span></td>
-                    {displayDays.map((day, index) => {
+                    <td className="ipc-matrix-slot-cell border-r border-slate-200 bg-slate-50 p-2 text-left align-middle"><span className="text-xs font-semibold text-slate-800">{row.slotLabel}</span></td>
+                    {(() => {
+                      const cells = displayDays.map((day) => row.cells[day.key]).filter(Boolean)
+                      const firstCell = cells[0]
+                      const firstDishName = firstCell?.dishId ? dishNamesById?.get(firstCell.dishId) ?? firstCell.dishName : firstCell?.dishName
+                      const isMergedDessert = (row.slot === 'fruit' || row.slot === 'dessert')
+                        && cells.length === displayDays.length
+                        && cells.every((cell) => (cell.dishId || cell.dishName) === (firstCell?.dishId || firstCell?.dishName))
+                      if (isMergedDessert) return <td colSpan={displayDays.length} className="ipc-matrix-dish-cell border-r border-slate-200 bg-white p-2 text-center align-middle text-xs font-semibold text-slate-900"><span className="block text-center">{formatDishName(firstDishName)}</span></td>
+                      return displayDays.map((day, index) => {
                       const cell = row.cells[day.key]
                       const spanInfo = cellSpans.get(`${row.key}|${day.key}`) ?? { hidden: false, span: 1 }
                       if (spanInfo.hidden) return null
                       return (
-                        <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('border-r border-slate-200 p-2 text-center align-middle text-[12.5px]', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
-                          {cell ? <span className="font-semibold text-slate-900">{formatDishName(cell.dishName)}</span> : '-'}
+                        <td key={`${row.key}-${day.key}`} rowSpan={spanInfo.span} className={cn('ipc-matrix-dish-cell border-r border-slate-200 p-2 text-center align-middle text-xs', index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white', day.key === activeDayKey && 'bg-blue-50/70', !cell && 'text-slate-400')}>
+                          {cell ? <span className="block text-center font-semibold text-slate-900">{formatDishName(cell.dishId ? dishNamesById?.get(cell.dishId) ?? cell.dishName : cell.dishName)}</span> : <span className="block text-center">-</span>}
                         </td>
                       )
-                    })}
+                      })
+                    })()}
                   </tr>
                 ))}
               </Fragment>
             )
           })}
-          {rows.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={displayDays.length + 1}>Chưa có dữ liệu thực đơn từ file cho khách hàng và tuần đang chọn.</td></tr>}
+          {rows.length === 0 && (
+            <tr>
+              <td
+                className="p-4 !text-center text-sm text-slate-500"
+                colSpan={displayDays.length + 1}
+                style={{ textAlign: 'center', position: 'static' }}
+              >
+                Chưa có dữ liệu thực đơn từ file cho khách hàng và tuần đang chọn.
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </TableViewport>

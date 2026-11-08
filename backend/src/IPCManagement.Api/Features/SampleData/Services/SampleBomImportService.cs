@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,8 +14,6 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 public sealed class SampleBomImportService : ISampleBomImportService
 {
-    private const string SampleWarehouseCode = "WH-SAMPLE";
-
     private static readonly string[] BomRequiredHeaders =
     [
         "Món",
@@ -53,11 +53,16 @@ public sealed class SampleBomImportService : ISampleBomImportService
     private readonly IpcManagementContext _context;
     private readonly IHostEnvironment _environment;
     private readonly XlsxWorkbookReader _reader = new();
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
-    public SampleBomImportService(IpcManagementContext context, IHostEnvironment environment)
+    public SampleBomImportService(
+        IpcManagementContext context,
+        IHostEnvironment environment,
+        IOperationalWarehouseResolver operationalWarehouseResolver)
     {
         _context = context;
         _environment = environment;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
     public async Task<SampleDataImportResultDto> ImportAsync(
@@ -193,28 +198,10 @@ public sealed class SampleBomImportService : ISampleBomImportService
         SampleDataImportCountsDto counts,
         CancellationToken cancellationToken)
     {
-        var warehouse = await _context.Warehouses
-            .FirstOrDefaultAsync(item => item.WarehouseCode == SampleWarehouseCode, cancellationToken);
-        if (warehouse is not null)
-        {
-            return warehouse;
-        }
-
-        counts.WarehousesCreated++;
-        warehouse = new Warehouse
-        {
-            WarehouseId = GuidHelper.NewId(),
-            WarehouseCode = SampleWarehouseCode,
-            WarehouseName = "Kho mẫu IPC",
-            WarehouseType = "KHAC",
-            Note = "Kho mặc định cho dữ liệu mẫu Phase 02"
-        };
-        if (!dryRun)
-        {
-            _context.Warehouses.Add(warehouse);
-        }
-
-        return warehouse;
+        var warehouseId = await _operationalWarehouseResolver.ResolveAsync(cancellationToken);
+        return await _context.Warehouses.AsNoTracking()
+            .SingleOrDefaultAsync(item => item.WarehouseId == warehouseId, cancellationToken)
+            ?? throw new BusinessRuleException("Kho vận hành đã cấu hình không tồn tại.");
     }
 
     private Unit EnsureUnit(

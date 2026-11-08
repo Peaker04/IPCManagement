@@ -52,7 +52,7 @@ public sealed class DishesController(IDishCatalogService service) : ControllerBa
     public async Task<IActionResult> CreateAsync([FromBody] CreateDishRequest dto)
     {
         var result = await service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetByIdAsync), new { id = result.DishId },
+        return CreatedAtAction("GetById", new { id = result.DishId },
             ApiResponse<DishDto>.SuccessResult(result, "Tạo món ăn thành công."));
     }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { ReactNode } from 'react'
 import { ActiveDishesGrid } from './active-dishes-grid'
 import { MaterialChecklist } from './material-checklist'
 import { OperationalActions } from './operational-actions'
@@ -12,6 +13,10 @@ interface HeadChefDashboardProps {
   onSupplementalRequest?: (data: SupplementalRequest) => Promise<boolean>
   onExcessMaterialReturn?: (data: ExcessMaterial) => void
   onMaterialSignoff?: (materialId: string, signed: boolean) => void
+  checklistPagination?: ReactNode
+  checklistPageLabel?: string
+  checklistTotalSignedCount?: number
+  checklistTotalSourceCount?: number
 }
 
 export function HeadChefDashboard({
@@ -20,6 +25,10 @@ export function HeadChefDashboard({
   onSupplementalRequest,
   onExcessMaterialReturn,
   onMaterialSignoff,
+  checklistPagination,
+  checklistPageLabel,
+  checklistTotalSignedCount,
+  checklistTotalSourceCount,
 }: HeadChefDashboardProps) {
   const [expandedDishId, setExpandedDishId] = useState<string | null>(null)
 
@@ -38,9 +47,14 @@ export function HeadChefDashboard({
 
           {/* Kitchen Material Checklist */}
           <MaterialChecklist
+            key={`${checklistPageLabel ?? 'checklist'}-${productionPlan.receivedMaterials[0]?.id ?? 'empty'}`}
             materials={productionPlan.receivedMaterials}
             onMaterialSignoff={onMaterialSignoff}
+            pageLabel={checklistPageLabel}
+            totalSignedCount={checklistTotalSignedCount}
+            totalSourceCount={checklistTotalSourceCount}
           />
+          {checklistPagination}
         </div>
 
         {/* Right Column: Operational Actions */}

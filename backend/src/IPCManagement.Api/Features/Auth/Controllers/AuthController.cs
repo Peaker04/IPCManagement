@@ -46,21 +46,17 @@ public class AuthController : ControllerBase
         if (result is null)
         {
             _logger.LogWarning(
-                "Login failed for username {Username} from IP {IpAddress} with device {DeviceInfo}",
-                request.Username,
-                HttpContext.Connection.RemoteIpAddress?.ToString(),
-                deviceInfo);
+                "Login failed from IP {IpAddress}",
+                HttpContext.Connection.RemoteIpAddress?.ToString());
             return Unauthorized(ApiResponse.FailResult("Tên đăng nhập hoặc mật khẩu không đúng."));
         }
 
         SetRefreshTokenCookie(result.RefreshToken);
         _logger.LogInformation(
-            "Login succeeded for user {UserId} ({Username}) from IP {IpAddress}",
+            "Login succeeded for user {UserId} from IP {IpAddress}",
             result.User.UserId,
-            result.User.Username,
             HttpContext.Connection.RemoteIpAddress?.ToString());
 
-        SetRefreshTokenCookie(result.RefreshToken);
         return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Đăng nhập thành công."));
     }
 
@@ -92,9 +88,8 @@ public class AuthController : ControllerBase
 
         SetRefreshTokenCookie(result.RefreshToken);
         _logger.LogInformation(
-            "Token refreshed for user {UserId} ({Username}) from IP {IpAddress}",
+            "Token refreshed for user {UserId} from IP {IpAddress}",
             result.User.UserId,
-            result.User.Username,
             HttpContext.Connection.RemoteIpAddress?.ToString());
 
         return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Làm mới token thành công."));

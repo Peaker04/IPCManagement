@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-05",
+  "validatorAuthority": "27.1-03R",
+  "waveBaseCommit": "e0aee598062ac7835abc30f563c05d8412c1a28f",
+  "identitySet": "secondary-reports-approvals-admin",
+  "rows": [
+    {
+      "identity": "reports-desktop",
+      "displayOrdinal": 5,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/reports-desktop-chromium-win32.png",
+      "cause": "two deterministic packets matched current reports-desktop rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "afea3886847440b1468e38288dd14c1cbd1f9eba08525ded0e4488d57b355829",
+        "afea3886847440b1468e38288dd14c1cbd1f9eba08525ded0e4488d57b355829"
+      ],
+      "afterSha256": [
+        "afea3886847440b1468e38288dd14c1cbd1f9eba08525ded0e4488d57b355829",
+        "afea3886847440b1468e38288dd14c1cbd1f9eba08525ded0e4488d57b355829"
+      ],
+      "oldSnapshotSha256": "4f8c8e3fed5011819d13edd2fec87647e215caec5f88837714a14497a0130cd5",
+      "newSnapshotSha256": "afea3886847440b1468e38288dd14c1cbd1f9eba08525ded0e4488d57b355829"
+    },
+    {
+      "identity": "reports-mobile",
+      "displayOrdinal": 14,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/reports-mobile-chromium-win32.png",
+      "cause": "two deterministic packets matched current reports-mobile rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "741d5f067e396a7e386fedaa769ca4db7200d0f0c3cfd96d1350c42b4ebbfc23",
+        "741d5f067e396a7e386fedaa769ca4db7200d0f0c3cfd96d1350c42b4ebbfc23"
+      ],
+      "afterSha256": [
+        "741d5f067e396a7e386fedaa769ca4db7200d0f0c3cfd96d1350c42b4ebbfc23",
+        "741d5f067e396a7e386fedaa769ca4db7200d0f0c3cfd96d1350c42b4ebbfc23"
+      ],
+      "oldSnapshotSha256": "d30af949fd5bfb805e2e4d219a5fff5a8c4eb86e8912c2b8acecae16782aca49",
+      "newSnapshotSha256": "741d5f067e396a7e386fedaa769ca4db7200d0f0c3cfd96d1350c42b4ebbfc23"
+    },
+    {
+      "identity": "approvals-desktop",
+      "displayOrdinal": 6,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/approvals-desktop-chromium-win32.png",
+      "cause": "two deterministic packets matched current approvals-desktop rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "27eed372cf74513309ea7db4fb67c6b7d8432e13a879f5c5dcab006eda17d755",
+        "27eed372cf74513309ea7db4fb67c6b7d8432e13a879f5c5dcab006eda17d755"
+      ],
+      "afterSha256": [
+        "27eed372cf74513309ea7db4fb67c6b7d8432e13a879f5c5dcab006eda17d755",
+        "27eed372cf74513309ea7db4fb67c6b7d8432e13a879f5c5dcab006eda17d755"
+      ],
+      "oldSnapshotSha256": "d238ac299cb39882d51ef416d822ef199777747d3b076908fe01b37181c5234a",
+      "newSnapshotSha256": "27eed372cf74513309ea7db4fb67c6b7d8432e13a879f5c5dcab006eda17d755"
+    },
+    {
+      "identity": "approvals-mobile",
+      "displayOrdinal": 15,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/approvals-mobile-chromium-win32.png",
+      "cause": "two deterministic packets matched current approvals-mobile rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "5263fded91fdc45ddd424d49f17468901b18acb95820e1f897c09de7d8272253",
+        "5263fded91fdc45ddd424d49f17468901b18acb95820e1f897c09de7d8272253"
+      ],
+      "afterSha256": [
+        "5263fded91fdc45ddd424d49f17468901b18acb95820e1f897c09de7d8272253",
+        "5263fded91fdc45ddd424d49f17468901b18acb95820e1f897c09de7d8272253"
+      ],
+      "oldSnapshotSha256": "3056b54b394220ed8e49cbffbb226dc41f33d344a1c24d13d6cc901cce273f31",
+      "newSnapshotSha256": "5263fded91fdc45ddd424d49f17468901b18acb95820e1f897c09de7d8272253"
+    },
+    {
+      "identity": "admin-data-desktop",
+      "displayOrdinal": 8,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/admin-data-desktop-chromium-win32.png",
+      "cause": "two deterministic packets matched current admin-data-desktop rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "b89bd7b0e2f10a90f86f70f78ff99d2aa68ad7ffcf2c0b0631e89a582dc49ca7",
+        "b89bd7b0e2f10a90f86f70f78ff99d2aa68ad7ffcf2c0b0631e89a582dc49ca7"
+      ],
+      "afterSha256": [
+        "b89bd7b0e2f10a90f86f70f78ff99d2aa68ad7ffcf2c0b0631e89a582dc49ca7",
+        "b89bd7b0e2f10a90f86f70f78ff99d2aa68ad7ffcf2c0b0631e89a582dc49ca7"
+      ],
+      "oldSnapshotSha256": "26aa1622b72f05bfa29f1c2d30317a4cb6d4b3640c9acdcbec58ac53fcd05364",
+      "newSnapshotSha256": "b89bd7b0e2f10a90f86f70f78ff99d2aa68ad7ffcf2c0b0631e89a582dc49ca7"
+    },
+    {
+      "identity": "admin-data-mobile",
+      "displayOrdinal": 17,
+      "disposition": "stale-baseline",
+      "owner": "frontend/tests/visual-routes.spec.ts-snapshots/admin-data-mobile-chromium-win32.png",
+      "cause": "two deterministic packets matched current admin-data-mobile rendering while the frozen baseline differed",
+      "beforeSha256": [
+        "23aa0181e3629eb413a8eeac1c98b5f1011eff1579d0faeb9a56038c74304427",
+        "23aa0181e3629eb413a8eeac1c98b5f1011eff1579d0faeb9a56038c74304427"
+      ],
+      "afterSha256": [
+        "23aa0181e3629eb413a8eeac1c98b5f1011eff1579d0faeb9a56038c74304427",
+        "23aa0181e3629eb413a8eeac1c98b5f1011eff1579d0faeb9a56038c74304427"
+      ],
+      "oldSnapshotSha256": "b4ba3a4411ab2bebdb4eab99c90532e961f30e21644359eeadffd6b39cc7f0c3",
+      "newSnapshotSha256": "23aa0181e3629eb413a8eeac1c98b5f1011eff1579d0faeb9a56038c74304427"
+    }
+  ],
+  "locks": {
+    "adminData": "LOCKED",
+    "purchasingRollout": "LOCKED",
+    "productionChanged": false,
+    "fixtureChanged": false,
+    "harnessChanged": false
+  },
+  "gitReconciliation": {
+    "phaseBaseCommit": "c52c80f8186b985d07619a7ad0ed7abc0572675c",
+    "waveBaseCommit": "e0aee598062ac7835abc30f563c05d8412c1a28f",
+    "waveAuthorizedPaths": [
+      "frontend/tests/secondaryRouteVisualRegression.test.ts",
+      ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/secondary-route-dispositions.json",
+      "frontend/tests/visual-routes.spec.ts-snapshots/reports-desktop-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/reports-mobile-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/approvals-desktop-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/approvals-mobile-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/admin-data-desktop-chromium-win32.png",
+      "frontend/tests/visual-routes.spec.ts-snapshots/admin-data-mobile-chromium-win32.png"
+    ]
+  }
+}

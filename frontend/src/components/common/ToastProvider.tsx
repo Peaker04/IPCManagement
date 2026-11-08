@@ -49,7 +49,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       {typeof document !== 'undefined' && createPortal(
-        <div className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex justify-end sm:left-auto sm:w-[min(420px,calc(100vw-2rem))]" aria-live="polite" aria-atomic="false">
+        <div className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex justify-end sm:left-auto sm:w-[min(420px,calc(100vw-2rem))]">
           <div className="flex w-full flex-col gap-2">
             {items.map((item) => {
               const variant = item.variant ?? 'info';

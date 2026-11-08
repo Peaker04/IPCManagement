@@ -181,6 +181,7 @@ internal sealed class PurchaseLineSupplierDecisionConfiguration : IEntityTypeCon
         entity.HasIndex(e => new { e.PurchaseRequestLineId, e.DecisionFingerprint }, "uqPurchaseLineSupplierDecisionsLineFingerprint").IsUnique();
         entity.HasIndex(e => e.CurrentDecisionKey, "uqPurchaseLineSupplierDecisionsCurrentKey").IsUnique();
         entity.HasIndex(e => e.SupplierId, "ixPurchaseLineSupplierDecisionsSupplier");
+        entity.HasIndex(e => new { e.SupplierId, e.ProposedDeliveryDate, e.ReceivingWarehouseId, e.PurchasingTerms }, "ixPurchaseLineSupplierDecisionsCompatibility");
         entity.HasIndex(e => e.ConfirmedBy, "ixPurchaseLineSupplierDecisionsConfirmer");
         entity.HasIndex(e => e.SupersededByDecisionId, "ixPurchaseLineSupplierDecisionsSupersededBy");
 
@@ -193,6 +194,8 @@ internal sealed class PurchaseLineSupplierDecisionConfiguration : IEntityTypeCon
         entity.Property(e => e.EvidenceReferencePrice).HasPrecision(18, 2).HasColumnName("evidenceReferencePrice");
         entity.Property(e => e.ProposedUnitPrice).HasPrecision(18, 2).HasColumnName("proposedUnitPrice");
         entity.Property(e => e.ProposedDeliveryDate).HasColumnType("date").HasColumnName("proposedDeliveryDate");
+        entity.Property(e => e.ReceivingWarehouseId).HasMaxLength(16).IsFixedLength().HasColumnName("receivingWarehouseId");
+        entity.Property(e => e.PurchasingTerms).HasMaxLength(500).HasColumnName("purchasingTerms");
         entity.Property(e => e.ConfirmedBy).HasMaxLength(16).IsFixedLength().HasColumnName("confirmedBy");
         entity.Property(e => e.ConfirmedAt).HasColumnType("datetime").HasColumnName("confirmedAt");
         entity.Property(e => e.DecisionFingerprint).HasMaxLength(64).IsFixedLength().HasColumnName("decisionFingerprint");
@@ -307,7 +310,8 @@ internal sealed class PurchaseOrderConfiguration : IEntityTypeConfiguration<Purc
 
         entity.HasIndex(e => e.SupplierId, "ixPurchaseOrdersSupplier");
 
-        entity.HasIndex(e => new { e.PurchaseRequestId, e.SupplierId }, "ixPurchaseOrdersRequestSupplier").IsUnique();
+        entity.HasIndex(e => new { e.PurchaseRequestId, e.SupplierId, e.ProposedDeliveryDate, e.ReceivingWarehouseId, e.PurchasingTerms }, "ixPurchaseOrdersCompatibility").IsUnique();
+
 
         entity.Property(e => e.PurchaseOrderId)
             .HasMaxLength(16)
@@ -324,6 +328,16 @@ internal sealed class PurchaseOrderConfiguration : IEntityTypeConfiguration<Purc
             .HasMaxLength(16)
             .IsFixedLength()
             .HasColumnName("supplierId");
+        entity.Property(e => e.ReceivingWarehouseId)
+            .HasMaxLength(16)
+            .IsFixedLength()
+            .HasColumnName("receivingWarehouseId");
+        entity.Property(e => e.PurchasingTerms)
+            .HasMaxLength(500)
+            .HasColumnName("purchasingTerms");
+        entity.Property(e => e.ProposedDeliveryDate)
+            .HasColumnType("date")
+            .HasColumnName("proposedDeliveryDate");
         entity.Property(e => e.OrderDate).HasColumnName("orderDate");
         entity.Property(e => e.Status)
             .HasMaxLength(30)

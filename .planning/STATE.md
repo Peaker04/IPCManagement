@@ -1,123 +1,153 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: architecture-hardening-steps-11-18
-status: ready_to_plan
-current_phase: "17"
-current_phase_name: frontend-ownership
-stopped_at: Step 16 complete; proceed to discuss/plan Step 17 frontend ownership
-last_updated: "2026-07-28T23:25:31+07:00"
-last_activity: 2026-07-28 — Step 16 completed with full gates; Step 17 is ready for planning
+milestone: v1.4
+milestone_name: Evidence-first UI Contract Migration
+status: awaiting_next_goal
+stopped_at: Phase 33 technically closed PASS_WITH_RESIDUAL; closeout docs staged before commit
+last_updated: "2026-09-08T05:00:00Z"
 progress:
-  total_phases: 8
-  completed_phases: 6
-  total_plans: 6
-  completed_plans: 6
-  percent: 100
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 78
+  completed_plans: 77
+  percent: 99
+current_phase_name: awaiting-next-goal
+last_activity: 2026-09-09 — Phase 33 S1/S2/S3 committed; strict architecture-growth and final review PASS_WITH_RESIDUAL
 ---
 
 # Project State
 
 ## Project Reference
 
-See `.planning/PROJECT.md`. The sole active roadmap is `.planning/ROADMAP.md`, which mirrors Part F of `docs/ARCHITECTURE-AUDIT-2026-07-26.md`.
+See `.planning/PROJECT.md`, `.planning/REQUIREMENTS.md` and `.planning/ROADMAP.md`.
 
-The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in `.planning/archive/v1.1-legacy/` and are not executable work.
+**Current focus:** Phase 33 is technically complete at `.planning/phases/33-refactor-three-unbaselined-backend-services-to-restore-stric/33-CHECKLIST.md`; closeout docs await commit approval. Strict architecture-growth PASS without baseline expansion. No active product objective follows automatically.
 
-## Current Position
+## Current Status
 
-Phase: 17 of 18 — Frontend ownership
+- Phases 27, 27.1, 28 and 29 are COMPLETE.
+- Phase 30 Plans 01-13 are locally complete. Plan 30-04 remains a truthful historical partial handoff, and its dependent local owner matrix was completed by Plans 30-05..08. Final local remediation/certification through `6bfbd9f9` closes MRX-06L.
+- Migration `20260828092012_ClosedLoopReconciliationIssueLineage` remains unapplied to protected `ipc_lane7`. MRX-06P is BLOCKED pending fresh operator authorization; The entire final local closeout performed no protected API, database, browser, reset, seed, or `ipc_lane7` access.
+- Protected Retry 16 passed on commit `9e0805cc`: exact `ipc_lane7` is retained at migration 75, operation mode `DEFAULT / 5`, with one `COMPLETED / 4` reconciliation authority and 55/55 positive lines.
+- Five headed viewports passed DOM/accessibility → authenticated API → raw-HEX DB → reload identity, zero forbidden requests/errors/overflow/CLS/long tasks.
+- Procurement/inventory normalized pre/post diff is exactly 0 bytes; ports 3036/8036 are closed.
+- Closeout gates: Application 49/49; API 1,044 pass + 1 intentional skip; frontend serial 191 files / 1,228 tests; focused Phase 29 18/18; lint/checklist/API parity/EF model/Release builds pass.
 
-Plan: not created
+## Session Continuity
 
-Status: ready for discussion/planning
+**Last session:** 2026-08-31T13:47:54Z
+**Resume file:** None
 
-Milestone phase progress: ████████░░ 75% (6/8 steps complete).
+**Stopped at:** Completed 30-13-PLAN.md; MRX-06P BLOCKED
+**Resume directory:** `.planning/phases/30-closed-loop-menu-issue-reconciliation`
 
-Defined-plan progress: ██████████ 100% (6/6 defined plans complete; Steps 17–18 remain intentionally unplanned).
+Next workflow: obtain fresh operator authorization before any MRX-06P protected lane work. Preserve the verified local gate matrix, tracked request fixture, failed-attempt history, and retained protected migration-75 authority; no protected database mutation is currently authorized.
 
-Step 16 work-package progress: 5/5 complete.
+## Decisions
 
-## Verified Baseline
+- Phase 27 is a bounded pilot and evidence foundation; Phase 28 owns whole-web rollout.
+- Use existing shadcn/Base UI and shared owners; Fiori/Carbon/Polaris are references only.
+- Use one audit harness; deterministic rules precede fresh AI review.
+- Prefer token → primitive → formatter/hook → layout → page fixes.
+- Keep one operational warehouse passive in routine UI; never erase technical identity or authorization boundaries.
+- [Phase 28]: Recovery selects immutable attempt-3; attempts 1 and 2 remain untouched failed history.
+- [Phase 28]: Duplicate H1 remains an owner-bearing measured HIER-01 FAIL; capture does not abort before metrics.
+- [Phase 28]: Historical baseline hashes remain LOST_NO_BACKUP and a8a4a9dc remains RED_RECONCILED_NOT_COMPLETE.
+- [Phase 28]: Recovery attempt-3 exact totals govern remediation; stale pre-recovery FAIL totals are not consumed.
+- [Phase 28]: InlineAlert remains unchanged without multi-route identical selector/token provenance.
+- [Phase 28]: Attempt-3 authority partitions 1,461 FAIL into 203 Purchasing and 1,258 residual keys.
+- [Phase 28]: Aria-hidden tabindex=-1 Base UI internals are excluded from actionable unnamed-control evidence.
+- [Phase 28]: Purchasing residual handoff SHA-256 is b8fa28d6f612c719912c89620a5729b83b0264be4fc8b57aadeb9c2ddc98fa6a.
+- [Phase 28]: Non-admin route evidence is zero-FAIL across five attempt-38 members plus corrected Weekly Menu attempt-39.
+- [Phase 28]: Admin-only handoff contains 152 keys at SHA-256 55b48a6c2ae84dd1b6aca529e1076af9e3b251d587c9d06d7e72d673ac3ad3a3.
+- [Phase 28]: Plan 28-05 confines Admin BOM overflow at the owner and preserves shared UI behavior.
+- [Phase 28]: Plan 28-06 must reconcile 112 raw Admin Data adapter rows through the locked 28-04 actionable-control and browser-computed contrast predicates.
+- [Phase 28]: Retain 112 Admin legacy raw FAIL rows as NON_ACTIONABLE_RAW_RETAINED while reporting zero actionable FAIL.
+- [Phase 28]: Require byte-exact two-run equality after schema-defined network ordering and endpoint-observed readiness.
+- [Phase 28]: Plan 28-07 qualitative review cannot manufacture PASS from deterministic-only evidence; all 2,142 identities remain NEEDS_EVIDENCE pending separately authorized visual evidence.
+- [Phase 28]: Blind-review attempts 1 and 2 remain immutable failed history; attempt-3 alone is selected with fresh isolated reviewer provenance.
+- [Phase 28]: Operational singleton resolution observes at most two active rows and requires exact configured byte identity without fallback or repair.
+- [Phase 28]: Plan 28-08 startup observation remains separate from Plan 28-09 additive schema and separately authorized activation.
+- [Phase 28]: OperationalSingletonKey is a non-writable MySQL-generated nullable discriminator with a normal unique index.
+- [Phase 28]: Migration application and operational warehouse activation remain separately operator-authorized checkpoints.
+- [Phase 28]: Plan 28-10 trust inventory is the sole mutable registry; Plans 28-11 through 28-13 consume it read-only.
+- [Phase 28]: Ordinary warehouse inputs accept omission for resolver derivation while supplied values remain compatibility claims requiring later exact service equality.
+- [Phase 28]: Response and internal warehouse identities remain intact for provenance, stock grain, audit, reports, purchasing, and lineage.
+- [Phase ?]: Plan 28-11 resolves canonical warehouse before inventory mutations and rejects compatibility/source mismatch without rewriting provenance.
+- [Phase ?]: Plan 28-12 derives purchasing/import/selector trust from the operational resolver while preserving fingerprint and historical identity.
+- [Phase ?]: Plan 28-14 treats exact-one selector data as passive context and blocks zero/multiple states without implicit selection.
+- [Phase ?]: Plan 29-24 reachability uses production controllers/services and forbids direct quantity/reconciliation authority fixtures.
+- [Phase ?]: ANV/AMANN 2026-09-07..2026-09-12 remains read-only candidate metadata until protected preflight.
+- [Phase ?]: Phase 30 Plan 01 keeps transfer zero-stock and routes reconciliation-origin issues through canonical inventory stock authority.
+- [Phase ?]: Closed-loop issued quantity is projected from exact InventoryIssueLine lineage; manual purchased/issued actual commands are mode-excluded.
+- [Phase ?]: MATERIAL_RECONCILIATION route, tab and preload ownership is resolved from backend capability at shared seams; DEFAULT remains unchanged.
+- [Phase ?]: Reconciliation is a route-owned no-tab page; Weekly Menu and Warehouse no longer embed or mutate reconciliation actuals.
+- [Phase ?]: Canonical returns bind exact source family and active operation mode/version before mutation.
+- [Phase ?]: Supplemental and explicit legacy lineage disposition remain DEFAULT-only.
+- [Phase ?]: Phase 30-04 remediation: reconciliation mutation endpoints are explicitly ReconciliationOnly; warehouse transfer binds the captured operation mode/version inside its transaction.
+- [Phase ?]: Guard/metadata-only rows are not acceptable Task 3 evidence; applicable owners require real persisted inactive and canonical same-ID/version resume seams.
+- [Phase ?]: Treat repeated issue receipt confirmation as canonical replay of the persisted received issue without duplicate effects.
+- [Phase ?]: Use real operation-mode switches and scoped request authority for DEFAULT inventory owner freeze/resume evidence.
+- [Phase 30]: Plan 30-05 verification uses deterministic ordered persisted tuples rather than row counts, and stale captured authority is behavior-tested through each of the four public inventory owners.
+- [Phase 30]: Supplemental create, fulfill, route, and reject consume the captured DEFAULT operation key and mode version inside their owning transactions.
+- [Phase 30]: Supplemental rejection is versioned and receipt-backed so replay returns the canonical persisted response without duplicate effects.
+- [Phase 30]: Legacy disposition production remained unchanged because its existing protected apply passed the persisted public-service race proof.
+- [Phase ?]: Plan 30-07 binds material-demand approval persistence to the operation key and mode revision observed by the MVC request, without changing route, filter, authorization, registration, or permissions.
+- [Phase ?]: The deterministic approval race barrier uses ASP.NET Core's MVC-generated action key approvals.execute because the Async suffix is suppressed.
+- [Phase ?]: Plan 30-08 retained production reconciliation services unchanged because the persisted public-owner matrix exposed no missing mode/version fence.
+- [Phase ?]: Warehouse issue/return stock authority remains distinct from manual ISSUED reconciliation actual-row authority.
+- [Phase ?]: Absent cleanup/background ownership is proven from executable controller actions, DI source, and lifecycle processor contract/source, independently of keys and capability metadata.
+- [Phase ?]: Plan 30-11: Revalidate protected mode/version immediately before the first reconciliation issue mutation after any deterministic pre-write gate.
+- [Phase ?]: Plan 30-11: Preserve READY reconciliation facts immutably; changed shared authority requires a new materialized batch/version.
+- [Phase ?]: Plan 30-13 captures the production RTK Request at fetch transport and tracks only canonical credential-free request bytes.
+- [Phase ?]: Plan 30-13 replays the exact tracked fixture through InventoryIssuesController and InventoryIssueService after a mode revision, comparing a complete post-change ledger.
 
-- Branch `feature/production-plan`; Step 16 code baseline trước closeout docs là
-  `59add79 refactor(persistence): retire legacy transaction API`. Không push trong phiên này.
-- Working tree has only user-owned untracked `.dockerignore` and `Dockerfile`; do not stage, overwrite or remove them.
-- GitNexus was refreshed before Task 4 impact: 10,629 nodes, 29,171 edges and 300 execution flows.
-- Step 16 full gates: backend API 667 pass/1 skip; Application 49/49; frontend 416/416;
-  Debug/Release 0 warning/error, lint, dependency, production build, OpenAPI/TypeScript determinism,
-  EF pending-model, diff and secret gates green.
-- OpenAPI remained 152 paths / 396 schemas.
-- Step 15 and the Step 16 refactor sequence did not call import endpoints, seed/reset/import a database or access `ipc_lane1`.
+### Quick Tasks Completed
 
-## Completed Scope — Step 16
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260828-system-operation-capability-profile | Backend operation-mode capability profile | 2026-08-28 | a9a2d45a | [260828-system-operation-capability-profile](./quick/260828-system-operation-capability-profile/) |
 
-1. **Done (`7e94eb3`):** 53 EF mappings live in 11 feature-owned `IEntityTypeConfiguration<T>` files;
-   `IpcManagementContext` is the assembly registration root.
-2. **Done (`b37606b`):** execution-strategy transaction runner, duplicate-side-effect regression,
-   mapped domain/application exceptions, canonical migration lineage and disposable restore rehearsal.
-3. **Done (`f3e7bcd`):** runner adopted across Coordination, Purchasing, Inventory, SampleData, Catalog,
-   Reports, Approvals and Admin. Mutable loads occur inside runner operations and every operation has a
-   stable database verifier.
-4. **Done (`59add79`):** removed unused `IUnitOfWork.BeginTransactionAsync`/`UnitOfWork.BeginTransactionAsync`,
-   enabled `EnableRetryOnFailure` and added convention coverage that permits only the runner transaction opener.
-5. **Done:** full Step 16 gates and synchronized closeout of ARCH-16A–E.
+### Roadmap Evolution
 
-Restore/hash evidence is valid, but C:/D: matching mirrors are not proof of physically independent/off-site
-storage. A NAS/cloud/external-media target remains a non-blocking operational gap.
+- Phase 28 added: Project-wide UI/UX contract rollout and single-warehouse presentation.
+- Phase 29 added: System operation mode, material reconciliation and project-wide clarity cleanup.
+- Phase 30 added: Closed-loop Menu → Warehouse issue → required-versus-issued reconciliation, constrained to three waves.
 
-## Intervening Production Incident and BOM Verification
+### Blockers
 
-- User-authorized production synchronization completed at 61/61 tables and 53,404/53,404 rows with zero
-  missing table, row-count mismatch or checksum mismatch. Production health and migration checks are Healthy.
-- Commit `7e79106` makes the two temporary-key data migrations collation-safe; rerun was idempotent and the
-  full source gate above passed.
-- Workbook `weekly-menu-template-ANV-default.xlsx` was checked through preview only: 114/114 existing-dish
-  rows, 0 new dishes, valid with 0 errors/warnings. The committed ANV menu has 90/90 display dishes with BOM,
-  0 matched-without-BOM and 0 unmatched. No repeat import or database mutation occurred during diagnosis.
-- The earlier `0/90` display was stale cache after direct restore: backend catalog cache lasts 30 minutes and
-  frontend RTK Query cache 5 minutes; direct restore bypasses cache invalidation. Production restore runbook
-  must include restart/cache clear. Evidence is in `.artifacts/shipyard-live/production-bom-debug.json` and
-  `.artifacts/shipyard-live/production-weekly-menu-bom-debug.png`.
+- Phase 30 local work is closed. The only Phase 30 blocker is MRX-06P: fresh operator authorization is required before backup-first protected `ipc_lane7` migration/API/browser evidence. Populated reconciliation-dialog focus remains NEEDS_EVIDENCE until that protected run.
+- No Phase 29 blocker remains.
+- The old ignored baseline bytes are permanently `LOST_NO_BACKUP`; they must never be represented as restored or byte-equivalent.
 
-## Gate 16
+## Performance Metrics
 
-- Retry cannot duplicate side effects.
-- Fresh-install and upgrade lineage are both explained and tested.
-- Restore rehearsal meets the documented RPO/RTO target and preserves protected lineage/checksums.
-- No production/lane database reset, seed or import.
-- Full backend/frontend/contract/dependency/migration gates and staged GitNexus change audit are green.
-
-## Remaining Workflow
-
-- Step 17: frontend endpoint/layout/page-model ownership and dependency debt retirement.
-- Step 18: test decomposition, growth gates, complete evidence and documentation closeout.
-
-## Decisions Made
-
-| Phase | Decision | Rationale |
-|---|---|---|
-| 16 | Load mutable EF entities inside the transaction-runner operation and require a stable database verifier. | Retry and commit verification clear tracking; external tracked entities could detach or silently skip writes. |
-| 16 | Enable `EnableRetryOnFailure` only after retiring the legacy UnitOfWork transaction API and proving one transaction owner with retry regression. | A single execution-strategy-aware owner prevents user-initiated transaction failures and duplicate side effects. |
-| 16 | Do not call the C:/D: mirror proven off-site storage. | Logical drive letters do not prove different physical devices or sites. |
-| Incident | Do not repeat the production restore/import; direct restore procedures must restart or clear catalog/application caches. | Production is already synchronized, and direct database restore bypasses application cache invalidation. |
-
-## Blockers
-
-- Non-blocking operational gap: configure and verify a genuinely off-site production backup target; the current C:/D: mirror proves copy integrity and disposable restore only.
-
-## Session
-
-**Last Date:** 2026-07-28 23:25 +07:00
-
-**Stopped At:** Step 16 complete; Step 17 frontend ownership is ready for discussion/planning.
-
-**Resume File:** None
-
-## Constraints
-
-- Do not push or reset.
-- Do not seed/import existing databases and do not mutate `ipc_lane1`.
-- Do not rewrite, delete or move applied migrations.
-- Run upstream impact before every symbol edit; warn on HIGH/CRITICAL; run staged `detect_changes` before every commit.
-- Browser evidence is required only for frontend/route/UI behavior changes until the final workflow closeout.
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 28 P01R | 35min | 3 tasks | 18 files |
+| Phase 28 P02 | 34min | 3 tasks | 7 files |
+| Phase 28 P03 | 21min | 2 tasks | 6 files |
+| Phase 28 P04 | 3h | 2 tasks | 31 files |
+| Phase 28 P05 | 1h | 2 tasks | 7 files |
+| Phase 28 P06 | 7h | 2 tasks | 10 files |
+| Phase 28 P07 | 32min | 2 tasks | 8 files |
+| Phase 28 P08 | 9min | 2 tasks | 8 files |
+| Phase 28 P09 | 8min | 2 tasks | 8 files |
+| Phase 28 P10 | 8min | 2 tasks | 8 files |
+| Phase 28 P11 | 24m | 2 tasks | 16 files |
+| Phase 28 P12 | 23m | 2 tasks | 15 files |
+| Phase 28 P13 | 10m | 2 tasks | 4 files |
+| Phase 28 P14 | 18m | 2 tasks | 7 files |
+| Phase 28 P15 | 34m | 2 tasks | 17 files |
+| Phase 29 P23 | 22 min | 2 tasks | 15 files |
+| Phase 29 P24 | 31 min | 2 tasks | 7 files |
+| Phase 29 P22 | 24 min | 2 tasks | 8 files |
+| Phase 30 P01 | 23 min | 2 tasks | 27 files |
+| Phase 30 P02 | 27 min | 2 tasks | 27 files |
+| Phase 30 P04 | 2h | 3 tasks | 8 files |
+| Phase 30 P05 | 40min | 2 tasks | 2 files |
+| Phase 30 P06 | 1h | 2 tasks | 4 files |
+| Phase 30 P07 | 35min | 2 tasks | 3 files |
+| Phase 30 P08 | 35min | 3 tasks | 1 files |
+| Phase 30 P11 | 15min | 3 tasks | 2 files |
+| Phase 30 P13 | 45min | 2 tasks | 5 files |

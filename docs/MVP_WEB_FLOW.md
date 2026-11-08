@@ -21,12 +21,12 @@ Kiểm tra:
 .docs/MVP_DEMO_RUNBOOK.md
 ```
 
-Demo chuẩn dùng `admin / admin`, khách hàng `DAV`, tuần bắt đầu `2026-06-15`, ngày kiểm tra mẫu `2026-06-18`.
+Credential demo và lane hiện hành lấy từ `MEMORY.md`; không dùng credential mặc định trong tài liệu lịch sử. Các customer/ngày bên dưới chỉ là fixture minh họa.
 
 ## 1. Đăng nhập và kiểm tra quyền
 
 1. Mở `http://localhost:5173/login`.
-2. Nhập `admin` và `admin`.
+2. Nhập tài khoản demo và credential lấy qua nguồn được khai trong `MEMORY.md`.
 3. Sau khi vào trang, nhìn menu trái. Các mục bị ẩn là do thiếu permission, không phải lỗi điều hướng.
 4. Luồng MVP cần thấy tối thiểu: `Thực đơn tuần`, `Điều phối đơn`, `Duyệt vận hành`, `Thu mua`, `Kho nguyên liệu`, `Bếp trưởng`.
 

@@ -152,6 +152,9 @@ export interface DemandLine {
   appliedPortionRatePercent?: number;
   bomRatePercent?: number;
   yieldLossPercent?: number | null;
+  pendingKitchenReceiptQty?: number;
+  unissuedQty?: number;
+  actionHref?: string;
   status: string;
   nextAction: string;
   tone: WorkflowTone;

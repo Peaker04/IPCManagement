@@ -10,4 +10,5 @@ public interface IInventoryOperationsReportService
     Task<PagedResponseDto<KitchenIssueReportDto>> GetKitchenIssuesPageAsync(KitchenIssuePageQueryDto query);
     Task<IReadOnlyList<IssueVsReturnUsageReportDto>> GetIssueVsReturnAsync(WorkflowReportQueryDto query);
     Task<PagedResponseDto<IssueVsReturnUsageReportDto>> GetIssueVsReturnPageAsync(IssueVsReturnPageQueryDto query);
+    Task<IReadOnlyList<SupplyLineReconciliationDto>> GetSupplyLineReconciliationAsync(WorkflowReportQueryDto query);
 }

@@ -1,27 +1,35 @@
-import { useEffect } from 'react'
-import { HeaderInfo } from '../components/header-info'
+import { lazy, Suspense, useEffect } from 'react'
 import { OrderStatusBanner } from '../components/order-status-banner'
-import { OrderTable } from '../components/order-table'
-import { ActionToolbar } from '../components/action-toolbar'
-import { useAppDispatch, useAppSelector, useCurrentShift } from '@/app/hooks'
+import { useAppDispatch } from '@/lib/reduxHooks'
+import { useCoordinationSelector, useCurrentShift } from '../coordinationHooks'
 import { syncOrdersForShift } from '../coordinationSlice'
-import { useGetCoordinationOrdersQuery, useGetMealQuantityPlansQuery } from '../coordinationApi'
+import { useGetCoordinationOrdersQuery, useGetMealQuantityPlansQuery } from '@/api/coordinationApi'
 import { toApiShiftName } from '../types'
-import { ContextStrip, OperationalFrame, QueryErrorAlert, SectionPanel } from '@/components/common'
+import { ContextStrip } from '@/components/common/ContextStrip'
+import { OperationalFrame } from '@/components/common/OperationalFrame'
+import { QueryErrorAlert } from '@/components/common/QueryErrorAlert'
+import { SectionPanel } from '@/components/common/SectionPanel'
 import { formatNumber } from '@/lib/formatters'
 import { deriveCoordinationStatus } from '../coordinationStatus'
 import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
+const HeaderInfo = lazy(() => import('../components/header-info').then(({ HeaderInfo: component }) => ({ default: component })))
+const ActionToolbar = lazy(() => import('../components/action-toolbar').then(({ ActionToolbar: component }) => ({ default: component })))
+const OrderTable = lazy(() => import('../components/order-table').then(({ OrderTable: component }) => ({ default: component })))
+
+const capabilityFallback = <div aria-hidden="true" className="min-h-12 rounded-md bg-slate-50 motion-reduce:animate-none" />
+
 export default function CoordinationPage() {
   const dispatch = useAppDispatch()
   const currentShift = useCurrentShift()
-  const currentDayOfWeek = useAppSelector((state) => state.coordination.currentDayOfWeek)
-  const allOrders = useAppSelector((state) => state.coordination.orders)
-  const localError = useAppSelector((state) => state.coordination.error)
-  const ordersQuery = useGetCoordinationOrdersQuery({ dayOfWeek: currentDayOfWeek, shift: currentShift })
+  const currentServiceDate = useCoordinationSelector((state) => state.coordination.currentServiceDate)
+  const currentDayOfWeek = useCoordinationSelector((state) => state.coordination.currentDayOfWeek)
+  const allOrders = useCoordinationSelector((state) => state.coordination.orders)
+  const localError = useCoordinationSelector((state) => state.coordination.error)
+  const ordersQuery = useGetCoordinationOrdersQuery({ dayOfWeek: currentDayOfWeek, serviceDate: currentServiceDate, shift: currentShift })
   const shiftName = toApiShiftName(currentShift)
-  const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, shiftName })
+  const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, serviceDate: currentServiceDate, shiftName })
   const ordersView = toLabeledQueryView(ordersQuery, 'danh sách suất ăn', {
     instruction: 'Chọn ngày và ca để tải danh sách suất ăn.',
   })
@@ -32,17 +40,17 @@ export default function CoordinationPage() {
     ? plansView.data
     : plansView.phase === 'error' ? plansQuery.currentData : undefined
   const plans = plansResponse?.data ?? []
-  const ordersResponse = ordersView.phase === 'ready' ? ordersView.data : undefined
+  const currentOrdersResponse = ordersQuery.currentData?.success ? ordersQuery.currentData : undefined
 
   useEffect(() => {
-    if (ordersResponse?.success && ordersResponse.data) {
+    if (currentOrdersResponse?.data) {
       dispatch(syncOrdersForShift({
         dayOfWeek: currentDayOfWeek,
         shift: currentShift,
-        orders: ordersResponse.data,
+        orders: currentOrdersResponse.data,
       }))
     }
-  }, [currentDayOfWeek, currentShift, dispatch, ordersResponse])
+  }, [currentDayOfWeek, currentOrdersResponse, currentShift, dispatch])
 
   // Filter orders by active day and shift
   const filteredOrders = allOrders.filter(
@@ -66,7 +74,11 @@ export default function CoordinationPage() {
 
   return (
     <OperationalFrame
-      command={<HeaderInfo status={orderStatus} />}
+      command={(
+        <Suspense fallback={<div aria-hidden="true" className="min-h-9 rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+          <HeaderInfo status={orderStatus} />
+        </Suspense>
+      )}
       context={
         <ContextStrip
           items={[
@@ -100,15 +112,19 @@ export default function CoordinationPage() {
           ]}
         >
           <OrderStatusBanner status={orderStatus} />
-          <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
+          <Suspense fallback={capabilityFallback}>
+            <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
+          </Suspense>
 
           <div className="min-h-0">
-            <OrderTable
-              orders={filteredOrders}
-              canEditForecast={canEditForecast}
-              canRequestAdjustment={canRequestAdjustment}
-              useFinalServings={useFinalServings}
-            />
+            <Suspense fallback={<div aria-busy="true" className="min-h-[420px] rounded-md bg-slate-50 motion-reduce:animate-none" />}>
+              <OrderTable
+                orders={filteredOrders}
+                canEditForecast={canEditForecast}
+                canRequestAdjustment={canRequestAdjustment}
+                useFinalServings={useFinalServings}
+              />
+            </Suspense>
           </div>
         </QueryViewBoundary>
       </SectionPanel>

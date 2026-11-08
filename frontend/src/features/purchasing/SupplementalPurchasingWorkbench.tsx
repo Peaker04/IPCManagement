@@ -1,17 +1,13 @@
 import { useState } from 'react';
 import { ChefHat } from 'lucide-react';
-import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { EmptyState, IdentifierText, InlineAlert, SectionPanel, StatusBadge, TableSkeleton, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { toQueryView } from '@/lib/queryView';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
-import {
-  useGetPurchaseOrdersQuery,
-  useGetPurchaseRequestsQuery,
-  useGetSupplementalMaterialRequestsQuery,
-  type PurchaseRequestWorkflowLine,
-  type PurchaseWorkbenchServiceDate,
-} from '@/api/workflowApi';
+import { useGetPurchaseOrdersQuery, useGetPurchaseRequestsQuery } from '@/api/purchasingApi';
+import { useGetSupplementalMaterialRequestsQuery } from '@/api/warehouseApi';
+import type { PurchaseRequestWorkflowLine, PurchaseWorkbenchServiceDate } from '@/api/workflowApiTypes';
 import { PurchaseDecisionPanel } from './PurchaseDecisionPanel';
 import type { PurchasingStageId } from './purchasingModel';
 
@@ -145,41 +141,58 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
     );
   }
   if (isLoading) {
-    return <InlineAlert title="Đang tải nhu cầu mua bổ sung" variant="info">Đang đồng bộ yêu cầu bếp và đề xuất mua liên kết.</InlineAlert>;
+    return <TableSkeleton columns={6} rows={4} ariaLabel="Đang tải nhu cầu mua bổ sung..." />;
   }
-  if (supplementalItems.length === 0) return null;
+  if (supplementalItems.length === 0) {
+    return (
+      <EmptyState
+        title="Chưa có nhu cầu mua bổ sung cần xử lý"
+        className="[&_.text-slate-500]:text-slate-600"
+        description="Kho chưa chuyển yêu cầu thiếu hàng nào sang Thu mua, hoặc các yêu cầu hiện tại đã được xử lý hết."
+      />
+    );
+  }
 
   return (
     <SectionPanel
       title="Nhu cầu mua bổ sung từ bếp"
       icon={<ChefHat size={18} aria-hidden="true" />}
-      description="Các yêu cầu kho không đủ hàng. Chọn một dòng để hoàn tất nhà cung cấp, gửi duyệt và tạo đơn mua."
+      description="Danh sách yêu cầu mua bổ sung khi kho không đủ hàng tồn."
     >
       {isRefreshing && (
         <InlineAlert title="Đang cập nhật nhu cầu mua bổ sung" variant="info">
-          Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
+          Dữ liệu hiện tại vẫn được giữ trong khi nạp lại.
         </InlineAlert>
       )}
       {supplementalView.phase === 'ready' && supplementalView.truncation && (
         <InlineAlert title="Danh sách đang bị giới hạn" variant="warning">
-          Đang hiển thị {supplementalView.truncation.shown}/{supplementalView.truncation.total ?? 'nhiều hơn'} yêu cầu bổ sung. Dùng bộ lọc hoặc luồng đầy đủ trước khi kết luận đã xử lý hết.
+          Đang hiển thị {supplementalView.truncation.shown}/{supplementalView.truncation.total ?? 'nhiều hơn'} yêu cầu bổ sung.
         </InlineAlert>
       )}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <TableViewport ariaLabel="Danh sách nhu cầu mua bổ sung từ bếp" caption="Đề xuất mua được liên kết với yêu cầu bổ sung và phiếu xuất gốc.">
-          <table className="ipc-data-table min-w-[760px]">
-            <thead><tr><th>Yêu cầu bếp</th><th>Nguyên liệu</th><th>Còn thiếu</th><th>Đề xuất mua</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+        <TableViewport ariaLabel="Danh sách nhu cầu mua bổ sung từ bếp" caption="Danh sách nhu cầu mua bổ sung từ bếp">
+          <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[760px]">
+            <thead>
+              <tr>
+                <th className="text-left">Yêu cầu bếp</th>
+                <th className="text-left">Nguyên liệu</th>
+                <th className="text-right">Còn thiếu</th>
+                <th className="text-left">Đề xuất mua</th>
+                <th className="text-center">Trạng thái</th>
+                <th className="text-right">Thao tác</th>
+              </tr>
+            </thead>
             <tbody>{supplementalItems.map((item) => {
               const purchase = purchaseRequests.find((candidate) => candidate.purchaseRequestId === item.purchaseRequestId);
               const selected = item.requestId === effectiveSelectedRequestId;
               return (
                 <tr key={item.requestId} className={selected ? 'bg-blue-50/60' : undefined}>
-                  <td><span className="block font-semibold text-slate-950">{item.requestCode}</span><span className="text-xs text-slate-600">Từ {item.issueCode}</span></td>
+                  <td><IdentifierText value={item.requestCode} className="font-semibold text-slate-950" /><span className="flex min-w-0 items-center gap-1 text-xs text-slate-600">Từ <IdentifierText value={item.issueCode} className="min-w-0" /></span></td>
                   <td>{item.ingredientName}</td>
-                  <td>{formatQuantityWithUnit(item.remainingQty, item.unitName)}</td>
+                  <td className="text-right tabular-nums font-semibold text-slate-900">{formatQuantityWithUnit(item.remainingQty, item.unitName)}</td>
                   <td>{item.purchaseRequestCode || 'Đang tạo liên kết'}</td>
                   <td><StatusBadge variant={purchase?.status === 'DRAFT' ? 'warning' : 'neutral'}>{formatWorkflowStatus(purchase?.status || item.status)}</StatusBadge></td>
-                  <td><Button type="button" size="sm" variant={selected ? 'default' : 'outline'} aria-pressed={selected} onClick={() => setSelectedRequestId(item.requestId)}>{selected ? 'Đang xử lý' : 'Mở xử lý'}</Button></td>
+                  <td className="text-right"><Button type="button" size="sm" variant={selected ? 'default' : 'outline'} aria-pressed={selected} onClick={() => setSelectedRequestId(item.requestId)}>{selected ? 'Đang xử lý' : 'Mở xử lý'}</Button></td>
                 </tr>
               );
             })}</tbody>
@@ -189,6 +202,7 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
         {serviceDate && selectedLine ? (
           <PurchaseDecisionPanel
             key={`${serviceDate.purchaseRequestId}-${selectedLine.purchaseRequestLineId}-${selectedStage}`}
+            panelId="supplemental-purchase-decision-panel"
             week={week}
             selectedStage={selectedStage}
             serviceDate={serviceDate}

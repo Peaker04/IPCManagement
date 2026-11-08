@@ -254,7 +254,6 @@ public sealed class DishCatalogDiagnosticsService : IDishCatalogDiagnosticsServi
         var reportSourceCount =
             await _context.Materialrequests.AsNoTracking().CountAsync() +
             await _context.Purchaserequests.AsNoTracking().CountAsync() +
-            await _context.Inventoryissues.AsNoTracking().CountAsync() +
             await _context.Inventoryreturns.AsNoTracking().CountAsync() +
             await _context.Stockmovements.AsNoTracking().CountAsync() +
             await _context.Bomadjustments.AsNoTracking().CountAsync() +

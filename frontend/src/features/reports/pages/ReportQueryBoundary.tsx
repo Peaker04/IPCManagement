@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { InlineAlert, QueryErrorAlert } from '@/components/common';
+import { InlineAlert, QueryErrorAlert, TableSkeleton, RefreshStatus } from '@/components/common';
 import type { QueryView } from '@/lib/queryView';
 
 interface ReportQueryBoundaryProps {
@@ -22,7 +22,7 @@ export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps
         isRetrying={view.isRetrying}
         onRetry={view.retry}
       >
-        {view.message} Không thể kết luận báo cáo đang trống.
+        {view.message} Dữ liệu báo cáo chưa được xác nhận.
       </QueryErrorAlert>
     );
   }
@@ -30,17 +30,21 @@ export function ReportQueryBoundary({ view, children }: ReportQueryBoundaryProps
     return <InlineAlert title="Chưa khởi tạo báo cáo" variant="info">{view.instruction}</InlineAlert>;
   }
   if (view.phase === 'loading') {
-    return <InlineAlert title="Đang tải dữ liệu báo cáo" variant="info">Dữ liệu đang được đồng bộ.</InlineAlert>;
+    return (
+      <TableSkeleton
+        columns={6}
+        rows={8}
+        ariaLabel="Đang tải dữ liệu báo cáo..."
+      />
+    );
   }
 
   return (
-    <>
+    <div className="relative">
       {view.isRefreshing && (
-        <InlineAlert title="Đang cập nhật báo cáo" variant="info">
-          Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
-        </InlineAlert>
+        <RefreshStatus>Đang cập nhật...</RefreshStatus>
       )}
       {children}
-    </>
+    </div>
   );
 }

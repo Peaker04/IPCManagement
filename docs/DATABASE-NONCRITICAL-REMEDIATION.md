@@ -42,26 +42,27 @@ Chạy `tools/db/Audit-NonCriticalDataQuality.sql` trong `START TRANSACTION READ
 | Duplicate ingredient | 16 nhóm tên active, 32 ID. Preview xuất ID hex, unit/kho và count riêng cho đủ 15 FK consumer đang có trong schema | `review_order` chỉ là thứ tự xem theo số tham chiếu; chưa đề xuất canonical, merge hay deactivate |
 | Menu DRAFT | 210 schedule DRAFT; 7 version DRAFT và 23 SUPERSEDED. Một số DRAFT có KHSX/material request tham chiếu, nên không thể coi tất cả là test rác | Cần nghiệp vụ xác nhận theo customer/week; không update status hàng loạt |
 | Cancelled demand/PR | 6 demand ghi rõ reason do menu re-import, PR liên kết đều cancelled, 0 PO và 0 receipt; tuy nhiên mỗi demand có 4–10 supplier-decision row. Một demand cũ không có cancellation audit và PR vẫn không cancelled | Chưa record nào đủ điều kiện regenerate tự động cho tới khi chốt supplier-decision có phải history bất biến hay không |
-| Migration lineage | `Compare-MigrationLineage.ps1`: 41 ID trong DB, 39 file source, 2 `CANONICAL_DATABASE_ONLY`, 0 unexplained/`SOURCE_ONLY`; `-FailOnDrift` exit 0 | Seed BOM tạm được retirement bằng blob gốc; ID completed-status được map sang migration successor đang track. Không xóa history row, không tạo migration no-op giả |
+| Migration lineage | `Compare-MigrationLineage.ps1 -FailOnDrift` xác nhận mọi ID trong DB đều có source và không còn drift | Hai ID mồ côi được khôi phục bằng no-op sau khi upgrade fixture pass; semantics completed-status vẫn thuộc successor. Không xóa history row. |
 | Backup tables | 7 bảng `backup_*`, ước tính 6.686 row; 0 FK/view/trigger/routine/event consumer và 0 reference trong application source | Vẫn giữ nguyên trong DB cho tới khi chốt retention và backup off-schema |
 
-### Đề xuất khôi phục migration lineage
+### Quyết định khôi phục migration lineage
 
-1. `20260626043000_SeedTemporaryBomData` có source gốc tại commit `bb57c4a`, blob
-   `8e1ce7d9...`; nó chỉ ghi dữ liệu `TMP-BOM-*`, không đổi schema và đã bị xóa có chủ
-   đích. Canonical policy là retirement trong manifest, không khôi phục executable seed.
-2. `20260705121500_AddCompletedMealQuantityPlanStatuses` không có source trong reachable Git
-   history. Semantic theo tên (enum `COMPLETED`) được migration track
-   `20260706033326_AddMealQuantityPlanCompletedAndConcurrency` bao phủ cùng completion/concurrency
-   columns. Manifest ghi successor này và gate xác nhận successor còn trong source.
-3. Chỉ xóa row `__EFMigrationsHistory` khi có rehearsal trên clone và kế hoạch rollback được
-   duyệt; hiện tại không có lý do kỹ thuật để xóa.
+1. `20260626043000_SeedTemporaryBomData` được khôi phục bằng `Up/Down` rỗng.
+   Blob gốc chỉ seed `TMP-BOM-*`; query read-only xác nhận lane hiện hành không còn
+   ingredient/dish/BOM hay downstream reference phụ thuộc dữ liệu tạm. Fresh install không tái seed.
+2. `20260705121500_AddCompletedMealQuantityPlanStatuses` được khôi phục bằng `Up/Down`
+   rỗng. Semantic `COMPLETED` và concurrency vẫn do
+   `20260706033326_AddMealQuantityPlanCompletedAndConcurrency` sở hữu.
+3. Hai test `Migration_upgrade_*` tự dựng predecessor fixture trong lane disposable và được
+   CI chạy trước lineage gate. Không xóa row `__EFMigrationsHistory`.
+4. Ba ID legacy trong `Init_EF_History_For_Old_DB.sql` giữ nguyên logic consolidate sang
+   `20260630031911`; chỉ bổ sung comment/ledger cho tới khi có fixture database Phase 1.
 
 ## Quy tắc chạy song song
 
 - Không seed, reset, migrate hoặc cleanup trực tiếp trên `ipcmanagement`/`ipc_lane1` trong lúc session khác đang chạy.
 - Không merge/deactivate theo tên; mọi quyết định dùng ID và reference thực tế.
-- Không sửa `docs/CURRENT-STATE.md` từ nhiều session cùng lúc; hợp nhất evidence sau khi từng workstream hoàn tất.
+- Không sửa `MEMORY.md` từ nhiều session cùng lúc; hợp nhất evidence sau khi từng workstream hoàn tất.
 - Nếu cần rehearsal, dùng database clone riêng cho từng workstream và không dùng chung port/artifact.
 - Trước khi sửa code phải chạy GitNexus upstream impact; trước commit phải chạy `detect_changes`.
 

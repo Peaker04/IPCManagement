@@ -30,7 +30,13 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         line!.FindProperty(nameof(PurchaseRequestLine.SupplierId))!.IsNullable.Should().BeTrue();
         order!.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(PurchaseOrder.PurchaseRequestId), nameof(PurchaseOrder.SupplierId) }));
+                .SequenceEqual(new[] {
+                    nameof(PurchaseOrder.PurchaseRequestId),
+                    nameof(PurchaseOrder.SupplierId),
+                    nameof(PurchaseOrder.ProposedDeliveryDate),
+                    nameof(PurchaseOrder.ReceivingWarehouseId),
+                    nameof(PurchaseOrder.PurchasingTerms)
+                }));
 
         var migration = File.ReadAllText(FindRepositoryFile(
             "backend", "src", "IPCManagement.Api", "Migrations",
@@ -388,6 +394,37 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         item.SourceDocumentCode.Should().Be(request.Plan.PlanCode);
         item.Materials.Should().ContainSingle()
             .Which.Quantity.Should().Be(10m);
+    }
+
+    [Fact]
+    public async Task Inbox_FiltersDeepLinkByTargetWeekDateAndSearchBeforePaging()
+    {
+        await using var context = CreateInboxContext();
+        var requested = await SeedInboxDemandAsync(context, 1, "DRAFT");
+        await SeedInboxDemandAsync(context, 2, "DRAFT");
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
+
+        var page = await service.GetPendingPageAsync(
+            BuildPrincipal("Manager"),
+            new ApprovalInboxQueryDto
+            {
+                Limit = 1,
+                TargetType = "material-demand",
+                TargetId = GuidHelper.ToGuidString(requested.RequestId),
+                Week = "2026-07-20",
+                Date = "2026-07-22",
+                SearchKeyword = "NGUYÊN LIỆU 1"
+            });
+
+        page.Items.Should().ContainSingle()
+            .Which.TargetId.Should().Be(GuidHelper.ToGuidString(requested.RequestId));
+        page.HasNext.Should().BeFalse();
+
+        var invalidWeek = async () => await service.GetPendingPageAsync(
+            BuildPrincipal("Manager"),
+            new ApprovalInboxQueryDto { Week = "2026-07-21" });
+        await invalidWeek.Should().ThrowAsync<ArgumentException>()
+            .WithParameterName("Week");
     }
 
     [Fact]
@@ -777,6 +814,8 @@ public class MaterialDemandAndPriceExceptionApprovalTests
                     evidenceReferencePrice TEXT NOT NULL,
                     proposedUnitPrice TEXT NOT NULL,
                     proposedDeliveryDate TEXT NOT NULL,
+                    receivingWarehouseId BLOB NULL,
+                    purchasingTerms TEXT NULL,
                     confirmedBy BLOB NOT NULL,
                     confirmedAt TEXT NOT NULL,
                     decisionFingerprint TEXT NOT NULL,

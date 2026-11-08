@@ -33,6 +33,18 @@ public class PriceVarianceReportService : IPriceVarianceReportService
         ReceiptPriceVariancePageQueryDto query)
     {
         var filteredLines = BuildFilteredReceiptLinesQuery(query);
+        if (!string.IsNullOrWhiteSpace(query.SearchKeyword))
+        {
+            var searchKeyword = query.SearchKeyword.Trim();
+            filteredLines = filteredLines.Where(item =>
+                item.Ingredient.IngredientName.Contains(searchKeyword) ||
+                item.Ingredient.IngredientCode.Contains(searchKeyword) ||
+                item.Receipt.Supplier.SupplierName.Contains(searchKeyword) ||
+                item.Receipt.Supplier.SupplierCode.Contains(searchKeyword) ||
+                item.Receipt.ReceiptCode.Contains(searchKeyword) ||
+                item.Unit.UnitName.Contains(searchKeyword) ||
+                item.Unit.UnitCode.Contains(searchKeyword));
+        }
         var totalCount = await filteredLines.CountAsync();
         var receiptLines = await filteredLines
             .OrderByDescending(item => item.Receipt.ReceiptDate)

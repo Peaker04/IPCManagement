@@ -37,6 +37,11 @@ public class ApprovalInboxQueryDto
 {
     public int Limit { get; set; } = 20;
     public string? Cursor { get; set; }
+    public string? TargetType { get; set; }
+    public string? TargetId { get; set; }
+    public string? Week { get; set; }
+    public string? Date { get; set; }
+    public string? SearchKeyword { get; set; }
 }
 
 public class ApprovalInboxPageDto

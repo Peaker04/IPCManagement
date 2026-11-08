@@ -1,4 +1,4 @@
-import type { WeeklyMenuState } from '../../../coordination/types'
+import type { WeeklyMenuState } from '@/types/coordination'
 import type { WeeklyScheduleEditorState } from './types'
 
 type ScheduleAction =
@@ -7,7 +7,7 @@ type ScheduleAction =
   | { type: 'change-dish'; dayKey: string; slotType: keyof WeeklyMenuState[string]; dishId: string }
   | { type: 'change-serving'; key: string; value: string }
   | { type: 'clear-serving'; key: string }
-  | { type: 'reset-scope' }
+  | { type: 'reset-quick-servings' }
 
 export const initialWeeklyScheduleState: WeeklyScheduleEditorState = {
   isEditorOpen: false,
@@ -49,8 +49,8 @@ export function weeklyScheduleReducer(
       delete quickServingInputs[action.key]
       return { ...state, quickServingInputs }
     }
-    case 'reset-scope':
-      return initialWeeklyScheduleState
+    case 'reset-quick-servings':
+      return { ...state, quickServingInputs: {} }
     default:
       return state
   }

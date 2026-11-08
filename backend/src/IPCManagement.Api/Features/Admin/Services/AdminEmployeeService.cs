@@ -177,7 +177,7 @@ public class AdminEmployeeService : IAdminEmployeeService
         UpdateEmployeeRequest request,
         string? changedByUserId)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(item => item.UserId == userId);
+        var user = await LockUserForSessionMutationAsync(userId);
         if (user is null)
             return null;
 
@@ -264,6 +264,10 @@ public class AdminEmployeeService : IAdminEmployeeService
                 Reason = "Cập nhật trạng thái hoạt động."
             });
             user.IsActive = request.IsActive;
+            if (!request.IsActive)
+            {
+                await RevokeActiveRefreshTokensAsync(user.UserId);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(request.Password))
@@ -303,42 +307,75 @@ public class AdminEmployeeService : IAdminEmployeeService
         if (userId is null)
             return null;
 
-        var user = await _context.Users.FirstOrDefaultAsync(item => item.UserId == userId);
-        if (user is null)
+        var found = await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
+            {
+                var user = await LockUserForSessionMutationAsync(userId, cancellationToken);
+                if (user is null)
+                    return false;
+
+                if ((user.IsActive ?? false) == request.IsActive)
+                    return true;
+
+                var changedByBytes = string.IsNullOrEmpty(changedByUserId)
+                    ? null
+                    : GuidHelper.ParseGuidString(changedByUserId);
+                _context.Auditlogs.Add(new AuditLog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = DateTime.UtcNow,
+                    ChangedBy = changedByBytes ?? GuidHelper.NewId(),
+                    BusinessArea = "Admin",
+                    EntityName = nameof(User),
+                    EntityId = user.UserId,
+                    FieldName = nameof(user.IsActive),
+                    OldValue = (user.IsActive ?? false).ToString(),
+                    NewValue = request.IsActive.ToString(),
+                    Reason = request.IsActive ? "Kích hoạt tài khoản nhân viên." : "Khóa tài khoản nhân viên."
+                });
+
+                user.IsActive = request.IsActive;
+                if (!request.IsActive)
+                {
+                    await RevokeActiveRefreshTokensAsync(user.UserId, cancellationToken);
+                }
+                await _context.SaveChangesAsync(cancellationToken);
+                return true;
+            },
+            cancellationToken => _context.Users.AsNoTracking().AnyAsync(
+                user => user.UserId == userId && user.IsActive == request.IsActive,
+                cancellationToken));
+
+        if (!found)
             return null;
 
-        if ((user.IsActive ?? false) != request.IsActive)
-        {
-            byte[]? changedByBytes = null;
-            if (!string.IsNullOrEmpty(changedByUserId))
-            {
-                changedByBytes = GuidHelper.ParseGuidString(changedByUserId);
-            }
-
-            var changedAt = DateTime.UtcNow;
-            var audit = new AuditLog
-            {
-                AuditId = GuidHelper.NewId(),
-                ChangedAt = changedAt,
-                ChangedBy = changedByBytes ?? GuidHelper.NewId(),
-                BusinessArea = "Admin",
-                EntityName = nameof(User),
-                EntityId = user.UserId,
-                FieldName = nameof(user.IsActive),
-                OldValue = (user.IsActive ?? false).ToString(),
-                NewValue = request.IsActive.ToString(),
-                Reason = request.IsActive ? "Kích hoạt tài khoản nhân viên." : "Khóa tài khoản nhân viên."
-            };
-
-            user.IsActive = request.IsActive;
-            _context.Auditlogs.Add(audit);
-            await _context.SaveChangesAsync();
-        }
-
-        var updated = await LoadEmployeeEntityAsync(user.UserId)
+        var updated = await LoadEmployeeEntityAsync(userId)
             ?? throw new InvalidOperationException("Không thể tải nhân viên vừa cập nhật.");
 
         return MapEmployee(updated);
+    }
+
+    private async Task<User?> LockUserForSessionMutationAsync(
+        byte[] userId,
+        CancellationToken cancellationToken = default)
+        => _context.Database.IsMySql()
+            ? await _context.Users
+                .FromSqlInterpolated($"SELECT * FROM users WHERE userId = {userId} FOR UPDATE")
+                .SingleOrDefaultAsync(cancellationToken)
+            : await _context.Users.SingleOrDefaultAsync(user => user.UserId == userId, cancellationToken);
+
+    private async Task RevokeActiveRefreshTokensAsync(byte[] userId, CancellationToken cancellationToken = default)
+    {
+        var revokedAt = DateTime.UtcNow;
+        var tokens = await _context.Refreshtokens
+            .Where(token => token.UserId.SequenceEqual(userId) && !token.IsRevoked)
+            .ToListAsync(cancellationToken);
+
+        foreach (var token in tokens)
+        {
+            token.IsRevoked = true;
+            token.RevokedAt = revokedAt;
+        }
     }
 
     private async Task<byte[]> ResolveRoleIdAsync(string roleId)

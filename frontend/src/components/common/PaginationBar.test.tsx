@@ -67,6 +67,17 @@ describe('PaginationBar', () => {
     expect(onPageChange).toHaveBeenCalledWith(9);
   });
 
+  it('keeps refresh feedback accessible without inserting a visible pagination glyph', () => {
+    const { container, rerender } = render(<PaginationBar page={2} pageSize={20} totalItems={205} onPageChange={vi.fn()} />);
+    expect(screen.getByText('Trang 2/11')).toBeInTheDocument();
+    expect(container.querySelector('.ipc-pagination-spinner')).not.toBeInTheDocument();
+
+    rerender(<PaginationBar page={2} pageSize={20} totalItems={205} isPending onPageChange={vi.fn()} />);
+    expect(screen.getByText('Trang 2/11')).toBeInTheDocument();
+    expect(container.querySelector('.ipc-pagination-spinner')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Đang tải trang 2');
+  });
+
   it('locks navigation and exposes busy feedback while a page is loading', () => {
     render(
       <PaginationBar

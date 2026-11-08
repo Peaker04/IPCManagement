@@ -1,8 +1,11 @@
 using FluentAssertions;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Helpers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace IPCManagement.Api.Tests;
 
@@ -56,6 +59,34 @@ public class DeploymentConfigurationValidatorTests
 
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*DefaultConnection*SecretKey*AllowedOrigins*AllowedHosts*");
+    }
+
+    [Fact]
+    public async Task ValidateOperationalWarehouseAsync_Should_Resolve_Exactly_Once()
+    {
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(Guid.NewGuid().ToByteArray());
+
+        await DeploymentConfigurationValidator.ValidateOperationalWarehouseAsync(resolver);
+
+        await resolver.Received(1).ResolveAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ValidateOperationalWarehouseAsync_Should_Propagate_FailClosed_Diagnostic()
+    {
+        var expected = new OperationalWarehouseInvariantException(
+            OperationalWarehouseInvariantFailure.MultipleActiveWarehouses,
+            "multiple active warehouses");
+        var resolver = Substitute.For<IOperationalWarehouseResolver>();
+        resolver.ResolveAsync(Arg.Any<CancellationToken>()).ThrowsAsync(expected);
+
+        Func<Task> act = () => DeploymentConfigurationValidator.ValidateOperationalWarehouseAsync(resolver);
+
+        var thrown = await act.Should().ThrowAsync<OperationalWarehouseInvariantException>();
+        thrown.Which.Should().BeSameAs(expected);
+        await resolver.Received(1).ResolveAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

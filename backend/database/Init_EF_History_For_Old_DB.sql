@@ -23,6 +23,8 @@ INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`) VAL
 
 -- Một số máy local từng có 3 migration tách nhỏ này. Code hiện tại đã thay bằng
 -- migration hợp nhất 20260630031911_AddCustomerContractsAndMenuVersions.
+-- Không xóa hay đổi ba ID legacy này khi chưa có fixture database Phase 1 để replay.
+-- Ledger lineage ở tools/db/migration-lineage.json giữ quan hệ consolidated-into-source.
 INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
 SELECT '20260630031911_AddCustomerContractsAndMenuVersions', '9.0.16'
 WHERE EXISTS (

@@ -1,6 +1,7 @@
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Caching;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Catalog.Contracts;

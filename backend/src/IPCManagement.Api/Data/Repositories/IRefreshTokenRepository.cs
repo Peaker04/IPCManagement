@@ -21,6 +21,12 @@ public interface IRefreshTokenRepository
     /// <summary>Xóa các token đã hết hạn / revoked / used của một user.</summary>
     Task CleanupExpiredForUserAsync(byte[] userId);
 
+    /// <summary>
+    /// Dọn token đóng, thay phiên đăng nhập cũ của cùng device và chỉ giữ số phiên active mới nhất
+    /// trước khi thêm token cho lần đăng nhập hiện tại.
+    /// </summary>
+    Task PrepareForLoginAsync(byte[] userId, string deviceInfo, int activeTokensToRetain);
+
     /// <summary>Lưu tất cả thay đổi pending.</summary>
     Task SaveChangesAsync();
 }

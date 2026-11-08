@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-01W",
+  "status": "READY_TO_SEAL",
+  "authority": "SOLE_TOPOLOGY_AUTHORITY",
+  "invalid01VStatus": "SUPERSEDED_PROTOCOL_INVALID",
+  "planningHead": "853730c17103af4c25a7af09661a627f964088b2",
+  "planningDelta": {
+    "base": "06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c",
+    "head": "853730c17103af4c25a7af09661a627f964088b2",
+    "commits": []
+  },
+  "planningDeltaSha256": "d2480690050d81429fb1aa41fafff6d91aed0f4496df44256fd5f3a26f1bc9fc",
+  "historicalCommits": [
+    "c52c80f8186b985d07619a7ad0ed7abc0572675c",
+    "ae129eaab0dde192f3dca17c7504b7b9aaef5d17",
+    "fb93fd120d1f5ec81760070be67ed65429ae4c03",
+    "06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c",
+    "8502ce701a4070f7be449681ffecbffc36b20056"
+  ],
+  "artifactPins": [
+    {
+      "path": "frontend/tests/validatePhase271Reseal.test.ts",
+      "sha256": "117d4f8ef6e42a1189b392e047d9dd86d5909dc91ea4e72df1073861737f188b",
+      "gitBlobId": "e574c17581422631542ed254c5a3b538e32b0d8d"
+    },
+    {
+      "path": "frontend/tests/validatePhase271Reseal.ts",
+      "sha256": "d326310470fda89c89afe15cc2962a03afbbed00f9c2301c5a67a989ed272e53",
+      "gitBlobId": "65f3708bd415c02b25cc6e03be6970dc0c6e3271"
+    }
+  ],
+  "payloadMembers": [
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01W-SUMMARY.md",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-01W-topology-validator-manifest.json",
+    ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-01W-topology-validator.json",
+    "frontend/tests/validatePhase271Reseal.test.ts",
+    "frontend/tests/validatePhase271Reseal.ts"
+  ],
+  "blockers": []
+}

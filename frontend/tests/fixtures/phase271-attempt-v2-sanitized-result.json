@@ -1,0 +1,1699 @@
+{
+  "schemaVersion": 1,
+  "attemptId": "v2-original-session-run",
+  "sessionId": "phase-27-1-plan-01-execution-v2",
+  "runEvidenceRoot": "<V2_OUTPUT>",
+  "discoverySha256": "855caa1ec12583b2baaae7db7aedfabe45e735702f12b135168d7f504cdd39d1",
+  "discoveredTests": 76,
+  "results": [
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract l-1280",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract m-768",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract s-390",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/pagination-visual.spec.ts",
+      "canonicalTitle": "pagination-visual.spec.ts › pagination visual contract xl-1440",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › admin-data tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › approvals tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › chef-dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › login tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › meal-orders tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › purchasing tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › reports tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › warehouse tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › l-1280 › weekly-menu tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › admin-data tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › approvals tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › chef-dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › login tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › meal-orders tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › purchasing tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › reports tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › warehouse tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › m-768 › weekly-menu tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › admin-data tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › approvals tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › chef-dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › login tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › meal-orders tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › purchasing tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › reports tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › warehouse tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › s-390 › weekly-menu tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › admin-data tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › approvals tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › chef-dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › dashboard tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › login tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › meal-orders tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › purchasing tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › reports tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › warehouse tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › full-system tab audit captures › xl-1440 › weekly-menu tab audit capture",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 1280x900 shell breakpoint",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 1365x900 shell breakpoint",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 390x844 shell breakpoint",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › MainLayout responsive shell contract › 768x1024 shell breakpoint",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1280x900 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-1280x900-expected.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "purchasing-phase09-1280x900-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/purchasing-phase09-1280x900-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-1280x900-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-aa9ac-ing-phase09-visual-baseline-chromium/purchasing-phase09-1280x900-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-1280x900-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-aa9ac-ing-phase09-visual-baseline-chromium/purchasing-phase09-1280x900-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-aa9ac-ing-phase09-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-aa9ac-ing-phase09-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-aa9ac-ing-phase09-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-aa9ac-ing-phase09-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1280x900 › warehouse-phase09 visual baseline",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1365x900 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-1365x900-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "purchasing-phase09-1365x900-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/purchasing-phase09-1365x900-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-1365x900-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-84488-ing-phase09-visual-baseline-chromium/purchasing-phase09-1365x900-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-1365x900-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-84488-ing-phase09-visual-baseline-chromium/purchasing-phase09-1365x900-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-84488-ing-phase09-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-84488-ing-phase09-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-84488-ing-phase09-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-84488-ing-phase09-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1365x900 › warehouse-phase09 visual baseline",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 390x844 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-390x844-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "purchasing-phase09-390x844-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/purchasing-phase09-390x844-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-390x844-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-7948f-ing-phase09-visual-baseline-chromium/purchasing-phase09-390x844-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-390x844-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-7948f-ing-phase09-visual-baseline-chromium/purchasing-phase09-390x844-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-7948f-ing-phase09-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-7948f-ing-phase09-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-7948f-ing-phase09-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-7948f-ing-phase09-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 390x844 › warehouse-phase09 visual baseline",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 768x1024 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-768x1024-expected.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "purchasing-phase09-768x1024-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/purchasing-phase09-768x1024-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-768x1024-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-555c0-ing-phase09-visual-baseline-chromium/purchasing-phase09-768x1024-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-phase09-768x1024-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-555c0-ing-phase09-visual-baseline-chromium/purchasing-phase09-768x1024-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-555c0-ing-phase09-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-555c0-ing-phase09-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-555c0-ing-phase09-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-Phase-09-det-555c0-ing-phase09-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 768x1024 › warehouse-phase09 visual baseline",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › admin-data visual baseline",
+      "snapshotName": "admin-data-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "admin-data-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/admin-data-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "admin-data-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-9806c--admin-data-visual-baseline-chromium/admin-data-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "admin-data-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-9806c--admin-data-visual-baseline-chromium/admin-data-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-9806c--admin-data-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-9806c--admin-data-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-9806c--admin-data-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-9806c--admin-data-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › approvals visual baseline",
+      "snapshotName": "approvals-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "approvals-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/approvals-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "approvals-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-3311a-p-approvals-visual-baseline-chromium/approvals-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "approvals-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-3311a-p-approvals-visual-baseline-chromium/approvals-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-3311a-p-approvals-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-3311a-p-approvals-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-3311a-p-approvals-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-3311a-p-approvals-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › chef-dashboard visual baseline",
+      "snapshotName": "chef-dashboard-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "chef-dashboard-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/chef-dashboard-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "chef-dashboard-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-53781-f-dashboard-visual-baseline-chromium/chef-dashboard-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "chef-dashboard-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-53781-f-dashboard-visual-baseline-chromium/chef-dashboard-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-53781-f-dashboard-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-53781-f-dashboard-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-53781-f-dashboard-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-53781-f-dashboard-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › dashboard visual baseline",
+      "snapshotName": "dashboard-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "dashboard-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/dashboard-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "dashboard-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-488ce-p-dashboard-visual-baseline-chromium/dashboard-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "dashboard-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-488ce-p-dashboard-visual-baseline-chromium/dashboard-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-488ce-p-dashboard-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-488ce-p-dashboard-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-488ce-p-dashboard-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-488ce-p-dashboard-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › login visual baseline",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › meal-orders visual baseline",
+      "snapshotName": "meal-orders-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "meal-orders-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/meal-orders-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "meal-orders-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-88b48-meal-orders-visual-baseline-chromium/meal-orders-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "meal-orders-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-88b48-meal-orders-visual-baseline-chromium/meal-orders-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-88b48-meal-orders-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-88b48-meal-orders-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-88b48-meal-orders-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-88b48-meal-orders-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › purchasing visual baseline",
+      "snapshotName": "purchasing-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "purchasing-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/purchasing-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e8a11--purchasing-visual-baseline-chromium/purchasing-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e8a11--purchasing-visual-baseline-chromium/purchasing-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e8a11--purchasing-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e8a11--purchasing-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e8a11--purchasing-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e8a11--purchasing-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › reports visual baseline",
+      "snapshotName": "reports-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "reports-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/reports-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "reports-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-desktop-reports-visual-baseline-chromium/reports-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "reports-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-desktop-reports-visual-baseline-chromium/reports-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-desktop-reports-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-desktop-reports-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-desktop-reports-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-desktop-reports-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › warehouse visual baseline",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › weekly-menu visual baseline",
+      "snapshotName": "weekly-menu-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "weekly-menu-desktop-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/weekly-menu-desktop-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "weekly-menu-desktop-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-54ca4-weekly-menu-visual-baseline-chromium/weekly-menu-desktop-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "weekly-menu-desktop-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-54ca4-weekly-menu-visual-baseline-chromium/weekly-menu-desktop-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-54ca4-weekly-menu-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-54ca4-weekly-menu-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-54ca4-weekly-menu-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-54ca4-weekly-menu-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › admin-data visual baseline",
+      "snapshotName": "admin-data-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "admin-data-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/admin-data-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "admin-data-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-1cb45--admin-data-visual-baseline-chromium/admin-data-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "admin-data-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-1cb45--admin-data-visual-baseline-chromium/admin-data-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-1cb45--admin-data-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-1cb45--admin-data-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-1cb45--admin-data-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-1cb45--admin-data-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › approvals visual baseline",
+      "snapshotName": "approvals-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "approvals-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/approvals-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "approvals-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-approvals-visual-baseline-chromium/approvals-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "approvals-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-approvals-visual-baseline-chromium/approvals-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-approvals-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-approvals-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-approvals-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-approvals-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › chef-dashboard visual baseline",
+      "snapshotName": "chef-dashboard-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "chef-dashboard-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/chef-dashboard-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "chef-dashboard-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-74c6e-f-dashboard-visual-baseline-chromium/chef-dashboard-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "chef-dashboard-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-74c6e-f-dashboard-visual-baseline-chromium/chef-dashboard-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-74c6e-f-dashboard-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-74c6e-f-dashboard-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-74c6e-f-dashboard-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-74c6e-f-dashboard-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › dashboard visual baseline",
+      "snapshotName": "dashboard-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "dashboard-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/dashboard-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "dashboard-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-dashboard-visual-baseline-chromium/dashboard-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "dashboard-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-dashboard-visual-baseline-chromium/dashboard-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-dashboard-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-dashboard-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-dashboard-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-dashboard-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › login visual baseline",
+      "snapshotName": "login-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "login-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/login-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "login-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-login-visual-baseline-chromium/login-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "login-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-login-visual-baseline-chromium/login-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-login-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-login-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-login-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-login-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › meal-orders visual baseline",
+      "snapshotName": "meal-orders-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "meal-orders-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/meal-orders-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "meal-orders-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e9e23-meal-orders-visual-baseline-chromium/meal-orders-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "meal-orders-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e9e23-meal-orders-visual-baseline-chromium/meal-orders-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e9e23-meal-orders-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e9e23-meal-orders-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e9e23-meal-orders-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e9e23-meal-orders-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › purchasing visual baseline",
+      "snapshotName": "purchasing-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "purchasing-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/purchasing-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e6db9--purchasing-visual-baseline-chromium/purchasing-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "purchasing-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e6db9--purchasing-visual-baseline-chromium/purchasing-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e6db9--purchasing-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e6db9--purchasing-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e6db9--purchasing-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-e6db9--purchasing-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › reports visual baseline",
+      "snapshotName": "reports-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "reports-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/reports-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "reports-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-reports-visual-baseline-chromium/reports-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "reports-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-reports-visual-baseline-chromium/reports-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-reports-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-reports-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-reports-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-routes-mobile-reports-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › warehouse visual baseline",
+      "snapshotName": "",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      },
+      "status": "passed",
+      "attachments": []
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › weekly-menu visual baseline",
+      "snapshotName": "weekly-menu-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": "failed",
+      "failureKind": "screenshot-mismatch",
+      "attachments": [
+        {
+          "name": "weekly-menu-mobile-expected.png",
+          "path": "<V2_OUTPUT>/visual-routes.spec.ts-snapshots/weekly-menu-mobile-chromium-win32.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "weekly-menu-mobile-actual.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-4f3e3-weekly-menu-visual-baseline-chromium/weekly-menu-mobile-actual.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "weekly-menu-mobile-diff.png",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-4f3e3-weekly-menu-visual-baseline-chromium/weekly-menu-mobile-diff.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "screenshot",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-4f3e3-weekly-menu-visual-baseline-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-4f3e3-weekly-menu-visual-baseline-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "error-context",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-4f3e3-weekly-menu-visual-baseline-chromium/error-context.md",
+          "contentType": "text/markdown"
+        },
+        {
+          "name": "trace",
+          "path": "<V2_OUTPUT>/visual-routes-visual-route-4f3e3-weekly-menu-visual-baseline-chromium/trace.zip",
+          "contentType": "application/zip"
+        }
+      ]
+    }
+  ]
+}

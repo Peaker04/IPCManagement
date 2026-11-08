@@ -10,6 +10,9 @@ using Xunit.Abstractions;
 using IPCManagement.Api.Features.Admin.Contracts;
 using IPCManagement.Api.Features.Admin.Services;
 using IPCManagement.Api.Features.Auth.Contracts;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Tests.Integration;
 
@@ -75,6 +78,7 @@ public class WorkflowLifecycleE2ETests
             RequiresMySqlFactAttribute.ConnectionStringVariable);
 
         var (username, password) = await EnsureAdminCredentialAsync();
+        await EnsureDefaultOperationModeAsync(username);
         _output.WriteLine($"Integration test chạy thật trên MySQL với tài khoản '{username}'.");
 
         using var client = _factory.CreateClient();
@@ -116,6 +120,24 @@ public class WorkflowLifecycleE2ETests
         });
 
         return (username, password);
+    }
+
+    private async Task EnsureDefaultOperationModeAsync(string username)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<IpcManagementContext>();
+        if (await context.Systemoperationmodes.AnyAsync()) return;
+        var userId = await context.Users.Where(user => user.Username == username).Select(user => user.UserId).SingleAsync();
+        context.Systemoperationmodes.Add(new SystemOperationMode
+        {
+            Id = 1,
+            Mode = "DEFAULT",
+            Version = 1,
+            UpdatedBy = userId,
+            UpdatedAt = DateTime.UtcNow,
+            Reason = "CI integration test baseline"
+        });
+        await context.SaveChangesAsync();
     }
 
     private sealed class ScenarioState

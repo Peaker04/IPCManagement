@@ -32,12 +32,29 @@ function SelectTrigger({
   className,
   size = "default",
   children,
+  ref,
+  title,
   ...props
 }: SelectPrimitive.Trigger.Props & {
   size?: "sm" | "default"
 }) {
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null)
+  const setRef = React.useCallback((element: HTMLButtonElement | null) => {
+    triggerRef.current = element
+    if (typeof ref === "function") ref(element)
+    else if (ref) ref.current = element
+  }, [ref])
+
+  React.useLayoutEffect(() => {
+    if (title || !triggerRef.current) return
+    const label = triggerRef.current.querySelector<HTMLElement>('[data-slot="select-value"]')?.textContent?.trim()
+    if (label) triggerRef.current.title = label
+  })
+
   return (
     <SelectPrimitive.Trigger
+      ref={setRef}
+      title={title}
       data-slot="select-trigger"
       data-size={size}
       className={cn(

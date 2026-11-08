@@ -3,6 +3,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Models.Entities;
 using NSubstitute;
 using Xunit;
@@ -20,6 +21,7 @@ public class InventoryReturnServiceTests
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
     private readonly ImmediateTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
     private readonly InventoryReturnService _service;
 
     public InventoryReturnServiceTests()
@@ -29,13 +31,17 @@ public class InventoryReturnServiceTests
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
         _transactionRunner = new ImmediateTransactionRunner();
+        _operationalWarehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
+        _returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(Arg.Any<byte[]>())
+            .Returns(new Dictionary<string, decimal>());
 
         _service = new InventoryReturnService(
             _returnRepository,
             _issueRepository,
             _unitOfWork,
             _stockLedgerService,
-            _transactionRunner);
+            _transactionRunner,
+            _operationalWarehouseResolver);
     }
 
     [Fact]
@@ -44,16 +50,19 @@ public class InventoryReturnServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
 
-        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(CreateIssue(
+        var issue = CreateIssue(
             issueId,
             warehouseId,
             ingredientId,
             unitId,
-            issuedQty: 5));
+            issuedQty: 5);
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(issue);
         _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
@@ -68,6 +77,7 @@ public class InventoryReturnServiceTests
             {
                 new()
                 {
+                    SourceIssueLineId = GuidHelper.ToGuidString(issue.Inventoryissuelines.Single().IssueLineId),
                     IngredientId = ingredientId,
                     Quantity = 2,
                     UnitId = unitId
@@ -86,7 +96,8 @@ public class InventoryReturnServiceTests
             inventoryReturn.WarehouseId != null &&
             inventoryReturn.IssueId != null &&
             inventoryReturn.Reason == "Nguyên liệu dư sau nấu" &&
-            inventoryReturn.Inventoryreturnlines.Count == 1));
+            inventoryReturn.Inventoryreturnlines.Count == 1 &&
+            inventoryReturn.Inventoryreturnlines.Single().SourceIssueLineId != null));
 
         await _stockLedgerService.DidNotReceiveWithAnyArgs().AddStockAsync(
             default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
@@ -101,21 +112,24 @@ public class InventoryReturnServiceTests
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
         var issuedQty = 5m;
 
-        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(CreateIssue(
+        var issue = CreateIssue(
             issueId,
             warehouseId,
             ingredientId,
             unitId,
-            issuedQty));
-        _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
+            issuedQty);
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(issue);
+        _returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>
             {
-                [BuildKey(ingredientId, unitId)] = 3
+                [GuidHelper.ToGuidString(issue.Inventoryissuelines.Single().IssueLineId)] = 3
             });
 
         var dto = new CreateInventoryReturnRequest
@@ -128,6 +142,7 @@ public class InventoryReturnServiceTests
             {
                 new()
                 {
+                    SourceIssueLineId = GuidHelper.ToGuidString(issue.Inventoryissuelines.Single().IssueLineId),
                     IngredientId = ingredientId,
                     Quantity = 3,
                     UnitId = unitId
@@ -158,21 +173,63 @@ public class InventoryReturnServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_Should_Reject_WhenKitchenHasNotAcknowledgedOriginalIssue()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
+        var issueId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        var issue = CreateIssue(issueId, warehouseId, ingredientId, unitId, issuedQty: 5m);
+        issue.ReceivedAt = null;
+        issue.ReceivedBy = null;
+
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(issue);
+
+        var act = () => _service.CreateAsync(new CreateInventoryReturnRequest
+        {
+            ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            IssueId = issueId,
+            Reason = "Trả khi chưa ký nhận",
+            Lines =
+            [
+                new CreateInventoryReturnLineRequest
+                {
+                    SourceIssueLineId = GuidHelper.ToGuidString(issue.Inventoryissuelines.Single().IssueLineId),
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    Quantity = 1m
+                }
+            ]
+        }, userId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*Bếp cần xác nhận đã nhận phiếu xuất gốc*");
+        _returnRepository.DidNotReceive().Add(Arg.Any<InventoryReturn>());
+    }
+
+    [Fact]
     public async Task CreateAsync_Should_RecordWasteWithoutAddingStockMovement_WhenReturnTypeIsWaste()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
         var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
         var issueId = Guid.NewGuid().ToString();
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
 
-        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(CreateIssue(
+        var issue = CreateIssue(
             issueId,
             warehouseId,
             ingredientId,
             unitId,
-            issuedQty: 5));
+            issuedQty: 5);
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(issue);
         _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
@@ -187,6 +244,7 @@ public class InventoryReturnServiceTests
             [
                 new CreateInventoryReturnLineRequest
                 {
+                    SourceIssueLineId = GuidHelper.ToGuidString(issue.Inventoryissuelines.Single().IssueLineId),
                     IngredientId = ingredientId,
                     Quantity = 1,
                     UnitId = unitId
@@ -219,6 +277,186 @@ public class InventoryReturnServiceTests
         _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task CreateAsync_ShouldRejectExplicitSourceLine_WhenIngredientOrUnitDoesNotMatch()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
+        var issueId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var mismatchedIngredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        var issue = CreateIssue(issueId, warehouseId, ingredientId, unitId, issuedQty: 5m);
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(issue);
+
+        var act = () => _service.CreateAsync(new CreateInventoryReturnRequest
+        {
+            ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            IssueId = issueId,
+            Reason = "Dòng nguồn không khớp",
+            Lines =
+            [
+                new CreateInventoryReturnLineRequest
+                {
+                    SourceIssueLineId = GuidHelper.ToGuidString(issue.Inventoryissuelines.Single().IssueLineId),
+                    IngredientId = mismatchedIngredientId,
+                    UnitId = unitId,
+                    Quantity = 1m
+                }
+            ]
+        }, userId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*không khớp dòng nguồn phiếu xuất*");
+        _returnRepository.DidNotReceive().Add(Arg.Any<InventoryReturn>());
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRejectOmittedSourceLine_WhenIssueHasAmbiguousIngredientAndUnit()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
+        var issueId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(
+            CreateIssueWithSameIngredientLines(issueId, warehouseId, ingredientId, unitId, 3m, 4m));
+
+        var act = () => _service.CreateAsync(new CreateInventoryReturnRequest
+        {
+            ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            IssueId = issueId,
+            Reason = "Không được suy đoán dòng nguồn",
+            Lines =
+            [
+                new CreateInventoryReturnLineRequest
+                {
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    Quantity = 1m
+                }
+            ]
+        }, userId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*phải chỉ rõ SourceIssueLineId*");
+        _returnRepository.DidNotReceive().Add(Arg.Any<InventoryReturn>());
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldRejectOmittedSourceLine_EvenWhenIngredientAndUnitAreUnique()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
+        var issueId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(
+            CreateIssue(issueId, warehouseId, ingredientId, unitId, issuedQty: 5m));
+
+        var act = () => _service.CreateAsync(new CreateInventoryReturnRequest
+        {
+            ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            IssueId = issueId,
+            Reason = "Không được suy đoán dòng nguồn duy nhất",
+            Lines =
+            [
+                new CreateInventoryReturnLineRequest
+                {
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    Quantity = 1m
+                }
+            ]
+        }, userId);
+
+        await act.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*phải chỉ rõ SourceIssueLineId*");
+        _returnRepository.DidNotReceive().Add(Arg.Any<InventoryReturn>());
+    }
+
+    [Fact]
+    public async Task CreateAsync_ShouldKeepBalancesIndependent_ForSameIngredientAndUnitSourceLines()
+    {
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        _operationalWarehouseResolver.ResolveAsync(Arg.Any<CancellationToken>())
+            .Returns(GuidHelper.ParseGuidString(warehouseId)!);
+        var issueId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+        var issue = CreateIssueWithSameIngredientLines(issueId, warehouseId, ingredientId, unitId, 5m, 5m);
+        var issueLines = issue.Inventoryissuelines.ToList();
+        var exhaustedLine = issueLines[0];
+        var availableLine = issueLines[1];
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(issue);
+        _returnRepository.GetReturnedQuantitiesBySourceIssueLineAsync(Arg.Any<byte[]>())
+            .Returns(new Dictionary<string, decimal>
+            {
+                [GuidHelper.ToGuidString(exhaustedLine.IssueLineId)] = 5m
+            });
+        InventoryReturn? capturedReturn = null;
+        _returnRepository.When(repository => repository.Add(Arg.Any<InventoryReturn>()))
+            .Do(call => capturedReturn = call.Arg<InventoryReturn>());
+
+        var result = await _service.CreateAsync(new CreateInventoryReturnRequest
+        {
+            ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            IssueId = issueId,
+            Reason = "Trả đúng dòng nguồn còn lại",
+            Lines =
+            [
+                new CreateInventoryReturnLineRequest
+                {
+                    SourceIssueLineId = GuidHelper.ToGuidString(availableLine.IssueLineId),
+                    IngredientId = ingredientId,
+                    UnitId = unitId,
+                    Quantity = 5m
+                }
+            ]
+        }, userId);
+
+        result.Should().NotBeNull();
+        capturedReturn.Should().NotBeNull();
+        capturedReturn!.Inventoryreturnlines.Single().SourceIssueLineId.Should().Equal(availableLine.IssueLineId);
+    }
+
+    [Fact]
+    public void MapReturnLine_ShouldExposeSourceLine_AndKeepLegacyNullSourceReadable()
+    {
+        var sourceIssueLineId = GuidHelper.NewId();
+        var sourceLine = new InventoryReturnLine
+        {
+            ReturnLineId = GuidHelper.NewId(),
+            IngredientId = GuidHelper.NewId(),
+            UnitId = GuidHelper.NewId(),
+            SourceIssueLineId = sourceIssueLineId,
+            Quantity = 1.2345678m
+        };
+        var legacyLine = new InventoryReturnLine
+        {
+            ReturnLineId = GuidHelper.NewId(),
+            IngredientId = GuidHelper.NewId(),
+            UnitId = GuidHelper.NewId(),
+            SourceIssueLineId = null,
+            Quantity = 1m
+        };
+
+        InventoryMapper.MapReturnLine(sourceLine).SourceIssueLineId
+            .Should().Be(GuidHelper.ToGuidString(sourceIssueLineId));
+        InventoryMapper.MapReturnLine(legacyLine).SourceIssueLineId.Should().BeNull();
+    }
+
     private static InventoryIssue CreateIssue(
         string issueId,
         string warehouseId,
@@ -238,6 +476,8 @@ public class InventoryReturnServiceTests
             WarehouseId = GuidHelper.ParseGuidString(warehouseId)!,
             MaterialRequestId = GuidHelper.NewId(),
             IssuedBy = GuidHelper.NewId(),
+            ReceivedBy = GuidHelper.NewId(),
+            ReceivedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow,
             Inventoryissuelines = new List<InventoryIssueLine>
             {
@@ -247,6 +487,7 @@ public class InventoryReturnServiceTests
                     IssueId = issueBytes,
                     IngredientId = ingredientBytes,
                     UnitId = unitBytes,
+                    MaterialRequestLineId = GuidHelper.NewId(),
                     RequestedQty = issuedQty,
                     IssuedQty = issuedQty
                 }
@@ -254,6 +495,30 @@ public class InventoryReturnServiceTests
         };
     }
 
-    private static string BuildKey(string ingredientId, string unitId)
-        => $"{ingredientId}|{unitId}";
+    private static InventoryIssue CreateIssueWithSameIngredientLines(
+        string issueId,
+        string warehouseId,
+        string ingredientId,
+        string unitId,
+        params decimal[] issuedQuantities)
+    {
+        var issue = CreateIssue(issueId, warehouseId, ingredientId, unitId, issuedQuantities[0]);
+        var ingredientBytes = GuidHelper.ParseGuidString(ingredientId)!;
+        var unitBytes = GuidHelper.ParseGuidString(unitId)!;
+        foreach (var issuedQuantity in issuedQuantities.Skip(1))
+        {
+            issue.Inventoryissuelines.Add(new InventoryIssueLine
+            {
+                IssueLineId = GuidHelper.NewId(),
+                IssueId = issue.IssueId,
+                IngredientId = ingredientBytes,
+                UnitId = unitBytes,
+                MaterialRequestLineId = GuidHelper.NewId(),
+                RequestedQty = issuedQuantity,
+                IssuedQty = issuedQuantity
+            });
+        }
+
+        return issue;
+    }
 }
