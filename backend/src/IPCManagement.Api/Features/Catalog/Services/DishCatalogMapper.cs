@@ -37,7 +37,7 @@ internal static class DishCatalogMapper
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList(),
         BomLines = dish.Dishboms
-            .Where(bom => bom.PriceTierAmount is 25000m or 30000m or 34000m)
+            .Where(bom => DishBomPolicy.SupportedPriceTiers.Contains(bom.PriceTierAmount))
             .OrderBy(bom => bom.Ingredient.IngredientName)
             .ThenBy(bom => bom.EffectiveFrom)
             .Select(ToBomLineDto)

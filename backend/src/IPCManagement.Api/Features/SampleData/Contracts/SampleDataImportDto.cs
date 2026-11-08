@@ -50,7 +50,11 @@ public class WeeklyMenuImportResultDto
     public List<WeeklyMenuImportRowDto> Rows { get; set; } = [];
     public WeeklyMenuImportDiffDto PreviewDiff { get; set; } = new();
     public Dictionary<string, ImportedDayMenuDto> ImportedWeeklyMenu { get; set; } = new();
+    public List<MrxReimportDayDto>? MrxDayOutcomes { get; set; }
+    public MenuAmendmentResultDto? MrxSourceChange { get; set; }
 }
+
+public sealed record MrxReimportDayDto(DateOnly ServiceDate, string Outcome);
 
 public class WeeklyMenuImportValidationDto
 {
@@ -216,6 +220,15 @@ public class SaveCustomerImportMappingRequest
     public string? LabelColumn { get; set; }
 }
 
+public sealed class WeeklyMenuImportHistoryQueryDto
+{
+    public string? CustomerId { get; set; }
+    public DateOnly? FromDate { get; set; }
+    public DateOnly? ToDate { get; set; }
+    public string? SourceChecksum { get; set; }
+    public decimal? PriceTierAmount { get; set; }
+}
+
 public class WeeklyMenuImportHistoryItemDto
 {
     public string MenuVersionId { get; set; } = string.Empty;
@@ -233,6 +246,25 @@ public class WeeklyMenuImportHistoryItemDto
     public int WarningRowCount { get; set; }
     public bool CanRollback { get; set; }
     public string? CannotRollbackReason { get; set; }
+}
+
+public sealed class WeeklyMenuImportSnapshotDto
+{
+    public string MenuVersionId { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
+    public DateOnly WeekStartDate { get; set; }
+    public decimal? PriceTierAmount { get; set; }
+    public IReadOnlyList<WeeklyMenuImportSnapshotRowDto> Rows { get; set; } = [];
+}
+
+public sealed class WeeklyMenuImportSnapshotRowDto
+{
+    public DateOnly ServiceDate { get; set; }
+    public string ShiftName { get; set; } = string.Empty;
+    public string DishSlot { get; set; } = string.Empty;
+    public string DishId { get; set; } = string.Empty;
+    public string DishName { get; set; } = string.Empty;
+    public int SourceOrder { get; set; }
 }
 
 public class RollbackWeeklyMenuImportResultDto

@@ -8,6 +8,7 @@ if (args.Length is < 1 or > 2)
     return 2;
 }
 
+var zipTimestamp = new DateTimeOffset(2026, 7, 17, 0, 0, 0, TimeSpan.Zero);
 var outputDirectory = Path.GetFullPath(args[0]);
 Directory.CreateDirectory(outputDirectory);
 var apiAssembly = Assembly.Load("IPCManagement.Api");
@@ -84,6 +85,7 @@ void CreateFixture(string customerCode, string[][] dishes, string fileName)
             }
             entry.Delete();
             var replacement = archive.CreateEntry(worksheetPath, CompressionLevel.Optimal);
+            replacement.LastWriteTime = zipTimestamp;
             using var writer = new StreamWriter(replacement.Open());
             worksheet.Save(writer, SaveOptions.DisableFormatting);
         }

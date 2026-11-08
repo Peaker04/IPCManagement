@@ -313,6 +313,32 @@ public class AuthServiceTests
             token.DeviceInfo == "shared-terminal-a"));
     }
 
+    [Theory]
+    [InlineData("ADMIN", "Admin", true)]
+    [InlineData("MANAGER", "Quản lý", false)]
+    public async Task GetMeAsync_preserves_persisted_role_identity_and_permission_flags(string code, string name, bool admin)
+    {
+        var id = Guid.NewGuid();
+        var bytes = GuidHelper.ParseGuidString(id.ToString())!;
+        _userRepository.GetWithRoleAsync(Arg.Is<byte[]>(value => value.SequenceEqual(bytes)))
+            .Returns(new User { UserId = bytes, Username = "qualification-actor", FullName = "Actor",
+                IsActive = true, Role = new Role { RoleCode = code, RoleName = name } });
+
+        var result = await _service.GetMeAsync(id.ToString());
+
+        result.Should().NotBeNull();
+        result!.User.RoleCode.Should().Be(code);
+        result.User.IsAdminFullAccess.Should().Be(admin);
+        result.IsAdmin.Should().Be(admin);
+        result.User.Permissions.Should().BeEquivalentTo(result.Permissions);
+        if (admin) result.Permissions.Should().Contain("*");
+        else
+        {
+            result.Permissions.Should().Contain("reconciliation.read");
+            result.Permissions.Should().NotContain("reconciliation.warehouse.read");
+        }
+    }
+
     [Fact]
     public async Task GetProfileAsync_Should_ReturnUserInfo_When_UserExistsAndActive()
     {

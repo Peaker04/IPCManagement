@@ -97,6 +97,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
             return null;
         }
 
+        ServiceCalendar.EnsureServiceDay(schedule.ServiceDate);
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
         var auditCorrelationId = ResolveCorrelationId(correlationId);

@@ -1,30 +1,49 @@
-import { lazy, Suspense } from "react"
-import { Input as InputPrimitive } from "@base-ui/react/input"
+import React from 'react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
-import { cn } from "@/lib/utils"
-import type { InputProps } from "./VietnameseDateInput"
-
-const VietnameseDateInput = lazy(() => import("./VietnameseDateInput").then(({ VietnameseDateInput: component }) => ({ default: component })))
-
-const inputClassName = "h-8 w-full min-w-0 rounded-sm border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-input-compact file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-input-compact dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40"
-
-function Input({ className, type, weekStartOnly, ...props }: InputProps) {
-  if (type === "date") {
-    return (
-      <Suspense fallback={<span aria-hidden="true" className={cn(inputClassName, "block", className)} />}>
-        <VietnameseDateInput className={className} weekStartOnly={weekStartOnly} {...props} />
-      </Suspense>
-    )
-  }
-
-  return (
-    <InputPrimitive
-      type={type}
-      data-slot="input"
-      className={cn(inputClassName, className)}
-      {...props}
-    />
-  )
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  error?: boolean;
+  warning?: boolean;
 }
 
-export { Input }
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type = 'text', error, warning, disabled, readOnly, tabIndex, ...props }, ref) => {
+    return (
+      <input
+        type={type}
+        ref={ref}
+        disabled={disabled}
+        readOnly={readOnly}
+        aria-disabled={disabled ? true : undefined}
+        aria-readonly={readOnly ? true : undefined}
+        aria-invalid={error ? true : undefined}
+        tabIndex={disabled ? -1 : (tabIndex ?? 0)}
+        className={twMerge(
+          clsx(
+            'flex h-9 w-full rounded border px-3 py-1.5 text-sm transition-colors placeholder:text-slate-400',
+            'focus-visible:outline-none focus-visible:ring-1',
+            // Default active state
+            !disabled && !readOnly && 'bg-white text-slate-900',
+            // Validation error or warning states (Fiori Value States)
+            error
+              ? 'border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-400 focus-visible:ring-red-400 focus-visible:border-red-500'
+              : warning
+              ? 'border-amber-400 focus:border-amber-400 focus:ring-1 focus:ring-amber-400 focus-visible:ring-amber-400 focus-visible:border-amber-400'
+              : 'border-slate-300 focus:border-slate-400 focus:ring-1 focus:ring-slate-400 focus-visible:border-slate-400 focus-visible:ring-slate-400',
+            // Read-only state: 100% text contrast, dashed border, copyable, focusable by Tab (disabled takes precedence)
+            readOnly && !disabled && [
+              'cursor-default bg-slate-50/90 text-slate-900 font-medium border-slate-300 border-dashed select-text',
+              'focus-visible:border-solid focus-visible:border-slate-400 focus-visible:ring-slate-400',
+            ],
+            // Disabled state: low contrast, not-allowed, skipped by Tab
+            disabled && 'cursor-not-allowed bg-slate-100 text-slate-400 opacity-60 border-slate-200 select-none pointer-events-none',
+            className
+          )
+        )}
+        {...props}
+      />
+    );
+  }
+);
+Input.displayName = 'Input';

@@ -1,0 +1,7 @@
+# Derived MRX diagram — supporting only
+
+Disposition: **KEEP_SUPPORTING_REFERENCE**. [Local HTML guide](material-reconciliation-e2e-customer-workflow.html), [PDF](exports/material-reconciliation-e2e-customer-workflow.full.pdf), [PNG](exports/material-reconciliation-e2e-customer-workflow.full.png) and [SVG](exports/material-reconciliation-e2e-customer-workflow.svg) are explanatory artifacts, not acceptance evidence or authoritative workflow owners. [MRX](../domain/material-reconciliation.md) and source permissions/frozen daily-line facts govern behavior.
+
+Open locally in Chrome/Edge; retain adjacent assets/fonts and OFL licenses for Vietnamese typography/provenance. Bundled font licensing does not establish export-content publication consent. The SVG differs from HTML and imports remote Google Fonts rather than bundled fonts; offline/render equivalence and exact PDF/PNG regeneration are not guaranteed without future pinned tooling. Local retention needs neither a new generator nor byte-reproducibility certification.
+
+Publication approval and complete PDF embedded-content/metadata privacy are unproven. Do not advertise these as public distributable deliverables; verify intended content/provenance/permission before external distribution or replacement. Existing LIVE UI labels are illustration claims, not current browser acceptance. Preserve references/assets; no drawing authorizes mode changes, mutation or cutover.

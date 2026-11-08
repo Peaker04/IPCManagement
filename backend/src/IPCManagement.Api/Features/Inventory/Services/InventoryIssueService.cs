@@ -62,7 +62,6 @@ public class InventoryIssueService : IInventoryIssueService
         _reconciliationCreator = new ReconciliationInventoryIssueCreator(
             issueRepository,
             unitOfWork,
-            stockLedgerService,
             transactionRunner,
             operationalWarehouseResolver,
             context,
@@ -88,10 +87,14 @@ public class InventoryIssueService : IInventoryIssueService
         string sourceFamily = InventoryIssueSourceFamilies.Default)
     {
         var bytes = GuidHelper.ParseGuidString(id);
-        if (bytes is null) return null;
-
-        var issue = await _issueRepository.GetByIdWithLinesAsync(bytes, sourceFamily);
-        return issue is null ? null : InventoryMapper.MapIssue(issue, includeLines: true);
+        var issue = bytes is not null
+            ? await _issueRepository.GetByIdWithLinesAsync(bytes, sourceFamily)
+            : await _issueRepository.GetByCodeWithLinesAsync(id, sourceFamily);
+        if (issue is null) return null;
+        var result = InventoryMapper.MapIssue(issue, includeLines: true);
+        if (issue.ReconciliationBatchId is not null && _context is not null)
+            result.Provisions = (await new MrxIssueProvisionQuery(_context).GetDtosByIssueIdAsync(issue.IssueId)).ToList();
+        return result;
     }
 
     public async Task<InventoryIssueCreatedDto?> CreateAsync(CreateInventoryIssueRequest dto, string? userId)
@@ -278,12 +281,11 @@ public class InventoryIssueService : IInventoryIssueService
         var isReconciliationSource = sourceFamily.MaterialRequestId is null && sourceFamily.ReconciliationBatchId is not null;
         if (!isDefaultSource && !isReconciliationSource)
             throw new BusinessRuleException("Phiếu xuất không có đúng một source lineage để xác nhận nhận hàng.");
-        var owningMode = isDefaultSource ? SystemOperationEligibility.Default : SystemOperationEligibility.MaterialReconciliation;
-        EnsureOwningMode(owningMode, "Phiếu xuất chỉ được tiếp tục khi workflow nguồn đang hoạt động.");
-        var disposition = isDefaultSource
-            ? OperationDisposition.ExcludedInMaterialReconciliation
-            : OperationDisposition.ReconciliationOnly;
-        var modeProtection = OptionalModeProtection(disposition);
+        if (isReconciliationSource)
+            throw new BusinessRuleException("Bếp không xác nhận phiếu xuất của chế độ đối chiếu nguyên liệu.");
+
+        EnsureOwningMode(SystemOperationEligibility.Default, "Phiếu xuất chỉ được tiếp tục khi workflow nguồn đang hoạt động.");
+        var modeProtection = OptionalModeProtection(OperationDisposition.ExcludedInMaterialReconciliation);
 
         // Luồng này ghi vào inventoryissues, auditlogs và supplementalmaterialrequests. Không có
         // transaction thì phiếu có thể được đánh dấu "bếp đã nhận" trong khi nhu cầu bổ sung liên quan

@@ -1,0 +1,13 @@
+# IPCManagement — Cursor IDE Agent Rules
+# Refer to AGENTS.md, CLAUDE.md, and .planning/WORK.md for authoritative governance.
+
+# Hard Safety Invariants
+- No destructive git operations (no reset, checkout, restore, clean, force push).
+- Mode isolation (DOM-MODE-1): DEFAULT != MATERIAL_RECONCILIATION.
+- No synthetic evidence (Rule TA-1 to TA-5: no fake DTO fields, no fake API fallbacks).
+- Single styling authority: Only frontend/src/styles/index.css. Zero inline styles or ad-hoc tokens.
+- UI Kit: Only 3-Zone Flat Workbench and 10 UI primitives in components/ui/. Zero AI-slop.
+
+# Mandatory Gate
+- Before modifying any .tsx or .css file, output Scoped Pre-Code UI Gate Block (Route, Work Object, Server Mode, RBAC Guards, 6 UI States, Primitives, Compliance pledges D6, D7, T7, T8, M1.2, N6).
+- Verification before completion: Run npm run verify or focused tests before claiming complete.

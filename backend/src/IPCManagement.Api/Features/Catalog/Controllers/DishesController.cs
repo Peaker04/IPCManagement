@@ -16,6 +16,12 @@ namespace IPCManagement.Api.Features.Catalog.Controllers;
 [Tags("Dishes")]
 public sealed class DishesController(IDishCatalogService service) : ControllerBase
 {
+    [HttpGet("bom-price-tiers")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<decimal>>), StatusCodes.Status200OK)]
+    public IActionResult GetBomPriceTiers()
+        => Ok(ApiResponse<IReadOnlyList<decimal>>.SuccessResult(DishBomPolicy.SupportedPriceTiers));
+
     [HttpGet("catalog")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DishCatalogDto>>), StatusCodes.Status200OK)]

@@ -9,7 +9,7 @@ namespace IPCManagement.Api.Features.Catalog.Services;
 public sealed class DishCatalogDiagnosticsService : IDishCatalogDiagnosticsService
 {
     private const string BomStatusPublished = "PUBLISHED";
-    private static readonly decimal[] SupportedBomPriceTiers = [25000m, 30000m, 34000m];
+    private static readonly decimal[] SupportedBomPriceTiers = DishBomPolicy.SupportedPriceTiers;
     private readonly IpcManagementContext _context;
 
     public DishCatalogDiagnosticsService(IpcManagementContext context)
@@ -17,8 +17,9 @@ public sealed class DishCatalogDiagnosticsService : IDishCatalogDiagnosticsServi
         _context = context;
     }
 
-    public async Task<BomCoverageReportDto> GetBomCoverageAsync()
+    public async Task<BomCoverageReportDto> GetBomCoverageAsync(decimal? priceTier = null)
     {
+        if (priceTier.HasValue) priceTier = DishBomPolicy.NormalizePriceTier(priceTier.Value);
         var today = ServiceCalendar.Today();
         var dishes = await _context.Dishes
             .AsNoTracking()
@@ -27,6 +28,7 @@ public sealed class DishCatalogDiagnosticsService : IDishCatalogDiagnosticsServi
             .ToListAsync();
         var activeBomLines = await _context.Dishboms
             .AsNoTracking()
+            .Where(line => !priceTier.HasValue || line.PriceTierAmount == priceTier.Value)
             .Where(line =>
                 SupportedBomPriceTiers.Contains(line.PriceTierAmount) &&
                 line.BomStatus == BomStatusPublished &&
@@ -59,6 +61,7 @@ public sealed class DishCatalogDiagnosticsService : IDishCatalogDiagnosticsServi
 
         return new BomCoverageReportDto
         {
+            PriceTier = priceTier,
             GeneratedAt = DateTime.UtcNow,
             TotalDishes = coverage.Count,
             CompleteDishes = coverage.Count(item => item.HasBom),

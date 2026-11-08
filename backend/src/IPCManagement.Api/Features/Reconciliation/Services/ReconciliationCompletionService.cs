@@ -33,7 +33,8 @@ public sealed class ReconciliationCompletionService(
                 {
                     var lineIds = batch.Lines.Select(x => x.BatchLineId).ToList();
                     var actuals = await context.Reconciliationactuals.Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(operationToken);
-                    var dispositions = await context.Reconciliationdispositions.Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(operationToken);
+                    var dispositions = await context.Reconciliationdispositions
+                        .Where(x => x.InvalidatedAt == null && lineIds.Contains(x.BatchLineId)).ToListAsync(operationToken);
                     var linkedIssued = await batches.LoadLinkedIssuedQuantitiesForCompletionAsync(lineIds, operationToken);
                     foreach (var line in batch.Lines)
                     {

@@ -20,6 +20,7 @@ public class FeatureDependencyConventionTests
         new("Inventory", "SystemOperation"),
         new("Planning", "Purchasing"),
         new("Purchasing", "Inventory"),
+        new("Reconciliation", "Inventory"),
         new("Reconciliation", "SampleData"),
         new("Reconciliation", "SystemOperation"),
         new("Reports", "Purchasing"),
@@ -134,12 +135,19 @@ public class FeatureDependencyConventionTests
 
     private static string FindFeatureRoot()
     {
-        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
+        for (var directory = new DirectoryInfo(start); directory is not null; directory = directory.Parent)
         {
-            var candidate = Path.Combine(directory.FullName, "src", "IPCManagement.Api", "Features");
-            if (Directory.Exists(candidate))
+            foreach (var candidate in new[]
             {
-                return candidate;
+                Path.Combine(directory.FullName, "src", "IPCManagement.Api", "Features"),
+                Path.Combine(directory.FullName, "backend", "src", "IPCManagement.Api", "Features")
+            })
+            {
+                if (Directory.Exists(candidate))
+                {
+                    return candidate;
+                }
             }
         }
 

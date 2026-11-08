@@ -86,7 +86,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
     }
 
     [Fact]
-    public async Task Inventory_IssueAndReturn_FreezeThenResumeExactReconciliationLineageOnce()
+    public async Task Inventory_Issue_UsesExactReconciliationLineage_WhileChefReceiptAndLegacyReturnStayClosed()
     {
         await using var fixture = await Fixture.CreateAsync();
         var issueCommand = fixture.IssueCommand();
@@ -117,25 +117,21 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         fixture.Authorize(inactive, "inventoryissues.confirmreceiptasync", OperationDisposition.ReconciliationOnly);
         var beforeIssueConfirm = await fixture.SnapshotAsync();
         await fixture.Invoking(x => x.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, x.ActorId))
-            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*workflow nguồn đang hoạt động*");
+            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*Bếp không xác nhận*");
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(beforeIssueConfirm);
 
-        active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation issue confirmation.");
+        active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation workflow without Chef receipt.");
         fixture.Authorize(active, "inventoryissues.confirmreceiptasync", OperationDisposition.ReconciliationOnly);
-        var beforeIssueConfirmSuccess = await fixture.SnapshotAsync();
-        AssertExactSwitchBackDelta(beforeIssueConfirm, beforeIssueConfirmSuccess, active, "Resume reconciliation issue confirmation.");
-        var issueConfirmStartedAt = DateTime.UtcNow.AddSeconds(-1);
-        await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, fixture.ActorId);
-        var issueConfirmWindow = InvocationWindow.Since(issueConfirmStartedAt);
-        var afterKitchenReceipt = await fixture.SnapshotAsync();
-        AssertExactIssueConfirmDelta(beforeIssueConfirmSuccess, afterKitchenReceipt, created, fixture, issueConfirmWindow);
+        var beforeIssueConfirmInMrx = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeIssueConfirm, beforeIssueConfirmInMrx, active, "Resume reconciliation workflow without Chef receipt.");
+        await fixture.Invoking(x => x.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, x.ActorId))
+            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*Bếp không xác nhận*");
+        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(beforeIssueConfirmInMrx);
         var projectedBatch = (await fixture.BatchService.ListAsync()).Single(batch => batch.BatchId == fixture.IssueBatchId);
         projectedBatch.Lines.Single(line => line.BatchLineId == fixture.IssueLineId).IssuedQuantity
-            .Should().Be(afterKitchenReceipt.IssueLines.Single(line => line.ReconciliationBatchLineId == fixture.IssueLineId).IssuedQty,
-                "the public reconciliation projection must load only exact linked issue lineage");
-        await fixture.IssueService.ConfirmReceiptAsync(created.IssueId, confirmIssue, fixture.ActorId);
-        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterKitchenReceipt);
-        var returnCommand = fixture.ReturnCommand(created.IssueId, afterKitchenReceipt.IssueLines.Single(x => x.ReconciliationBatchLineId == fixture.IssueLineId).Id);
+            .Should().Be(beforeIssueConfirmInMrx.IssueLines.Single(line => line.ReconciliationBatchLineId == fixture.IssueLineId).IssuedQty,
+                "the public reconciliation projection must load exact linked issue lineage without Chef receipt authority");
+        var returnCommand = fixture.ReturnCommand(created.IssueId, beforeIssueConfirmInMrx.IssueLines.Single(x => x.ReconciliationBatchLineId == fixture.IssueLineId).Id);
 
         inactive = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Freeze reconciliation return creation.");
         fixture.Authorize(inactive, "inventoryreturns.createasync", OperationDisposition.Retained);
@@ -144,39 +140,13 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             .Should().ThrowAsync<BusinessRuleException>().WithMessage("*workflow nguồn đang hoạt động*");
         (await fixture.SnapshotAsync()).Should().BeEquivalentTo(beforeReturn);
 
-        active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation return creation.");
+        active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Keep legacy Chef-owned return path closed in reconciliation mode.");
         fixture.Authorize(active, "inventoryreturns.createasync", OperationDisposition.Retained);
-        var beforeReturnSuccess = await fixture.SnapshotAsync();
-        AssertExactSwitchBackDelta(beforeReturn, beforeReturnSuccess, active, "Resume reconciliation return creation.");
-        var returnStartedAt = DateTime.UtcNow.AddSeconds(-1);
-        var createdReturn = await fixture.ReturnService.CreateAsync(returnCommand, fixture.ActorId);
-        var returnWindow = InvocationWindow.Since(returnStartedAt);
-        createdReturn.Should().NotBeNull();
-        var afterReturnCreate = await fixture.SnapshotAsync();
-        AssertExactReturnCreateDelta(beforeReturnSuccess, afterReturnCreate, createdReturn!, fixture, returnWindow);
-        var returnReplay = await fixture.ReturnService.CreateAsync(returnCommand, fixture.ActorId);
-        returnReplay!.ReturnId.Should().Be(createdReturn!.ReturnId);
-        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterReturnCreate);
-
-        var confirm = new ConfirmInventoryReturnReceiptRequest { CommandId = "p30-recon-return-confirm", ExpectedVersion = 0 };
-        inactive = await fixture.SwitchAsync(SystemOperationEligibility.Default, "Freeze reconciliation return confirmation.");
-        fixture.Authorize(inactive, "inventoryreturns.confirmreceiptasync", OperationDisposition.Retained);
-        var beforeConfirm = await fixture.SnapshotAsync();
-        await fixture.Invoking(x => x.ReturnService.ConfirmReceiptAsync(createdReturn.ReturnId, confirm, x.ActorId))
-            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*workflow nguồn đang hoạt động*");
-        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(beforeConfirm);
-
-        active = await fixture.SwitchAsync(SystemOperationEligibility.MaterialReconciliation, "Resume reconciliation return confirmation.");
-        fixture.Authorize(active, "inventoryreturns.confirmreceiptasync", OperationDisposition.Retained);
-        var beforeConfirmSuccess = await fixture.SnapshotAsync();
-        AssertExactSwitchBackDelta(beforeConfirm, beforeConfirmSuccess, active, "Resume reconciliation return confirmation.");
-        var returnConfirmStartedAt = DateTime.UtcNow.AddSeconds(-1);
-        (await fixture.ReturnService.ConfirmReceiptAsync(createdReturn.ReturnId, confirm, fixture.ActorId)).Should().BeTrue();
-        var returnConfirmWindow = InvocationWindow.Since(returnConfirmStartedAt);
-        var afterConfirm = await fixture.SnapshotAsync();
-        AssertExactReturnConfirmDelta(beforeConfirmSuccess, afterConfirm, createdReturn.ReturnId, fixture, returnConfirmWindow);
-        (await fixture.ReturnService.ConfirmReceiptAsync(createdReturn.ReturnId, confirm, fixture.ActorId)).Should().BeTrue();
-        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(afterConfirm);
+        var beforeLegacyReturn = await fixture.SnapshotAsync();
+        AssertExactSwitchBackDelta(beforeReturn, beforeLegacyReturn, active, "Keep legacy Chef-owned return path closed in reconciliation mode.");
+        await fixture.Invoking(x => x.ReturnService.CreateAsync(returnCommand, x.ActorId))
+            .Should().ThrowAsync<BusinessRuleException>().WithMessage("*Bếp cần xác nhận*");
+        (await fixture.SnapshotAsync()).Should().BeEquivalentTo(beforeLegacyReturn);
     }
 
     [Fact]
@@ -490,12 +460,12 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         line.ReconciliationBatchLineId.Should().Be(fixture.IssueLineId);
         line.MaterialRequestLineId.Should().BeNull();
         line.IssuedQty.Should().Be(5m);
-        var stock = before.Stocks.Single() with { Qty = before.Stocks.Single().Qty - 5m };
+        var stock = before.Stocks.Single();
         var oldBatch = before.Batches.Single(value => value.Id == fixture.IssueBatchId);
         var newBatch = after.Batches.Single(value => value.Id == fixture.IssueBatchId);
         newBatch.Should().Be(oldBatch with { Status = "IN_PROGRESS", Version = oldBatch.Version + 1 });
-        var movement = after.Movements.Except(before.Movements).Should().ContainSingle().Subject;
-        movement.Should().Be(new MovementValue(movement.Id, "ISSUE", "inventoryissues", issue.Id, 5m, 0m));
+        after.Movements.Should().BeEquivalentTo(before.Movements);
+        after.Stocks.Should().BeEquivalentTo(before.Stocks);
         var expectedJson = JsonSerializer.Serialize(new InventoryIssueCreatedDto { IssueId = created.IssueId, IssueCode = issueCode, ConcurrencyVersion = 1 });
         var lifecycle = AssertExactLifecycleDelta(before, after, "p30-recon-issue", nameof(InventoryIssue), fixture.IssueBatchId,
             checked((int)newBatch.Version), "TRANSFERRED", "ISSUED", 2, $"Tạo phiếu xuất {issueCode} từ lô đối chiếu.", fixture.ActorId, expectedJson);
@@ -503,37 +473,26 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         var outbox = lifecycle.Outbox.Except(before.Outbox).Single();
         var receipt = lifecycle.Receipts.Except(before.Receipts).Single();
         var lifecycleAudit = lifecycle.Audits.Except(before.Audits).Single();
-        var stockKey = KeyFor(before.Canonical, "currentstock",
-            ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)));
         var canonical = ReconstructCanonical(before.Canonical, after.Canonical,
             New("inventoryissues", "IssueId", issue.Id, [GeneratedGuid("IssueId", issue.Id), GeneratedUtc("CreatedAt", window)],
-                ("IssueCode", Scalar(issueCode)), ("IssueDate", DateValue(new DateOnly(2026, 8, 30))),
+                ("IssueCode", Scalar(issueCode)), ("IssueDate", DateValue(new DateOnly(2026, 8, 29))),
                 ("ShiftName", NullValue), ("WarehouseId", GuidValue(stock.WarehouseId)), ("MaterialRequestId", NullValue),
-                ("ReconciliationBatchId", GuidValue(fixture.IssueBatchId)), ("IssuedBy", GuidValue(fixture.ActorId)),
+                ("ReconciliationBatchId", GuidValue(fixture.IssueBatchId)), ("PreparationGroupId", NullValue), ("IssuedBy", GuidValue(fixture.ActorId)),
                 ("ReceivedBy", NullValue), ("ReceivedAt", NullValue)),
             New("inventoryissuelines", "IssueLineId", line.Id, [GeneratedGuid("IssueLineId", line.Id)],
                 ("IssueId", GuidValue(issue.Id)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
                 ("MaterialRequestLineId", NullValue), ("ReconciliationBatchLineId", GuidValue(fixture.IssueLineId)),
                 ("ReconciliationBatchDailyLineId", GuidValue(fixture.IssueDailyLineId)),
-                ("ReconciliationServiceDate", DateValue(new DateOnly(2026, 8, 30))),
+                ("ReconciliationServiceDate", DateValue(new DateOnly(2026, 8, 29))),
                 ("RequestedQty", DecimalValue(5m)), ("IssuedQty", DecimalValue(5m))),
-            ExistingGeneratedKey("currentstock", stockKey, [GeneratedUtc("LastUpdated", window, "issue-stock-time"), GeneratedExact("RowVersion", CellValue(before.Canonical, "currentstock", stockKey, "RowVersion"), "SQLite fixture preserves the MySQL-generated rowversion")], ("CurrentQty", DecimalValue(stock.Qty))),
             Existing("reconciliationbatches", "BatchId", fixture.IssueBatchId,
                 ("Status", Scalar("IN_PROGRESS")), ("Version", Scalar(oldBatch.Version + 1))),
-            New("stockmovements", "MovementId", movement.Id, [GeneratedGuid("MovementId", movement.Id), GeneratedUtc("MovementDate", window, "issue-stock-time")],
-                ("WarehouseId", GuidValue(stock.WarehouseId)), ("IngredientId", GuidValue(stock.IngredientId)), ("UnitId", GuidValue(stock.UnitId)),
-                ("MovementType", Scalar("ISSUE")), ("RefTable", Scalar("inventoryissues")), ("RefId", GuidValue(issue.Id)),
-                ("QuantityIn", DecimalValue(0m)), ("QuantityOut", DecimalValue(5m)), ("BeforeQty", DecimalValue(20m)), ("AfterQty", DecimalValue(15m)),
-                ("LotNumber", NullValue), ("ManufactureDate", NullValue), ("ExpiredDate", NullValue),
-                ("Reason", Scalar("Xuất kho đối chiếu")), ("Note", Scalar($"Phiếu xuất {issueCode}")), ("PerformedBy", GuidValue(fixture.ActorId))),
             LifecycleTransitionChange(transition, window, "issue-lifecycle-time"), LifecycleOutboxChange(outbox, window, "issue-lifecycle-time"), LifecycleReceiptChange(receipt, window, "issue-lifecycle-time"), AuditChange(lifecycleAudit));
         after.Should().BeEquivalentTo(before with
         {
             Issues = before.Issues.Append(issue).OrderBy(value => value.Id).ToArray(),
             IssueLines = before.IssueLines.Append(line).OrderBy(value => value.Id).ToArray(),
-            Stocks = [stock],
             Batches = Replace(before.Batches, oldBatch, newBatch, value => value.Id),
-            Movements = before.Movements.Append(movement).OrderBy(value => value.Id).ToArray(),
             Audits = lifecycle.Audits,
             Transitions = lifecycle.Transitions,
             Outbox = lifecycle.Outbox,
@@ -689,10 +648,13 @@ public sealed class Phase30InactiveReconciliationOwnerTests
         {
             Dispositions = before.Dispositions.Append(disposition).OrderBy(value => value.Id).ToArray(),
             Canonical = ReconstructCanonical(before.Canonical, after.Canonical,
-                New("reconciliationdispositions", "DispositionId", disposition.Id, [GeneratedGuid("DispositionId", disposition.Id), GeneratedUtc("DisposedAt", window)],
+                New("reconciliationdispositions", "DispositionId", disposition.Id,
+                    [GeneratedGuid("DispositionId", disposition.Id), GeneratedUtc("DisposedAt", window),
+                        GeneratedExact("ActiveOwnerKey", GuidValue(fixture.ActualLineId), "active weekly decision key must equal its batch line")],
                     ("BatchLineId", GuidValue(fixture.ActualLineId)), ("Category", Scalar("FOLLOW_UP_REQUIRED")),
                     ("Reason", Scalar("Investigate exact persisted variance.")), ("Version", Scalar(1L)),
-                    ("DisposedBy", GuidValue(fixture.ActorId))))
+                    ("DisposedBy", GuidValue(fixture.ActorId)), ("InvalidatedAt", NullValue),
+                    ("InvalidatedBy", NullValue), ("InvalidationReason", NullValue)))
         });
     }
 
@@ -852,7 +814,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
                                 new ReconciliationBatchDailyLine
                                 {
                                     DailyLineId = dailyLineId, BatchLineId = lineId, BatchId = id, IngredientId = ingredient,
-                                    CanonicalUnitId = unit, ServiceDate = new DateOnly(2026, 8, 30), RequiredQuantity = quantity, Version = 1
+                                    CanonicalUnitId = unit, ServiceDate = new DateOnly(2026, 8, 29), RequiredQuantity = quantity, Version = 1
                                 }
                             ]
                             : [],
@@ -891,7 +853,7 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             var dailyLineId = issueDailyLine;
             return new CreateInventoryIssueRequest
             {
-                CommandId = "p30-recon-issue", ExpectedVersion = 2, ReconciliationBatchId = IssueBatchId, IssueDate = new DateOnly(2026, 8, 30), WarehouseId = Id(warehouse)!,
+                CommandId = "p30-recon-issue", ExpectedVersion = 2, ReconciliationBatchId = IssueBatchId, IssueDate = new DateOnly(2026, 8, 29), WarehouseId = Id(warehouse)!,
                 Lines = [new CreateInventoryIssueLineRequest { ReconciliationBatchLineId = IssueLineId, ReconciliationBatchDailyLineId = Id(dailyLineId), IngredientId = Id(ingredient)!, UnitId = Id(unit)!, RequestedQty = 5m, IssuedQty = 5m }]
             };
         }
@@ -1006,8 +968,10 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             var requiredTables = new[]
             {
                 "reconciliationbatches", "reconciliationbatchlines", "reconciliationbatchcontributors",
+                "reconciliationsourcerevisions", "reconciliationsourcedeltas",
                 "inventoryissues", "inventoryissuelines", "inventoryreturns", "inventoryreturnlines",
-                "currentstock", "stockmovements", "reconciliationactuals", "reconciliationactualrevisions", "reconciliationdispositions",
+                "currentstock", "stockmovements", "reconciliationactuals", "reconciliationactualrevisions",
+                "reconciliationdispositions", "reconciliationdailydispositions",
                 "materialrequests", "materialrequestlines", "supplementalmaterialrequests",
                 "purchaserequests", "purchaserequestlines", "purchaselinesupplierdecisions", "purchasepriceexceptions", "purchaseorders", "purchaseorderlines",
                 "approvalhistories", "approvalrules", "approvalassignments", "auditlogs",
@@ -1051,7 +1015,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             };
         }
 
-        private const string ExpectedScalarSchemaHash = "2B9684307C39634493C8C5233CD2991C51A25A0FDD5C119555392482BF5CF76E";
+        // Two nullable frozen conversion scalars join the full persisted snapshot; no cells are excluded.
+        private const string ExpectedScalarSchemaHash = "7252037DF0B588ABB8D47066D008AB48D68DB0031A75CC08A90B10E14E7A0020";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 
@@ -1103,13 +1068,15 @@ CREATE TABLE systemoperationmodes (id INTEGER PRIMARY KEY, mode TEXT NOT NULL, v
 CREATE TABLE reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
 CREATE TABLE reconciliationbatchlines (batchLineId BLOB PRIMARY KEY, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, requiredQuantity TEXT NOT NULL, frozenTolerance TEXT NOT NULL, toleranceSourceKind TEXT NOT NULL, toleranceSourceVersion TEXT NOT NULL, version INTEGER NOT NULL);
 CREATE TABLE reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
-CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL, FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL, FrozenBomQuantityPerServing TEXT NULL, FrozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL);
-CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
+CREATE TABLE reconciliationsourcerevisions (SourceRevisionId BLOB PRIMARY KEY, MenuAmendmentId BLOB NOT NULL, BatchId BLOB NOT NULL, PreviousMenuVersionId BLOB NOT NULL, AppliedMenuVersionId BLOB NOT NULL, RevisionNumber INTEGER NOT NULL, Status TEXT NOT NULL, Reason TEXT NOT NULL, AppliedBy BLOB NOT NULL, AppliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL);
+CREATE TABLE reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
+CREATE TABLE reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, DailyLineId BLOB NULL, DishId BLOB NULL, FrozenShiftName TEXT NULL, FrozenDishCode TEXT NULL, FrozenDishName TEXT NULL, FrozenServings INTEGER NULL, FrozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, FrozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
+CREATE TABLE reconciliationdailydispositions (dispositionId BLOB PRIMARY KEY, dailyLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL, ActiveOwnerKey BLOB GENERATED ALWAYS AS (CASE WHEN InvalidatedAt IS NULL THEN dailyLineId ELSE NULL END) VIRTUAL);
 CREATE UNIQUE INDEX IX_reconciliationdailydispositions_DailyLineId ON reconciliationdailydispositions(dailyLineId);
 CREATE TABLE reconciliationactuals (actualId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, side TEXT NOT NULL, quantity TEXT NOT NULL, version INTEGER NOT NULL, enteredBy BLOB NOT NULL, enteredAt TEXT NOT NULL);
 CREATE UNIQUE INDEX IX_reconciliationactuals_BatchLineId_Side ON reconciliationactuals(batchLineId, side);
 CREATE TABLE reconciliationactualrevisions (revisionId BLOB PRIMARY KEY, actualId BLOB NOT NULL, oldQuantity TEXT NOT NULL, newQuantity TEXT NOT NULL, reason TEXT NOT NULL, changedBy BLOB NOT NULL, changedAt TEXT NOT NULL);
-CREATE TABLE reconciliationdispositions (dispositionId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL);
+CREATE TABLE reconciliationdispositions (dispositionId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, category TEXT NOT NULL, reason TEXT NOT NULL, version INTEGER NOT NULL, disposedBy BLOB NOT NULL, disposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL, ActiveOwnerKey BLOB GENERATED ALWAYS AS (CASE WHEN InvalidatedAt IS NULL THEN batchLineId ELSE NULL END) VIRTUAL);
 CREATE UNIQUE INDEX IX_reconciliationdispositions_BatchLineId ON reconciliationdispositions(batchLineId);
 CREATE TABLE lifecycleoutboxdeliveries (deliveryId BLOB PRIMARY KEY, outboxMessageId BLOB NOT NULL, consumerName TEXT NOT NULL, processedAt TEXT NOT NULL);
 CREATE TABLE approvalrules (ruleId BLOB PRIMARY KEY, ruleName TEXT NOT NULL, documentType TEXT NOT NULL, minAmount TEXT NULL, maxAmount TEXT NULL, slaHours INTEGER NULL, isActive INTEGER NOT NULL, createdAt TEXT NOT NULL);

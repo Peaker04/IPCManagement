@@ -1,177 +1,203 @@
-import { apiSlice } from '@/api/apiSlice';
-import type {
-  ProductionPlan,
-  DailyProductionPlan,
-  ProductionPlanDto,
-  DailyProductionPlanDto,
-  WorkflowReportQuery,
-  ServiceRunLifecycleProjectionDto,
-  ServiceRunByPlanQuery,
-  DeclareServiceRunVarianceRequest,
-  ApproveServiceRunVarianceWaiverRequest,
-  RecordActualServingsRequest,
-  ReasonRequest,
-  CreateServiceRunAdjustmentRequest,
-  ServiceRunAdjustmentDto,
-  ServiceRunPageQuery,
-  ServiceRunPageResponseDto,
-} from '@/api/workflowApiTypes';
-import type { ApiResponse } from '@/types/api';
-import { workflowCacheTags } from '@/api/workflowCacheTags';
-import type { ScopedOpenServiceRunRequest, ServiceRunScope } from './serviceRunScopeTypes';
+import { apiClient } from './client';
 
-const emptyDailyProductionPlan = (): DailyProductionPlan => ({
-  serviceDate: '',
-  totalPlans: 0,
-  sentPlans: 0,
-  totalDishes: 0,
-  totalServings: 0,
-  totalRequiredQty: 0,
-  suggestedPurchaseQty: 0,
-  warnings: [],
-  plans: [],
-});
+export interface ChefPlanLineItem {
+  planLineId: string;
+  planId: string;
+  planCode: string;
+  dishId: string;
+  dishName: string;
+  shiftName: string;
+  plannedServings: number;
+  serviceDate: string;
+  planStatus: string;
+  sentToKitchenAt?: string;
+}
 
-const mapProductionPlan = (plan: ProductionPlanDto): ProductionPlan => ({
-  ...plan,
-  customerId: plan.customerId ?? undefined,
-  customerCode: plan.customerCode ?? undefined,
-  customerName: plan.customerName ?? undefined,
-  status: plan.status ?? undefined,
-  sentToKitchenAt: plan.sentToKitchenAt ?? undefined,
-  sentToKitchenByName: plan.sentToKitchenByName ?? undefined,
-  lines: plan.lines.map((line) => ({ ...line })),
-});
+export interface ChefIssueLineItem {
+  issueLineId: string;
+  materialRequestLineId?: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  requestedQty: number;
+  issuedQty: number;
+}
 
-const normalizeDailyProductionPlan = (
-  response: ApiResponse<DailyProductionPlanDto> | DailyProductionPlanDto | unknown,
-): DailyProductionPlan => {
-  const maybeData =
-    response && typeof response === 'object' && 'data' in response
-      ? (response as ApiResponse<DailyProductionPlanDto>).data
-      : response;
+export interface ChefIssueItem {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName: string;
+  warehouseName: string;
+  receivedAt?: string;
+  receivedByName?: string;
+  lines: ChefIssueLineItem[];
+}
 
-  if (!maybeData || typeof maybeData !== 'object' || Array.isArray(maybeData)) {
-    return emptyDailyProductionPlan();
-  }
+export interface PageInfo {
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
 
-  const plan = maybeData as Partial<DailyProductionPlanDto>;
-  return {
-    ...emptyDailyProductionPlan(),
-    ...plan,
-    customerId: plan.customerId ?? undefined,
-    customerCode: plan.customerCode ?? undefined,
-    customerName: plan.customerName ?? undefined,
-    shiftName: plan.shiftName ?? undefined,
-    warnings: Array.isArray(plan.warnings) ? plan.warnings : [],
-    plans: Array.isArray(plan.plans) ? plan.plans.map(mapProductionPlan) : [],
-  };
+export interface ChefDashboardData {
+  serviceDate: string;
+  customerId: string;
+  customerCode: string;
+  customerName: string;
+  shiftName: string;
+  totalPlans: number;
+  sentPlans: number;
+  totalDishes: number;
+  totalServings: number;
+  warnings: string[];
+  plans: ChefPlanLineItem[];
+  issues: ChefIssueItem[];
+  issuePage: PageInfo;
+}
+
+interface RawProductionPlan {
+  planId: string;
+  planCode: string;
+  planDate: string;
+  status?: string;
+  sentToKitchenAt?: string;
+  lines: Array<{
+    planLineId: string;
+    dishId: string;
+    dishName?: string;
+    shiftName?: string;
+    totalServings: number;
+  }>;
+}
+
+interface RawDailyProductionPlan {
+  serviceDate: string;
+  customerId?: string;
+  customerCode?: string;
+  customerName?: string;
+  shiftName?: string;
+  totalPlans: number;
+  sentPlans: number;
+  totalDishes: number;
+  totalServings: number;
+  warnings: string[];
+  plans: RawProductionPlan[];
+}
+
+interface RawInventoryIssue {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName?: string;
+  warehouseName?: string;
+  receivedAt?: string;
+  receivedByName?: string;
+  lines: Array<{
+    issueLineId: string;
+    materialRequestLineId?: string;
+    ingredientId: string;
+    ingredientName?: string;
+    unitId: string;
+    unitName?: string;
+    requestedQty: number;
+    issuedQty: number;
+  }>;
+}
+
+interface PagedIssues extends PageInfo {
+  items: RawInventoryIssue[];
+}
+
+export const chefApi = {
+  async getChefDashboardData(
+    serviceDate: string,
+    shiftName: 'MORNING' | 'AFTERNOON',
+    customerId: string,
+    issuePageNumber = 1,
+    issuePageSize = 25
+  ): Promise<ChefDashboardData> {
+    const planQuery = new URLSearchParams({ serviceDate, shiftName, customerId });
+    const issueQuery = new URLSearchParams({
+      sourceFamily: 'DEFAULT',
+      issueDate: serviceDate,
+      shiftName,
+      pageNumber: String(issuePageNumber),
+      pageSize: String(issuePageSize),
+    });
+
+    const [dailyPlan, issuePage] = await Promise.all([
+      apiClient<RawDailyProductionPlan>(`/production-plans/daily?${planQuery.toString()}`),
+      apiClient<PagedIssues>(`/inventory-issues?${issueQuery.toString()}`),
+    ]);
+
+    if (dailyPlan.customerId && dailyPlan.customerId !== customerId) {
+      throw new Error('KHSX trả về không thuộc khách hàng đã chọn.');
+    }
+
+    return {
+      serviceDate: dailyPlan.serviceDate,
+      customerId: dailyPlan.customerId || customerId,
+      customerCode: dailyPlan.customerCode || '—',
+      customerName: dailyPlan.customerName || '—',
+      shiftName: dailyPlan.shiftName || shiftName,
+      totalPlans: dailyPlan.totalPlans,
+      sentPlans: dailyPlan.sentPlans,
+      totalDishes: dailyPlan.totalDishes,
+      totalServings: dailyPlan.totalServings,
+      warnings: dailyPlan.warnings,
+      plans: dailyPlan.plans.flatMap((plan) =>
+        plan.lines.map((line) => ({
+          planLineId: line.planLineId,
+          planId: plan.planId,
+          planCode: plan.planCode,
+          dishId: line.dishId,
+          dishName: line.dishName || '—',
+          shiftName: line.shiftName || dailyPlan.shiftName || '—',
+          plannedServings: line.totalServings,
+          serviceDate: plan.planDate,
+          planStatus: plan.status || '—',
+          sentToKitchenAt: plan.sentToKitchenAt,
+        }))
+      ),
+      issues: issuePage.items.map((issue) => ({
+        issueId: issue.issueId,
+        issueCode: issue.issueCode,
+        issueDate: issue.issueDate,
+        shiftName: issue.shiftName || '—',
+        warehouseName: issue.warehouseName || '—',
+        receivedAt: issue.receivedAt,
+        receivedByName: issue.receivedByName,
+        lines: issue.lines.map((line) => ({
+          issueLineId: line.issueLineId,
+          materialRequestLineId: line.materialRequestLineId,
+          ingredientId: line.ingredientId,
+          ingredientName: line.ingredientName || '—',
+          unitId: line.unitId,
+          unitName: line.unitName || '—',
+          requestedQty: line.requestedQty,
+          issuedQty: line.issuedQty,
+        })),
+      })),
+      issuePage: {
+        totalCount: issuePage.totalCount,
+        pageNumber: issuePage.pageNumber,
+        pageSize: issuePage.pageSize,
+        totalPages: issuePage.totalPages,
+        hasPrev: issuePage.hasPrev,
+        hasNext: issuePage.hasNext,
+      },
+    };
+  },
+
+  async confirmIssueReceipt(issueId: string, hasDiscrepancy: boolean, discrepancyNote?: string): Promise<ChefIssueItem> {
+    return apiClient<ChefIssueItem>(`/inventory-issues/${encodeURIComponent(issueId)}/confirm-receipt`, {
+      method: 'POST',
+      body: JSON.stringify({ hasDiscrepancy, discrepancyNote }),
+    });
+  },
 };
-
-export const chefApi = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
-      query: (query) => ({
-        url: '/production-plans/daily',
-        params: query || undefined,
-      }),
-      transformResponse: normalizeDailyProductionPlan,
-      providesTags: [workflowCacheTags.productionPlans],
-    }),
-    openServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, ScopedOpenServiceRunRequest>({
-      query: (body) => ({ url: '/service-runs', method: 'POST', body }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    getServiceRunByPlan: builder.query<ServiceRunLifecycleProjectionDto | null, ServiceRunByPlanQuery>({
-      query: (params) => ({ url: '/service-runs/by-plan', params }),
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto | null>) => response.data ?? null,
-      providesTags: [workflowCacheTags.productionPlans],
-    }),
-    getServiceRunByScope: builder.query<ServiceRunLifecycleProjectionDto | null, ServiceRunScope>({
-      query: (params) => ({ url: '/service-runs/scope', params }),
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto | null>) => response.data ?? null,
-      providesTags: [workflowCacheTags.productionPlans],
-    }),
-    getServiceRunPage: builder.query<ServiceRunPageResponseDto, ServiceRunPageQuery>({
-      query: (params) => ({ url: '/service-runs/page', params }),
-      transformResponse: (response: ApiResponse<ServiceRunPageResponseDto>) => response.data!,
-      providesTags: [workflowCacheTags.productionPlans],
-    }),
-    startServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, string>({
-      query: (id) => ({ url: `/service-runs/${id}/start`, method: 'POST' }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    recordServiceRunActualServings: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: RecordActualServingsRequest }>({
-      query: ({ id, body }) => ({ url: `/service-runs/${id}/actual-servings`, method: 'POST', body }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    confirmServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, string>({
-      query: (id) => ({ url: `/service-runs/${id}/service-confirmation`, method: 'POST' }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    resolveServiceRunVariance: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: ReasonRequest }>({
-      query: ({ id, body }) => ({ url: `/service-runs/${id}/variance/resolve`, method: 'POST', body }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    resolveServiceRunServingVariance: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: ReasonRequest }>({
-      query: ({ id, body }) => ({ url: `/service-runs/${id}/serving-variance/resolve`, method: 'POST', body }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    waiveServiceRunConfirmation: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: ReasonRequest }>({
-      query: ({ id, body }) => ({ url: `/service-runs/${id}/service-confirmation/waive`, method: 'POST', body }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    closeServiceRun: builder.mutation<ServiceRunLifecycleProjectionDto, string>({
-      query: (id) => ({ url: `/service-runs/${id}/close`, method: 'POST' }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    declareServiceRunVariance: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; body: DeclareServiceRunVarianceRequest }>({
-      query: ({ id, body }) => ({ url: `/service-runs/${id}/variance/declarations`, method: 'POST', body }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    approveServiceRunVarianceWaiver: builder.mutation<ServiceRunLifecycleProjectionDto, { id: string; declarationId: string; body: ApproveServiceRunVarianceWaiverRequest }>({
-      query: ({ id, declarationId, body }) => ({ url: `/service-runs/${id}/variance/declarations/${declarationId}/waive`, method: 'POST', body }),
-      invalidatesTags: [workflowCacheTags.productionPlans],
-      transformResponse: (response: ApiResponse<ServiceRunLifecycleProjectionDto>) => response.data!,
-    }),
-    getServiceRunAdjustments: builder.query<ServiceRunAdjustmentDto[], string>({
-      query: (id) => ({ url: `/service-runs/${id}/adjustments` }),
-      transformResponse: (response: ApiResponse<ServiceRunAdjustmentDto[]>) => response.data ?? [],
-      providesTags: [workflowCacheTags.productionPlans],
-    }),
-    createServiceRunAdjustment: builder.mutation<ServiceRunAdjustmentDto, { id: string; body: CreateServiceRunAdjustmentRequest }>({
-      query: ({ id, body }) => ({ url: `/service-runs/${id}/adjustments`, method: 'POST', body }),
-      transformResponse: (response: ApiResponse<ServiceRunAdjustmentDto>) => response.data!,
-      invalidatesTags: [workflowCacheTags.productionPlans],
-    }),
-  }),
-  overrideExisting: false,
-});
-
-export const {
-  useGetDailyProductionPlanQuery,
-  useOpenServiceRunMutation,
-  useGetServiceRunByPlanQuery,
-  useGetServiceRunByScopeQuery,
-  useGetServiceRunPageQuery,
-  useStartServiceRunMutation,
-  useRecordServiceRunActualServingsMutation,
-  useConfirmServiceRunMutation,
-  useResolveServiceRunVarianceMutation,
-  useResolveServiceRunServingVarianceMutation,
-  useWaiveServiceRunConfirmationMutation,
-  useCloseServiceRunMutation,
-  useDeclareServiceRunVarianceMutation,
-  useApproveServiceRunVarianceWaiverMutation,
-  useGetServiceRunAdjustmentsQuery,
-  useCreateServiceRunAdjustmentMutation,
-} = chefApi;

@@ -51,6 +51,8 @@ internal sealed class MealQuantityPlanLineConfiguration : IEntityTypeConfigurati
         entity.Property(e => e.ConfirmedServings).HasColumnName("confirmedServings");
         entity.Property(e => e.CustomerId).HasMaxLength(16).IsFixedLength().HasColumnName("customerId");
         entity.Property(e => e.FinalServings).HasColumnName("finalServings");
+        entity.Property(e => e.SavoryServings).HasColumnName("savoryServings");
+        entity.Property(e => e.VegetarianServings).HasColumnName("vegetarianServings");
         entity.Property(e => e.ForecastServings).HasColumnName("forecastServings");
         entity.Property(e => e.MenuId).HasMaxLength(16).IsFixedLength().HasColumnName("menuId");
         entity.Property(e => e.MenuScheduleId).HasMaxLength(16).IsFixedLength().HasColumnName("menuScheduleId");
@@ -192,6 +194,7 @@ internal sealed class MenuVersionConfiguration : IEntityTypeConfiguration<MenuVe
         entity.Property(e => e.SuccessRowCount).HasDefaultValueSql("'0'").HasColumnName("successRowCount");
         entity.Property(e => e.ErrorRowCount).HasDefaultValueSql("'0'").HasColumnName("errorRowCount");
         entity.Property(e => e.WarningRowCount).HasDefaultValueSql("'0'").HasColumnName("warningRowCount");
+        entity.Property(e => e.NormalizedSourceSnapshotJson).HasColumnType("longtext").HasColumnName("normalizedSourceSnapshotJson");
         entity.HasOne(d => d.Customer).WithMany(p => p.Menuversions)
             .HasForeignKey(d => d.CustomerId).OnDelete(DeleteBehavior.ClientSetNull)
             .HasConstraintName("menuversions_ibfk_1");

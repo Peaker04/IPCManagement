@@ -14,6 +14,7 @@ using Xunit;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Inventory.Validators;
+using IPCManagement.Api.Features.SystemOperation.Services;
 
 using IPCManagement.Api.Exceptions;
 
@@ -609,6 +610,7 @@ public class InventoryIssueServiceTests
                 warehouseId BLOB,
                 materialRequestId BLOB,
                 reconciliationBatchId BLOB NULL,
+                preparationGroupId BLOB NULL,
                 issuedBy BLOB,
                 receivedBy BLOB,
                 receivedAt TEXT,
@@ -831,6 +833,43 @@ public class InventoryIssueServiceTests
         reloadedRequest.Status.Should().Be("EXPORTED");
         var statusAudit = await context.Auditlogs.AsNoTracking().SingleAsync();
         statusAudit.NewValue.Should().Be("EXPORTED");
+    }
+
+    [Fact]
+    public async Task ConfirmReceiptAsync_Should_RejectReconciliationIssueWithoutMutation()
+    {
+        using var context = CreateInMemoryContext();
+        var service = new InventoryIssueService(
+            _issueRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            _operationalWarehouseResolver,
+            new MaterialRequestCompletionTransitionService(context),
+            context,
+            new SystemOperationRequestContext
+            {
+                Mode = SystemOperationEligibility.MaterialReconciliation,
+                OperationKey = "inventoryissues.confirmreceiptasync",
+                ExpectedModeVersion = 1,
+            });
+        var issue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(), IssueCode = "ISS-MRX", IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = GuidHelper.NewId(), ReconciliationBatchId = GuidHelper.NewId(),
+            IssuedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow,
+        };
+        context.Users.Add(new User { UserId = issue.IssuedBy, Username = "warehouse", FullName = "Warehouse" });
+        context.Warehouses.Add(new Warehouse { WarehouseId = issue.WarehouseId, WarehouseCode = "W-MRX", WarehouseName = "MRX", WarehouseType = "MAIN" });
+        context.Inventoryissues.Add(issue);
+        await context.SaveChangesAsync();
+
+        var action = () => service.ConfirmReceiptAsync(
+            GuidHelper.ToGuidString(issue.IssueId), new ConfirmInventoryIssueReceiptRequest(), Guid.NewGuid().ToString());
+
+        await action.Should().ThrowAsync<BusinessRuleException>().WithMessage("*Bếp không xác nhận*");
+        issue.ReceivedAt.Should().BeNull();
+        context.Auditlogs.Should().BeEmpty();
     }
 
     [Fact]

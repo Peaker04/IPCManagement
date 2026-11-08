@@ -1,29 +1,37 @@
-import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
-import { useAppSelector } from '../app/hooks'
-import { ROUTES } from '@/lib/routeConfig'
+import type { ReactNode } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { CANONICAL_ROUTES } from './routeRegistry';
+import { isRouteEligible } from './navigationEligibility';
+import { useAuth } from '../store/useAuth';
 
-interface RoleGuardProps {
-  requiredPermissions: string[]
-  children: ReactNode
+export interface RoleGuardProps {
+  roles?: string[];
+  permissions?: string[];
+  children: ReactNode;
 }
 
-export const RoleGuard = ({ requiredPermissions, children }: RoleGuardProps) => {
-  const user = useAppSelector((state) => state.auth.user)
+export function RoleGuard({ roles, permissions, children }: RoleGuardProps) {
+  const { user, hasRole, hasPermission, operationalMode } = useAuth();
+  const location = useLocation();
 
   if (!user) {
-    return null
+    return <Navigate to="/login" replace />;
   }
 
-  const isAdmin = user.isAdminFullAccess || user.role === 'admin' || user.permissions?.includes('*')
-  const hasPermission =
-    isAdmin ||
-    requiredPermissions.length === 0 ||
-    requiredPermissions.some((perm) => user.permissions?.includes(perm))
-
-  if (!hasPermission) {
-    return <Navigate to={ROUTES.FORBIDDEN} replace />
+  if (!isRouteEligible(CANONICAL_ROUTES, location.pathname, location.search, user, operationalMode)) {
+    return <Navigate to="/forbidden" replace />;
   }
 
-  return <>{children}</>
+  if (roles && roles.length > 0 && !hasRole(roles)) {
+    return <Navigate to="/forbidden" replace />;
+  }
+
+  if (permissions && permissions.length > 0) {
+    const isAllowed = permissions.some((perm) => hasPermission(perm));
+    if (!isAllowed) {
+      return <Navigate to="/forbidden" replace />;
+    }
+  }
+
+  return <>{children}</>;
 }

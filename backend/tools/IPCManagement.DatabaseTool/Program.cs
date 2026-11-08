@@ -2,6 +2,31 @@ using System.Text.Json;
 using IPCManagement.DatabaseTool;
 using MySqlConnector;
 
+if (args.Length >= 1 && args[0] == "reset-passwords")
+{
+    await using var conn = await OpenServerConnectionAsync("backend/src/IPCManagement.Api/appsettings.json");
+    await conn.ChangeDatabaseAsync("ipcmanagement");
+    var hash = BCrypt.Net.BCrypt.HashPassword("Admin@123456");
+    await using var cmd = new MySqlCommand("UPDATE users SET passwordHash = @hash WHERE username IN ('admin', 'beptruong', 'thukho', 'quanly', 'thumua', 'dieuphoi');", conn);
+    cmd.Parameters.AddWithValue("@hash", hash);
+    var affected = await cmd.ExecuteNonQueryAsync();
+    Console.WriteLine($"RESET_PASSWORDS_SUCCESS: {affected} users updated with password Admin@123456.");
+    return 0;
+}
+
+if (args.Length >= 1 && args[0] == "list-users")
+{
+    await using var conn = await OpenServerConnectionAsync("backend/src/IPCManagement.Api/appsettings.json");
+    await conn.ChangeDatabaseAsync("ipcmanagement");
+    await using var cmd = new MySqlCommand("SELECT username, fullName, isActive, passwordHash FROM users LIMIT 20;", conn);
+    await using var reader = await cmd.ExecuteReaderAsync();
+    while (await reader.ReadAsync())
+    {
+        Console.WriteLine($"USER: {reader.GetString(0)} | Name: {reader.GetString(1)} | Active: {reader.GetBoolean(2)} | HashPrefix: {reader.GetString(3)[..15]}");
+    }
+    return 0;
+}
+
 if (args.Length == 15 &&
     args[0] == "phase42-rehearse" &&
     args[1] == "--settings" &&

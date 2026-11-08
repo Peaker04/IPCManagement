@@ -6,6 +6,7 @@ using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 using MySqlConnector;
 
@@ -16,6 +17,11 @@ public sealed class ReconciliationBatchService(
     IEfTransactionRunner transactions,
     SystemOperationRequestContext requestContext)
 {
+    public Task<PagedResponseDto<ReconciliationBatchSummaryDto>> GetPageAsync(
+        ReconciliationBatchPageQuery request,
+        CancellationToken token = default) =>
+        ReconciliationBatchQueryProjector.GetPageAsync(context, request, RequiredId, token);
+
     public async Task<IReadOnlyList<ReconciliationBatchDto>> ListAsync(CancellationToken token = default)
     {
         var batches = await context.Reconciliationbatches.AsNoTracking()
@@ -24,7 +30,8 @@ public sealed class ReconciliationBatchService(
             .OrderByDescending(x => x.CreatedAt).ToListAsync(token);
         var lineIds = batches.SelectMany(x => x.Lines).Select(x => x.BatchLineId).ToList();
         var actuals = await context.Reconciliationactuals.AsNoTracking().Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(token);
-        var dispositions = await context.Reconciliationdispositions.AsNoTracking().Where(x => lineIds.Contains(x.BatchLineId)).ToListAsync(token);
+        var dispositions = await context.Reconciliationdispositions.AsNoTracking()
+            .Where(x => x.InvalidatedAt == null && lineIds.Contains(x.BatchLineId)).ToListAsync(token);
         var issued = await LoadLinkedIssuedQuantitiesAsync(lineIds, token);
 
         var customerMap = await LoadCustomersForBatchesAsync(batches, token);
@@ -39,123 +46,137 @@ public sealed class ReconciliationBatchService(
 
     public async Task<ReconciliationWarehouseDailyDto?> GetWarehouseDailyAsync(string id, CancellationToken token = default)
     {
-        var batchId = RequiredId(id);
-        var inMemory = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
-        var batch = inMemory
-            ? (await context.Reconciliationbatches.AsNoTracking().ToListAsync(token))
-                .SingleOrDefault(item => item.BatchId.SequenceEqual(batchId))
-            : await context.Reconciliationbatches.AsNoTracking()
-                .SingleOrDefaultAsync(item => item.BatchId == batchId, token);
-        if (batch is null) return null;
-        if (context.Model.FindEntityType(typeof(ReconciliationBatchDailyLine)) is null)
-            return new ReconciliationWarehouseDailyDto(
-                GuidHelper.ToGuidString(batch.BatchId), batch.Status, batch.Version, "LEGACY_INCOMPATIBLE",
-                new ReconciliationDailyCompatibilityDto(true, false, "LEGACY_DAILY_LINEAGE_MISSING"), []);
+        var normalizedId = GuidHelper.ToGuidString(RequiredId(id));
+        var results = await GetWarehouseDailyManyAsync([normalizedId], token);
+        return results.GetValueOrDefault(normalizedId);
+    }
 
-        var storedDailyLines = inMemory
+    public async Task<IReadOnlyDictionary<string, ReconciliationWarehouseDailyDto>> GetWarehouseDailyManyAsync(
+        IReadOnlyCollection<string> ids, CancellationToken token = default)
+    {
+        var result = new Dictionary<string, ReconciliationWarehouseDailyDto>(StringComparer.Ordinal);
+        if (ids.Count == 0) return result;
+        var batchIds = ids.Select(RequiredId).DistinctBy(Convert.ToHexString).ToList();
+        var batchHexes = batchIds.Select(Convert.ToHexString).ToHashSet(StringComparer.Ordinal);
+        var inMemory = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
+        var batches = inMemory
+            ? (await context.Reconciliationbatches.AsNoTracking().ToListAsync(token)).Where(item => batchHexes.Contains(Convert.ToHexString(item.BatchId))).ToList()
+            : await context.Reconciliationbatches.AsNoTracking().Where(item => batchIds.Contains(item.BatchId)).ToListAsync(token);
+        if (batches.Count == 0) return result;
+        if (context.Model.FindEntityType(typeof(ReconciliationBatchDailyLine)) is null)
+            return batches.ToDictionary(batch => GuidHelper.ToGuidString(batch.BatchId), batch => new ReconciliationWarehouseDailyDto(
+                GuidHelper.ToGuidString(batch.BatchId), batch.Status, batch.Version, "LEGACY_INCOMPATIBLE",
+                new ReconciliationDailyCompatibilityDto(true, false, "LEGACY_DAILY_LINEAGE_MISSING"), []), StringComparer.Ordinal);
+
+        var allDailyLines = inMemory
             ? (await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync(token))
-                .Where(line => line.BatchId.SequenceEqual(batchId)).ToList()
+                .Where(line => batchHexes.Contains(Convert.ToHexString(line.BatchId)) && line.RequiredQuantity > 0).ToList()
             : await context.Reconciliationbatchdailylines.AsNoTracking()
-                .Where(line => line.BatchId == batchId).ToListAsync(token);
+                .Where(line => batchIds.Contains(line.BatchId) && line.RequiredQuantity > 0).ToListAsync(token);
         var weeklyLines = inMemory
             ? await context.Reconciliationbatchlines.AsNoTracking().ToListAsync(token)
             : await context.Reconciliationbatchlines.AsNoTracking()
                 .Include(line => line.Ingredient).Include(line => line.CanonicalUnit)
-                .Where(line => line.BatchId == batchId).ToListAsync(token);
+                .Where(line => batchIds.Contains(line.BatchId)).ToListAsync(token);
         var weeklyById = weeklyLines.ToDictionary(line => Convert.ToHexString(line.BatchLineId), StringComparer.Ordinal);
-        var dailyLines = storedDailyLines.Select(daily => (
-            Daily: daily,
-            Weekly: weeklyById[Convert.ToHexString(daily.BatchLineId)])).ToList();
-        var compatibility = ReconciliationDailyIssuePolicy.ResolveCompatibility(dailyLines.Count > 0, batch.Status);
-        var dailyLineIds = storedDailyLines.Select(line => line.DailyLineId).ToList();
-        var dailyDispositions = inMemory
-            ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token))
-                .Where(item => dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
-            : await context.Reconciliationdailydispositions.AsNoTracking()
-                .Where(item => dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
-        var disposedDailyIds = dailyDispositions
-            .Where(item => !string.IsNullOrWhiteSpace(item.Reason))
-            .Select(item => Convert.ToHexString(item.DailyLineId)).ToHashSet(StringComparer.Ordinal);
-        var weekStart = inMemory
-            ? (await context.Menuversions.AsNoTracking().ToListAsync(token))
-                .SingleOrDefault(item => item.MenuVersionId.SequenceEqual(batch.MenuVersionId))?.WeekStartDate
-            : await context.Menuversions.AsNoTracking()
-                .Where(item => item.MenuVersionId == batch.MenuVersionId)
-                .Select(item => (DateOnly?)item.WeekStartDate)
-                .SingleOrDefaultAsync(token);
-        weekStart ??= dailyLines.Count == 0 ? null : StartOfWeek(dailyLines.Min(item => item.Daily.ServiceDate));
-
+        var dailyLineIds = allDailyLines.Select(line => line.DailyLineId).ToList();
+        var ledgerByDailyLine = await new ReconciliationNetIssueProjection(context).LoadByDailyLineIdsAsync(dailyLineIds, token);
         var inMemoryIssues = inMemory ? await context.Inventoryissues.AsNoTracking().ToListAsync(token) : [];
         var issueRows = inMemory
-            ? (await context.Inventoryissuelines.AsNoTracking().ToListAsync(token))
-                .Where(line => line.ReconciliationBatchDailyLineId is not null
-                    && inMemoryIssues.Any(issue => issue.IssueId.SequenceEqual(line.IssueId)
-                        && issue.ReconciliationBatchId is not null && issue.ReconciliationBatchId.SequenceEqual(batchId))).ToList()
+            ? (await context.Inventoryissuelines.AsNoTracking().ToListAsync(token)).Where(line => line.ReconciliationBatchDailyLineId is not null
+                && inMemoryIssues.Any(issue => issue.IssueId.SequenceEqual(line.IssueId) && issue.ReconciliationBatchId is not null && batchHexes.Contains(Convert.ToHexString(issue.ReconciliationBatchId)))).ToList()
             : await context.Inventoryissuelines.AsNoTracking().Include(line => line.Issue)
-                .Where(line => line.ReconciliationBatchDailyLineId != null && line.Issue.ReconciliationBatchId == batchId)
-                .ToListAsync(token);
+                .Where(line => line.ReconciliationBatchDailyLineId != null && line.Issue.ReconciliationBatchId != null && batchIds.Contains(line.Issue.ReconciliationBatchId)).ToListAsync(token);
         var issueLineIds = issueRows.Select(line => line.IssueLineId).ToList();
         var inMemoryReturns = inMemory ? await context.Inventoryreturns.AsNoTracking().ToListAsync(token) : [];
         var returnRows = inMemory
-            ? (await context.Inventoryreturnlines.AsNoTracking().ToListAsync(token))
-                .Where(line => line.SourceIssueLineId is not null
-                    && inMemoryReturns.Any(item => item.ReturnId.SequenceEqual(line.ReturnId) && item.ReceivedAt is not null)
-                    && issueLineIds.Any(idValue => idValue.SequenceEqual(line.SourceIssueLineId))).ToList()
+            ? (await context.Inventoryreturnlines.AsNoTracking().ToListAsync(token)).Where(line => line.SourceIssueLineId is not null
+                && inMemoryReturns.Any(item => item.ReturnId.SequenceEqual(line.ReturnId) && item.ReceivedAt is not null)
+                && issueLineIds.Any(idValue => idValue.SequenceEqual(line.SourceIssueLineId))).ToList()
             : await context.Inventoryreturnlines.AsNoTracking().Include(line => line.Return)
-                .Where(line => line.SourceIssueLineId != null && issueLineIds.Contains(line.SourceIssueLineId) && line.Return.ReceivedAt != null)
-                .ToListAsync(token);
-        var returnedByIssueLine = returnRows
-            .GroupBy(line => Convert.ToHexString(line.SourceIssueLineId!))
-            .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity), StringComparer.Ordinal);
-        var ledgerByDailyLine = issueRows
-            .GroupBy(line => Convert.ToHexString(line.ReconciliationBatchDailyLineId!))
-            .ToDictionary(
-                group => group.Key,
-                group => new
-                {
-                    Issued = group.Sum(line => line.IssuedQty - returnedByIssueLine.GetValueOrDefault(Convert.ToHexString(line.IssueLineId))),
-                    Returned = group.Sum(line => returnedByIssueLine.GetValueOrDefault(Convert.ToHexString(line.IssueLineId)))
-                },
-                StringComparer.Ordinal);
-
-        var dates = new List<ReconciliationWarehouseDayDto>();
-        if (weekStart is { } start)
-        {
-            for (var offset = 0; offset < 7; offset++)
+                .Where(line => line.SourceIssueLineId != null && issueLineIds.Contains(line.SourceIssueLineId) && line.Return.ReceivedAt != null).ToListAsync(token);
+        var dailyDispositions = inMemory
+            ? (await context.Reconciliationdailydispositions.AsNoTracking().ToListAsync(token)).Where(item => item.InvalidatedAt == null
+                && dailyLineIds.Any(idValue => idValue.SequenceEqual(item.DailyLineId))).ToList()
+            : await context.Reconciliationdailydispositions.AsNoTracking().Where(item => item.InvalidatedAt == null && dailyLineIds.Contains(item.DailyLineId)).ToListAsync(token);
+        var issueById = issueRows.ToDictionary(line => Convert.ToHexString(line.IssueLineId), StringComparer.Ordinal);
+        var latestReturnByDailyId = returnRows.Where(row => row.SourceIssueLineId is not null)
+            .Select(row => new
             {
-                var serviceDate = start.AddDays(offset);
-                var sources = dailyLines.Where(item => item.Daily.ServiceDate == serviceDate).ToList();
-                var lineDtos = sources.Select(item =>
+                DailyId = Convert.ToHexString(issueById[Convert.ToHexString(row.SourceIssueLineId!)].ReconciliationBatchDailyLineId!),
+                ReceivedAt = inMemory ? inMemoryReturns.Single(item => item.ReturnId.SequenceEqual(row.ReturnId)).ReceivedAt : row.Return.ReceivedAt
+            }).GroupBy(row => row.DailyId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Max(row => row.ReceivedAt), StringComparer.Ordinal);
+        var disposedDailyIds = dailyDispositions.Where(item => !string.IsNullOrWhiteSpace(item.Reason)
+                && (!latestReturnByDailyId.TryGetValue(Convert.ToHexString(item.DailyLineId), out var returnedAt) || returnedAt < item.DisposedAt))
+            .Select(item => Convert.ToHexString(item.DailyLineId)).ToHashSet(StringComparer.Ordinal);
+        var versionIds = batches.Select(batch => batch.MenuVersionId).ToList();
+        var versions = inMemory
+            ? (await context.Menuversions.AsNoTracking().ToListAsync(token)).Where(version => versionIds.Any(id => id.SequenceEqual(version.MenuVersionId))).ToList()
+            : await context.Menuversions.AsNoTracking().Where(version => versionIds.Contains(version.MenuVersionId)).ToListAsync(token);
+        var weekByVersionId = versions.ToDictionary(version => Convert.ToHexString(version.MenuVersionId), version => version.WeekStartDate, StringComparer.Ordinal);
+        var revisionsByBatch = await new ReconciliationWarehouseRevisionQuery(context).GetLatestByBatchAsync(batchIds, token);
+        var dailyByBatch = allDailyLines.ToLookup(line => Convert.ToHexString(line.BatchId), StringComparer.Ordinal);
+        foreach (var batch in batches)
+        {
+            token.ThrowIfCancellationRequested();
+            var batchKey = Convert.ToHexString(batch.BatchId);
+            var storedDailyLines = dailyByBatch[batchKey].ToList();
+            var dailyLines = storedDailyLines.Select(daily => (Daily: daily, Weekly: weeklyById[Convert.ToHexString(daily.BatchLineId)])).ToList();
+            var compatibility = ReconciliationDailyIssuePolicy.ResolveCompatibility(dailyLines.Count > 0, batch.Status);
+            DateOnly? weekStart = weekByVersionId.TryGetValue(Convert.ToHexString(batch.MenuVersionId), out var week) ? week : null;
+            weekStart ??= dailyLines.Count == 0 ? null : StartOfWeek(dailyLines.Min(item => item.Daily.ServiceDate));
+            var latestRevisionByDate = revisionsByBatch.GetValueOrDefault(batchKey);
+
+            var dates = new List<ReconciliationWarehouseDayDto>();
+            if (weekStart is { } start)
+            {
+                // Historical Sunday facts remain readable and keep their original totals; no synthetic Sunday for new weeks.
+                var days = storedDailyLines.Any(line => !ServiceCalendar.IsServiceDay(line.ServiceDate)) ? 7 : ServiceCalendar.ServiceDaysPerWeek;
+                for (var offset = 0; offset < days; offset++)
                 {
-                    var key = Convert.ToHexString(item.Daily.DailyLineId);
-                    var hasLedger = ledgerByDailyLine.TryGetValue(key, out var ledger);
-                    var issued = hasLedger ? ledger!.Issued : (decimal?)null;
-                    var returned = hasLedger ? ledger!.Returned : 0m;
-                    var hasDisposition = disposedDailyIds.Contains(key);
-                    var status = ReconciliationDailyIssuePolicy.ResolveLineStatus(item.Daily.RequiredQuantity, issued, hasDisposition);
-                    return new ReconciliationWarehouseDailyLineDto(
-                        GuidHelper.ToGuidString(item.Daily.DailyLineId), GuidHelper.ToGuidString(item.Weekly.BatchLineId),
-                        GuidHelper.ToGuidString(item.Weekly.IngredientId), item.Weekly.Ingredient?.IngredientCode, item.Weekly.Ingredient?.IngredientName,
-                        GuidHelper.ToGuidString(item.Weekly.CanonicalUnitId), item.Weekly.CanonicalUnit?.UnitName,
-                        item.Daily.RequiredQuantity, issued, returned,
-                        DecimalPolicy.RoundQuantity(item.Daily.RequiredQuantity - (issued ?? 0m)), status.QuantityStatus, status.HasValidDisposition);
-                }).OrderBy(line => line.IngredientName).ThenBy(line => line.DailyLineId, StringComparer.Ordinal).ToList();
-                var lineStatuses = lineDtos.Select(line => new ReconciliationDailyLineStatus(line.QuantityStatus, line.HasValidDisposition)).ToList();
-                var dayStatus = ReconciliationDailyIssuePolicy.ResolveDailyStatus(lineStatuses);
-                dates.Add(new ReconciliationWarehouseDayDto(
-                    serviceDate, dayStatus, lineDtos.Count > 0,
-                    lineDtos.Sum(line => line.RequiredQuantity), lineDtos.Sum(line => line.IssuedQuantity ?? 0m),
-                    lineDtos.Sum(line => line.ReturnedQuantity), lineDtos.Sum(line => line.RemainingQuantity), lineDtos));
+                    var serviceDate = start.AddDays(offset);
+                    var sources = dailyLines.Where(item => item.Daily.ServiceDate == serviceDate).ToList();
+                    var lineDtos = sources.Select(item =>
+                    {
+                        var key = Convert.ToHexString(item.Daily.DailyLineId);
+                        var hasLedger = ledgerByDailyLine.TryGetValue(key, out var ledger);
+                        var issued = hasLedger ? ledger!.NetIssuedQuantity : (decimal?)null;
+                        var returned = hasLedger ? ledger!.ReceivedReturnQuantity : 0m;
+                        var hasDisposition = disposedDailyIds.Contains(key);
+                        var status = ReconciliationDailyIssuePolicy.ResolveLineStatus(item.Daily.RequiredQuantity, issued, hasDisposition);
+                        return new ReconciliationWarehouseDailyLineDto(
+                            GuidHelper.ToGuidString(item.Daily.DailyLineId), GuidHelper.ToGuidString(item.Weekly.BatchLineId),
+                            GuidHelper.ToGuidString(item.Weekly.IngredientId), item.Weekly.Ingredient?.IngredientCode, item.Weekly.Ingredient?.IngredientName,
+                            GuidHelper.ToGuidString(item.Weekly.CanonicalUnitId), item.Weekly.CanonicalUnit?.UnitName,
+                            item.Daily.RequiredQuantity, issued, returned,
+                            DecimalPolicy.RoundQuantity(item.Daily.RequiredQuantity - (issued ?? 0m)), status.QuantityStatus, status.HasValidDisposition);
+                    }).OrderBy(line => line.IngredientName).ThenBy(line => line.DailyLineId, StringComparer.Ordinal).ToList();
+                    var lineStatuses = lineDtos.Select(line => new ReconciliationDailyLineStatus(line.QuantityStatus, line.HasValidDisposition)).ToList();
+                    var dayStatus = ReconciliationDailyIssuePolicy.ResolveDailyStatus(lineStatuses);
+                    var latestRevision = latestRevisionByDate?.GetValueOrDefault(serviceDate);
+                    dates.Add(new ReconciliationWarehouseDayDto(
+                        serviceDate, dayStatus, lineDtos.Count > 0,
+                        lineDtos.Sum(line => line.RequiredQuantity), lineDtos.Sum(line => line.IssuedQuantity ?? 0m),
+                        lineDtos.Sum(line => line.ReturnedQuantity), lineDtos.Sum(line => line.RemainingQuantity), lineDtos)
+                    {
+                        LastRevisionAt = latestRevision?.AppliedAt,
+                        LastRevisionByName = latestRevision?.AppliedByName,
+                        LastRevisionByRole = latestRevision?.AppliedByRole
+                    });
+                }
             }
-        }
-        var weeklyStatus = compatibility.CanIssueByDate
-            ? ReconciliationDailyIssuePolicy.ResolveWeeklyStatus(dates.Select(date => new ReconciliationDailySummary(date.Status, date.IsApplicable)).ToList())
-            : compatibility.ReasonCode == "BATCH_READ_ONLY"
+            var weeklyStatus = compatibility.CanIssueByDate
                 ? ReconciliationDailyIssuePolicy.ResolveWeeklyStatus(dates.Select(date => new ReconciliationDailySummary(date.Status, date.IsApplicable)).ToList())
-                : "LEGACY_INCOMPATIBLE";
-        return new ReconciliationWarehouseDailyDto(
-            GuidHelper.ToGuidString(batch.BatchId), batch.Status, batch.Version, weeklyStatus,
-            new ReconciliationDailyCompatibilityDto(compatibility.CanRead, compatibility.CanIssueByDate, compatibility.ReasonCode), dates);
+                : compatibility.ReasonCode == "BATCH_READ_ONLY"
+                    ? ReconciliationDailyIssuePolicy.ResolveWeeklyStatus(dates.Select(date => new ReconciliationDailySummary(date.Status, date.IsApplicable)).ToList())
+                    : "LEGACY_INCOMPATIBLE";
+            var batchId = GuidHelper.ToGuidString(batch.BatchId);
+            result.Add(batchId, new ReconciliationWarehouseDailyDto(
+                batchId, batch.Status, batch.Version, weeklyStatus,
+                new ReconciliationDailyCompatibilityDto(compatibility.CanRead, compatibility.CanIssueByDate, compatibility.ReasonCode), dates));
+        }
+        return result;
     }
 
     private static DateOnly StartOfWeek(DateOnly date)
@@ -196,24 +217,53 @@ public sealed class ReconciliationBatchService(
             .Include(x => x.Lines).ThenInclude(x => x.CanonicalUnit)
             .SingleOrDefaultAsync(x => x.BatchId == bytes, token);
         if (batch is null) return null;
-        var batchLines = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal)
-            ? (await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit).ToListAsync(token))
-                .Where(line => line.BatchId.SequenceEqual(bytes)).ToList()
+        var inMemory = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
+        var batchLines = inMemory
+            ? (await context.Reconciliationbatchlines.AsNoTracking().ToListAsync(token)).Where(line => line.BatchId != null && line.BatchId.SequenceEqual(bytes)).ToList()
             : await context.Reconciliationbatchlines.AsNoTracking().Include(line => line.Ingredient).Include(line => line.CanonicalUnit)
                 .Where(line => line.BatchId == bytes).ToListAsync(token);
         var actuals = await context.Reconciliationactuals.AsNoTracking().Where(x => x.BatchLine.BatchId == bytes).ToListAsync(token);
-        var dispositions = await context.Reconciliationdispositions.AsNoTracking().Where(x => x.BatchLine.BatchId == bytes).ToListAsync(token);
+        var dispositions = await context.Reconciliationdispositions.AsNoTracking()
+            .Where(x => x.InvalidatedAt == null && x.BatchLine.BatchId == bytes).ToListAsync(token);
         var lineIds = batchLines.Select(line => line.BatchLineId).ToList();
         var issued = await LoadLinkedIssuedQuantitiesAsync(lineIds, token);
-        var issueNotes = (await context.Auditlogs.AsNoTracking()
-                .Where(audit => audit.EntityName == nameof(InventoryIssueLine) && audit.FieldName == nameof(InventoryIssueLine.IssuedQty)
-                    && audit.EntityId != null && lineIds.Contains(audit.EntityId) && audit.Reason != null)
-                .OrderBy(audit => audit.ChangedAt)
-                .Select(audit => new { audit.EntityId, audit.Reason }).ToListAsync(token))
-            .GroupBy(audit => Convert.ToHexString(audit.EntityId!))
-            .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.Select(audit => audit.Reason!).ToList(), StringComparer.Ordinal);
+        var notes = await new MrxIssueNoteQuery(context).LoadAsync(lineIds, token);
+        var issueNotes = notes.GroupBy(note => Convert.ToHexString(note.BatchLineId))
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.Select(note => note.Reason).ToList(), StringComparer.Ordinal);
         var customer = await TryGetCustomerAsync(batch.MenuVersionId, token);
-        return Map(batch, actuals, dispositions, issued, batchLines, issueNotes, customer);
+        var weekStartDate = await TryGetWeekStartDateAsync(batch.MenuVersionId, token);
+        var result = Map(batch, actuals, dispositions, issued, batchLines, issueNotes, customer, weekStartDate);
+        var daily = await GetWarehouseDailyAsync(id, token);
+        if (daily is null || daily.Compatibility.ReasonCode == "LEGACY_DAILY_LINEAGE_MISSING") return result;
+
+        var dailyIds = daily.Dates.SelectMany(day => day.Lines).Select(line => RequiredId(line.DailyLineId)).ToList();
+        var dailyDispositions = await context.Reconciliationdailydispositions.AsNoTracking()
+            .Where(item => item.InvalidatedAt == null && dailyIds.Contains(item.DailyLineId)).ToListAsync(token);
+        var dispositionById = dailyDispositions.ToDictionary(item => GuidHelper.ToGuidString(item.DailyLineId), StringComparer.Ordinal);
+        var dailyNotes = notes.Where(note => note.DailyLineId != null)
+            .GroupBy(note => GuidHelper.ToGuidString(note.DailyLineId!))
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<string>)group.Select(note => note.Reason).ToList(), StringComparer.Ordinal);
+        var weeklyById = result.Lines.ToDictionary(line => line.BatchLineId, StringComparer.Ordinal);
+        var reviewLines = daily.Dates.SelectMany(day => day.Lines.Select(line =>
+        {
+            dispositionById.TryGetValue(line.DailyLineId, out var disposition);
+            var over = line.QuantityStatus == "OVER_ISSUED";
+            return weeklyById[line.BatchLineId] with
+            {
+                DailyLineId = line.DailyLineId, ServiceDate = day.ServiceDate,
+                RequiredQuantity = line.RequiredQuantity, FrozenTolerance = 0,
+                PurchasedQuantity = null, PurchasedVersion = null, PurchasedRequiredDifference = null,
+                PurchasedIssuedDifference = null, IssuedQuantity = line.IssuedQuantity, IssuedVersion = null,
+                IssuedRequiredDifference = line.IssuedQuantity is { } issuedQuantity
+                    ? DecimalPolicy.RoundQuantity(issuedQuantity - line.RequiredQuantity) : null,
+                Status = line.QuantityStatus == "EXACT" ? "MATCHED" : over ? "NEEDS_REVIEW" : "INCOMPLETE",
+                Triggers = over ? ["ISSUED_REQUIRED"] : [],
+                Disposition = line.HasValidDisposition && disposition is not null
+                    ? new ReconciliationDispositionDto(disposition.Category, disposition.Reason, disposition.Version, disposition.DisposedAt) : null,
+                IssueNotes = dailyNotes.GetValueOrDefault(line.DailyLineId)
+            };
+        })).ToList();
+        return result with { DailyReview = new ReconciliationDailyReviewDto(daily.WeeklyStatus, reviewLines) };
     }
 
     public async Task<IReadOnlyList<ReconciliationSourceChangeDto>> ListSourceChangesAsync(string id, CancellationToken token = default)
@@ -226,7 +276,31 @@ public sealed class ReconciliationBatchService(
         var batchLineIds = batch.Lines.Select(line => line.BatchLineId).ToList();
         var contributors = await context.Reconciliationbatchcontributors.AsNoTracking()
             .Where(contributor => batchLineIds.Contains(contributor.BatchLineId)).ToListAsync(token);
-        var menuScheduleIds = contributors.Select(contributor => contributor.MenuScheduleId).ToList();
+        var revisions = await context.Reconciliationsourcerevisions.AsNoTracking()
+            .Where(revision => revision.BatchId == batchId).ToListAsync(token);
+        var versionIds = revisions.SelectMany(revision => new[] { revision.PreviousMenuVersionId, revision.AppliedMenuVersionId })
+            .Append(batch.MenuVersionId)
+            .DistinctBy(Convert.ToHexString)
+            .ToList();
+        var amendmentIds = revisions.Where(revision => revision.MenuAmendmentId != null)
+            .Select(revision => revision.MenuAmendmentId!)
+            .DistinctBy(Convert.ToHexString)
+            .ToList();
+        var revisionIds = revisions.Select(revision => revision.SourceRevisionId).ToList();
+        var isInMemory = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
+        var versionScheduleIds = isInMemory
+            ? (await context.Menuschedules.AsNoTracking().ToListAsync(token))
+                .Where(schedule => schedule.MenuVersionId != null && versionIds.Any(id => id.AsSpan().SequenceEqual(schedule.MenuVersionId)))
+                .Select(schedule => schedule.MenuScheduleId)
+                .ToList()
+            : await context.Menuschedules.AsNoTracking()
+                .Where(schedule => schedule.MenuVersionId != null && versionIds.Contains(schedule.MenuVersionId))
+                .Select(schedule => schedule.MenuScheduleId)
+                .ToListAsync(token);
+        var menuScheduleIds = contributors.Select(contributor => contributor.MenuScheduleId)
+            .Concat(versionScheduleIds)
+            .DistinctBy(Convert.ToHexString)
+            .ToList();
         var quantityPlanLineIds = contributors.Select(contributor => contributor.MealQuantityPlanLineId).ToList();
         var dishBomIds = contributors.Select(contributor => contributor.DishBomId).ToList();
         var quantitySources = await context.Mealquantityplanlines.AsNoTracking()
@@ -235,28 +309,46 @@ public sealed class ReconciliationBatchService(
         var quantityPlanIds = quantitySources.Select(source => source.QuantityPlanId).ToList();
         var menuIds = quantitySources.Select(source => source.MenuId).ToList();
 
-        var audits = await context.Auditlogs.AsNoTracking()
-            .Where(audit => audit.EntityId != null && (
-                (audit.EntityName == nameof(MenuVersion) && audit.EntityId == batch.MenuVersionId)
-                || (audit.EntityName == nameof(QuantityImportBatch) && audit.EntityId == batch.QuantityImportBatchId)
-                || ((audit.EntityName == nameof(MenuItem) || audit.EntityName == nameof(MenuSchedule)) && menuScheduleIds.Contains(audit.EntityId))
-                || (audit.EntityName == nameof(MealQuantityPlanLine) && quantityPlanLineIds.Contains(audit.EntityId))
-                || (audit.EntityName == nameof(MealQuantityPlan) && quantityPlanIds.Contains(audit.EntityId))
-                || (audit.EntityName == nameof(Menu) && menuIds.Contains(audit.EntityId))
-                || (audit.EntityName == nameof(DishBom) && dishBomIds.Contains(audit.EntityId))))
-            .ToListAsync(token);
-        var changes = audits.Select(audit => new ReconciliationSourceChangeDto(
-                GuidHelper.ToGuidString(audit.AuditId), audit.ChangedAt,
-                GuidHelper.ToGuidString(audit.ChangedBy),
-                audit.BusinessArea, audit.EntityName, GuidHelper.ToGuidString(audit.EntityId!),
-                audit.FieldName, audit.OldValue, audit.NewValue, audit.Reason))
-            .ToList();
+        var audits = isInMemory
+            ? (await context.Auditlogs.AsNoTracking().Where(audit => audit.EntityId != null).ToListAsync(token))
+                .Where(audit =>
+                    (audit.EntityName == nameof(MenuVersion) && versionIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!)))
+                    || (audit.EntityName == nameof(MenuAmendment) && amendmentIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!)))
+                    || (audit.EntityName == nameof(ReconciliationSourceRevision) && revisionIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!)))
+                    || (audit.EntityName == nameof(QuantityImportBatch) && batch.QuantityImportBatchId.AsSpan().SequenceEqual(audit.EntityId!))
+                    || ((audit.EntityName == nameof(MenuItem) || audit.EntityName == nameof(MenuSchedule)) && menuScheduleIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!)))
+                    || (audit.EntityName == nameof(MealQuantityPlanLine) && quantityPlanLineIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!)))
+                    || (audit.EntityName == nameof(MealQuantityPlan) && quantityPlanIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!)))
+                    || (audit.EntityName == nameof(Menu) && menuIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!)))
+                    || (audit.EntityName == nameof(DishBom) && dishBomIds.Any(id => id.AsSpan().SequenceEqual(audit.EntityId!))))
+                .ToList()
+            : await context.Auditlogs.AsNoTracking()
+                .Where(audit => audit.EntityId != null && (
+                    (audit.EntityName == nameof(MenuVersion) && versionIds.Contains(audit.EntityId))
+                    || (audit.EntityName == nameof(MenuAmendment) && amendmentIds.Contains(audit.EntityId))
+                    || (audit.EntityName == nameof(ReconciliationSourceRevision) && revisionIds.Contains(audit.EntityId))
+                    || (audit.EntityName == nameof(QuantityImportBatch) && audit.EntityId == batch.QuantityImportBatchId)
+                    || ((audit.EntityName == nameof(MenuItem) || audit.EntityName == nameof(MenuSchedule)) && menuScheduleIds.Contains(audit.EntityId))
+                    || (audit.EntityName == nameof(MealQuantityPlanLine) && quantityPlanLineIds.Contains(audit.EntityId))
+                    || (audit.EntityName == nameof(MealQuantityPlan) && quantityPlanIds.Contains(audit.EntityId))
+                    || (audit.EntityName == nameof(Menu) && menuIds.Contains(audit.EntityId))
+                    || (audit.EntityName == nameof(DishBom) && dishBomIds.Contains(audit.EntityId))))
+                .ToListAsync(token);
         var adjustments = await context.Bomadjustments.AsNoTracking()
             .Where(adjustment => dishBomIds.Contains(adjustment.BomId))
             .ToListAsync(token);
+        var actorNames = await LoadActorNamesAsync(
+            audits.Select(audit => audit.ChangedBy).Concat(adjustments.Select(adjustment => adjustment.AdjustedBy)).ToList(),
+            token);
+        var changes = audits.Select(audit => new ReconciliationSourceChangeDto(
+                GuidHelper.ToGuidString(audit.AuditId), audit.ChangedAt,
+                actorNames.GetValueOrDefault(Convert.ToHexString(audit.ChangedBy)) ?? GuidHelper.ToGuidString(audit.ChangedBy),
+                audit.BusinessArea, audit.EntityName, GuidHelper.ToGuidString(audit.EntityId!),
+                audit.FieldName, audit.OldValue, audit.NewValue, audit.Reason))
+            .ToList();
         changes.AddRange(adjustments.Select(adjustment => new ReconciliationSourceChangeDto(
             GuidHelper.ToGuidString(adjustment.BomAdjustmentId), adjustment.AdjustedAt,
-            GuidHelper.ToGuidString(adjustment.AdjustedBy),
+            actorNames.GetValueOrDefault(Convert.ToHexString(adjustment.AdjustedBy)) ?? GuidHelper.ToGuidString(adjustment.AdjustedBy),
             "BOM", nameof(BomAdjustment), GuidHelper.ToGuidString(adjustment.BomId),
             "QuantityAndWaste",
             FormatBomAdjustmentValue(adjustment.OldGrossQtyPerServing, adjustment.OldWasteRatePercent),
@@ -274,54 +366,8 @@ public sealed class ReconciliationBatchService(
             .ToList();
     }
 
-    public async Task<IReadOnlyList<ReconciliationBatchDishSummaryDto>> ListDishesAsync(string id, CancellationToken token = default)
-    {
-        var batchId = RequiredId(id);
-        var linesQuery = context.Reconciliationbatchlines.AsNoTracking()
-            .Include(line => line.Ingredient)
-            .Include(line => line.CanonicalUnit)
-            .Include(line => line.Contributors);
-        var lines = context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory"
-            ? context.ChangeTracker.Entries<ReconciliationBatchLine>().Select(entry => entry.Entity).Where(line => line.BatchId.AsSpan().SequenceEqual(batchId)).ToList()
-            : await linesQuery.Where(line => line.BatchId == batchId).ToListAsync(token);
-        if (lines.Count == 0) throw new KeyNotFoundException("Không tìm thấy lô đối chiếu.");
-
-        var dailyLines = context.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory"
-            ? context.ChangeTracker.Entries<ReconciliationBatchDailyLine>().Select(entry => entry.Entity).Where(line => line.BatchId.AsSpan().SequenceEqual(batchId)).ToList()
-            : await context.Reconciliationbatchdailylines.AsNoTracking().Where(line => line.BatchId == batchId).ToListAsync(token);
-        var dailyLinesById = dailyLines.ToDictionary(line => Convert.ToHexString(line.DailyLineId), StringComparer.Ordinal);
-        var contributors = lines.SelectMany(line => line.Contributors.Select(contributor => new { Line = line, Contributor = contributor })).ToList();
-        if (contributors.Any(item => item.Contributor.DailyLineId is null || !dailyLinesById.ContainsKey(Convert.ToHexString(item.Contributor.DailyLineId)) || item.Contributor.DishId is null
-            || string.IsNullOrWhiteSpace(item.Contributor.FrozenDishCode) || string.IsNullOrWhiteSpace(item.Contributor.FrozenDishName)
-            || string.IsNullOrWhiteSpace(item.Contributor.FrozenShiftName) || item.Contributor.FrozenServings is null || item.Contributor.FrozenBomQuantityPerServing is null))
-            throw new BusinessRuleException("KITCHEN_FROZEN_LINEAGE_MISSING");
-
-        return contributors
-            .GroupBy(item => Convert.ToHexString(item.Contributor.DishId!))
-            .Select(dishGroup =>
-            {
-                var first = dishGroup.First().Contributor;
-                var materials = dishGroup
-                    .GroupBy(item => new { Daily = Convert.ToHexString(item.Contributor.DailyLineId!), Line = Convert.ToHexString(item.Line.BatchLineId) })
-                    .Select(group =>
-                    {
-                        var facts = group.Select(item => new { item.Contributor.FrozenBomQuantityPerServing, item.Contributor.FrozenWasteRatePercent }).Distinct().ToList();
-                        if (facts.Count != 1) throw new BusinessRuleException("KITCHEN_FROZEN_LINEAGE_AMBIGUOUS");
-                        var item = group.First();
-                        return new ReconciliationBatchDishMaterialDto(
-                            GuidHelper.ToGuidString(item.Line.BatchLineId), GuidHelper.ToGuidString(item.Line.IngredientId), item.Line.Ingredient?.IngredientCode,
-                            item.Line.Ingredient?.IngredientName, GuidHelper.ToGuidString(item.Line.CanonicalUnitId), item.Line.CanonicalUnit?.UnitName,
-                            facts[0].FrozenBomQuantityPerServing!.Value, GuidHelper.ToGuidString(item.Contributor.DailyLineId!), dailyLinesById[Convert.ToHexString(item.Contributor.DailyLineId!)].ServiceDate.ToString("yyyy-MM-dd"));
-                    }).OrderBy(material => material.ServiceDate).ThenBy(material => material.IngredientName).ToList();
-                var scopes = dishGroup
-                    .GroupBy(item => new { ServiceDate = dailyLinesById[Convert.ToHexString(item.Contributor.DailyLineId!)].ServiceDate, item.Contributor.FrozenShiftName, item.Contributor.FrozenServings })
-                    .Select(group => new ReconciliationBatchDishScopeDto(group.Key.ServiceDate.ToString("yyyy-MM-dd"), group.Key.FrozenShiftName!, group.Key.FrozenServings!.Value, group.Key.FrozenServings.Value, 0))
-                    .OrderBy(scope => scope.ServiceDate).ThenBy(scope => scope.ShiftName).ToList();
-                return new ReconciliationBatchDishSummaryDto(GuidHelper.ToGuidString(first.DishId!), first.FrozenDishCode!, first.FrozenDishName!, materials, scopes);
-            })
-            .OrderBy(dish => dish.DishName)
-            .ToList();
-    }
+    public Task<IReadOnlyList<ReconciliationBatchDishSummaryDto>> ListDishesAsync(string id, CancellationToken token = default) =>
+        ReconciliationBatchQueryProjector.ListDishesAsync(context, id, RequiredId, token);
 
     public async Task<ReconciliationBatchDto> CreateDraftAsync(CreateReconciliationDraftRequest request, string actorId, CancellationToken token = default)
     {
@@ -385,7 +431,7 @@ public sealed class ReconciliationBatchService(
 
         var sourceLines = await context.Mealquantityplanlines
             .Where(x => x.QuantityPlan.ImportBatchId == importBatchId && x.MenuSchedule.MenuVersionId == menuVersionId)
-            .Include(x => x.MenuSchedule)
+            .Include(x => x.QuantityPlan).Include(x => x.MenuSchedule)
             .Include(x => x.Menu).ThenInclude(x => x.Menuitems).ThenInclude(x => x.Dish).ThenInclude(x => x.Dishboms).ThenInclude(x => x.Unit)
             .Include(x => x.Menu).ThenInclude(x => x.Menuitems).ThenInclude(x => x.Dish).ThenInclude(x => x.Dishboms).ThenInclude(x => x.Ingredient).ThenInclude(x => x.Unit)
             .AsSplitQuery()
@@ -440,20 +486,9 @@ public sealed class ReconciliationBatchService(
                         line.DailyLines.Add(dailyLine);
                     }
                     dailyLine.RequiredQuantity += material.RequiredQuantity;
-                    line.Contributors.Add(new ReconciliationBatchContributor
-                    {
-                        ContributorId = GuidHelper.NewId(), BatchLineId = line.BatchLineId, DailyLineId = dailyLine.DailyLineId,
-                        MenuScheduleId = projectedSource.Source.MenuScheduleId,
-                        MealQuantityPlanLineId = projectedSource.Source.QuantityPlanLineId,
-                        DishBomId = bom.BomId, DishId = dish.MenuItem.DishId,
-                        FrozenShiftName = projectedSource.Source.ShiftName,
-                        FrozenDishCode = dish.MenuItem.Dish.DishCode,
-                        FrozenDishName = dish.MenuItem.Dish.DishName,
-                        FrozenServings = projectedSource.Source.FinalServings,
-                        FrozenBomQuantityPerServing = bom.GrossQtyPerServing,
-                        FrozenWasteRatePercent = bom.WasteRatePercent,
-                        SourceQuantity = material.RequiredQuantity
-                    });
+                    // Contributor dùng chung với tính lại lô (MrxBatchRecomputer) để không lệch lineage/biến thể.
+                    line.Contributors.Add(MrxBatchRecomputer.CreateContributor(
+                        line, dailyLine, MrxBatchRecomputer.ContributionFrom(projectedSource, dish, material)));
                 }
             }
         }
@@ -479,16 +514,16 @@ public sealed class ReconciliationBatchService(
             async operationToken =>
             {
                 var batch = await context.Reconciliationbatches
-                    .Include(x => x.Lines).ThenInclude(x => x.Contributors)
+                    .Include(x => x.Lines).ThenInclude(x => x.Contributors.Where(contributor => contributor.InvalidatedAt == null))
                     .Include(x => x.Lines).ThenInclude(x => x.DailyLines)
                     .SingleOrDefaultAsync(x => x.BatchId == bytes, operationToken) ?? throw new KeyNotFoundException();
                 context.Entry(batch).Property(x => x.Version).OriginalValue = request.ExpectedVersion;
                 if (batch.Status != "DRAFT" || batch.Version != request.ExpectedVersion) throw new DbUpdateConcurrencyException("Lô đối chiếu đã thay đổi.");
-                if (batch.Lines.Count == 0 || batch.Lines.Any(x =>
-                        x.RequiredQuantity <= 0
-                        || x.FrozenTolerance < 0
-                        || x.DailyLines.Count == 0
-                        || x.DailyLines.Any(daily => daily.RequiredQuantity <= 0)
+                var activeLines = batch.Lines.Where(x => x.RequiredQuantity > 0).ToList();
+                if (activeLines.Count == 0 || activeLines.Any(x =>
+                        x.FrozenTolerance < 0
+                        || x.DailyLines.Count(daily => daily.RequiredQuantity > 0) == 0
+                        || x.DailyLines.Any(daily => daily.RequiredQuantity < 0)
                         || decimal.Round(x.DailyLines.Sum(daily => daily.RequiredQuantity), 6, MidpointRounding.AwayFromZero) != decimal.Round(x.RequiredQuantity, 6, MidpointRounding.AwayFromZero)
                         || x.Contributors.Count == 0
                         || x.Contributors.Any(contributor => contributor.DailyLineId is null || contributor.SourceQuantity <= 0)))
@@ -587,7 +622,7 @@ public sealed class ReconciliationBatchService(
 
     private static ReconciliationWarehouseTransferDto MapTransfer(ReconciliationBatch batch) =>
         new(GuidHelper.ToGuidString(batch.BatchId), batch.Status, batch.Version,
-            batch.Lines.OrderBy(line => Convert.ToHexString(line.BatchLineId)).Select(line =>
+            batch.Lines.Where(line => line.RequiredQuantity > 0).OrderBy(line => Convert.ToHexString(line.BatchLineId)).Select(line =>
                 new ReconciliationWarehouseTransferLineDto(
                     GuidHelper.ToGuidString(line.BatchLineId), GuidHelper.ToGuidString(line.IngredientId),
                     line.Ingredient?.IngredientCode, line.Ingredient?.IngredientName,
@@ -639,7 +674,7 @@ public sealed class ReconciliationBatchService(
         if (string.IsNullOrWhiteSpace(source.BaseUnitCode) || string.IsNullOrWhiteSpace(target.BaseUnitCode)
             || !string.Equals(source.BaseUnitCode, target.BaseUnitCode, StringComparison.OrdinalIgnoreCase)
             || source.ConvertRateToBase <= 0 || target.ConvertRateToBase <= 0)
-            throw new InvalidOperationException("Đơn vị nguyên liệu chưa có quy đổi chuẩn hợp lệ.");
+            throw new BusinessRuleException("Đơn vị nguyên liệu chưa có quy đổi chuẩn hợp lệ.");
         return quantity * source.ConvertRateToBase / target.ConvertRateToBase;
     }
 
@@ -666,7 +701,7 @@ public sealed class ReconciliationBatchService(
         (string? CustomerId, string? CustomerName, string? CustomerCode)? customer = null,
         DateOnly? weekStartDate = null) =>
         new(GuidHelper.ToGuidString(batch.BatchId), GuidHelper.ToGuidString(batch.MenuVersionId), GuidHelper.ToGuidString(batch.QuantityImportBatchId), batch.Status, batch.Version, batch.CreatedAt, batch.ReadyAt, batch.CompletedAt,
-            (explicitLines ?? batch.Lines.ToList()).Select(line => ReconciliationComparisonService.Map(
+            (explicitLines ?? batch.Lines.ToList()).Where(line => line.RequiredQuantity > 0).Select(line => ReconciliationComparisonService.Map(
                 line,
                 actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
                 dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
@@ -685,91 +720,74 @@ public sealed class ReconciliationBatchService(
 
     internal static byte[] RequiredId(string id) => GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("ID không hợp lệ.");
 
-    private async Task<(string? CustomerId, string? CustomerName, string? CustomerCode)?> TryGetCustomerAsync(byte[] menuVersionId, CancellationToken token)
+    private async Task<DateOnly?> TryGetWeekStartDateAsync(byte[] menuVersionId, CancellationToken token)
     {
-        if (context.Model.FindEntityType(typeof(MenuVersion)) is null)
-            return null;
-
+        if (context.Model.FindEntityType(typeof(MenuVersion)) is null) return null;
         var menuVersion = await context.Menuversions.AsNoTracking()
             .Where(mv => mv.MenuVersionId == menuVersionId)
-            .Select(mv => new { mv.CustomerId })
+            .Select(mv => new { mv.WeekStartDate })
             .SingleOrDefaultAsync(token);
+        return menuVersion?.WeekStartDate;
+    }
 
-        if (menuVersion is null)
-            return null;
+    private async Task<IReadOnlyDictionary<string, string>> LoadActorNamesAsync(
+        IReadOnlyList<byte[]> actorIds,
+        CancellationToken token)
+    {
+        if (actorIds.Count == 0 || context.Model.FindEntityType(typeof(User)) is null)
+            return new Dictionary<string, string>(StringComparer.Ordinal);
+        var distinctIds = actorIds.DistinctBy(Convert.ToHexString).ToList();
+        var users = string.Equals(context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal)
+            ? (await context.Users.AsNoTracking().ToListAsync(token))
+                .Where(user => distinctIds.Any(id => id.AsSpan().SequenceEqual(user.UserId))).ToList()
+            : await context.Users.AsNoTracking().Where(user => distinctIds.Contains(user.UserId)).ToListAsync(token);
+        return users.ToDictionary(
+            user => Convert.ToHexString(user.UserId),
+            user => user.FullName ?? user.Username,
+            StringComparer.Ordinal);
+    }
 
+    private async Task<(string? CustomerId, string? CustomerName, string? CustomerCode)?> TryGetCustomerAsync(byte[] menuVersionId, CancellationToken token)
+    {
+        if (context.Model.FindEntityType(typeof(MenuVersion)) is null) return null;
+        var menuVersion = await context.Menuversions.AsNoTracking().Where(mv => mv.MenuVersionId == menuVersionId).Select(mv => new { mv.CustomerId }).SingleOrDefaultAsync(token);
+        if (menuVersion is null) return null;
         var customerId = GuidHelper.ToGuidString(menuVersion.CustomerId);
-
-        if (context.Model.FindEntityType(typeof(Customer)) is null)
-            return (customerId, null, null);
-
-        var customer = await context.Customers.AsNoTracking()
-            .Where(c => c.CustomerId == menuVersion.CustomerId)
-            .Select(c => new { c.CustomerName, c.CustomerCode })
-            .SingleOrDefaultAsync(token);
-
+        if (context.Model.FindEntityType(typeof(Customer)) is null) return (customerId, null, null);
+        var customer = await context.Customers.AsNoTracking().Where(c => c.CustomerId == menuVersion.CustomerId).Select(c => new { c.CustomerName, c.CustomerCode }).SingleOrDefaultAsync(token);
         return (customerId, customer?.CustomerName, customer?.CustomerCode);
     }
 
     private async Task<IReadOnlyDictionary<string, DateOnly>> LoadWeeksForBatchesAsync(IReadOnlyList<ReconciliationBatch> batches, CancellationToken token)
     {
-        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null)
-            return new Dictionary<string, DateOnly>(StringComparer.Ordinal);
+        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null) return new Dictionary<string, DateOnly>(StringComparer.Ordinal);
         var menuVersionIds = batches.Select(batch => batch.MenuVersionId).Distinct().ToList();
-        return await context.Menuversions.AsNoTracking()
-            .Where(version => menuVersionIds.Contains(version.MenuVersionId))
-            .ToDictionaryAsync(version => Convert.ToHexString(version.MenuVersionId), version => version.WeekStartDate, StringComparer.Ordinal, token);
+        return await context.Menuversions.AsNoTracking().Where(version => menuVersionIds.Contains(version.MenuVersionId)).ToDictionaryAsync(version => Convert.ToHexString(version.MenuVersionId), version => version.WeekStartDate, StringComparer.Ordinal, token);
     }
 
-    private async Task<IReadOnlyDictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>> LoadCustomersForBatchesAsync(
-        IReadOnlyList<ReconciliationBatch> batches,
-        CancellationToken token)
+    private async Task<IReadOnlyDictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>> LoadCustomersForBatchesAsync(IReadOnlyList<ReconciliationBatch> batches, CancellationToken token)
     {
         var result = new Dictionary<string, (string? CustomerId, string? CustomerName, string? CustomerCode)>(StringComparer.Ordinal);
-        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null)
-            return result;
-
+        if (batches.Count == 0 || context.Model.FindEntityType(typeof(MenuVersion)) is null) return result;
         var menuVersionIds = batches.Select(x => x.MenuVersionId).Distinct().ToList();
-        var menuVersions = await context.Menuversions.AsNoTracking()
-            .Where(mv => menuVersionIds.Contains(mv.MenuVersionId))
-            .Select(mv => new { mv.MenuVersionId, mv.CustomerId })
-            .ToListAsync(token);
-
-        if (menuVersions.Count == 0)
-            return result;
-
+        var menuVersions = await context.Menuversions.AsNoTracking().Where(mv => menuVersionIds.Contains(mv.MenuVersionId)).Select(mv => new { mv.MenuVersionId, mv.CustomerId }).ToListAsync(token);
+        if (menuVersions.Count == 0) return result;
         Dictionary<string, (string CustomerName, string CustomerCode)>? customerLookup = null;
         if (context.Model.FindEntityType(typeof(Customer)) is not null)
         {
             var customerIds = menuVersions.Select(mv => mv.CustomerId).Distinct().ToList();
-            var customers = await context.Customers.AsNoTracking()
-                .Where(c => customerIds.Contains(c.CustomerId))
-                .Select(c => new { c.CustomerId, c.CustomerName, c.CustomerCode })
-                .ToListAsync(token);
-            customerLookup = customers.ToDictionary(
-                c => Convert.ToHexString(c.CustomerId),
-                c => (c.CustomerName, c.CustomerCode),
-                StringComparer.Ordinal
-            );
+            var customers = await context.Customers.AsNoTracking().Where(c => customerIds.Contains(c.CustomerId)).Select(c => new { c.CustomerId, c.CustomerName, c.CustomerCode }).ToListAsync(token);
+            customerLookup = customers.ToDictionary(c => Convert.ToHexString(c.CustomerId), c => (c.CustomerName, c.CustomerCode), StringComparer.Ordinal);
         }
-
         foreach (var mv in menuVersions)
         {
-            string? name = null;
-            string? code = null;
+            string? name = null, code = null;
             if (customerLookup is not null && customerLookup.TryGetValue(Convert.ToHexString(mv.CustomerId), out var cInfo))
             {
-                name = cInfo.CustomerName;
-                code = cInfo.CustomerCode;
+                name = cInfo.CustomerName; code = cInfo.CustomerCode;
             }
-
-            result[Convert.ToHexString(mv.MenuVersionId)] = (
-                GuidHelper.ToGuidString(mv.CustomerId),
-                name,
-                code
-            );
+            result[Convert.ToHexString(mv.MenuVersionId)] = (GuidHelper.ToGuidString(mv.CustomerId), name, code);
         }
-
         return result;
     }
 }
