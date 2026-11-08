@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-07",
+  "status": "AUTHORIZED",
+  "phase27Verdict": "PASS",
+  "changes": [
+    {
+      "path": ".planning/REQUIREMENTS.md",
+      "beforeSha256": "443b1c0050924b88b276e87ae4c9e572e858875c663b6212aa7b1f56f79a98e4",
+      "afterSha256": "3f57a6326e766d3465f4296030edba25111a7a6276f563c018dc35c0d118f61a"
+    },
+    {
+      "path": ".planning/ROADMAP.md",
+      "beforeSha256": "c63be70d6ffd0b3e7d5502dc83c025edacee7d8f0b044464598772ab3fcba7d1",
+      "afterSha256": "fe7f4aec071b851409ffe1c705a883a4a59dd459dca98ec5d97c9b7429dc05bd"
+    },
+    {
+      "path": ".planning/phases/27-warehouse-data-workspace-contract-pilot/27-VERIFICATION.md",
+      "beforeSha256": null,
+      "afterSha256": "e6a234808e906a2bc82db04987016b60ff4ac055f2b29703fbf1b17265054c21"
+    },
+    {
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-VERIFICATION.md",
+      "beforeSha256": null,
+      "afterSha256": "9e1a9df0bf96333dafea597c78bd8ac04dba0f9a2b67cd93be2158ac20ab206f"
+    }
+  ]
+}

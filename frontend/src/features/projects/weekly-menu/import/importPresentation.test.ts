@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import { DEFAULT_BOM_PRICE_TIER } from '../../weeklyMenuPlanning'
 import type { WeeklyMenuImportJob } from '../model/types'
 import { buildImportPresentation } from './importPresentation'
@@ -41,6 +41,10 @@ const job = {
 } as WeeklyMenuImportJob
 
 describe('weekly menu import presentation', () => {
+  it('does not fall back to fixed sample dates when a preview has no day columns', () => {
+    const result = buildImportPresentation(job, [], '2026-07-20')
+    expect(result.displayDays.every((day) => day.date === '')).toBe(true)
+  })
   it('keeps warning-only validation messages out of the blocking error panel', () => {
     const result = buildImportPresentation(job, [], '2026-07-20')
 

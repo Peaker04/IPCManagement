@@ -80,6 +80,30 @@
   max-width: none;
 }
 
+/* Phase 28 route-owner contrast overrides. IDs keep these rules local to the audited controls. */
+:is(
+  #approval-inbox-search,
+  #coordination-order-search,
+  #report-filter-from,
+  #report-filter-to,
+  #price-variance-search,
+  #report-demand-search,
+  #report-purchase-search,
+  #report-stock-search,
+  #report-movement-search,
+  #warehouse-current-stock-search,
+  #warehouse-stock-movement-search,
+  #weekly-purchase-search
+)::placeholder,
+.ipc-weekly-menu-shell input::placeholder {
+  color: #475569 !important;
+  opacity: 1;
+}
+
+.ipc-weekly-menu-shell .is-warning > dt {
+  color: #1e293b !important;
+}
+
 .ipc-weekly-pricing-context {
   display: grid;
   gap: var(--ipc-space-2);
@@ -157,11 +181,10 @@
 }
 
 .ipc-weekly-readiness-summary > div {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 1px var(--ipc-space-2);
-  align-items: baseline;
+  gap: 2px;
 }
 
 .ipc-weekly-readiness-summary span {
@@ -183,12 +206,11 @@
 
 .ipc-weekly-readiness-summary small {
   grid-column: 1 / -1;
-  overflow: hidden;
   color: var(--ipc-slate-600);
   font-size: 0.75rem;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .ipc-weekly-readiness.is-info .ipc-weekly-readiness-summary {
@@ -342,6 +364,9 @@
     line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    min-width: 1.5rem;
   }
 
   .ipc-redesign-shell .ipc-context-badge.is-success:not(.is-quiet) {
@@ -398,4 +423,19 @@
 
 .ipc-redesign-shell .ipc-material-demand-table {
   min-width: 760px;
+}
+
+@keyframes ipcTabFadeIn {
+  0% {
+    opacity: 0.3;
+    transform: translateY(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ipc-tab-panel-enter {
+  animation: ipcTabFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }

@@ -17,6 +17,49 @@ public class StockLedgerServiceTests
     private readonly IStockMovementRepository _stockMovementRepository = Substitute.For<IStockMovementRepository>();
 
     [Fact]
+    public async Task CurrentStockRepository_Should_Reuse_StagedStock_WithTheSameCompositeKey()
+    {
+        await using var fixture = await LotFixture.CreateAsync();
+        var repository = new CurrentStockRepository(fixture.Context);
+        var warehouseId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var staged = new CurrentStock
+        {
+            WarehouseId = warehouseId,
+            IngredientId = ingredientId,
+            UnitId = GuidHelper.NewId(),
+            CurrentQty = 2m,
+            LastUpdated = DateTime.UtcNow
+        };
+        repository.Add(staged);
+
+        var resolved = await repository.GetByWarehouseAndIngredientAsync(warehouseId, ingredientId);
+
+        resolved.Should().BeSameAs(staged);
+        fixture.Context.ChangeTracker.Entries<CurrentStock>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task CurrentStockRepository_Should_Not_Change_StagedStock_ToModified()
+    {
+        await using var fixture = await LotFixture.CreateAsync();
+        var repository = new CurrentStockRepository(fixture.Context);
+        var staged = new CurrentStock
+        {
+            WarehouseId = GuidHelper.NewId(),
+            IngredientId = GuidHelper.NewId(),
+            UnitId = GuidHelper.NewId(),
+            CurrentQty = 2m,
+            LastUpdated = DateTime.UtcNow
+        };
+        repository.Add(staged);
+
+        repository.Update(staged);
+
+        fixture.Context.Entry(staged).State.Should().Be(EntityState.Added);
+    }
+
+    [Fact]
     public async Task RemoveStockWithCheckAsync_Should_DecreaseCurrentStockAtomically_Then_RecordMovement()
     {
         var service = new StockLedgerService(_currentStockRepository, _stockMovementRepository);

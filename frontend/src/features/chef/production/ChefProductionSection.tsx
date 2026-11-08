@@ -1,92 +1,92 @@
-import { ClipboardList, ShieldCheck } from 'lucide-react'
-import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
-import { formatQuantityWithUnit } from '@/lib/formatters'
-import { getChefReadiness } from '../chefReadiness'
-import type { DailyPlanLine } from './chefProductionModel'
+import { ClipboardList, ShieldCheck } from 'lucide-react';
+import { SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { formatQuantityWithUnit } from '@/lib/formatters';
+import { getChefReadiness } from '../chefReadiness';
+import { formatShiftName } from '@/lib/workflowConfig';
+import type { DailyPlanLine } from './chefProductionModel';
 
 type Props = {
-  lines: DailyPlanLine[]
-  isSending: boolean
-  isLocked: boolean
-  isLoading: boolean
-  isError: boolean
-  totalPlans: number
-  sentPlans: number
-  onReceivePlan: () => Promise<void>
-}
+  lines: DailyPlanLine[];
+  isSending: boolean;
+  isLoading: boolean;
+  isError: boolean;
+  totalPlans: number;
+  sentPlans: number;
+  onReceivePlan: () => Promise<void>;
+};
 
 const bomScopeLabels: Record<string, string> = {
   global: 'Dùng chung',
   customer: 'Theo khách hàng',
   standard: 'Tiêu chuẩn',
-}
+};
 
-const formatBomScope = (scope?: string | null) => scope ? bomScopeLabels[scope.toLowerCase()] ?? 'Theo cấu hình' : 'Theo cấu hình'
+const formatBomScope = (scope?: string | null) => (scope ? (bomScopeLabels[scope.toLowerCase()] ?? 'Theo cấu hình') : 'Theo cấu hình');
 
-export function ChefProductionSection({
-  lines,
-  isSending,
-  isLocked,
-  isLoading,
-  isError,
-  totalPlans,
-  sentPlans,
-  onReceivePlan,
-}: Props) {
-  const isComplete = totalPlans > 0 && sentPlans >= totalPlans
-  const canReceivePlan = isLocked && !isLoading && !isError && totalPlans > 0 && !isComplete
-  const blockedReason = isLoading
-    ? 'Đang kiểm tra kế hoạch sản xuất.'
-    : isError
-      ? 'Chưa tải được kế hoạch sản xuất. Thử lại trước khi xác nhận.'
-      : !isLocked
-        ? 'Ca chưa chốt. Bếp chỉ được xem trước kế hoạch.'
-        : totalPlans === 0
-          ? 'Chưa có kế hoạch sản xuất cho ngày/ca này.'
-          : undefined
+export function ChefProductionSection({ lines, isSending, isLoading, isError, totalPlans, sentPlans, onReceivePlan }: Props) {
+  const isComplete = totalPlans > 0 && sentPlans >= totalPlans;
+  const canReceivePlan = !isLoading && !isError && totalPlans > 0 && !isComplete;
 
   return (
     <SectionPanel
-      title="Kế hoạch trong ngày đã gửi bếp"
+      title="Kế hoạch điều phối trong ngày"
       icon={<ClipboardList size={18} />}
-      badge={(
+      description="Kế hoạch sản xuất và phân bổ số suất theo từng ca phục vụ trong ngày của bếp."
+      badge={
         isComplete ? (
-          <StatusBadge variant="success">Kế hoạch đã gửi bếp</StatusBadge>
+          <StatusBadge variant="success">Kế hoạch đã đồng bộ</StatusBadge>
         ) : (
-          <button className="ipc-button ipc-button-primary" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
+          <Button size="sm" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
             <ShieldCheck size={15} aria-hidden="true" />
             {isSending ? 'Đang nhận...' : 'Nhận kế hoạch'}
-          </button>
+          </Button>
         )
-      )}
+      }
     >
-      {blockedReason ? <p className="mb-3 text-[12px] leading-[1.4] text-slate-600" role="status">{blockedReason}</p> : null}
-      <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch sản xuất gửi bếp" caption="Kế hoạch sản xuất trong ngày đã gửi bếp">
-        <table className="ipc-data-table ipc-status-action-table">
+      <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch điều phối trong ngày" caption="Kế hoạch điều phối trong ngày">
+        <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full min-w-[900px]">
           <thead>
             <tr>
-              <th>Kế hoạch</th><th>Khách hàng</th><th>Món</th><th>Ca</th>
-              <th>Suất</th><th>Định lượng</th><th>Thiếu</th><th>Trạng thái</th>
+              <th className="text-left">Kế hoạch</th>
+              <th className="text-left">Khách hàng</th>
+              <th className="text-left">Món</th>
+              <th className="text-left">Ca</th>
+              <th className="text-right">Số suất</th>
+              <th className="text-left">Định lượng</th>
+              <th className="text-right">Mua dự kiến</th>
+              <th className="text-center">Trạng thái</th>
             </tr>
           </thead>
           <tbody>
             {lines.length === 0 ? (
-              <tr><td colSpan={8} className="py-8 text-center text-slate-500">Chưa có kế hoạch cho ngày/ca này.</td></tr>
-            ) : lines.map((line) => {
-              const readiness = getChefReadiness(line)
-              return (
-                <tr key={`${line.planCode}-${line.planLineId}`}>
-                  <td>{line.planCode}</td><td>{line.customerName ?? '-'}</td><td>{line.dishName ?? line.dishId}</td>
-                  <td>{line.shiftName ?? '-'}</td><td className="ipc-numeric-cell">{line.totalServings}</td>
-                  <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
-                  <td className="ipc-numeric-cell">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
-                  <td className="ipc-badge-cell"><StatusBadge variant={readiness.variant}>{readiness.label}</StatusBadge></td>
-                </tr>
-              )
-            })}
+              <tr>
+                <td colSpan={8} className="py-8 text-center text-slate-500">
+                  Chưa có kế hoạch cho ngày/ca này.
+                </td>
+              </tr>
+            ) : (
+              lines.map((line) => {
+                const readiness = getChefReadiness(line);
+                return (
+                  <tr key={`${line.planCode}-${line.planLineId}`}>
+                    <td className="text-left font-semibold text-slate-900">{line.planCode}</td>
+                    <td className="text-left text-slate-800">{line.customerName ?? '-'}</td>
+                    <td className="text-left text-slate-800">{line.dishName ?? line.dishId}</td>
+                    <td className="text-left text-slate-700">{formatShiftName(line.shiftName ?? undefined)}</td>
+                    <td className="text-right tabular-nums font-semibold text-slate-900">{line.totalServings}</td>
+                    <td className="text-left text-slate-700">{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
+                    <td className="text-right tabular-nums text-slate-700">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
+                    <td className="text-center">
+                      <StatusBadge variant={readiness.variant}>{readiness.label}</StatusBadge>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </TableViewport>
     </SectionPanel>
-  )
+  );
 }

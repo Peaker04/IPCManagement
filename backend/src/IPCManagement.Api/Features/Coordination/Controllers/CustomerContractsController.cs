@@ -1,5 +1,6 @@
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -37,10 +38,14 @@ public sealed class CustomerContractsController : ControllerBase
         try
         {
             var result = await _service.CreateCustomerContractAsync(request, _currentUserService.GetUserId(User));
-            return CreatedAtAction(nameof(GetCustomerContractsAsync),
+            return CreatedAtAction("GetCustomerContracts",
                 ApiResponse<CustomerContractDto>.SuccessResult(result, "Đã tạo khách hàng và contract."));
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
@@ -54,12 +59,20 @@ public sealed class CustomerContractsController : ControllerBase
     {
         try
         {
-            var result = await _service.UpdateCustomerContractAsync(id, request, _currentUserService.GetUserId(User));
+            var result = await _service.UpdateCustomerContractAsync(
+                id,
+                request,
+                _currentUserService.GetUserId(User),
+                HttpContext.TraceIdentifier);
             return result is null
                 ? NotFound(ApiResponse.FailResult("Không tìm thấy khách hàng để cập nhật contract."))
                 : Ok(ApiResponse<CustomerContractDto>.SuccessResult(result, "Đã cập nhật contract khách hàng."));
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

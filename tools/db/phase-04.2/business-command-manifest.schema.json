@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ipcmanagement.local/schemas/phase-04.2/business-command-manifest.schema.json",
+  "title": "Phase 04.2 exact business command manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "runId",
+    "targetDatabase",
+    "scriptSha256",
+    "stableSubjectId",
+    "currentFingerprint",
+    "expectedVersion",
+    "commandId",
+    "signerPackageDigest",
+    "appendOnlyOutcome",
+    "expectedMigrationHead",
+    "preflightAssertions",
+    "appendOnlyCommands",
+    "postflightAssertions",
+    "appendOnlyCompensationCommands"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "runId": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "targetDatabase": {
+      "type": "string",
+      "pattern": "^ipc_rehearsal_phase42_[a-z0-9_]+$"
+    },
+    "scriptSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "stableSubjectId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "currentFingerprint": {
+      "$ref": "#/$defs/sha256"
+    },
+    "expectedVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "commandId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "signerPackageDigest": {
+      "$ref": "#/$defs/sha256"
+    },
+    "appendOnlyOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "entityId"],
+      "properties": {
+        "type": {
+          "enum": [
+            "RESOLVED_NO_CHANGE",
+            "CORRECTED",
+            "SUPERSEDED",
+            "CONFIRMED",
+            "RETAIN_DISTINCT",
+            "KEEP_DISTINCT",
+            "APPROVED_EXCEPTION"
+          ]
+        },
+        "entityId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "expectedMigrationHead": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "preflightAssertions": {
+      "type": "string",
+      "minLength": 1
+    },
+    "appendOnlyCommands": {
+      "type": "string",
+      "minLength": 1
+    },
+    "postflightAssertions": {
+      "type": "string",
+      "minLength": 1
+    },
+    "appendOnlyCompensationCommands": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[A-Fa-f0-9]{64}$"
+    }
+  }
+}

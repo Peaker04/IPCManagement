@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
-import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+import type { StatusTone } from '@/lib/statusPresentation'
+import type { WeeklyMenuImportResult } from '@/api/coordinationApi'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import {
   formatImportDate,
@@ -25,15 +26,17 @@ export const importWizardSteps: Array<{ key: ImportWizardStep; label: string; hi
   { key: 'commit', label: 'Lưu thực đơn', hint: 'Lưu các file đã kiểm tra xong' },
 ]
 
-export const getImportJobStatusClass = (status: WeeklyMenuImportJobStatus) =>
-  cn(
-    'inline-flex min-w-[116px] items-center justify-center rounded border px-2 py-1 text-xs font-bold',
-    status === 'committed' && 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    status === 'previewed' && 'border-blue-200 bg-blue-50 text-blue-800',
-    (status === 'previewing' || status === 'committing') && 'border-amber-200 bg-amber-50 text-amber-800',
-    status === 'failed' && 'border-red-200 bg-red-50 text-red-700',
-    status === 'idle' && 'border-slate-200 bg-slate-50 text-slate-700',
-  )
+const importJobStatusTones: Record<WeeklyMenuImportJobStatus, StatusTone> = {
+  idle: 'neutral',
+  previewing: 'warning',
+  previewed: 'info',
+  committing: 'warning',
+  committed: 'success',
+  failed: 'danger',
+}
+
+export const getImportJobStatusTone = (status: WeeklyMenuImportJobStatus): StatusTone =>
+  importJobStatusTones[status]
 
 export const getImportWizardStep = (jobs: WeeklyMenuImportJob[]): ImportWizardStep => {
   if (jobs.some((job) => job.status === 'committed')) return 'commit'
@@ -119,9 +122,9 @@ export const buildImportValidationChecks = (job?: WeeklyMenuImportJob): ImportVa
     },
     { key: 'price-tier', label: 'Định mức BOM', value: formatBomTierLabel(job.priceTierAmount), detail: 'Áp dụng cho toàn bộ file khi lưu menu.', tone: 'success' },
     {
-      key: 'dish', label: 'Món ăn', value: result ? `${result.rows.length - newDishCount} đã có / ${newDishCount} món mới` : 'Chưa kiểm tra',
-      detail: newDishCount > 0 ? 'Món mới sẽ được tạo khi lưu; kiểm tra lại tên món.' : 'Các món trong file đã khớp với danh sách món hiện có.',
-      tone: !result ? 'neutral' : newDishCount > 0 ? 'warning' : 'success',
+      key: 'dish', label: 'Ngân hàng món', value: result ? `${result.rows.length - newDishCount} đã khớp / ${newDishCount} chưa khớp` : 'Chưa kiểm tra',
+      detail: newDishCount > 0 ? 'Sửa tên món trong file để khớp ngân hàng món ăn trước khi lưu.' : 'Các món trong file đã khớp ngân hàng món ăn.',
+      tone: !result ? 'neutral' : newDishCount > 0 ? 'danger' : 'success', blocking: newDishCount > 0,
     },
     {
       key: 'duplicate', label: 'Dòng trùng', value: result ? `${duplicateGroups.length} nhóm trùng` : 'Chưa kiểm tra',

@@ -21,18 +21,21 @@ public class StocktakeService : IStocktakeService
     private readonly IStockLedgerService _stockLedgerService;
     private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public StocktakeService(
         IStocktakeRepository stocktakeRepo,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
         IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver,
         IpcManagementContext? context = null)
     {
         _stocktakeRepo = stocktakeRepo;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
         _context = context;
     }
 
@@ -75,6 +78,7 @@ public class StocktakeService : IStocktakeService
 
     public async Task<PagedResponseDto<StocktakeDto>> GetPagedAsync(StocktakeFilterRequestDto request)
     {
+        request.WarehouseId = GuidHelper.ToGuidString(await ResolveCanonicalWarehouseFilterAsync(request.WarehouseId));
         var (items, totalCount) = await _stocktakeRepo.GetPagedAsync(request);
         return PagedResponseDto<StocktakeDto>.Create(
             items.Select(i => MapStocktake(i, false)),
@@ -95,7 +99,14 @@ public class StocktakeService : IStocktakeService
     {
         if (_context == null) throw new InvalidOperationException("DbContext is null.");
 
-        var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId) ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var warehouseBytes = await _operationalWarehouseResolver.ResolveAsync();
+        if (dto.WarehouseId is not null)
+        {
+            var suppliedWarehouseId = GuidHelper.ParseGuidString(dto.WarehouseId)
+                ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+            if (!suppliedWarehouseId.AsSpan().SequenceEqual(warehouseBytes))
+                throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        }
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
         if (dto.IngredientIds == null || !dto.IngredientIds.Any())
@@ -407,4 +418,15 @@ public class StocktakeService : IStocktakeService
 
         return await GetByIdAsync(id) ?? throw new InvalidOperationException("Lỗi sau khi từ chối.");
     }
+    private async Task<byte[]> ResolveCanonicalWarehouseFilterAsync(string? suppliedWarehouseId)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+            throw new UnauthorizedAccessException("Phạm vi kho không khớp kho vận hành của hệ thống.");
+        return canonicalId;
+    }
+
 }

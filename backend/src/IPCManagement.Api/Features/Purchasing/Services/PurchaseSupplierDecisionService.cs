@@ -3,6 +3,7 @@ using System.Globalization;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -19,13 +20,16 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
 
     private readonly IpcManagementContext _context;
     private readonly IEfTransactionRunner _transactionRunner;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
     public PurchaseSupplierDecisionService(
         IpcManagementContext context,
-        IEfTransactionRunner transactionRunner)
+        IEfTransactionRunner transactionRunner,
+        IOperationalWarehouseResolver operationalWarehouseResolver)
     {
         _context = context;
         _transactionRunner = transactionRunner;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
     public async Task<SupplierEvidenceResultDto> GetSupplierEvidenceAsync(
@@ -239,6 +243,17 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
             throw new ArgumentException("Đơn giá đề xuất phải lớn hơn 0.");
         }
 
+        var receivingWarehouseId = await _operationalWarehouseResolver.ResolveAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(request.ReceivingWarehouseId))
+        {
+            var suppliedWarehouseId = GuidHelper.ParseGuidString(request.ReceivingWarehouseId)
+                ?? throw new ArgumentException("Kho nhận hàng không hợp lệ.");
+            if (!suppliedWarehouseId.AsSpan().SequenceEqual(receivingWarehouseId))
+                throw new BusinessRuleException("Kho nhận hàng không khớp kho vận hành của hệ thống.");
+        }
+
+        var purchasingTerms = string.IsNullOrWhiteSpace(request.PurchasingTerms) ? null : request.PurchasingTerms.Trim();
+
         if (!DateOnly.TryParseExact(
                 request.ProposedDeliveryDate,
                 "yyyy-MM-dd",
@@ -324,10 +339,29 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                     GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
                     evidenceCandidate.UnitPrice,
                     proposedUnitPrice,
-                    proposedDeliveryDate);
+                    proposedDeliveryDate,
+                    receivingWarehouseId,
+                    purchasingTerms);
                 if (currentDecision is not null &&
                     string.Equals(currentDecision.DecisionFingerprint, fingerprint, StringComparison.Ordinal))
                 {
+                    if (!string.Equals(line.Note, exceptionReason, StringComparison.Ordinal))
+                    {
+                        _context.Auditlogs.Add(new AuditLog
+                        {
+                            AuditId = GuidHelper.NewId(),
+                            ChangedAt = DateTime.UtcNow,
+                            ChangedBy = actorId,
+                            BusinessArea = "Purchasing",
+                            EntityName = nameof(PurchaseRequestLine),
+                            EntityId = line.PurchaseRequestLineId,
+                            FieldName = "SupplierDecisionNote",
+                            OldValue = line.Note,
+                            NewValue = exceptionReason,
+                            Reason = "Cập nhật ghi chú cho quyết định nhà cung cấp hiện hành."
+                        });
+                        line.Note = exceptionReason;
+                    }
                     await UpsertPriceExceptionAsync(
                         currentDecision,
                         null,
@@ -367,6 +401,8 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
                     ProposedUnitPrice = proposedUnitPrice,
 
                     ProposedDeliveryDate = proposedDeliveryDate,
+                    ReceivingWarehouseId = receivingWarehouseId,
+                    PurchasingTerms = purchasingTerms,
                     ConfirmedBy = actorId,
                     ConfirmedAt = DateTime.UtcNow,
                     DecisionFingerprint = fingerprint,

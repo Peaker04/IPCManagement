@@ -97,6 +97,19 @@ public class InventoryReturnRepository : GenericRepository<InventoryReturn>, IIn
             .ToDictionary(group => group.Key, group => group.Sum(line => line.Quantity));
     }
 
+    public async Task<Dictionary<string, decimal>> GetReturnedQuantitiesBySourceIssueLineAsync(byte[] issueId)
+    {
+        var lines = await _context.Inventoryreturnlines
+            .AsNoTracking()
+            .Where(line => line.Return.IssueId == issueId && line.SourceIssueLineId != null)
+            .Select(line => new { line.SourceIssueLineId, line.Quantity })
+            .ToListAsync();
+
+        return lines
+            .GroupBy(line => GuidHelper.ToGuidString(line.SourceIssueLineId!))
+            .ToDictionary(group => group.Key, group => DecimalPolicy.RoundQuantity(group.Sum(line => line.Quantity)));
+    }
+
     public static string BuildLineKey(byte[] ingredientId, byte[] unitId)
         => $"{GuidHelper.ToGuidString(ingredientId)}|{GuidHelper.ToGuidString(unitId)}";
 }

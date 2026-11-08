@@ -16,6 +16,7 @@ describe('ToastProvider', () => {
 
     await user.click(screen.getByRole('button', { name: 'Thông báo' }));
     expect(screen.getByRole('status')).toHaveTextContent('Đã lưu');
+    expect(document.querySelectorAll('[aria-live], [role="status"]')).toHaveLength(1);
     await user.click(screen.getByRole('button', { name: 'Đóng thông báo' }));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });

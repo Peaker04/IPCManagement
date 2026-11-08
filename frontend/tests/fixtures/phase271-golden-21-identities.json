@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "goldenIdentityManifestSha256": "d38d28188d46802e3609615184756ff12b70f45e650f56d2fd599309eac9e73b",
+  "identities": [
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1280x900 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-1280x900-expected.png",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 1365x900 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-1365x900-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 390x844 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-390x844-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › Phase 09 deterministic visual seam › 768x1024 › purchasing-phase09 visual baseline",
+      "snapshotName": "purchasing-phase09-768x1024-expected.png",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › admin-data visual baseline",
+      "snapshotName": "admin-data-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › approvals visual baseline",
+      "snapshotName": "approvals-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › chef-dashboard visual baseline",
+      "snapshotName": "chef-dashboard-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › dashboard visual baseline",
+      "snapshotName": "dashboard-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › meal-orders visual baseline",
+      "snapshotName": "meal-orders-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › purchasing visual baseline",
+      "snapshotName": "purchasing-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › reports visual baseline",
+      "snapshotName": "reports-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › desktop › weekly-menu visual baseline",
+      "snapshotName": "weekly-menu-desktop-expected.png",
+      "viewport": {
+        "width": 1365,
+        "height": 900
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › admin-data visual baseline",
+      "snapshotName": "admin-data-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › approvals visual baseline",
+      "snapshotName": "approvals-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › chef-dashboard visual baseline",
+      "snapshotName": "chef-dashboard-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › dashboard visual baseline",
+      "snapshotName": "dashboard-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › login visual baseline",
+      "snapshotName": "login-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › meal-orders visual baseline",
+      "snapshotName": "meal-orders-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › purchasing visual baseline",
+      "snapshotName": "purchasing-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › reports visual baseline",
+      "snapshotName": "reports-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    },
+    {
+      "project": "chromium",
+      "normalizedSpecPath": "tests/visual-routes.spec.ts",
+      "canonicalTitle": "visual-routes.spec.ts › visual routes › mobile › weekly-menu visual baseline",
+      "snapshotName": "weekly-menu-mobile-expected.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      }
+    }
+  ]
+}

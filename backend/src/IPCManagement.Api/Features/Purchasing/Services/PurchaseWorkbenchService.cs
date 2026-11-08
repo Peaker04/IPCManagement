@@ -45,6 +45,10 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
             .OrderBy(item => item.RequestDate)
             .ThenBy(item => item.RequestCode)
             .ToListAsync(cancellationToken);
+        var pendingDemandRows = await BuildApprovedDemandQuery(weekStart, weekEnd, onlyUnattached: true)
+            .OrderBy(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .ToListAsync(cancellationToken);
 
         var purchaseRequests = await _context.Purchaserequests
             .AsNoTracking()
@@ -129,6 +133,9 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
         var demandsByDate = demandRows
             .GroupBy(row => row.RequestDate)
             .ToDictionary(group => group.Key, group => group.ToList());
+        var pendingDemandsByDate = pendingDemandRows
+            .GroupBy(row => row.RequestDate)
+            .ToDictionary(group => group.Key, group => group.ToList());
         var linesByRequest = purchaseLines
             .GroupBy(line => PurchaseWorkbenchPolicy.BuildKey(line.PurchaseRequestId))
             .ToDictionary(group => group.Key, group => group.ToList());
@@ -161,7 +168,10 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
                 ? foundLines : [];
             var requestOrders = purchaseKey is not null && ordersByRequest.TryGetValue(purchaseKey, out var foundOrders)
                 ? foundOrders : [];
-            var currentStage = PurchaseWorkbenchPolicy.ResolveStage(purchaseRequest, requestLines, requestOrders);
+            pendingDemandsByDate.TryGetValue(serviceDate, out var pendingDateDemands);
+            var currentStage = pendingDateDemands is { Count: > 0 }
+                ? "demand"
+                : PurchaseWorkbenchPolicy.ResolveStage(purchaseRequest, requestLines, requestOrders);
             PurchaseWorkbenchPolicy.IncrementStageCount(stageCounts, currentStage);
             var orderLines = requestOrders.SelectMany(order => order.Purchaseorderlines).ToList();
             serviceDates.Add(new PurchaseWorkbenchServiceDateDto
@@ -194,10 +204,13 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
                 ? foundLines : [];
             var selectedOrders = selectedKey is not null && ordersByRequest.TryGetValue(selectedKey, out var foundOrders)
                 ? foundOrders : [];
-            var selectedDateStage = PurchaseWorkbenchPolicy.ResolveStage(selectedRequest, selectedLines, selectedOrders);
+            pendingDemandsByDate.TryGetValue(selectedDate.Value, out var selectedDateDemands);
+            var selectedDateStage = selectedDateDemands is { Count: > 0 }
+                ? "demand"
+                : PurchaseWorkbenchPolicy.ResolveStage(selectedRequest, selectedLines, selectedOrders);
             if (selectedStage is null || string.Equals(selectedStage, selectedDateStage, StringComparison.Ordinal))
             {
-                var detailQuery = BuildApprovedDemandQuery(selectedDate.Value, selectedDate.Value);
+                var detailQuery = BuildApprovedDemandQuery(selectedDate.Value, selectedDate.Value, onlyUnattached: true);
                 totalItems = await detailQuery.CountAsync(cancellationToken);
                 var detailRows = await detailQuery
                     .OrderBy(item => item.RequestCode)
@@ -246,15 +259,25 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
         };
     }
 
-    private IQueryable<WorkbenchDemandRow> BuildApprovedDemandQuery(DateOnly dateFrom, DateOnly dateTo)
-        => _context.Materialrequests
+    private IQueryable<WorkbenchDemandRow> BuildApprovedDemandQuery(
+        DateOnly dateFrom,
+        DateOnly dateTo,
+        bool onlyUnattached = false)
+    {
+        var query = _context.Materialrequests
             .AsNoTracking()
             .Where(request =>
                 request.RequestDate >= dateFrom &&
                 request.RequestDate <= dateTo &&
                 request.RequestScope == "FULLDAY" &&
-                (request.Status == "MANAGERAPPROVED" || request.Status == "APPROVED"))
-            .Select(request => new WorkbenchDemandRow
+                (request.Status == "MANAGERAPPROVED" || request.Status == "APPROVED"));
+        if (onlyUnattached)
+        {
+            query = query.Where(request => !request.Materialrequestlines
+                .Any(line => line.Purchaserequestlines.Any()));
+        }
+
+        return query.Select(request => new WorkbenchDemandRow
             {
                 RequestId = request.RequestId,
                 RequestCode = request.RequestCode,
@@ -262,6 +285,7 @@ public sealed class PurchaseWorkbenchService : IPurchaseWorkbenchService
                 Status = request.Status,
                 ShortageLineCount = request.Materialrequestlines.Count(line => line.SuggestedPurchaseQty > 0)
             });
+    }
 
     private sealed class WorkbenchDemandRow
     {

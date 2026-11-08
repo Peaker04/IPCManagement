@@ -1,7 +1,8 @@
-import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants'
+import { DAYS_OF_WEEK } from '@/lib/constants'
 import { buildImportedDayDates, buildImportedLayoutRows } from '../model/scope'
 import { formatMenuDishName, isMeaningfulMenuDiff, parseDisplayDateToIso, summarizeImportWarnings } from '../model/formatters'
 import type { WeeklyMenuImportJob } from '../model/types'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import { buildImportDuplicateGroups, buildImportValidationChecks } from './importValidation'
 
 export type ImportDisplayDay = { key: string; label: string; date: string }
@@ -10,12 +11,13 @@ export const buildImportPresentation = (
   job: WeeklyMenuImportJob | undefined,
   displayDays: ImportDisplayDay[],
   todayIso: string,
+  catalogDishes: CatalogDish[] = [],
 ) => {
   const preview = job?.previewResult ?? null
   const previewDates = preview ? buildImportedDayDates(preview.rows) : {}
-  const previewDisplayDays = DEFAULT_DAYS_OF_WEEK.map((day) => ({
+  const previewDisplayDays = DAYS_OF_WEEK.slice(0, 6).map((day) => ({
     ...day,
-    date: previewDates[day.key] ?? displayDays.find((displayDay) => displayDay.key === day.key)?.date ?? day.date,
+    date: previewDates[day.key] ?? displayDays.find((displayDay) => displayDay.key === day.key)?.date ?? '',
   }))
   const validationChecks = buildImportValidationChecks(job)
   const duplicateGroups = buildImportDuplicateGroups(preview?.rows ?? [])
@@ -27,6 +29,27 @@ export const buildImportPresentation = (
   const warningSummary = summarizeImportWarnings([...(preview?.warnings ?? []), ...warningIssues])
   const warningMessages = warningSummary.slice(0, 4)
   const blockingCount = validationChecks.filter((check) => check.blocking).length
+  const catalogById = new Map(catalogDishes.map((dish) => [dish.id, dish]))
+  const missingBomByDish = new Map<string, { dishId: string; dishName: string; affectedSlots: number; serviceDates: Set<string> }>()
+  for (const row of preview?.rows ?? []) {
+    if (!row.dishId) continue
+    const dish = catalogById.get(row.dishId)
+    if (!dish) continue
+    const serviceDate = row.serviceDate.split('T')[0]
+    const bomReady = dish.ingredients.some((line) => {
+      const starts = !line.effectiveFrom || line.effectiveFrom.split('T')[0] <= serviceDate
+      const ends = !line.effectiveTo || line.effectiveTo.split('T')[0] >= serviceDate
+      const customerMatches = !line.customerId || line.customerId === job?.customerId
+      return line.bomStatus.toUpperCase() === 'PUBLISHED' && line.priceTierAmount === job?.priceTierAmount && starts && ends && customerMatches
+    })
+    if (!bomReady) {
+      const current = missingBomByDish.get(dish.id) ?? { dishId: dish.id, dishName: dish.name, affectedSlots: 0, serviceDates: new Set<string>() }
+      current.affectedSlots += 1
+      current.serviceDates.add(serviceDate)
+      missingBomByDish.set(dish.id, current)
+    }
+  }
+  const bomIssues = [...missingBomByDish.values()].map((issue) => ({ ...issue, serviceDates: [...issue.serviceDates].sort() }))
   let problemMessages: string[] = []
   if (issues.length) {
     problemMessages = issues.slice(0, 5).map((issue) => `${issue.cell ?? issue.column ?? issue.field ?? 'Trong file'}: ${issue.message}`)
@@ -52,6 +75,7 @@ export const buildImportPresentation = (
     warningSummary,
     warningMessages,
     problemMessages,
+    bomIssues,
   }
 }
 

@@ -20,5 +20,8 @@ public sealed class JwtSettings
     public int ExpiryMinutes { get; init; } = 30;
 
     [Range(1, int.MaxValue)]
-    public int RefreshExpiryDays { get; init; } = 30;
+    public int RefreshExpiryDays { get; init; } = 1;
+
+    [Range(1, 10)]
+    public int MaxActiveRefreshTokens { get; init; } = 3;
 }

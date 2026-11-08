@@ -110,16 +110,25 @@ internal sealed class QuantityImportBatchConfiguration : IEntityTypeConfiguratio
         entity.ToTable("quantityimportbatches");
         entity.HasIndex(e => e.BatchCode, "batchCode").IsUnique();
         entity.HasIndex(e => e.ImportedBy, "importedBy");
+        entity.HasIndex(e => e.MenuVersionId, "menuVersionId");
+        entity.HasIndex(e => e.ContentFingerprint, "ux_quantityimportbatches_contentFingerprint").IsUnique();
         entity.Property(e => e.ImportBatchId).HasMaxLength(16).IsFixedLength().HasColumnName("importBatchId");
         entity.Property(e => e.BatchCode).HasMaxLength(50).HasColumnName("batchCode");
         entity.Property(e => e.ImportedAt).HasDefaultValueSql("CURRENT_TIMESTAMP").HasColumnType("datetime").HasColumnName("importedAt");
         entity.Property(e => e.ImportedBy).HasMaxLength(16).IsFixedLength().HasColumnName("importedBy");
         entity.Property(e => e.SourceCompanyName).HasMaxLength(200).HasColumnName("sourceCompanyName");
+        entity.Property(e => e.MenuVersionId).HasMaxLength(16).IsFixedLength().HasColumnName("menuVersionId");
+        entity.Property(e => e.ContentFingerprint).HasMaxLength(64).IsFixedLength().HasColumnName("contentFingerprint");
+        entity.Property(e => e.FingerprintFormatVersion).HasColumnName("fingerprintFormatVersion");
+        entity.Property(e => e.SourceLabel).HasMaxLength(255).HasColumnName("sourceLabel");
         entity.Property(e => e.SourceType).HasDefaultValueSql("'MANUAL'")
             .HasColumnType("enum('EXCEL','API','EMAIL','MANUAL')").HasColumnName("sourceType");
         entity.Property(e => e.Status).HasDefaultValueSql("'RECEIVED'")
             .HasColumnType("enum('RECEIVED','VALIDATED','CONFIRMED','REJECTED')").HasColumnName("status");
         entity.HasOne(d => d.ImportedByNavigation).WithMany(p => p.Quantityimportbatches)
             .HasForeignKey(d => d.ImportedBy).HasConstraintName("quantityimportbatches_ibfk_1");
+        entity.HasOne(d => d.MenuVersion).WithMany()
+            .HasForeignKey(d => d.MenuVersionId).OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("quantityimportbatches_ibfk_2");
     }
 }

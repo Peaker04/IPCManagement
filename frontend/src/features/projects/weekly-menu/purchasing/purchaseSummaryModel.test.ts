@@ -13,7 +13,10 @@ describe('purchase summary model', () => {
 
   it('creates an Excel-friendly warehouse CSV and escapes material names', () => {
     const csv = buildWarehouseCsv({ 'fish|kg': { ingredientId: 'fish', ingredientName: 'Cá "thu"', unitId: 'kg', theory: 1, actual: 1.2, unit: 'kg', referencePrice: 50_000, dishNames: [] } }, 'KH01', '2026-07-20')
-    expect(csv?.startsWith('\uFEFFTuần,')).toBe(true)
+    expect(csv?.startsWith('\uFEFFPhạm vi,')).toBe(true)
+    expect(csv).toContain('"Tổng tuần từ 2026-07-20"')
+    expect(csv).toContain('"fish"')
+    expect(csv).toContain('"kg"')
     expect(csv).toContain('"Cá ""thu"""')
     expect(csv).toContain('"60000"')
   })

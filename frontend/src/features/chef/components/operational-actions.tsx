@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { RotateCcw, PlusCircle, Check } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import { ExcessMaterialDialog } from './excess-material-dialog'
 import { SupplementalRequestDialog } from './supplemental-request-dialog'
 import { SectionPanel } from '@/components/common'
@@ -28,43 +29,47 @@ export function OperationalActions({
   return (
     <SectionPanel title="Luồng ngoại lệ ca" description="Ghi nhận nguyên liệu thừa, trả kho hoặc hao hụt thực tế." className="ipc-chef-actions-panel sticky top-5 h-fit">
       <div className="space-y-4">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          textWrap="wrap"
           aria-haspopup="dialog"
           aria-expanded={supplementalOpen}
           onClick={() => setSupplementalOpen(true)}
-          className="group flex w-full items-start gap-3.5 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-amber-200 hover:bg-amber-50/30"
+          className="group h-auto w-full items-start justify-start gap-3.5 rounded-xl p-4 text-left"
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><PlusCircle size={20} /></div>
           <div className="space-y-1">
             <h4 className="text-sm font-semibold text-slate-800">Yêu cầu cấp bổ sung</h4>
             <p className="text-xs leading-normal text-slate-500">Gửi nhu cầu thiếu phát sinh tới kho và theo dõi như một yêu cầu thật.</p>
           </div>
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="outline"
+          textWrap="wrap"
           aria-haspopup="dialog"
           aria-expanded={excessOpen}
           onClick={() => setExcessOpen(true)}
-          className="group relative flex w-full items-start gap-3.5 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:bg-blue-50/20 hover:shadow-md hover:shadow-blue-100/30 active:scale-[0.98] cursor-pointer"
+          className="group relative h-auto w-full items-start justify-start gap-3.5 rounded-xl p-4 text-left"
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition-colors duration-300 group-hover:bg-blue-100 group-hover:text-blue-700">
             <RotateCcw className="w-5 h-5" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-semibold text-slate-800 transition-colors duration-300 group-hover:text-blue-900 text-[14px]">
+            <h4 className="text-body font-semibold text-slate-800 transition-colors duration-300 group-hover:text-blue-900">
               Ghi nhận nguyên liệu thừa
             </h4>
             <p className="text-xs text-slate-500 leading-normal">
               Hoàn trả nguyên liệu sạch, chưa chế biến sau ca làm việc.
             </p>
           </div>
-        </button>
+        </Button>
 
         <Separator className="bg-slate-200 my-4" />
 
-        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition-all duration-300 hover:bg-slate-50">
+        <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 p-4 transition-colors duration-300 hover:bg-slate-50">
           <div className="absolute top-0 bottom-0 left-0 w-1 bg-indigo-500" />
           <div className="flex items-center gap-2 mb-2.5">
             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
@@ -87,24 +92,28 @@ export function OperationalActions({
         </div>
       </div>
 
-      <SupplementalRequestDialog
-        open={supplementalOpen}
-        onOpenChange={setSupplementalOpen}
-        materials={materials}
-        isSubmitting={isSubmittingSupplementalRequest}
-        onSubmit={async (data) => onSupplementalRequest ? onSupplementalRequest(data) : false}
-      />
+      {supplementalOpen && (
+        <SupplementalRequestDialog
+          open={supplementalOpen}
+          onOpenChange={setSupplementalOpen}
+          materials={materials}
+          isSubmitting={isSubmittingSupplementalRequest}
+          onSubmit={async (data) => onSupplementalRequest ? onSupplementalRequest(data) : false}
+        />
+      )}
 
       {/* Excess Material Return Dialog */}
-      <ExcessMaterialDialog
-        open={excessOpen}
-        onOpenChange={setExcessOpen}
-        materials={materials}
-        onSubmit={(data) => {
-          onExcessMaterialReturn?.(data)
-          setExcessOpen(false)
-        }}
-      />
+      {excessOpen && (
+        <ExcessMaterialDialog
+          open={excessOpen}
+          onOpenChange={setExcessOpen}
+          materials={materials}
+          onSubmit={(data) => {
+            onExcessMaterialReturn?.(data)
+            setExcessOpen(false)
+          }}
+        />
+      )}
     </SectionPanel>
   )
 }

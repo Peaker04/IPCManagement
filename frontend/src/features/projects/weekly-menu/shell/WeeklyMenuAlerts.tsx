@@ -17,7 +17,6 @@ export function WeeklyMenuAlerts({
   menuFeedback,
   purchaseFeedback,
   isCatalogLoading,
-  isCatalogError,
   isCatalogEmpty,
   isCommittedMenuFetching,
   hasSelectedCustomer,
@@ -43,11 +42,6 @@ export function WeeklyMenuAlerts({
         <span className="sr-only" role="status">
           Đang đồng bộ danh mục món, thực đơn khách hàng và định lượng BOM.
         </span>
-      )}
-      {isCatalogError && (
-        <InlineAlert title="Chưa tải được danh mục món ăn" variant="warning">
-          Kiểm tra kết nối hệ thống hoặc quyền xem danh mục trước khi phân tích giá vốn.
-        </InlineAlert>
       )}
       {isCatalogEmpty && (
         <InlineAlert title="Danh mục món ăn đang trống" variant="warning">

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-03S",
+  "status": "READY_TO_SEAL",
+  "authority": "CLASS_AWARE_SNAPSHOT_RECOVERY",
+  "summary": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-03S-SUMMARY.md",
+    "sha256": "7fda3710e5b780b34ad23c12d371863fa4323653e4285827256d32f35ab4130a"
+  },
+  "manifest": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03S-snapshot-recovery-manifest.json",
+    "sha256": "6f0eef6e88fb9af30da1805c8c448da888226ee800819fbd883b3915a405f9be"
+  },
+  "validatorPins": [
+    {"path":"frontend/tests/validateVisualReconciliation.ts","sha256":"4793354b13f09e71264bb0bcb928ff0ee44b4ed505ec1a0db93110d54b87e825","gitBlobId":"fe8d65c9768642feaa9bee59283c2f98340221b7"},
+    {"path":"frontend/tests/validateVisualReconciliation.test.ts","sha256":"1f891f1612387bcc406afac6b78a73db228a0f81c95c03cd81911f7a964c7c7e","gitBlobId":"0c9fe14d98707eecca84f4f13619c8684e026355"}
+  ],
+  "orderedPreservedCommits": [
+    "141da95a95611c7bb9f679a6aeafa93aba1b174b",
+    "3f2846265aaa2f848262635eeda4a7a5fccd311e",
+    "319ae15832a7ad1ba257ef6aa8e3b03d217206fb"
+  ],
+  "validation": {
+    "focusedTests": "48/48 PASS",
+    "snapshotRecoveryManifest": "PASS",
+    "browserLaunched": false,
+    "productionModified": false,
+    "snapshotModified": false
+  },
+  "blockers": []
+}

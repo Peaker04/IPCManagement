@@ -1,27 +1,34 @@
 'use client'
 
-import { useDeferredValue, useMemo, useState } from 'react'
-import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
-import { useAppSelector } from '@/app/hooks'
-import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
-import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
-import type { ShiftType } from '../../coordination/types'
+import { lazy, Suspense, useDeferredValue, useMemo, useState } from 'react'
+import { ShieldAlert, ShieldCheck } from 'lucide-react'
+import { CommandBar, ContextStrip, InlineAlert, KeepAliveTabPanel, OperationalFrame, TabContentSkeleton, ViewSwitcher, RefreshStatus } from '@/components/common';
+import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
+import type { ShiftType } from '@/types/coordination'
 import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
 import { useChefExceptions } from '../exceptions/useChefExceptions'
 import { ChefHeader } from '../components/chef-header'
-import { ChefDocumentsSection } from '../journal/ChefDocumentsSection'
 import { useChefJournal } from '../journal/useChefJournal'
-import { ChefProductionSection } from '../production/ChefProductionSection'
 import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '../production/useChefProductionPlan'
-import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 import { ChefQueryBoundary } from '../ChefQueryBoundary'
+import { typography } from '@/lib/typography'
+import { cn } from '@/lib/utils'
+import { visibleTabIds } from '@/lib/navigationPreferences'
+
+import { ChefShiftControls } from './ChefShiftControls'
+const ChefProductionSection = lazy(() => import('../production/ChefProductionSection').then(({ ChefProductionSection: component }) => ({ default: component })))
+const ServiceRunSection = lazy(() => import('../production/ServiceRunSection').then(({ ServiceRunSection: component }) => ({ default: component })))
+const KitchenReceiptSection = lazy(() => import('../receipts/KitchenReceiptSection').then(({ KitchenReceiptSection: component }) => ({ default: component })))
+const ChefDocumentsSection = lazy(() => import('../journal/ChefDocumentsSection').then(({ ChefDocumentsSection: component }) => ({ default: component })))
+const chefCapabilityFallback = <TabContentSkeleton geometry="section" columns={6} rows={6} message="Đang tải dữ liệu bếp trưởng..." />
 
 export default function ChefDashboardPage() {
-  const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
+  const lockedShifts = useCoordinationStoreSelector((state) => state.coordination.lockedShifts)
   const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
-  const [selectedView, setSelectedView] = useState<'production' | 'documents'>('production')
+  const chefTabIds = visibleTabIds('chef') as Array<'production' | 'documents'>
+  const [selectedView, setSelectedView] = useState<'production' | 'documents'>(() => chefTabIds[0] ?? 'production')
   const activeView = useDeferredValue(selectedView)
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
   const isProductionView = activeView === 'production'
@@ -37,8 +44,10 @@ export default function ChefDashboardPage() {
   }), [activeDay, activeShift, lockedShifts, lockKey, serviceDate])
 
   const receipts = useKitchenReceipts(scope, setFeedback, isProductionView)
+  // The checklist must render the paged receipt query. The action query remains wide
+  // for mutations, but feeding it here made every page render the same 500-row slice.
   const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback, isProductionView)
-  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback, isProductionView)
+  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.actionRows, setFeedback, isProductionView)
   const journal = useChefJournal(!isProductionView)
   const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
   const receiptViewReady = receipts.queryView.phase === 'ready'
@@ -54,11 +63,17 @@ export default function ChefDashboardPage() {
           ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
           : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
       : null,
-    ...production.dailyPlanWarnings,
+    ...production.dailyPlanWarnings
+      .filter((warning) => production.productionPlan.totalMeals > 0 || !warning.toLocaleLowerCase('vi-VN').includes('khsx'))
+      .map((warning) => warning === 'Có kế hoạch chưa gửi bếp.'
+        ? 'Kế hoạch điều phối chưa đồng bộ; điều này không chặn checklist nhận nguyên liệu.'
+        : warning),
     receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
   ].filter((message): message is string => Boolean(message))
-  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
+  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.some((warning) =>
+    !warning.startsWith('KHSX có nhu cầu mua ban đầu;'),
+  ) ? 'warning' : 'info'
 
   const signOffMaterial = async (materialId: string, signed: boolean) => {
     await receipts.signOff(
@@ -69,116 +84,103 @@ export default function ChefDashboardPage() {
 
   return (
     <OperationalFrame
-      command={<CommandBar><ShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></CommandBar>}
+      command={<CommandBar><ChefShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></CommandBar>}
       context={(
         <>
           <ContextStrip items={[
-            { label: 'Kế hoạch hôm nay', value: production.queryViews.dailyPlan.phase === 'ready' ? `${production.dailyPlan?.sentPlans ?? 0}/${production.dailyPlan?.totalPlans ?? 0} đã gửi` : '—', tone: production.queryViews.dailyPlan.phase === 'ready' && production.dailyPlan?.sentPlans ? 'success' : 'neutral' },
+            { label: 'Kế hoạch điều phối', value: production.queryViews.dailyPlan.phase === 'ready' ? `${production.dailyPlan?.sentPlans ?? 0}/${production.dailyPlan?.totalPlans ?? 0} đã đồng bộ` : '—', tone: production.queryViews.dailyPlan.phase === 'ready' && production.dailyPlan?.sentPlans ? 'success' : 'neutral' },
             { label: 'Phiếu trả', value: returnView.phase === 'ready' ? `${returnCount} chứng từ` : '—', tone: 'neutral' },
             { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
-          <ShiftAlert isLocked={production.isLocked} />
-          {statusMessages.length > 0 && (
-            <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
-              <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
-            </InlineAlert>
-          )}
+          <ShiftAlert isLocked={production.isLocked} hasPlan={production.productionPlan.totalMeals > 0} />
         </>
       )}
     >
-      <div className="ipc-operational-view">
+      <div className={cn(typography.body, 'ipc-operational-view')}>
         {feedback && <InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}</InlineAlert>}
         <ViewSwitcher
           compact
           ariaLabel="Chọn góc nhìn bếp trưởng"
-          tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }]}
+          isPending={isViewPending}
+          tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }].filter((tab) => chefTabIds.includes(tab.id.replace('chef-', '') as 'production' | 'documents'))}
           activeTab={selectedView === 'production' ? 'chef-production' : 'chef-documents'}
           onTabChange={(id) => setSelectedView(id === 'chef-production' ? 'production' : 'documents')}
         />
-        <div className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none" aria-busy={isViewPending} aria-live="polite">
-        {isViewPending && (
-          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
-            Đang cập nhật
-          </span>
-        )}
-        {isProductionView && (
-          <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab" className="space-y-4">
-            <ChefQueryBoundary preserveFallback queries={[
+        <div className="relative min-h-[420px]" aria-busy={isViewPending} aria-live="polite">
+          {isViewPending && (
+            <RefreshStatus>Đang cập nhật</RefreshStatus>
+          )}
+          <KeepAliveTabPanel id="chef-production" active={isProductionView} className="space-y-4">
+            <ChefQueryBoundary preserveFallback stabilizeInitialLoad queries={[
               { label: 'danh mục món và BOM', view: production.queryViews.catalog },
               { label: 'kế hoạch sản xuất trong ngày', view: production.queryViews.dailyPlan },
               { label: 'phiếu xuất kho bàn giao cho bếp', view: receipts.queryView },
+              { label: 'nguyên liệu có thể thao tác trong ca', view: receipts.actionQueryView },
               { label: 'phiếu trả kho của ca', view: exceptions.queryView },
             ]}>
-            <ChefHeader productionPlan={production.productionPlan} />
-            <ChefProductionSection
-              lines={production.dailyPlanLines}
-              isSending={production.isSendingDailyPlan}
-              isLocked={production.isLocked}
-              isLoading={production.status.isDailyPlanLoading}
-              isError={production.status.isDailyPlanError}
-              totalPlans={production.dailyPlan?.totalPlans ?? 0}
-              sentPlans={production.dailyPlan?.sentPlans ?? 0}
-              onReceivePlan={production.receiveDailyPlan}
-            />
-            <KitchenReceiptSection
-              productionPlan={production.productionPlan}
-              returns={exceptions.activeReturns}
-              isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
-              onSupplementalRequest={exceptions.requestSupplemental}
-              onExcessMaterialReturn={exceptions.recordReturn}
-              onMaterialSignoff={signOffMaterial}
-              receiptPage={receipts.page}
-              receiptPageSize={receipts.pageSize}
-              receiptTotalCount={receipts.totalCount}
-              onReceiptPageChange={receipts.setPage}
-            />
+              <ChefHeader productionPlan={production.productionPlan} />
+              <Suspense fallback={chefCapabilityFallback}>
+                <ChefProductionSection
+                lines={production.dailyPlanLines}
+                isSending={production.isSendingDailyPlan}
+                isLoading={production.status.isDailyPlanLoading}
+                isError={production.status.isDailyPlanError}
+                totalPlans={production.dailyPlan?.totalPlans ?? 0}
+                sentPlans={production.dailyPlan?.sentPlans ?? 0}
+                  onReceivePlan={production.receiveDailyPlan}
+                />
+              </Suspense>
+              <Suspense fallback={chefCapabilityFallback}>
+                <ServiceRunSection plans={production.dailyPlan?.plans ?? []} shiftName={scope.apiShiftName} />
+              </Suspense>
+              <Suspense fallback={chefCapabilityFallback}>
+                <KitchenReceiptSection
+                productionPlan={production.productionPlan}
+                returns={exceptions.activeReturns}
+                isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
+                onSupplementalRequest={exceptions.requestSupplemental}
+                onExcessMaterialReturn={exceptions.recordReturn}
+                onMaterialSignoff={signOffMaterial}
+                receiptPage={receipts.page}
+                receiptPageSize={receipts.pageSize}
+                receiptTotalCount={receipts.totalCount}
+                receiptTotalSignedCount={receipts.totalSignedCount}
+                receiptActionRowCount={receipts.actionRowCount}
+                  onReceiptPageChange={receipts.setPage}
+                />
+              </Suspense>
             </ChefQueryBoundary>
-          </div>
-        )}
-        {!isProductionView && (
-          <ChefQueryBoundary queries={[
-            { label: 'chứng từ bếp', view: journal.queryViews.documents },
-            { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
-          ]}>
-            <ChefDocumentsSection
-              movements={journal.kitchenMovements}
-              documents={journal.returnDocuments}
-            />
-          </ChefQueryBoundary>
-        )}
+          </KeepAliveTabPanel>
+
+          <KeepAliveTabPanel id="chef-documents" active={!isProductionView}>
+            <ChefQueryBoundary queries={[
+              { label: 'chứng từ bếp', view: journal.queryViews.documents },
+              { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
+            ]}>
+              <Suspense fallback={chefCapabilityFallback}>
+                <ChefDocumentsSection
+                  movements={journal.kitchenMovements}
+                  documents={journal.returnDocuments}
+                />
+              </Suspense>
+            </ChefQueryBoundary>
+          </KeepAliveTabPanel>
         </div>
+        {statusMessages.length > 0 && (
+          <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
+            <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
+          </InlineAlert>
+        )}
       </div>
     </OperationalFrame>
   )
 }
 
-type ShiftControlsProps = {
-  activeDay: string
-  activeShift: ShiftType
-  onDayChange: (day: string) => void
-  onShiftChange: (shift: ShiftType) => void
-}
-
-function ShiftControls({ activeDay, activeShift, onDayChange, onShiftChange }: ShiftControlsProps) {
-  return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="size-4 text-blue-600" /><span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span></div>
-      <div className="flex items-center gap-2">
-        <select aria-label="Chọn ngày sản xuất" value={activeDay} onChange={(event) => onDayChange(event.target.value)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
-          {DAYS_OF_WEEK.map((day) => <option key={day.key} value={day.key}>{day.label}</option>)}
-        </select>
-        <select aria-label="Chọn ca sản xuất" value={activeShift} onChange={(event) => onShiftChange(event.target.value as ShiftType)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
-          {SHIFTS.map((shift) => <option key={shift} value={shift}>{shift}</option>)}
-        </select>
-      </div>
-    </div>
-  )
-}
-
-function ShiftAlert({ isLocked }: { isLocked: boolean }) {
+function ShiftAlert({ isLocked, hasPlan }: { isLocked: boolean; hasPlan: boolean }) {
+  if (!hasPlan) return null
   return isLocked ? (
     <InlineAlert title="Lệnh sản xuất chính thức" icon={<ShieldCheck className="size-4" />} variant="info">Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo kế hoạch sản xuất.</InlineAlert>
   ) : (
-    <InlineAlert title="Bản dự thảo từ điều phối" icon={<ShieldAlert className="size-4" />} variant="warning">Chưa chốt ca. Bếp chỉ xem trước kế hoạch sản xuất, chưa xác nhận nhận nguyên liệu.</InlineAlert>
+    <InlineAlert title="Kế hoạch điều phối chưa chốt" icon={<ShieldAlert className="size-4" />} variant="warning">Bếp có thể xem trước kế hoạch. Trạng thái nhận nguyên liệu được xác định riêng trong Checklist nhận nguyên liệu.</InlineAlert>
   )
 }

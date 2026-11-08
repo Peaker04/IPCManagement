@@ -30,4 +30,11 @@ describe('useCountdown', () => {
 
     expect(result.current).toEqual({ timeRemaining: '00:00:00', isPastCutoff: true })
   })
+
+  it('counts down against the selected historical service date', () => {
+    vi.setSystemTime(new Date('2026-07-21T07:30:00+07:00'))
+    const { result } = renderHook(() => useCountdown('2026-07-21'))
+
+    expect(result.current).toEqual({ timeRemaining: '01:00:00', isPastCutoff: false })
+  })
 })

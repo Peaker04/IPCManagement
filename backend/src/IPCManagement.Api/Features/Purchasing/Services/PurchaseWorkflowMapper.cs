@@ -74,6 +74,10 @@ internal static class PurchaseWorkflowMapper
             ProposedUnitPrice = decision.ProposedUnitPrice,
             ProposedDeliveryDate =
                 decision.ProposedDeliveryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            ReceivingWarehouseId = decision.ReceivingWarehouseId is null
+                ? string.Empty
+                : GuidHelper.ToGuidString(decision.ReceivingWarehouseId),
+            PurchasingTerms = decision.PurchasingTerms ?? string.Empty,
             ConfirmedBy = GuidHelper.ToGuidString(decision.ConfirmedBy),
             ConfirmedAt =
                 decision.ConfirmedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),

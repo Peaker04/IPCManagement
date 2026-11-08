@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "attempts": [
+    {
+      "attemptId": "source-1787417235040-30b20bd8-bdd7-45b5-abea-822243f58553",
+      "status": "REJECTED_SETUP",
+      "diagnosis": "D:/Kì",
+      "collectedIdentities": 0,
+      "immutable": true
+    },
+    {
+      "attemptId": "v2-original-session-run",
+      "sessionId": "phase-27-1-plan-01-execution-v2",
+      "status": "REJECTED_CLASSIFIER",
+      "discoverySha256": "855caa1ec12583b2baaae7db7aedfabe45e735702f12b135168d7f504cdd39d1",
+      "discoveredTests": 76,
+      "screenshotFailures": 21,
+      "structuredResult": {
+        "path": "D:/Temp/phase271-yyOJYU/playwright-results.json",
+        "sha256": "116efc94800ea0c7d89dd67b96738d42e9e9a735ba377437ef059a4a6573e2f0"
+      },
+      "immutable": true
+    },
+    {
+      "attemptId": "v3-af0f760b372b8663af516aaa36413dd4",
+      "status": "ACCEPTED",
+      "invocationCount": 1,
+      "authorizedAfter": {
+        "classifier": true,
+        "argv": true,
+        "pathRoundTrip": true,
+        "discoverySha256": "855caa1ec12583b2baaae7db7aedfabe45e735702f12b135168d7f504cdd39d1"
+      },
+      "exitCode": 1,
+      "attestation": {
+        "nodeExecutable": "C:\\Program Files\\nodejs\\node.exe",
+        "playwrightCli": {
+          "path": "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\@playwright\\test\\cli.js",
+          "sha256": "79e23e6a249176295b8490567daa7717448a75866d6ea6f6b296ff3d23305c69"
+        },
+        "viteCli": {
+          "path": "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\vite\\bin\\vite.js",
+          "sha256": "fa03478846d229651a3c6aa64833ba2c6cbf580a798b92bd8f47c7480bafb5d8"
+        },
+        "playwrightArgv": [
+          "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\@playwright\\test\\cli.js",
+          "test",
+          "tests/visual-routes.spec.ts",
+          "tests/pagination-visual.spec.ts",
+          "--config=playwright.phase271-recovery.config.ts",
+          "--project=chromium",
+          "--workers=1",
+          "--reporter=json",
+          "--output=D:\\Temp\\phase271-v3-9f3Geu\\playwright-output"
+        ],
+        "viteArgv": [
+          "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\node_modules\\vite\\bin\\vite.js",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          "5173",
+          "--strictPort"
+        ],
+        "cwd": "D:\\Kì 7\\PRN222 Doanh Nghiệp\\IPCManagement\\frontend",
+        "shell": false,
+        "jsonOutputFile": "D:\\Temp\\phase271-v3-9f3Geu\\playwright-results.json"
+      }
+    }
+  ]
+}

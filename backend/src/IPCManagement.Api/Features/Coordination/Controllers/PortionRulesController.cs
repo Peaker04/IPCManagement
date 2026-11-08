@@ -37,7 +37,7 @@ public sealed class PortionRulesController : ControllerBase
         try
         {
             var result = await _service.CreatePortionRuleAsync(request, _currentUserService.GetUserId(User));
-            return CreatedAtAction(nameof(GetPortionRulesAsync),
+            return CreatedAtAction("GetPortionRules",
                 ApiResponse<PortionRuleDto>.SuccessResult(result, "Đã tạo portion rule."));
         }
         catch (ArgumentException ex)

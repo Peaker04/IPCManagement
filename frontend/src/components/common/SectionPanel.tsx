@@ -1,11 +1,17 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { typography } from '@/lib/typography';
+
+const InfoNote = lazy(() => import('./InfoNote').then(({ InfoNote: component }) => ({ default: component })));
 
 interface SectionPanelProps {
   title?: ReactNode;
   icon?: ReactNode;
   badge?: ReactNode;
+  actions?: ReactNode;
   description?: ReactNode;
+  /** 'popover' (default): renders (i) icon next to title; 'inline': renders text block below header */
+  descriptionPlacement?: 'popover' | 'inline';
   footer?: ReactNode;
   children: ReactNode;
   tone?: 'default' | 'danger' | 'dark';
@@ -30,7 +36,9 @@ export function SectionPanel({
   title,
   icon,
   badge,
+  actions,
   description,
+  descriptionPlacement = 'popover',
   footer,
   children,
   tone = 'default',
@@ -39,22 +47,39 @@ export function SectionPanel({
   className,
 }: SectionPanelProps) {
   const HeadingTag = `h${headingLevel}` as 'h2' | 'h3' | 'h4';
+  const showInlineDescription = description && descriptionPlacement === 'inline';
+  const showPopoverDescription = description && descriptionPlacement === 'popover';
 
   return (
     <section className={cn('ipc-section-panel rounded-md border', padded && 'p-4 sm:p-5', !padded && 'p-0', panelToneClasses[tone], className)}>
-      {(title || badge) && (
-        <div className={cn('ipc-section-header flex flex-wrap items-center justify-between gap-3', description ? 'mb-2' : 'mb-5')}>
+      {(title || badge || actions) && (
+        <div className={cn('ipc-section-header flex flex-wrap items-center justify-between gap-3', showInlineDescription ? 'mb-2' : 'mb-4')}>
           {title && (
-            <HeadingTag className={cn('ipc-section-title m-0 flex items-center gap-2 font-semibold', titleToneClasses[tone])}>
-              {icon}
-              <span>{title}</span>
-            </HeadingTag>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <HeadingTag className={cn(typography.sectionTitle, 'ipc-section-title m-0 flex items-center gap-2', titleToneClasses[tone])}>
+                {icon}
+                <span>{title}</span>
+              </HeadingTag>
+              {showPopoverDescription && (
+                <Suspense fallback={<span aria-hidden="true" className="inline-flex size-5 shrink-0" />}>
+                  <InfoNote
+                    title={typeof title === 'string' ? title : 'Hướng dẫn'}
+                    content={description}
+                  />
+                </Suspense>
+              )}
+            </div>
           )}
-          {badge}
+          {(badge || actions) && (
+            <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap ml-auto">
+              {actions}
+              {badge}
+            </div>
+          )}
         </div>
       )}
 
-      {description && <div className="ipc-section-description mb-4 text-[13px] leading-6 text-slate-500">{description}</div>}
+      {showInlineDescription && <div className="ipc-section-description mb-4 text-sm leading-6 text-slate-500">{description}</div>}
 
       {children}
 

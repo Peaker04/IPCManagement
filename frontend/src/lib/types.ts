@@ -23,6 +23,9 @@ export interface Ingredient {
   quantity: number
   status: 'Chờ giao' | 'Đã nhận'
   signed: boolean
+  sourceCustomerName?: string
+  sourceShiftName?: string
+  sourcePriceTierAmount?: number
 }
 
 export interface DishIngredient {

@@ -74,11 +74,30 @@ public class PurchaseWorkbenchPolicyTests
         PurchaseWorkbenchPolicy.HasPriceException(line).Should().Be(expected);
     }
 
+    [Fact]
+    public void HasPriceException_Should_UseCurrentDecisionEvidenceInsteadOfIngredientMasterPrice()
+    {
+        var line = CreateLine(referencePrice: 100m, estimatedPrice: 80m);
+
+        PurchaseWorkbenchPolicy.HasPriceException(line).Should().BeFalse();
+    }
+
     private static PurchaseRequestLine CreateLine(decimal referencePrice, decimal estimatedPrice)
-        => new()
+    {
+        var supplierId = new byte[] { 1 };
+        var line = new PurchaseRequestLine
         {
-            SupplierId = [1],
+            SupplierId = supplierId,
             EstimatedUnitPrice = estimatedPrice,
             Ingredient = new Ingredient { ReferencePrice = referencePrice }
         };
+        line.SupplierDecisions.Add(new PurchaseLineSupplierDecision
+        {
+            SupplierId = supplierId,
+            EvidenceReferencePrice = referencePrice,
+            ProposedUnitPrice = estimatedPrice,
+            Status = "CURRENT"
+        });
+        return line;
+    }
 }

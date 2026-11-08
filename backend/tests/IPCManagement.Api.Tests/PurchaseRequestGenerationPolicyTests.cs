@@ -46,7 +46,7 @@ public class PurchaseRequestGenerationPolicyTests
     }
 
     [Fact]
-    public void BelongsToCurrentDemand_Should_RequireMatchingDateScopeAndLineage()
+    public void BelongsToCurrentDemand_Should_AcceptCompatibleDateAndFullDayScope()
     {
         var demandLineId = new byte[] { 1 };
         var demand = CreateDemand(status: "APPROVED");
@@ -64,6 +64,9 @@ public class PurchaseRequestGenerationPolicyTests
         PurchaseRequestGenerationPolicy.BelongsToCurrentDemand(existing, demand).Should().BeTrue();
 
         existing.Purchaserequestlines.Single().MaterialRequestLineId = [2];
+        PurchaseRequestGenerationPolicy.BelongsToCurrentDemand(existing, demand).Should().BeTrue();
+
+        existing.PurchaseForDate = demand.RequestDate.AddDays(1);
         PurchaseRequestGenerationPolicy.BelongsToCurrentDemand(existing, demand).Should().BeFalse();
     }
 

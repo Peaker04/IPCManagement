@@ -24,6 +24,11 @@ describe('AdminQueryBoundary', () => {
     expect(screen.queryByText('Kết quả quản trị')).toBeNull();
   });
 
+  it('keeps compact blocking states content-sized', () => {
+    const { container } = renderBoundary([{ phase: 'forbidden', message: 'Không có quyền.' }]);
+    expect(container.firstElementChild).not.toHaveClass('min-h-[420px]');
+  });
+
   it('renders loading without exposing children as a false empty state', () => {
     renderBoundary([{ phase: 'loading' }]);
 
@@ -58,7 +63,8 @@ describe('AdminQueryBoundary', () => {
     renderBoundary([ready(true)]);
 
     expect(screen.getByText('Kết quả quản trị')).toBeInTheDocument();
-    expect(screen.getByText('Đang cập nhật dữ liệu quản trị')).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Đang cập nhật nguồn 1' })).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('blocks the whole group when one required query fails', () => {

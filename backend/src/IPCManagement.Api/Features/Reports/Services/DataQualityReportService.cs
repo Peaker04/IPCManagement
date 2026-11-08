@@ -4,9 +4,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
-
 namespace IPCManagement.Api.Features.Reports.Services;
-
 public sealed class DataQualityReportService : IDataQualityReportService
 {
     private const string DataQualityBusinessArea = "DataQuality";
@@ -14,15 +12,12 @@ public sealed class DataQualityReportService : IDataQualityReportService
     private const string DataQualityRemediationFieldName = "Remediation";
     private const string PublishedBomStatus = "PUBLISHED";
     private static readonly decimal[] SupportedBomPriceTiers = [25000m, 30000m, 34000m];
-
     private readonly IpcManagementContext _context;
     private readonly IStockLedgerReportService _stockLedgerReportService;
-
     public DataQualityReportService(IpcManagementContext context)
         : this(context, new StockLedgerReportService(context))
     {
     }
-
     public DataQualityReportService(
         IpcManagementContext context,
         IStockLedgerReportService stockLedgerReportService)
@@ -30,7 +25,6 @@ public sealed class DataQualityReportService : IDataQualityReportService
         _context = context;
         _stockLedgerReportService = stockLedgerReportService;
     }
-
     public async Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query)
     {
         var requestedLimit = DataQualityPolicy.NormalizeLimit(query.Limit);
@@ -47,7 +41,6 @@ public sealed class DataQualityReportService : IDataQualityReportService
                 .ToListAsync())
             .Select(Convert.ToBase64String)
             .ToHashSet(StringComparer.Ordinal);
-
         var missingBomDishes = await _context.Dishes
             .AsNoTracking()
             .Where(dish => (dish.IsActive ?? true) && !_context.Dishboms.Any(bom =>
@@ -59,11 +52,10 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .OrderBy(dish => dish.DishCode)
             .Take(limit)
             .ToListAsync();
-
         issues.AddRange(missingBomDishes.Select(dish =>
         {
             var isOperational = operationalDishKeys.Contains(Convert.ToBase64String(dish.DishId));
-            return BuildDataQualityIssue(
+            return DataQualityPolicy.BuildIssueWithLineage(
             isOperational ? "missing_bom" : "legacy_missing_bom",
             isOperational ? "error" : "warning",
             nameof(Dish),
@@ -90,7 +82,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(invalidUnitIngredients.Select(ingredient => BuildDataQualityIssue(
+        issues.AddRange(invalidUnitIngredients.Select(ingredient => DataQualityPolicy.BuildIssueWithLineage(
             "invalid_unit",
             "error",
             nameof(Ingredient),
@@ -118,7 +110,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
 
         issues.AddRange(activeBomLines
             .Where(line => !DataQualityPolicy.CanConvertUnits(line.Unit, line.Ingredient.Unit))
-            .Select(line => BuildDataQualityIssue(
+            .Select(line => DataQualityPolicy.BuildIssueWithLineage(
                 "missing_conversion",
                 "error",
                 nameof(DishBom),
@@ -142,7 +134,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(legacyBomLines.Select(line => BuildDataQualityIssue(
+        issues.AddRange(legacyBomLines.Select(line => DataQualityPolicy.BuildIssueWithLineage(
             "legacy_bom_tier",
             "error",
             nameof(DishBom),
@@ -166,7 +158,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
 
         issues.AddRange(stockUnitLines
             .Where(stock => !DataQualityPolicy.CanConvertUnits(stock.Unit, stock.Ingredient.Unit))
-            .Select(stock => BuildDataQualityIssue(
+            .Select(stock => DataQualityPolicy.BuildIssueWithLineage(
                 "missing_conversion",
                 "error",
                 nameof(CurrentStock),
@@ -189,7 +181,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
 
         issues.AddRange(receiptUnitLines
             .Where(line => !DataQualityPolicy.CanConvertUnits(line.Unit, line.Ingredient.Unit))
-            .Select(line => BuildDataQualityIssue(
+            .Select(line => DataQualityPolicy.BuildIssueWithLineage(
                 line.Receipt.ReceiptDate < serviceDate ? "legacy_missing_conversion" : "missing_conversion",
                 "warning",
                 nameof(InventoryReceiptLine),
@@ -214,7 +206,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(inactiveBomIngredients.Select(line => BuildDataQualityIssue(
+        issues.AddRange(inactiveBomIngredients.Select(line => DataQualityPolicy.BuildIssueWithLineage(
             "inactive_bom_ingredient",
             "warning",
             nameof(DishBom),
@@ -236,7 +228,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(negativeStocks.Select(stock => BuildDataQualityIssue(
+        issues.AddRange(negativeStocks.Select(stock => DataQualityPolicy.BuildIssueWithLineage(
             "negative_stock",
             "error",
             nameof(CurrentStock),
@@ -256,7 +248,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Where(item => !item.IsMatched)
             .ToList();
 
-        issues.AddRange(ledgerMismatches.Select(item => BuildDataQualityIssue(
+        issues.AddRange(ledgerMismatches.Select(item => DataQualityPolicy.BuildIssueWithLineage(
             "inventory_ledger_mismatch",
             "error",
             nameof(CurrentStock),
@@ -274,7 +266,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(stockShortageAudits.Select(log => BuildDataQualityIssue(
+        issues.AddRange(stockShortageAudits.Select(log => DataQualityPolicy.BuildIssueWithLineage(
             "stock_shortage",
             "error",
             log.EntityName,
@@ -301,15 +293,15 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(missingContractPlans.Select(plan => BuildDataQualityIssue(
+        issues.AddRange(missingContractPlans.Select(plan => DataQualityPolicy.BuildIssueWithLineage(
             "missing_contract",
             "error",
             nameof(ProductionPlan),
             GuidHelper.ToGuidString(plan.PlanId),
             plan.PlanCode,
             plan.Customer?.CustomerName ?? GuidHelper.ToGuidString(plan.CustomerId!),
-            "KHSX có khách hàng nhưng không có contract hiệu lực cho ngày phục vụ.",
-            "Tạo hoặc publish contract khách hàng trước khi chốt giá/BOM.",
+            "KHSX có khách hàng nhưng chưa có hợp đồng hiệu lực cho ngày phục vụ.",
+            "Tạo hoặc công bố hợp đồng khách hàng trước khi chốt giá và định lượng.",
             "/admin-data?view=contracts")));
 
         var inactiveSupplierLines = await _context.Purchaserequestlines
@@ -322,7 +314,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(inactiveSupplierLines.Select(line => BuildDataQualityIssue(
+        issues.AddRange(inactiveSupplierLines.Select(line => DataQualityPolicy.BuildIssueWithLineage(
             "missing_supplier",
             "error",
             nameof(PurchaseRequestLine),
@@ -340,7 +332,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(staleDemands.Select(request => BuildDataQualityIssue(
+        issues.AddRange(staleDemands.Select(request => DataQualityPolicy.BuildIssueWithLineage(
             "stale_demand",
             "warning",
             nameof(MaterialRequest),
@@ -358,7 +350,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(stalePurchaseRequests.Select(request => BuildDataQualityIssue(
+        issues.AddRange(stalePurchaseRequests.Select(request => DataQualityPolicy.BuildIssueWithLineage(
             "stale_purchase_request",
             "warning",
             nameof(PurchaseRequest),
@@ -376,7 +368,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(kitchenReceiptDiscrepancies.Select(log => BuildDataQualityIssue(
+        issues.AddRange(kitchenReceiptDiscrepancies.Select(log => DataQualityPolicy.BuildIssueWithLineage(
             "kitchen_receipt_discrepancy",
             "warning",
             log.EntityName,
@@ -394,7 +386,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(orphanMaterialRequests.Select(request => BuildDataQualityIssue(
+        issues.AddRange(orphanMaterialRequests.Select(request => DataQualityPolicy.BuildIssueWithLineage(
             "orphan_document",
             "warning",
             nameof(MaterialRequest),
@@ -414,7 +406,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(orphanPurchaseLines.Select(line => BuildDataQualityIssue(
+        issues.AddRange(orphanPurchaseLines.Select(line => DataQualityPolicy.BuildIssueWithLineage(
             "orphan_document",
             "warning",
             nameof(PurchaseRequestLine),
@@ -427,12 +419,14 @@ public sealed class DataQualityReportService : IDataQualityReportService
 
         var orphanIssues = await _context.Inventoryissues
             .AsNoTracking()
-            .Where(issue => !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
+            .Where(issue =>
+                issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+                !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
             .OrderBy(issue => issue.IssueCode)
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(orphanIssues.Select(issue => BuildDataQualityIssue(
+        issues.AddRange(orphanIssues.Select(issue => DataQualityPolicy.BuildIssueWithLineage(
             "orphan_document",
             "warning",
             nameof(InventoryIssue),
@@ -441,7 +435,9 @@ public sealed class DataQualityReportService : IDataQualityReportService
             issue.IssueDate.ToString("yyyy-MM-dd"),
             "Phiếu xuất không còn demand/material request gốc.",
             "Kiểm tra lại workflow kho và demand đã sinh.",
-            "/warehouse")));
+            "/warehouse",
+            sourceFamily: "DEFAULT",
+            materialRequestId: GuidHelper.ToGuidString(issue.MaterialRequestId!))));
 
         var unitNormalizationReviews = await _context.Unitnormalizationreviews
             .AsNoTracking()
@@ -461,7 +457,7 @@ public sealed class DataQualityReportService : IDataQualityReportService
                 : $"hệ số đề xuất {review.ProposedSourceToCatalogFactor:0.######} " +
                   $"{review.CatalogUnit.UnitCode}/{review.SourceUnit.UnitCode}";
             var recommendedUnit = review.RecommendedUnit?.UnitCode ?? review.CatalogUnit.UnitCode;
-            return BuildDataQualityIssue(
+            return DataQualityPolicy.BuildIssueWithLineage(
                 "unit_normalization_review",
                 "warning",
                 nameof(UnitNormalizationReview),
@@ -509,7 +505,11 @@ public sealed class DataQualityReportService : IDataQualityReportService
     {
         var sourceQuery = DataQualityPolicy.CloneQuery(query, 500);
         var report = await GetDataQualityAsync(sourceQuery);
-        var pageItems = report.Issues
+        var searchKeyword = query.SearchKeyword?.Trim();
+        var filteredIssues = string.IsNullOrWhiteSpace(searchKeyword)
+            ? report.Issues
+            : report.Issues.Where(issue => MatchesSearch(issue, searchKeyword)).ToList();
+        var pageItems = filteredIssues
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToList();
@@ -532,11 +532,29 @@ public sealed class DataQualityReportService : IDataQualityReportService
             Issues = pageItems,
             Page = PagedResponseDto<DataQualityIssueDto>.Create(
                 pageItems,
-                report.TotalIssues,
+                filteredIssues.Count,
                 query.PageNumber,
                 query.PageSize)
         };
     }
+
+    private static bool MatchesSearch(DataQualityIssueDto issue, string searchKeyword)
+        => new[]
+        {
+            issue.IssueId,
+            issue.Category,
+            issue.Severity,
+            issue.Owner,
+            issue.SlaLabel,
+            issue.EntityName,
+            issue.EntityCode,
+            issue.EntityLabel,
+            issue.Message,
+            issue.SuggestedAction,
+            issue.RemediationStatus,
+            issue.RemediationByName,
+            issue.RemediationNote
+        }.Any(value => value?.Contains(searchKeyword, StringComparison.OrdinalIgnoreCase) == true);
 
     private async Task ApplyDataQualityRemediationStateAsync(IReadOnlyList<DataQualityIssueDto> issues)
     {
@@ -576,17 +594,4 @@ public sealed class DataQualityReportService : IDataQualityReportService
         }
     }
 
-    private static DataQualityIssueDto BuildDataQualityIssue(
-        string category,
-        string severity,
-        string entityName,
-        string? entityId,
-        string entityCode,
-        string entityLabel,
-        string message,
-        string suggestedAction,
-        string route)
-        => DataQualityPolicy.BuildIssue(
-            category, severity, entityName, entityId, entityCode,
-            entityLabel, message, suggestedAction, route, DateTime.UtcNow);
 }

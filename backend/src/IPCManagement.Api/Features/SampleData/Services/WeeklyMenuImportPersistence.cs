@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,7 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 internal sealed class WeeklyMenuImportPersistence(
     IpcManagementContext context,
     WeeklyMenuImportResultBuilder resultBuilder,
-    WeeklyMenuAuditActorResolver actorResolver)
+    WeeklyMenuAuditActorResolver actorResolver) : IWeeklyMenuImportPersistence
 {
     public async Task<WeeklyMenuImportResultDto> CommitAsync(
         WeeklyMenuImportPlan plan,
@@ -23,6 +24,14 @@ internal sealed class WeeklyMenuImportPersistence(
         string? actorUserId,
         CancellationToken cancellationToken)
     {
+        await ValidateReimportBoundaryAsync(plan, customer, cancellationToken);
+        await CustomerWeekMenuTierInvariant.RequireAsync(
+            context,
+            customer.CustomerId,
+            plan.WeekStartDate,
+            priceTierAmount,
+            cancellationToken);
+
         var version = await CreateMenuVersionHeaderAsync(
             plan,
             customer,
@@ -89,7 +98,8 @@ internal sealed class WeeklyMenuImportPersistence(
                     parsedItem.SectionKey,
                     parsedItem.SlotLabel,
                     existingDishes,
-                    result.Counts);
+                    result.Counts,
+                    version);
                 parsedItem.DishId = GuidHelper.ToGuidString(dish.DishId);
                 parsedItem.ExistingDish = result.Rows.Any(row =>
                     row.DishName.Equals(parsedItem.DishName, StringComparison.OrdinalIgnoreCase) &&
@@ -135,6 +145,35 @@ internal sealed class WeeklyMenuImportPersistence(
         return result;
     }
 
+    private async Task ValidateReimportBoundaryAsync(
+        WeeklyMenuImportPlan plan,
+        Customer customer,
+        CancellationToken cancellationToken)
+    {
+        var irreversiblePlan = await context.Mealquantityplanlines
+            .AsNoTracking()
+            .Where(line =>
+                line.CustomerId.SequenceEqual(customer.CustomerId) &&
+                line.MenuSchedule.WeekStartDate == plan.WeekStartDate &&
+                (line.QuantityPlan.Status == "CONFIRMED" ||
+                 line.QuantityPlan.Status == "ADJUSTED" ||
+                 line.QuantityPlan.Status == "COMPLETED" ||
+                 line.QuantityPlan.Status == "ARCHIVED"))
+            .Select(line => new
+            {
+                line.QuantityPlan.PlanCode,
+                line.QuantityPlan.Status
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (irreversiblePlan is not null)
+        {
+            throw new BusinessRuleException(
+                $"Không thể import lại thực đơn tuần vì kế hoạch {irreversiblePlan.PlanCode} " +
+                $"đã ở trạng thái {irreversiblePlan.Status}. " +
+                "Hãy dùng luồng điều chỉnh chứng từ thay vì ghi đè thực đơn nguồn.");
+        }
+    }
+
     internal async Task<int> InvalidateWorkflowDocumentsForMenuReimportAsync(
         Customer customer,
         DateOnly weekStartDate,
@@ -143,6 +182,12 @@ internal sealed class WeeklyMenuImportPersistence(
         string? actorUserId,
         CancellationToken cancellationToken)
     {
+        await RequireNoIrreversibleDownstreamDocumentsAsync(
+            customer,
+            weekStartDate,
+            weekEndDate,
+            cancellationToken);
+
         var actorId = await actorResolver.ResolveAsync(actorUserId, cancellationToken);
         var changedAt = DateTime.UtcNow;
         var reason = $"Menu re-import {version.SourceImportBatch} invalidated downstream demand/PR; regenerate required.";
@@ -152,8 +197,8 @@ internal sealed class WeeklyMenuImportPersistence(
             .Include(request => request.Plan)
                 .ThenInclude(plan => plan.Productionplanlines)
             .Where(request =>
-                request.RequestDate >= weekStartDate &&
-                request.RequestDate <= weekEndDate &&
+                request.Plan.PlanDate >= weekStartDate &&
+                request.Plan.PlanDate <= weekEndDate &&
                 request.Status != "CANCELLED" &&
                 request.Plan.Productionplanlines.Any(line =>
                     line.CustomerId.SequenceEqual(customer.CustomerId)))
@@ -178,10 +223,10 @@ internal sealed class WeeklyMenuImportPersistence(
                 .ThenInclude(line => line.MaterialRequestLine)
                     .ThenInclude(line => line.PlanLine)
             .Where(request =>
-                request.PurchaseForDate >= weekStartDate &&
-                request.PurchaseForDate <= weekEndDate &&
                 request.Status != "CANCELLED" &&
                 request.Purchaserequestlines.Any(line =>
+                    line.MaterialRequestLine.PlanLine.Plan.PlanDate >= weekStartDate &&
+                    line.MaterialRequestLine.PlanLine.Plan.PlanDate <= weekEndDate &&
                     line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)))
             .ToListAsync(cancellationToken);
         foreach (var request in purchaseRequests)
@@ -200,6 +245,41 @@ internal sealed class WeeklyMenuImportPersistence(
         }
 
         return invalidatedCount;
+    }
+
+    private async Task RequireNoIrreversibleDownstreamDocumentsAsync(
+        Customer customer,
+        DateOnly weekStartDate,
+        DateOnly weekEndDate,
+        CancellationToken cancellationToken)
+    {
+        var hasPurchaseOrder = await context.Purchaseorders.AnyAsync(order =>
+            order.PurchaseRequest.Purchaserequestlines.Any(line =>
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate >= weekStartDate &&
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate <= weekEndDate &&
+                line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)),
+            cancellationToken);
+        var hasReceipt = await context.Inventoryreceipts.AnyAsync(receipt =>
+            receipt.PurchaseRequest != null &&
+            receipt.PurchaseRequest.Purchaserequestlines.Any(line =>
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate >= weekStartDate &&
+                line.MaterialRequestLine.PlanLine.Plan.PlanDate <= weekEndDate &&
+                line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)),
+            cancellationToken);
+        var hasIssue = await context.Inventoryissues.AnyAsync(issue =>
+            issue.MaterialRequestId != null && issue.ReconciliationBatchId == null &&
+            issue.MaterialRequest!.Plan.PlanDate >= weekStartDate &&
+            issue.MaterialRequest!.Plan.PlanDate <= weekEndDate &&
+            issue.MaterialRequest!.Plan.Productionplanlines.Any(line =>
+                line.CustomerId.SequenceEqual(customer.CustomerId)),
+            cancellationToken);
+
+        if (hasPurchaseOrder || hasReceipt || hasIssue)
+        {
+            throw new BusinessRuleException(
+                "Không thể import lại thực đơn vì đã có PO, phiếu nhập hoặc phiếu xuất liên quan. " +
+                "Hãy dùng luồng điều chỉnh/đối soát thay vì hủy chứng từ nguồn.");
+        }
     }
 
     private static AuditLog CreateStatusAudit(
@@ -332,7 +412,8 @@ internal sealed class WeeklyMenuImportPersistence(
         string dishGroup,
         string dishType,
         List<Dish> dishes,
-        SampleDataImportCountsDto counts)
+        SampleDataImportCountsDto counts,
+        MenuVersion version)
     {
         var cleanDishName = WeeklyMenuWorkbookSyntaxPolicy.NormalizeDishCell(dishName);
         var normalized = WeeklyMenuImportProjection.NormalizeDishMatchKey(dishName);
@@ -347,22 +428,29 @@ internal sealed class WeeklyMenuImportPersistence(
             .FirstOrDefault();
         if (existing is not null)
         {
-            existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
-            existing.DishType = string.IsNullOrWhiteSpace(dishType) ? existing.DishType : dishType.Trim();
+            // Group/type describe the global dish catalog. A workbook slot only describes where the
+            // dish is used in this menu, so importing another customer/week must not reclassify it.
+            var reactivated = existing.IsActive != true;
             existing.IsActive = true;
-            counts.DishesUpdated++;
+            if (reactivated)
+            {
+                counts.DishesUpdated++;
+            }
             return existing;
         }
 
-        return EnsureDish(cleanDishName, dishGroup, dishType, dishes, counts);
+        // Workbook section/slot belongs to the menu line and is persisted in MenuItem.DishSlot.
+        // A newly discovered dish must stay uncategorized until the global catalog is reviewed.
+        return EnsureDish(cleanDishName, null, null, dishes, counts, version);
     }
 
     private Dish EnsureDish(
         string dishName,
-        string dishGroup,
-        string dishType,
+        string? dishGroup,
+        string? dishType,
         List<Dish> dishes,
-        SampleDataImportCountsDto counts)
+        SampleDataImportCountsDto counts,
+        MenuVersion version)
     {
         var normalized = NormalizeName(dishName);
         var stableCode = StableCode("DISH", dishName);
@@ -371,11 +459,12 @@ internal sealed class WeeklyMenuImportPersistence(
             string.Equals(item.DishCode, stableCode, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
-            existing.DishName = dishName.Trim();
-            existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
-            existing.DishType = string.IsNullOrWhiteSpace(dishType) ? existing.DishType : dishType.Trim();
+            var reactivated = existing.IsActive != true;
             existing.IsActive = true;
-            counts.DishesUpdated++;
+            if (reactivated)
+            {
+                counts.DishesUpdated++;
+            }
             return existing;
         }
 
@@ -387,7 +476,10 @@ internal sealed class WeeklyMenuImportPersistence(
             DishName = dishName.Trim(),
             DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? null : dishGroup.Trim(),
             DishType = string.IsNullOrWhiteSpace(dishType) ? null : dishType.Trim(),
-            IsActive = true
+            IsActive = true,
+            SourceImportBatch = version.SourceImportBatch,
+            SourceFileName = version.SourceFileName,
+            SourceChecksum = version.SourceChecksum
         };
         context.Dishes.Add(dish);
         dishes.Add(dish);

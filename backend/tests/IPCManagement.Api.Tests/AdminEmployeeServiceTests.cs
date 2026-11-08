@@ -27,6 +27,13 @@ public class AdminEmployeeServiceTests
         var adminIdStr = GuidHelper.ToGuidString(fixture.AdminId);
         var newRoleIdStr = GuidHelper.ToGuidString(fixture.ChefRoleId);
 
+        fixture.Context.Refreshtokens.AddRange(
+            fixture.CreateRefreshToken('a', fixture.EmployeeId),
+            fixture.CreateRefreshToken('b', fixture.EmployeeId),
+            fixture.CreateRefreshToken('c', fixture.AdminId),
+            fixture.CreateRefreshToken('d', fixture.EmployeeId, isRevoked: true));
+        await fixture.Context.SaveChangesAsync();
+
         var request = new UpdateEmployeeRequest
         {
             FullName = "New Full Name",
@@ -69,6 +76,14 @@ public class AdminEmployeeServiceTests
         auditLogs.Should().ContainSingle(a => a.FieldName == "RoleId" && a.NewValue == newRoleIdStr);
         auditLogs.Should().ContainSingle(a => a.FieldName == "IsActive" && a.NewValue == "False");
         auditLogs.Should().ContainSingle(a => a.FieldName == "PasswordHash");
+
+        var employeeTokens = await fixture.Context.Refreshtokens
+            .Where(token => token.UserId == fixture.EmployeeId)
+            .ToListAsync();
+        employeeTokens.Should().OnlyContain(token => token.IsRevoked);
+        var adminToken = await fixture.Context.Refreshtokens
+            .SingleAsync(token => token.UserId == fixture.AdminId);
+        adminToken.IsRevoked.Should().BeFalse();
     }
 
     [Fact]
@@ -80,6 +95,13 @@ public class AdminEmployeeServiceTests
 
         var employeeIdStr = GuidHelper.ToGuidString(fixture.EmployeeId);
         var adminIdStr = GuidHelper.ToGuidString(fixture.AdminId);
+
+        fixture.Context.Refreshtokens.AddRange(
+            fixture.CreateRefreshToken('e', fixture.EmployeeId),
+            fixture.CreateRefreshToken('f', fixture.EmployeeId),
+            fixture.CreateRefreshToken('g', fixture.AdminId),
+            fixture.CreateRefreshToken('h', fixture.EmployeeId, isRevoked: true));
+        await fixture.Context.SaveChangesAsync();
 
         var request = new UpdateEmployeeStatusRequest { IsActive = false };
 
@@ -98,6 +120,14 @@ public class AdminEmployeeServiceTests
         audit!.ChangedBy.Should().Equal(fixture.AdminId);
         audit.NewValue.Should().Be("False");
         audit.Reason.Should().Be("Khóa tài khoản nhân viên.");
+
+        var employeeTokens = await fixture.Context.Refreshtokens
+            .Where(token => token.UserId == fixture.EmployeeId)
+            .ToListAsync();
+        employeeTokens.Should().OnlyContain(token => token.IsRevoked && token.RevokedAt != null);
+        var adminToken = await fixture.Context.Refreshtokens
+            .SingleAsync(token => token.UserId == fixture.AdminId);
+        adminToken.IsRevoked.Should().BeFalse();
     }
 
     private sealed class AdminEmployeeFixture(
@@ -166,6 +196,19 @@ public class AdminEmployeeServiceTests
             return fixture;
         }
 
+        public RefreshToken CreateRefreshToken(char marker, byte[] userId, bool isRevoked = false)
+            => new()
+            {
+                TokenId = GuidHelper.NewId(),
+                UserId = userId,
+                TokenHash = new string(marker, 64),
+                DeviceInfo = $"device-{marker}",
+                CreatedAt = DateTime.UtcNow,
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                IsRevoked = isRevoked,
+                RevokedAt = isRevoked ? DateTime.UtcNow.AddMinutes(-1) : null
+            };
+
         public async ValueTask DisposeAsync()
         {
             await Context.DisposeAsync();
@@ -192,6 +235,19 @@ public class AdminEmployeeServiceTests
                     createdAt TEXT NOT NULL
                 );
 
+                CREATE TABLE refreshtokens (
+                    tokenId BLOB PRIMARY KEY,
+                    userId BLOB NOT NULL,
+                    tokenHash TEXT NOT NULL,
+                    deviceInfo TEXT NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    expiresAt TEXT NOT NULL,
+                    isUsed INTEGER NOT NULL DEFAULT 0,
+                    isRevoked INTEGER NOT NULL DEFAULT 0,
+                    revokedAt TEXT NULL,
+                    replacedByToken TEXT NULL
+                );
+
                 CREATE TABLE auditlogs (
                     auditId BLOB PRIMARY KEY,
                     changedAt TEXT NOT NULL,
@@ -202,7 +258,8 @@ public class AdminEmployeeServiceTests
                     fieldName TEXT NULL,
                     oldValue TEXT NULL,
                     newValue TEXT NULL,
-                    reason TEXT NULL
+                    reason TEXT NULL,
+                    correlationId TEXT NULL
                 );
                 """;
             await command.ExecuteNonQueryAsync();

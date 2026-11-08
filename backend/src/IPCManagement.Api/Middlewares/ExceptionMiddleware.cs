@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Features.Reconciliation.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Middlewares;
@@ -48,6 +49,7 @@ public class ExceptionMiddleware
             BusinessRuleException     => (HttpStatusCode.BadRequest,           ex.Message),
             ResourceNotFoundException => (HttpStatusCode.NotFound,             ex.Message),
             ResourceConflictException => (HttpStatusCode.Conflict,             ex.Message),
+            ReconciliationToleranceAuthorityException => (HttpStatusCode.Conflict, ex.Message),
 
             // ── Exception hạ tầng / .NET ───────────────────────────────────────
             // Kestrel ném BadHttpRequestException ngay trong lúc model-binding (vd. [RequestSizeLimit]

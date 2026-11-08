@@ -31,7 +31,29 @@ public class AuthControllerTests
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<LoginResponseDto>>().Subject;
         response.Data!.AccessToken.Should().Be("access-token");
         response.Data.RefreshToken.Should().BeEmpty();
+        controller.Response.Headers.SetCookie.Count.Should().Be(1);
         controller.Response.Headers.SetCookie.ToString().Should().Contain("refreshToken=raw-refresh-token");
+    }
+
+    [Fact]
+    public async Task LoginFailureLog_Should_NotContainUsernameOrUserAgent()
+    {
+        var controller = CreateController();
+        controller.Request.Headers.UserAgent = "sensitive-user-agent-marker";
+        _authService.LoginAsync(Arg.Any<LoginRequest>(), Arg.Any<string>()).Returns((LoginResponseDto?)null);
+
+        await controller.LoginAsync(new LoginRequest
+        {
+            Username = "sensitive-username-marker",
+            Password = "sensitive-password-marker"
+        });
+
+        var renderedLogs = string.Join(" ", _logger.ReceivedCalls()
+            .SelectMany(call => call.GetArguments())
+            .Select(argument => argument?.ToString()));
+        renderedLogs.Should().NotContain("sensitive-username-marker")
+            .And.NotContain("sensitive-user-agent-marker")
+            .And.NotContain("sensitive-password-marker");
     }
 
     [Fact]

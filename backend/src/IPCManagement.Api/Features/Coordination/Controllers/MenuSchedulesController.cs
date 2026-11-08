@@ -1,7 +1,9 @@
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
+using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -25,6 +27,7 @@ public sealed class MenuSchedulesController : ControllerBase
     }
 
     [HttpGet("menu-schedules")]
+    [SystemOperation("coordination.menu-schedules.read", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MenuScheduleDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMenuSchedulesAsync([FromQuery] MenuScheduleQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<MenuScheduleDto>>.SuccessResult(await _service.GetMenuSchedulesAsync(query)));
@@ -37,7 +40,11 @@ public sealed class MenuSchedulesController : ControllerBase
     {
         try
         {
-            var result = await _service.UpdateMenuScheduleRulesAsync(id, request, _currentUserService.GetUserId(User));
+            var result = await _service.UpdateMenuScheduleRulesAsync(
+                id,
+                request,
+                _currentUserService.GetUserId(User),
+                HttpContext.TraceIdentifier);
             return result is null
                 ? NotFound(ApiResponse.FailResult("Không tìm thấy lịch thực đơn để cập nhật quy tắc."))
                 : Ok(ApiResponse<MenuScheduleDto>.SuccessResult(result, "Đã cập nhật quy tắc suất ăn."));
@@ -46,9 +53,14 @@ public sealed class MenuSchedulesController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpPatch("menu-schedules/{id}/version")]
+    [SystemOperation("coordination.menu-schedules.version", OperationDisposition.Retained)]
     [ProducesResponseType(typeof(ApiResponse<MenuScheduleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -56,7 +68,11 @@ public sealed class MenuSchedulesController : ControllerBase
     {
         try
         {
-            var result = await _service.UpdateMenuScheduleVersionAsync(id, request, _currentUserService.GetUserId(User));
+            var result = await _service.UpdateMenuScheduleVersionAsync(
+                id,
+                request,
+                _currentUserService.GetUserId(User),
+                HttpContext.TraceIdentifier);
             return result is null
                 ? NotFound(ApiResponse.FailResult("Không tìm thấy lịch thực đơn để cập nhật version."))
                 : Ok(ApiResponse<MenuScheduleDto>.SuccessResult(result, "Đã cập nhật version thực đơn."));

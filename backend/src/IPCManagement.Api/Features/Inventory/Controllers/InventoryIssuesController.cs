@@ -52,16 +52,25 @@ public class InventoryIssuesController : ControllerBase
     /// <summary>Lấy chi tiết phiếu xuất kho theo ID.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<InventoryIssueDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByIdAsync(string id)
+    public async Task<IActionResult> GetByIdAsync(
+        string id,
+        [FromQuery] string sourceFamily = InventoryIssueSourceFamilies.Default)
     {
-        var result = await _inventoryIssueService.GetByIdAsync(id);
-        if (result is null)
-            return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
+        try
+        {
+            var result = await _inventoryIssueService.GetByIdAsync(id, sourceFamily);
+            if (result is null)
+                return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
 
-        if (!CanAccessWarehouse(result.WarehouseId))
-            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult("Không có quyền xem phiếu xuất kho của kho này."));
+            if (!CanAccessWarehouse(result.WarehouseId))
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult("Không có quyền xem phiếu xuất kho của kho này."));
 
-        return Ok(ApiResponse<InventoryIssueDto>.SuccessResult(result));
+            return Ok(ApiResponse<InventoryIssueDto>.SuccessResult(result));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     /// <summary>Tạo mới phiếu xuất kho.</summary>
@@ -71,20 +80,35 @@ public class InventoryIssuesController : ControllerBase
     {
         try
         {
-            var userId = _currentUserService.GetUserId(User);
+            if (!string.IsNullOrWhiteSpace(dto.ReconciliationBatchId) &&
+                !_currentUserService.GetRoleNames(User).Any(role =>
+                    AuthorizationPolicies.WarehouseRoles.Contains(role, StringComparer.OrdinalIgnoreCase)))
+            {
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse.FailResult("Chỉ người phụ trách Kho được tạo phiếu xuất cho lô đối chiếu."));
+            }
 
+            var userId = _currentUserService.GetUserId(User);
             var result = await _inventoryIssueService.CreateAsync(dto, userId);
             if (result is null)
                 return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
             return CreatedAtAction(
-                nameof(GetByIdAsync),
+                "GetById",
                 new { id = result.IssueId },
                 ApiResponse<InventoryIssueCreatedDto>.SuccessResult(result, "Tạo phiếu xuất kho thành công."));
         }
         catch (StockShortageException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message, ex.Shortage));
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ResourceConflictException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
         }
         catch (ArgumentException ex)
         {

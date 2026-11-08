@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Features.Inventory.Services;
 
 public interface IInventoryReceiptService
 {
-    Task<PagedResponseDto<InventoryReceiptDto>> GetPagedAsync(PagedRequestDto request);
+    Task<PagedResponseDto<InventoryReceiptDto>> GetPagedAsync(InventoryReceiptFilterRequestDto request);
     Task<InventoryReceiptDto?> GetByIdAsync(string id);
     Task<InventoryReceiptCreatedDto?> CreateAsync(CreateInventoryReceiptRequest dto, string? userId);
     Task<InventoryReceiptCreatedDto?> CreateFromPurchaseRequestAsync(CreateInventoryReceiptFromPurchaseRequest dto, string? userId);

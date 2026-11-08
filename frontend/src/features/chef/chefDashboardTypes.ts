@@ -7,6 +7,9 @@ export type ChefMaterial = Ingredient & {
   ingredientId?: string
   unitId?: string
   isReceivedByKitchen?: boolean
+  sourceCustomerName?: string
+  sourceShiftName?: string
+  sourcePriceTierAmount?: number
 }
 
 export const getChefMutationErrorMessage = (error: unknown, fallback: string) => {

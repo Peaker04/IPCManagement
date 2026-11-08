@@ -13,7 +13,7 @@ namespace IPCManagement.Api.Features.Inventory.Controllers;
 
 [ApiController]
 [Route("api/inventory-receipts")]
-[Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+[Authorize]
 [EnableRateLimiting("api-general")]
 public class InventoryReceiptsController : ControllerBase
 {
@@ -30,8 +30,9 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu nhập kho.</summary>
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.InventoryReceiptReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<InventoryReceiptDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] InventoryReceiptFilterRequestDto request)
     {
         var result = await _inventoryReceiptService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<InventoryReceiptDto>>.SuccessResult(result));
@@ -39,6 +40,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Lấy chi tiết phiếu nhập kho theo ID (bao gồm các dòng).</summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryReceiptReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<InventoryReceiptDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
@@ -51,6 +53,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Tạo mới phiếu nhập kho.</summary>
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
     [ProducesResponseType(typeof(ApiResponse<InventoryReceiptCreatedDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReceiptRequest dto)
     {
@@ -61,13 +64,14 @@ public class InventoryReceiptsController : ControllerBase
             return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
         return CreatedAtAction(
-            nameof(GetByIdAsync),
+            "GetById",
             new { id = result.ReceiptId },
             ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Tạo phiếu nhập kho thành công."));
     }
 
     /// <summary>Tạo phiếu nhập kho từ phiếu mua đã gửi nhà cung cấp.</summary>
     [HttpPost("from-purchase")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
     [ProducesResponseType(typeof(ApiResponse<InventoryReceiptCreatedDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateFromPurchaseAsync([FromBody] CreateInventoryReceiptFromPurchaseRequest dto)
     {
@@ -81,7 +85,7 @@ public class InventoryReceiptsController : ControllerBase
             }
 
             return CreatedAtAction(
-                nameof(GetByIdAsync),
+                "GetById",
                 new { id = result.ReceiptId },
                 ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Đã nhập kho từ phiếu mua."));
         }

@@ -18,8 +18,8 @@ public class CreateInventoryReceiptDtoValidator : AbstractValidator<CreateInvent
             .Must(BeValidGuid).WithMessage("SupplierId phải là GUID hợp lệ.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
         RuleFor(x => x.Lines)
             .NotEmpty().WithMessage("Phiếu nhập phải có ít nhất 1 dòng chi tiết.");
@@ -61,27 +61,58 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
 {
     public CreateInventoryIssueDtoValidator()
     {
+        RuleFor(x => x.CommandId).NotEmpty().MaximumLength(128);
+        RuleFor(x => x.ExpectedVersion).GreaterThanOrEqualTo(0);
         RuleFor(x => x.IssueDate)
             .NotEmpty().WithMessage("Ngày xuất kho không được để trống.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
-        RuleFor(x => x.MaterialRequestId)
-            .NotEmpty().WithMessage("Yêu cầu vật tư không được để trống.")
-            .Must(BeValidGuid).WithMessage("MaterialRequestId phải là GUID hợp lệ.");
+        RuleFor(x => x).Must(x =>
+                !string.IsNullOrWhiteSpace(x.MaterialRequestId) ^ !string.IsNullOrWhiteSpace(x.ReconciliationBatchId))
+            .WithMessage("Phiếu xuất phải có đúng một nguồn nhu cầu hoặc lô đối chiếu.");
+        RuleFor(x => x.MaterialRequestId).Must(BeValidGuid).When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestId))
+            .WithMessage("MaterialRequestId phải là GUID hợp lệ.");
+        RuleFor(x => x.ReconciliationBatchId).Must(BeValidGuid).When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchId))
+            .WithMessage("ReconciliationBatchId phải là GUID hợp lệ.");
 
         RuleForEach(x => x.Lines).SetValidator(new CreateInventoryIssueLineDtoValidator());
+        RuleFor(x => x).Custom((request, context) =>
+        {
+            var headerIsMaterial = !string.IsNullOrWhiteSpace(request.MaterialRequestId);
+            foreach (var line in request.Lines)
+            {
+                var lineIsMaterial = !string.IsNullOrWhiteSpace(line.MaterialRequestLineId);
+                var lineIsReconciliation = !string.IsNullOrWhiteSpace(line.ReconciliationBatchLineId);
+                var validForHeader = headerIsMaterial
+                    ? !lineIsReconciliation
+                    : lineIsReconciliation && !lineIsMaterial;
+                if (!validForHeader)
+                {
+                    context.AddFailure(nameof(request.Lines), "Dòng DEFAULT có thể suy ra nguồn chuẩn; dòng đối chiếu phải có đúng nguồn đối chiếu và cùng loại với phiếu xuất.");
+                    break;
+                }
+            }
+        });
     }
 
-    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+    private static bool BeValidGuid(string? value) => Guid.TryParse(value, out _);
 }
 
 public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInventoryIssueLineRequest>
 {
     public CreateInventoryIssueLineDtoValidator()
     {
+        RuleFor(x => x).Must(x =>
+                string.IsNullOrWhiteSpace(x.MaterialRequestLineId) || string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId))
+            .WithMessage("Dòng xuất không được đồng thời tham chiếu cả hai loại dòng nguồn.");
+        When(x => !string.IsNullOrWhiteSpace(x.MaterialRequestLineId), () =>
+            RuleFor(x => x.MaterialRequestLineId).Must(BeValidGuid).WithMessage("MaterialRequestLineId phải là GUID hợp lệ."));
+        When(x => !string.IsNullOrWhiteSpace(x.ReconciliationBatchLineId), () =>
+            RuleFor(x => x.ReconciliationBatchLineId).Must(BeValidGuid).WithMessage("ReconciliationBatchLineId phải là GUID hợp lệ."));
+
         RuleFor(x => x.IngredientId)
             .NotEmpty().WithMessage("Nguyên liệu không được để trống.")
             .Must(BeValidGuid).WithMessage("IngredientId phải là GUID hợp lệ.");
@@ -90,16 +121,17 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
             .GreaterThan(0).WithMessage("Số lượng yêu cầu phải lớn hơn 0.");
 
         RuleFor(x => x.IssuedQty)
-            .GreaterThan(0).WithMessage("Số lượng xuất phải lớn hơn 0.")
-            .LessThanOrEqualTo(x => x.RequestedQty)
-            .WithMessage("Số lượng xuất không được vượt quá số lượng yêu cầu.");
+            .GreaterThan(0).WithMessage("Số lượng xuất phải lớn hơn 0.");
+        RuleFor(x => x.VarianceReason)
+            .NotEmpty().WithMessage("Cần nhập lý do khi số lượng thực xuất vượt số lượng cần xuất.")
+            .When(x => x.IssuedQty > x.RequestedQty);
 
         RuleFor(x => x.UnitId)
             .NotEmpty().WithMessage("Đơn vị tính không được để trống.")
             .Must(BeValidGuid).WithMessage("UnitId phải là GUID hợp lệ.");
     }
 
-    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+    private static bool BeValidGuid(string? value) => Guid.TryParse(value, out _);
 }
 
 public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInventoryReturnRequest>
@@ -110,8 +142,8 @@ public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInvento
             .NotEmpty().WithMessage("Ngày trả nguyên liệu không được để trống.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
         RuleFor(x => x.IssueId)
             .NotEmpty().WithMessage("Phiếu xuất gốc không được để trống.")
@@ -173,8 +205,8 @@ public class CreateInventoryReceiptFromPurchaseDtoValidator : AbstractValidator<
             .Must(BeValidGuid).WithMessage("SupplierId phải là GUID hợp lệ.");
 
         RuleFor(x => x.WarehouseId)
-            .NotEmpty().WithMessage("Kho không được để trống.")
-            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+            .Must(BeValidGuid!).WithMessage("WarehouseId phải là GUID hợp lệ.")
+            .When(x => x.WarehouseId is not null);
 
         RuleFor(x => x.Lines)
             .NotEmpty().WithMessage("Phiếu nhập phải có ít nhất 1 dòng chi tiết.");

@@ -9,7 +9,7 @@ Lưới an toàn dữ liệu tối thiểu cho MySQL. Hai script, không phụ t
 | `Restore-Database.ps1` | Verify SHA-256 → tạo DB đích → nạp dump → đối chiếu manifest, có guard DB thật/DB đã có dữ liệu |
 | `Audit-NonCriticalDataQuality.sql` | Audit read-only BOM, quotation, demand traceability, duplicate master, menu status và lineage |
 | `Compare-MigrationLineage.ps1` | Đối chiếu read-only `__EFMigrationsHistory` với file migration trong source |
-| `migration-lineage.json` | Manifest canonical cho migration DB-only đã retirement/supersede có evidence |
+| `migration-lineage.json` | Ledger canonical cho migration DB-only hiện hành và disposition lịch sử có evidence |
 
 Chạy audit không ghi dữ liệu:
 
@@ -44,7 +44,7 @@ Mất bảng này là mất số liệu kho, không có cách dựng lại.
 > `USE ipcManagement;` nên chạy nó với database đích nào cũng xoá sạch database chính: 46 bảng bị
 > drop, 5 bảng mất hẳn (`stockmovements` trong số đó). **Lúc đó thư mục backup còn chưa tồn tại** —
 > tài liệu này đã viết xong từ 26/07 nhưng chưa ai chạy lần nào. Khôi phục được là nhờ binlog còn
-> nguyên, không nhờ quy trình nào ở đây. Đọc `docs/CURRENT-STATE.md` mục "Sự cố mất dữ liệu và củng
+> nguyên, không nhờ quy trình nào ở đây. Đọc `HISTORY.md` mục "Sự cố mất dữ liệu và củng
 > cố tầng database" trước khi đụng vào database thật.
 
 ## Trạng thái trên máy này (cập nhật 27/07/2026)
@@ -260,6 +260,21 @@ Ràng buộc để giữ được 30 phút: có người biết quy trình này,
 ---
 
 ## 5. Những gì lưới này KHÔNG bảo vệ
+
+### Đích off-site đã chốt
+
+Kiến trúc đích là object storage hỗ trợ versioning + immutability (triển khai trên
+Cloudflare R2 hoặc Backblaze B2 sau khi cấp tài khoản), cộng hai SSD ngoài luân phiên,
+trong đó luôn có một SSD nằm ngoài địa điểm vận hành.
+
+- Credential shipper chỉ được ghi object; không có quyền xóa. Credential restore tách riêng.
+- Mã hóa dump và binlog trước upload; khóa nằm trong secret manager, không trong repo.
+- Upload dump theo lịch và ship binlog theo chu kỳ ngắn; không chỉ copy dump.
+- Manifest SHA-256 nằm ở trust boundary tách khỏi payload.
+- Off-site chỉ được đóng sau khi restore trên máy chưa từng có dữ liệu IPC, chỉ
+  dùng bản off-site, rồi qua table/row/checksum/migration và `/health/ready` gate.
+
+Mirror C:/D: hiện hành chỉ chứng minh integrity, không chứng minh disaster recovery.
 
 1. **Hỏng toàn máy/ổ vật lý.** `-MirrorDir` nay bắt buộc khác volume và verify hash,
    nhưng `C:`/`D:` có thể vẫn cùng physical disk. Muốn thành disaster recovery phải trỏ

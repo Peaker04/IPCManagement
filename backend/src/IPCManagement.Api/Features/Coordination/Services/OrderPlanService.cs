@@ -74,6 +74,13 @@ public sealed class OrderPlanService : IOrderPlanService
                     return null;
                 }
 
+                await EnsureMenusPublishedAsync(
+                    _context.Mealquantityplanlines.Where(line =>
+                        line.QuantityPlan.ServiceDate == serviceDate &&
+                        (scope == "FULLDAY" || line.ShiftName == shiftName)),
+                    "chốt số suất",
+                    cancellationToken);
+
                 var plans = lines
                     .Select(line => line.QuantityPlan)
                     .DistinctBy(plan => Convert.ToBase64String(plan.QuantityPlanId))
@@ -350,5 +357,27 @@ public sealed class OrderPlanService : IOrderPlanService
         }
 
         return query;
+    }
+
+    private async Task EnsureMenusPublishedAsync(
+        IQueryable<MealQuantityPlanLine> lines,
+        string actionLabel,
+        CancellationToken cancellationToken)
+    {
+        var hasUnpublishedMenu = await lines
+            .AsNoTracking()
+            .AnyAsync(line =>
+                line.MenuSchedule.Status != "ACTIVE" ||
+                (line.MenuSchedule.MenuVersionId != null &&
+                 !_context.Menuversions.Any(version =>
+                     version.MenuVersionId == line.MenuSchedule.MenuVersionId &&
+                     (version.Status == "ACTIVE" || version.Status == "PUBLISHED"))),
+                cancellationToken);
+        if (hasUnpublishedMenu)
+        {
+            throw new BusinessRuleException(
+                $"Không thể {actionLabel} khi thực đơn chưa được phát hành. " +
+                "Hãy phát hành phiên bản thực đơn trước khi tiếp tục.");
+        }
     }
 }

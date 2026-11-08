@@ -11,5 +11,6 @@ public interface ICustomerContractService
     Task<CustomerContractDto?> UpdateCustomerContractAsync(
         string customerId,
         UpdateCustomerContractRequest request,
-        string? userId);
+        string? userId,
+        string? correlationId = null);
 }

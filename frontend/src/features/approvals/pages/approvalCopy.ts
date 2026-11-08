@@ -20,8 +20,9 @@ type ApprovalDecision = 'Approve' | 'Reject';
 export const getApprovalDecisionCopy = (targetType: string | undefined, decision: ApprovalDecision) => {
   const isDemand = targetType === 'material-demand';
   const isPriceException = targetType === 'purchase-price-exception';
-  const noun = isDemand ? 'nhu cầu nguyên liệu' : isPriceException ? 'ngoại lệ giá' : 'chứng từ';
-  const safeLabel = isDemand ? 'Giữ nhu cầu' : isPriceException ? 'Giữ ngoại lệ giá' : 'Giữ chứng từ';
+  const isPurchaseRequest = targetType === 'purchase-request';
+  const noun = isDemand ? 'nhu cầu nguyên liệu' : isPriceException ? 'ngoại lệ giá' : isPurchaseRequest ? 'đề xuất mua' : 'chứng từ';
+  const safeLabel = isDemand ? 'Giữ nhu cầu' : isPriceException ? 'Giữ ngoại lệ giá' : isPurchaseRequest ? 'Giữ đề xuất mua' : 'Giữ chứng từ';
 
   if (decision === 'Reject') {
     return {

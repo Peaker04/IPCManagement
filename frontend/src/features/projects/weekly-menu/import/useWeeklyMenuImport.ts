@@ -1,6 +1,7 @@
-import { useMemo, useReducer, useRef } from 'react'
-import type { CreateCustomerContractRequest } from '../../../coordination/types'
+import { useMemo, useReducer, useRef, useState } from 'react'
+import type { CreateCustomerContractRequest } from '@/types/coordination'
 import {
+  useCommitWeeklyMenuImportBatchMutation,
   useCommitWeeklyMenuImportMutation,
   useCreateCustomerContractMutation,
   useDownloadWeeklyMenuTemplateMutation,
@@ -8,8 +9,9 @@ import {
   usePreviewWeeklyMenuImportMutation,
   useRollbackWeeklyMenuImportMutation,
   useSaveCustomerImportMappingMutation,
-} from '../../../coordination/coordinationApi'
-import type { CoordinationCustomerOption, WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
+} from '@/api/coordinationApi'
+import type { CoordinationCustomerOption, WeeklyMenuImportResult } from '@/api/coordinationApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 import { getApiErrorMessage, isValidWeekStartDate } from '../model/formatters'
 import type { WeeklyMenuImportJob } from '../model/types'
@@ -17,7 +19,7 @@ import { getBlockingImportIssues, getImportWizardStep, hasBlockingImportIssues }
 import { buildImportPresentation } from './importPresentation'
 import type { ImportDisplayDay } from './importPresentation'
 import { initialWeeklyMenuImportState, weeklyMenuImportReducer } from './importState'
-import type { ImportFeedback } from './importState'
+import type { ImportFeedback, ImportSetupErrors } from './importState'
 import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
 type UseWeeklyMenuImportOptions = {
@@ -31,6 +33,7 @@ type UseWeeklyMenuImportOptions = {
   menuPrice: BomPriceTier
   displayDays: ImportDisplayDay[]
   todayIso: string
+  catalogDishes?: CatalogDish[]
   onCustomerCreated: (customerId: string) => void
   onMenuCommitted: (result: WeeklyMenuImportResult) => void
 }
@@ -39,36 +42,45 @@ const makeFeedback = (title: string, message: string, variant: ImportFeedback['v
 
 export const useWeeklyMenuImport = ({
   customers, isCustomerLoading, isCustomerError, refetchCustomers, customerId, weekStartDate,
-  committedWeekStartDate, menuPrice, displayDays, todayIso, onCustomerCreated, onMenuCommitted,
+  committedWeekStartDate, menuPrice, displayDays, todayIso, catalogDishes = [], onCustomerCreated, onMenuCommitted,
 }: UseWeeklyMenuImportOptions) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [state, dispatch] = useReducer(weeklyMenuImportReducer, initialWeeklyMenuImportState)
   const [previewImport, { isLoading: isPreviewing }] = usePreviewWeeklyMenuImportMutation()
   const [downloadTemplate, { isLoading: isDownloadingTemplate }] = useDownloadWeeklyMenuTemplateMutation()
   const [commitImport, { isLoading: isCommitting }] = useCommitWeeklyMenuImportMutation()
+  const [commitImportBatch, { isLoading: isBatchCommitting }] = useCommitWeeklyMenuImportBatchMutation()
   const [saveImportMapping, { isLoading: isSavingMapping }] = useSaveCustomerImportMappingMutation()
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
-  const historyQuery = useGetWeeklyMenuImportHistoryQuery()
+  const [historyPagination, setHistoryPagination] = useState({ customerId, page: 1 })
+  const historyPage = historyPagination.customerId === customerId ? historyPagination.page : 1
+  const setHistoryPage = (page: number) => setHistoryPagination({ customerId, page })
+  const historyQuery = useGetWeeklyMenuImportHistoryQuery({
+    customerId: customerId || undefined,
+    pageNumber: historyPage,
+    pageSize: 10,
+  }, { skip: !state.isOpen })
   const historyView = toLabeledQueryView(historyQuery, 'lịch sử import thực đơn tuần', {
     instruction: 'Mở hộp thoại import để tải lịch sử import thực đơn tuần.',
   })
   const historyData = historyView.phase === 'ready'
     ? historyView.data
     : historyView.phase === 'error' ? historyQuery.currentData ?? historyQuery.data : undefined
-  const history = useMemo(() => historyData?.data ?? [], [historyData?.data])
+  const history = useMemo(() => historyData?.data?.items ?? [], [historyData?.data?.items])
   const selectedCustomer = customers.find((item) => item.customerId === state.draftCustomerId)
   const selectedJob = state.jobs.find((job) => job.jobId === state.selectedJobId) ?? state.jobs[0]
   const presentation = useMemo(
-    () => buildImportPresentation(selectedJob, displayDays, todayIso),
-    [displayDays, selectedJob, todayIso],
+    () => buildImportPresentation(selectedJob, displayDays, todayIso, catalogDishes),
+    [catalogDishes, displayDays, selectedJob, todayIso],
   )
   const readyJobs = state.jobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error && !hasBlockingImportIssues(job.previewResult))
-  const isImporting = isPreviewing || isCommitting || isCreatingCustomer || state.jobs.some((job) => job.status === 'previewing' || job.status === 'committing')
+  const isImporting = isPreviewing || isCommitting || isBatchCommitting || isCreatingCustomer || state.jobs.some((job) => job.status === 'previewing' || job.status === 'committing')
   const hiddenFeedbackByDetail = (state.feedback?.variant === 'danger' && presentation.problemMessages.length > 0)
     || (state.feedback?.variant === 'warning' && presentation.warningMessages.length > 0)
   const clearFileInput = () => { if (fileInputRef.current) fileInputRef.current.value = '' }
   const setFeedback = (title: string, message: string, variant: ImportFeedback['variant']) => dispatch({ type: 'set-feedback', feedback: makeFeedback(title, message, variant) })
+  const setSetupErrors = (errors: ImportSetupErrors) => dispatch({ type: 'set-setup-errors', errors })
   const close = () => { clearFileInput(); dispatch({ type: 'close' }) }
   const open = () => {
     clearFileInput()
@@ -76,11 +88,10 @@ export const useWeeklyMenuImport = ({
   }
 
   const downloadWeeklyMenuTemplate = async () => {
-    if (!selectedCustomer) return setFeedback('Chọn khách hàng', 'Vui lòng chọn hoặc tạo khách hàng trước khi tải mẫu thực đơn riêng.', 'warning')
-    if (!isValidWeekStartDate(state.weekStartDate)) return setFeedback('Chọn tuần bắt đầu', 'Vui lòng chọn ngày thứ 2 trước khi tải mẫu để file có đúng cột ngày trong tuần.', 'warning')
+    if (!selectedCustomer) return setSetupErrors({ customer: { title: 'Chọn khách hàng', message: 'Vui lòng chọn hoặc tạo khách hàng trước khi tải mẫu thực đơn riêng.' } })
+    if (!isValidWeekStartDate(state.weekStartDate)) return setSetupErrors({ weekStartDate: { title: 'Chọn tuần bắt đầu', message: 'Vui lòng chọn ngày thứ 2 trước khi tải mẫu để file có đúng cột ngày trong tuần.' } })
     try {
-      const blob = await downloadTemplate({ customerId: selectedCustomer.customerId, weekStartDate: state.weekStartDate }).unwrap()
-      const url = window.URL.createObjectURL(blob)
+      const url = await downloadTemplate({ customerId: selectedCustomer.customerId, weekStartDate: state.weekStartDate }).unwrap()
       const link = document.createElement('a')
       link.href = url
       link.download = `weekly-menu-template-${selectedCustomer.customerCode}-${state.weekStartDate}.xlsx`
@@ -110,8 +121,14 @@ export const useWeeklyMenuImport = ({
   }
 
   const addJob = () => {
-    if (!selectedCustomer || !state.selectedFile) return setFeedback('Thiếu thông tin', 'Vui lòng chọn khách hàng và file Excel trước khi kiểm tra.', 'warning')
-    if (!isValidWeekStartDate(state.weekStartDate)) return setFeedback('Ngày bắt đầu tuần không hợp lệ', 'Vui lòng chọn ngày thứ 2 để hệ thống đọc đúng các cột trong tuần.', 'warning')
+    if (!selectedCustomer || !state.selectedFile) {
+      const error = { title: 'Thiếu thông tin', message: 'Vui lòng chọn khách hàng và file Excel trước khi kiểm tra.' }
+      return setSetupErrors({
+        ...(!selectedCustomer && { customer: error }),
+        ...(!state.selectedFile && { file: error }),
+      })
+    }
+    if (!isValidWeekStartDate(state.weekStartDate)) return setSetupErrors({ weekStartDate: { title: 'Ngày bắt đầu tuần không hợp lệ', message: 'Vui lòng chọn ngày thứ 2 để hệ thống đọc đúng các cột trong tuần.' } })
     const job: WeeklyMenuImportJob = {
       jobId: `import-${selectedCustomer.customerId}`, customerId: selectedCustomer.customerId,
       customerCode: selectedCustomer.customerCode, customerName: selectedCustomer.customerName,
@@ -156,7 +173,13 @@ export const useWeeklyMenuImport = ({
     dispatch({ type: 'select-job', jobId }); dispatch({ type: 'update-job', jobId, changes: { status: 'committing', error: null } })
     setFeedback('Đang lưu thực đơn', `Hệ thống đang ghi thực đơn cho ${job.customerCode}.`, 'info')
     try {
-      const response = await commitImport({ file: job.file, customerId: job.customerId, weekStartDate: job.weekStartDate || undefined, priceTierAmount: job.priceTierAmount }).unwrap()
+      const response = await commitImport({
+        file: job.file,
+        customerId: job.customerId,
+        weekStartDate: job.weekStartDate || undefined,
+        priceTierAmount: job.priceTierAmount,
+        previewToken: job.previewResult.previewToken ?? undefined,
+      }).unwrap()
       if (!response.success || !response.data) throw new Error(response.message || 'Không lưu được thực đơn.')
       const result = response.data
       dispatch({ type: 'update-job', jobId, changes: { status: 'committed', previewResult: result, warnings: [...result.warnings], error: null } })
@@ -173,10 +196,38 @@ export const useWeeklyMenuImport = ({
   }
   const commitReadyJobs = async () => {
     const pending = state.jobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error)
-    if (!pending.length) return setFeedback('Chưa có dòng hợp lệ để lưu', 'Chỉ những file đã kiểm tra xong và không có lỗi mới được lưu.', 'warning')
-    let succeeded = true
-    for (const job of pending) succeeded = await commitJob(job.jobId, false) && succeeded
-    if (succeeded) close()
+    if (!state.jobs.length || pending.length !== state.jobs.length) return setFeedback('Chưa thể lưu batch', 'Tất cả file đã chọn phải được kiểm tra xong và không có lỗi trước khi lưu.', 'warning')
+    if (pending.length === 1) {
+      if (await commitJob(pending[0].jobId, false)) close()
+      return
+    }
+
+    pending.forEach((job) => dispatch({ type: 'update-job', jobId: job.jobId, changes: { status: 'committing', error: null } }))
+    setFeedback('Đang lưu batch thực đơn', `Hệ thống đang lưu atomic ${pending.length} file; nếu một file lỗi, không file nào được ghi.`, 'info')
+    try {
+      const response = await commitImportBatch(pending.map((job) => ({
+        file: job.file,
+        customerId: job.customerId,
+        weekStartDate: job.weekStartDate || undefined,
+        priceTierAmount: job.priceTierAmount,
+        previewToken: job.previewResult?.previewToken ?? undefined,
+      }))).unwrap()
+      const resultByCustomer = new Map(response.data?.map((result) => [result.customerId, result]))
+      if (!response.success || !response.data || resultByCustomer.size !== pending.length || pending.some((job) => !resultByCustomer.has(job.customerId))) {
+        throw new Error(response.message || 'Kết quả batch import không đầy đủ.')
+      }
+
+      pending.forEach((job) => {
+        const result = resultByCustomer.get(job.customerId)!
+        dispatch({ type: 'update-job', jobId: job.jobId, changes: { status: 'committed', previewResult: result, warnings: [...result.warnings], error: null } })
+        if (result.customerId === customerId) onMenuCommitted(result)
+      })
+      setFeedback('Đã lưu toàn bộ batch', `${response.data.length} file thực đơn đã được lưu trong cùng một transaction.`, 'info')
+      close()
+    } catch (error) {
+      pending.forEach((job) => dispatch({ type: 'update-job', jobId: job.jobId, changes: { status: 'previewed', error: null } }))
+      setFeedback('Batch không được lưu', getApiErrorMessage(error, 'Không file nào được ghi. Có thể bấm lưu lại sau khi xử lý lỗi.'), 'danger')
+    }
   }
   const saveMapping = async () => {
     if (!presentation.preview || !selectedJob) return
@@ -196,7 +247,7 @@ export const useWeeklyMenuImport = ({
   }
 
   return {
-    state, customers, history, historyDataState: historyView, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
+    state, customers, history, historyPage, setHistoryPage, historyPageInfo: historyData?.data, historyDataState: historyView, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
     wizardStep: getImportWizardStep(state.jobs), hiddenFeedbackByDetail,
     status: {
       isCustomerLoading,
@@ -204,7 +255,7 @@ export const useWeeklyMenuImport = ({
       isHistoryError: historyView.phase === 'error' || historyView.phase === 'forbidden',
       isImporting,
       isPreviewing,
-      isCommitting,
+      isCommitting: isCommitting || isBatchCommitting,
       isDownloadingTemplate,
       isSavingMapping,
       isCreatingCustomer,
@@ -219,6 +270,7 @@ export const useWeeklyMenuImport = ({
       setQuickCustomerCode: (value: string) => dispatch({ type: 'edit', field: 'quickCustomerCode', value }),
       setQuickCustomerName: (value: string) => dispatch({ type: 'edit', field: 'quickCustomerName', value }),
       toggleQuickCustomer: () => dispatch({ type: 'toggle-quick-customer' }), downloadWeeklyMenuTemplate, createQuickCustomer, addJob,
+      retryCustomers: refetchCustomers,
       removeJob: (jobId: string) => dispatch({ type: 'remove-job', jobId }), selectJob: (jobId: string) => dispatch({ type: 'select-job', jobId }),
       previewJob, previewAllJobs, commitJob, commitReadyJobs, saveMapping,
       requestRollback: (menuVersionId: string, label: string) => dispatch({ type: 'request-rollback', target: { menuVersionId, label } }),

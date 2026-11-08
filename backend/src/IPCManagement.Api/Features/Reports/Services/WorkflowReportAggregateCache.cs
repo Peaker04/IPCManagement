@@ -36,6 +36,18 @@ public sealed class WorkflowReportAggregateCache : IWorkflowReportAggregateCache
         return GetOrCreateAsync(cacheKey, () => factory(snapshotQuery));
     }
 
+    public Task<T> GetOrCreateReportAsync<T>(
+        string reportType,
+        object query,
+        Func<Task<T>> factory)
+        where T : class
+    {
+        var version = Volatile.Read(ref _dataQualityVersion);
+        var queryJson = JsonSerializer.Serialize(query);
+        var cacheKey = $"workflow-reports:{reportType}:{version}:{queryJson}";
+        return GetOrCreateAsync(cacheKey, factory);
+    }
+
     public void Invalidate()
     {
         _cache.Remove(OperationalKpisCacheKey);

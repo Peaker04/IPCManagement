@@ -5,6 +5,7 @@ namespace IPCManagement.Api.Features.Purchasing.Contracts;
 
 public sealed class PurchasePlanPageQueryDto : WorkflowReportPageQueryDto
 {
+    public string? SearchKeyword { get; set; }
 }
 
 public class PurchasePlanReportDto

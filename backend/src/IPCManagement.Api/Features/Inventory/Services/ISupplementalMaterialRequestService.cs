@@ -21,6 +21,7 @@ public interface ISupplementalMaterialRequestService
         string? scopedWarehouseId = null);
     Task<SupplementalMaterialRequestDto> RouteToPurchasingAsync(
         string id,
+        RouteSupplementalMaterialRequestToPurchasing request,
         string actorUserId,
         string? scopedWarehouseId = null);
     Task<SupplementalMaterialRequestDto> RejectAsync(

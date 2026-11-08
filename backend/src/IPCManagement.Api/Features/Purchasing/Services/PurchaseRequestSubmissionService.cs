@@ -50,8 +50,9 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
             return null;
         }
 
-        var materialRequest = await ResolveMaterialRequestForSubmitAsync(purchaseRequest, cancellationToken);
-        await ValidateSubmitAsync(purchaseRequest, materialRequest, cancellationToken);
+        var materialRequests = await ResolveMaterialRequestsForSubmitAsync(purchaseRequest, cancellationToken);
+        await ValidateSubmitAsync(purchaseRequest, materialRequests, cancellationToken);
+        var materialRequest = materialRequests[0];
 
         if (purchaseRequest.Status == SubmittedStatus)
         {
@@ -86,7 +87,7 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
 
     }
 
-    private async Task<MaterialRequest> ResolveMaterialRequestForSubmitAsync(
+    private async Task<IReadOnlyList<MaterialRequest>> ResolveMaterialRequestsForSubmitAsync(
         PurchaseRequest purchaseRequest,
         CancellationToken cancellationToken)
     {
@@ -104,23 +105,27 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
             .Select(line => PurchaseRequestSubmissionPolicy.BuildKey(line.MaterialRequestLine.RequestId))
             .Distinct()
             .ToList();
-        if (requestIds.Count != 1)
+        var materialRequests = new List<MaterialRequest>(requestIds.Count);
+        foreach (var requestId in requestIds)
         {
-            throw new BusinessRuleException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+            var requestIdBytes = Convert.FromBase64String(requestId);
+            var materialRequest = await _context.Materialrequests
+                .Include(item => item.Materialrequestlines)
+                .FirstOrDefaultAsync(item => item.RequestId == requestIdBytes, cancellationToken);
+            if (materialRequest is not null)
+            {
+                materialRequests.Add(materialRequest);
+            }
         }
 
-        var requestId = purchaseRequest.Purchaserequestlines.First().MaterialRequestLine.RequestId;
-        var materialRequest = await _context.Materialrequests
-            .Include(item => item.Materialrequestlines)
-            .FirstOrDefaultAsync(item => item.RequestId == requestId, cancellationToken);
-
-        return materialRequest
-            ?? throw new BusinessRuleException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+        return materialRequests.Count == requestIds.Count
+            ? materialRequests
+            : throw new BusinessRuleException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
     }
 
     private async Task ValidateSubmitAsync(
         PurchaseRequest purchaseRequest,
-        MaterialRequest materialRequest,
+        IReadOnlyList<MaterialRequest> materialRequests,
         CancellationToken cancellationToken)
     {
         var purchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId);
@@ -137,12 +142,14 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
                 .AsNoTracking()
                 .FirstOrDefaultAsync(item => item.RequestId == supplementalAudit.EntityId, cancellationToken);
 
-        if (supplementalRequest is null && !PurchaseRequestSubmissionPolicy.IsApprovedDemandStatus(materialRequest.Status))
+        if (supplementalRequest is null && materialRequests.Any(request =>
+                !PurchaseRequestSubmissionPolicy.IsApprovedDemandStatus(request.Status)))
         {
             throw new BusinessRuleException("Cần duyệt nhu cầu nguyên liệu trước khi gửi đơn mua.");
         }
 
-        var currentShortageLineIds = materialRequest.Materialrequestlines
+        var currentShortageLineIds = materialRequests
+            .SelectMany(request => request.Materialrequestlines)
             .Where(line => PurchaseRequestPlanner.CalculatePurchaseQty(line.SuggestedPurchaseQty) > 0)
             .Select(line => PurchaseRequestSubmissionPolicy.BuildKey(line.RequestLineId))
             .ToHashSet();

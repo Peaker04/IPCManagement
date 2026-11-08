@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,21 +9,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { formatCurrency } from '@/lib/formatters';
 import type {
   PurchaseOrderDto,
   PurchaseOrderLineDto,
   WarehouseDto,
   WarehousePurchaseReceiptResult,
-} from '@/api/workflowApi';
-import { useRecordWarehousePurchaseReceiptMutation } from '@/api/workflowApi';
+} from '@/api/workflowApiTypes';
+import { useRecordWarehousePurchaseReceiptMutation } from '@/api/warehouseApi';
 
 interface WarehousePurchaseReceiptDialogProps {
   open: boolean;
   order: PurchaseOrderDto;
   line: PurchaseOrderLineDto;
   warehouses: WarehouseDto[];
-  preferredWarehouseId?: string;
   week?: string;
   onOpenChange: (open: boolean) => void;
   onSuccess: (result: WarehousePurchaseReceiptResult) => void;
@@ -39,6 +40,7 @@ interface ReceiptFormErrors {
   expiryDate?: string;
   packageSnapshot?: string;
 }
+
 
 const createIdempotencyKey = () => {
   const suffix = typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -64,15 +66,15 @@ export function WarehousePurchaseReceiptDialog({
   order,
   line,
   warehouses,
-  preferredWarehouseId,
   week,
   onOpenChange,
   onSuccess,
 }: WarehousePurchaseReceiptDialogProps) {
   const remainingQuantity = Math.max(line.orderedQty - line.receivedQty, 0);
   const idempotencyKey = useRef(createIdempotencyKey());
-  const preferredWarehouse = warehouses.find((warehouse) => warehouse.warehouseId === preferredWarehouseId);
-  const [warehouseId, setWarehouseId] = useState(preferredWarehouse?.warehouseId ?? '');
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const operationalWarehouse = warehouses.length === 1 ? warehouses[0] : undefined;
+  const warehouseId = operationalWarehouse?.warehouseId ?? '';
   const [receiptDate, setReceiptDate] = useState('');
   const [actualQuantity, setActualQuantity] = useState(String(remainingQuantity || ''));
   const [actualUnitPrice, setActualUnitPrice] = useState(String(line.unitPrice || ''));
@@ -87,6 +89,10 @@ export function WarehousePurchaseReceiptDialog({
   const [errors, setErrors] = useState<ReceiptFormErrors>({});
   const [submitError, setSubmitError] = useState('');
   const [recordReceipt, { isLoading }] = useRecordWarehousePurchaseReceiptMutation();
+
+  useEffect(() => {
+    if (isConfirming) backButtonRef.current?.focus();
+  }, [isConfirming]);
 
   const validate = () => {
     const nextErrors: ReceiptFormErrors = {};
@@ -170,7 +176,7 @@ export function WarehousePurchaseReceiptDialog({
         aria-describedby="purchase-receipt-description"
       >
         <DialogHeader>
-          <DialogTitle id="purchase-receipt-title">Ghi nhận nhập kho từ đơn mua</DialogTitle>
+          <DialogTitle id="purchase-receipt-title">Tạo phiếu nhập nháp từ đơn mua</DialogTitle>
           <DialogDescription id="purchase-receipt-description">
             {order.purchaseOrderCode} · {order.supplierName} · {line.ingredientName}
           </DialogDescription>
@@ -194,7 +200,7 @@ export function WarehousePurchaseReceiptDialog({
           <div className="grid gap-3 rounded-sm border border-slate-200 bg-slate-50 p-4 text-sm">
             <div className="flex items-center gap-2 font-semibold text-slate-900">
               <CheckCircle2 className="size-4 text-teal-700" />
-              Kiểm tra trước khi ghi nhận
+              Kiểm tra trước khi tạo phiếu nháp
             </div>
             <dl className="grid gap-x-4 gap-y-2 sm:grid-cols-[11rem_1fr]">
               <dt className="text-slate-500">Kho nhận</dt>
@@ -204,7 +210,7 @@ export function WarehousePurchaseReceiptDialog({
               <dt className="text-slate-500">Số lượng thực nhận</dt>
               <dd>{actualQuantity} {line.unitName}</dd>
               <dt className="text-slate-500">Đơn giá thực nhận</dt>
-              <dd>{Number(actualUnitPrice).toLocaleString('vi-VN')} đ/{line.unitName}</dd>
+              <dd>{formatCurrency(Number(actualUnitPrice), 2)}/{line.unitName}</dd>
               <dt className="text-slate-500">Số lô</dt>
               <dd>{lotNumber || 'Không cung cấp'}</dd>
               {manufactureDate && <><dt className="text-slate-500">Ngày sản xuất</dt><dd>{manufactureDate}</dd></>}
@@ -214,22 +220,10 @@ export function WarehousePurchaseReceiptDialog({
         ) : (
           <div className="grid gap-4 py-1 sm:grid-cols-2">
             <div className="grid gap-1.5">
-              <label className="text-sm font-medium" htmlFor="purchase-receipt-warehouse">Kho nhận <span className="text-red-600">*</span></label>
-              <select
-                id="purchase-receipt-warehouse"
-                className="ipc-select h-8 w-full"
-                value={warehouseId}
-                onChange={(event) => setWarehouseId(event.target.value)}
-                disabled={Boolean(preferredWarehouse)}
-                aria-invalid={Boolean(errors.warehouseId)}
-                aria-describedby={errors.warehouseId ? 'purchase-receipt-warehouse-error' : undefined}
-              >
-                <option value="">Chọn kho nhận</option>
-                {warehouses.map((warehouse) => (
-                  <option key={warehouse.warehouseId} value={warehouse.warehouseId}>{warehouse.warehouseName}</option>
-                ))}
-              </select>
-              {preferredWarehouse && <p className="text-xs text-sky-700">Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.</p>}
+              <p className="text-sm font-medium">Kho vận hành</p>
+              <p className="rounded-sm border border-slate-300 bg-slate-50 px-3 py-2 text-sm">
+                {operationalWarehouse?.warehouseName ?? 'Chưa xác định'}
+              </p>
               {errors.warehouseId && <p id="purchase-receipt-warehouse-error" className="text-xs text-red-700">{errors.warehouseId}</p>}
             </div>
             <div className="grid gap-1.5">
@@ -272,8 +266,8 @@ export function WarehousePurchaseReceiptDialog({
               </div>
             )}
             <div className="sm:col-span-2">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={includePackageSnapshot} onChange={(event) => setIncludePackageSnapshot(event.target.checked)} />
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <Checkbox checked={includePackageSnapshot} onCheckedChange={(checked) => setIncludePackageSnapshot(checked === true)} />
                 Ghi nhận ảnh chụp quy đổi đóng gói
               </label>
             </div>
@@ -300,15 +294,15 @@ export function WarehousePurchaseReceiptDialog({
         <DialogFooter>
           {isConfirming ? (
             <>
-              <Button type="button" variant="outline" autoFocus disabled={isLoading} onClick={() => setIsConfirming(false)}>Quay lại chỉnh sửa</Button>
-              <Button type="button" disabled={isLoading || Boolean(line.blockerReason)} onClick={() => void submitReceipt()}>
-                {isLoading ? 'Đang lưu...' : 'Ghi nhận nhập kho'}
+              <Button ref={backButtonRef} type="button" variant="outline" autoFocus disabled={isLoading} onClick={() => setIsConfirming(false)}>Quay lại chỉnh sửa</Button>
+              <Button type="button" disabled={isLoading || !warehouseId || Boolean(line.blockerReason)} onClick={() => void submitReceipt()}>
+                {isLoading ? 'Đang lưu...' : 'Tạo phiếu nháp'}
               </Button>
             </>
           ) : (
             <>
               <Button type="button" variant="outline" autoFocus disabled={isLoading} onClick={requestClose}>Hủy</Button>
-              <Button type="button" disabled={isLoading || Boolean(line.blockerReason)} onClick={showConfirmation}>Tiếp tục xác nhận</Button>
+              <Button type="button" disabled={isLoading || !warehouseId || Boolean(line.blockerReason)} onClick={showConfirmation}>Tiếp tục xác nhận</Button>
             </>
           )}
         </DialogFooter>

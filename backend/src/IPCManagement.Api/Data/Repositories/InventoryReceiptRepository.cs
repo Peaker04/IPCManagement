@@ -2,6 +2,7 @@ using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.Inventory.Contracts;
 
 namespace IPCManagement.Api.Data.Repositories;
 
@@ -12,18 +13,21 @@ public class InventoryReceiptRepository : GenericRepository<InventoryReceipt>, I
     }
 
     public async Task<(IEnumerable<InventoryReceipt> Items, int TotalCount)> GetPagedAsync(
-        int pageNumber,
-        int pageSize)
+        InventoryReceiptFilterRequestDto request)
     {
-        (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+        var (pageNumber, pageSize) = NormalizePaging(request.PageNumber, request.PageSize);
 
         var query = _context.Inventoryreceipts
             .AsNoTracking()
             .Include(receipt => receipt.Supplier)
             .Include(receipt => receipt.Warehouse)
             .Include(receipt => receipt.CreatedByNavigation)
-            .OrderByDescending(receipt => receipt.CreatedAt)
             .AsQueryable();
+
+        if (request.PurchaseOrderOnly)
+            query = query.Where(receipt => receipt.PurchaseOrderId != null);
+
+        query = query.OrderByDescending(receipt => receipt.CreatedAt);
 
         var totalCount = await query.CountAsync();
         var items = await query

@@ -66,16 +66,28 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
             plansQuery = plansQuery.Where(plan => plan.Status == status);
         }
 
-        if (customerId is not null)
-        {
-            plansQuery = plansQuery.Where(plan =>
-                plan.Mealquantityplanlines.Any(line => line.CustomerId.SequenceEqual(customerId)));
-        }
-
         var shiftName = MenuSchedulePolicy.NormalizeShiftName(query.ShiftName);
         if (!string.IsNullOrWhiteSpace(query.ShiftName) && shiftName is null)
         {
             return [];
+        }
+
+        if (customerId is not null && shiftName is not null)
+        {
+            plansQuery = plansQuery.Where(plan =>
+                plan.Mealquantityplanlines.Any(line =>
+                    line.CustomerId.SequenceEqual(customerId) &&
+                    line.ShiftName == shiftName));
+        }
+        else if (customerId is not null)
+        {
+            plansQuery = plansQuery.Where(plan =>
+                plan.Mealquantityplanlines.Any(line => line.CustomerId.SequenceEqual(customerId)));
+        }
+        else if (shiftName is not null)
+        {
+            plansQuery = plansQuery.Where(plan =>
+                plan.Mealquantityplanlines.Any(line => line.ShiftName == shiftName));
         }
 
         var plans = await plansQuery
@@ -123,6 +135,7 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
                 var schedules = await _context.Menuschedules
                     .Include(schedule => schedule.Customer)
                     .Include(schedule => schedule.Menu)
+                    .Include(schedule => schedule.MenuVersion)
                     .Where(schedule =>
                         schedule.ServiceDate == serviceDate &&
                         schedule.ShiftName == shiftName &&
@@ -131,6 +144,16 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
                 if (schedules.Count == 0)
                 {
                     return null;
+                }
+
+                if (request.Complete && schedules.Any(schedule =>
+                        !string.Equals(schedule.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
+                        (schedule.MenuVersionId is not null &&
+                         !MenuSchedulePolicy.IsPublishedMenuVersionStatus(schedule.MenuVersion?.Status))))
+                {
+                    throw new BusinessRuleException(
+                        "Không thể hoàn tất số suất khi thực đơn chưa được phát hành. " +
+                        "Hãy phát hành phiên bản thực đơn trước khi tiếp tục.");
                 }
 
                 var customerCode = schedules.First().Customer.CustomerCode;

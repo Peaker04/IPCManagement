@@ -1,8 +1,9 @@
 import type { DemandLine, WorkflowDocument } from '@/types/workflow'
-import type { MaterialDemandStaleness } from '@/api/workflowApi'
+import type { MaterialDemandStaleness } from '@/api/workflowApiTypes'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
 import { formatMaterialDishSource } from '../model/formatters'
+import { formatNumber } from '@/lib/formatters'
 
 export type DemandApprovalPresentation = {
   status: 'not-created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'terminal'
@@ -26,8 +27,8 @@ export const getDemandActionPresentation = (
     : approvalStatus === 'pending'
       ? 'approval' as const
       : 'generate' as const,
-  showGenerate: canRegenerate && (approvalStatus === 'not-created' || approvalStatus === 'rejected' || approvalStatus === 'cancelled' || (approvalStatus === 'approved' && isStale)),
-  generateIsSecondary: approvalStatus === 'approved' && isStale,
+  showGenerate: canRegenerate && (approvalStatus === 'not-created' || approvalStatus === 'pending' || approvalStatus === 'rejected' || approvalStatus === 'cancelled' || (approvalStatus === 'approved' && isStale)),
+  generateIsSecondary: approvalStatus === 'pending' || (approvalStatus === 'approved' && isStale),
   requiresRegenerateConfirmation: approvalStatus === 'approved',
 })
 
@@ -116,49 +117,113 @@ export const getDemandDayIndex = (
 }
 
 export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: number, shortageCount?: number) => {
-  const warningCount = lines.filter((line) => line.tone === 'warning').length
-  const shortages = shortageCount ?? lines.filter((line) => Math.max(line.required - (line.available - line.reserved), 0) > 0).length
+  const pendingKitchenCount = lines.filter((line) => (line.pendingKitchenReceiptQty ?? 0) > 0).length
+  const staleCount = lines.filter((line) => line.tone === 'warning' && (line.pendingKitchenReceiptQty ?? 0) <= 0).length
+  const shortages = shortageCount ?? lines.filter((line) => (line.unissuedQty ?? Math.max(line.required - (line.available - line.reserved), 0)) > 0).length
   const total = totalCount ?? lines.length
   return {
-    warningCount,
-    staleCount: warningCount,
+    warningCount: staleCount + pendingKitchenCount,
+    staleCount,
+    pendingKitchenCount,
     shortageCount: shortages,
-    enoughCount: Math.max(total - shortages, 0),
+    enoughCount: Math.max(total - shortages - pendingKitchenCount - staleCount, 0),
     totalCount: total,
-    tone: (lines.length === 0 ? 'neutral' : warningCount > 0 ? 'warning' : shortages > 0 ? 'danger' : 'success') as DemandLine['tone'],
-    label: lines.length === 0 ? 'Chưa kiểm tồn' : warningCount > 0 ? 'Cần tính lại' : shortages > 0 ? 'Thiếu nguyên liệu' : 'Đủ nguyên liệu',
+    tone: (lines.length === 0 ? 'neutral' : shortages > 0 ? 'danger' : pendingKitchenCount > 0 || staleCount > 0 ? 'warning' : 'success') as DemandLine['tone'],
+    label: lines.length === 0 ? 'Chưa có vật tư' : shortages > 0 ? 'Thiếu hàng' : pendingKitchenCount > 0 ? 'Chờ Bếp nhận' : staleCount > 0 ? 'Cần tính lại' : 'Đủ hàng',
   }
 }
 
 export const isDemandLineException = (line: DemandLine) =>
-  line.tone === 'warning' || Math.max(line.required - (line.available - line.reserved), 0) > 0
+  line.tone === 'warning' || (line.unissuedQty ?? Math.max(line.required - (line.available - line.reserved), 0)) > 0
 
 export const partitionDemandLines = (lines: DemandLine[]) => ({
   exceptionLines: lines.filter(isDemandLineException),
   sufficientLines: lines.filter((line) => !isDemandLineException(line)),
 })
 
-const demandDishSourceKey = (line: DemandLine) =>
-  `${line.ingredientId ?? line.material.trim().toLocaleLowerCase('vi-VN')}__${line.unit.trim().toLocaleLowerCase('vi-VN')}`
+const demandDishSourceKey = (line: DemandLine, fallbackServiceDate?: string) => {
+  const date = line.serviceDate || fallbackServiceDate
+  const unitIdentity = line.unitId || line.unit
+  return date && line.ingredientId && unitIdentity
+    ? `${date}__${String(line.ingredientId).trim().toLowerCase()}__${String(unitIdentity).trim().toLowerCase()}__${line.priceTierAmount ? Number(line.priceTierAmount) : 'no-tier'}`
+    : `source__${line.id}`
+}
 
 export const attachDemandDishSources = (
   aggregateLines: DemandLine[],
   detailLines: DemandLine[],
   serviceDate: string,
+  fallbackDishSources?: Record<string, { dishNames?: string[] } | string[] | undefined> | Map<string, string[]>,
 ) => {
   const sourcesByMaterial = new Map<string, Set<string>>()
+  const sourcesByIngredient = new Map<string, Set<string>>()
+  const sourcesByName = new Map<string, Set<string>>()
 
-  detailLines.filter((line) => line.serviceDate === serviceDate).forEach((line) => {
-    const key = demandDishSourceKey(line)
-    const sources = sourcesByMaterial.get(key) ?? new Set<string>()
-    if (line.source) sources.add(line.source)
-    sourcesByMaterial.set(key, sources)
+  const addSource = (map: Map<string, Set<string>>, key: string | undefined, source: string | undefined) => {
+    if (!key || !source || source === 'Chưa xác định') return
+    const normalized = key.trim().toLowerCase()
+    const set = map.get(normalized) ?? new Set<string>()
+    set.add(source)
+    map.set(normalized, set)
+  }
+
+  detailLines
+    .filter((line) => line.serviceDate === serviceDate)
+    .forEach((line) => {
+      const key = demandDishSourceKey(line, serviceDate)
+      addSource(sourcesByMaterial, key, line.source)
+      if (line.ingredientId) {
+        addSource(sourcesByIngredient, line.ingredientId, line.source)
+      }
+      if (line.material) {
+        addSource(sourcesByName, `${line.material}|${line.unit ?? ''}`, line.source)
+        addSource(sourcesByName, line.material, line.source)
+      }
+    })
+
+  return aggregateLines.map((line) => {
+    const key = demandDishSourceKey(line, serviceDate)
+    let foundSources = Array.from(sourcesByMaterial.get(key) ?? [])
+
+    if (foundSources.length === 0 && line.ingredientId) {
+      foundSources = Array.from(sourcesByIngredient.get(line.ingredientId.trim().toLowerCase()) ?? [])
+    }
+    if (foundSources.length === 0 && line.material) {
+      foundSources = Array.from(
+        sourcesByName.get(`${line.material.trim().toLowerCase()}|${(line.unit ?? '').trim().toLowerCase()}`)
+          ?? sourcesByName.get(line.material.trim().toLowerCase())
+          ?? [],
+      )
+    }
+
+    if (foundSources.length === 0 && fallbackDishSources) {
+      if (fallbackDishSources instanceof Map) {
+        const fromMap = fallbackDishSources.get(line.ingredientId?.trim().toLowerCase() ?? '')
+          ?? fallbackDishSources.get(`${line.material?.trim().toLowerCase()}|${(line.unit ?? '').trim().toLowerCase()}`)
+          ?? fallbackDishSources.get(line.material?.trim().toLowerCase() ?? '')
+        if (fromMap && fromMap.length > 0) {
+          foundSources = fromMap
+        }
+      } else {
+        const entry = fallbackDishSources[line.ingredientId ?? '']
+          ?? fallbackDishSources[`${line.ingredientId}|${line.unitId}`]
+          ?? fallbackDishSources[`${line.material}|${line.unit}`]
+          ?? fallbackDishSources[line.material ?? '']
+
+        if (entry) {
+          const names = Array.isArray(entry) ? entry : (entry.dishNames ?? [])
+          if (names.length > 0) {
+            foundSources = names
+          }
+        }
+      }
+    }
+
+    return {
+      ...line,
+      source: formatMaterialDishSource(foundSources),
+    }
   })
-
-  return aggregateLines.map((line) => ({
-    ...line,
-    source: formatMaterialDishSource(Array.from(sourcesByMaterial.get(demandDishSourceKey(line)) ?? [])),
-  }))
 }
 
 const demandDocumentDateTokens = (serviceDate: string) => {
@@ -281,7 +346,7 @@ export const buildKhsxDraftDocument = ({
       { label: 'Ngày', value: `${activeDay.label} ${activeDay.date}` },
       { label: 'Ngày tuần', value: serviceDates.length.toString() },
       { label: 'Dòng KHSX', value: activeDay.rows.length.toString() },
-      { label: 'Tổng suất ngày', value: totalPortions.toLocaleString('vi-VN') },
+      { label: 'Tổng suất ngày', value: formatNumber(totalPortions) },
       { label: 'Thiếu BOM ngày', value: missingBom.toString(), tone: missingBom > 0 ? 'warning' : 'success' },
     ],
   }

@@ -1,7 +1,9 @@
 import { type ReactNode } from 'react';
 import { Copy } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { EmptyState } from './EmptyState';
 import { StatusBadge } from './StatusBadge';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
@@ -29,7 +31,12 @@ export function DocumentRail({ documents, title = 'Chứng từ vận hành', ac
   const pagination = useLocalPagination(documents, pageSize);
 
   if (!documents.length) {
-    return <div className={cn('ipc-document-rail is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
+    return (
+      <EmptyState
+        title={typeof title === 'string' ? `Chưa có ${title.toLocaleLowerCase('vi-VN')}.` : 'Chưa có chứng từ vận hành.'}
+        className={cn('ipc-document-rail is-empty !min-h-0 !items-stretch !justify-start !p-4 !text-left', className)}
+      />
+    );
   }
 
   const handleCopyDocumentId = async (documentId: string) => {
@@ -66,15 +73,17 @@ export function DocumentRail({ documents, title = 'Chứng từ vận hành', ac
                 <span className="ipc-document-code" title={document.id}>
                   {document.id}
                 </span>
-                <button
+                <Button
                   type="button"
-                  className="ipc-document-copy-button"
+                  variant="outline"
+                  size="icon-xs"
+                  className="size-7"
                   aria-label={`Sao chép mã chứng từ ${document.id}`}
                   title="Sao chép mã chứng từ"
                   onClick={() => void handleCopyDocumentId(document.id)}
                 >
                   <Copy size={14} />
-                </button>
+                </Button>
               </dd>
             </div>
             {document.lines.map((line) => {

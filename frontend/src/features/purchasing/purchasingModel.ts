@@ -4,8 +4,7 @@ import type {
   PurchaseRequestResult,
   PurchaseWorkbenchServiceDate,
   PurchaseWorkflowStageCounts,
-  WarehouseDto,
-} from '@/api/workflowApi';
+} from '@/api/workflowApiTypes';
 
 export type PurchasingStageId =
   | 'demand'
@@ -312,20 +311,6 @@ export function mapPurchaseRequestLines(requests: PurchaseRequestResult[]): Dema
 
 export function getActionableDraftPurchaseRequests(requests: PurchaseRequestResult[]) {
   return requests.filter((request) => request.status === 'DRAFT' && request.lines.length > 0);
-}
-
-export function mapWarehouseOptions(warehouses: WarehouseDto[]) {
-  return warehouses.map((warehouse) => ({
-    warehouseId: warehouse.warehouseId,
-    warehouse: warehouse.warehouseName,
-  }));
-}
-
-export function getSelectedReceiptWarehouseId(
-  receiveWarehouseByOrder: Record<string, string>,
-  purchaseOrderId: string,
-) {
-  return receiveWarehouseByOrder[purchaseOrderId] ?? '';
 }
 
 export function formatPurchaseRequestCandidate(candidate: {

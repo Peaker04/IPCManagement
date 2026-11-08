@@ -3,6 +3,7 @@ using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Shared.Contracts;
 
 using IPCManagement.Api.Exceptions;
@@ -12,10 +13,14 @@ namespace IPCManagement.Api.Features.Catalog.Services;
 public class IngredientService : IIngredientService
 {
     private readonly IIngredientRepository _ingredientRepo;
+    private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
 
-    public IngredientService(IIngredientRepository ingredientRepo)
+    public IngredientService(
+        IIngredientRepository ingredientRepo,
+        IOperationalWarehouseResolver operationalWarehouseResolver)
     {
         _ingredientRepo = ingredientRepo;
+        _operationalWarehouseResolver = operationalWarehouseResolver;
     }
 
     public async Task<PagedResponseDto<IngredientDto>> GetPagedAsync(PagedRequestDto request)
@@ -47,8 +52,7 @@ public class IngredientService : IIngredientService
 
         var unitBytes      = GuidHelper.ParseGuidString(dto.UnitId)
             ?? throw new ArgumentException("UnitId không hợp lệ.");
-        var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
-            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
 
         var entity = new Ingredient
         {
@@ -84,11 +88,7 @@ public class IngredientService : IIngredientService
             entity.UnitId = GuidHelper.ParseGuidString(dto.UnitId)
                 ?? throw new ArgumentException("UnitId không hợp lệ.");
         }
-        if (dto.WarehouseId is not null)
-        {
-            entity.WarehouseId = GuidHelper.ParseGuidString(dto.WarehouseId)
-                ?? throw new ArgumentException("WarehouseId không hợp lệ.");
-        }
+        entity.WarehouseId = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
 
         await _ingredientRepo.UpdateAsync(entity);
         return IngredientMapper.MapToDto(entity);
@@ -107,6 +107,17 @@ public class IngredientService : IIngredientService
         entity.IsActive = false;
         await _ingredientRepo.UpdateAsync(entity);
         return true;
+    }
+
+    private async Task<byte[]> ResolveCanonicalWarehouseAsync(string? suppliedWarehouseId)
+    {
+        var canonicalId = await _operationalWarehouseResolver.ResolveAsync();
+        if (suppliedWarehouseId is null) return canonicalId;
+        var suppliedId = GuidHelper.ParseGuidString(suppliedWarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
+            throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
+        return canonicalId;
     }
 
 }

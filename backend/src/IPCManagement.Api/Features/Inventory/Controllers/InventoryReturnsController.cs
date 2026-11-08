@@ -58,6 +58,26 @@ public class InventoryReturnsController : ControllerBase
         return Ok(ApiResponse<InventoryReturnDto>.SuccessResult(result));
     }
 
+    [HttpGet("allocation-balances")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<InventoryReturnAllocationBalanceDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllocationBalancesAsync([FromQuery] InventoryReturnAllocationBalanceQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _inventoryReturnService.GetAllocationBalancesAsync(query, _currentUserService.GetUserId(User), cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<InventoryReturnAllocationBalanceDto>>.SuccessResult(result));
+    }
+
+    [HttpPost("allocation-dispositions")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
+    [ProducesResponseType(typeof(ApiResponse<InventoryAllocationDispositionDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateAllocationDispositionAsync(
+        [FromBody] CreateInventoryAllocationDispositionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _inventoryReturnService.CreateAllocationDispositionAsync(request, _currentUserService.GetUserId(User), cancellationToken);
+        return Ok(ApiResponse<InventoryAllocationDispositionDto>.SuccessResult(result));
+    }
+
     /// <summary>Tạo mới phiếu trả nguyên liệu dư sau sản xuất.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<InventoryReturnCreatedDto>), StatusCodes.Status201Created)]
@@ -71,7 +91,7 @@ public class InventoryReturnsController : ControllerBase
             return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
         return CreatedAtAction(
-            nameof(GetByIdAsync),
+            "GetById",
             new { id = result.ReturnId },
             ApiResponse<InventoryReturnCreatedDto>.SuccessResult(result, "Tạo phiếu trả nguyên liệu thành công."));
     }

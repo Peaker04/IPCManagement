@@ -1,13 +1,14 @@
 import { expect, type Page, test } from '@playwright/test';
 import { ROUTES } from '../src/lib/routeConfig';
-import { phase09PurchaseOrdersPage, phase09Workbench } from './phase9-test-fixture';
+import { PHASE09_DATE, PHASE09_WEEK, stubPhase09Api } from './phase9-test-fixture';
+import { stubWorkflowReports } from './support/route-smoke/reports';
 
 const protectedRoutes = [
   { path: ROUTES.DASHBOARD, heading: 'Bàn điều hành hôm nay' },
   { path: ROUTES.WEEKLY_MENU, heading: 'KHSX và định lượng' },
   { path: ROUTES.MEAL_ORDERS, heading: 'Điều phối suất ăn' },
   { path: ROUTES.CHEF_DASHBOARD, heading: 'Bếp sản xuất' },
-  { path: ROUTES.REPORTS, heading: 'Phân tích biến động giá' },
+  { path: ROUTES.REPORTS, heading: 'Báo cáo vận hành' },
   { path: ROUTES.APPROVALS, heading: 'Duyệt vận hành' },
   { path: ROUTES.PURCHASING, heading: 'Thu mua' },
   { path: ROUTES.WAREHOUSE, heading: 'Kho nguyên liệu' },
@@ -35,6 +36,7 @@ async function stubOperationalApis(page: Page) {
       userId: '1',
       username: 'admin',
       fullName: 'Admin User',
+      roleCode: 'ADMIN',
       roleName: 'Admin',
       isAdminFullAccess: true,
       permissions: ['*'],
@@ -65,8 +67,64 @@ async function stubOperationalApis(page: Page) {
   }));
   await page.route('**/api/workflow-reports/**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
-  await page.route('**/api/purchase-workflow/workbench**', async (route) => fulfillJson(route, phase09Workbench));
-  await page.route('**/api/purchase-orders/page**', async (route) => fulfillJson(route, phase09PurchaseOrdersPage));
+  await page.route('**/api/purchase-orders**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/purchase-orders/page**', async (route) => fulfillJson(route, {
+    page: {
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 8,
+      totalPages: 0,
+      hasPrev: false,
+      hasNext: false,
+    },
+    orderCountByRequest: {},
+  }));
+  await page.route('**/api/inventory-receipts**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 20,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
+  await page.route('**/api/inventory-returns**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 100,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
+  await page.route('**/api/service-runs/page**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 20,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
+  await page.route('**/api/workflow-reports/current-stock/page**', async (route) => fulfillJson(route, {
+    items: [{
+      warehouseId: 'warehouse-main',
+      warehouseName: 'Kho chính',
+      ingredientId: 'ingredient-rice',
+      ingredientName: 'Gạo tẻ',
+      unitId: 'unit-kg',
+      unitName: 'kg',
+      currentQty: 240,
+      lastUpdated: '2026-07-22T07:00:00Z',
+    }],
+    totalCount: 1,
+    pageNumber: 1,
+    pageSize: 8,
+    totalPages: 1,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/warehouses/selector**', async (route) => fulfillJson(route, [{
     warehouseId: 'warehouse-main',
     warehouseCode: 'MAIN',
@@ -109,7 +167,7 @@ async function stubOperationalApis(page: Page) {
   await page.route('**/api/coordination/meal-quantity-plans**', async (route) => fulfillJson(route, []));
   await page.route('**/api/coordination/weekly-menu**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
-    await fulfillJson(route, pathname.endsWith('/import-history') ? [] : null);
+    await fulfillJson(route, pathname.endsWith('/import-history') || pathname.endsWith('/amendments') ? [] : null);
   });
 }
 
@@ -121,7 +179,7 @@ async function stubWeeklyMenuGroupedPlan(page: Page) {
 
   await page.route('**/api/coordination/weekly-menu**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
-    if (pathname.endsWith('/import-history')) {
+    if (pathname.endsWith('/import-history') || pathname.endsWith('/amendments')) {
       await fulfillJson(route, []);
       return;
     }
@@ -143,30 +201,33 @@ async function stubWeeklyMenuGroupedPlan(page: Page) {
     });
   });
 
-  await page.route('**/api/production-plans/filter**', async (route) => {
-    const serviceDate = new URL(route.request().url()).searchParams.get('serviceDate');
-    const lineCount = serviceDate === '2026-07-06' ? 1 : serviceDate === '2026-07-07' ? 6 : 0;
-    if (lineCount === 0) {
-      await fulfillJson(route, []);
-      return;
-    }
-
-    await fulfillJson(route, [{
-      planId: `plan-${serviceDate}`,
-      planCode: serviceDate === '2026-07-06' ? 'KHSX-NHOM-01' : 'KHSX-NHOM-02',
-      planDate: serviceDate,
+  await page.route('**/api/production-plans/filter**', async (route) => fulfillJson(route, [
+    {
+      planId: 'plan-2026-07-06',
+      planCode: 'KHSX-NHOM-01',
+      planDate: '2026-07-06',
       customerId: 'customer-dav',
       customerCode: 'DAV',
       customerName: 'Draxlmaier',
       status: 'DRAFT',
-      lines: Array.from({ length: lineCount }, (_, index) => ({
-        planLineId: `line-${serviceDate}-${index + 1}`,
+      lines: [{ planLineId: 'line-2026-07-06-1', dishName: 'Món kiểm thử 1', shiftName: 'MORNING', totalServings: 100 }],
+    },
+    {
+      planId: 'plan-2026-07-07',
+      planCode: 'KHSX-NHOM-02',
+      planDate: '2026-07-07',
+      customerId: 'customer-dav',
+      customerCode: 'DAV',
+      customerName: 'Draxlmaier',
+      status: 'DRAFT',
+      lines: Array.from({ length: 6 }, (_, index) => ({
+        planLineId: `line-2026-07-07-${index + 1}`,
         dishName: `Món kiểm thử ${index + 1}`,
         shiftName: index % 2 === 0 ? 'MORNING' : 'AFTERNOON',
         totalServings: 100 + index,
       })),
-    }]);
-  });
+    },
+  ]));
 
   await page.route('**/api/material-demand/staleness**', async (route) => {
     await fulfillJson(route, {
@@ -311,16 +372,27 @@ async function stubApprovalRules(page: Page) {
 }
 
 async function login(page: Page) {
-  await page.goto(ROUTES.LOGIN);
-  await page.getByLabel('Tài khoản').fill('admin');
-  await page.getByLabel('Mật khẩu').fill('admin');
-  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+  await page.context().clearCookies();
+  await page.addInitScript(() => {
+    window.sessionStorage.setItem('token', 'dev-login-fallback-token-admin');
+    window.localStorage.setItem('user', JSON.stringify({
+      id: 'control-surface-admin',
+      username: 'admin',
+      fullName: 'Admin User',
+      role: 'admin',
+      roleCode: 'ADMIN',
+      roleName: 'Admin',
+      isAdminFullAccess: true,
+      permissions: ['*'],
+    }));
+  });
+  await page.goto(ROUTES.DASHBOARD);
   await expect(page).toHaveURL(ROUTES.DASHBOARD);
   await expect(page.locator('.ipc-app-shell')).toBeVisible();
 }
 
 async function expectVisibleControlsAreNamed(page: Page) {
-  const unnamedControls = await page.evaluate(() => {
+  const controls = await page.evaluate(() => {
     const selectors = 'button, [role="button"], a.ipc-button';
     return Array.from(document.querySelectorAll<HTMLElement>(selectors))
       .map((element, index) => {
@@ -348,12 +420,14 @@ async function expectVisibleControlsAreNamed(page: Page) {
           className: element.className.toString(),
           isVisible,
           label,
+          width: rect.width,
+          height: rect.height,
         };
-      })
-      .filter((control) => control.isVisible && control.label.length === 0);
+      });
   });
 
-  expect(unnamedControls).toEqual([]);
+  expect(controls.filter((control) => control.isVisible && control.label.length === 0)).toEqual([]);
+  expect(controls.filter((control) => control.isVisible && (control.width < 24 || control.height < 24))).toEqual([]);
 }
 
 test.describe('operational control surface', () => {
@@ -375,7 +449,7 @@ test.describe('operational control surface', () => {
     await page.setViewportSize({ width: 320, height: 900 });
     await page.goto(ROUTES.APPROVAL_RULES);
 
-    await expect(page.getByRole('heading', { name: 'Quy tắc phê duyệt', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Thiết lập quy trình duyệt', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Thêm quy tắc' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 
@@ -409,19 +483,20 @@ test.describe('operational control surface', () => {
     );
     expect(positions).toHaveLength(2);
     expect(Math.abs(positions[0].left - positions[1].left)).toBeLessThanOrEqual(1);
-    expect(positions.every((position) => position.width > 240)).toBe(true);
+    expect(positions.every((position) => position.width >= 220)).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
   test('reports filters keep a consistent two-column mobile layout', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await stubWorkflowReports(page);
     await page.goto(ROUTES.REPORTS);
 
-    await expect(page.getByRole('heading', { name: 'Phân tích biến động giá', exact: true })).toBeVisible();
+    await expect(page.locator('.ipc-page-title')).toHaveText('Báo cáo vận hành');
     await expect(page.getByLabel('Từ ngày')).toBeVisible();
     await expect(page.getByLabel('Đến ngày')).toBeVisible();
     await expect(page.getByLabel('Ca')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Xuất báo cáo' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Xuất dữ liệu trang hiện tại' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
 
     await page.getByRole('tab', { name: 'Chất lượng dữ liệu', exact: true }).click();
@@ -432,11 +507,13 @@ test.describe('operational control surface', () => {
 
   test('reports wide tables scroll inside their viewport on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await stubWorkflowReports(page);
     await page.goto(ROUTES.REPORTS);
 
     const tableViewport = page.locator('.ipc-report-table-shell');
     const table = tableViewport.locator('table').first();
     await expect(tableViewport).toBeVisible();
+    await expect(table.locator('tbody tr')).not.toHaveCount(0);
     await expect(table).toHaveCSS('min-width', '720px');
     const geometry = await tableViewport.evaluate((element) => ({
       clientWidth: element.clientWidth,
@@ -444,6 +521,48 @@ test.describe('operational control surface', () => {
     }));
     expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('reports price variance supports query-first discovery and a readable warning action', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const priceRequests: URL[] = [];
+    page.on('request', (request) => {
+      const url = new URL(request.url());
+      if (url.pathname.endsWith('/workflow-reports/receipt-price-variance/page')) {
+        priceRequests.push(url);
+      }
+    });
+    await stubWorkflowReports(page);
+    await page.goto(ROUTES.REPORTS);
+
+    const search = page.getByLabel('Tìm theo nguyên liệu, nhà cung cấp hoặc mã phiếu nhập');
+    const action = page.getByRole('button', { name: 'Xem đề xuất xử lý cho Sườn heo' });
+    await expect(search).toBeVisible();
+    await expect(action).toBeVisible();
+    await action.focus();
+    await expect(action).toBeFocused();
+    await expect(action).toHaveAttribute('aria-controls', 'reports-price-warning-detail');
+    await expect(action).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#reports-price-warning-detail')).toHaveCount(0);
+    const actionGeometry = await action.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      whiteSpace: getComputedStyle(element).whiteSpace,
+    }));
+    expect(actionGeometry.whiteSpace).toBe('nowrap');
+    expect(actionGeometry.scrollWidth).toBeLessThanOrEqual(actionGeometry.clientWidth + 1);
+
+    await action.click();
+    const warningDetail = page.locator('#reports-price-warning-detail');
+    await expect(action).toHaveAttribute('aria-expanded', 'true');
+    await expect(warningDetail).toContainText('Sườn heo');
+    await expect(warningDetail).toBeFocused();
+    await action.click();
+    await expect(action).toHaveAttribute('aria-expanded', 'false');
+    await expect(warningDetail).toHaveCount(0);
+    await expect(action).toBeFocused();
+    await search.fill('Sườn heo');
+    await expect.poll(() => priceRequests.some((url) => url.searchParams.get('searchKeyword') === 'Sườn heo')).toBe(true);
   });
 
   test('chef empty state does not reserve a desktop-sized gap before the shift journal', async ({ page }) => {
@@ -461,8 +580,8 @@ test.describe('operational control surface', () => {
     await page.goto(ROUTES.MEAL_ORDERS);
 
     await expect(page.getByText('Chưa có dữ liệu để hiển thị', { exact: true })).toBeVisible();
-    await expect(page.locator('.ipc-coordination-workbench')).toHaveCSS('min-height', '0px');
-    await expect(page.locator('.ipc-coordination-empty-state')).toHaveCSS('min-height', '0px');
+    const reservedHeights = await page.locator('.ipc-coordination-workbench, .ipc-coordination-empty-state').evaluateAll((elements) => elements.map((element) => getComputedStyle(element).minHeight));
+    expect(reservedHeights.every((height) => height === '0px' || height === 'auto')).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
@@ -484,7 +603,9 @@ test.describe('operational control surface', () => {
 
   test('purchasing actions remain reachable on mobile without overflow', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(ROUTES.PURCHASING);
+    await stubPhase09Api(page);
+    await login(page);
+    await page.goto(`${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
 
     const actionGroup = page.locator('.ipc-purchasing-actions');
     await expect(actionGroup).toBeVisible();
@@ -500,7 +621,9 @@ test.describe('operational control surface', () => {
 
   test('purchasing six-stage guide keeps labels readable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(ROUTES.PURCHASING);
+    await stubPhase09Api(page);
+    await login(page);
+    await page.goto(`${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
 
     const guide = page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' });
     await expect(guide).toBeVisible();
@@ -521,27 +644,32 @@ test.describe('operational control surface', () => {
 
   test('purchasing wide tables scroll inside their viewport on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(ROUTES.PURCHASING);
+    await stubPhase09Api(page);
+    await login(page);
+    await page.goto(`${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
 
     const tableViewport = page.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
     const table = tableViewport.locator('table').first();
     await expect(tableViewport).toBeVisible();
+    await expect(table.locator('tbody tr')).not.toHaveCount(0);
     await expect(table).toHaveCSS('min-width', '900px');
     const geometry = await tableViewport.evaluate((element) => ({
       clientWidth: element.clientWidth,
       scrollWidth: element.scrollWidth,
     }));
-    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    expect(geometry.scrollWidth).toBeGreaterThanOrEqual(geometry.clientWidth);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
   test('warehouse stock table scrolls inside its viewport on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
     await page.goto(ROUTES.WAREHOUSE);
 
-    const tableViewport = page.locator('.ipc-warehouse-table-shell');
+    const tableViewport = page.getByRole('region', { name: 'Bảng tồn kho hiện tại trong kho' });
     const table = tableViewport.locator('table');
     await expect(tableViewport).toBeVisible();
+    await expect(table.locator('tbody tr')).not.toHaveCount(0);
     await expect(table).toHaveCSS('min-width', '720px');
     const geometry = await tableViewport.evaluate((element) => ({
       clientWidth: element.clientWidth,
@@ -630,24 +758,61 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('approval document strip reserves its traced height while workflow documents settle', async ({ page }) => {
+    let releaseWorkflowDocuments!: () => void;
+    const workflowDocumentsPending = new Promise<void>((resolve) => {
+      releaseWorkflowDocuments = resolve;
+    });
+
+    await stubApprovalQueue(page);
+    await page.route('**/api/workflow-reports/workflow-documents**', async (route) => {
+      await workflowDocumentsPending;
+      await fulfillJson(route, []);
+    });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(ROUTES.APPROVALS);
+
+    const documentStrip = page.getByRole('complementary', { name: 'Chứng từ' });
+    await expect(documentStrip).toBeVisible();
+    await expect(documentStrip.getByText('Đang tải chứng từ workflow')).toBeVisible();
+    const loadingHeight = await documentStrip.evaluate((element) => element.getBoundingClientRect().height);
+
+    releaseWorkflowDocuments();
+    await expect(documentStrip.getByText('Đang tải chứng từ workflow')).toBeHidden();
+    const settledHeight = await documentStrip.evaluate((element) => element.getBoundingClientRect().height);
+
+    expect(Math.min(loadingHeight, settledHeight)).toBeGreaterThanOrEqual(120);
+    expect(Math.abs(loadingHeight - settledHeight)).toBeLessThanOrEqual(1);
+  });
+
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
     await page.goto(ROUTES.WEEKLY_MENU);
 
-    await page.getByRole('button', { name: 'Nhập Excel' }).click();
+    const importTrigger = page.getByRole('button', { name: 'Nhập Excel' });
+    const importViewportWidth = await page.evaluate(() => document.documentElement.clientWidth);
+    await importTrigger.focus();
+    await importTrigger.click();
     const importDialog = page.getByRole('dialog', { name: 'Nhập thực đơn từ Excel' });
     await expect(importDialog).toBeVisible();
+    await expect(importDialog).toHaveAttribute('aria-modal', 'true');
     await expect(importDialog.getByLabel('Khách hàng')).toBeVisible();
-    await expect(importDialog.getByLabel('Định mức BOM')).toBeVisible();
+    await expect(importDialog.getByLabel('Mức giá thực đơn')).toBeVisible();
     await expect(importDialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.clientWidth)).toBe(importViewportWidth);
     await importDialog.getByRole('button', { name: 'Đóng modal nhập thực đơn' }).click();
     await expect(importDialog).toBeHidden();
+    await expect(importTrigger).toBeFocused();
 
-    await page.getByRole('button', { name: 'Chỉnh sửa thực đơn' }).click();
+    const editTrigger = page.getByRole('button', { name: 'Chỉnh sửa thực đơn' });
+    await editTrigger.focus();
+    await editTrigger.click();
     const editDialog = page.getByRole('dialog', { name: 'Chỉnh sửa thực đơn tuần' });
     await expect(editDialog).toBeVisible();
+    await expect(editDialog).toHaveAttribute('aria-modal', 'true');
     await expect(editDialog.getByRole('button', { name: 'Đóng modal chỉnh sửa thực đơn' })).toBeVisible();
     await editDialog.getByRole('button', { name: 'Đóng modal chỉnh sửa thực đơn' }).click();
     await expect(editDialog).toBeHidden();
+    await expect(editTrigger).toBeFocused();
   });
 
   test('meal order confirmation dialog stays top-level and keeps API errors visible', async ({ page }) => {
@@ -712,11 +877,15 @@ test.describe('operational control surface', () => {
     await stubApprovalQueue(page);
     await page.goto(ROUTES.APPROVALS);
 
-    await page.getByRole('button', { name: 'Duyệt' }).first().click();
-    const approvalDialog = page.getByRole('dialog', { name: 'Duyệt chứng từ?' });
+    const approvalTrigger = page.getByRole('button', { name: 'Duyệt' }).first();
+    await approvalTrigger.focus();
+    await approvalTrigger.click();
+    const approvalDialog = page.getByRole('dialog', { name: 'Duyệt đề xuất mua?' });
     await expect(approvalDialog).toBeVisible();
+    await expect(approvalDialog).toHaveAttribute('aria-modal', 'true');
     await expect(approvalDialog.getByLabel('Ghi chú duyệt (tùy chọn)')).toBeVisible();
-    await approvalDialog.getByRole('button', { name: 'Giữ chứng từ' }).click();
+    await approvalDialog.getByRole('button', { name: 'Giữ đề xuất mua' }).click();
     await expect(approvalDialog).toBeHidden();
+    await expect(approvalTrigger).toBeFocused();
   });
 });

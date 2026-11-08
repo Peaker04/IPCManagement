@@ -1,5 +1,7 @@
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Features.SampleData.Services;
 
@@ -50,14 +52,41 @@ public interface IWeeklyMenuImportService
         string customerId,
         DateOnly? weekStartDate,
         decimal? priceTierAmount,
+        string? previewToken,
+        string? actorUserId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<WeeklyMenuImportResultDto>> CommitWeeklyMenuImportBatchAsync(
+        IReadOnlyList<WeeklyMenuImportBatchItem> items,
         string? actorUserId = null,
         CancellationToken cancellationToken = default);
 }
 
+public sealed record WeeklyMenuImportBatchItem(
+    Stream FileStream,
+    string FileName,
+    string CustomerId,
+    DateOnly? WeekStartDate,
+    decimal? PriceTierAmount,
+    string? PreviewToken);
+
+internal interface IWeeklyMenuImportPersistence
+{
+    Task<WeeklyMenuImportResultDto> CommitAsync(
+        WeeklyMenuImportPlan plan,
+        Customer customer,
+        decimal priceTierAmount,
+        string? actorUserId,
+        CancellationToken cancellationToken);
+}
+
 public interface IWeeklyMenuImportHistoryService
 {
-    Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
+    Task<PagedResponseDto<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
         string? customerId,
+        DateOnly? fromDate,
+        DateOnly? toDate,
+        PagedRequestDto request,
         CancellationToken cancellationToken = default);
 
     Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(
@@ -70,5 +99,22 @@ public interface IWeeklyMenuBulkEditService
 {
     Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
         BulkUpdateWeeklyMenuRequest request,
+        string? actorUserId,
         CancellationToken cancellationToken = default);
+}
+
+public interface IMenuAmendmentService
+{
+    Task<MenuAmendmentResultDto> CreateAsync(
+        CreateMenuAmendmentRequest request,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<MenuAmendmentResultDto> ReviewAsync(string amendmentId, ReviewMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<MenuAmendmentResultDto> ExecuteAsync(string amendmentId, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<MenuAmendmentResultDto> BreakGlassExecuteAsync(string amendmentId, BreakGlassMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<MenuAmendmentDecisionItemDto> ExecuteDecisionAsync(string decisionItemId, MenuAmendmentDecisionCommandRequest request, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<MenuAmendmentDecisionRemediationDto> RemediateDecisionFanAsync(string reconciliationCaseId, RemediateMenuAmendmentDecisionFanRequest request, string? actorUserId, CancellationToken cancellationToken = default);
+    Task<MenuAmendmentDecisionPageDto> GetDecisionPageAsync(string? customerId, bool allCustomers, int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetInboxAsync(string? status, CancellationToken cancellationToken = default);
 }

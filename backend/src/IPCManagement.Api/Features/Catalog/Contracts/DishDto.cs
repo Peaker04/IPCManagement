@@ -11,6 +11,9 @@ public class DishDto
     public string? DishType  { get; set; }
     public string? DishGroup { get; set; }
     public bool    IsActive  { get; set; }
+    public string? SourceImportBatch { get; set; }
+    public string? SourceFileName { get; set; }
+    public string? SourceChecksum { get; set; }
 }
 
 /// <summary>Request DTO — tạo mới món ăn.</summary>
@@ -55,6 +58,9 @@ public class DishCatalogDto
     public string? DishType { get; set; }
     public string? DishGroup { get; set; }
     public bool IsActive { get; set; }
+    public string? SourceImportBatch { get; set; }
+    public string? SourceFileName { get; set; }
+    public string? SourceChecksum { get; set; }
     public IReadOnlyList<string> MenuSlots { get; set; } = [];
     public IReadOnlyList<DishCatalogBomLineDto> BomLines { get; set; } = [];
 }

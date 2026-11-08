@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-07",
+  "status": "COMPLETE",
+  "authority": "PLAN_07_FINAL_CLOSEOUT",
+  "payloadCommit": "a3ed9219d51602637cf1b8997f90ac1bf14f6502",
+  "summary": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-07-SUMMARY.md",
+    "sha256": "767e4321bd1dd80e276f67bd4dc6767df949d2e4db9b5bb09a679d2dec760e50"
+  },
+  "payloadResult": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-07.json",
+    "sha256": "081a576c85662a9e97dda8033745fb0bdbe7f9c30bf7577b00d6cded43969225"
+  },
+  "authorityRoots": [
+    {
+      "type": "ORIGINAL_01_SOURCE",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01.json",
+      "sha256": "b2975e45e548896d7831a98083fc36d82f3e63a9d068c087482231e330fbcc02",
+      "commit": "c52c80f8186b985d07619a7ad0ed7abc0572675c"
+    },
+    {
+      "type": "INVALID_01C_PROVENANCE",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01C-correction.json",
+      "sha256": "22f1e4ff032acb6b87eb7148049be1a1707cda7bbfa1d82a61a1b80333c0d0e0",
+      "commit": "ae129eaab0dde192f3dca17c7504b7b9aaef5d17",
+      "disposition": "SUPERSEDED_PROTOCOL_INVALID"
+    },
+    {
+      "type": "AUTHORITATIVE_01R_RESEAL",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01R-reseal.json",
+      "sha256": "ecb024f20d60ce8d3e6e80aab1afe6e7d7a6bdc40a5664527034cf6db3516951",
+      "commit": "fb93fd120d1f5ec81760070be67ed65429ae4c03"
+    },
+    {
+      "type": "FOCUSED_01F_AUTHORITY",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01F-focused-launcher.json",
+      "sha256": "5cccd2a3c68e396c3696543f09cbfc486a9a907917d2ba23a73a89b4261ba325",
+      "commit": "06f920e0f2c66f5f3d4810f1c0d6ddff14f0a98c"
+    },
+    {
+      "type": "INVALID_01V_PROVENANCE",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01V-topology-validator.json",
+      "sha256": "a6365b003ef01289c8e4f896a2d02623df407d3e8100e23b433982e072fa42fc",
+      "commit": "8502ce701a4070f7be449681ffecbffc36b20056",
+      "disposition": "SUPERSEDED_PROTOCOL_INVALID"
+    },
+    {
+      "type": "SOLE_01W_TOPOLOGY_AUTHORITY",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-01W-topology-validator.json",
+      "sha256": "e320de600790450c5a3129ea2f45497419966d1546a0ba220f5ae40c078e72c5",
+      "commit": "47d13805196fd9ab51d0f08c5de44db7fa26a71b"
+    },
+    {
+      "type": "VALIDATOR_02R_RECOVERY_AUTHORITY",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-02R-validator-recovery.json",
+      "sha256": "4a5b52008c84f778a550bb5dd25af3a52346fdf01ac56a7704c6bc224344547a",
+      "commit": "2594b390e74b971675315d41e01ed844c4b4b2df"
+    },
+    {
+      "type": "GENERAL_03R_VALIDATOR_PAYLOAD",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03R-general-validator-manifest.json",
+      "sha256": "0159e28c81829291ebaa4acd231946fa34749158db4c1c97461bc80a8ebb78c3",
+      "commit": "dedab0ade5637b09247c88209980839c3d5c699d"
+    },
+    {
+      "type": "CLASS_AWARE_03S_PARTIAL_CHAIN",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/attestations/27.1-03S-snapshot-recovery-manifest.json",
+      "sha256": "6f0eef6e88fb9af30da1805c8c448da888226ee800819fbd883b3915a405f9be",
+      "commit": "ef030acec72a893fafe9449947074edcaa020d05"
+    },
+    {
+      "type": "PRE_WORK_03T_VALIDATOR_PAYLOAD",
+      "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/plan-results/27.1-03T.json",
+      "sha256": "9a9655a8d3b07068788cbad5d66909a83caa9460b50797d19eccba2aab4234da",
+      "commit": "a83c0785dbb707b9018ab7607d23418a3188de81"
+    }
+  ],
+  "dependencies": [
+    {
+      "planId": "27.1-06",
+      "marker": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/evidence/terminal-markers/27.1-06.json",
+      "sha256": "596088daa2c2e2849c637b9db5250e3c74fedbf963f72978e039f4656bd76022",
+      "commit": "1d4396f9c4a832fc050472e669845b116bb5eca7"
+    }
+  ],
+  "validationHashes": {
+    "finalReconciliation": "5cd1237854f1d5c843f50b4ad4899ffddc0af76353e3003cdf87705293ed6c2a",
+    "postPassTransition": "976e97eb976ce818087bedc2d56716fe8818a22de61af4b86fba60eed1671ca8",
+    "phase271Verification": "9e1a9df0bf96333dafea597c78bd8ac04dba0f9a2b67cd93be2158ac20ab206f",
+    "phase27Verification": "e6a234808e906a2bc82db04987016b60ff4ac055f2b29703fbf1b17265054c21"
+  },
+  "blockers": []
+}

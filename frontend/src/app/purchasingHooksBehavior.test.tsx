@@ -1,4 +1,5 @@
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi'
@@ -30,27 +31,33 @@ vi.mock('@/api/dishCatalogApi', () => ({
   useGetIngredientsQuery: mocks.getIngredients,
 }))
 
-vi.mock('@/api/workflowApi', () => ({
+vi.mock('@/api/purchasingApi', () => ({
   useCancelPurchaseOrderMutation: () => [vi.fn(), { isLoading: false }],
   useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
   useCreatePurchaseRequestFromDemandMutation: () => [mocks.createFromDemand, { isLoading: false }],
   useCreateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
   useDeactivateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
-  useGetMaterialRequestCandidatePageQuery: mocks.getCandidates,
   useGetPurchaseOrdersPageQuery: mocks.getOrders,
-  useGetPurchasePlanPageQuery: mocks.getPlan,
   useGetPurchaseRequestsPageQuery: mocks.getRequests,
-  useGetStockMovementPageQuery: mocks.getStockMovements,
   useGetSupplierQuotationsByIngredientPageQuery: mocks.getQuotations,
   useGetSuppliersQuery: mocks.getSuppliers,
-  useGetWarehouseSelectorQuery: mocks.getWarehouses,
   useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
   useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],
-  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
   useRecordPurchaseOrderReceiptMutation: () => [vi.fn(), { isLoading: false }],
   useSubmitPurchaseRequestMutation: () => [mocks.submitRequest, { isLoading: false }],
   useUpdatePurchaseRequestLineSupplierMutation: () => [vi.fn(), { isLoading: false }],
   useUpdateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
+}))
+
+vi.mock('@/api/reportsApi', () => ({
+  useGetMaterialRequestCandidatePageQuery: mocks.getCandidates,
+  useGetPurchasePlanPageQuery: mocks.getPlan,
+  useGetStockMovementPageQuery: mocks.getStockMovements,
+}))
+
+vi.mock('@/api/warehouseApi', () => ({
+  useGetWarehouseSelectorQuery: mocks.getWarehouses,
+  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
 }))
 
 import { useSupplierQuotations } from '@/features/purchasing/quotation/useSupplierQuotations'
@@ -113,7 +120,7 @@ const supplierServiceDate = (): PurchaseWorkbenchServiceDate => ({
   }],
 })
 
-describe('purchasing hook behavior', () => {
+describe('purchasing hook behavior', { timeout: 15_000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.getIngredients.mockReturnValue(readyQuery([]))
@@ -187,7 +194,13 @@ describe('purchasing hook behavior', () => {
   })
 
   it('keeps supplier evidence visible and requires an explicit confirmation', async () => {
+    const user = userEvent.setup()
     const serviceDate = supplierServiceDate()
+    mocks.getWarehouses.mockReturnValue(readyQuery([{
+      warehouseId: 'warehouse-1',
+      warehouseCode: 'KHO-01',
+      warehouseName: 'Kho trung tâm',
+    }]))
     mocks.getSupplierEvidence.mockReturnValue(readyQuery({
         candidates: [{
           evidenceType: 'EffectiveQuotation',
@@ -218,11 +231,19 @@ describe('purchasing hook behavior', () => {
     expect(screen.getByText(/danh sách hiện tại vẫn được giữ/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' })).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
-    fireEvent.change(screen.getByLabelText('Ngày giao'), { target: { value: '2026-07-21' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' }))
+    await user.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
+    expect(screen.queryByRole('combobox', { name: 'Kho nhận' })).not.toBeInTheDocument()
+    expect(screen.getByText('Kho trung tâm')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Điều khoản mua'), 'Giao tại kho.')
+    const deliveryDate = await screen.findByLabelText('Ngày giao')
+    await user.click(deliveryDate)
+    await user.type(deliveryDate, '21/07/2026')
+    await user.tab()
+    await user.type(screen.getByLabelText('Ghi chú quyết định'), 'Quy đổi từ đơn giá theo kg.')
+    await user.click(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' }))
 
     expect(screen.getByRole('dialog', { name: 'Xác nhận nhà cung cấp' })).toBeInTheDocument()
+    expect(screen.getByText('Quy đổi từ đơn giá theo kg.')).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chọn nhà cung cấp' })).toHaveFocus())
     expect(mocks.confirmLineSupplier).not.toHaveBeenCalled()
   })
@@ -324,6 +345,7 @@ describe('purchasing hook behavior', () => {
   })
 
   it('keeps receipt evidence and idempotency key stable after a conflict', async () => {
+    const user = userEvent.setup()
     mocks.recordWarehouseReceipt.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ data: { message: 'Phiếu nhập đã được xử lý với dữ liệu khác.' } }),
     })
@@ -367,16 +389,20 @@ describe('purchasing hook behavior', () => {
       />,
     )
 
-    fireEvent.change(screen.getByLabelText('Kho nhận *'), { target: { value: 'warehouse-1' } })
-    fireEvent.change(screen.getByLabelText('Ngày nhận *'), { target: { value: '2026-07-22' } })
+    expect(screen.queryByRole('combobox', { name: 'Kho nhận *' })).not.toBeInTheDocument()
+    expect(screen.getByText('Kho trung tâm')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Ngày nhận *'), '22/07/2026')
+    await user.tab()
     fireEvent.change(screen.getByLabelText('Số lượng thực nhận *'), { target: { value: '3' } })
     fireEvent.change(screen.getByLabelText('Số lô *'), { target: { value: 'LOT-2207' } })
-    fireEvent.change(screen.getByLabelText('Ngày sản xuất *'), { target: { value: '2026-07-21' } })
-    fireEvent.change(screen.getByLabelText('Hạn sử dụng *'), { target: { value: '2026-07-25' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
+    await user.type(screen.getByLabelText('Ngày sản xuất *'), '21/07/2026')
+    await user.tab()
+    await user.type(screen.getByLabelText('Hạn sử dụng *'), '25/07/2026')
+    await user.tab()
+    await user.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chỉnh sửa' })).toHaveFocus())
-    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận nhập kho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu nháp' }))
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Phiếu nhập đã được xử lý với dữ liệu khác.'))
 
     const firstRequest = mocks.recordWarehouseReceipt.mock.calls[0][0]
@@ -389,7 +415,7 @@ describe('purchasing hook behavior', () => {
       expiryDate: '2026-07-25',
     })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận nhập kho' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo phiếu nháp' }))
     await waitFor(() => expect(mocks.recordWarehouseReceipt).toHaveBeenCalledTimes(2))
     expect(mocks.recordWarehouseReceipt.mock.calls[1][0].data.idempotencyKey).toBe(firstRequest.data.idempotencyKey)
 
@@ -398,11 +424,10 @@ describe('purchasing hook behavior', () => {
     expect(screen.getByLabelText('Số lô *')).toHaveValue('LOT-2207')
   })
 
-  it('preselects and locks the warehouse linked to a supplemental request', () => {
+  it('blocks receipt submission when the selector returns multiple warehouses', () => {
     render(
       <WarehousePurchaseReceiptDialog
         open
-        preferredWarehouseId="warehouse-supplemental"
         warehouses={[
           { warehouseId: 'warehouse-default', warehouseCode: 'KHO-01', warehouseName: 'Kho trung tâm' },
           { warehouseId: 'warehouse-supplemental', warehouseCode: 'KHO-02', warehouseName: 'Kho xử lý yêu cầu bổ sung' },
@@ -437,8 +462,8 @@ describe('purchasing hook behavior', () => {
       />,
     )
 
-    expect(screen.getByLabelText('Kho nhận *')).toHaveValue('warehouse-supplemental')
-    expect(screen.getByLabelText('Kho nhận *')).toBeDisabled()
-    expect(screen.getByText('Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Kho nhận *' })).not.toBeInTheDocument()
+    expect(screen.getByText('Chưa xác định')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tiếp tục xác nhận' })).toBeDisabled()
   })
 })

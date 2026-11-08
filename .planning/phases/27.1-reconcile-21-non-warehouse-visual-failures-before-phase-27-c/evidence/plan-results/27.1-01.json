@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "phase": "27.1",
+  "planId": "27.1-01",
+  "status": "READY_TO_SEAL",
+  "summary": {
+    "path": ".planning/phases/27.1-reconcile-21-non-warehouse-visual-failures-before-phase-27-c/27.1-01-SUMMARY.md",
+    "sha256": "e3e5ed0374c4013d72c68f96f2100af766ac791c021398cf36ca7f74f6a340ed"
+  },
+  "dependencies": [],
+  "commits": [
+    "07208320",
+    "e093547f"
+  ],
+  "blockers": [],
+  "validationHashes": {
+    "failureInventory": "c36d7633748e2ea0e3290aa94a59ff5f18369a09c3885894e1cd04718a91a39d",
+    "packetMemberManifest": "aff6d93cc69b69661023f7a6a0c458850091bc69977eb641079a965333e9390e",
+    "infrastructureAllowlist": "b31358ab7a4420dda930faee02e28942fb8ed4eba917ba23f69d50402f44dcee",
+    "rowClassPathMatrix": "15878b85b8a68d16df6582ed0ed279ab7fd1515e3cf8c3b285fed79837ae4ca2",
+    "goldenIdentityManifest": "81e3c6a6b05aea9653254405e50e325677c3813c73d1561d37ab9a7144ce595d"
+  }
+}

@@ -69,8 +69,7 @@ internal static class MenuSchedulePolicy
     }
 
     internal static bool IsPublishedMenuVersionStatus(string? status)
-        => string.Equals(status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(status, "PUBLISHED", StringComparison.OrdinalIgnoreCase);
+        => MenuVersionStatusPolicy.IsPublishedCompatible(status);
 
     internal static MenuVersion? ResolveMenuVersion(IEnumerable<MenuVersion> versions, MenuSchedule schedule)
         => versions

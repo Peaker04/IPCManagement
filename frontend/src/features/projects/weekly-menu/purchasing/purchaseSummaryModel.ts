@@ -13,10 +13,11 @@ export const buildPurchaseSummaryPresentation = (
   const materialEntries = Object.entries(materialSummary).filter(([, data]) => data.theory > 0)
   const usesDemand = demandLines.length > 0
   const orderedDemandLines = [...aggregatedDemandLines].sort((left, right) => {
-    const leftShortage = Math.max(left.required - (left.available - left.reserved), 0)
-    const rightShortage = Math.max(right.required - (right.available - right.reserved), 0)
+    const leftShortage = left.unissuedQty ?? Math.max(left.required - (left.available - left.reserved), 0)
+    const rightShortage = right.unissuedQty ?? Math.max(right.required - (right.available - right.reserved), 0)
     return Number(rightShortage > 0) - Number(leftShortage > 0)
       || rightShortage - leftShortage
+      || (left.serviceDate ?? '').localeCompare(right.serviceDate ?? '')
       || left.material.localeCompare(right.material, 'vi-VN')
   })
   const totalItems = usesDemand ? orderedDemandLines.length : materialEntries.length
@@ -30,8 +31,9 @@ export const buildPurchaseSummaryPresentation = (
     ? []
     : materialEntries.slice(start, start + PURCHASE_SUMMARY_PAGE_SIZE)
   const shortageCount = aggregatedDemandLines.filter(
-    (line) => Math.max(line.required - (line.available - line.reserved), 0) > 0,
+    (line) => (line.unissuedQty ?? Math.max(line.required - (line.available - line.reserved), 0)) > 0,
   ).length
+  const pendingKitchenCount = aggregatedDemandLines.filter((line) => (line.pendingKitchenReceiptQty ?? 0) > 0).length
 
   return {
     usesDemand,
@@ -41,6 +43,7 @@ export const buildPurchaseSummaryPresentation = (
     demandRows,
     materialRows,
     shortageCount,
+    pendingKitchenCount,
     totalCost: calculateTotalMaterialCost(materialSummary),
   }
 }
@@ -55,16 +58,18 @@ export const buildWarehouseCsv = (
   const rows = Object.entries(materialSummary)
     .filter(([, data]) => data.theory !== 0)
     .map(([, data]) => [
-      weekStartDate,
+      `Tổng tuần từ ${weekStartDate}`,
       customerCode,
+      data.ingredientId,
       data.ingredientName,
       data.theory.toFixed(2),
       data.actual.toFixed(2),
+      data.unitId,
       data.unit,
       data.referencePrice,
       Math.round(data.actual * data.referencePrice),
     ])
   if (rows.length === 0) return null
-  const header = 'Tuần,Khách hàng,Nguyên liệu,Số lượng LT,Số lượng TT,Đơn vị,Đơn giá (đ),Thành tiền (đ)'
+  const header = 'Phạm vi,Khách hàng,Ingredient ID,Nguyên liệu,Số lượng LT cả tuần,Số lượng TT cả tuần,Unit ID,Đơn vị,Đơn giá (đ),Thành tiền (đ)'
   return `\uFEFF${header}\n${rows.map((row) => row.map(escapeCsvCell).join(',')).join('\n')}\n`
 }

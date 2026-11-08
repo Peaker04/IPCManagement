@@ -1,29 +1,40 @@
 import { CalendarCheck, Pencil, PlusCircle, Save } from 'lucide-react';
-import { TableViewport, ContextStrip, SectionPanel, StatusBadge } from '@/components/common';
+import { TableViewport, ContextStrip, KeepAliveTabPanel, SectionPanel, StatusBadge } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { formatCurrency, formatDateOnly } from '@/lib/formatters';
+import { formatMenuVersionStatus, formatShiftName } from '@/lib/workflowConfig';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
 import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminContractsPanelProps = { model: AdminDataPageModel };
 
+const EMPTY_CONTRACT_CUSTOMER_VALUE = '__empty_contract_customer__';
+
 export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
   const { contractFeedback, contractForm, customerContracts, effectiveActiveView, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, isCreatingContract, isSavingContract, loadContractForm, loadScheduleRuleForm, menuSchedules, queryViews, scheduleRuleForm, selectedContract, selectedSchedule, setContractForm, setIsCreatingContract, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, startNewContract } = model;
   return (
     <>
-      {effectiveActiveView === 'contracts' && (
-        <div id="admin-contracts-panel" role="tabpanel" aria-labelledby="admin-contracts-tab" className="flex flex-col gap-4">
-          <AdminQueryBoundary queries={[
-            { label: 'customer contract', view: queryViews.contracts },
-            ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
-          ]}>
-          <SectionPanel title="Customer contract và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
+      <KeepAliveTabPanel id="admin-contracts" active={effectiveActiveView === 'contracts'} className="flex flex-col gap-4">
+        <AdminQueryBoundary queries={[
+          { label: 'hợp đồng khách hàng', view: queryViews.contracts },
+          ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
+        ]}>
+          <SectionPanel
+            title="Hợp đồng khách hàng và quy tắc suất ăn"
+            icon={<CalendarCheck size={18} />}
+            description="Quản lý thông tin hợp đồng khách hàng, quy tắc suất ăn, các ca áp dụng và phiên bản lịch thực đơn."
+          >
             <ContextStrip
               items={[
                 { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
                 { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
-                { label: 'Ca phục vụ', value: selectedContract?.shiftNames.join(', ') || '-', tone: 'info' },
-                { label: 'BOM áp dụng', value: 'Theo đơn giá menu, 100%', tone: 'info' },
-                { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' },
+                { label: 'Ca phục vụ', value: selectedContract?.shiftNames.map(formatShiftName).join(', ') || '-', tone: 'info' },
+                { label: 'Lịch theo phiên bản', value: menuSchedules.length.toString(), tone: 'neutral' },
               ]}
             />
 
@@ -41,93 +52,93 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
 
             <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
               <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-customer">
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-customer">
                   Khách hàng
                 </label>
-                <select
-                  id="admin-contract-customer"
-                  className="ipc-select"
-                  value={isCreatingContract ? '' : selectedContract?.customerId ?? ''}
-                  onChange={(event) => {
-                    const contract = customerContracts.find((item) => item.customerId === event.target.value);
+                <Select
+                  value={isCreatingContract ? EMPTY_CONTRACT_CUSTOMER_VALUE : selectedContract?.customerId ?? EMPTY_CONTRACT_CUSTOMER_VALUE}
+                  onValueChange={(value) => {
+                    const customerId = !value || value === EMPTY_CONTRACT_CUSTOMER_VALUE ? '' : value;
+                    const contract = customerContracts.find((item) => item.customerId === customerId);
                     setIsCreatingContract(false);
-                    setSelectedContractCustomerId(event.target.value);
+                    setSelectedContractCustomerId(customerId);
                     setSelectedScheduleId('');
                     loadContractForm(contract);
                     loadScheduleRuleForm(undefined);
                   }}
-                >
-                  <option value="" disabled>
-                    {isCreatingContract ? 'Đang tạo khách hàng mới' : 'Chọn khách hàng'}
-                  </option>
-                  {customerContracts.map((customer) => (
-                    <option key={customer.customerId} value={customer.customerId}>
-                      {customer.customerCode} - {customer.customerName}
-                    </option>
-                  ))}
-                </select>
+                  >
+                    <SelectTrigger id="admin-contract-customer" className="w-full">
+                    <SelectValue>{selectedContract && !isCreatingContract ? `${selectedContract.customerCode} - ${selectedContract.customerName}` : 'Chọn khách hàng'}</SelectValue>
+                    </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EMPTY_CONTRACT_CUSTOMER_VALUE} disabled>
+                      {isCreatingContract ? 'Đang tạo khách hàng mới' : 'Chọn khách hàng'}
+                    </SelectItem>
+                    {customerContracts.map((customer) => (
+                      <SelectItem key={customer.customerId} value={customer.customerId}>
+                        {customer.customerCode} - {customer.customerName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <button className="ipc-button ipc-button-ghost justify-center" type="button" onClick={() => loadContractForm(selectedContract)}>
+                  <Button variant="outline" size="sm" type="button" onClick={() => loadContractForm(selectedContract)}>
                     <Pencil size={15} />
                     Nạp
-                  </button>
-                  <button className="ipc-button ipc-button-ghost justify-center" type="button" onClick={startNewContract}>
+                  </Button>
+                  <Button variant="outline" size="sm" type="button" onClick={startNewContract}>
                     <PlusCircle size={15} />
                     Tạo mới
-                  </button>
+                  </Button>
                 </div>
 
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-code">
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-code">
                   Mã khách hàng
                 </label>
-                <input
+                <Input
                   id="admin-contract-code"
-                  className="ipc-input"
                   value={contractForm.customerCode}
                   disabled={!isCreatingContract}
                   onChange={(event) => setContractForm((prev) => ({ ...prev, customerCode: event.target.value.toUpperCase() }))}
                   placeholder={isCreatingContract ? 'VD: DAV' : selectedContract?.customerCode ?? 'Mã khách hàng'}
                 />
 
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-name">
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-name">
                   Tên khách hàng
                 </label>
-                <input
+                <Input
                   id="admin-contract-name"
-                  className="ipc-input"
                   value={contractForm.customerName}
                   onChange={(event) => setContractForm((prev) => ({ ...prev, customerName: event.target.value }))}
                   placeholder={selectedContract?.customerName ?? 'Tên khách hàng'}
                 />
 
-                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-note">
-                  Ghi chú contract
+                <label className="text-label font-bold text-slate-600" htmlFor="admin-contract-note">
+                  Ghi chú hợp đồng
                 </label>
-                <textarea
+                <Textarea
                   id="admin-contract-note"
-                  className="ipc-input min-h-[86px]"
+                  className="min-h-[86px]"
                   value={contractForm.note}
                   onChange={(event) => setContractForm((prev) => ({ ...prev, note: event.target.value }))}
                   placeholder={selectedContract?.note ?? 'Ca phục vụ, ngày làm việc, ràng buộc menu'}
                 />
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-effective-from">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-effective-from">
                     Hiệu lực từ
-                    <input
+                    <Input
                       id="admin-contract-effective-from"
-                      className="ipc-input"
                       type="date"
                       value={contractForm.effectiveFrom}
                       onChange={(event) => setContractForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))}
                     />
                   </label>
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-effective-to">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-effective-to">
                     Hiệu lực đến
-                    <input
+                    <Input
                       id="admin-contract-effective-to"
-                      className="ipc-input"
                       type="date"
                       value={contractForm.effectiveTo}
                       onChange={(event) => setContractForm((prev) => ({ ...prev, effectiveTo: event.target.value }))}
@@ -136,34 +147,31 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-week-days">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-week-days">
                     Ngày làm việc
-                    <input
+                    <Input
                       id="admin-contract-week-days"
-                      className="ipc-input"
                       value={contractForm.activeWeekDays}
                       onChange={(event) => setContractForm((prev) => ({ ...prev, activeWeekDays: event.target.value }))}
                       placeholder="t2,t3,t4,t5,t6,t7"
                     />
                   </label>
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-shifts">
-                    Ca phục vụ
-                    <input
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-shifts">
+                    Ca phục vụ (cách nhau bằng dấu phẩy)
+                    <Input
                       id="admin-contract-shifts"
-                      className="ipc-input"
                       value={contractForm.shiftNames}
                       onChange={(event) => setContractForm((prev) => ({ ...prev, shiftNames: event.target.value }))}
-                      placeholder="MORNING,AFTERNOON"
+                      placeholder="Ca sáng, Ca chiều"
                     />
                   </label>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-default-price">
-                    Đơn giá mặc định / tier BOM
-                    <input
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-default-price">
+                    Đơn giá mặc định / mức BOM
+                    <Input
                       id="admin-contract-default-price"
-                      className="ipc-input"
                       type="number"
                       min="0"
                       step="1000"
@@ -174,50 +182,49 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                   </label>
                 </div>
 
-                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
+                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 cursor-pointer">
+                  <Checkbox
                     checked={contractForm.isActive}
-                    onChange={(event) => setContractForm((prev) => ({ ...prev, isActive: event.target.checked }))}
+                    onCheckedChange={(checked) => setContractForm((prev) => ({ ...prev, isActive: checked === true }))}
                   />
                   Khách hàng đang hoạt động
                 </label>
 
-                <button className="ipc-button ipc-button-primary justify-center" type="button" disabled={isSavingContract || (!isCreatingContract && !selectedContract)} onClick={() => void handleSaveCustomerContract()}>
+                <Button variant="default" size="sm" type="button" disabled={isSavingContract || (!isCreatingContract && !selectedContract)} onClick={() => void handleSaveCustomerContract()}>
                   <Save size={15} />
-                  {isCreatingContract ? 'Tạo contract' : 'Lưu contract'}
-                </button>
+                  {isCreatingContract ? 'Tạo hợp đồng' : 'Lưu hợp đồng'}
+                </Button>
               </div>
 
               <div className="grid gap-4">
-                <TableViewport caption="Danh sách contract khách hàng" ariaLabel="Bảng contract khách hàng">
-                  <table className="ipc-data-table text-sm">
+                <TableViewport caption="Danh sách hợp đồng khách hàng" ariaLabel="Bảng hợp đồng khách hàng">
+                  <table className="ipc-data-table ipc-erp-grid-table table-fixed w-full text-sm">
                     <thead>
                       <tr>
-                        <th>Khách hàng</th>
-                        <th>Ngày làm việc</th>
-                        <th>Ca</th>
-                        <th>Hiệu lực</th>
-                        <th>Đơn giá / tier</th>
-                        <th>BOM áp dụng</th>
-                        <th>Trạng thái</th>
+                        <th className="text-left">Khách hàng</th>
+                        <th className="text-left">Ngày làm việc</th>
+                        <th className="text-left">Ca</th>
+                        <th className="text-left">Hiệu lực</th>
+                        <th className="text-right">Đơn giá</th>
+                        <th className="text-right">BOM áp dụng</th>
+                        <th className="text-center">Trạng thái</th>
                       </tr>
                     </thead>
                     <tbody>
                       {customerContracts.length === 0 ? <EmptyRow colSpan={7} /> : customerContracts.map((contract) => (
                         <tr key={contract.customerId}>
                           <td>
-                            <div className="font-semibold text-slate-900">{contract.customerCode}</div>
-                            <div className="text-xs text-slate-500">{contract.customerName}</div>
+                            <div className="font-semibold text-slate-900">{contract.customerName}</div>
+                            <div className="text-xs text-slate-500">Mã {contract.customerCode}</div>
                           </td>
-                          <td>{contract.activeWeekDays.join(', ') || '-'}</td>
-                          <td>{contract.shiftNames.join(', ') || '-'}</td>
+                          <td>{contract.activeWeekDays.join(', ') || '—'}</td>
+                          <td>{contract.shiftNames.map(formatShiftName).join(', ') || '—'}</td>
                           <td>
-                            <div>{contract.effectiveFrom ?? '-'}</div>
-                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : contract.contractStatus}</div>
+                            <div>{contract.effectiveFrom ? formatDateOnly(contract.effectiveFrom) : '—'}</div>
+                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${formatDateOnly(contract.effectiveTo)}` : 'Không giới hạn'}</div>
                           </td>
-                          <td className="ipc-numeric-cell">{contract.defaultMenuPrice?.toLocaleString('vi-VN') ?? '-'}</td>
-                          <td className="ipc-numeric-cell">100%</td>
+                          <td className="text-right tabular-nums font-semibold">{contract.defaultMenuPrice == null ? '—' : formatCurrency(contract.defaultMenuPrice)}</td>
+                          <td className="text-right tabular-nums">100%</td>
                           <td>
                             <StatusBadge variant={contract.isActive ? 'success' : 'warning'}>
                               {contract.isActive ? 'Đang dùng' : 'Đã khóa'}
@@ -231,34 +238,36 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
 
                 <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(130px,0.5fr))]">
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-schedule">
+                    <label className="flex flex-col gap-1 text-label font-bold text-slate-600" htmlFor="admin-contract-schedule">
                       Lịch thực đơn
-                      <select
-                        id="admin-contract-schedule"
-                        className="ipc-select"
+                      <Select
                         value={selectedSchedule?.menuScheduleId ?? ''}
-                        onChange={(event) => {
-                          const schedule = menuSchedules.find((item) => item.menuScheduleId === event.target.value);
-                          setSelectedScheduleId(event.target.value);
+                        onValueChange={(value) => {
+                          const schedule = menuSchedules.find((item) => item.menuScheduleId === value);
+                          setSelectedScheduleId(value ?? '');
                           loadScheduleRuleForm(schedule);
                         }}
                       >
-                        {menuSchedules.map((schedule) => (
-                          <option key={schedule.menuScheduleId} value={schedule.menuScheduleId}>
-                            {schedule.serviceDate} / {schedule.shift} / {schedule.menuName}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-[11px] font-medium text-slate-500">
+                        <SelectTrigger id="admin-contract-schedule" className="w-full">
+                          <SelectValue>{selectedSchedule ? `${selectedSchedule.serviceDate} / ${formatShiftName(selectedSchedule.shift)} / ${selectedSchedule.menuName}` : 'Chọn lịch thực đơn'}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {menuSchedules.map((schedule) => (
+                            <SelectItem key={schedule.menuScheduleId} value={schedule.menuScheduleId}>
+                              {schedule.serviceDate} / {formatShiftName(schedule.shift)} / {schedule.menuName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="text-xs font-medium text-slate-500">
                         {selectedSchedule?.sourceImportBatch
-                          ? `Batch ${selectedSchedule.sourceImportBatch} / V${selectedSchedule.menuVersionNo ?? '-'} / ${selectedSchedule.menuVersionStatus ?? selectedSchedule.status}`
-                          : `Version ${selectedSchedule?.status ?? '-'}`}
+                          ? `Lần nhập ${selectedSchedule.sourceImportBatch} · Phiên bản ${selectedSchedule.menuVersionNo ?? '-'} · ${formatMenuVersionStatus(selectedSchedule.menuVersionStatus ?? selectedSchedule.status)}`
+                          : `Trạng thái phiên bản: ${formatMenuVersionStatus(selectedSchedule?.status)}`}
                       </span>
                     </label>
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      Đơn giá / tier BOM
-                      <input
-                        className="ipc-input"
+                    <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
+                      Đơn giá / mức BOM
+                      <Input
                         inputMode="decimal"
                         type="number"
                         min="0"
@@ -267,50 +276,49 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
                         placeholder={selectedSchedule?.menuPrice.toString() ?? '0'}
                       />
                     </label>
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      Version
-                      <select
-                        className="ipc-select"
+                    <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
+                      Trạng thái phiên bản
+                      <Select
                         value={scheduleRuleForm.status}
-                        onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, status: event.target.value }))}
+                        onValueChange={(value) => setScheduleRuleForm((prev) => ({ ...prev, status: value ?? prev.status }))}
                       >
-                        <option value="DRAFT">DRAFT</option>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="SUPERSEDED">SUPERSEDED</option>
-                        <option value="LOCKED">LOCKED</option>
-                      </select>
+                        <SelectTrigger className="w-full">
+                        <SelectValue>{formatMenuVersionStatus(scheduleRuleForm.status)}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {['DRAFT', 'ACTIVE', 'SUPERSEDED', 'LOCKED'].map((status) => <SelectItem key={status} value={status}>{formatMenuVersionStatus(status)}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </label>
                   </div>
 
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                  <label className="flex flex-col gap-1 text-label font-bold text-slate-600">
                     Lý do
-                    <input
-                      className="ipc-input"
+                    <Input
                       value={scheduleRuleForm.reason}
                       onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, reason: event.target.value }))}
-                      placeholder="Cập nhật contract/version"
+                      placeholder="Lý do cập nhật hợp đồng hoặc phiên bản"
                     />
                   </label>
 
                   <div className="flex flex-wrap gap-2">
-                    <button className="ipc-button ipc-button-primary" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleSaveScheduleRules()}>
+                    <Button variant="default" size="sm" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleSaveScheduleRules()}>
                       <Save size={15} />
                       Lưu quy tắc
-                    </button>
-                    <button className="ipc-button ipc-button-ghost" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('ACTIVE')}>
-                      Publish
-                    </button>
-                    <button className="ipc-button ipc-button-ghost" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('SUPERSEDED')}>
-                      Archive
-                    </button>
+                    </Button>
+                    <Button variant="outline" size="sm" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('ACTIVE')}>
+                      Áp dụng phiên bản
+                    </Button>
+                    <Button variant="outline" size="sm" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('SUPERSEDED')}>
+                      Lưu phiên bản cũ
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
           </SectionPanel>
           </AdminQueryBoundary>
-        </div>
-      )}
+        </KeepAliveTabPanel>
 
 
     </>

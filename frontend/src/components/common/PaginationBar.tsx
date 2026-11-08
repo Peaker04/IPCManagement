@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type FormEvent } from 'react';
-import { ChevronLeft, ChevronRight, LoaderCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { uiCopy } from '@/lib/uiCopy';
 import { getPaginationMeta } from '@/lib/paginationMeta';
@@ -31,7 +31,9 @@ export function PaginationBar({
 }: PaginationBarProps) {
   const previousButtonRef = useRef<HTMLButtonElement>(null);
   const nextButtonRef = useRef<HTMLButtonElement>(null);
-  const requestedFocusRef = useRef<'previous' | 'next' | null>(null);
+  const jumpButtonRef = useRef<HTMLButtonElement>(null);
+  const requestedFocusRef = useRef<'previous' | 'next' | 'jump' | null>(null);
+  const anchorRef = useRef<{ scrollY: number; top: number } | null>(null);
   const meta = getPaginationMeta(page, pageSize, totalItems);
   const normalizedPageSizes = useMemo(
     () => Array.from(new Set([meta.pageSize, ...(pageSizeOptions ?? [])].filter((value) => value > 0))).sort((a, b) => a - b),
@@ -41,17 +43,28 @@ export function PaginationBar({
   useEffect(() => {
     if (isPending || !requestedFocusRef.current) return;
 
-    const preferredButton = requestedFocusRef.current === 'previous'
-      ? previousButtonRef.current
-      : nextButtonRef.current;
-    const fallbackButton = requestedFocusRef.current === 'previous'
-      ? nextButtonRef.current
-      : previousButtonRef.current;
+    if (anchorRef.current) {
+      const currentTop = nextButtonRef.current?.closest('nav')?.getBoundingClientRect().top;
+      if (currentTop !== undefined) {
+        if (!navigator.userAgent.toLowerCase().includes('jsdom')) {
+          window.scrollTo({ top: Math.max(0, anchorRef.current.scrollY + currentTop - anchorRef.current.top) });
+        }
+      }
+      anchorRef.current = null;
+    }
 
-    if (preferredButton && !preferredButton.disabled) {
-      preferredButton.focus();
-    } else if (fallbackButton && !fallbackButton.disabled) {
-      fallbackButton.focus();
+    if (requestedFocusRef.current === 'jump') {
+      jumpButtonRef.current?.focus();
+    } else {
+      const preferredButton = requestedFocusRef.current === 'previous'
+        ? previousButtonRef.current
+        : nextButtonRef.current;
+      const fallbackButton = requestedFocusRef.current === 'previous'
+        ? nextButtonRef.current
+        : previousButtonRef.current;
+
+      if (preferredButton && !preferredButton.disabled) preferredButton.focus();
+      else if (fallbackButton && !fallbackButton.disabled) fallbackButton.focus();
     }
 
     requestedFocusRef.current = null;
@@ -64,10 +77,15 @@ export function PaginationBar({
   const showPageSize = Boolean(onPageSizeChange && pageSizeOptions?.length);
   const showPageJump = enablePageJump && meta.totalPages > 7;
   const rangeLabel = itemLabel ? `${meta.rangeLabel} ${itemLabel}` : meta.rangeLabel;
+  const rememberAnchor = (target: 'previous' | 'next' | 'jump', element: HTMLElement) => {
+    requestedFocusRef.current = target;
+    anchorRef.current = { scrollY: window.scrollY, top: element.closest('nav')?.getBoundingClientRect().top ?? 0 };
+  };
   const submitPageJump = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const requestedPage = Number.parseInt(String(new FormData(event.currentTarget).get('page') ?? ''), 10);
     if (!Number.isFinite(requestedPage)) return;
+    rememberAnchor('jump', event.currentTarget);
     onPageChange(Math.min(meta.totalPages, Math.max(1, requestedPage)));
   };
 
@@ -100,8 +118,8 @@ export function PaginationBar({
             type="button"
             className="ipc-pagination-button"
             disabled={isPending || !meta.hasPrevious}
-            onClick={() => {
-              requestedFocusRef.current = 'previous';
+            onClick={(event) => {
+              rememberAnchor('previous', event.currentTarget);
               onPageChange(Math.max(1, meta.page - 1));
             }}
             aria-label={`${uiCopy.actions.previousPage}, trang ${Math.max(1, meta.page - 1)} trong ${meta.totalPages}`}
@@ -109,16 +127,15 @@ export function PaginationBar({
             <ChevronLeft size={16} />
           </button>
           <span className="ipc-pagination-page" aria-live="polite" aria-atomic="true">
-            {isPending && <LoaderCircle className="ipc-pagination-spinner" size={14} aria-hidden="true" />}
-            Trang {meta.page}/{meta.totalPages}
+            <span>Trang {meta.page}/{meta.totalPages}</span>
           </span>
           <button
             ref={nextButtonRef}
             type="button"
             className="ipc-pagination-button"
             disabled={isPending || !meta.hasNext}
-            onClick={() => {
-              requestedFocusRef.current = 'next';
+            onClick={(event) => {
+              rememberAnchor('next', event.currentTarget);
               onPageChange(Math.min(meta.totalPages, meta.page + 1));
             }}
             aria-label={`${uiCopy.actions.nextPage}, trang ${Math.min(meta.totalPages, meta.page + 1)} trong ${meta.totalPages}`}
@@ -138,7 +155,7 @@ export function PaginationBar({
               disabled={isPending}
               aria-label="Đi đến trang"
             />
-            <button type="submit" disabled={isPending} aria-label="Đi đến trang đã nhập">Đi</button>
+            <button ref={jumpButtonRef} type="submit" disabled={isPending} aria-label="Đi đến trang đã nhập">Đi</button>
           </form>
         )}
       </div>

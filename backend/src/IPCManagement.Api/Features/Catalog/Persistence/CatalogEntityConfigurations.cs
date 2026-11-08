@@ -45,6 +45,9 @@ internal sealed class DishConfiguration : IEntityTypeConfiguration<Dish>
         entity.Property(e => e.DishName).HasMaxLength(200).HasColumnName("dishName");
         entity.Property(e => e.DishType).HasMaxLength(100).HasColumnName("dishType");
         entity.Property(e => e.IsActive).IsRequired().HasDefaultValueSql("'1'").HasColumnName("isActive");
+        entity.Property(e => e.SourceImportBatch).HasMaxLength(100).HasColumnName("sourceImportBatch");
+        entity.Property(e => e.SourceFileName).HasMaxLength(255).HasColumnName("sourceFileName");
+        entity.Property(e => e.SourceChecksum).HasMaxLength(64).IsFixedLength().HasColumnName("sourceChecksum");
     }
 }
 

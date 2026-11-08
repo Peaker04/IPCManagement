@@ -3,22 +3,16 @@
 import { useEffect, useState } from 'react'
 import { LOCK_TIME } from '@/lib/constants'
 
-export function useCountdown() {
+export function useCountdown(serviceDate?: string) {
   const [timeRemaining, setTimeRemaining] = useState<string>('--:--:--')
   const [isPastCutoff, setIsPastCutoff] = useState(false)
 
   useEffect(() => {
     const updateCountdown = () => {
       const now = new Date()
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-      const lockTime = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-        LOCK_TIME.hours,
-        LOCK_TIME.minutes,
-        0
-      )
+      const lockTime = serviceDate
+        ? new Date(`${serviceDate}T${String(LOCK_TIME.hours).padStart(2, '0')}:${String(LOCK_TIME.minutes).padStart(2, '0')}:00+07:00`)
+        : new Date(now.getFullYear(), now.getMonth(), now.getDate(), LOCK_TIME.hours, LOCK_TIME.minutes, 0)
 
       if (now >= lockTime) {
         setIsPastCutoff(true)
@@ -40,7 +34,7 @@ export function useCountdown() {
     const interval = setInterval(updateCountdown, 1000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [serviceDate])
 
   return { timeRemaining, isPastCutoff }
 }

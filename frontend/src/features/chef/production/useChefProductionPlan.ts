@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
-import { useAppSelector } from '@/app/hooks'
+import { useCoordinationStoreSelector } from '@/lib/coordinationStore'
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi'
-import { useGetDailyProductionPlanQuery, useSendDailyProductionPlanToKitchenMutation, type KitchenIssueRow } from '@/api/workflowApi'
-import type { OrderRow, ShiftType } from '../../coordination/types'
+import { useGetDailyProductionPlanQuery, useSendDailyProductionPlanToKitchenMutation } from '@/features/chef/chefApi'
+import type { KitchenIssueRow } from '@/api/workflowApiTypes'
+import type { OrderRow, ShiftType } from '@/types/coordination'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
 import { toChefView } from '../chefQueryView'
 import { buildChefProductionPlan, mapDailyPlanLines } from './chefProductionModel'
@@ -18,8 +19,8 @@ export function useChefProductionPlan(
   onFeedback: (feedback: ChefFeedback) => void,
   enabled = true,
 ) {
-  const orders = useAppSelector((state) => state.coordination.orders)
-  const lossRate = useAppSelector((state) => state.coordination.lossRate)
+  const orders = useCoordinationStoreSelector((state) => state.coordination.orders)
+  const lossRate = useCoordinationStoreSelector((state) => state.coordination.lossRate)
   const catalogQuery = useGetDishesCatalogQuery(undefined, { skip: !enabled })
   const catalogView = toChefView(catalogQuery, 'danh mục món và BOM')
   const catalogDishes = catalogView.phase === 'ready' ? catalogView.data : EMPTY_CHEF_LIST
