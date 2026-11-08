@@ -1,5 +1,11 @@
+using System.Globalization;
 using System.Xml;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Features.SystemOperation.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Features.SampleData.Services;
 
@@ -7,6 +13,31 @@ internal static class WeeklyMenuImportValidationPolicy
 {
     internal const string UnreadableWorkbookMessage =
         "File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.";
+
+    internal static async Task RequireNoMrxBatchAsync(
+        IpcManagementContext context, string? mode, IReadOnlyList<PreparedWeeklyMenuImport> prepared, CancellationToken cancellationToken)
+    {
+        if (!string.Equals(mode, SystemOperationEligibility.MaterialReconciliation, StringComparison.Ordinal)) return;
+        foreach (var item in prepared)
+        {
+            var exists = await (from batch in context.Reconciliationbatches.AsNoTracking()
+                                join version in context.Menuversions.AsNoTracking() on batch.MenuVersionId equals version.MenuVersionId
+                                where version.CustomerId == item.Customer.CustomerId && version.WeekStartDate == item.Plan.WeekStartDate
+                                select batch.BatchId).AnyAsync(cancellationToken);
+            if (exists)
+                throw new BusinessRuleException($"Nhóm import chỉ hỗ trợ phạm vi chưa có lô đối soát. Khách hàng {item.Customer.CustomerCode}, tuần {item.Plan.WeekStartDate:dd/MM/yyyy}: hãy import lại từng file. Không file nào trong nhóm được lưu.");
+        }
+    }
+
+    internal static DateOnly? ParseRequestedWeekStart(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (!DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            throw new ArgumentException("Ngày bắt đầu tuần không hợp lệ. Dùng định dạng yyyy-MM-dd.");
+        if (date.DayOfWeek != DayOfWeek.Monday)
+            throw new ArgumentException("Ngày bắt đầu tuần phải là Thứ Hai.");
+        return date;
+    }
 
     internal static void AddDuplicateWarnings(WeeklyMenuImportPlan plan)
     {
@@ -36,6 +67,8 @@ internal static class WeeklyMenuImportValidationPolicy
         IReadOnlyList<WeeklyMenuImportRowDto> rows)
     {
         var validation = new WeeklyMenuImportValidationDto();
+        if (plan.WeekStartDate.DayOfWeek != DayOfWeek.Monday)
+            AddIssue(validation, "error", "WEEK_START_NOT_MONDAY", "Ngày bắt đầu tuần trong file phải là Thứ Hai.", plan.SheetName, null, null, "weekStartDate");
         if (plan.RequestedWeekStartDate.HasValue && plan.WeekStartDate != plan.RequestedWeekStartDate.Value)
         {
             var firstDayColumn = plan.DayColumns
@@ -51,6 +84,9 @@ internal static class WeeklyMenuImportValidationPolicy
                 firstDayColumn?.Column,
                 "weekStartDate");
         }
+
+        foreach (var column in plan.DayColumns.Where(column => !ServiceCalendar.IsServiceDay(column.ServiceDate)))
+            AddIssue(validation, "error", "NON_SERVICE_DAY", "Tuần nghiệp vụ chỉ từ Thứ Hai đến Thứ Bảy; không nhập Chủ nhật.", plan.SheetName, column.RowNumber, column.Column, "serviceDate");
 
         var duplicateGroups = rows
             .GroupBy(

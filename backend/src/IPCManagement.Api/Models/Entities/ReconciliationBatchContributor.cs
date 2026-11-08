@@ -13,9 +13,15 @@ public sealed class ReconciliationBatchContributor
     public string? FrozenDishCode { get; set; }
     public string? FrozenDishName { get; set; }
     public int? FrozenServings { get; set; }
+    public string? FrozenMenuVariant { get; set; }
     public decimal? FrozenBomQuantityPerServing { get; set; }
+    public decimal? FrozenBomUnitToBaseRate { get; set; }
+    public decimal? FrozenCanonicalUnitToBaseRate { get; set; }
     public decimal? FrozenWasteRatePercent { get; set; }
     public decimal SourceQuantity { get; set; }
+    public DateTime? InvalidatedAt { get; set; }
+    public byte[]? InvalidatedBySourceRevisionId { get; set; }
     public ReconciliationBatchLine BatchLine { get; set; } = null!;
     public ReconciliationBatchDailyLine? DailyLine { get; set; }
+    public ReconciliationSourceRevision? InvalidatedBySourceRevision { get; set; }
 }

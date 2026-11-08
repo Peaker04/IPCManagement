@@ -62,7 +62,8 @@ public class CoordinationControllerTests
                 Arg.Any<decimal?>(),
                 Arg.Any<string?>(),
                 Arg.Any<string?>(),
-                Arg.Any<CancellationToken>())
+                Arg.Any<CancellationToken>(),
+                Arg.Any<IReadOnlyCollection<string>?>())
             .Returns(Task.FromException<WeeklyMenuImportResultDto>(new BusinessRuleException("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.")));
         var currentUserService = Substitute.For<ICurrentUserService>();
         currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(GuidHelper.ToGuidString(GuidHelper.NewId()));
@@ -94,7 +95,8 @@ public class CoordinationControllerTests
             null,
             "preview-token",
             Arg.Any<string?>(),
-            Arg.Any<CancellationToken>());
+            Arg.Any<CancellationToken>(),
+            Arg.Any<IReadOnlyCollection<string>?>());
     }
 
     [Fact]

@@ -31,6 +31,19 @@ namespace IPCManagement.Api.Tests;
 public class DishCatalogTests
 {
     [Fact]
+    public void DishesController_GetBomPriceTiers_Should_ReturnSupportedAmounts()
+    {
+        var controller = new DishesController(Substitute.For<IDishCatalogService>());
+
+        var actionResult = controller.GetBomPriceTiers();
+
+        var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
+        var response = ok.Value.Should().BeAssignableTo<ApiResponse<IReadOnlyList<decimal>>>().Subject;
+        response.Success.Should().BeTrue();
+        response.Data.Should().Equal(25000m, 30000m, 34000m);
+    }
+
+    [Fact]
     public async Task DishService_GetCatalogAsync_Should_Map_MenuSlots_And_BomDetails()
     {
         var repository = Substitute.For<IDishRepository>();
@@ -302,6 +315,36 @@ public class DishCatalogTests
         report.CompleteDishes.Should().Be(0);
         report.MissingBomDishes.Should().Be(1);
         report.TotalBomLines.Should().Be(0);
+
+        foreach (var (tier, status, start) in new[] {
+            (25000m, "PUBLISHED", ServiceCalendar.Today().AddDays(-1)),
+            (30000m, "PUBLISHED", ServiceCalendar.Today().AddDays(-1)),
+            (34000m, "DRAFT", ServiceCalendar.Today().AddDays(-1)),
+            (34000m, "PUBLISHED", ServiceCalendar.Today().AddDays(1)) })
+        {
+            fixture.Context.Dishboms.Add(new DishBom {
+                BomId = GuidHelper.NewId(), DishId = fixture.DishId,
+                IngredientId = fixture.IngredientId, UnitId = fixture.UnitId,
+                PriceTierAmount = tier, GrossQtyPerServing = 0.123456m,
+                BomStatus = status, EffectiveFrom = start
+            });
+        }
+        await fixture.Context.SaveChangesAsync();
+        var controller = new DishCatalogDiagnosticsController(service);
+        foreach (var tier in new[] { 25000m, 30000m, 34000m })
+        {
+            var action = (OkObjectResult)await controller.GetBomCoverageAsync(tier);
+            var scoped = ((ApiResponse<BomCoverageReportDto>)action.Value!).Data!;
+            scoped.PriceTier.Should().Be(tier);
+            scoped.TotalDishes.Should().Be(1);
+            scoped.TotalBomLines.Should().Be(tier == 34000m ? 0 : 1);
+            scoped.CompleteDishes.Should().Be(tier == 34000m ? 0 : 1);
+            scoped.MissingBomDishes.Should().Be(tier == 34000m ? 1 : 0);
+            scoped.Dishes.Single().BomLineCount.Should().Be(tier == 34000m ? 0 : 1);
+        }
+        (await service.GetBomCoverageAsync()).TotalBomLines.Should().Be(2);
+        var unsupported = () => service.GetBomCoverageAsync(26000);
+        await unsupported.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
@@ -598,6 +641,9 @@ public class DishCatalogTests
     public async Task DishService_BomImport_Should_PreviewAndCommitXlsxWorkbook()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
+        var dish = await fixture.Context.Dishes.SingleAsync();
+        dish.DishCode = "00017";
+        await fixture.Context.SaveChangesAsync();
         var service = CreateDishBomImportService(fixture.Context);
         var bytes = BomTemplateWorkbookBuilder.Build(
             34000,
@@ -605,20 +651,36 @@ public class DishCatalogTests
             new DateOnly(2026, 7, 1),
             [
                 [
-                    "DISH-BOM",
+                    "00017",
                     "Món BOM",
                     "34000",
                     "",
                     "Nguyên liệu BOM",
                     "KG",
-                    "0.15",
+                    "0.123456",
                     "4",
                     "2026-07-01",
                     "",
                     "PUBLISHED",
-                    "Import Excel"
+                    "=1+1"
                 ]
             ]);
+        using (var workbook = new System.IO.Compression.ZipArchive(new MemoryStream(bytes)))
+        using (var sheet = workbook.GetEntry("xl/worksheets/sheet1.xml")!.Open())
+        {
+            var xml = System.Xml.Linq.XDocument.Load(sheet);
+            System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            var quantity = xml.Descendants(ns + "c").Single(cell => (string?)cell.Attribute("r") == "D5");
+            ((string?)quantity.Attribute("t")).Should().Be("n");
+            quantity.Element(ns + "v")!.Value.Should().Be("0.123456");
+            var code = xml.Descendants(ns + "c").Single(cell => (string?)cell.Attribute("r") == "G5");
+            ((string?)code.Attribute("t")).Should().Be("inlineStr");
+            code.Descendants(ns + "t").Single().Value.Should().Be("00017");
+            var note = xml.Descendants(ns + "c").Single(cell => (string?)cell.Attribute("r") == "F5");
+            ((string?)note.Attribute("t")).Should().Be("inlineStr");
+            note.Descendants(ns + "t").Single().Value.Should().Be("=1+1");
+            xml.Descendants(ns + "f").Should().BeEmpty();
+        }
         var request = new BomImportCommitRequestDto { PriceTier = 34000 };
 
         var preview = await service.PreviewAsync(new MemoryStream(bytes), request);
@@ -631,8 +693,26 @@ public class DishCatalogTests
 
         var line = await fixture.Context.Dishboms.AsNoTracking().SingleAsync();
         line.PriceTierAmount.Should().Be(34000);
-        line.GrossQtyPerServing.Should().Be(0.15m);
+        line.GrossQtyPerServing.Should().Be(0.123456m);
         line.WasteRatePercent.Should().Be(4m);
+
+        using var duplicateWorkbook = new MemoryStream();
+        duplicateWorkbook.Write(bytes);
+        using (var archive = new System.IO.Compression.ZipArchive(duplicateWorkbook, System.IO.Compression.ZipArchiveMode.Update, leaveOpen: true))
+        {
+            var entry = archive.GetEntry("xl/worksheets/sheet1.xml")!;
+            System.Xml.Linq.XDocument xml;
+            using (var source = entry.Open()) xml = System.Xml.Linq.XDocument.Load(source);
+            System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            xml.Descendants(ns + "row").Single(row => (string?)row.Attribute("r") == "4")
+                .Add(new System.Xml.Linq.XElement(ns + "c", new System.Xml.Linq.XAttribute("r", "M4"), new System.Xml.Linq.XAttribute("t", "inlineStr"),
+                    new System.Xml.Linq.XElement(ns + "is", new System.Xml.Linq.XElement(ns + "t", "Đơn vị"))));
+            entry.Delete();
+            using var target = archive.CreateEntry("xl/worksheets/sheet1.xml").Open();
+            xml.Save(target);
+        }
+        var duplicate = () => service.PreviewAsync(new MemoryStream(duplicateWorkbook.ToArray()), request);
+        await duplicate.Should().ThrowAsync<BusinessRuleException>().WithMessage("*trùng*Đơn vị*");
     }
 
     [Fact]
@@ -715,7 +795,7 @@ public class DishCatalogTests
         preview.ErrorRows.Should().Be(4);
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Trùng dish/ingredient/unit/effective date")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Khoảng hiệu lực BOM bị overlap trong file")));
-        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("DishCode không tồn tại")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Mã món không tồn tại")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Mã nguyên liệu không tồn tại")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Mã đơn vị không tồn tại")));
         await act.Should().ThrowAsync<BusinessRuleException>()

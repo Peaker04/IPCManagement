@@ -1,253 +1,128 @@
+# Design — Canonical Presentation Contract & UI Rules Matrix
+
+Read only the relevant section, then actual source/primitives and rendered tests. [DOMAIN](DOMAIN.md) owns language/status/grain; bounded contracts own feature permissions/readiness. [ENGINEERING](ENGINEERING.md) owns browser/performance verification. This owner defines presentation grammar and stable rule IDs, not task state, specimen history or runtime certification.
+
+## 1. Authority, Principles & Scoped Pre-Code Gate
+
+- **Priority Hierarchy**: Data safety → Accessibility → Layout stability → Performance → Visual consistency → Aesthetics.
+- **Quiet Operational Philosophy**: Flat cool-slate surfaces, hairline boundaries, precise food-service logistics. Semantic role tokens distinguish primary navy from informational blue and critical warning/danger. Routine states stay quiet neutral.
+- **Decision Resolution — Density (T8 CLOSED & LOCKED)**:
+  - System-wide default is **Operational Compact Density** (data row height `36px–40px`, inline edit row `44px`, `<Num>` with `tabular-nums` mandatory).
+  - Density customization via `TablePreferencesControl` must map strictly to CSS tokens, never breaking `T7` (sticky header/frozen column) or `D6` (minimum `12px` font size).
+- **Scoped Pre-Code Design Gate**:
+  Before modifying any `.tsx` or `.css`, the author must declare in `.planning/WORK.md`:
+  1. Route & single primary work object (`OperationalFrame` or `SplitWorkbench`).
+  2. Server Mode: `DEFAULT` vs `MATERIAL_RECONCILIATION` (`DOM-MODE-1`).
+  3. RBAC Guards: Route, Navigation, and Action levels (`RoleGuard`, `ActionGuard`, `ActionAvailability`).
+  4. 6 Mandatory UI States: `loading`, `empty`, `error`, `permission-denied`, `partial`, `write-reconciliation`.
+  5. UI Primitives (`components/ui/*`) & Composites (`components/common/*`) used.
+  6. Compliance pledges: `D6` (>=12px), `D7` (1 primary), `T7` (frozen header/col), `T8` (compact density), `M1.2` (1 blocking modal), `N6` (nested sidebar v2).
+
 ---
-title: IPCManagement UI Architecture and Visual Composition Contract
-status: adopted-contract
-scope: frontend
-owner: IPCManagement
-last_reviewed: 2026-08-29
+
+## 2. User Experience Requirements (UXR)
+
+| Requirement ID | Title | Canonical Specification (MUST) | Prohibited Anti-Pattern (NEVER) |
+|---|---|---|---|
+| `UXR-01` | Single Primary Work Object | Mỗi route chỉ sở hữu đúng 1 Primary Work Object (`OperationalFrame` hoặc `SplitWorkbench`). Toàn bộ toolbar, telemetry strip, và workspace nằm trong 1 cây layout duy nhất. | Không lồng ghép nhiều khung làm việc cạnh tranh; cấm đặt 2 table container độc lập ở cấp trang mà không qua SplitWorkbench. |
+| `UXR-02` | Transparent Blocker Evidence | Khi một thao tác bị chặn (chưa đến lượt, thiếu điều kiện, sai vai trò), hệ thống phải hiển thị lý do rõ ràng qua `ServiceRunBlockerPanel` hoặc `ActionAvailability` tooltip. | Cấm để nút bấm bị disabled câm lặng (silent disabled) mà không giải thích nguyên nhân hoặc cách khắc phục. |
+| `UXR-03` | Dirty Draft Protection | Khi người dùng đã nhập liệu hoặc thay đổi trạng thái lưới chưa lưu, việc rời trang, đổi tab `?view=`, hoặc đóng overlay phải kích hoạt cảnh báo mất dữ liệu. | Cấm hủy bỏ form hoặc dữ liệu đang soạn thảo một cách âm thầm khi người dùng bấm nhầm tab hoặc backdrop. |
+| `UXR-04` | Vietnamese Domain Microcopy | 100% nhãn giao diện, trạng thái, tiêu đề cột phải dùng tiếng Việt chuyên ngành chuẩn hóa theo `DOM-LANG-1` (Thực đơn, KHSX, Phiếu xuất, Đối soát, v.v.). | Không hiển thị mã enum tiếng Anh, thuật ngữ kỹ thuật (UUID, Raw ID, null), hoặc văn phong tự do của lập trình viên. |
+| `UXR-05` | Destructive & Terminal Guards | Các thao tác xóa, từ chối phê duyệt, hoặc chuyển trạng thái sang chốt sổ bất biến (`Approved`, `Posted`, `Locked`) bắt buộc phải xác nhận qua `ConfirmDialog`. | Cấm thực hiện các thao tác phá hủy hoặc chốt sổ bất biến chỉ với 1 click chuột trực tiếp mà không có bước xác nhận an toàn. |
+
 ---
 
-# UI architecture and visual composition contract
+## 3. UI Non-Functional Requirements (NFR-UI)
 
-Đây là contract kiến trúc nền tảng cho cách một màn hình IPCManagement được **cấu tạo, phân vùng và thay đổi
-hình học theo state**. File này trả lời “surface nào sở hữu nội dung nào và chúng phải đứng cạnh nhau ra sao”.
-Rule chi tiết và mức MUST/SHOULD nằm ở [`DASHBOARD-UI-RULES.md`](DASHBOARD-UI-RULES.md); quy trình sửa và
-bằng chứng nằm ở [`UI-UX-EXECUTION-HARNESS.md`](UI-UX-EXECUTION-HARNESS.md).
+| Requirement ID | Title | Canonical Specification (MUST) | Prohibited Anti-Pattern (NEVER) |
+|---|---|---|---|
+| `NFR-UI-01` | Table Scalability & Viewport | Các bảng dữ liệu vượt quá 50 dòng bắt buộc phải bọc trong `TableViewport` (`T7`) kết hợp với phân trang server (`PaginationBar` hoặc `CursorPaginationBar`). | Cấm render toàn bộ tập dữ liệu hàng nghìn dòng vào DOM gây lag giật hoặc tràn màn hình ngang không có thanh cuộn cố định. |
+| `NFR-UI-02` | Triple-Layer RBAC Defense | Kiểm soát phân quyền 3 lớp: (1) Route (`ProtectedRoute`/`RoleGuard`), (2) Navigation (`routeRegistry` visibility), (3) Action (`ActionGuard`/`ActionAvailability`). | Cấm chỉ ẩn nút bấm trên giao diện mà không có guard ở component và xác thực quyền ở backend API. |
+| `NFR-UI-03` | Strict Formatting Primitives | 100% trường ngày tháng dùng `VietnameseDateInput` (`dd/MM/yyyy`), số lượng/tiền tệ dùng `<Num>`, mã định danh/code dùng `<IdentifierText>`. | Cấm hiển thị định dạng ngày ISO (`yyyy-MM-dd`), số trần không có đơn vị/phẩy ngăn cách, hoặc mã dài không thể sao chép. |
+| `NFR-UI-04` | Accessibility WCAG 2.2 AA | Đạt tỷ lệ tương phản văn bản >= 4.5:1, nút điều khiển >= 3:1; hỗ trợ đầy đủ phím Tab/Enter/Esc; vượt qua 100% bộ `*.contract.test.tsx`. | Cấm chỉ dùng màu sắc để biểu thị trạng thái (color-only indicator); cấm outline: none trên các phần tử tương tác đang nhận focus. |
+| `NFR-UI-05` | Motion & Micro-Interactions | Mọi hiệu ứng chuyển động thời gian <= 150ms; tôn trọng cấu hình hệ thống `prefers-reduced-motion`; không gây giật dịch chuyển bố cục (CLS <= 0.1). | Cấm các hiệu ứng hoạt họa kéo dài, loading spinner toàn trang không cần thiết, hoặc layout shifting khi dữ liệu bất đồng bộ trả về. |
 
-## 1. Thứ tự authority
+---
 
-Khi xây hoặc sửa UI, quyết định theo thứ tự:
+## 4. Foundations, Typography & Color Rules Matrix
 
-1. **Business authority:** work object, grain, state, permission, mutation owner.
-2. **Page composition:** primary task, scope control, work surface, prerequisite/empty/error state.
-3. **Shared primitive:** `OperationalFrame`, `CommandBar`, `SectionPanel`, `QueryViewBoundary`, `EmptyState`,
-   table/dialog primitives.
-4. **Design token:** spacing, type, color, radius, control height và density.
-5. **Page-local class:** chỉ dùng khi bốn tầng trên không sở hữu vấn đề.
+| Rule ID | Category | Canonical Specification (MUST) | Prohibited Anti-Pattern (NEVER) |
+|---|---|---|---|
+| `D1` | Design System | Toàn bộ giao diện sử dụng thống nhất hệ thống token từ `frontend/src/styles/index.css`. | Không tạo token hoặc CSS cục bộ bên ngoài `index.css`; cấm dùng redesign tokens đã deprecated. |
+| `D2` | Token Layers | Kiến trúc token 3 tầng: Primitive (slate ramp) → Semantic (`--ipc-primary`, `--ipc-color-surface`) → Component. | Không tham chiếu trực tiếp mã hex hoặc giá trị raw bên trong style inline hoặc component TSX. |
+| `D3` | Semantic Naming | Tên token phản ánh mục đích sử dụng ngữ nghĩa (vd: `--ipc-color-border-subtle`, `--ipc-danger-soft`). | Không đặt tên token theo màu sắc vật lý tùy tiện (vd: `--blue-sky`, `--red-dark`). |
+| `D4` | Color Linting | Mọi giá trị màu sắc phải xuất phát từ CSS variables chuẩn và vượt qua bộ kiểm tra lint. | Không sử dụng hardcoded `#hex`, `rgb()`, `hsl()` trong component CSS/TSX. |
+| `D5` | Functional Color | Màu sắc mang tính chất cảnh báo và chỉ thị trạng thái nghiệp vụ; diện mạo chung giữ tông trung tính mát (cool-slate). | Không dùng màu sắc sặc sỡ để trang trí landing-page trong môi trường vận hành công nghiệp. |
+| `D6` | Typography Scale | Cỡ chữ dữ liệu bảng tối thiểu `12px`; phân cấp tiêu đề chặt chẽ `18px / 16px / 14px`; font Inter Variable hỗ trợ đầy đủ dấu tiếng Việt. | Cấm cỡ chữ <12px gây mất khả năng đọc; cấm `line-height: 1.0` làm cụt dấu tiếng Việt (mũ, móc, thanh điệu). |
+| `D7` | Action Hierarchy | Mỗi ngữ cảnh/vùng làm việc chỉ có duy nhất 1 Primary Action button; các hành động khác là Secondary/Outline/Ghost. | Cấm đặt 2 nút Primary cạnh nhau gây phân vân thao tác cho người vận hành. |
+| `D8` | Neutral Baseline | Bề mặt nền và thẻ mặc định giữ màu trung tính slate-50/100, viền hairline 1px slate-200. | Cấm đổ bóng đậm (heavy box-shadow) hoặc bo góc hình viên thuốc (pill) trên bảng dữ liệu. |
+| `D9` | Icon Grammar | 100% icons dùng bộ Lucide chuẩn hóa stroke 2px, viewBox 24px, kích thước 16px (control) / 18-20px (navigation). | Không import icon PNG/SVG từ bên ngoài (Flaticon); cấm biến dạng tỉ lệ icon. |
+| `P1–P3` | Core UX | Ngôn từ tiếng Việt nghiệp vụ chuẩn; hiển thị sự thật hệ thống minh bạch; ý nghĩa nhãn nhất quán. | Không dùng thuật ngữ lập trình thay thế tên chứng từ; không đánh đố người vận hành. |
+| `P4–P7` | Interaction | Hiển thị danh sách phân cấp tiến trình; cung cấp lối thoát an toàn và xác nhận thao tác; chặn trước dữ liệu không hợp lệ. | Cấm form không bắt lỗi trước khi submit; cấm thao tác không thể quay lui mà không có cảnh báo. |
+| `P8–P9` | Readiness | Nhanh chóng làm nổi bật điểm nghẽn và hành động tiếp theo; lập hồ sơ thiết kế Pre-Code Gate trước khi code. | Cấm sửa code giao diện tùy tiện khi chưa xác định 6 trạng thái và primary work object. |
+| `L1–L3` | Labels & Codes | Tên dễ đọc hiển thị trước, mã chứng từ hiển thị phụ kèm chức năng sao chép; ẩn UUID/hash mặc định. | Cấm hiển thị chuỗi định danh dài ngoằng làm tiêu đề chính của hàng bảng. |
+| `L4–L6` | Enums & Numbers | Enum tập trung tại từ điển; số lượng đi liền đơn vị tính; toàn bộ số dùng font `tabular-nums` căn phải. | Cấm số lượng trần không đơn vị; cấm số liệu bị xô lệch cột khi thay đổi giá trị. |
+| `L7–L12` | Localization | Cung cấp nút copy mã; vòng đời thể hiện bước tiếp theo; múi giờ chuẩn `Asia/Ho_Chi_Minh`. | Cấm hiển thị thời gian UTC thuần không qua bộ định dạng ngày giờ Việt Nam. |
+| `S0–S2` | Status Badges | Phân biệt rõ: Badge đếm số, Lozenge trạng thái, Tag phân loại; tối đa 2 badge/hàng; tuân thủ bảng màu DOMAIN. | Cấm dùng badge làm nút điều hướng; cấm hiển thị hàng loạt 4–5 badge màu sắc trên một dòng. |
 
-Không được dùng CSS page-local để bù cho primitive có geometry sai, hoặc dùng primitive generic khi semantic
-role của vùng không phù hợp.
+---
 
-## 2. Floorplan chuẩn của trang vận hành
+## 5. Table & Data Grid Rules Matrix
 
-Mỗi route chỉ có một primary work object và tối đa năm vùng theo thứ tự:
+| Rule ID | Category | Canonical Specification (MUST) | Prohibited Anti-Pattern (NEVER) |
+|---|---|---|---|
+| `T1` | Alignment | Số lượng, tiền tệ, tỷ lệ %, số đếm BẮT BUỘC căn phải và dùng `<Num>`; văn bản căn trái; ngày/trạng thái có thể căn giữa nếu có quy định. | Cấm căn trái số liệu tài chính/định mức làm sai lệch trực quan khi so sánh độ lớn. |
+| `T2` | Header Sync | Tiêu đề cột (`<th>`) phải có căn lề đồng bộ tuyệt đối với ô dữ liệu (`<td>`) bên dưới. | Cấm tiêu đề cột căn giữa trong khi số liệu bên dưới căn phải. |
+| `T3` | Tabular Figures | Mọi ký tự số thay đổi linh hoạt phải kích hoạt tính năng font `tabular-nums` để bề ngang chữ số đồng đều. | Cấm dùng font số tỷ lệ (proportional digits) làm giật layout cột khi cập nhật dữ liệu. |
+| `T4` | Header Units | Đơn vị tính chung (vd: `(kg)`, `(VNĐ)`, `(suất)`) phải đặt ngay trên tiêu đề cột thay vì lặp lại trên từng dòng. | Cấm nối chuỗi đơn vị vào từng ô số liệu làm mất khả năng căn phải số học. |
+| `T5` | Row Separator | Sử dụng đường viền phân tách hàng tinh tế 1px (`--ipc-color-border-subtle`), không dùng viền dọc kẻ ô đậm. | Cấm kẻ lưới ca-rô đậm đặc (heavy grid) gây rối mắt trong danh sách dữ liệu dài. |
+| `T6` | Vertical Align | Căn giữa theo chiều dọc (`align-middle`) cho các dòng chuẩn; căn trên (`align-top`) cho các dòng có nội dung đa dòng dài. | Cấm căn dưới (`align-bottom`) làm các trường thông tin bị lệch chân khó theo dõi. |
+| `T7` | Horizontal Freeze | Bảng có thanh cuộn ngang BẮT BUỘC phải cố định tiêu đề (`sticky header`) và cố định cột định danh đầu tiên (`frozen column`). | Cấm để người dùng cuộn ngang mà mất dấu tiêu đề cột hoặc mất cột tên món/nguyên liệu. |
+| `T8` | Density Policy (LOCKED) | **Chốt cứng Operational Compact Density**: Chiều cao dòng `36px–40px` (dòng thường) và `44px` (dòng có ô nhập liệu inline). Tùy chỉnh mật độ qua `TablePreferencesControl` phải ánh xạ qua token chuẩn, không phá vỡ `T7` và `D6`. | Cấm chiều cao dòng phình to lãng phí không gian hiển thị (>50px cho bảng dữ liệu vận hành); cấm phá vỡ `T7` khi đổi mật độ. |
+| `T9–T10` | Sorting | Mặc định sắp xếp theo trường có ý nghĩa vận hành (ngày, độ ưu tiên); biểu tượng sort ổn định hình học không nhảy giật. | Cấm sắp xếp mặc định theo khóa chính vô nghĩa (ID tự tăng ngầm); cấm mất trạng thái sort khi đổi trang. |
+| `T11–T12` | Columns & Actions | Ưu tiên bảng 5–7 cột quyết định và mở rộng chi tiết (master-detail) thay vì hiển thị hàng chục cột kéo dài vô tận. | Cấm nhồi nhét >15 cột trên bảng phẳng buộc người dùng cuộn ngang liên tục để đọc 1 dòng. |
+| `T13–T16` | Pagination | Dữ liệu lớn bắt buộc phân trang server hoặc ảo hóa; thanh công cụ lọc có số lượng kết quả; có nút xóa bộ lọc rõ ràng. | Cấm tải trước toàn bộ cơ sở dữ liệu về client; cấm ẩn thông tin số lượng trang/tổng số bản ghi. |
 
-```text
-Route identity
-→ Scope / command controls
-→ Context or prerequisite state
-→ Primary work surface
-→ Secondary detail / rail
-```
+---
 
-Các vùng không có dữ liệu phải được bỏ hoặc thay bằng một empty/prerequisite surface có chủ đích; không giữ
-một panel trắng chỉ để bảo toàn chiều cao desktop.
+## 6. Modals, Drawers & Forms Rules Matrix
 
-### 2.1 Route identity
+| Rule ID | Category | Canonical Specification (MUST) | Prohibited Anti-Pattern (NEVER) |
+|---|---|---|---|
+| `M1.1` | Modal Purpose | Modal chỉ dùng cho tác vụ chặn thực sự cần tập trung ngắn hạn; chi tiết kéo dài phải dùng SplitWorkbench hoặc route riêng. | Cấm lạm dụng popup modal cho toàn bộ màn hình nghiệp vụ chính. |
+| `M1.2` | Single Overlay | Chỉ cho phép tối đa 1 lớp overlay/dialog chặn tại một thời điểm; xác nhận hủy thao tác thực hiện qua dialog con lồng an toàn hoặc thanh thế. | Cấm xếp chồng 3–4 lớp popup modal đè lên nhau gây mất phương hướng cho người dùng. |
+| `M2.1–M2.7` | Dialog Scroller | Modal có kích thước theo chuẩn (`sm`, `md`, `lg`, `xl`); header và footer cố định; chỉ có 1 vùng cuộn duy nhất trong thân (`DialogBody`). | Cấm thanh cuộn xuất hiện ở cả lớp ngoài lẫn bên trong modal gây hiện tượng "cuộn lồng cuộn". |
+| `M2.8–M2.16` | Focus & Cleanup | Tự động bẫy focus trong modal, hỗ trợ phím Esc để đóng (có kiểm tra dirty draft); giải phóng triệt để DOM portal khi đóng. | Cấm để rò rỉ focus ra nền sau modal; cấm kẹt lớp backdrop phủ mờ màn hình sau khi đóng modal. |
+| `M3.1–M3.16` | Modal Lifecycle | Mount modal theo yêu cầu (on-demand); hủy bỏ các request/timer khi modal đóng; hiệu ứng mở <= 150ms. | Cấm fetch dữ liệu chi tiết cho toàn bộ các dòng trước khi người dùng bấm mở modal. |
+| `I1–I4` | Field Labels | Nhãn trường luôn hiển thị rõ ràng bên ngoài ô nhập (placeholder không thay thế label); báo lỗi ngay cạnh trường sau `onBlur`. | Cấm chỉ dựa vào placeholder làm nhãn; cấm giấu thông báo lỗi chỉ trong popup toast thoáng qua. |
+| `I5–I8` | Input Hygiene | Trường số tự động định dạng và có bước nhảy/đơn vị; bảo toàn bản nháp khi mất kết nối mạng tạm thời. | Cấm chấp nhận ký tự chữ trong ô số; cấm xóa sạch dữ liệu form khi có một lỗi xác thực nhỏ. |
+| `I9–I10` | Spacing & Flow | Bố cục nhãn → ô nhập → mô tả/lỗi theo khoảng cách token chuẩn; SectionPanel quản lý padding tập trung. | Cấm khoảng cách giữa các ô nhập liệu không đồng đều hoặc nhảy dòng lung tung khi có lỗi hiển thị. |
 
-- Chứa breadcrumb/eyebrow, tên công việc và mô tả ngắn khi cần.
-- Không lặp lại tiêu đề đó ở một panel ngay bên dưới nếu panel không tạo thêm ngữ cảnh.
+---
 
-### 2.2 Scope controls
+## 7. Navigation, Layout, Query & Performance Rules Matrix
 
-- Filter/select/date chỉ chiếm đúng chiều cao nội dung, thường nằm trong `CommandBar` hoặc header của work surface.
-- Label, control và dữ liệu mà control chi phối phải ở cùng một cụm thị giác.
-- Async boundary bọc control MUST dùng geometry compact; không được thừa hưởng placeholder dành cho bảng/panel.
+| Rule ID | Category | Canonical Specification (MUST) | Prohibited Anti-Pattern (NEVER) |
+|---|---|---|---|
+| `N1–N5` | Work Navigation | Điều hướng bám sát đối tượng công việc; breadcrumb phản ánh chính xác vị trí; URL phản ánh view state (`?view=<key>`). | Cấm chuyển view trên trang mà không đồng bộ URL làm mất trạng thái khi người dùng F5 tải lại trang. |
+| `N6` | Nested Sidebar Authority | Sidebar v2 (nhóm accordion + liên kết lá) là thẩm quyền điều hướng duy nhất khi route có >1 view con; tab bar nội bộ trang cũ bị bãi bỏ. | Cấm duy trì song song cả tab bar trong trang lẫn menu lá sidebar cho cùng một đích đến. |
+| `N7` | Disclosure Accessibility | Nút mở nhóm trong sidebar là thẻ `button[type=button]` với `aria-expanded`; liên kết lá dùng thẻ `a` với `aria-current="page"`. | Cấm dùng thẻ `div` click sự kiện tùy tiện để điều hướng mà không có thuộc tính trợ năng ARIA. |
+| `N8` | Unified Preference | Tùy chọn ẩn hiện tab lá được đồng bộ với URL resolver; tab bị ẩn không thể truy cập qua link ngầm hay deep link. | Cấm để người dùng truy cập được view mà quyền hạn hoặc cấu hình hiển thị đã tắt. |
+| `C1–C6` | Layout Stability | Skeleton phải giữ nguyên ngữ cảnh route và hình học của work object đã phân giải (toolbar, số cột, master-detail, vùng cuộn); kích thước phải khớp dữ liệu thật và số liệu bảng dùng tabular-nums. | Cấm CLS > 0.1; cấm skeleton chung chung làm đổi cấu trúc hoặc nhảy kích thước bảng khi dữ liệu tải xong. |
+| `C7–C12` | Surface Ownership | Mỗi trạng thái hiển thị chỉ có 1 bề mặt giải thích duy nhất; không tạo các khung trống rỗng nhân tạo. | Cấm nhân đôi thông báo rỗng hoặc để vùng trắng vô nghĩa chiếm trọn màn hình. |
+| `F1–F6` | Performance Targets | P75 LCP <= 2.5s, INP <= 200ms; debounce tìm kiếm 250–300ms kèm hủy request cũ (`AbortController`). | Cấm gửi request API liên tục sau từng phím gõ mà không có debounce. |
+| `F12–F22` | Query Hygiene | Tách bạch dữ liệu máy chủ và tính toán phái sinh; tạm dừng polling khi tab bị ẩn hoặc đang chỉnh sửa dữ liệu. | Cấm cơ chế refetch tự động ghi đè làm mất dữ liệu người dùng đang nhập dở trên form. |
+| `E1–E8` | 6 UI States | Thể hiện tường minh 6 trạng thái: Đang tải, Trống, Lỗi, Từ chối quyền, Một phần, Đối soát ghi. Loading chỉ kết thúc thành đúng một trạng thái đã phân giải: `empty`, `error`, `permission-denied`, `partial`, `write-reconciliation`, hoặc dữ liệu thành công; thông báo lỗi kèm hướng xử lý. | Cấm hiển thị màn hình trắng trơn, nuốt lỗi âm thầm, hoặc chuyển loading thẳng sang khung dữ liệu giả khi API thất bại. |
+| `A1–A4` | Accessibility | Đảm bảo đầy đủ phím điều hướng Tab, Shift+Tab, Enter, Escape; độ tương phản đạt WCAG 2.2 AA; có aria-live cho cập nhật động. | Cấm bẫy phím (keyboard trap) ngoài modal; cấm vô hiệu hóa chuột mà không chặn phím tương ứng. |
+| `V1–V10` | Visual Hierarchy | Bố cục theo thứ tự: Tiêu đề/Ngữ cảnh → Bộ lọc/Lệnh → Trạng thái/Khung làm việc chính; không dùng flex-grow vô nghĩa. | Cấm nút thao tác chính bị trôi dạt xuống cuối trang hoặc bị che khuất bởi các thanh nổi. |
 
-### 2.3 Prerequisite và empty
+---
 
-- Một state chỉ có **một** surface diễn giải chính.
-- Surface trả lời: vùng này là gì, vì sao chưa dùng được, bước tiếp theo hợp lệ.
-- Nếu action là chọn scope, control scope phải nằm trong cùng surface hoặc action phải đưa focus thẳng tới control.
-- Không render một work panel rỗng rồi thêm một alert khác bên dưới để giải thích panel đó.
+## 8. Bốn Cấp Độ Phản Hồi Trạng Thái (4-Tier State & Feedback Architecture)
 
-### 2.4 Primary work surface
+Nhằm triệt tiêu hoàn toàn hiện tượng nháy giật layout shift (CLS) và chớp mành skeleton vô lý:
 
-- Chỉ render khi prerequisite đã đủ hoặc khi skeleton thực sự đại diện cho hình học nội dung sắp xuất hiện.
-- Table/card/detail phải bắt đầu gần heading và control liên quan; không có khoảng trắng vô nghĩa ngăn cách chúng.
-- Surface không được dùng `flex-grow`, `min-height` hoặc viewport height chỉ để lấp phần còn lại nếu không có
-  workflow cần vùng canvas cố định.
-
-## 3. Geometry contract
-
-Mọi shared boundary/panel phải khai một geometry role:
-
-| Role | Dùng cho | Hình học |
-|---|---|---|
-| `compact` | select, filter, action group, metadata | chiều cao theo nội dung; không min-height lớn |
-| `section` | form/summary/list ngắn | min-height chỉ khi skeleton đã biết kích thước |
-| `table` | bảng async có header/rows | placeholder khớp số hàng acceptance |
-| `workspace` | editor/matrix/canvas thật sự | có thể grow, nhưng phải có content hoặc purposeful empty state |
-
-Default generic không được âm thầm áp geometry `workspace` cho mọi children.
-
-## 4. Visual coherence invariants
-
-Một page composition hợp lệ phải giữ các invariant sau:
-
-1. **Adjacency:** heading, description, control và content cùng work object phải nằm trong cùng visual group.
-2. **No orphan control:** control không đứng một mình ở góc của một surface trắng lớn.
-3. **No orphan heading:** heading không bị đẩy xuống đáy hoặc cách content đầu tiên quá một section gap.
-4. **One-state/one-surface:** không lặp cùng prerequisite/empty/error thành panel trắng + alert hoặc hai alert.
-5. **Bounded whitespace:** khoảng trắng phải thể hiện hierarchy, không phải hậu quả của `min-height` generic.
-6. **Action proximity:** next action nằm trong state surface hoặc ngay cạnh work object nó tác động.
-7. **State honesty:** loading, ready-empty, prerequisite, forbidden và error có geometry/semantics khác nhau.
-8. **Responsive continuity:** khi viewport đổi, quan hệ heading → control → state → content không bị đảo hoặc tách rời.
-
-## 5. Primitive ownership
-
-| Concern | Owner | Contract |
-|---|---|---|
-| Route structure | `OperationalFrame` | Chỉ tạo floorplan; không ép children thành canvas cao |
-| Scope/action row | `CommandBar` | Compact, wrap có chủ đích, một primary action |
-| Async query state | `QueryViewBoundary` | State semantics + geometry role; placeholder phải phù hợp child |
-| Empty/prerequisite | `EmptyState` hoặc shared prerequisite primitive | Một state surface, title/reason/action |
-| Repeated work section | `SectionPanel` | Heading/content adjacency; route-primary mặc định `h2` dưới shell `h1`; nested/detail phải khai `h3`/`h4` tường minh; không tạo khoảng trắng vô nghĩa |
-| Data comparison | table primitives | Chỉ mount khi có selected work object hoặc purposeful empty state |
-| Dialog/detail | canonical Dialog/Drawer | Dialog chặn luồng và trap focus; positioning layer không scroll; luồng dài dùng một `DialogBody` primary vertical scroll owner với header/footer cố định. Nested vertical collection phải độc lập và có accessible region. Drawer master–detail chỉ đọc dùng portal/side geometry nhưng không backdrop chặn, không trap focus hoặc khóa nền |
-
-Nếu một screenshot cho thấy lỗi bố cục, phải xác định primitive/owner trong bảng này trước khi sửa class ở page.
-
-## 6. Screenshot-to-oracle protocol
-
-Screenshot không tự chứng minh root cause, nhưng **là một tín hiệu audit hợp lệ và không được bỏ qua**.
-Agent phải:
-
-1. Mô tả candidate defects theo quan hệ thị giác, không theo cảm giác “xấu”.
-2. Map mỗi candidate tới invariant/rule ID.
-3. Dùng DOM/source để đo geometry và xác định owner.
-4. Viết red assertion bắt đúng quan hệ sai.
-5. Sửa owner thấp nhất và chạy lại cùng viewport/state.
-
-Ví dụ oracle cho lỗi bố cục:
-
-- chiều cao boundary compact không vượt quá chiều cao control + padding contract;
-- khoảng cách heading đến control/content nằm trong token section gap;
-- prerequisite page có đúng một visible state surface;
-- không có surface trắng lớn mà phần content hữu ích chiếm tỷ lệ quá thấp;
-- action của prerequisite đưa focus tới control hợp lệ.
-
-Ngưỡng số cụ thể phải lấy từ token/DOM baseline của component, không suy từ pixel của một ảnh duy nhất.
-
-## 7. Definition of Ready — thiết kế theo tác vụ và vai trò
-
-Áp dụng trước mọi thay đổi **tạo, sửa hoặc loại bỏ UI**, kể cả nhận UI từ branch khác. Thiết kế phải truy vết
-được từ vấn đề/người dùng đến luồng công việc, authority, dữ liệu, composition và oracle; không bắt đầu bằng
-việc chọn màu/component rồi mới tìm mục đích. Đây là đầu vào của [UI execution harness](UI-UX-EXECUTION-HARNESS.md),
-không phải một workflow hoặc bộ checklist song song.
-
-### 7.1. Design brief bắt buộc
-
-Ghi brief trong plan/ledger GSD đang sở hữu mục tiêu. Với thay đổi nhỏ, ghi delta và link contract không đổi;
-không điền lại toàn hệ thống, không tạo file cho mỗi control. Mục không áp dụng cần lý do, không để trống.
-
-```text
-Problem/outcome: ai gặp vấn đề gì; hoàn thành công việc hoặc ra quyết định nào?
-Change: tạo UI | sửa UI | bỏ UI; phạm vi và ngoài phạm vi.
-Context: operation mode/capability; work object, grain, đơn vị và data scope.
-Actors: người khởi tạo, người xem, người quyết định, người nhận việc tiếp; separation of duties.
-Authority: domain decision; BE policy/claims/scope/state guard; FE route/query/action owner.
-Journey: đầu vào/entry point -> tác vụ hiện tại -> đầu ra/next owner; Back/deep-link/return context.
-Actions: precondition -> navigation hoặc command -> postcondition -> destination/handoff.
-Visibility: route/tab/row/field/action theo actor; lý do hidden/disabled/read-only/forbidden.
-States/recovery: query state + entity state + draft/pending; lỗi, conflict/stale, retry/cancel/recovery.
-Data safety: tác động tạo/sửa/xóa; draft chưa lưu, dependent records, immutable history, audit, undo hợp lệ.
-Composition: floorplan, scope controls, primary action, one-state/one-surface mapping;
-             geometry role của từng async boundary, owner thấp nhất, primitive/token dùng lại.
-Coherence: cùng object/state ở màn upstream/downstream có cùng nhãn, thông tin bắt buộc và action hợp lệ.
-Acceptance: rule IDs, scenario, expected result, red-capable oracle, evidence/viewport scope.
-Open decisions: điều chưa rõ về outcome/quyền/dữ liệu/phạm vi cần owner quyết định.
-```
-
-Agent tự đọc authority và source để trả lời phần đã có; chỉ hỏi Kỳ quyết định chưa có hoặc đang mâu thuẫn.
-Source mô tả observed behavior, không tự hợp pháp hóa behavior trái domain contract. Không suy permission từ tên
-role, không giả định Admin được bỏ qua separation of duties; mode không cấp quyền.
-
-### 7.2. Ma trận actor–action–transition
-
-Với action, visibility hoặc workflow bị ảnh hưởng, mỗi hàng đại diện một scenario/action có ý nghĩa:
-
-```text
-Actor | Mode/capability | Object/data scope | Entity state | Action |
-BE permission/guard | FE visibility/eligibility | Block reason |
-Destination/transition | Next owner | Rule/oracle/evidence
-```
-
-- Actor đủ quyền và actor bị từ chối phải được disposition; không chỉ mô tả happy path của Admin.
-- Truy cả quyền xem dữ liệu (row/field scope) và quyền hành động, không chỉ menu/button. Backend phải chặn
-  request trái phép dù gọi trực tiếp; không fetch dữ liệu nhạy cảm rồi chỉ che bằng CSS.
-- Query state, entity state và local draft/pending là các chiều khác nhau. Ma trận dùng scenario hợp lệ,
-  không sinh mọi tích Descartes hoặc một permission registry production mới.
-- Hàng bàn giao phải chỉ rõ người nhận nhìn thấy object/state gì và làm bước tiếp theo ở đâu. Next action chỉ
-  hiện cho actor đủ quyền; actor khác thấy người chịu trách nhiệm/hướng dẫn phù hợp, không được tự nâng quyền.
-- Với sửa token/copy thuần túy không đổi action, link ma trận/contract liên quan và ghi `unchanged` có căn cứ.
-  Điều chưa xác minh vẫn là `NEEDS_EVIDENCE`, không ghi quyền phỏng đoán.
-
-Decision table visibility/disablement có owner tại
-[chuẩn FE–BE–DB §4.3](UI-UX-FE-BE-DATABASE-STANDARDIZATION.md); không sao chép logic sang từng trang.
-
-### 7.3. Gate sẵn sàng và review luồng trước code
-
-Trước JSX, walkthrough ít nhất luồng chính và nhánh từ chối/khôi phục liên quan: entry → hành động → feedback →
-trạng thái sau lưu/reload → người nhận bước tiếp. Có thể dùng sơ đồ text/floorplan ngắn; không bắt buộc mockup
-hoặc Figma khi contract hiện có đủ quyết định. Không dùng screenshot đẹp thay kiểm tra tính liên kết nghiệp vụ.
-
-- `PASS`: brief đủ cho phạm vi, authority không mâu thuẫn, acceptance quan sát được, oracle xác định rõ.
-- `BLOCKED`: thiếu quyết định nghiệp vụ/quyền/data safety; chỉ dừng phần phụ thuộc, không đoán để code tiếp.
-- `NEEDS_EVIDENCE`: chưa có source/oracle cần để khóa quyết định; chưa sẵn sàng implement phần đó.
-- Regression fix phải có red loop đã chạy theo Lean delivery. UI mới phải có red-capable acceptance scenario
-  trước implementation; không yêu cầu một bug tái hiện trên màn hình chưa tồn tại.
-
-Outcome phải mô tả việc người dùng hoàn thành, không chỉ “không overflow/đúng màu”. Usability với người dùng thật
-và performance là claim riêng, cần scenario/baseline/phép đo được duyệt; walkthrough/test kỹ thuật không chứng minh
-người dùng hoàn thành nhanh hơn. Không tự đặt time target hoặc số lượng người tham gia mới.
-
-Bỏ một control/route phải disposition entry links, deep-link, query/action owner, người còn cần tác vụ và đường
-thay thế; bỏ UI không cho phép xóa business record. Delete, cancel, deactivate và compensating transaction là
-các semantics khác nhau; undo chỉ được cung cấp khi domain cho phép, không rewrite immutable history.
-
-## 8. Contract áp dụng khi hợp nhất hoặc chuẩn hóa UI
-
-Các thay đổi presentation từ một branch khác chỉ được nhận sau khi đối chiếu với business authority và phase
-contract hiện hành. Không dùng tiêu chí “giao diện mới hơn” để thay thế route, query, mutation hoặc state owner đã
-được khóa.
-
-### 8.1 State và operation-mode visibility
-
-- Preference trong browser chỉ được điều chỉnh presentation không mang quyết định. Nó **không được ẩn** operation
-  mode, permission/forbidden state, readiness/prerequisite, blocker, error, stale-data warning hoặc next action đang
-  được actor sử dụng để ra quyết định.
-- Không tạo “streamlined mode” dùng `localStorage` để tắt hàng loạt state surface. Nếu một vùng thật sự dư thừa,
-  phải chứng minh bằng owner inventory và sửa/xóa tại owner thấp nhất cho mọi người dùng phù hợp.
-- Capability từ server và permission vẫn là authority cho route, tab, query và action. CSS, local preference hoặc
-  điều kiện presentation không được mount query owner đã bị mode loại trừ.
-- Với `MATERIAL_RECONCILIATION`, composition phải giữ đúng closed loop hiện hành: Weekly Menu → Warehouse issue
-  → Reconciliation; Purchasing và Reports không được trở thành reconciliation owner phụ.
-
-### 8.2 Loading, empty và informational copy
-
-- Skeleton phải mô phỏng geometry của nội dung sắp xuất hiện; table dùng row/column skeleton, split workbench dùng
-  split skeleton, control compact không dùng placeholder cao như workspace.
-- Empty state chỉ xuất hiện sau khi query đã resolve `ready-empty`; không thay loading, error, forbidden hoặc
-  prerequisite bằng cùng một câu “chưa có dữ liệu”.
-- `InfoNote` chỉ dùng cho giải thích bổ sung không quyết định. Không dùng nó thay alert, blocker, permission,
-  readiness, validation diagnostic hoặc audit state.
-- Mỗi region giữ một state message và tối đa một next action hợp lệ; không thêm description nếu nó chỉ lặp heading
-  hoặc dữ liệu đã hiện trong bảng.
-
-### 8.3 Search và table presentation
-
-- Search của một bảng có thể đặt trong `SectionPanel.actions` khi nó trực tiếp chi phối bảng đó, giữ geometry
-  `compact`, có accessible name và vẫn nằm cùng visual group với heading/content. Search phạm vi trang hoặc nhiều
-  work object phải ở `CommandBar`, không nhét vào header của một bảng bất kỳ.
-- Cột text/name căn trái; quantity/currency căn phải với `tabular-nums`; date/status/action căn theo contract bảng
-  đã khóa. Main table ưu tiên 5–7 decision fields, provenance kỹ thuật chuyển vào detail/drawer.
-- Ingredient/business name là primary, code là secondary. UUID ẩn mặc định nhưng full identity phải còn khả năng
-  inspect/copy/search khi contract yêu cầu; presentation không được thay đổi API/export/audit lineage.
-- Status phải đi qua vocabulary/formatter dùng chung; không render raw enum chỉ vì branch presentation có badge mới.
-
-### 8.4 Merge verification
-
-Trước khi chấp nhận một UI merge phải tối thiểu có: source-ownership check cho mode-sensitive pages, focused
-behavior tests ở public seam, lint, production build và `git diff --check`. Test được mang từ branch khác nhưng dùng
-API/import/owner đã bị phase sau thay thế phải bị loại bỏ hoặc viết lại theo contract hiện hành; không sửa production
-để làm xanh một test stale.
+1. **Cấp độ 1 — Initial Fresh Load (Lần đầu mở trang / F5 khi cache trống)**: Render `WorkbenchSkeleton` giữ đúng kích thước hình học Zone 3 (CLS <= 0.05).
+2. **Cấp độ 2 — Phân trang (Pagination Next/Prev Page)**: **CẤM HIỆN SKELETON**. Bắt buộc dùng cơ chế Stale-While-Revalidate (Keep Previous Data): giữ nguyên bảng trang cũ, phủ lớp làm mờ nhẹ (`opacity-70 transition-opacity duration-150`) và thanh tiến trình mỏng 2px ở đỉnh bảng (`top-0 z-20 animate-pulse`); thay thế tức thì (Instant Swap) khi dữ liệu mới nạp xong.
+3. **Cấp độ 3 — Đổi bộ lọc / Đổi ngày / Đổi phạm vi trong trang**: **CẤM gọi `setData(null)`**. Giữ nguyên nội dung cũ để người dùng tiếp tục đọc, hiển thị micro-indicator trên `TelemetrySubbar`, cập nhật mượt mà khi API mới phản hồi.
+4. **Cấp độ 4 — Ghi dữ liệu & Mutations (Submit form, Xuất kho, Chốt sổ)**: **CẤM skeleton toàn trang**. Nút bấm chuyển sang `disabled` + icon spinner xoay nhẹ + nhãn `"Đang xử lý..."`. Gặp lỗi 409 xung đột thì giữ nguyên modal/form và hiển thị cảnh báo đối soát ngay tại chỗ.

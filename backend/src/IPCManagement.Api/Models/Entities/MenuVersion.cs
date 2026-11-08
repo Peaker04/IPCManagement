@@ -37,6 +37,8 @@ public partial class MenuVersion
 
     public int WarningRowCount { get; set; }
 
+    public string? NormalizedSourceSnapshotJson { get; set; }
+
     public virtual Customer Customer { get; set; } = null!;
 
     public virtual ICollection<MenuSchedule> Menuschedules { get; set; } = new List<MenuSchedule>();

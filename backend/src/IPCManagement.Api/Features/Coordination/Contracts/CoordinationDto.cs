@@ -85,6 +85,8 @@ public class UpsertQuickServingsRequest
     public string ServiceDate { get; set; } = string.Empty;
     public string ShiftName { get; set; } = string.Empty;
     public int Servings { get; set; }
+    public int? SavoryServings { get; set; }
+    public int? VegetarianServings { get; set; }
     public bool Complete { get; set; }
 }
 

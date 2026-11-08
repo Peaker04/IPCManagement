@@ -106,11 +106,11 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             var normalizedRowTier = priceTier;
             if (hasTierText && !DishBomPolicy.TryNormalizeImportPriceTier(tierText, out normalizedRowTier))
             {
-                errors.Add("PriceTier chỉ được là 25000, 30000 hoặc 34000.");
+                errors.Add("Mức giá chỉ được là 25000, 30000 hoặc 34000.");
             }
             else if (hasTierText && normalizedRowTier != priceTier)
             {
-                errors.Add("PriceTier trong file không khớp với tier đang import.");
+                errors.Add("Mức giá trong file không khớp với mức giá đang nhập.");
             }
 
             dishes.TryGetValue(dishCode, out var dish);
@@ -164,8 +164,8 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             if (dish is null)
             {
                 errors.Add(string.IsNullOrWhiteSpace(dishCode) && string.IsNullOrWhiteSpace(dishName)
-                    ? "Cần nhập DishCode hoặc DishName."
-                    : "DishCode không tồn tại hoặc món đã ngừng sử dụng.");
+                    ? "Cần nhập mã món hoặc tên món."
+                    : "Mã món không tồn tại hoặc món đã ngừng sử dụng.");
             }
             if (string.IsNullOrWhiteSpace(ingredientCode) && string.IsNullOrWhiteSpace(ingredientName))
             {
@@ -188,13 +188,13 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
                 else
                 {
                     ingredientCode = CreateUniqueIngredientCode(ingredientName, usedIngredientCodes);
-                    warnings.Add($"Nguyên liệu mới sẽ được tạo khi commit: {ingredientCode}.");
+                    warnings.Add($"Nguyên liệu mới sẽ được tạo khi xác nhận nhập: {ingredientCode}.");
                 }
             }
 
             if (!decimal.TryParse(grossQtyText, NumberStyles.Number, CultureInfo.InvariantCulture, out var grossQty) || grossQty <= 0)
             {
-                errors.Add("GrossQtyPerServing phải lớn hơn 0.");
+                errors.Add("Định lượng/suất phải lớn hơn 0.");
             }
             var wasteRate = 0m;
             if (string.IsNullOrWhiteSpace(wasteRateText))
@@ -203,7 +203,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             }
             else if (!decimal.TryParse(wasteRateText, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedWaste) || parsedWaste < 0 || parsedWaste > 100)
             {
-                errors.Add("WasteRatePercent phải nằm trong 0-100.");
+                errors.Add("Hao hụt (%) phải nằm trong 0-100.");
             }
             else
             {
@@ -213,7 +213,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             if (!DateOnly.TryParse(Get("EffectiveFrom"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var effectiveFrom))
             {
                 effectiveFrom = request.EffectiveFrom ?? ServiceCalendar.Today();
-                warnings.Add("EffectiveFrom trống/không hợp lệ, dùng ngày mặc định.");
+                warnings.Add("Hiệu lực từ trống/không hợp lệ, dùng ngày đã chọn.");
             }
             DateOnly? effectiveTo = null;
             var effectiveToText = Get("EffectiveTo");
@@ -221,7 +221,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             if (!string.IsNullOrWhiteSpace(effectiveToText) &&
                 !DateOnly.TryParse(effectiveToText, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedEffectiveTo))
             {
-                errors.Add("EffectiveTo không hợp lệ.");
+                errors.Add("Hiệu lực đến không hợp lệ.");
             }
             else if (!string.IsNullOrWhiteSpace(effectiveToText))
             {
@@ -229,7 +229,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             }
             if (effectiveTo is not null && effectiveTo < effectiveFrom)
             {
-                errors.Add("EffectiveTo phải sau EffectiveFrom.");
+                errors.Add("Hiệu lực đến phải bằng hoặc sau hiệu lực từ.");
             }
 
             var status = Get("BomStatus");
@@ -296,7 +296,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
 
         var bytes = await XlsxSecurityLimits.ReadAllBytesWithinLimitAsync(
             fileStream,
-            "File import BOM",
+            "File nhập định mức",
             cancellationToken);
         if (bytes.Length == 0)
         {
@@ -362,12 +362,21 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
                     row.Cells.Values.Any(value => CanonicalHeader(value) == NormalizeHeader(header))));
             if (headerRow is null)
             {
-                throw new BusinessRuleException("File Excel BOM thiếu dòng header đúng cấu trúc.");
+                throw new BusinessRuleException("File Excel BOM thiếu dòng tiêu đề đúng cấu trúc.");
             }
 
             var headersByColumn = headerRow.Cells
                 .Where(item => !string.IsNullOrWhiteSpace(item.Value))
                 .ToDictionary(item => item.Key, item => CanonicalHeader(item.Value), StringComparer.OrdinalIgnoreCase);
+
+            var duplicate = headersByColumn.GroupBy(item => item.Value, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault(group => group.Count() > 1);
+            if (duplicate is not null)
+            {
+                var columns = string.Join(", ", duplicate.Select(item => item.Key));
+                var label = headerRow.Cells[duplicate.First().Key];
+                throw new BusinessRuleException($"Trang '{sheetName}', dòng {headerRow.RowNumber}: cột trùng '{label}' tại {columns}. Chỉ giữ một cột cho mỗi nội dung.");
+            }
 
             return rows
                 .Where(row => row.RowNumber > headerRow.RowNumber)
@@ -436,7 +445,7 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
     private static readonly IReadOnlyDictionary<string, string> HeaderAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["MÃMÓN"] = "DISHCODE", ["TÊNMÓN"] = "DISHNAME", ["MỨCGIÁ"] = "PRICETIER",
-        ["KHÁCHHÀNG"] = "CUSTOMERCODE", ["TÊNNGUYÊNLIỆU"] = "INGREDIENTNAME",
+        ["KHÁCHHÀNG"] = "CUSTOMERCODE", ["MÃNGUYÊNLIỆU"] = "INGREDIENTCODE", ["TÊNNGUYÊNLIỆU"] = "INGREDIENTNAME",
         ["NGUYÊNLIỆUCHÍNH"] = "INGREDIENTNAME", ["ĐƠNVỊ"] = "UNITCODE",
         ["ĐỊNHLƯỢNG/SUẤT"] = "GROSSQTYPERSERVING", ["ĐỊNHLƯỢNG(GRAM)/KHAY"] = "GROSSQTYPERSERVING",
         ["HAOHỤT(%)"] = "WASTERATEPERCENT", ["HIỆULỰCTỪ"] = "EFFECTIVEFROM",

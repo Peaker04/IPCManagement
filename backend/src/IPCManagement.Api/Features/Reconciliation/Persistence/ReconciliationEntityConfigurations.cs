@@ -47,7 +47,7 @@ internal sealed class ReconciliationBatchDailyLineConfiguration : IEntityTypeCon
     public void Configure(EntityTypeBuilder<ReconciliationBatchDailyLine> e)
     {
         e.ToTable("reconciliationbatchdailylines", table =>
-            table.HasCheckConstraint("ckReconciliationBatchDailyLineRequiredQuantity", "`requiredQuantity` > 0"));
+            table.HasCheckConstraint("ckReconciliationBatchDailyLineRequiredQuantity", "`requiredQuantity` >= 0"));
         e.HasKey(x => x.DailyLineId);
         ReconciliationMapping.Id(e.Property(x => x.DailyLineId));
         ReconciliationMapping.Id(e.Property(x => x.BatchLineId));
@@ -59,6 +59,7 @@ internal sealed class ReconciliationBatchDailyLineConfiguration : IEntityTypeCon
         e.Property(x => x.Version).IsConcurrencyToken();
         e.HasIndex(x => new { x.BatchLineId, x.ServiceDate }).IsUnique();
         e.HasAlternateKey(x => new { x.DailyLineId, x.BatchLineId });
+        e.HasAlternateKey(x => new { x.DailyLineId, x.BatchId, x.IngredientId, x.CanonicalUnitId });
         e.HasAlternateKey(x => new { x.DailyLineId, x.BatchLineId, x.IngredientId, x.CanonicalUnitId, x.ServiceDate });
         e.HasOne(x => x.BatchLine).WithMany(x => x.DailyLines)
             .HasForeignKey(x => new { x.BatchLineId, x.BatchId, x.IngredientId, x.CanonicalUnitId })
@@ -78,9 +79,15 @@ internal sealed class ReconciliationBatchContributorConfiguration : IEntityTypeC
         e.Property(x => x.FrozenShiftName).HasMaxLength(32);
         e.Property(x => x.FrozenDishCode).HasMaxLength(64);
         e.Property(x => x.FrozenDishName).HasMaxLength(255);
+        e.Property(x => x.FrozenMenuVariant).HasMaxLength(16);
         e.Property(x => x.FrozenBomQuantityPerServing).HasPrecision(18, 6);
+        e.Property(x => x.FrozenBomUnitToBaseRate).HasPrecision(18, 6);
+        e.Property(x => x.FrozenCanonicalUnitToBaseRate).HasPrecision(18, 6);
         e.Property(x => x.FrozenWasteRatePercent).HasPrecision(9, 4);
         e.Property(x => x.SourceQuantity).HasPrecision(18, 6);
+        e.Property(x => x.InvalidatedAt).HasColumnType("datetime");
+        e.Property(x => x.InvalidatedBySourceRevisionId).HasMaxLength(16).IsFixedLength();
+        e.HasIndex(x => new { x.DailyLineId, x.InvalidatedAt });
         e.HasOne(x => x.BatchLine).WithMany(x => x.Contributors).HasForeignKey(x => x.BatchLineId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne(x => x.DailyLine).WithMany(x => x.Contributors)
             .HasForeignKey(x => new { x.DailyLineId, x.BatchLineId })
@@ -89,6 +96,72 @@ internal sealed class ReconciliationBatchContributorConfiguration : IEntityTypeC
         e.HasOne<MenuSchedule>().WithMany().HasForeignKey(x => x.MenuScheduleId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne<MealQuantityPlanLine>().WithMany().HasForeignKey(x => x.MealQuantityPlanLineId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne<DishBom>().WithMany().HasForeignKey(x => x.DishBomId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne(x => x.InvalidatedBySourceRevision).WithMany()
+            .HasForeignKey(x => x.InvalidatedBySourceRevisionId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class ReconciliationSourceRevisionConfiguration : IEntityTypeConfiguration<ReconciliationSourceRevision>
+{
+    public void Configure(EntityTypeBuilder<ReconciliationSourceRevision> e)
+    {
+        e.ToTable("reconciliationsourcerevisions");
+        e.HasKey(x => x.SourceRevisionId);
+        ReconciliationMapping.Id(e.Property(x => x.SourceRevisionId));
+        e.Property(x => x.MenuAmendmentId).HasMaxLength(16).IsFixedLength();
+        ReconciliationMapping.Id(e.Property(x => x.BatchId));
+        ReconciliationMapping.Id(e.Property(x => x.PreviousMenuVersionId));
+        ReconciliationMapping.Id(e.Property(x => x.AppliedMenuVersionId));
+        ReconciliationMapping.Id(e.Property(x => x.AppliedBy));
+        e.Property(x => x.Status).HasMaxLength(32);
+        e.Property(x => x.Reason).HasMaxLength(1000);
+        e.Property(x => x.AppliedByRole).HasMaxLength(32);
+        e.Property(x => x.ApplyMode).HasMaxLength(24);
+        e.Property(x => x.AppliedAt).HasColumnType("datetime");
+        e.HasIndex(x => new { x.MenuAmendmentId, x.BatchId }).IsUnique();
+        e.HasIndex(x => new { x.BatchId, x.RevisionNumber }).IsUnique();
+        e.HasOne(x => x.Batch).WithMany().HasForeignKey(x => x.BatchId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne<MenuVersion>().WithMany().HasForeignKey(x => x.PreviousMenuVersionId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne<MenuVersion>().WithMany().HasForeignKey(x => x.AppliedMenuVersionId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne<User>().WithMany().HasForeignKey(x => x.AppliedBy).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class ReconciliationSourceDeltaConfiguration : IEntityTypeConfiguration<ReconciliationSourceDelta>
+{
+    public void Configure(EntityTypeBuilder<ReconciliationSourceDelta> e)
+    {
+        e.ToTable("reconciliationsourcedeltas", table =>
+        {
+            // BR-MRX-EDIT-8: dữ liệu mới chỉ ghi SOURCE_CHANGE/APPLIED; giá trị cũ vẫn hợp lệ để đọc lịch sử.
+            table.HasCheckConstraint("ckReconciliationSourceDeltaWorkKind", "`workKind` IN ('SUPPLEMENTAL_ISSUE','RETURN_REQUIRED','SOURCE_CHANGE')");
+            table.HasCheckConstraint("ckReconciliationSourceDeltaStatus", "`status` IN ('PENDING','RESOLVED','CANCELLED','APPLIED')");
+            table.HasCheckConstraint("ckReconciliationSourceDeltaNonZero", "`deltaQuantity` <> 0");
+        });
+        e.HasKey(x => x.SourceDeltaId);
+        ReconciliationMapping.Id(e.Property(x => x.SourceDeltaId));
+        ReconciliationMapping.Id(e.Property(x => x.SourceRevisionId));
+        ReconciliationMapping.Id(e.Property(x => x.BatchId));
+        e.Property(x => x.DailyLineId).HasMaxLength(16).IsFixedLength();
+        ReconciliationMapping.Id(e.Property(x => x.IngredientId));
+        ReconciliationMapping.Id(e.Property(x => x.CanonicalUnitId));
+        e.Property(x => x.ServiceDate).HasColumnType("date");
+        e.Property(x => x.PreviousRequiredQuantity).HasPrecision(18, 6);
+        e.Property(x => x.NewRequiredQuantity).HasPrecision(18, 6);
+        e.Property(x => x.DeltaQuantity).HasPrecision(18, 6);
+        e.Property(x => x.WorkKind).HasMaxLength(32);
+        e.Property(x => x.Status).HasMaxLength(20);
+        e.Property(x => x.Version).IsConcurrencyToken();
+        e.Property(x => x.CreatedAt).HasColumnType("datetime");
+        e.Property(x => x.ResolvedAt).HasColumnType("datetime");
+        e.Property(x => x.ResolvedBy).HasMaxLength(16).IsFixedLength();
+        e.Property(x => x.ResolutionEntity).HasMaxLength(64);
+        e.Property(x => x.ResolutionId).HasMaxLength(16).IsFixedLength();
+        e.Property(x => x.ResolutionCommandId).HasMaxLength(128);
+        e.HasIndex(x => new { x.SourceRevisionId, x.DailyLineId, x.ServiceDate, x.IngredientId, x.CanonicalUnitId }).IsUnique();
+        e.HasOne(x => x.SourceRevision).WithMany(x => x.Deltas).HasForeignKey(x => x.SourceRevisionId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne(x => x.DailyLine).WithMany().HasForeignKey(x => new { x.DailyLineId, x.BatchId, x.IngredientId, x.CanonicalUnitId })
+            .HasPrincipalKey(x => new { x.DailyLineId, x.BatchId, x.IngredientId, x.CanonicalUnitId }).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -147,8 +220,13 @@ internal sealed class ReconciliationDailyDispositionConfiguration : IEntityTypeC
         e.Property(x => x.Version).IsConcurrencyToken();
         ReconciliationMapping.Id(e.Property(x => x.DisposedBy));
         e.Property(x => x.DisposedAt).HasColumnType("datetime");
-        e.HasIndex(x => x.DailyLineId).IsUnique();
-        e.HasOne(x => x.DailyLine).WithOne(x => x.Disposition).HasForeignKey<ReconciliationDailyDisposition>(x => x.DailyLineId).OnDelete(DeleteBehavior.Restrict);
+        e.Property(x => x.InvalidatedAt).HasColumnType("datetime");
+        e.Property(x => x.InvalidatedBy).HasMaxLength(16).IsFixedLength();
+        e.Property(x => x.InvalidationReason).HasMaxLength(1000);
+        e.Property(x => x.ActiveOwnerKey).HasMaxLength(16).IsFixedLength()
+            .HasComputedColumnSql("CASE WHEN `InvalidatedAt` IS NULL THEN `DailyLineId` ELSE NULL END", stored: false);
+        e.HasIndex(x => x.ActiveOwnerKey).IsUnique();
+        e.HasOne(x => x.DailyLine).WithMany(x => x.Dispositions).HasForeignKey(x => x.DailyLineId).OnDelete(DeleteBehavior.Restrict);
         e.HasOne<User>().WithMany().HasForeignKey(x => x.DisposedBy).OnDelete(DeleteBehavior.Restrict);
     }
 }
@@ -159,6 +237,13 @@ internal sealed class ReconciliationDispositionConfiguration : IEntityTypeConfig
     {
         e.ToTable("reconciliationdispositions"); e.HasKey(x => x.DispositionId); ReconciliationMapping.Id(e.Property(x => x.DispositionId)); ReconciliationMapping.Id(e.Property(x => x.BatchLineId));
         e.Property(x => x.Category).HasMaxLength(40); e.Property(x => x.Reason).HasMaxLength(1000); e.Property(x => x.Version).IsConcurrencyToken(); ReconciliationMapping.Id(e.Property(x => x.DisposedBy)); e.Property(x => x.DisposedAt).HasColumnType("datetime");
-        e.HasIndex(x => x.BatchLineId).IsUnique(); e.HasOne(x => x.BatchLine).WithMany().HasForeignKey(x => x.BatchLineId).OnDelete(DeleteBehavior.Restrict); e.HasOne<User>().WithMany().HasForeignKey(x => x.DisposedBy).OnDelete(DeleteBehavior.Restrict);
+        e.Property(x => x.InvalidatedAt).HasColumnType("datetime");
+        e.Property(x => x.InvalidatedBy).HasMaxLength(16).IsFixedLength();
+        e.Property(x => x.InvalidationReason).HasMaxLength(1000);
+        e.Property(x => x.ActiveOwnerKey).HasMaxLength(16).IsFixedLength()
+            .HasComputedColumnSql("CASE WHEN `InvalidatedAt` IS NULL THEN `BatchLineId` ELSE NULL END", stored: false);
+        e.HasIndex(x => x.ActiveOwnerKey).IsUnique();
+        e.HasOne(x => x.BatchLine).WithMany(x => x.Dispositions).HasForeignKey(x => x.BatchLineId).OnDelete(DeleteBehavior.Restrict);
+        e.HasOne<User>().WithMany().HasForeignKey(x => x.DisposedBy).OnDelete(DeleteBehavior.Restrict);
     }
 }

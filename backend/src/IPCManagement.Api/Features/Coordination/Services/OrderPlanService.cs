@@ -43,6 +43,7 @@ public sealed class OrderPlanService : IOrderPlanService
         }
 
         var serviceDate = OrderLifecyclePolicy.ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
+        ServiceCalendar.EnsureServiceDay(serviceDate);
         var scope = OrderLifecyclePolicy.NormalizeScope(request.Scope);
         var shiftName = OrderLifecyclePolicy.NormalizeShiftName(request.ShiftName ?? request.Shift);
         if (scope != "FULLDAY" && shiftName is null)
@@ -220,6 +221,7 @@ public sealed class OrderPlanService : IOrderPlanService
         }
 
         var serviceDate = OrderLifecyclePolicy.ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
+        ServiceCalendar.EnsureServiceDay(serviceDate);
         var shiftName = OrderLifecyclePolicy.NormalizeShiftName(request.ShiftName ?? request.Shift);
         if (shiftName is null)
         {

@@ -19,8 +19,8 @@ public sealed class DishCatalogDiagnosticsController(IDishCatalogDiagnosticsServ
     [HttpGet("bom-coverage")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<BomCoverageReportDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBomCoverageAsync()
-        => Ok(ApiResponse<BomCoverageReportDto>.SuccessResult(await service.GetBomCoverageAsync()));
+    public async Task<IActionResult> GetBomCoverageAsync([FromQuery] decimal? priceTier = null)
+        => Ok(ApiResponse<BomCoverageReportDto>.SuccessResult(await service.GetBomCoverageAsync(priceTier)));
 
     [HttpGet("bom-validation")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]

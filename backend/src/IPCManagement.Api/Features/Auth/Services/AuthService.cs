@@ -278,27 +278,14 @@ public class AuthService : IAuthService
 
     public async Task<UserProfileResponseDto?> GetMeAsync(string userId)
     {
-        var userIdBytes = GuidHelper.ParseGuidString(userId);
-        if (userIdBytes is null) return null;
-
-        var user = await _userRepository.GetWithRoleAsync(userIdBytes);
-        if (user is null || user.IsActive == false) return null;
-
-        var roleName = user.Role?.RoleName ?? "Unknown";
-        var permissions = AuthorizationPolicies.ResolvePermissions(roleName);
+        var user = await GetProfileAsync(userId);
+        if (user is null) return null;
 
         return new UserProfileResponseDto
         {
-            User = new UserInfoDto
-            {
-                UserId = GuidHelper.ToGuidString(user.UserId),
-                FullName = user.FullName,
-                Username = user.Username,
-                RoleName = roleName,
-                IsActive = true
-            },
-            Permissions = permissions,
-            IsAdmin = AuthorizationPolicies.IsAdminRole(roleName)
+            User = user,
+            Permissions = user.Permissions,
+            IsAdmin = user.IsAdminFullAccess
         };
     }
 

@@ -92,6 +92,7 @@ public class DishCatalogBomLineDto
 /// <summary>Báo cáo độ phủ BOM của toàn bộ catalog món ăn.</summary>
 public class BomCoverageReportDto
 {
+    public decimal? PriceTier { get; set; }
     public DateTime GeneratedAt { get; set; }
     public int TotalDishes { get; set; }
     public int CompleteDishes { get; set; }

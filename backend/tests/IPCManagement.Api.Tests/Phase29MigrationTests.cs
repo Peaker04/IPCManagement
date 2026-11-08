@@ -68,5 +68,11 @@ public sealed class Phase29MigrationTests
     private static int Count(string source, string value) =>
         source.Split(value, StringSplitOptions.None).Length - 1;
 
-    private static string FindRoot(){var d=new DirectoryInfo(AppContext.BaseDirectory);while(d!=null&&!Directory.Exists(Path.Combine(d.FullName,".git")))d=d.Parent;return d?.FullName??throw new DirectoryNotFoundException();}
+    private static string FindRoot()
+    {
+        var directory = new DirectoryInfo(Directory.GetCurrentDirectory());
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "package.json")))
+            directory = directory.Parent;
+        return directory?.FullName ?? throw new DirectoryNotFoundException();
+    }
 }

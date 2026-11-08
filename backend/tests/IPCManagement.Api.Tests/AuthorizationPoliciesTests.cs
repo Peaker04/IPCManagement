@@ -111,6 +111,8 @@ public class AuthorizationPoliciesTests
         Policy(batches, nameof(ReconciliationBatchesController.List)).Should().Be(AuthorizationPolicies.ReconciliationReadAccess);
         Policy(batches, nameof(ReconciliationBatchesController.Get)).Should().Be(AuthorizationPolicies.ReconciliationReadAccess);
         Policy(batches, nameof(ReconciliationBatchesController.DraftSources)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
+        Policy(typeof(ReconciliationQuantityInspectionController), nameof(ReconciliationQuantityInspectionController.MaterialInspection)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
+        Policy(typeof(ReconciliationQuantityInspectionController), nameof(ReconciliationQuantityInspectionController.PlanInspection)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
         Policy(batches, nameof(ReconciliationBatchesController.Create)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
         Policy(batches, nameof(ReconciliationBatchesController.Ready)).Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
         Policy(batches, nameof(ReconciliationBatchesController.Complete)).Should().Be(AuthorizationPolicies.ReconciliationCompleteAccess);
@@ -128,6 +130,46 @@ public class AuthorizationPoliciesTests
     private static string? Policy(Type controller, string action) => controller.GetMethod(action)!
         .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
         .Single().Policy;
+
+    [Theory]
+    [InlineData("Điều phối", "reconciliation.source.read", "reconciliation.warehouse.read")]
+    [InlineData("WarehouseStaff", "reconciliation.warehouse.read", "reconciliation.disposition")]
+    [InlineData("Manager", "reconciliation.complete", "reconciliation.warehouse.read")]
+    [InlineData("Chef", "reconciliation.kitchen.read", "reconciliation.read")]
+    [InlineData("Purchasing", null, "reconciliation.read")]
+    public void ResolvePermissions_Should_EmitExactReconciliationActorVocabulary(
+        string role,
+        string? required,
+        string forbidden)
+    {
+        var permissions = AuthorizationPolicies.ResolvePermissions(role);
+
+        if (required is not null) permissions.Should().Contain(required);
+        permissions.Should().NotContain(forbidden);
+    }
+
+    [Fact]
+    public void ReconciliationDecisionMetadataAndReports_Should_UseDecisionPolicy()
+    {
+        Policy(typeof(ReconciliationActualsController), nameof(ReconciliationActualsController.DispositionCategories))
+            .Should().Be(AuthorizationPolicies.ReconciliationDispositionAccess);
+        Policy(typeof(ReconciliationReportsController), nameof(ReconciliationReportsController.Get))
+            .Should().Be(AuthorizationPolicies.ReconciliationDispositionAccess);
+        Policy(typeof(ReconciliationReportsController), nameof(ReconciliationReportsController.Export))
+            .Should().Be(AuthorizationPolicies.ReconciliationDispositionAccess);
+
+        Policy(typeof(ReconciliationReportWorkbooksController), nameof(ReconciliationReportWorkbooksController.ExportXlsx))
+            .Should().Be(AuthorizationPolicies.ReconciliationDispositionAccess);
+        foreach (var action in new[] { nameof(ReconciliationReportWorkbooksController.ExportTransactionsHistoryXlsx), nameof(ReconciliationReportWorkbooksController.ExportAuditTrailXlsx), nameof(ReconciliationReportWorkbooksController.ExportVarianceRegisterXlsx), nameof(ReconciliationReportWorkbooksController.ExportCompletedRegisterXlsx) })
+            Policy(typeof(ReconciliationReportWorkbooksController), action).Should().Be(AuthorizationPolicies.ReconciliationReadAccess);
+
+        var operation = typeof(ReconciliationActualsController)
+            .GetMethod(nameof(ReconciliationActualsController.DispositionCategories))!
+            .GetCustomAttributes(typeof(IPCManagement.Api.Features.SystemOperation.Services.SystemOperationAttribute), true)
+            .Cast<IPCManagement.Api.Features.SystemOperation.Services.SystemOperationAttribute>()
+            .Single();
+        operation.Disposition.Should().Be(IPCManagement.Api.Features.SystemOperation.Services.OperationDisposition.ReconciliationOnly);
+    }
 
     [Fact]
     public void ResolvePermissions_Should_TreatVietnameseAdminRoleAsFullAccess()

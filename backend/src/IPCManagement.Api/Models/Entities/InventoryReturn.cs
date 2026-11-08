@@ -19,6 +19,10 @@ public partial class InventoryReturn
 
     public byte[] IssueId { get; set; } = null!;
 
+    public byte[]? ReconciliationSourceDeltaId { get; set; }
+
+    public long? ReconciliationSourceDeltaVersion { get; set; }
+
     public string? Reason { get; set; }
 
     public byte[] CreatedBy { get; set; } = null!;

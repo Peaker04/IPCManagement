@@ -88,7 +88,7 @@ internal static class InventoryOperationsDocumentQueries
                 ShiftName = item.ShiftName,
                 Status = item.ReceivedAt == null ? "Chờ bếp nhận" : "Bếp đã nhận",
                 OwnerLane = item.ReceivedAt == null ? "Bếp trưởng" : "Bếp",
-                Route = "/chef",
+                Route = "/chef-dashboard",
                 Summary = item.ReceivedAt == null
                     ? "Kho đã xuất, chờ bếp xác nhận nhận nguyên liệu"
                     : "Bếp đã xác nhận nhận nguyên liệu từ phiếu xuất"
@@ -142,7 +142,7 @@ internal static class InventoryOperationsDocumentQueries
                 ShiftName = item.ShiftName,
                 Status = "Đã ghi nhận",
                 OwnerLane = "Bếp trưởng",
-                Route = "/chef",
+                Route = "/chef-dashboard",
                 Summary = item.ReturnType == "WASTE"
                     ? "Hao hụt thực tế sau sản xuất được ghi nhận"
                     : "Nguyên liệu dư được hoàn lại kho"

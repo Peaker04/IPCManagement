@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using IPCManagement.Api.Data;
 using IPCManagement.Api.HealthChecks;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api;
@@ -169,6 +170,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationReadRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationSourceReadAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationSourceReadRoles));
+    options.AddPolicy(AuthorizationPolicies.ReconciliationSourceEditAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationSourceEditRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationWarehouseReadAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ReconciliationWarehouseReadRoles));
     options.AddPolicy(AuthorizationPolicies.ReconciliationKitchenAccess, policy =>
@@ -190,7 +193,7 @@ builder.Services.AddCors(options =>
         // thiếu dòng này thì FE không lấy được mã tra cứu lỗi để hiển thị cho người dùng.
         if (builder.Environment.IsDevelopment())
         {
-            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
+            policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
                 .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
         }
         else
@@ -247,11 +250,11 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 var apiPermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:ApiPermitLimit") ?? 100;
 builder.Services.AddRateLimiter(opts =>
 {
-    // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force)
+    // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force; nới lỏng khi Development/Testing)
     opts.AddPolicy("auth-strict", context =>
         RateLimitPartition.GetFixedWindowLimiter(GetRateLimitPartitionKey(context), _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 5,
+            PermitLimit = builder.Environment.IsDevelopment() ? 10000 : 5,
             Window = TimeSpan.FromMinutes(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 0
@@ -302,6 +305,12 @@ var app = builder.Build();
 
 await using (var startupScope = app.Services.CreateAsyncScope())
 {
+    if (app.Environment.IsDevelopment())
+    {
+        var startupDb = startupScope.ServiceProvider.GetRequiredService<IpcManagementContext>();
+        await MigrationHealthCheck.EnsurePendingMigrationsAppliedAsync(startupDb, app.Logger);
+    }
+
     var operationalWarehouseResolver = startupScope.ServiceProvider
         .GetRequiredService<IOperationalWarehouseResolver>();
     await DeploymentConfigurationValidator.ValidateOperationalWarehouseAsync(

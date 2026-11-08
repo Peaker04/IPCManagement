@@ -9,7 +9,7 @@ function Assert-ProviderReceipt {
     $required = @(
         'provider', 'accountSecurityDomain', 'objectKey', 'objectVersion',
         'archiveSha256', 'archiveBytes', 'encryptionKeyReference', 'lockMode',
-        'lockState', 'retainUntilUtc', 'legalHoldState', 'uploadRequestId',
+        'lockState', 'archiveCreatedAtUtc', 'retainUntilUtc', 'legalHoldState', 'uploadRequestId',
         'metadataRequestId'
     )
     foreach ($field in $required) {
@@ -33,7 +33,11 @@ function Assert-ProviderReceipt {
     if ([string]$Receipt.legalHoldState -notin @('ON', 'OFF')) {
         throw 'Provider receipt legalHoldState is invalid.'
     }
+    [DateTimeOffset]$archiveCreatedAt = $Receipt.archiveCreatedAtUtc
     [DateTimeOffset]$retainUntil = $Receipt.retainUntilUtc
+    if ($retainUntil -lt $archiveCreatedAt.AddYears(5)) {
+        throw 'Provider receipt retainUntilUtc must cover at least five calendar years from archiveCreatedAtUtc.'
+    }
     if ($retainUntil -le [DateTimeOffset]::UtcNow) {
         throw 'Provider receipt retainUntilUtc has expired.'
     }
@@ -63,6 +67,7 @@ function Publish-ImmutableObjectVersion {
         [Parameter(Mandatory = $true)][string]$ArchivePath,
         [Parameter(Mandatory = $true)][string]$ObjectKey,
         [Parameter(Mandatory = $true)][string]$EncryptionKeyReference,
+        [Parameter(Mandatory = $true)][DateTimeOffset]$ArchiveCreatedAtUtc,
         [Parameter(Mandatory = $true)][scriptblock]$ProviderAdapter
     )
 
@@ -73,8 +78,11 @@ function Publish-ImmutableObjectVersion {
         throw 'Encrypted archive does not exist.'
     }
     $receipt = & $ProviderAdapter -ArchivePath $ArchivePath -ObjectKey $ObjectKey `
-        -EncryptionKeyReference $EncryptionKeyReference
+        -EncryptionKeyReference $EncryptionKeyReference -ArchiveCreatedAtUtc $ArchiveCreatedAtUtc
     Assert-ProviderReceipt $receipt | Out-Null
+    if ([DateTimeOffset]$receipt.archiveCreatedAtUtc -ne $ArchiveCreatedAtUtc) {
+        throw 'Provider receipt archiveCreatedAtUtc does not match the archive publication identity.'
+    }
     return $receipt
 }
 
@@ -89,7 +97,7 @@ function Assert-LiveRetentionMatchesReceipt {
     foreach ($field in @(
             'provider', 'accountSecurityDomain', 'objectKey', 'objectVersion',
             'archiveSha256', 'archiveBytes', 'encryptionKeyReference', 'lockMode',
-            'lockState', 'retainUntilUtc', 'legalHoldState')) {
+            'lockState', 'archiveCreatedAtUtc', 'retainUntilUtc', 'legalHoldState')) {
         if ([string]$Receipt.$field -ne [string]$LiveMetadata.$field) {
             throw "Live provider metadata mismatch: $field"
         }

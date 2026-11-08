@@ -21,6 +21,7 @@ internal static class BomTemplateWorkbookBuilder
 
     private static readonly int[] DisplayOrder = [1, 4, 5, 6, 7, 11, 0, 2, 3, 8, 9, 10];
     private static readonly HashSet<int> EditableColumns = [2, 3, 4, 5, 6];
+    private static readonly HashSet<int> NumericColumns = [4, 5, 8];
 
     public static byte[] Build(
         decimal priceTier,
@@ -148,7 +149,7 @@ internal static class BomTemplateWorkbookBuilder
         foreach (var row in rows)
         {
             var displayed = DisplayOrder.Select(index => row[index]).ToArray();
-            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns);
+            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns, numericColumns: NumericColumns);
         }
         builder.AppendLine("  </sheetData>");
         builder.AppendLine("  <sheetProtection sheet=\"1\" objects=\"1\" scenarios=\"1\" autoFilter=\"0\" sort=\"0\"/>");
@@ -197,14 +198,18 @@ internal static class BomTemplateWorkbookBuilder
         return builder.ToString();
     }
 
-    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null)
+    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null, IReadOnlySet<int>? numericColumns = null)
     {
         builder.Append(CultureInfo.InvariantCulture, $"<row r=\"{rowNumber}\">");
         for (var index = 0; index < cells.Count; index++)
         {
             var resolvedStyle = editableColumns?.Contains(index + 1) == true ? 2 : styleIndex;
             var style = resolvedStyle > 0 ? $" s=\"{resolvedStyle}\"" : string.Empty;
-            builder.Append(CultureInfo.InvariantCulture, $"<c r=\"{ColumnIndexToLetter(index + 1)}{rowNumber}\" t=\"inlineStr\"{style}><is><t>{Escape(cells[index])}</t></is></c>");
+            var reference = $"{ColumnIndexToLetter(index + 1)}{rowNumber}";
+            if (numericColumns?.Contains(index + 1) == true && decimal.TryParse(cells[index], NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var number))
+                builder.Append(CultureInfo.InvariantCulture, $"<c r=\"{reference}\" t=\"n\"{style}><v>{number.ToString(CultureInfo.InvariantCulture)}</v></c>");
+            else
+                builder.Append(CultureInfo.InvariantCulture, $"<c r=\"{reference}\" t=\"inlineStr\"{style}><is><t>{Escape(cells[index])}</t></is></c>");
         }
         builder.AppendLine("</row>");
     }

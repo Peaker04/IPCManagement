@@ -16,6 +16,16 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class ReconciliationDailyPersistenceModelTests
 {
+    private sealed class InspectableFrozenConversionMigration : FreezeMrxBomConversionRates
+    {
+        internal IReadOnlyList<MigrationOperation> BuildUp()
+        {
+            var builder = new MigrationBuilder("Pomelo.EntityFrameworkCore.MySql");
+            Up(builder);
+            return builder.Operations;
+        }
+    }
+
     private static IModel Model()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
@@ -55,6 +65,38 @@ public sealed class ReconciliationDailyPersistenceModelTests
         Assert.True(contributorLink.IsNullable);
         Assert.Equal(DeleteBehavior.Restrict, Assert.Single(contributor.GetForeignKeys(), foreignKey =>
             foreignKey.PrincipalEntityType.ClrType == typeof(ReconciliationBatchDailyLine)).DeleteBehavior);
+        Assert.True(contributor.FindProperty(nameof(ReconciliationBatchContributor.InvalidatedAt))!.IsNullable);
+        Assert.True(contributor.FindProperty(nameof(ReconciliationBatchContributor.InvalidatedBySourceRevisionId))!.IsNullable);
+        Assert.Equal(DeleteBehavior.Restrict, Assert.Single(contributor.GetForeignKeys(), foreignKey =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(ReconciliationSourceRevision)).DeleteBehavior);
+        Assert.Contains(contributor.GetIndexes(), index => index.Properties.Select(property => property.Name).SequenceEqual([
+            nameof(ReconciliationBatchContributor.DailyLineId), nameof(ReconciliationBatchContributor.InvalidatedAt)]));
+
+        var operations = new InspectableContributorHistoryMigration().BuildUp();
+        Assert.Equal(2, operations.OfType<AddColumnOperation>().Count(operation =>
+            operation.Table == "reconciliationbatchcontributors"));
+        Assert.DoesNotContain(operations, operation =>
+            operation is InsertDataOperation or UpdateDataOperation or DeleteDataOperation or DropTableOperation);
+        var operationList = operations.ToList();
+        foreach (var (table, ownerColumn) in new[]
+                 {
+                     ("reconciliationdispositions", "BatchLineId"),
+                     ("reconciliationdailydispositions", "DailyLineId"),
+                 })
+        {
+            var canonicalName = $"IX_{table}_{ownerColumn}";
+            var supportName = $"{canonicalName}_FkSupport";
+            var supportCreate = operationList.FindIndex(operation => operation is CreateIndexOperation index
+                && index.Table == table && index.Name == supportName);
+            var oldDrop = operationList.FindIndex(operation => operation is DropIndexOperation index
+                && index.Table == table && index.Name == canonicalName);
+            var replacementCreate = operationList.FindLastIndex(operation => operation is CreateIndexOperation index
+                && index.Table == table && index.Name == canonicalName);
+            var supportDrop = operationList.FindIndex(operation => operation is DropIndexOperation index
+                && index.Table == table && index.Name == supportName);
+            Assert.True(supportCreate >= 0 && supportCreate < oldDrop);
+            Assert.True(oldDrop < replacementCreate && replacementCreate < supportDrop);
+        }
 
         var issueLine = model.FindEntityType(typeof(InventoryIssueLine))!;
         Assert.True(issueLine.FindProperty(nameof(InventoryIssueLine.ReconciliationBatchDailyLineId))!.IsNullable);
@@ -77,6 +119,23 @@ public sealed class ReconciliationDailyPersistenceModelTests
         Assert.Equal(18, contributor.FindProperty(nameof(ReconciliationBatchContributor.FrozenBomQuantityPerServing))!.GetPrecision());
         Assert.Equal(6, contributor.FindProperty(nameof(ReconciliationBatchContributor.FrozenBomQuantityPerServing))!.GetScale());
 
+        foreach (var name in new[] { nameof(ReconciliationBatchContributor.FrozenBomUnitToBaseRate), nameof(ReconciliationBatchContributor.FrozenCanonicalUnitToBaseRate) })
+        {
+            var property = contributor.FindProperty(name)!;
+            Assert.True(property.IsNullable);
+            Assert.Equal(18, property.GetPrecision());
+            Assert.Equal(6, property.GetScale());
+        }
+        var conversionOperations = new InspectableFrozenConversionMigration().BuildUp();
+        Assert.Equal(2, conversionOperations.Count);
+        Assert.All(conversionOperations, operation =>
+        {
+            var column = Assert.IsType<AddColumnOperation>(operation);
+            Assert.Equal("reconciliationbatchcontributors", column.Table);
+            Assert.True(column.IsNullable);
+            Assert.Null(column.DefaultValue);
+        });
+
         var operations = new InspectableKitchenFactsMigration().BuildUp();
         Assert.Equal(7, operations.OfType<AddColumnOperation>().Count(column => column.Table == "reconciliationbatchcontributors"));
         Assert.DoesNotContain(operations, operation => operation is InsertDataOperation or UpdateDataOperation or DeleteDataOperation or DropTableOperation);
@@ -89,13 +148,32 @@ public sealed class ReconciliationDailyPersistenceModelTests
         var disposition = model.FindEntityType(typeof(ReconciliationDailyDisposition))!;
         Assert.True(disposition.FindProperty(nameof(ReconciliationDailyDisposition.Version))!.IsConcurrencyToken);
         Assert.Contains(disposition.GetIndexes(), index => index.IsUnique
-            && index.Properties.Single().Name == nameof(ReconciliationDailyDisposition.DailyLineId));
+            && index.Properties.Single().Name == nameof(ReconciliationDailyDisposition.ActiveOwnerKey));
         Assert.Equal(DeleteBehavior.Restrict, Assert.Single(disposition.GetForeignKeys(), foreignKey =>
             foreignKey.PrincipalEntityType.ClrType == typeof(ReconciliationBatchDailyLine)).DeleteBehavior);
 
         var operations = new InspectableDailyDispositionMigration().BuildUp();
         Assert.Contains(operations.OfType<CreateTableOperation>(), operation => operation.Name == "reconciliationdailydispositions");
         Assert.DoesNotContain(operations, operation => operation is InsertDataOperation or UpdateDataOperation or DeleteDataOperation or DropTableOperation);
+    }
+
+    [Fact]
+    public void Model_has_at_most_one_active_daily_and_weekly_disposition_fence()
+    {
+        var model = Model();
+        var daily = model.FindEntityType(typeof(ReconciliationDailyDisposition))!;
+        var weekly = model.FindEntityType(typeof(ReconciliationDisposition))!;
+
+        Assert.True(daily.FindProperty(nameof(ReconciliationDailyDisposition.ActiveOwnerKey))!.IsNullable);
+        Assert.True(weekly.FindProperty(nameof(ReconciliationDisposition.ActiveOwnerKey))!.IsNullable);
+        Assert.Contains(daily.GetIndexes(), index => index.IsUnique
+            && index.Properties.Single().Name == nameof(ReconciliationDailyDisposition.ActiveOwnerKey));
+        Assert.Contains(weekly.GetIndexes(), index => index.IsUnique
+            && index.Properties.Single().Name == nameof(ReconciliationDisposition.ActiveOwnerKey));
+        Assert.Equal(DeleteBehavior.Restrict, Assert.Single(daily.GetForeignKeys(), foreignKey =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(ReconciliationBatchDailyLine)).DeleteBehavior);
+        Assert.Equal(DeleteBehavior.Restrict, Assert.Single(weekly.GetForeignKeys(), foreignKey =>
+            foreignKey.PrincipalEntityType.ClrType == typeof(ReconciliationBatchLine)).DeleteBehavior);
     }
 
     [Fact]
@@ -240,7 +318,7 @@ public sealed class ReconciliationDailyPersistenceModelTests
 
         Assert.NotNull(projection);
         Assert.Equal("IN_PROGRESS", projection.WeeklyStatus);
-        Assert.Equal(7, projection.Dates.Count);
+        Assert.Equal(6, projection.Dates.Count);
         var mondayProjection = projection.Dates.Single(day => day.ServiceDate == monday);
         var tuesdayProjection = projection.Dates.Single(day => day.ServiceDate == monday.AddDays(1));
         Assert.Equal("UNTOUCHED", mondayProjection.Status);
@@ -338,6 +416,16 @@ public sealed class ReconciliationDailyPersistenceModelTests
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<ReconciliationBatchLine>().Property(line => line.BatchLineId).ValueGeneratedNever();
             modelBuilder.Entity<ReconciliationBatchDailyLine>().Property(line => line.DailyLineId).ValueGeneratedNever();
+        }
+    }
+
+    private sealed class InspectableContributorHistoryMigration : RetainMrxDecisionAndContributorHistory
+    {
+        public IReadOnlyList<MigrationOperation> BuildUp()
+        {
+            var builder = new MigrationBuilder("Pomelo.EntityFrameworkCore.MySql");
+            Up(builder);
+            return builder.Operations;
         }
     }
 

@@ -23,6 +23,7 @@ public static class AuthorizationPolicies
     public const string ReportAccess = "ReportAccess";
     public const string ReconciliationReadAccess = "ReconciliationReadAccess";
     public const string ReconciliationSourceReadAccess = "ReconciliationSourceReadAccess";
+    public const string ReconciliationSourceEditAccess = "ReconciliationSourceEditAccess";
     public const string ReconciliationWarehouseReadAccess = "ReconciliationWarehouseReadAccess";
     public const string ReconciliationKitchenAccess = "ReconciliationKitchenAccess";
     public const string ReconciliationDispositionAccess = "ReconciliationDispositionAccess";
@@ -110,6 +111,9 @@ public static class AuthorizationPolicies
         "Manager", "MANAGER", "Quản lý"
     ];
 
+    /// <summary>BR-MRX-EDIT-1: áp dụng trực tiếp và duyệt thay đổi nguồn MRX = Admin + Quản lý (cùng alias với quyết định đối chiếu).</summary>
+    public static readonly string[] ReconciliationSourceEditRoles = ReconciliationDecisionRoles;
+
     public static readonly string[] ReconciliationWarehouseIssueRoles = AdminRoles
         .Concat([
             "WarehouseManager", "Warehouse Manager", "WarehouseStaff", "Warehouse Staff", "Thủ kho"
@@ -126,7 +130,7 @@ public static class AuthorizationPolicies
 
     public static readonly string[] ReconciliationWarehouseReadRoles = ReconciliationWarehouseIssueRoles;
 
-    public static readonly string[] ReconciliationSourceReadRoles = AdminRoles
+    public static readonly string[] ReconciliationSourceReadRoles = ReconciliationSourceEditRoles
         .Concat([
             "Coordinator", "COORDINATOR", "Điều phối"
         ])
@@ -191,6 +195,12 @@ public static class AuthorizationPolicies
     public const string ProductionRead = "production.read";
     public const string WarehouseRead = "warehouse.read";
     public const string ReportRead = "report.read";
+    public const string ReconciliationRead = "reconciliation.read";
+    public const string ReconciliationSourceRead = "reconciliation.source.read";
+    public const string ReconciliationWarehouseRead = "reconciliation.warehouse.read";
+    public const string ReconciliationKitchenRead = "reconciliation.kitchen.read";
+    public const string ReconciliationDisposition = "reconciliation.disposition";
+    public const string ReconciliationComplete = "reconciliation.complete";
 
     public static readonly string[] AllPermissions =
     [
@@ -215,7 +225,13 @@ public static class AuthorizationPolicies
         InventoryAdjustmentApprove,
         ProductionRead,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationSourceRead,
+        ReconciliationWarehouseRead,
+        ReconciliationKitchenRead,
+        ReconciliationDisposition,
+        ReconciliationComplete
     ];
 
     private static readonly string[] ManagerPermissions =
@@ -241,7 +257,11 @@ public static class AuthorizationPolicies
         InventoryAdjustmentApprove,
         ProductionRead,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationSourceRead,
+        ReconciliationDisposition,
+        ReconciliationComplete
     ];
 
     private static readonly string[] CoordinatorPermissions =
@@ -255,7 +275,9 @@ public static class AuthorizationPolicies
         CoordinationOrderSignoff,
         DemandGenerate,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationSourceRead
     ];
 
     private static readonly string[] ProcurementPermissions =
@@ -279,7 +301,9 @@ public static class AuthorizationPolicies
         InventoryIssueApprove,
         InventoryAdjustmentApprove,
         WarehouseRead,
-        ReportRead
+        ReportRead,
+        ReconciliationRead,
+        ReconciliationWarehouseRead
     ];
 
     private static readonly string[] ProductionPermissions =
@@ -288,7 +312,8 @@ public static class AuthorizationPolicies
         DashboardRead,
         CatalogRead,
         ProductionRead,
-        ReportRead
+        ReportRead,
+        ReconciliationKitchenRead
     ];
 
     public static IReadOnlyList<string> ResolvePermissions(string? roleName)

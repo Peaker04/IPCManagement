@@ -43,9 +43,13 @@ internal sealed class WeeklyMenuImportPersistence(
         var existingDishes = await context.Dishes
             .Include(dish => dish.Dishboms)
             .ToListAsync(cancellationToken);
-        var existingMenus = await context.Menus.ToListAsync(cancellationToken);
-        var existingMenuItems = await context.Menuitems.ToListAsync(cancellationToken);
-        var existingSchedules = await context.Menuschedules.ToListAsync(cancellationToken);
+        var menuCodes = plan.Items.Select(item => $"MENU-{customer.CustomerCode}-{item.ServiceDate:yyyyMMdd}-{item.DbShiftName}").Distinct().ToList();
+        var serviceDates = plan.Items.Select(item => item.ServiceDate).Distinct().ToList();
+        var existingMenus = await context.Menus.Where(menu => menuCodes.Contains(menu.MenuCode)).ToListAsync(cancellationToken);
+        var existingMenuItems = await context.Menuitems.Where(item => menuCodes.Contains(item.Menu.MenuCode)).ToListAsync(cancellationToken);
+        // Keep all rows of this week plus conflicting requested dates, not other customers/weeks.
+        var existingSchedules = await context.Menuschedules.Where(item => item.CustomerId.SequenceEqual(customer.CustomerId)
+            && (item.WeekStartDate == plan.WeekStartDate || serviceDates.Contains(item.ServiceDate))).ToListAsync(cancellationToken);
         var groupedItems = plan.Items
             .GroupBy(item => new { item.ServiceDate, item.DbShiftName })
             .OrderBy(group => group.Key.ServiceDate)
@@ -142,6 +146,8 @@ internal sealed class WeeklyMenuImportPersistence(
         version.ErrorRowCount = plan.RowsSkipped;
         version.WarningRowCount = result.Warnings.Count;
         WeeklyMenuImportProjection.ApplyCommittedDishIds(result, plan.Items);
+        version.NormalizedSourceSnapshotJson = WeeklyMenuImportSnapshotSerializer.Serialize(
+            WeeklyMenuImportSnapshotSerializer.FromPlan(version, plan, priceTierAmount));
         return result;
     }
 

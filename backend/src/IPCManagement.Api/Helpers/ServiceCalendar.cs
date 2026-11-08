@@ -6,6 +6,16 @@ namespace IPCManagement.Api.Helpers;
 /// </summary>
 public static class ServiceCalendar
 {
+    public const int ServiceDaysPerWeek = 6;
+
+    public static bool IsServiceDay(DateOnly date) => date.DayOfWeek != DayOfWeek.Sunday;
+
+    public static void EnsureServiceDay(DateOnly date)
+    {
+        if (!IsServiceDay(date))
+            throw new IPCManagement.Api.Exceptions.BusinessRuleException("Tuần nghiệp vụ chỉ từ Thứ Hai đến Thứ Bảy; Chủ nhật chỉ được xem lịch sử.");
+    }
+
     private static readonly TimeZoneInfo VietnamTimeZone = ResolveVietnamTimeZone();
 
     /// <summary>Ngày hôm nay theo giờ Việt Nam.</summary>

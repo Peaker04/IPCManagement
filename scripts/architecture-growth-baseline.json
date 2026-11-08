@@ -18,7 +18,7 @@
       "files": [
         "backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs"
       ],
-      "lines": 1384,
+      "lines": 1394,
       "level": "PLAN_REQUIRED"
     },
     {
@@ -30,6 +30,37 @@
       ],
       "lines": 1152,
       "level": "PLAN_REQUIRED"
+    },
+    {
+      "id": "service:ReconciliationBatchService",
+      "kind": "service",
+      "name": "ReconciliationBatchService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
+      ],
+      "lines": 696,
+      "level": "WARNING"
+    },
+    {
+      "id": "service:ServiceRunService",
+      "kind": "service",
+      "name": "ServiceRunService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.Projection.cs",
+        "backend/src/IPCManagement.Api/Features/Planning/Services/ServiceRunService.cs"
+      ],
+      "lines": 730,
+      "level": "WARNING"
+    },
+    {
+      "id": "service:InventoryOperationsReportService",
+      "kind": "service",
+      "name": "InventoryOperationsReportService",
+      "files": [
+        "backend/src/IPCManagement.Api/Features/Reports/Services/InventoryOperationsReportService.cs"
+      ],
+      "lines": 605,
+      "level": "WARNING"
     }
   ]
 }

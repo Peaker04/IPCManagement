@@ -9,5 +9,9 @@ public sealed class ReconciliationDisposition
     public long Version { get; set; }
     public byte[] DisposedBy { get; set; } = null!;
     public DateTime DisposedAt { get; set; }
+    public DateTime? InvalidatedAt { get; set; }
+    public byte[]? InvalidatedBy { get; set; }
+    public string? InvalidationReason { get; set; }
+    public byte[]? ActiveOwnerKey { get; private set; }
     public ReconciliationBatchLine BatchLine { get; set; } = null!;
 }
