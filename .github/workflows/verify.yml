@@ -70,12 +70,12 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: 123456789
+          MYSQL_ROOT_PASSWORD: ephemeral-ci-db-78Rb
           MYSQL_DATABASE: ipcmanagement_ci
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p123456789"
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pephemeral-ci-db-78Rb"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
@@ -84,9 +84,9 @@ jobs:
       DOTNET_NOLOGO: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
       # All credentials below belong only to this ephemeral CI service.
-      ConnectionStrings__DefaultConnection: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
-      IPC_TEST_CONNECTION_STRING: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
-      MYSQL_PWD: "123456789"
+      ConnectionStrings__DefaultConnection: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=ephemeral-ci-db-78Rb;
+      IPC_TEST_CONNECTION_STRING: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=ephemeral-ci-db-78Rb;
+      MYSQL_PWD: "ephemeral-ci-db-78Rb"
       TEST_RESULTS_DIR: ${{ github.workspace }}/.artifacts/test-results
       JwtSettings__SecretKey: CI_VERIFY_SECRET_KEY_1234567890_ABCDEF
       JwtSettings__Issuer: IPCManagementAPI
@@ -155,6 +155,8 @@ jobs:
           # CI preloads the model schema above. Development startup would replay
           # migrations over those tables. Migration replay is tested separately below.
           ASPNETCORE_ENVIRONMENT: Testing
+          AllowedHosts: localhost
+          Cors__AllowedOrigins__0: https://frontend.example.test
         run: >-
           dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
           --no-build --no-restore
