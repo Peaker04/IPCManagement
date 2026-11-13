@@ -217,6 +217,7 @@ jobs:
           path: |
             .artifacts/test-results/**/*.trx
             .artifacts/shape-*.txt
+          include-hidden-files: true
           retention-days: 7
           if-no-files-found: warn
 

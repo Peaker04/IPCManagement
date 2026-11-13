@@ -103,6 +103,11 @@ test('advisory gates remain advisory and diagnostics are scoped', () => {
     assert.equal(steps.find(step => step.run?.includes(marker))?.['continue-on-error'], true)
   }
   const uploads = steps.filter(step => step.uses?.startsWith('actions/upload-artifact@'))
+  const backendUpload = uploads.find(step => step.with.name === 'backend-test-results')
+  assert.equal(backendUpload?.with['include-hidden-files'], true)
+  assert.deepEqual(backendUpload.with.path.trim().split('\n'), [
+    '.artifacts/test-results/**/*.trx', '.artifacts/shape-*.txt',
+  ])
   assert.equal(uploads.length, 3)
   assert.ok(uploads.every(step => step.if === 'always()' && step.with['retention-days'] === 7))
   assert.ok(uploads.some(step => step.with.path.includes('shape-*.txt')))
