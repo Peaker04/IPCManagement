@@ -25,23 +25,43 @@ function resolveBaseUrl(): string {
 }
 
 const currentToken = () => typeof localStorage === 'undefined' ? null : localStorage.getItem('ipc_v3_token');
-let renewal: { previous: string; current: string } | null = null;
+const renewalChain = new Map<string, string>();
 let refreshFlight: { token: string; promise: Promise<string> } | null = null;
 
 function sessionChanged(): ApiError {
   return new ApiError(401, 'Phiên đăng nhập đã thay đổi. Vui lòng tải lại dữ liệu.', undefined, 'SESSION_CHANGED');
 }
 
+function isRenewedTo(expected: string | null, actual: string | null): boolean {
+  if (expected === actual) return true;
+  if (!expected || !actual) return false;
+  let cursor: string | undefined = expected;
+  const visited = new Set<string>();
+  while (cursor && !visited.has(cursor)) {
+    visited.add(cursor);
+    const next = renewalChain.get(cursor);
+    if (next === actual) return true;
+    cursor = next;
+  }
+  return false;
+}
+
 function requireSameSession(token: string | null): void {
   const current = currentToken();
-  if (current !== token && !(token && renewal?.previous === token && renewal.current === current)) throw sessionChanged();
+  if (!isRenewedTo(token, current)) throw sessionChanged();
 }
 
 function expireSession(token: string | null): void {
-  if (currentToken() !== token) throw sessionChanged();
+  if (!isRenewedTo(token, currentToken())) throw sessionChanged();
   if (typeof localStorage !== 'undefined') clearSessionState('expired');
-  renewal = null;
-  if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) window.location.href = '/login';
+  renewalChain.clear();
+  if (typeof window !== 'undefined') {
+    const event = new CustomEvent('ipc:session-expired', { cancelable: true });
+    const notHandledInPlace = window.dispatchEvent(event);
+    if (notHandledInPlace && !window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
+    }
+  }
 }
 
 function refreshAccessToken(token: string): Promise<string> {
@@ -63,7 +83,7 @@ function refreshAccessToken(token: string): Promise<string> {
     if (previousUser.userId && previousUser.userId !== result.user.userId) throw sessionChanged();
     localStorage.setItem('ipc_v3_token', result.accessToken);
     localStorage.setItem('ipc_v3_user', JSON.stringify(result.user));
-    renewal = { previous: token, current: result.accessToken };
+    renewalChain.set(token, result.accessToken);
     if (typeof window !== 'undefined') window.dispatchEvent(new Event('ipc:session-refreshed'));
     return result.accessToken;
   })().finally(() => {
@@ -116,19 +136,40 @@ export async function authenticatedFetch(url: string, options: RequestInit = {})
   return response;
 }
 
+const inFlightGetRequests = new Map<string, Promise<unknown>>();
+
 export async function apiClient<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = currentToken();
   const headers = new Headers(options.headers);
   if (!(options.body instanceof FormData) && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   const url = endpoint.startsWith('http') ? endpoint : `${resolveBaseUrl()}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
-  const response = await authenticatedFetch(url, { ...options, headers });
-  let data: unknown;
-  try { data = await response.json(); } catch { data = null; }
-  requireSameSession(token);
-  if (!response.ok) {
-    const apiResp = data as ApiResponse | null;
-    throw new ApiError(response.status, apiResp?.message || response.statusText || 'Yêu cầu không thành công', apiResp?.errors, apiResp?.code, apiResp?.lockedDates);
+  const method = (options.method || 'GET').toUpperCase();
+  const canDeduplicate = method === 'GET' && !options.signal && !options.body;
+  const mode = (typeof localStorage === 'undefined' ? null : localStorage.getItem('ipc_v3_mode')) || 'DEFAULT';
+  const dedupKey = canDeduplicate ? `${token ?? 'anon'}:${mode}:${url}` : '';
+  if (canDeduplicate) {
+    const existing = inFlightGetRequests.get(dedupKey);
+    if (existing) return existing as Promise<T>;
   }
-  if (data && typeof data === 'object' && 'success' in data && 'data' in data) return (data as ApiResponse<T>).data;
-  return data as T;
+  const execute = async (): Promise<T> => {
+    const response = await authenticatedFetch(url, { ...options, headers });
+    let data: unknown;
+    try { data = await response.json(); } catch { data = null; }
+    requireSameSession(token);
+    if (!response.ok) {
+      const apiResp = data as ApiResponse | null;
+      throw new ApiError(response.status, apiResp?.message || response.statusText || 'Yêu cầu không thành công', apiResp?.errors, apiResp?.code, apiResp?.lockedDates);
+    }
+    if (data && typeof data === 'object' && 'success' in data && 'data' in data) return (data as ApiResponse<T>).data;
+    return data as T;
+  };
+  const promise = execute().finally(() => {
+    if (canDeduplicate && inFlightGetRequests.get(dedupKey) === promise) {
+      inFlightGetRequests.delete(dedupKey);
+    }
+  });
+  if (canDeduplicate) {
+    inFlightGetRequests.set(dedupKey, promise);
+  }
+  return promise;
 }

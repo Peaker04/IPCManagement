@@ -6474,6 +6474,8 @@ export interface paths {
         readonly get: {
             readonly parameters: {
                 readonly query?: {
+                    readonly BatchId?: string;
+                    readonly CustomerCode?: string;
                     readonly CustomerId?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
@@ -7706,6 +7708,7 @@ export interface paths {
                     readonly batchId?: string;
                     readonly pageNumber?: number;
                     readonly pageSize?: number;
+                    readonly search?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -7814,8 +7817,11 @@ export interface paths {
         readonly get: {
             readonly parameters: {
                 readonly query?: {
+                    readonly CustomerId?: string;
                     readonly pageNumber?: number;
                     readonly pageSize?: number;
+                    readonly WeekFrom?: string;
+                    readonly WeekTo?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -7854,8 +7860,11 @@ export interface paths {
         readonly get: {
             readonly parameters: {
                 readonly query?: {
+                    readonly CustomerId?: string;
                     readonly pageNumber?: number;
                     readonly pageSize?: number;
+                    readonly WeekFrom?: string;
+                    readonly WeekTo?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -7889,7 +7898,11 @@ export interface paths {
         };
         readonly get: {
             readonly parameters: {
-                readonly query?: never;
+                readonly query?: {
+                    readonly CustomerId?: string;
+                    readonly WeekFrom?: string;
+                    readonly WeekTo?: string;
+                };
                 readonly header?: never;
                 readonly path?: never;
                 readonly cookie?: never;
@@ -7924,6 +7937,8 @@ export interface paths {
             readonly parameters: {
                 readonly query?: {
                     readonly CustomerId?: string;
+                    readonly QueuePage?: number;
+                    readonly QueuePageSize?: number;
                     readonly WeekFrom?: string;
                     readonly WeekTo?: string;
                 };
@@ -7942,6 +7957,50 @@ export interface paths {
                         readonly "application/json": components["schemas"]["MrxOperationalSummaryDtoApiResponse"];
                         readonly "text/json": components["schemas"]["MrxOperationalSummaryDtoApiResponse"];
                         readonly "text/plain": components["schemas"]["MrxOperationalSummaryDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/reports/source-changes": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly batchId?: string;
+                    readonly PageNumber?: number;
+                    readonly PageSize?: number;
+                    readonly SearchKeyword?: string;
+                    readonly SortBy?: string;
+                    readonly SortDesc?: boolean;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationSourceChangeDtoPagedResponseDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationSourceChangeDtoPagedResponseDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationSourceChangeDtoPagedResponseDtoApiResponse"];
                     };
                 };
             };
@@ -8197,6 +8256,7 @@ export interface paths {
             readonly parameters: {
                 readonly query?: {
                     readonly BatchId?: string;
+                    readonly CustomerCode?: string;
                     readonly PageNumber?: number;
                     readonly PageSize?: number;
                     readonly SearchKeyword?: string;
@@ -16115,6 +16175,17 @@ export interface components {
             readonly pendingDeltasCount?: number | null;
             /** Format: int32 */
             readonly pendingSourceChangesCount?: number | null;
+            readonly queueCounts: {
+                readonly [key: string]: number;
+            };
+            /** Format: int32 */
+            readonly queuePageNumber: number;
+            /** Format: int32 */
+            readonly queuePageSize: number;
+            /** Format: int32 */
+            readonly queueTotalCount: number;
+            /** Format: int32 */
+            readonly queueTotalPages: number;
             /** Format: int32 */
             readonly unresolvedVariancesCount?: number | null;
         };
@@ -18023,12 +18094,33 @@ export interface components {
             readonly entityId?: string | null;
             readonly entityName: string;
             readonly fieldName?: string | null;
+            readonly newDisplayValue?: string | null;
             readonly newValue?: string | null;
+            readonly oldDisplayValue?: string | null;
             readonly oldValue?: string | null;
             readonly reason?: string | null;
         };
         readonly ReconciliationSourceChangeDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["ReconciliationSourceChangeDto"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ReconciliationSourceChangeDtoPagedResponseDto: {
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["ReconciliationSourceChangeDto"][];
+            /** Format: int32 */
+            readonly pageNumber: number;
+            /** Format: int32 */
+            readonly pageSize: number;
+            /** Format: int32 */
+            readonly totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+        };
+        readonly ReconciliationSourceChangeDtoPagedResponseDtoApiResponse: {
+            readonly data?: components["schemas"]["ReconciliationSourceChangeDtoPagedResponseDto"];
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;

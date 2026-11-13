@@ -588,16 +588,29 @@ public class DishCatalogTests
         rows.Select(row => row.GrossQtyPerServing).Should().Equal(0.08m, 0.12m);
     }
 
-    [Fact]
-    public async Task DishService_BomTemplate_Should_ReturnXlsxWithBlankBomFieldsForMissingDish()
+    [Theory]
+    [InlineData(null, 25000, "missing", "IPC_MauDinhLuong_Chung_25000_CacMonThieu.xlsx")]
+    [InlineData("CUS/BOM", 30000, "by-dish", "IPC_MauDinhLuong_CUS_BOM_30000_ToanBo.xlsx")]
+    public async Task DishService_BomTemplate_Should_ReturnXlsxWithBlankBomFieldsForMissingDish(string? customerCode, int priceTier, string templateType, string expectedFilename)
     {
         await using var fixture = await CreateCatalogFixtureAsync();
-        var service = new DishBomTemplateService(fixture.Context);
-        var bytes = await service.BuildAsync(new BomTemplateQueryDto
+        byte[]? customerId = null;
+        if (customerCode is not null)
         {
-            PriceTier = 25000,
+            customerId = GuidHelper.NewId();
+            fixture.Context.Customers.Add(new Customer { CustomerId = customerId, CustomerCode = customerCode, CustomerName = "Customer BOM", IsActive = true });
+            await fixture.Context.SaveChangesAsync();
+        }
+        var service = new DishBomTemplateService(fixture.Context);
+        var template = await service.BuildAsync(new BomTemplateQueryDto
+        {
+            PriceTier = priceTier,
+            TemplateType = templateType,
+            CustomerId = customerId is null ? null : GuidHelper.ToGuidString(customerId),
             DishId = GuidHelper.ToGuidString(fixture.DishId)
         });
+        template.FileName.Should().Be(expectedFilename);
+        var bytes = template.Content;
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
         try
         {
@@ -611,8 +624,8 @@ public class DishCatalogTests
                 sheetEntry.Should().NotBeNull();
                 using var sheetStream = sheetEntry!.Open();
                 var worksheet = XDocument.Load(sheetStream).Root!;
-                var childOrder = worksheet.Elements().Select(element => element.Name.LocalName).Take(5);
-                childOrder.Should().Equal("dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData");
+                var childOrder = worksheet.Elements().Select(element => element.Name.LocalName).Take(6);
+                childOrder.Should().Equal("sheetPr", "dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData");
             }
 
             var reader = new XlsxWorkbookReader();
@@ -625,7 +638,8 @@ public class DishCatalogTests
             rows[0]["Định lượng/suất"].Should().BeEmpty();
             rows[0]["Hao hụt (%)"].Should().BeEmpty();
             rows[0]["Mã món"].Should().Be("DISH-BOM");
-            rows[0]["Mức giá"].Should().Be("25000");
+            rows[0]["Mức giá"].Should().Be(priceTier.ToString());
+            rows[0]["Khách hàng"].Should().Be(customerCode ?? string.Empty);
             rows[0]["Trạng thái"].Should().Be("PUBLISHED");
         }
         finally

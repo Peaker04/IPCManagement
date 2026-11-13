@@ -35,10 +35,10 @@ export function MrxDailyDateTabsBranch({
         aria-pressed={isWeeklyAll}
         onClick={() => onSelectDate('ALL')}
         className={clsx(
-          'text-xs px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap',
+          'text-xs px-2.5 py-1 rounded border font-semibold transition-colors cursor-pointer whitespace-nowrap',
           isWeeklyAll
-            ? 'bg-slate-900 text-white font-bold shadow-2xs'
-            : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+            ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
         )}
       >
         Cả tuần (Tổng hợp)
@@ -62,17 +62,17 @@ export function MrxDailyDateTabsBranch({
             aria-pressed={isSelected}
             onClick={() => onSelectDate(d.serviceDate)}
             className={clsx(
-              'text-xs px-2 sm:px-2.5 py-1 rounded font-medium transition-colors cursor-pointer whitespace-nowrap',
+              'text-xs px-2 sm:px-2.5 py-1 rounded border font-semibold transition-colors cursor-pointer whitespace-nowrap',
               isSelected
-                ? 'bg-slate-900 text-white font-bold shadow-2xs'
-                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                ? 'bg-slate-900 border-slate-900 text-white shadow-2xs'
+                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
             )}
           >
             <span>{dayLabel}</span>
             <span className={showDates ? '' : 'hidden 2xl:inline'}> ({dateShort})</span>
-            {hasIssued && (
-              <Check className="size-3 text-emerald-600 inline ml-1" aria-hidden="true" />
-            )}
+            <span className="inline-flex w-3 ml-1 items-center justify-center shrink-0" aria-hidden="true">
+              {hasIssued ? <Check className="size-3 text-emerald-600" /> : null}
+            </span>
           </button>
         );
       })}

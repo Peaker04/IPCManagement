@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ReconciliationCompletionModal } from '../features/reconciliation/ReconciliationCompletionModal';
 import { ReconciliationPage } from '../features/reconciliation/ReconciliationPage';
-import { ReconciliationDashboardPage } from '../features/dashboard/ReconciliationDashboardPage';
 import { AuthProvider } from '../store/authContext';
 import { isRouteEligible } from '../routes/navigationEligibility';
 import { CANONICAL_ROUTES } from '../routes/routeRegistry';
@@ -18,14 +17,21 @@ import { systemApi } from '../api/systemApi';
 import { serverStateCache } from '../store/serverStateCache';
 import { workspaceSessionStore } from '../store/workspaceSessionStore';
 
+const defaultSummary = { ...MOCK_RECONCILIATION, weekStartDate: '2026-10-19', weekEndDate: '2026-10-24' };
 const completionReadySummary = {
-  ...MOCK_RECONCILIATION,
+  ...defaultSummary,
   lines: MOCK_RECONCILIATION.lines.map((line) => ({ ...line, issuedQuantity: 72, issuedRequiredDifference: 0, status: 'MATCHED', triggers: [] })),
 };
 
 function WeeklyLocationProbe() {
   const location = useLocation();
   return <div data-testid="weekly-target">{location.search}</div>;
+}
+
+async function selectReviewBatch(batchId: string) {
+  const select = await screen.findByRole('combobox', { name: 'Chọn lô đối soát' });
+  await waitFor(() => expect(select).toBeEnabled());
+  await userEvent.selectOptions(select, batchId);
 }
 
 function renderReconciliation(initialEntry = '/reconciliation') {
@@ -48,7 +54,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
       { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
     ]);
-    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValue(MOCK_RECONCILIATION);
+    vi.spyOn(mrxApi, 'getBatchSummary').mockResolvedValue(defaultSummary);
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
       items: [{
         batchId: MOCK_RECONCILIATION.batchId,
@@ -101,7 +107,8 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     });
     renderReconciliation('/reconciliation?batchId=anv-batch');
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' })).toHaveValue('ANV'));
-    expect(await screen.findByRole('option', { name: 'ANV · 21/09/2026' })).toHaveValue('anv-batch');
+    expect(screen.getByRole('combobox', { name: 'Tháng đối soát' })).toHaveValue('9');
+    expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát' })).toHaveValue('anv-batch');
   });
 
   it('renders Zone 1 WorkspaceHeader (56px) with customer select, date, and single primary button (Rule D7)', async () => {
@@ -111,9 +118,9 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     // Customer select and date input
     expect(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' })).toBeInTheDocument();
-    expect(await screen.findByRole('option', { name: 'DAV · 19/10/2026' })).toHaveValue(MOCK_RECONCILIATION.batchId);
-    await waitFor(() => expect(mrxApi.getBatchSummary).toHaveBeenCalledWith(MOCK_RECONCILIATION.batchId, '2026-10-19'));
-    expect(screen.getByRole('textbox', { name: 'Ngày đối soát' })).toHaveAttribute('data-date-locale', 'vi-VN');
+    expect(screen.getByRole('combobox', { name: 'Tháng đối soát' })).toHaveValue('10');
+    await waitFor(() => expect(mrxApi.getBatchSummary).toHaveBeenCalledWith(MOCK_RECONCILIATION.batchId, '2026-10-19', true));
+    expect(screen.getByRole('button', { name: 'T2 · 19/10/2026' })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByText('Đang đối chiếu')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Xuất biên bản đối soát' })).not.toBeInTheDocument();
     const completeBtn = screen.getByRole('button', { name: 'Chốt đối soát tuần' });
@@ -420,12 +427,18 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     unmount1();
 
     // 2. View: variances
-    const { unmount: unmount2 } = renderReconciliation('/reconciliation?view=variances&date=2026-11-07');
+    const { unmount: unmount2 } = renderReconciliation('/reconciliation?view=variances&date=2026-10-24');
     await vi.waitFor(() => {
       expect(mrxApi.getVarianceRegister).toHaveBeenLastCalledWith(MOCK_RECONCILIATION.batchId);
     });
     expect(await screen.findByText('Sổ theo dõi chênh lệch & quyết định xử lý tuần')).toBeInTheDocument();
     expect(await screen.findByText(/Bao bì lẻ/)).toBeInTheDocument();
+    const varianceSearch = screen.getByRole('searchbox', { name: 'Tìm trong sổ chênh lệch' });
+    await userEvent.type(varianceSearch, 'chap nhan chenh lech');
+    expect(screen.getByText(/Bao bì lẻ/)).toBeVisible();
+    await userEvent.clear(varianceSearch);
+    await userEvent.type(varianceSearch, 'khong khop');
+    expect(screen.getByText('Không có dòng chênh lệch khớp tìm kiếm.')).toBeVisible();
     unmount2();
 
     // 3. View: transactions
@@ -514,14 +527,11 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     pendingOld = false;
     await act(async () => resolveOld(oldBatch));
     expect(await screen.findByText('Thịt đùi heo tươi')).toBeVisible();
-    expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát' })).toHaveValue('old-completed-batch');
-    expect(screen.getByRole('textbox', { name: 'Ngày đối soát' })).toHaveValue('14/09/2026');
+    expect(screen.getByRole('combobox', { name: 'Tháng đối soát' })).toHaveValue('9');
+    expect(screen.getByRole('button', { name: 'T2 · 14/09/2026' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('navigation', { name: 'Tra cứu hồ sơ lô' })).not.toBeInTheDocument();
-    const date = screen.getByRole('textbox', { name: 'Ngày đối soát' });
-    await userEvent.clear(date);
-    await userEvent.type(date, '15/09/2026');
-    await userEvent.tab();
-    await waitFor(() => expect(date).toHaveValue('15/09/2026'));
+    await userEvent.click(screen.getByRole('button', { name: 'T3 · 15/09/2026' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'T3 · 15/09/2026' })).toHaveAttribute('aria-pressed', 'true'));
     await waitFor(() => expect(screen.queryByText('Thịt đùi heo tươi')).not.toBeInTheDocument());
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát' })).toHaveValue('old-completed-batch');
     expect(transport.mock.calls.some(([path]) => String(path).includes('completed-register?pageNumber=2&pageSize=50'))).toBe(true);
@@ -544,7 +554,11 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(serverStateCache.get(key)!.timestamp).toBe(timestamp);
   });
 
-  it('renders completed register tab and reports an authenticated Excel download failure', async () => {
+  it.each([
+    { query: '', scope: undefined, exportQuery: '' },
+    { query: '&completedCustomerId=customer-1&completedperiod=YEAR&completedyear=2024', scope: { customerId: 'customer-1', weekFrom: '2024-01-01', weekTo: '2024-12-31' }, exportQuery: '?customerId=customer-1&weekFrom=2024-01-01&weekTo=2024-12-31' },
+    { query: '&completedperiod=RANGE&completedfrom=2023-01-01&completedto=2025-12-31', scope: { weekFrom: '2023-01-01', weekTo: '2025-12-31' }, exportQuery: '?weekFrom=2023-01-01&weekTo=2025-12-31' },
+  ])('uses the same completed register and export scope for $query', async ({ query, scope, exportQuery }) => {
     const getCompleted = vi.spyOn(mrxApi, 'getCompletedRegister').mockResolvedValue({
       rows: [{
         batchId: 'b2d7e7be-6be0-40bd-8409-d4cc1bd5471d',
@@ -563,9 +577,10 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
       totalCount: 1,
     });
 
-    renderReconciliation('/reconciliation?view=completed');
+    renderReconciliation(`/reconciliation?view=completed${query}`);
 
-    expect(getCompleted).toHaveBeenCalled();
+    if (scope) await waitFor(() => expect(getCompleted).toHaveBeenCalledWith(1, 50, scope));
+    else expect(getCompleted).toHaveBeenCalledWith(1, 50);
     expect(await screen.findByText(/Danh bạ lô đối soát đã hoàn tất/i)).toBeInTheDocument();
     expect(screen.queryByText('b2d7e7be-6be0-40bd-8409-d4cc1bd5471d')).not.toBeInTheDocument();
     expect(screen.queryByText('4c90da94-81eb-4cbc-8121-f5d573c4c1b8')).not.toBeInTheDocument();
@@ -577,7 +592,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     const fetch = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 403 }));
     await userEvent.click(download);
     expect(await screen.findByText(/Không thể tải tệp \(HTTP 403\)/)).toBeInTheDocument();
-    expect(fetch).toHaveBeenCalledWith(`${window.location.origin}/api/reconciliation/reports/completed-register/xlsx`, expect.anything());
+    expect(fetch).toHaveBeenCalledWith(`${window.location.origin}/api/reconciliation/reports/completed-register/xlsx${exportQuery}`, expect.anything());
   });
 
   it('renders unavailable daily totals for a legacy completed batch without fabricating zero', async () => {
@@ -631,29 +646,52 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(await screen.findByText('Thịt đùi heo tươi')).toBeInTheDocument();
     expect(screen.getByText('Gạo tẻ thơm')).toBeInTheDocument();
 
+    expect(screen.getByRole('button', { name: 'Tất cả (2)' })).toHaveAttribute('aria-pressed', 'true');
+    const zeroDisposed = screen.getByRole('button', { name: 'Đã giải trình (0)' });
+    expect(zeroDisposed).toHaveAttribute('aria-pressed', 'false');
+    await userEvent.click(zeroDisposed);
+    expect(zeroDisposed).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Không có dòng đối soát nào phù hợp với bộ lọc.')).toBeInTheDocument();
+
     // Filter "Khớp định mức (1)"
     const matchedFilterBtn = screen.getByRole('button', { name: 'Khớp định mức (1)' });
     await userEvent.click(matchedFilterBtn);
+    expect(matchedFilterBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(zeroDisposed).toHaveAttribute('aria-pressed', 'false');
     expect(screen.queryByText('Thịt đùi heo tươi')).not.toBeInTheDocument();
     expect(screen.getByText('Gạo tẻ thơm')).toBeInTheDocument();
 
     // Filter "Cần xử lý (1)"
     const needsReviewFilterBtn = screen.getByRole('button', { name: 'Cần xử lý (1)' });
     await userEvent.click(needsReviewFilterBtn);
+    expect(needsReviewFilterBtn).toHaveAttribute('aria-pressed', 'true');
+    expect(matchedFilterBtn).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByText('Thịt đùi heo tươi')).toBeInTheDocument();
     expect(screen.queryByText('Gạo tẻ thơm')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Tất cả (2)' }));
     const reads = vi.mocked(apiTransport.apiClient).mock.calls.filter(([path]) => path === `/reconciliation/batches/${batch.batchId}`).length;
+    expect(screen.queryByRole('textbox', { name: 'Tìm kiếm nguyên liệu đối soát' })).not.toBeInTheDocument();
+    const activeDay = within(screen.getByRole('group', { name: 'Ngày đối soát' })).getByRole('button', { pressed: true }).getAttribute('aria-label');
+    await userEvent.click(screen.getByRole('button', { name: 'Mở tìm kiếm nguyên liệu' }));
     const searchInput = screen.getByRole('textbox', { name: 'Tìm kiếm nguyên liệu đối soát' });
+    expect(searchInput).toHaveFocus();
+    expect(screen.queryByRole('group', { name: 'Ngày đối soát' })).not.toBeInTheDocument();
     await userEvent.type(searchInput, '  GAO  TE  ');
     expect(screen.getByText('Gạo tẻ thơm')).toBeInTheDocument();
     expect(screen.queryByText('Thịt đùi heo tươi')).not.toBeInTheDocument();
     expect(screen.getByRole('status', { name: 'Kết quả tìm nguyên liệu đối soát' })).toHaveTextContent('Hiển thị 1/2 dòng ngày');
     expect(screen.getByRole('button', { name: 'Cần xử lý (1)' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng tìm kiếm nguyên liệu' }));
+    expect(screen.queryByRole('textbox', { name: 'Tìm kiếm nguyên liệu đối soát' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tìm kiếm nguyên liệu đang lọc' })).toHaveFocus();
+    expect(within(screen.getByRole('group', { name: 'Ngày đối soát' })).getByRole('button', { pressed: true })).toHaveAttribute('aria-label', activeDay);
+    expect(screen.queryByText('Thịt đùi heo tươi')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Tìm kiếm nguyên liệu đang lọc' }));
+    expect(screen.getByRole('textbox', { name: 'Tìm kiếm nguyên liệu đối soát' })).toHaveValue('  GAO  TE  ');
     await userEvent.click(screen.getByRole('button', { name: 'Xóa bộ lọc đối soát' }));
     expect(screen.getByText('Thịt đùi heo tươi')).toBeInTheDocument();
-    expect(searchInput).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: 'Tìm kiếm nguyên liệu đối soát' })).toHaveValue('');
     expect(vi.mocked(apiTransport.apiClient).mock.calls.filter(([path]) => path === `/reconciliation/batches/${batch.batchId}`)).toHaveLength(reads);
   });
 
@@ -709,17 +747,22 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     const props = { isOpen: true, onClose: vi.fn(), batchId: 'batch-a' };
     const { rerender } = render(<MrxBatchDishesModal {...props} />);
     expect(await screen.findByRole('heading', { name: dishA.dishName })).toBeVisible();
+    const selection = screen.getByRole('button', { name: new RegExp(dishA.dishName) });
+    expect(selection.querySelector('button')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Sao chép A' })).toBeEnabled();
     expect(screen.queryByRole('button', { name: 'Chỉnh sửa BOM' })).not.toBeInTheDocument();
     rerender(<MrxBatchDishesModal {...props} isOpen={false} />);
+    serverStateCache.delete('mrx_batch_dishes_batch-a');
     rerender(<MrxBatchDishesModal {...props} />);
     expect(screen.queryByRole('heading', { name: dishA.dishName })).not.toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Đang tải');
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('aria-busy', 'true');
     rerender(<MrxBatchDishesModal {...props} batchId="batch-b" />);
     expect(await screen.findByRole('heading', { name: dishB.dishName })).toBeVisible();
     await act(async () => resolveOldA([dishA]));
     expect(screen.queryByRole('heading', { name: dishA.dishName })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: dishB.dishName })).toBeVisible();
     rerender(<MrxBatchDishesModal {...props} batchId="batch-b" isOpen={false} />);
+    serverStateCache.delete('mrx_batch_dishes_batch-b');
     rerender(<MrxBatchDishesModal {...props} batchId="batch-b" />);
     expect(screen.queryByRole('heading', { name: dishB.dishName })).not.toBeInTheDocument();
     await act(async () => resolveNewB([dishB]));
@@ -737,7 +780,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   ])('distinguishes frozen lookup HTTP$status from a successful empty response', async ({ status, message, title }) => {
     const transport = vi.spyOn(apiTransport, 'apiClient').mockRejectedValueOnce(new ApiError(status, message)).mockResolvedValue([]);
     render(<MrxBatchDishesModal isOpen onClose={vi.fn()} batchId="batch-state" />);
-    await waitFor(() => expect(screen.queryByText(/Đang tải dữ liệu món ăn/)).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument());
     expect(screen.queryByText(/· 0 món ăn$/)).not.toBeInTheDocument();
     expect(screen.getByText(title)).toBeVisible();
     expect(screen.queryByText('Lô chưa có món ăn đã đóng băng.')).not.toBeInTheDocument();
@@ -765,7 +808,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
 
     renderReconciliation();
 
-    expect(await screen.findByRole('heading', { name: 'Chưa có dữ liệu đối soát cho ngày đã chọn' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Chưa có lô đối soát cho tháng/ })).toBeInTheDocument();
   });
 
   // Rule TA-4 Scenario 4: RBAC 403 authorization failure with alert banner
@@ -790,7 +833,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
   it('pages the review batch catalogue without changing scope and resets it for another customer', async () => {
     vi.restoreAllMocks();
     const first = { ...MOCK_RECONCILIATION_BATCH_DTO, batchId: 'review-first', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25' };
-    const older = { ...first, batchId: 'review-older', weekStartDate: '2026-10-12', weekEndDate: '2026-10-18' };
+    const older = { ...first, batchId: 'review-older', version: 6 };
     const other = { ...first, batchId: 'review-other', customerId: 'customer-other', customerCode: 'KH2', customerName: 'Khách thứ hai' };
     const reads: URL[] = [];
     let failOlderPage = true;
@@ -813,19 +856,21 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
       return Response.json({ success: true, data });
     });
     renderReconciliation('/reconciliation?batchId=review-first&date=2026-10-19');
-    const select = await screen.findByRole('combobox', { name: 'Chọn lô đối soát' });
-    await waitFor(() => expect(select).toHaveValue(first.batchId));
-    const pager = await screen.findByRole('navigation', { name: 'Phân trang danh sách lô giám sát' });
+    const catalogue = await screen.findByRole('combobox', { name: 'Chọn lô đối soát' });
+    await within(catalogue).findByRole('option', { name: 'Xem tất cả 101 lô…' });
+    await userEvent.selectOptions(catalogue, '__all__');
+    const dialog = screen.getByRole('dialog', { name: 'Danh sách lô trong tháng' });
+    const pager = within(dialog).getByRole('navigation', { name: 'Phân trang lô trong tháng' });
     await waitFor(() => expect(within(pager).getByRole('button', { name: 'Trang sau' })).toBeEnabled());
+    const firstReads = reads.filter(url => url.pathname.endsWith('/review-first')).length;
     await userEvent.click(within(pager).getByRole('button', { name: 'Trang sau' }));
-    const retry = await screen.findByRole('button', { name: 'Tải lại danh sách lô giám sát' });
-    expect(select).toHaveValue(first.batchId);
+    const retry = await within(dialog).findByRole('button', { name: 'Tải lại danh sách lô' });
     await userEvent.click(retry);
-    expect(await screen.findByRole('option', { name: `${first.customerCode} · 12/10/2026` })).toHaveValue(older.batchId);
-    expect(select).toHaveValue(first.batchId);
+    expect(await within(dialog).findByText(older.batchId)).toBeVisible();
+    expect(reads.filter(url => url.pathname.endsWith('/review-first'))).toHaveLength(firstReads);
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Đóng hộp thoại' }));
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' }), other.customerCode);
-    await waitFor(() => expect(select).toHaveValue(other.batchId));
-    expect(pager).toHaveTextContent('1 lô');
+    await waitFor(() => expect(reads.some(url => url.pathname.endsWith('/review-other'))).toBe(true));
     expect(reads.some(url => url.searchParams.get('CustomerId') === other.customerId && url.searchParams.get('PageNumber') === '2')).toBe(false);
   });
 
@@ -872,7 +917,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(await screen.findByText('Ghi nhận cũ hơn')).toBeVisible();
     expect(reads).toContain('/api/reconciliation/reports/audit-trail?pageNumber=2&pageSize=50&batchId=audit-batch-a');
     expect(within(pager).getByRole('button', { name: 'Trang sau' })).toBeDisabled();
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn lô đối soát' }), second.batchId);
+    await selectReviewBatch(second.batchId);
     expect(await screen.findByText('Nhật ký lô thứ hai')).toBeVisible();
     expect(screen.getByRole('navigation', { name: 'Phân trang nhật ký kiểm toán' })).toHaveTextContent('Trang 1/2');
     expect(reads.some(path => path.includes('pageNumber=2') && path.includes(second.batchId))).toBe(false);
@@ -905,13 +950,13 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
       return Response.json({ success: true, data });
     });
 
-    renderReconciliation('/reconciliation?view=transactions');
+    renderReconciliation('/reconciliation?view=transactions&date=2026-09-21');
 
     expect(await screen.findByText('PX-PAGE-1')).toBeInTheDocument();
     expect(within(screen.getByRole('table')).getByText('Gạo')).toBeVisible();
     expect(within(screen.getByRole('table')).getByText(/1 kg/)).toBeVisible();
     expect(screen.getByRole('navigation', { name: 'Phân trang giao dịch kho' })).toHaveTextContent('Phân trang giao dịch kho');
-    expect(screen.getByRole('navigation', { name: 'Phân trang danh sách lô giám sát' })).toHaveTextContent('1 lô');
+    expect(screen.queryByRole('navigation', { name: 'Phân trang danh sách lô giám sát' })).not.toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Phân trang giao dịch kho' })).toHaveTextContent('Trang 1/2 · 26 kết quả');
     await userEvent.click(within(screen.getByRole('navigation', { name: 'Phân trang giao dịch kho' })).getByRole('button', { name: 'Trang sau' }));
 
@@ -943,15 +988,25 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
         actorName: 'Thủ kho', createdAt: '2026-10-19T05:00:00Z', reason: null }],
       totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false,
     });
-    const history = vi.spyOn(mrxApi, 'getTransactionsHistory').mockImplementation(async (query = {}) => report(query.batchId!, query.batchId === batchB ? 'PX-B' : 'PX-A'));
+    const history = vi.spyOn(apiTransport, 'apiClient').mockImplementation(async path => {
+      const url = new URL(path, 'http://localhost');
+      if (!url.pathname.endsWith('/transactions-history')) throw new Error(`Unexpected report read ${path}`);
+      const batchId = url.searchParams.get('batchId')!;
+      return report(batchId, batchId === batchB ? 'PX-B' : 'PX-A');
+    });
     renderReconciliation(`/reconciliation?view=transactions&batchId=${batchA}`);
     expect(await screen.findByText('PX-A')).toBeInTheDocument();
-    const select = screen.getByRole('combobox', { name: 'Chọn lô đối soát' });
-    await waitFor(() => expect(select).toBeEnabled());
-    await userEvent.selectOptions(select, batchB);
+    expect(screen.getByRole('combobox', { name: 'Tháng đối soát' })).toHaveValue('10');
+    let resolveBatchB!: (value: ReturnType<typeof report>) => void;
+    history.mockImplementationOnce(() => new Promise(resolve => { resolveBatchB = resolve; }));
+    await selectReviewBatch(batchB);
+    await waitFor(() => expect(history).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('PX-A')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải Excel Lịch sử kho' })).toBeDisabled();
+    await act(async () => { resolveBatchB(report(batchB, 'PX-B')); });
     expect(await screen.findByText('PX-B')).toBeInTheDocument();
     expect(screen.queryByText('PX-A')).not.toBeInTheDocument();
-    await userEvent.selectOptions(select, batchA);
+    await selectReviewBatch(batchA);
     expect(await screen.findByText('PX-A')).toBeInTheDocument();
     expect(screen.queryByText('PX-B')).not.toBeInTheDocument();
     expect(history).toHaveBeenCalledTimes(2);
@@ -960,11 +1015,43 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     history.mockImplementationOnce(() => new Promise((resolve) => { resolveRefresh = resolve; }));
     await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
     await waitFor(() => expect(history).toHaveBeenCalledTimes(3));
-    await userEvent.selectOptions(select, batchB);
+    expect(screen.getByText('PX-A')).toBeInTheDocument();
+    expect(screen.getAllByRole('table')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Tải Excel Lịch sử kho' })).toBeDisabled();
+    expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
+    await selectReviewBatch(batchB);
     expect(await screen.findByText('PX-B')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Tải Excel Lịch sử kho' })).toBeEnabled());
     await act(async () => { resolveRefresh(report(batchA, 'PX-A-DELAYED')); });
     expect(screen.queryByText('PX-A-DELAYED')).not.toBeInTheDocument();
     expect(screen.getByText('PX-B')).toBeInTheDocument();
+
+    const retainedTable = screen.getByRole('table');
+    const scroller = retainedTable.parentElement!;
+    scroller.scrollTop = 40;
+    let failRefresh!: (error: Error) => void;
+    history.mockImplementationOnce(() => new Promise((_, reject) => { failRefresh = reject; }));
+    await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
+    expect(retainedTable.closest('.opacity-70')).toBeNull();
+    await act(async () => failRefresh(new ApiError(500, 'Lỗi làm mới cùng phạm vi')));
+    expect(await screen.findByText('Lỗi làm mới cùng phạm vi')).toBeVisible();
+    expect(screen.getByRole('table')).toBe(retainedTable);
+    expect(scroller.scrollTop).toBe(40);
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+    await waitFor(() => expect(screen.queryByText('Lỗi làm mới cùng phạm vi')).not.toBeInTheDocument());
+    expect(screen.getByRole('table')).toBe(retainedTable);
+
+    history.mockRejectedValueOnce(new ApiError(403, 'Không còn quyền đọc báo cáo'));
+    await userEvent.click(screen.getByRole('button', { name: 'Làm mới' }));
+    expect(await screen.findByText('Không còn quyền đọc báo cáo')).toBeVisible();
+    expect(screen.queryByText('PX-B')).not.toBeInTheDocument();
+    let finishRetry!: (value: ReturnType<typeof report>) => void;
+    history.mockImplementationOnce(() => new Promise(resolve => { finishRetry = resolve; }));
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+    await waitFor(() => expect(finishRetry).toBeTypeOf('function'));
+    expect(screen.queryByText('PX-B')).not.toBeInTheDocument();
+    await act(async () => finishRetry(report(batchB, 'PX-B-REAUTHORIZED')));
+    expect(await screen.findByText('PX-B-REAUTHORIZED')).toBeVisible();
   });
 
   it('shows report failures with retry instead of old rows or a successful empty table', async () => {
@@ -1011,7 +1098,7 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     await userEvent.click(docBtn);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText(/Chi tiết phiếu xuất kho: ISS-20260912-160015-C97F/)).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Chi tiết phiếu xuất kho' })).toHaveTextContent('ISS-20260912-160015-C97F');
     expect(screen.getByText('Xà lách')).toBeInTheDocument();
   });
 
@@ -1039,7 +1126,8 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     );
 
     await waitFor(() => expect(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' })).toHaveValue('ANV'));
-    expect(screen.getByRole('textbox', { name: 'Ngày đối soát' })).toHaveValue('19/10/2026'); // Monday of Sunday 2026-10-25
+    expect(screen.getByRole('combobox', { name: 'Tháng đối soát' })).toHaveValue('10');
+    expect(screen.queryByRole('group', { name: 'Ngày đối soát' })).not.toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', { name: 'Chuyển đến Chuẩn bị lô đối soát' }));
     expect(await screen.findByTestId('weekly-target')).toHaveTextContent('?view=mrx-batch&customerId=customer-2');
     unmount();
@@ -1121,158 +1209,4 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(within(dispositionDialog).getByText(/Nhu cầu đã khóa:/i)).toBeVisible();
   });
 
-  it('B5: ReconciliationDashboardPage persists customerId and period in URL searchParams and computes period bounds from business timezone', async () => {
-    vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue({
-      pendingSourceChangesCount: 0,
-      awaitingWarehouseBatchesCount: 1,
-      unresolvedVariancesCount: 0,
-      completionReadyBatchesCount: 0,
-      customerOptions: [{ customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' }],
-      items: [],
-    });
-    const getBatchPageSpy = vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
-      items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
-    });
-
-    render(
-      <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
-        <MemoryRouter initialEntries={['/?customerId=customer-1&period=THIS_YEAR']}>
-          <Routes>
-            <Route path="/" element={<ReconciliationDashboardPage />} />
-          </Routes>
-        </MemoryRouter>
-      </AuthProvider>
-    );
-
-    await waitFor(() => expect(getBatchPageSpy).toHaveBeenCalledWith(expect.objectContaining({
-      customerId: 'customer-1',
-      weekFrom: '2026-01-01',
-      weekTo: '2026-12-31',
-    })));
-    expect(screen.getByRole('combobox', { name: 'Lọc theo khách hàng' })).toHaveValue('customer-1');
-    expect(screen.getByRole('combobox', { name: 'Kỳ thời gian' })).toHaveValue('THIS_YEAR');
-  });
-
-  it('C3 & C5: keeps previous reconciliation lines visible with progressbar during date switch and never flashes empty state while switching customers', async () => {
-    let resolveDate2!: (value: typeof MOCK_RECONCILIATION) => void;
-    const date2Promise = new Promise<typeof MOCK_RECONCILIATION>((resolve) => {
-      resolveDate2 = resolve;
-    });
-    let resolveCustomer2Batches!: (value: Awaited<ReturnType<typeof mrxApi.getBatchPage>>) => void;
-    const customer2BatchesPromise = new Promise<Awaited<ReturnType<typeof mrxApi.getBatchPage>>>((resolve) => {
-      resolveCustomer2Batches = resolve;
-    });
-
-    vi.mocked(weeklyMenuApi.getCustomers).mockResolvedValue([
-      { customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
-      { customerId: 'customer-2', customerCode: 'KH2', customerName: 'Khách hàng 2' },
-    ]);
-    vi.mocked(mrxApi.getBatchPage).mockImplementation(async (params) => {
-      if (params?.customerId === 'customer-2') {
-        return customer2BatchesPromise;
-      }
-      return {
-        items: [{
-          batchId: MOCK_RECONCILIATION.batchId,
-          customerId: 'customer-1',
-          customerCode: 'DAV',
-          customerName: 'Draxlmaier',
-          weekStartDate: '2026-10-19',
-          weekEndDate: '2026-10-25',
-          status: 'IN_PROGRESS',
-          version: 1,
-          createdAt: '2026-10-19T00:00:00Z',
-        }],
-        totalCount: 1,
-        pageNumber: 1,
-        pageSize: 100,
-        totalPages: 1,
-        hasPrev: false,
-        hasNext: false,
-      };
-    });
-    vi.mocked(mrxApi.getBatchSummary).mockImplementation(async (batchId, date) => {
-      if (date === '2026-10-20') {
-        return date2Promise;
-      }
-      return {
-        ...MOCK_RECONCILIATION,
-        batchId,
-        weekStartDate: '2026-10-19',
-        weekEndDate: '2026-10-25',
-      };
-    });
-
-    renderReconciliation('/reconciliation?batchId=b1&date=2026-10-19');
-    expect(await screen.findByRole('button', { name: 'Thịt đùi heo tươi' })).toBeInTheDocument();
-
-    const dateInput = screen.getByLabelText('Ngày đối soát');
-    await userEvent.clear(dateInput);
-    await userEvent.type(dateInput, '20/10/2026');
-    await userEvent.tab();
-
-    expect(screen.getByRole('button', { name: 'Thịt đùi heo tươi' })).toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Đang tải trang' })).toBeInTheDocument();
-
-    await act(async () => {
-      resolveDate2({
-        ...MOCK_RECONCILIATION,
-        weekStartDate: '2026-10-19',
-        weekEndDate: '2026-10-25',
-      });
-    });
-
-    await waitFor(() => {
-      expect(screen.queryByRole('progressbar', { name: 'Đang tải trang' })).not.toBeInTheDocument();
-    });
-
-    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' }), 'KH2');
-
-    expect(screen.queryByText('Chưa có dữ liệu đối soát cho ngày đã chọn')).not.toBeInTheDocument();
-
-    await act(async () => {
-      resolveCustomer2Batches({
-        items: [],
-        totalCount: 0,
-        pageNumber: 1,
-        pageSize: 100,
-        totalPages: 0,
-        hasPrev: false,
-        hasNext: false,
-      });
-    });
-
-    expect(await screen.findByText('Chưa có dữ liệu đối soát cho ngày đã chọn')).toBeInTheDocument();
-  });
-
-  it('renders Vietnamese label "Chưa xuất đủ" with warning badge for INCOMPLETE under-issued lines in grid and detail modal without leaking raw INCOMPLETE', async () => {
-    vi.mocked(mrxApi.getBatchSummary).mockResolvedValue({
-      ...MOCK_RECONCILIATION,
-      weekStartDate: '2026-10-19',
-      lines: [{
-        ...MOCK_RECONCILIATION.lines[0],
-        materialCode: 'ING-A80C477433',
-        materialName: 'Cà rốt',
-        requiredQuantity: 1.174544,
-        issuedQuantity: 1,
-        issuedRequiredDifference: -0.174544,
-        status: 'INCOMPLETE',
-        triggers: [],
-        disposition: undefined,
-      }],
-    });
-
-    renderReconciliation('/reconciliation');
-    const detailBtn = await screen.findByRole('button', { name: 'Cà rốt' });
-    const row = screen.getByRole('row', { name: /Cà rốt/ });
-    expect(within(row).getByText('-0,174544', { exact: true })).toBeVisible();
-    expect(within(row).getByText('Chưa xuất đủ', { exact: true })).toBeVisible();
-    expect(within(row).getByText('Chờ Kho xuất bổ sung', { exact: true })).toBeVisible();
-    expect(screen.queryByText('INCOMPLETE')).not.toBeInTheDocument();
-
-    await userEvent.click(detailBtn);
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Chưa xuất đủ', { exact: true })).toBeVisible();
-    expect(within(dialog).queryByText('INCOMPLETE')).not.toBeInTheDocument();
-  });
 });

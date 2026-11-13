@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { mrxApi, type MrxWarehouseDaily, type MrxIssuePage, type MrxBatchSummary, type MrxBatchPage } from '../../../api/mrxApi';
 import { ApiError } from '../../../api/client';
 import { invalidateMrxCaches } from '../../../api/mrxCacheInvalidation';
-import { serverStateCache } from '../../../store/serverStateCache';
+import { getCachedArray, serverStateCache } from '../../../store/serverStateCache';
 import { workspaceSessionStore } from '../../../store/workspaceSessionStore';
 import { useWorkbenchQuery } from '../../../hooks/useWorkbenchQuery';
 import { isServiceDate, todayInBusinessTimezone, weekStartFor } from '../../../utils/dates';
@@ -33,7 +33,7 @@ export function useMrxDailyWorkspace({
   const { user } = useAuth();
 
   const sessionScope = workspaceSessionStore.getScope();
-  const cachedBatches = serverStateCache.get<MrxBatchSummary[]>('mrx_daily_batches')?.data;
+  const cachedBatches = getCachedArray<MrxBatchSummary>('mrx_daily_batches');
   const [snapshot] = useState(() => serverStateCache.get<MrxDailyCachedPayload>('snapshot:mrx_daily')?.data);
   const [batches, setBatches] = useState<MrxBatchSummary[]>(() => cachedBatches ?? []);
   const [catalogLoading, setCatalogLoading] = useState(!cachedBatches);
@@ -45,16 +45,20 @@ export function useMrxDailyWorkspace({
 
   const explicitBatchId = propBatchId || searchParams.get('batchId') || '';
   const explicitDate = propServiceDate || searchParams.get('date') || '';
-  const resolvedInitialBatchId = explicitBatchId || snapshot?.activeBatchId || sessionScope.batchId || cachedBatches?.[0]?.batchId || '';
+  const hasSessionSelection = Boolean(sessionScope.customerId || sessionScope.customerCode || sessionScope.weekStartDate);
+  const matchingSessionBatch = cachedBatches?.find(batch => batch.customerId === sessionScope.customerId && batch.weekStartDate === sessionScope.weekStartDate)
+    || cachedBatches?.find(batch => batch.customerId === sessionScope.customerId);
+  const resolvedInitialBatchId = explicitBatchId || sessionScope.batchId || (hasSessionSelection ? matchingSessionBatch?.batchId : cachedBatches?.[0]?.batchId) || '';
   const initialCache = resolvedInitialBatchId
     ? serverStateCache.get<MrxDailyCachedPayload>(`mrx_daily_${resolvedInitialBatchId}`)?.data
     : null;
   const urlDate = explicitDate || null;
   const initialDailyCandidate = initialCache?.daily ?? initialCache?.data?.daily ?? snapshot?.daily ?? snapshot?.data?.daily;
   const initialDaily = initialDailyCandidate?.batchId === resolvedInitialBatchId ? initialDailyCandidate : null;
-  const matchedDateInDaily = initialDaily?.dates.find((date) => date.serviceDate === (urlDate || snapshot?.activeDate || sessionScope.serviceDate));
+  const rememberedDate = sessionScope.batchId === resolvedInitialBatchId ? sessionScope.serviceDate : '';
+  const matchedDateInDaily = initialDaily?.dates.find((date) => date.serviceDate === (urlDate || rememberedDate));
   const fallbackDailyDate = initialDaily?.dates[0]?.serviceDate;
-  const resolvedInitialDate = urlDate || (matchedDateInDaily ? matchedDateInDaily.serviceDate : (fallbackDailyDate || snapshot?.activeDate || sessionScope.serviceDate || todayInBusinessTimezone()));
+  const resolvedInitialDate = urlDate || (matchedDateInDaily ? matchedDateInDaily.serviceDate : (fallbackDailyDate || rememberedDate || todayInBusinessTimezone()));
 
   const [selectedDate, setActiveDate] = useState(() => resolvedInitialDate);
   const [dateValidationError, setDateValidationError] = useState<string | null>(null);
@@ -168,14 +172,25 @@ export function useMrxDailyWorkspace({
   });
   const { data: queryPayload, stateProps, refetch: load } = dailyQuery;
 
-  const daily = queryPayload?.daily?.batchId === activeBatchId ? queryPayload.daily : null;
+  const isLegacyMissing = Boolean(stateProps.isPartial || stateProps.error?.message.includes('LEGACY_DAILY_LINEAGE_MISSING'));
+  const isTransitioningBatch = Boolean(
+    queryPayload?.daily &&
+    queryPayload.daily.batchId !== activeBatchId &&
+    !stateProps.error &&
+    !isLegacyMissing &&
+    batches.some((b) => b.batchId === queryPayload.daily?.batchId)
+  );
+  const daily = queryPayload?.daily?.batchId === activeBatchId
+    ? queryPayload.daily
+    : (isTransitioningBatch ? (queryPayload?.daily ?? null) : null);
   const activeDate = resolveActiveDate(daily);
   const isWeeklyAll = activeDate === 'ALL';
   useEffect(() => {
-    if (!activeBatchId || !daily) return;
+    if (!activeBatchId || !daily || daily.batchId !== activeBatchId) return;
     workspaceSessionStore.setScope({ batchId: activeBatchId, serviceDate: activeDate, weekStartDate: activeDate === 'ALL' ? undefined : weekStartFor(activeDate) });
   }, [activeBatchId, activeDate, daily]);
-  const history = daily && queryPayload?.history?.pageNumber === historyPage ? queryPayload.history : null;
+  const history = daily ? (queryPayload?.history ?? null) : null;
+  const isTransitioningHistoryPage = Boolean(queryPayload?.history && queryPayload.history.pageNumber !== historyPage);
 
   const draftScope = `${user?.userId}_${activeBatchId}_${activeDate}_${daily?.sourceVersion}`;
   const quantities = draft.scope === draftScope || issueOutcomeUnknown ? draft.quantities : {};
@@ -193,11 +208,13 @@ export function useMrxDailyWorkspace({
   const explicitBatchIdRef = useRef(explicitBatchId);
   const sessionScopeRef = useRef(sessionScope);
 
+  const setSearchParamsRef = useRef(setSearchParams);
   useEffect(() => {
     activeBatchIdRef.current = activeBatchId;
     explicitBatchIdRef.current = explicitBatchId;
     sessionScopeRef.current = sessionScope;
-  }, [activeBatchId, explicitBatchId, sessionScope]);
+    setSearchParamsRef.current = setSearchParams;
+  }, [activeBatchId, explicitBatchId, sessionScope, setSearchParams]);
 
   useEffect(() => {
     if (!scopeLocked) {
@@ -241,12 +258,14 @@ export function useMrxDailyWorkspace({
         if (curBatchId) return;
         const sessionBatch = curSession.batchId;
         const matched = (sessionBatch && items.find((b) => b.batchId === sessionBatch)) ||
-          (curSession.customerId && items.find((b) => b.customerId === curSession.customerId)) ||
-          items.find((b) => b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS') || items[0];
+          (curSession.customerId
+            ? items.find(b => b.customerId === curSession.customerId && b.weekStartDate === curSession.weekStartDate)
+              || items.find((b) => b.customerId === curSession.customerId)
+            : items.find((b) => b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS') || items[0]);
         if (matched) {
           setActiveBatchId(matched.batchId);
           workspaceSessionStore.setScope({ batchId: matched.batchId, customerId: matched.customerId, customerCode: matched.customerCode || '', customerName: matched.customerName || '' });
-          setSearchParams((curr) => { const next = new URLSearchParams(curr); next.set('batchId', matched.batchId); return next; }, { replace: true });
+          setSearchParamsRef.current((curr) => { const next = new URLSearchParams(curr); next.set('batchId', matched.batchId); return next; }, { replace: true });
         }
       }
     }).catch((cause: unknown) => {
@@ -255,7 +274,7 @@ export function useMrxDailyWorkspace({
       setCatalogError(cause instanceof Error ? cause : new Error('Không thể tải danh sách lô.'));
     });
     return () => { ignore = true; };
-  }, [setSearchParams, catalogRetry, catalogPage]);
+  }, [catalogRetry, catalogPage]);
 
   const day = daily?.dates.find((item) => item.serviceDate === activeDate);
   const lines = useMemo(() => day?.lines.filter((l) => l.requiredQuantity > 0) ?? [], [day]);
@@ -270,14 +289,16 @@ export function useMrxDailyWorkspace({
       const raw = localStorage.getItem(draftKey);
       if (!raw) return null;
       const saved = JSON.parse(raw);
-      if (saved.outcomeUnknown || saved.version !== daily.sourceVersion) return null;
+      if (saved.version !== daily.sourceVersion) return null;
+      if (saved.outcomeUnknown && (typeof saved.commandId !== 'string'
+        || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(saved.commandId))) return null;
       const ids = new Set(lines.map((line) => line.dailyLineId));
       const validRecord = (value: unknown): value is Record<string, string> =>
         value !== null && typeof value === 'object' && !Array.isArray(value)
         && Object.entries(value).every(([id, text]) => ids.has(id) && typeof text === 'string');
       if (!validRecord(saved.quantities) || !validRecord(saved.reasons)
         || Object.keys(saved.quantities).length !== ids.size) return null;
-      return { quantities: saved.quantities, reasons: saved.reasons };
+      return { quantities: saved.quantities, reasons: saved.reasons, commandId: saved.outcomeUnknown ? saved.commandId as string : undefined };
     } catch {
       return null;
     }
@@ -287,9 +308,9 @@ export function useMrxDailyWorkspace({
     if (!draftKey || !restorableDraft) return;
     setQuantities(restorableDraft.quantities);
     setReasons(restorableDraft.reasons);
+    attemptedCommand.current.initial = restorableDraft.commandId;
     setRestoredDraftKey(draftKey);
   };
-  const isLegacyMissing = Boolean(stateProps.isPartial || stateProps.error?.message.includes('LEGACY_DAILY_LINEAGE_MISSING'));
 
   const weeklyAggregateLines = useMemo(() => {
     if (!daily?.dates) return [];
@@ -325,16 +346,17 @@ export function useMrxDailyWorkspace({
     setSaving(true);
     setMutationError(null);
     setIssueSuccessScope('');
+    const commandId = attemptedCommand.current.initial ??= crypto.randomUUID();
     if (draftKey) {
       try {
-        localStorage.setItem(draftKey, JSON.stringify({ version: daily.sourceVersion, quantities, reasons, outcomeUnknown: true }));
+        localStorage.setItem(draftKey, JSON.stringify({ version: daily.sourceVersion, quantities, reasons, commandId, outcomeUnknown: true }));
       } catch {
         // Retain the in-memory draft if browser storage is unavailable.
       }
     }
     try {
       const receipt = await mrxApi.createIssue({
-        commandId: attemptedCommand.current.initial ??= crypto.randomUUID(),
+        commandId,
         expectedVersion: daily.sourceVersion,
         issueDate: activeDate,
         reconciliationBatchId: activeBatchId,
@@ -450,7 +472,11 @@ export function useMrxDailyWorkspace({
     weeklyAggregateLines,
     hasInitialIssue,
     isLegacyMissing,
-    stateProps,
+    stateProps: {
+      ...stateProps,
+      isPreviousData: stateProps.isPreviousData || isTransitioningBatch || isTransitioningHistoryPage,
+      hasExistingData: Boolean(daily),
+    },
     load,
     quantities,
     hasRestorableIssueDraft: Boolean(restorableDraft),

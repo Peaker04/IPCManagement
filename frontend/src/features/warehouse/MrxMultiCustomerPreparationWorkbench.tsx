@@ -54,7 +54,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
     return { ...line, allocations, filteredRequired: allocations.reduce((sum, allocation) => sum + allocation.requiredQuantity, 0) };
   }).filter(line => line.filteredRequired > 0), [data, activeSelectedBatchIds]);
   const columns = useMemo<ColumnDef<MrxFilteredPreparationLine>[]>(() => [
-    { id: 'ingredient', header: 'Nguyên liệu', width: activeBatches.length > 1 ? '320px' : undefined, cell: line => <div className="min-w-0 py-1 flex flex-wrap items-center gap-x-2"><span className="text-sm font-semibold text-slate-900 break-words">{line.ingredientName}</span>{line.ingredientCode && <IdentifierText value={line.ingredientCode} />}</div> },
+    { id: 'ingredient', header: 'Nguyên liệu', width: '320px', cell: line => <div className="min-w-0 py-1 flex flex-wrap items-center gap-x-2"><span className="text-sm font-semibold text-slate-900 break-words">{line.ingredientName}</span>{line.ingredientCode && <IdentifierText value={line.ingredientCode} />}</div> },
     { id: 'required', header: 'Cần chuẩn bị', width: '200px', align: 'right', cell: line => <Num value={line.filteredRequired} format="plain" decimals={6} suffix={` ${line.canonicalUnitName ?? ''}`} className="font-semibold text-slate-900" /> },
     ...(activeBatches.length > 1 ? activeBatches.map(batch => ({
       id: batch.batchId,

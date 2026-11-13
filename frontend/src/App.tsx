@@ -4,26 +4,27 @@ import { AuthProvider } from './store/authContext';
 import { useAuth } from './store/useAuth';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 import { AppShell } from './components/workbench/AppShell';
+import { RouteWorkbenchLoadingFallback } from './routes/RouteWorkbenchLoadingFallback';
 import { LoginPage } from './features/auth/LoginPage';
 import { ForbiddenPage } from './features/auth/ForbiddenPage';
 import { CANONICAL_ROUTES } from './routes/routeRegistry';
 import { isRouteEligible, resolveEligibleNavigation, resolveLandingPath } from './routes/navigationEligibility';
 import { DirtyNavigationProvider } from './components/workbench/DirtyNavigation';
 import { RoleGuard } from './routes/RoleGuard';
+import { ReconciliationDashboardPage } from './features/dashboard/ReconciliationDashboardPage';
+import { WeeklyMenuPage } from './features/weekly-menu/WeeklyMenuPage';
+import { ChefDashboardPage } from './features/chef/ChefDashboardPage';
+import { WarehousePage } from './features/warehouse/WarehousePage';
+import { ReconciliationPage } from './features/reconciliation/ReconciliationPage';
+import { AdminDataPage } from './features/admin/AdminDataPage';
+import { ApprovalRulesPage } from './features/admin/ApprovalRulesPage';
+import { AdvancedSettingsPage } from './features/admin/AdvancedSettingsPage';
 
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
-const ReconciliationDashboardPage = lazy(() => import('./features/dashboard/ReconciliationDashboardPage').then((m) => ({ default: m.ReconciliationDashboardPage })));
-const WeeklyMenuPage = lazy(() => import('./features/weekly-menu/WeeklyMenuPage').then((m) => ({ default: m.WeeklyMenuPage })));
 const MealOrdersPage = lazy(() => import('./features/coordination/MealOrdersPage').then((m) => ({ default: m.MealOrdersPage })));
-const ChefDashboardPage = lazy(() => import('./features/chef/ChefDashboardPage').then((m) => ({ default: m.ChefDashboardPage })));
 const PurchasingPage = lazy(() => import('./features/purchasing/PurchasingPage').then((m) => ({ default: m.PurchasingPage })));
-const WarehousePage = lazy(() => import('./features/warehouse/WarehousePage').then((m) => ({ default: m.WarehousePage })));
 const ApprovalPage = lazy(() => import('./features/approvals/ApprovalPage').then((m) => ({ default: m.ApprovalPage })));
-const ReconciliationPage = lazy(() => import('./features/reconciliation/ReconciliationPage').then((m) => ({ default: m.ReconciliationPage })));
 const ReportsPage = lazy(() => import('./features/reports/ReportsPage').then((m) => ({ default: m.ReportsPage })));
-const AdminDataPage = lazy(() => import('./features/admin/AdminDataPage').then((m) => ({ default: m.AdminDataPage })));
-const ApprovalRulesPage = lazy(() => import('./features/admin/ApprovalRulesPage').then((m) => ({ default: m.ApprovalRulesPage })));
-const AdvancedSettingsPage = lazy(() => import('./features/admin/AdvancedSettingsPage').then((m) => ({ default: m.AdvancedSettingsPage })));
 
 const getRouteRoles = (path: string) => CANONICAL_ROUTES.find((r) => r.path === path)?.allowedRoles;
 
@@ -46,7 +47,7 @@ function AuthorizedAppShell() {
     user ?? {},
     operationalMode
   );
-  return <AppShell navigation={eligibleRoutes} homePath="/" />;
+  return <AppShell navigation={eligibleRoutes} homePath="/" loadingFallback={<RouteWorkbenchLoadingFallback />} />;
 }
 
 export function App() {
@@ -54,10 +55,17 @@ export function App() {
     <AuthProvider
       resolveLanding={(user, mode) => resolveLandingPath(CANONICAL_ROUTES, user, mode)}
       resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}
+      onIdleExpired={() => window.location.replace('/login')}
     >
       <BrowserRouter>
         <DirtyNavigationProvider>
-        <Suspense fallback={<div className="flex-1 min-h-0 w-full bg-white" aria-busy="true" />}>
+        <Suspense
+          fallback={
+            <div className="app-bootstrap" role="status">
+              Đang tải không gian làm việc…
+            </div>
+          }
+        >
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<LoginPage />} />

@@ -18,6 +18,14 @@ let finishUpdate: (() => void) | null;
 let holdUpdate: boolean;
 let updateAccepted: boolean;
 
+it('reserves a deferred cold table and keeps tier loading outside visual layout', () => {
+  vi.mocked(transport.apiClient).mockImplementation(() => new Promise(() => {}));
+  render(<DishBomEditorModal isOpen dish={dish} onClose={vi.fn()} readOnly />);
+  expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-loading-phase', 'reserved');
+  expect(screen.getByText('Đang tải mốc giá BOM…')).toHaveClass('sr-only');
+  expect(screen.getByRole('radiogroup', { name: 'Mốc giá BOM' })).toHaveClass('min-h-7');
+});
+
 beforeEach(() => {
   vi.restoreAllMocks();
   lines = [];

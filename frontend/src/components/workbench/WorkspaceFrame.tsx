@@ -19,7 +19,7 @@ export interface WorkspaceFrameBodyProps {
 
 function WorkspaceFrameRoot({ children, className }: WorkspaceFrameRootProps) {
   return (
-    <div className={twMerge(clsx('flex-1 min-h-0 w-full flex flex-col bg-slate-50 overflow-hidden', className))}>
+    <div data-slot="workspace-frame" className={twMerge(clsx('flex-1 min-h-0 w-full flex flex-col bg-slate-50 overflow-hidden', className))}>
       {children}
     </div>
   );

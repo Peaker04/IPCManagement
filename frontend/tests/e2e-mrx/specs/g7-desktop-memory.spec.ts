@@ -5,6 +5,7 @@ import AxeBuilder from '@axe-core/playwright';
 import { test, expect } from '../fixtures/mrxTest';
 import { createTransferredBatch, scenarioScope } from '../fixtures/mrxWorkflow';
 import { loginRole } from '../fixtures/authHelpers';
+import { readOwnedSnapshot } from '../core/ownedSnapshot';
 
 const directory = () => process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
 test.use({ actionTimeout: 15_000, navigationTimeout: 30_000 });
@@ -86,7 +87,7 @@ test('@G7-Memory thirty comparable route/dialog/Escape cycles with settled post-
   let failedRequests = 0;
   adminPage.on('requestfailed', () => { failedRequests++; });
   await adminPage.goto(weeklyUrl);
-  await expect(adminPage.getByRole('button', { name: 'Nhập lại Excel', exact: true })).toBeVisible();
+  await expect(adminPage.getByRole('button', { name: 'Nhập Excel', exact: true })).toBeVisible();
   await expect(adminPage.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue(scope.serviceDate.split('-').reverse().join('/'));
   await adminPage.waitForLoadState('networkidle');
   const timeOrigin = await adminPage.evaluate(() => performance.timeOrigin);
@@ -97,12 +98,16 @@ test('@G7-Memory thirty comparable route/dialog/Escape cycles with settled post-
     const metrics = await cdp.send('Memory.getDOMCounters');
     const heap = await cdp.send('Runtime.getHeapUsage');
     const file = path.join(privateDirectory, `cycle-${cycle}.heapsnapshot`);
-    const descriptor = fs.openSync(file, 'wx');
+    const descriptor = fs.openSync(file, 'wx+');
     const receive = (entry: { chunk: string }) => fs.writeSync(descriptor, entry.chunk);
     cdp.on('HeapProfiler.addHeapSnapshotChunk', receive);
-    try { await cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false }); }
+    let ownedSnapshot: ReturnType<typeof readOwnedSnapshot>;
+    try {
+      await cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false });
+      ownedSnapshot = readOwnedSnapshot(descriptor);
+    }
     finally { cdp.off('HeapProfiler.addHeapSnapshotChunk', receive); fs.closeSync(descriptor); }
-    const snapshot = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const snapshot = JSON.parse(ownedSnapshot.content);
     const fields: string[] = snapshot.snapshot.meta.node_fields;
     const detachedIndex = fields.indexOf('detachedness');
     const nameIndex = fields.indexOf('name');
@@ -115,7 +120,7 @@ test('@G7-Memory thirty comparable route/dialog/Escape cycles with settled post-
       }
     }
     expect(await adminPage.evaluate(() => performance.timeOrigin)).toBe(timeOrigin);
-    checkpoints.push({ cycle, metrics, heap, detachedNames: names, failedRequests, snapshotBytes: fs.statSync(file).size });
+    checkpoints.push({ cycle, metrics, heap, detachedNames: names, failedRequests, snapshotBytes: ownedSnapshot.bytes });
     write('memory-checkpoints.json', { checkpoints, limitation: 'Same-document SPA route/filter/modal/Escape cycles only; no export cancellation, exhaustive retaining-path or managed-allocation certification. Raw snapshots retained in run-user-only private diagnostics.' });
     console.log(`[MEMORY] ${cycle}/30 settled same-document cycles, private post-GC snapshot recorded.`);
   };
@@ -137,7 +142,7 @@ test('@G7-Memory thirty comparable route/dialog/Escape cycles with settled post-
     await adminPage.getByRole('link', { name: 'Chuẩn bị lô đối soát', exact: true }).click();
     await expect(adminPage.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue(scope.serviceDate.split('-').reverse().join('/'));
     await adminPage.waitForTimeout(3000);
-    await adminPage.getByRole('button', { name: 'Nhập lại Excel', exact: true }).click();
+    await adminPage.getByRole('button', { name: 'Nhập Excel', exact: true }).click();
     await expect(adminPage.getByRole('dialog')).toBeVisible();
     await adminPage.waitForTimeout(3000);
     await adminPage.keyboard.press('Escape');

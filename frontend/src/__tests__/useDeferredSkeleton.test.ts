@@ -37,6 +37,21 @@ describe('useDeferredSkeleton Hook — 150ms Doherty Threshold & Min Duration Ga
     expect(result.current).toBe(false);
   });
 
+  it('starts a fresh delay for an immediate second read after a visible indicator', () => {
+    const { result, rerender } = renderHook(({ loading }) => useDeferredSkeleton(loading, 150, 0), { initialProps: { loading: true } });
+    act(() => vi.advanceTimersByTime(160));
+    expect(result.current).toBe(true);
+    rerender({ loading: false });
+    expect(result.current).toBe(false);
+    // No timer tick between settlement and the next request.
+    rerender({ loading: true });
+    expect(result.current).toBe(false);
+    act(() => vi.advanceTimersByTime(149));
+    expect(result.current).toBe(false);
+    act(() => vi.advanceTimersByTime(1));
+    expect(result.current).toBe(true);
+  });
+
   it('displays skeleton when loading exceeds 150ms', () => {
     const { result } = renderHook(
       ({ loading }) => useDeferredSkeleton(loading, 150, 250),

@@ -15,7 +15,7 @@ import { IdentifierText } from '../../components/ui/identifier-text';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import { reportsApi, type ReportPage, type DemandReportItem, type PriceVarianceReportItem, type CurrentStockReportItem } from '../../api/reportsApi';
 import { formatVietnameseDateTime } from '../../utils/dates';
-import { serverStateCache } from '../../store/serverStateCache';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import { useAuth } from '../../store/useAuth';
 import type { CustomerOption } from '../../types';
 
@@ -40,7 +40,7 @@ export function ReportsPage() {
   const view = searchParams.get('view');
   const activeView = view === 'demand' || view === 'prices' || view === 'stock' ? view : (snapshot?.activeView || 'demand');
   const [period, setPeriod] = useState(() => snapshot?.period || currentPeriod());
-  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const cachedCustomers = getCachedArray<CustomerOption>('catalog_customers');
   const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
   const [isCustomersLoading, setIsCustomersLoading] = useState(cachedCustomers === undefined);
   const [customerRetry, setCustomerRetry] = useState(0);

@@ -1,4 +1,6 @@
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -10,7 +12,9 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using IPCManagement.Api.Security;
 using MySqlConnector;
 
 namespace IPCManagement.Api.Features.Reconciliation.Services;
@@ -19,21 +23,28 @@ public sealed class ReconciliationQuantityImportService(
     IpcManagementContext context,
     IEfTransactionRunner transactions,
     SystemOperationRequestContext requestContext,
-    IMemoryCache cache,
+    IOptions<JwtSettings> jwtSettings,
     ReconciliationBatchService batchService)
 {
     internal const int CurrentFingerprintFormatVersion = 3;
     private static readonly TimeSpan PreviewLifetime = TimeSpan.FromMinutes(15);
-    private const string TicketPrefix = "ReconciliationQuantityImport:";
+    private const string PreviewAudience = "ipc:mrx:quantity-preview:v1";
+    private SymmetricSecurityKey PreviewKey => new(Encoding.UTF8.GetBytes(jwtSettings.Value.SecretKey));
 
     public async Task<QuantityImportPreviewDto> PreviewAsync(PreviewQuantityImportRequest request, CancellationToken token = default)
     {
         var menuVersionId = ReconciliationBatchService.RequiredId(request.MenuVersionId);
         var snapshot = await LoadSnapshotAsync(menuVersionId, token);
         var fingerprint = Fingerprint(snapshot);
-        var previewToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        var expiresAt = DateTimeOffset.UtcNow.Add(PreviewLifetime);
-        cache.Set(TicketPrefix + previewToken, new PreviewTicket(menuVersionId, fingerprint, expiresAt), expiresAt);
+        var now = DateTimeOffset.UtcNow;
+        var expiresAt = now.Add(PreviewLifetime);
+        var previewToken = new JwtSecurityTokenHandler().WriteToken(new JwtSecurityToken(
+            issuer: jwtSettings.Value.Issuer,
+            audience: PreviewAudience,
+            claims: [new Claim("menuVersionId", GuidHelper.ToGuidString(menuVersionId)), new Claim("fingerprint", fingerprint)],
+            notBefore: now.UtcDateTime,
+            expires: expiresAt.UtcDateTime,
+            signingCredentials: new SigningCredentials(PreviewKey, SecurityAlgorithms.HmacSha256)));
         return new(previewToken, expiresAt, fingerprint, CurrentFingerprintFormatVersion, snapshot.Plans.Select(Map).ToList(), snapshot.Diagnostics);
     }
 
@@ -88,9 +99,7 @@ public sealed class ReconciliationQuantityImportService(
 
     public async Task<QuantityImportCommitDto> CommitAsync(CommitQuantityImportRequest request, string actorId, CancellationToken token = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Token) || !cache.TryGetValue<PreviewTicket>(TicketPrefix + request.Token, out var ticket)
-            || ticket is null || ticket.ExpiresAt <= DateTimeOffset.UtcNow)
-            throw new InvalidOperationException("Phiên xem trước đã hết hạn hoặc không hợp lệ.");
+        var ticket = ValidatePreview(request.Token);
         if (!string.Equals(ticket.Fingerprint, request.ContentFingerprint, StringComparison.Ordinal))
             throw new InvalidOperationException("Dấu vân tay nguồn không khớp phiên xem trước.");
         var actor = ReconciliationBatchService.RequiredId(actorId);
@@ -283,7 +292,35 @@ public sealed class ReconciliationQuantityImportService(
             || message.Contains("quantityimportbatches.contentFingerprint", StringComparison.OrdinalIgnoreCase);
     }
 
-    private sealed record PreviewTicket(byte[] MenuVersionId, string Fingerprint, DateTimeOffset ExpiresAt);
+    private PreviewTicket ValidatePreview(string token)
+    {
+        try
+        {
+            var principal = new JwtSecurityTokenHandler().ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = PreviewKey,
+                ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+                ValidateIssuer = true,
+                ValidIssuer = jwtSettings.Value.Issuer,
+                ValidateAudience = true,
+                ValidAudience = PreviewAudience,
+                ValidateLifetime = true,
+                RequireExpirationTime = true,
+                ClockSkew = TimeSpan.Zero
+            }, out _);
+            var menuVersionId = ReconciliationBatchService.RequiredId(principal.FindFirstValue("menuVersionId") ?? "");
+            var fingerprint = principal.FindFirstValue("fingerprint");
+            if (string.IsNullOrWhiteSpace(fingerprint)) throw new SecurityTokenException("Missing fingerprint.");
+            return new PreviewTicket(menuVersionId, fingerprint);
+        }
+        catch (Exception error) when (error is SecurityTokenException or ArgumentException or FormatException)
+        {
+            throw new InvalidOperationException("Phiên xem trước đã hết hạn hoặc không hợp lệ.", error);
+        }
+    }
+
+    private sealed record PreviewTicket(byte[] MenuVersionId, string Fingerprint);
     private sealed record CanonicalSnapshot(byte[] MenuVersionId, IReadOnlyList<CanonicalPlan> Plans, IReadOnlyList<string> Diagnostics);
     private sealed record CanonicalPlan(MealQuantityPlan Entity, IReadOnlyList<ProjectedSourceLine> Lines);
 }

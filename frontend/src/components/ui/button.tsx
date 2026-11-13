@@ -8,7 +8,7 @@ import { resolveInteractionState } from './button-state';
 export type { ComponentInteractionState } from './button-state';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded font-medium text-sm transition-all duration-150 active:scale-[0.98] ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 select-none cursor-pointer',
+  'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded font-medium text-sm ui-control-motion duration-150 motion-safe:active:scale-[0.98] ease-out focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 select-none cursor-pointer',
   {
     variants: {
       variant: {

@@ -71,6 +71,12 @@ export function weekStartFor(isoDate: string): string {
   return date.toISOString().slice(0, 10);
 }
 
+export function businessMonthRange(month: string): { weekFrom: string; weekTo: string } {
+  const [year, number] = month.split('-').map(Number);
+  const lastDay = new Date(Date.UTC(year, number, 0)).getUTCDate();
+  return { weekFrom: `${month}-01`, weekTo: `${month}-${lastDay}` };
+}
+
 export function currentWeekStart(now: Date = new Date()): string {
   const businessIso = todayInBusinessTimezone(now);
   return weekStartFor(businessIso);

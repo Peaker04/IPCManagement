@@ -98,6 +98,7 @@ export function ReconciliationCompletedBranch({ report, page = 1, onPageChange, 
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
       <DataGrid
         data={report?.rows ?? []}
+        hideHeaderWhenEmpty
         columns={completedColumns}
         minWidth="min-w-[1000px]"
         keyExtractor={(row) => row.batchId}

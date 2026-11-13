@@ -1,3 +1,4 @@
+import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
 import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -34,7 +35,7 @@ function renderAppShell(initialEntry = '/', children = <div data-testid="workben
     <AuthProvider>
       <MemoryRouter initialEntries={[initialEntry]}>
         <DirtyNavigationProvider>
-          <AppShell navigation={eligible}>{children}</AppShell>
+          <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={eligible}>{children}</AppShell>
         </DirtyNavigationProvider>
       </MemoryRouter>
     </AuthProvider>
@@ -88,7 +89,7 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
       <AuthProvider>
         <MemoryRouter initialEntries={['/weekly-menu?view=mrx-materials&customerId=customer-1&weekStartDate=2026-10-19&action=import&batchId=old']}>
           <DirtyNavigationProvider>
-            <AppShell navigation={eligible}><div /></AppShell>
+            <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={eligible}><div /></AppShell>
           </DirtyNavigationProvider>
         </MemoryRouter>
       </AuthProvider>
@@ -113,7 +114,7 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
       roleCode: 'Coordinator', roleName: 'Điều phối', permissions: ['reconciliation.source.read'],
     }, 'MATERIAL_RECONCILIATION');
     render(<AuthProvider><MemoryRouter initialEntries={['/warehouse?date=2026-11-05']}><DirtyNavigationProvider>
-      <AppShell navigation={eligible}><div /></AppShell>
+      <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={eligible}><div /></AppShell>
     </DirtyNavigationProvider></MemoryRouter></AuthProvider>);
     await userEvent.click(screen.getByRole('button', { name: 'Thực đơn tuần' }));
     for (const [name, view] of [['Định lượng nguyên liệu', 'mrx-materials'], ['Kế hoạch theo ca', 'mrx-plans']]) {
@@ -122,6 +123,21 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     workspaceSessionStore.clearScope();
     expect(workspaceSessionStore.getScope().customerId).toBe('');
     expect(sessionStorage.getItem('ipc_mrx_workspace_session_scope')).toBeNull();
+  });
+
+  it('links weekly MRX views to the active batch rather than an older weekly browsing scope', async () => {
+    workspaceSessionStore.clearScope();
+    workspaceSessionStore.setScope({ weeklyMenuScope: { customerId: 'old-customer', weekStartDate: '2026-10-19' } });
+    workspaceSessionStore.setScope({ customerId: 'active-customer', customerCode: 'ACT', batchId: 'active-batch', weekStartDate: '2026-11-02' });
+    const eligible = resolveEligibleNavigation(CANONICAL_ROUTES, {
+      roleCode: 'Coordinator', roleName: 'Điều phối', permissions: ['reconciliation.source.read'],
+    }, 'MATERIAL_RECONCILIATION');
+    render(<AuthProvider><MemoryRouter initialEntries={['/warehouse?view=mrx-daily']}><DirtyNavigationProvider>
+      <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={eligible}><div /></AppShell>
+    </DirtyNavigationProvider></MemoryRouter></AuthProvider>);
+    await userEvent.click(screen.getByRole('button', { name: 'Thực đơn tuần' }));
+    expect(screen.getByRole('link', { name: 'Chuẩn bị lô đối soát' })).toHaveAttribute('href',
+      '/weekly-menu?view=mrx-batch&customerId=active-customer&weekStartDate=2026-11-02');
   });
 
   it('renders Nested Sidebar (Rule N6) with tree hierarchy for Thực đơn tuần', async () => {
@@ -322,7 +338,7 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
   it('restores native browser history before asking to discard, then replays only the confirmed back navigation', async () => {
     window.history.replaceState({ idx: 0 }, '', '/');
     const actor = JSON.parse(localStorage.getItem('ipc_v3_user') || '{}');
-    render(<AuthProvider><BrowserRouter><DirtyNavigationProvider><AppShell navigation={resolveEligibleNavigation(CANONICAL_ROUTES, actor, 'DEFAULT')}><DirtyProbe /></AppShell></DirtyNavigationProvider></BrowserRouter></AuthProvider>);
+    render(<AuthProvider><BrowserRouter><DirtyNavigationProvider><AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={resolveEligibleNavigation(CANONICAL_ROUTES, actor, 'DEFAULT')}><DirtyProbe /></AppShell></DirtyNavigationProvider></BrowserRouter></AuthProvider>);
     await userEvent.click(screen.getByRole('link', { name: 'Duyệt vận hành' }));
     await userEvent.click(screen.getByRole('button', { name: 'Tạo bản nháp' }));
     window.history.back();

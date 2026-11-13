@@ -19,20 +19,23 @@ public static class PreparationWorkbookBuilder
             || workbook.MenuRows.Any(row => !customerIds.Contains(row.CustomerId)))
             throw new InvalidOperationException("Thiếu hoặc không khớp định danh khách hàng trong bảng chuẩn bị.");
         var includesMenus = workbook.MenuRows.Count > 0;
-        var firstSheetName = includesMenus ? "Chuẩn bị nguyên liệu" : "Tổng hợp chuẩn bị";
-        var secondSheetType = includesMenus ? "" : """<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>""";
-        var secondSheet = includesMenus ? "" : """<sheet name="Chi tiết phân bổ" sheetId="2" r:id="rId2"/>""";
-        var secondSheetLink = includesMenus ? "" : """<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>""";
+        const string secondSheetType = """<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>""";
+        const string secondSheet = """<sheet name="Chi tiết phân bổ" sheetId="2" r:id="rId2"/>""";
+        const string secondSheetLink = """<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/>""";
+        var menuSheetType = includesMenus ? """<Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>""" : "";
+        var menuSheet = includesMenus ? """<sheet name="Thực đơn theo ngày" sheetId="3" r:id="rId3"/>""" : "";
+        var menuSheetLink = includesMenus ? """<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>""" : "";
         using var output = new MemoryStream();
         using (var archive = new ZipArchive(output, ZipArchiveMode.Create, true))
         {
-            WriteEntry(archive, "[Content_Types].xml", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>{secondSheetType}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>""");
+            WriteEntry(archive, "[Content_Types].xml", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>{secondSheetType}{menuSheetType}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>""");
             WriteEntry(archive, "_rels/.rels", """<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>""");
-            WriteEntry(archive, "xl/workbook.xml", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="{firstSheetName}" sheetId="1" r:id="rId1"/>{secondSheet}</sheets></workbook>""");
-            WriteEntry(archive, "xl/_rels/workbook.xml.rels", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>{secondSheetLink}<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>""");
+            WriteEntry(archive, "xl/workbook.xml", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Tổng hợp chuẩn bị" sheetId="1" r:id="rId1"/>{secondSheet}{menuSheet}</sheets></workbook>""");
+            WriteEntry(archive, "xl/_rels/workbook.xml.rels", $"""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>{secondSheetLink}{menuSheetLink}<Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>""");
             WriteEntry(archive, "xl/styles.xml", """<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Aptos"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Aptos"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E78"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf></cellXfs></styleSheet>""");
-            WriteEntry(archive, "xl/worksheets/sheet1.xml", includesMenus ? BuildPreparationSheet(workbook) : BuildSummarySheet(workbook));
-            if (!includesMenus) WriteEntry(archive, "xl/worksheets/sheet2.xml", BuildDetailSheet(workbook.DetailRows));
+            WriteEntry(archive, "xl/worksheets/sheet1.xml", BuildSummarySheet(workbook));
+            WriteEntry(archive, "xl/worksheets/sheet2.xml", BuildDetailSheet(workbook.DetailRows));
+            if (includesMenus) WriteEntry(archive, "xl/worksheets/sheet3.xml", BuildMenuSheet(workbook));
         }
         return output.ToArray();
     }
@@ -97,7 +100,7 @@ public static class PreparationWorkbookBuilder
                 $"{row.CustomerCode} · {row.CustomerName}",
                 row.BatchId,
                 row.ServiceDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
-                row.ShiftName,
+                FormatShift(row.ShiftName),
                 row.IngredientCode,
                 row.IngredientName,
                 row.CanonicalUnitName,
@@ -112,12 +115,10 @@ public static class PreparationWorkbookBuilder
         return xml.Append($"</sheetData><autoFilter ref=\"{autoFilterRange}\"/></worksheet>").ToString();
     }
 
-    private static string BuildPreparationSheet(ReconciliationPreparationWorkbookDto workbook)
+    private static string BuildMenuSheet(ReconciliationPreparationWorkbookDto workbook)
     {
-        var width = Math.Max(7, workbook.CustomerColumns.Count + 4);
-        var lastColumn = GetColumnLetter(width - 1);
         var xml = new StringBuilder("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols><col min="1" max="1" width="28" customWidth="1"/><col min="2" max="2" width="28" customWidth="1"/><col min="3" max="7" width="18" customWidth="1"/></cols><sheetData>""");
-        var merges = new List<string> { $"A1:{lastColumn}1", $"A2:{lastColumn}2" };
+        var merges = new List<string> { "A1:G1", "A2:G2" };
         AppendXlsxRow(xml, 1, ["CHUẨN BỊ NGUYÊN LIỆU ĐA KHÁCH HÀNG"], true);
         var scopeLabel = workbook.ScopeStartDate is { } start && workbook.ScopeEndDate is { } end
             ? start == end ? $"Ngày {start:dd/MM/yyyy}" : $"Tuần {start:dd/MM/yyyy} – {end:dd/MM/yyyy}"
@@ -129,32 +130,9 @@ public static class PreparationWorkbookBuilder
             AppendXlsxRow(xml, rowNumber++,
                 [CustomerLabel(workbook.CustomerColumnDefinitions.Single(customer => customer.CustomerId == row.CustomerId)), row.ServiceDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), row.ShiftName,
                     row.MenuVariant, row.DishCode, row.DishName, row.Servings.ToString(CultureInfo.InvariantCulture)], false, MenuNumericColumns);
-        rowNumber++;
-        AppendXlsxRow(xml, rowNumber, ["NGUYÊN LIỆU THEO NHÀ CUNG CẤP"], true);
-        merges.Add($"A{rowNumber}:{lastColumn}{rowNumber}");
-        rowNumber++;
-        var headers = new List<string> { "Mã nguyên liệu", "Tên nguyên liệu", "Đơn vị tính" };
-        headers.AddRange(workbook.CustomerColumns);
-        headers.Add("Tổng cộng");
-        var numericColumns = Enumerable.Range(3, headers.Count - 3).ToHashSet();
-        foreach (var supplier in workbook.SummaryRows.GroupBy(row => row.SupplierName, StringComparer.OrdinalIgnoreCase))
-        {
-            AppendXlsxRow(xml, rowNumber, [$"Nhà cung cấp: {supplier.Key}"], true);
-            merges.Add($"A{rowNumber}:{lastColumn}{rowNumber}");
-            rowNumber++;
-            AppendXlsxRow(xml, rowNumber++, headers, true);
-            foreach (var row in supplier)
-            {
-                var values = new List<string> { row.IngredientCode, row.IngredientName, row.CanonicalUnitName };
-                values.AddRange(workbook.CustomerColumnDefinitions.Select(customer => Number(row.CustomerQuantities[customer.CustomerId])));
-                values.Add(Number(row.TotalQuantity));
-                AppendXlsxRow(xml, rowNumber++, values, false, numericColumns);
-            }
-            rowNumber++;
-        }
         xml.Append($"</sheetData><mergeCells count=\"{merges.Count}\">");
         foreach (var merge in merges) xml.Append($"<mergeCell ref=\"{merge}\"/>");
-        return xml.Append("</mergeCells></worksheet>").ToString();
+        return xml.Append($"</mergeCells><autoFilter ref=\"A3:G{Math.Max(3, rowNumber - 1)}\"/></worksheet>").ToString();
     }
 
     private static void AppendXlsxRow(StringBuilder xml, int rowNumber, IReadOnlyList<string> values, bool header, IReadOnlySet<int>? numericColumns = null)
@@ -188,6 +166,13 @@ public static class PreparationWorkbookBuilder
     }
 
     private static string CustomerLabel(ReconciliationPreparationCustomerColumnDto customer) => $"{customer.CustomerCode} · {customer.CustomerName}";
+
+    private static string FormatShift(string shiftName) => shiftName.ToUpperInvariant() switch
+    {
+        "MORNING" => "Sáng",
+        "AFTERNOON" => "Chiều",
+        _ => shiftName
+    };
 
     private static string Number(decimal value) => value.ToString("0.######", CultureInfo.InvariantCulture);
 }

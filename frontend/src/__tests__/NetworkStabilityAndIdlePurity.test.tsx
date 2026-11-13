@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, act, within } from '@testing-library/react';
+import { render, screen, act, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { ReconciliationPage } from '../features/reconciliation/ReconciliationPage';
@@ -23,7 +23,7 @@ describe('MRX active-workspace request ownership', () => {
       else if (url.pathname.endsWith('/batch-1')) data = batch;
       else if (url.pathname.endsWith('/transactions-history')) data = { items: [{ transactionType: 'INITIAL_ISSUE', documentCode: 'PX-1', date: '2026-10-19', batchId: batch.batchId, customerName: batch.customerName, ingredientCode: 'GAO', ingredientName: 'Gạo', unitName: 'kg', quantity: 2, actorName: 'Thủ kho', createdAt: '2026-10-19T05:00:00Z', reason: null }], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false };
       else if (url.pathname.endsWith('/audit-trail')) data = { rows: [{ auditId: 'audit-' + url.searchParams.get('pageNumber'), changedAt: '2026-10-19T07:00:00Z', changedBy: 'Thủ kho', businessArea: 'Inventory', entityName: 'InventoryIssue', entityId: 'issue-1', fieldName: 'IssuedQuantity', oldValue: '1', newValue: '2', reason: url.searchParams.get('pageNumber') === '2' ? 'Ghi nhận cũ hơn' : 'Ghi nhận trang đầu' }], totalCount: 51 };
-      else if (url.pathname.endsWith('/source-changes')) data = [{ changeId: 'change-1', changedAt: '2026-10-19T07:00:00Z', actor: 'Điều phối', businessArea: 'WeeklyMenu', entityName: 'MenuItem', entityId: null, fieldName: 'Servings', oldValue: '100', newValue: '120', reason: 'Điều chỉnh số suất' }];
+      else if (url.pathname.endsWith('/source-changes')) data = { items: [{ changeId: 'change-1', changedAt: '2026-10-19T07:00:00Z', actor: 'Điều phối', businessArea: 'WeeklyMenu', entityName: 'MenuItem', entityId: null, fieldName: 'Servings', oldValue: '100', newValue: '120', reason: 'Điều chỉnh số suất' }], totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false };
       else throw new Error(`Unexpected workspace read ${url.pathname}`);
       return Response.json({ success: true, data });
     });
@@ -34,11 +34,11 @@ describe('MRX active-workspace request ownership', () => {
     expect(await screen.findByText('PX-1')).toBeVisible();
     const count = (suffix: string) => reads.filter(url => url.pathname.endsWith(suffix)).length;
     expect(count('/coordination/customers')).toBe(1);
-    expect(count('/batches')).toBe(1);
+    await waitFor(() => expect(count('/batches')).toBe(1));
     expect(screen.queryByRole('textbox', { name: 'Ngày đối soát' })).not.toBeInTheDocument();
     expect(screen.queryByText('Chờ hoàn tất xuất kho các ngày')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Chốt đối soát tuần' })).not.toBeInTheDocument();
-    await act(async () => { await router.navigate('/reconciliation?customerId=DAV&batchId=batch-1&date=2026-10-26&view=transactions'); });
+    await act(async () => { await router.navigate('/reconciliation?customerId=DAV&batchId=batch-1&date=2026-10-21&view=transactions'); });
     expect(screen.getByText('PX-1')).toBeVisible();
     expect(count('/transactions-history')).toBe(1);
     expect(count('/batches')).toBe(1);

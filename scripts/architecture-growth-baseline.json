@@ -32,16 +32,6 @@
       "level": "PLAN_REQUIRED"
     },
     {
-      "id": "service:ReconciliationBatchService",
-      "kind": "service",
-      "name": "ReconciliationBatchService",
-      "files": [
-        "backend/src/IPCManagement.Api/Features/Reconciliation/Services/ReconciliationBatchService.cs"
-      ],
-      "lines": 696,
-      "level": "WARNING"
-    },
-    {
       "id": "service:ServiceRunService",
       "kind": "service",
       "name": "ServiceRunService",

@@ -20,6 +20,7 @@ internal static class BomTemplateWorkbookBuilder
     ];
 
     private static readonly int[] DisplayOrder = [1, 4, 5, 6, 7, 11, 0, 2, 3, 8, 9, 10];
+    private static readonly int[] VisibleColumnWidths = [32, 32, 12, 16, 12, 34];
     private static readonly HashSet<int> EditableColumns = [2, 3, 4, 5, 6];
     private static readonly HashSet<int> NumericColumns = [4, 5, 8];
 
@@ -71,7 +72,7 @@ internal static class BomTemplateWorkbookBuilder
                 <?xml version="1.0" encoding="UTF-8"?>
                 <Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>IPC Management</Application></Properties>
                 """);
-            AddEntry(archive, "xl/workbook.xml", """
+            AddEntry(archive, "xl/workbook.xml", $$"""
                 <?xml version="1.0" encoding="UTF-8"?>
                 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
                   <sheets>
@@ -79,6 +80,11 @@ internal static class BomTemplateWorkbookBuilder
                     <sheet name="HUONG_DAN" sheetId="2" r:id="rId3"/>
                     <sheet name="DANH_MUC" sheetId="3" state="hidden" r:id="rId4"/>
                   </sheets>
+                  <definedNames>
+                    <definedName name="_xlnm.Print_Area" localSheetId="0">'BOM'!$A$1:$F${{Math.Max(5, rows.Count + 4)}}</definedName>
+                    <definedName name="_xlnm.Print_Titles" localSheetId="0">'BOM'!$1:$4</definedName>
+                    <definedName name="_xlnm.Print_Area" localSheetId="1">'HUONG_DAN'!$A$1:$C$14</definedName>
+                  </definedNames>
                 </workbook>
                 """);
             AddEntry(archive, "xl/_rels/workbook.xml.rels", """
@@ -115,10 +121,10 @@ internal static class BomTemplateWorkbookBuilder
           <borders count="2"><border/><border><left style="thin"><color rgb="FFD9E2F3"/></left><right style="thin"><color rgb="FFD9E2F3"/></right><top style="thin"><color rgb="FFD9E2F3"/></top><bottom style="thin"><color rgb="FFD9E2F3"/></bottom></border></borders>
           <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
           <cellXfs count="4">
-            <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-            <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>
-            <xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyProtection="1"><protection locked="0"/></xf>
-            <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0"/>
+            <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+            <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
+            <xf numFmtId="0" fontId="0" fillId="3" borderId="1" xfId="0" applyProtection="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/><protection locked="0"/></xf>
+            <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
           </cellXfs>
           <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles><dxfs count="0"/>
           <tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>
@@ -131,29 +137,30 @@ internal static class BomTemplateWorkbookBuilder
         var lastRow = Math.Max(5, rows.Count + 4);
         builder.AppendLine("""<?xml version="1.0" encoding="UTF-8"?>""");
         builder.AppendLine("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">""");
+        builder.AppendLine("  <sheetPr><pageSetUpPr fitToPage=\"1\"/></sheetPr>");
         builder.AppendLine(CultureInfo.InvariantCulture, $"  <dimension ref=\"A1:L{lastRow}\"/>");
         builder.AppendLine("""
           <sheetViews><sheetView workbookViewId="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
-          <sheetFormatPr defaultRowHeight="18"/>
+          <sheetFormatPr defaultRowHeight="28"/>
           <cols>
-            <col min="1" max="1" width="30" customWidth="1"/><col min="2" max="2" width="30" customWidth="1"/>
-            <col min="3" max="3" width="16" customWidth="1"/><col min="4" max="5" width="18" customWidth="1"/>
-            <col min="6" max="6" width="28" customWidth="1"/><col min="7" max="12" width="14" hidden="1" customWidth="1"/>
-          </cols><sheetData>
         """);
-        AddTextRow(builder, 1, ["IPC - ĐỊNH LƯỢNG NGUYÊN LIỆU THEO SUẤT"], styleIndex: 3);
-        AddTextRow(builder, 2, ["Mức giá", priceTier.ToString("0", CultureInfo.InvariantCulture), "Phạm vi", scope, "Ngày tạo", generatedDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)]);
-        AddTextRow(builder, 3, ["Ô màu vàng là vùng nhập liệu. Chọn nguyên liệu và đơn vị từ danh sách để hạn chế sai lệch."]);
-        AddTextRow(builder, 4, DisplayHeaders, styleIndex: 1);
+        for (var index = 0; index < VisibleColumnWidths.Length; index++)
+            builder.AppendLine(CultureInfo.InvariantCulture, $"<col min=\"{index + 1}\" max=\"{index + 1}\" width=\"{VisibleColumnWidths[index]}\" customWidth=\"1\"/>");
+        builder.AppendLine("<col min=\"7\" max=\"12\" width=\"14\" hidden=\"1\" customWidth=\"1\"/></cols><sheetData>");
+        AddTextRow(builder, 1, ["IPC - ĐỊNH LƯỢNG NGUYÊN LIỆU THEO SUẤT"], styleIndex: 3, height: 30);
+        AddTextRow(builder, 2, ["Mức giá", priceTier.ToString("0", CultureInfo.InvariantCulture), "Phạm vi", scope, "Ngày tạo", generatedDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)], height: 48);
+        AddTextRow(builder, 3, ["Ô màu vàng là vùng nhập liệu. Chọn nguyên liệu và đơn vị từ danh sách để hạn chế sai lệch."], height: 32);
+        AddTextRow(builder, 4, DisplayHeaders, styleIndex: 1, height: 36);
         var rowNumber = 5;
         foreach (var row in rows)
         {
             var displayed = DisplayOrder.Select(index => row[index]).ToArray();
-            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns, numericColumns: NumericColumns);
+            AddTextRow(builder, rowNumber++, displayed, editableColumns: EditableColumns, numericColumns: NumericColumns, height: EstimateDataRowHeight(displayed));
         }
         builder.AppendLine("  </sheetData>");
         builder.AppendLine("  <sheetProtection sheet=\"1\" objects=\"1\" scenarios=\"1\" autoFilter=\"0\" sort=\"0\"/>");
         builder.AppendLine(CultureInfo.InvariantCulture, $"  <autoFilter ref=\"A4:F{lastRow}\"/>");
+        builder.AppendLine("  <mergeCells count=\"2\"><mergeCell ref=\"A1:F1\"/><mergeCell ref=\"A3:F3\"/></mergeCells>");
         builder.AppendLine("  <dataValidations count=\"4\">");
         var ingredientEnd = Math.Max(2, ingredientCount + 1);
         var unitEnd = Math.Max(2, unitCount + 1);
@@ -161,14 +168,15 @@ internal static class BomTemplateWorkbookBuilder
         builder.AppendLine(CultureInfo.InvariantCulture, $"    <dataValidation type=\"list\" allowBlank=\"1\" showInputMessage=\"1\" showErrorMessage=\"1\" errorStyle=\"stop\" errorTitle=\"Đơn vị không hợp lệ\" error=\"Vui lòng chọn đơn vị trong danh sách.\" sqref=\"C5:C{lastRow}\"><formula1>'DANH_MUC'!$B$2:$B${unitEnd}</formula1></dataValidation>");
         builder.AppendLine(CultureInfo.InvariantCulture, $"    <dataValidation type=\"decimal\" operator=\"greaterThan\" allowBlank=\"1\" showErrorMessage=\"1\" errorStyle=\"stop\" errorTitle=\"Định lượng không hợp lệ\" error=\"Định lượng phải lớn hơn 0.\" sqref=\"D5:D{lastRow}\"><formula1>0</formula1></dataValidation>");
         builder.AppendLine(CultureInfo.InvariantCulture, $"    <dataValidation type=\"decimal\" operator=\"between\" allowBlank=\"1\" showErrorMessage=\"1\" errorStyle=\"stop\" errorTitle=\"Hao hụt không hợp lệ\" error=\"Hao hụt phải từ 0 đến 100%.\" sqref=\"E5:E{lastRow}\"><formula1>0</formula1><formula2>100</formula2></dataValidation>");
-        builder.AppendLine("  </dataValidations></worksheet>");
+        builder.AppendLine("  </dataValidations>");
+        builder.AppendLine("<pageMargins left=\"0.25\" right=\"0.25\" top=\"0.4\" bottom=\"0.4\" header=\"0.2\" footer=\"0.2\"/><pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/></worksheet>");
         return builder.ToString();
     }
 
     private static string BuildInstructionsSheetXml()
     {
         var builder = new StringBuilder();
-        builder.AppendLine("""<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><dimension ref="A1:C14"/><sheetFormatPr defaultRowHeight="18"/><cols><col min="1" max="1" width="30" customWidth="1"/><col min="2" max="2" width="24" customWidth="1"/><col min="3" max="3" width="38" customWidth="1"/></cols><sheetData>""");
+        builder.AppendLine("""<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:C14"/><sheetFormatPr defaultRowHeight="42"/><cols><col min="1" max="1" width="28" customWidth="1"/><col min="2" max="2" width="24" customWidth="1"/><col min="3" max="3" width="56" customWidth="1"/></cols><sheetData>""");
         AddTextRow(builder, 1, ["HƯỚNG DẪN NHẬP ĐỊNH LƯỢNG"], styleIndex: 3);
         AddTextRow(builder, 3, ["Cột", "Yêu cầu", "Cách nhập"], styleIndex: 1);
         AddTextRow(builder, 4, ["Tên món", "Hệ thống khóa", "Dùng để xác định món đang khai báo"]);
@@ -178,8 +186,8 @@ internal static class BomTemplateWorkbookBuilder
         AddTextRow(builder, 8, ["Hao hụt (%)", "Tùy chọn", "Từ 0 đến 100; để trống được hiểu là 0"]);
         AddTextRow(builder, 9, ["Ghi chú", "Tùy chọn", "Ghi cách sơ chế hoặc yêu cầu riêng"]);
         AddTextRow(builder, 11, ["Quy trình", "1. Chọn danh mục", "2. Nhập định lượng → 3. Tải lên → 4. Kiểm tra file"]);
-        AddTextRow(builder, 13, ["Lưu ý", "Không sửa cột ẩn", "Hệ thống quản lý mức giá, phạm vi, ngày hiệu lực và trạng thái"]);
-        builder.AppendLine("</sheetData></worksheet>");
+        AddTextRow(builder, 13, ["Lưu ý", "Không sửa cột ẩn", "Hệ thống quản lý mức giá, phạm vi, ngày hiệu lực và trạng thái"], height: 42);
+        builder.AppendLine("</sheetData><mergeCells count=\"1\"><mergeCell ref=\"A1:C1\"/></mergeCells><pageMargins left=\"0.25\" right=\"0.25\" top=\"0.4\" bottom=\"0.4\" header=\"0.2\" footer=\"0.2\"/><pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/></worksheet>");
         return builder.ToString();
     }
 
@@ -198,9 +206,18 @@ internal static class BomTemplateWorkbookBuilder
         return builder.ToString();
     }
 
-    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null, IReadOnlySet<int>? numericColumns = null)
+    // Conservative text estimate; keep wrapped rows automatic for later edits in Excel.
+    private static double EstimateDataRowHeight(IReadOnlyList<string> cells)
     {
-        builder.Append(CultureInfo.InvariantCulture, $"<row r=\"{rowNumber}\">");
+        var lines = cells.Take(6).Select((cell, index) => cell.Split('\n')
+            .Sum(line => Math.Max(1, (int)Math.Ceiling(line.Length / ((VisibleColumnWidths[index] - 2) * 0.85))))).Max();
+        return Math.Clamp(lines * 15 + 8, 28, 409);
+    }
+
+    private static void AddTextRow(StringBuilder builder, int rowNumber, IReadOnlyList<string> cells, int styleIndex = 0, IReadOnlySet<int>? editableColumns = null, IReadOnlySet<int>? numericColumns = null, double? height = null)
+    {
+        var rowHeight = height.HasValue ? FormattableString.Invariant($" ht=\"{height.Value}\"") : string.Empty;
+        builder.Append(CultureInfo.InvariantCulture, $"<row r=\"{rowNumber}\"{rowHeight}>");
         for (var index = 0; index < cells.Count; index++)
         {
             var resolvedStyle = editableColumns?.Contains(index + 1) == true ? 2 : styleIndex;

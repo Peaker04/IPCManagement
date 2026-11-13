@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { WorkbenchSkeleton } from './WorkbenchSkeleton';
 import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -6,6 +7,7 @@ import { Num } from '../ui/num';
 import { IdentifierText } from '../ui/identifier-text';
 import { InlineBanner } from '../ui/inline-banner';
 import { mrxApi, type MrxInventoryIssueDetail } from '../../api/mrxApi';
+import { serverStateCache } from '../../store/serverStateCache';
 import { toVietnameseDate, formatVietnameseDateTime } from '../../utils/dates';
 import { formatNumber } from '../../utils/formatters';
 
@@ -24,20 +26,37 @@ function ReconciliationIssueDetailDialog({
   onClose,
   issueId,
 }: ReconciliationIssueDetailModalProps) {
-  const [issue, setIssue] = useState<MrxInventoryIssueDetail | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const cacheKey = issueId ? `mrx_issue_detail_${issueId}` : '';
+  const [issue, setIssue] = useState<MrxInventoryIssueDetail | null>(() => {
+    const cached = cacheKey ? serverStateCache.get<MrxInventoryIssueDetail>(cacheKey) : null;
+    return cached && !cached.isStale ? cached.data : null;
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    const cached = cacheKey ? serverStateCache.get<MrxInventoryIssueDetail>(cacheKey) : null;
+    return !(cached && !cached.isStale);
+  });
   const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (!isOpen || !issueId) return;
+    if (attempt === 0) {
+      const warm = serverStateCache.get<MrxInventoryIssueDetail>(cacheKey);
+      if (warm && !warm.isStale) return;
+    }
     let ignore = false;
     mrxApi.getIssueById(issueId)
       .then((data) => {
-        if (!ignore) setIssue(data);
+        if (!ignore) {
+          if (cacheKey) serverStateCache.set(cacheKey, data);
+          setIssue(data);
+          setError(null);
+        }
       })
       .catch((cause: unknown) => {
         if (!ignore) {
+          if (cacheKey) serverStateCache.delete(cacheKey);
+          setIssue(null);
           setError(cause instanceof Error ? cause : new Error('Không thể tải chi tiết phiếu xuất kho.'));
         }
       })
@@ -45,7 +64,7 @@ function ReconciliationIssueDetailDialog({
         if (!ignore) setIsLoading(false);
       });
     return () => { ignore = true; };
-  }, [isOpen, issueId, attempt]);
+  }, [isOpen, issueId, attempt, cacheKey]);
 
   const retry = () => {
     setIssue(null);
@@ -61,20 +80,15 @@ function ReconciliationIssueDetailDialog({
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="max-w-4xl"
+      className="mrx-issue-detail-frame"
       bodyClassName="flex min-h-0 flex-col overflow-hidden"
-      title={`Chi tiết phiếu xuất kho: ${issue?.issueCode || issueId || ''}`}
-      description={
-        issue
-          ? `Ngày xuất: ${toVietnameseDate(issue.issueDate)} · Kho: ${issue.warehouseName || 'Kho chính'} · Người lập: ${issue.issuedByName || 'Thủ kho'}`
-          : error ? 'Chưa tải được thông tin phiếu xuất.' : 'Đang tải thông tin phiếu xuất…'
-      }
+      title="Chi tiết phiếu xuất kho"
+      description="Thông tin chứng từ và nguyên liệu đã xuất của phiếu được chọn."
       footer={<Button variant="outline" size="sm" onClick={onClose}>Đóng</Button>}
     >
-      <div className="flex min-h-0 flex-col gap-4 text-sm text-slate-700">
+      <div className="flex flex-1 min-h-0 flex-col gap-4 text-sm text-slate-700">
         {isLoading ? (
-          <div role="status" className="p-8 text-center text-xs text-slate-500 animate-pulse">
-            Đang tải dữ liệu phiếu xuất kho…
-          </div>
+          <WorkbenchSkeleton geometry={{ kind: 'table', columns: 5, rows: 8, columnWidths: ['14%', '36%', '10%', '20%', '20%'] }} />
         ) : error ? (
           <InlineBanner variant="error" title="Không thể tải chi tiết phiếu xuất kho" actionLabel="Thử lại" onAction={retry}>
             {error.message}
@@ -82,7 +96,10 @@ function ReconciliationIssueDetailDialog({
         ) : issue ? (
           <>
             <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 rounded border border-slate-200 text-xs">
-              <div className="flex items-center gap-2">
+              <div className="basis-full break-words text-slate-600">
+                Ngày xuất: {toVietnameseDate(issue.issueDate)} · Kho: {issue.warehouseName || 'Kho chính'} · Người lập: {issue.issuedByName || 'Thủ kho'}
+              </div>
+              <div className="flex min-w-0 items-center gap-2">
                 <span className="text-slate-500">Mã phiếu:</span>
                 <IdentifierText value={issue.issueCode} />
               </div>
@@ -94,7 +111,7 @@ function ReconciliationIssueDetailDialog({
               </div>
             </div>
 
-            <div role="region" aria-label="Nguyên liệu phiếu xuất · cuộn để xem đầy đủ" tabIndex={0} className="min-h-0 overflow-auto border border-slate-200 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400">
+            <div role="region" aria-label="Nguyên liệu phiếu xuất · cuộn để xem đầy đủ" tabIndex={0} className="flex-1 min-h-0 overflow-auto border border-slate-200 rounded focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400">
               <table aria-label="Danh sách nguyên liệu của phiếu xuất kho" className="w-full min-w-[680px] text-left text-xs border-separate border-spacing-0">
                 <thead className="bg-slate-100 text-slate-700 border-b border-slate-200 sticky top-0 z-20 font-semibold">
                   <tr>

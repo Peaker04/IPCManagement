@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
+import { MrxQuantityInput } from '../MrxQuantityInput';
 import { LocalFindBar } from '../../../components/workbench/LocalFindBar';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
 import { Num } from '../../../components/ui/num';
 import { IdentifierText } from '../../../components/ui/identifier-text';
-import { InlineBanner } from '../../../components/ui/inline-banner';
 import { formatVietnameseDateTime } from '../../../utils/dates';
 import { normalizeQuantity } from '../mrxQuantity';
 
@@ -103,9 +103,9 @@ export function MrxDailyLinesBranch({
       width: '30%',
       minWidth: '220px',
       cell: (line) => (
-        <div className="flex items-center gap-2 truncate">
-          <span className="font-semibold text-slate-900 text-sm truncate">{line.ingredientName}</span>
-          {line.ingredientCode && <IdentifierText value={line.ingredientCode} />}
+        <div className="flex items-center gap-2 truncate max-[1100px]:flex-col max-[1100px]:items-start max-[1100px]:gap-0">
+          <span className="font-semibold text-slate-900 text-sm truncate max-[1100px]:leading-4" title={line.ingredientName ?? undefined}>{line.ingredientName}</span>
+          {line.ingredientCode && <IdentifierText value={line.ingredientCode} className="max-[1100px]:py-0 max-[1100px]:leading-4" />}
         </div>
       ),
     },
@@ -115,7 +115,7 @@ export function MrxDailyLinesBranch({
       width: '16%',
       minWidth: '120px',
       align: 'right',
-      cell: (line) => <Num value={line.requiredQuantity} format="plain" decimals={6} suffix={line.canonicalUnitName ? ` ${line.canonicalUnitName}` : ''} />,
+      cell: (line) => <span className="inline-flex max-w-full flex-wrap items-baseline justify-end gap-x-1"><Num value={line.requiredQuantity} format="plain" decimals={6} />{' '}<span className="whitespace-normal break-words text-xs">{line.canonicalUnitName}</span></span>,
     },
     {
       id: 'issued',
@@ -124,15 +124,11 @@ export function MrxDailyLinesBranch({
       minWidth: '140px',
       align: 'right',
       cell: (line) => (
-        <Input
-          type="number"
-          min="0.000001"
-          step="any"
-          aria-label={`Số lượng thực xuất ${line.ingredientName ?? line.ingredientCode ?? line.ingredientId}`}
+        <MrxQuantityInput
+          label={`Số lượng thực xuất ${line.ingredientName ?? line.ingredientCode ?? line.ingredientId}`}
           value={quantities[line.dailyLineId] ?? (line.issuedQuantity != null ? String(line.issuedQuantity) : '')}
           disabled={hasInitialIssue || readOnly}
-          onChange={(e) => setQuantities((current) => ({ ...current, [line.dailyLineId]: e.target.value }))}
-          className="h-8 text-right tabular-nums text-sm"
+          onChange={(canonical) => setQuantities((current) => ({ ...current, [line.dailyLineId]: canonical }))}
         />
       ),
     },
@@ -184,7 +180,17 @@ export function MrxDailyLinesBranch({
       matched={isWeeklyAll ? filteredWeeklyLines.length : filteredLines.length}
       total={isWeeklyAll ? weeklyAggregateLines.length : lines.length}
       clearLabel="Xóa tìm trong phiếu"
-      scope={`${isWeeklyAll ? 'Tìm trong tổng hợp tuần' : 'Tìm trong phiếu ngày'}; không đổi phạm vi phiếu.`} />
+      scope={`${isWeeklyAll ? 'Tìm trong tổng hợp tuần' : 'Tìm trong phiếu ngày'}; không đổi phạm vi phiếu.`}>
+      {!isWeeklyAll && lastRevisionAt && (
+        <div role="status" className="ml-auto flex flex-wrap items-center gap-1.5 text-xs text-slate-700 bg-blue-50/70 border border-blue-200 px-2.5 py-1 rounded">
+          <strong className="font-semibold text-slate-900">Định lượng đã được điều chỉnh</strong>
+          <span className="text-slate-300">·</span>
+          <span>
+            Lúc {formatVietnameseDateTime(lastRevisionAt)}{lastRevisionByName ? ` bởi ${lastRevisionByName}${lastRevisionByRole ? ` (${lastRevisionByRole})` : ''}` : ''}.
+          </span>
+        </div>
+      )}
+    </LocalFindBar>
   );
 
   if (isWeeklyAll) {
@@ -203,11 +209,6 @@ export function MrxDailyLinesBranch({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
-      {lastRevisionAt && (
-        <InlineBanner variant="info" title="Định lượng đã được điều chỉnh" className="mx-4 mt-3 shrink-0">
-          Lúc {formatVietnameseDateTime(lastRevisionAt)}{lastRevisionByName ? ` bởi ${lastRevisionByName}${lastRevisionByRole ? ` (${lastRevisionByRole})` : ''}` : ''}.
-        </InlineBanner>
-      )}
       {searchToolbar}
       <DataGrid
         data={filteredLines}

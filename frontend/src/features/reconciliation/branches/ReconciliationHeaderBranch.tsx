@@ -1,26 +1,30 @@
-import type { ReactNode } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
+import type { ReactNode } from 'react';
 import { WorkspaceHeader } from '../../../components/workbench/WorkspaceHeader';
 import { Select } from '../../../components/ui/select';
-import { VietnameseDateInput } from '../../../components/ui/vietnamese-date-input';
 import { Button } from '../../../components/ui/button';
 import { Badge } from '../../../components/ui/badge';
 import { ActionGuard } from '../../../components/ui/action-guard';
-import { toVietnameseDate, weekStartFor } from '../../../utils/dates';
-import type { CustomerOption } from '../../../types';
+import { toVietnameseDate } from '../../../utils/dates';
 import type { MrxBatchSummary } from '../../../api/mrxApi';
+import type { CustomerOption } from '../../../types';
 
 export interface ReconciliationHeaderBranchProps {
+  isPending?: boolean;
   activeReportTab: 'lines' | 'variances' | 'transactions' | 'audit' | 'completed';
   customerCode: string;
   customers: CustomerOption[];
   onSelectCustomer: (code: string) => void;
   batchId: string;
   batches: MrxBatchSummary[];
-  onSelectBatch: (id: string) => void;
-  serviceDate: string;
-  onSelectDate: (date: string) => void;
+  selectedBatch?: MrxBatchSummary;
+  selectedWeek?: string;
+  batchCount: number;
+  selectedMonth: string;
+  onSelectMonth: (month: string) => void;
+  onSelectBatch: (batch: MrxBatchSummary) => void;
+  onOpenBatchPicker: () => void;
   batchStatus?: string;
   statusLabels: Record<string, string>;
   isRefreshing: boolean;
@@ -29,19 +33,24 @@ export interface ReconciliationHeaderBranchProps {
   onOpenComplete: () => void;
   needsReviewCount: number;
   catalogLoading?: boolean;
-  catalogNavigation?: ReactNode;
+  completedFilters?: ReactNode;
 }
 
 export function ReconciliationHeaderBranch({
+  isPending = false,
   activeReportTab,
   customerCode,
   customers,
   onSelectCustomer,
   batchId,
   batches,
+  selectedBatch,
+  selectedWeek,
+  batchCount,
+  selectedMonth,
+  onSelectMonth,
   onSelectBatch,
-  serviceDate,
-  onSelectDate,
+  onOpenBatchPicker,
   batchStatus,
   statusLabels,
   isRefreshing,
@@ -50,32 +59,38 @@ export function ReconciliationHeaderBranch({
   onOpenComplete,
   needsReviewCount,
   catalogLoading,
-  catalogNavigation,
+  completedFilters,
 }: ReconciliationHeaderBranchProps) {
   const customerOptions = customers.map((c) => ({
     value: c.customerCode,
     label: `${c.customerCode} - ${c.customerName}`,
   }));
 
-  const batchOptions = batches.length === 0
-    ? [{ value: '', label: '(Chưa có lô đối soát)' }]
-    : batches.map((b) => ({
-        value: b.batchId,
-        label: `${b.customerCode || b.customerName || 'Khách hàng'} · ${toVietnameseDate(b.weekStartDate)}`,
-      }));
-
-  if (batchId && !batches.some((batch) => batch.batchId === batchId)) {
-    batchOptions.unshift({ value: batchId, label: `${customerCode || 'Lô đã chọn'} · ${toVietnameseDate(weekStartFor(serviceDate))}` });
-  }
+  const recentBatches = batches.slice(0, 5);
+  const batchLabel = (batch: MrxBatchSummary) => {
+    const sameWeek = recentBatches.filter(item => item.weekStartDate === batch.weekStartDate);
+    const suffix = sameWeek.length > 1 ? ` (${sameWeek.findIndex(item => item.batchId === batch.batchId) + 1})` : '';
+    return `${batch.customerCode || customerCode} · ${toVietnameseDate(batch.weekStartDate)}${suffix}`;
+  };
+  const batchOptions = recentBatches.map(batch => ({ value: batch.batchId, label: batchLabel(batch) }));
+  if (!batchId) batchOptions.unshift({ value: '', label: catalogLoading ? 'Đang tải lô…' : 'Chưa có lô trong tháng' });
+  if (batchCount > 5) batchOptions.push({ value: '__all__', label: `Xem tất cả ${batchCount} lô…` });
+  const outsideRecent = Boolean(batchId && !recentBatches.some(batch => batch.batchId === batchId));
+  const year = Number(selectedMonth.slice(0, 4));
+  const month = String(Number(selectedMonth.slice(5, 7)));
+  const currentYear = new Date().getFullYear();
+  // A rolling window keeps the control compact; boundary options extend it in either direction.
+  const years = Array.from({ length: Math.max(currentYear + 5, year + 5) - Math.min(currentYear - 10, year - 5) + 1 }, (_, i) => String(Math.min(currentYear - 10, year - 5) + i));
 
   return (
     <WorkspaceHeader
       responsive
+      className="mrx-scope-header"
       title="Đối soát nguyên liệu"
       breadcrumb="Đối soát MRX · Bàn điều khiển Giám sát"
       contextSelectors={
         activeReportTab === 'completed' ? (
-          <div className="min-h-9 flex items-center">
+          completedFilters || <div className="min-h-9 flex items-center">
             <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
               Lô đối soát đã hoàn tất
             </span>
@@ -90,25 +105,26 @@ export function ReconciliationHeaderBranch({
               className="h-9 w-full min-w-0 font-medium text-xs sm:text-sm"
               disabled={customers.length === 0}
             /></div>
-            <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <div className="w-full sm:w-36 xl:w-48 min-w-0 shrink-0"><Select
-              aria-label="Chọn lô đối soát"
-              options={batchOptions}
-              value={batchId}
-              onChange={(e) => onSelectBatch(e.target.value)}
-              className="h-9 w-full min-w-0 font-medium text-xs sm:text-sm"
-              disabled={catalogLoading || (!batchId && batches.length === 0)}
+            <div className="w-full sm:w-64 min-w-0 shrink-0"><Select
+              aria-label="Chọn lô đối soát" value={batchId} className="h-9 w-full min-w-0 text-xs sm:text-sm"
+              disabled={catalogLoading || batches.length === 0}
+              options={[
+                ...(outsideRecent ? [{ value: batchId, label: selectedBatch ? batchLabel(selectedBatch) : selectedWeek ? `${customerCode} · ${toVietnameseDate(selectedWeek)}` : 'Đang tải lô…', disabled: true }] : []),
+                ...batchOptions,
+              ]}
+              onChange={event => {
+                if (event.target.value === '__all__') onOpenBatchPicker();
+                else { const batch = recentBatches.find(item => item.batchId === event.target.value); if (batch) onSelectBatch(batch); }
+              }}
             /></div>
-            {catalogNavigation}
-            </div>
-            {activeReportTab === 'lines' ? <VietnameseDateInput
-              aria-label="Ngày đối soát"
-              value={serviceDate}
-              onChange={onSelectDate}
-              className="h-9 w-38 sm:w-40 min-w-[155px] shrink-0 font-mono text-xs sm:text-sm tracking-tight"
-            /> : <span className="text-xs text-slate-500">Phạm vi: cả lô</span>}
+            <div className="w-28 shrink-0"><Select aria-label="Tháng đối soát" value={month} className="h-9 w-full text-xs sm:text-sm"
+              options={Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `Tháng ${i + 1}` }))}
+              onChange={event => onSelectMonth(`${year}-${event.target.value.padStart(2, '0')}`)} /></div>
+            <div className="w-24 shrink-0"><Select aria-label="Năm đối soát" value={String(year)} className="h-9 w-full text-xs sm:text-sm"
+              options={years.map(value => ({ value, label: value }))}
+              onChange={event => onSelectMonth(`${event.target.value}-${month.padStart(2, '0')}`)} /></div>
             <WorkspaceHeader.BadgeSlot variant="status">
-              {batchStatus ? (
+              {isPending ? <span role="status" className="sr-only">Đang tải phạm vi mới</span> : batchStatus ? (
                 <Badge
                   variant={batchStatus === 'COMPLETED' ? 'neutral' : 'info'}
                   size="default"
@@ -128,6 +144,7 @@ export function ReconciliationHeaderBranch({
               variant="outline"
               size="default"
               onClick={onRefresh}
+              disabled={isRefreshing}
               className="h-9 text-sm font-medium flex items-center gap-1.5"
             >
               <RefreshCw
@@ -144,6 +161,7 @@ export function ReconciliationHeaderBranch({
               variant="outline"
               size="default"
               onClick={onRefresh}
+              disabled={isRefreshing}
               className="h-9 text-sm font-medium flex items-center gap-1.5"
             >
               <RefreshCw

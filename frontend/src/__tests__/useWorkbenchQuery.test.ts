@@ -9,6 +9,43 @@ describe('useWorkbenchQuery — Canonical 5-Layer State Engine Unit Test', () =>
     serverStateCache.clearAll();
   });
 
+  it.each([
+    { payload: { id: 'scope-a' }, blocked: false },
+    { payload: null, blocked: false },
+    { payload: null, blocked: true },
+  ])('prefers the exact warm scope over a different snapshot ($payload, blocked=$blocked)', ({ payload, blocked }) => {
+    serverStateCache.set('mrx_scope_a', { data: payload, isCompatibilityBlocked: blocked });
+    serverStateCache.set('snapshot:mrx_scope', { data: { id: 'scope-b' }, isCompatibilityBlocked: !blocked });
+    const queryFn = vi.fn();
+    const { result } = renderHook(() => useWorkbenchQuery({
+      scopeKey: 'mrx_scope', cacheKey: 'mrx_scope_a', snapshotKey: 'snapshot:mrx_scope',
+      scopeId: 'a', queryFn,
+    }));
+
+    expect(result.current.data).toEqual(payload);
+    expect(Boolean(result.current.stateProps.error)).toBe(blocked);
+    expect(result.current.stateProps.isPreviousData).toBe(false);
+    expect(result.current.stateProps.isLoading).toBe(false);
+    expect(queryFn).not.toHaveBeenCalled();
+  });
+
+  it('marks fallback snapshot rows as previous while the requested MRX scope is loading', async () => {
+    serverStateCache.set('snapshot:mrx_preparation_week', { data: { id: 'week-b' } });
+    let resolve!: (value: { id: string }) => void;
+    const response = new Promise<{ id: string }>(done => { resolve = done; });
+    const { result } = renderHook(() => useWorkbenchQuery({
+      scopeKey: 'mrx_preparation', cacheKey: 'mrx_preparation_week_a',
+      snapshotKey: 'snapshot:mrx_preparation_week', scopeId: 'week-a', queryFn: () => response,
+    }));
+    expect(result.current.data).toEqual({ id: 'week-b' });
+    expect(result.current.stateProps.isPreviousData).toBe(true);
+    expect(result.current.stateProps.isFetching).toBe(true);
+    await act(async () => { resolve({ id: 'week-a' }); });
+    expect(result.current.data).toEqual({ id: 'week-a' });
+    expect(result.current.stateProps.isPreviousData).toBe(false);
+    expect(result.current.stateProps.isFetching).toBe(false);
+  });
+
   it('pauses I/O during a debounced criterion without declaring an empty dataset', async () => {
     const queryFn = vi.fn().mockResolvedValue({ id: 'ready' });
     const { result, rerender } = renderHook(({ enabled }) => useWorkbenchQuery({
@@ -263,11 +300,77 @@ describe('useWorkbenchQuery — Canonical 5-Layer State Engine Unit Test', () =>
     expect(result.current.stateProps.isFetching).toBe(false);
     expect(queryFn).not.toHaveBeenCalled();
 
-    // Trigger visibilitychange while cache is still fresh (< TTL) -> must NOT force network refetch
+    // Trigger visibilitychange -> active MRX query force-refetches in background while keeping warm data visible
     Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
     act(() => {
       document.dispatchEvent(new Event('visibilitychange'));
     });
+    expect(queryFn).toHaveBeenCalledTimes(1);
+    expect(result.current.data).toEqual(dataB);
+  });
+
+  it('Bug 2: warm null cache entry (e.g., mrx_inspection_source with no weekly menu) resolves immediately to L5_EMPTY_DATASET with isLoading=false instead of hanging on skeleton', () => {
+    serverStateCache.set('mrx_inspection_source_cust-1_2026-11-09', null);
+    const queryFn = vi.fn().mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useWorkbenchQuery<null>({
+        scopeKey: 'mrx_inspection_source',
+        cacheKey: 'mrx_inspection_source_cust-1_2026-11-09',
+        scopeId: 'cust-1',
+        enabled: true,
+        queryFn,
+        isDatasetEmpty: (data) => !data,
+        emptyTitle: 'Chưa có nguồn thực đơn cho tuần này',
+      })
+    );
+
+    expect(result.current.stateProps.isLoading).toBe(false);
+    expect(result.current.stateProps.isEmpty).toBe(true);
+    expect(result.current.layer).toBe('L5_EMPTY_DATASET');
     expect(queryFn).not.toHaveBeenCalled();
+  });
+
+  it('Bug 1 & 4: stores raw array in serverStateCache for shared keys like catalog_customers so direct array consumers do not crash with .find is not a function', async () => {
+    const customers = [{ customerId: 'c-1', customerCode: 'ANV', customerName: 'AMANN' }];
+    const queryFn = vi.fn().mockResolvedValue(customers);
+
+    const { result } = renderHook(() =>
+      useWorkbenchQuery({
+        scopeKey: 'mrx_inspection_customers',
+        cacheKey: 'catalog_customers',
+        queryFn,
+      })
+    );
+
+    await waitFor(() => expect(result.current.data).toEqual(customers));
+    const rawCached = serverStateCache.get<typeof customers>('catalog_customers')?.data;
+    expect(Array.isArray(rawCached)).toBe(true);
+    expect(rawCached?.find((c) => c.customerId === 'c-1')?.customerCode).toBe('ANV');
+  });
+
+  it('auto-unwraps legacy { data, isCompatibilityBlocked: false } wrapper in serverStateCache.get for non-snapshot keys and treats snapshot { data: null } as null', () => {
+    const legacyWrapped = {
+      data: [{ customerId: 'c-2', customerCode: 'DAV', customerName: 'Draxlmaier' }],
+      isCompatibilityBlocked: false,
+    };
+    serverStateCache.set('catalog_customers', legacyWrapped);
+    const unwrapped = serverStateCache.get<typeof legacyWrapped.data>('catalog_customers')?.data;
+    expect(Array.isArray(unwrapped)).toBe(true);
+    expect(unwrapped?.find((c) => c.customerId === 'c-2')?.customerCode).toBe('DAV');
+
+    serverStateCache.set('snapshot:mrx_null_snapshot', { data: null });
+    const queryFn = vi.fn().mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() =>
+      useWorkbenchQuery({
+        scopeKey: 'mrx_null_snapshot',
+        cacheKey: 'mrx_null_snapshot_key',
+        snapshotKey: 'snapshot:mrx_null_snapshot',
+        scopeId: 'cust-2',
+        queryFn,
+      })
+    );
+    expect(result.current.data).toBeNull();
+    expect(result.current.stateProps.hasExistingData).toBe(false);
   });
 });

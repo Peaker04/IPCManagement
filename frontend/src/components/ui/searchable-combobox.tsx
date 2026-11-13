@@ -173,7 +173,7 @@ export function SearchableCombobox({
         <div
           id={`${id}-listbox`}
           role="listbox"
-          className="absolute left-0 top-full mt-1 w-full min-w-[240px] max-h-60 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg z-50 py-1 text-xs"
+          className="ui-popup-enter absolute left-0 top-full mt-1 w-full min-w-[240px] max-h-60 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg z-50 py-1 text-xs"
         >
           {filteredOptions.length === 0 ? (
             <div className="p-3 text-center text-slate-500 italic">

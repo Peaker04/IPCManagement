@@ -37,7 +37,7 @@ public sealed class MrxEditScopeQuery(IpcManagementContext context)
 
         var schedules = await context.Menuschedules.AsNoTracking()
             .Include(item => item.Menu).ThenInclude(menu => menu.Menuitems).ThenInclude(item => item.Dish)
-            .Include(item => item.Mealquantityplanlines)
+            .Include(item => item.Mealquantityplanlines).ThenInclude(line => line.QuantityPlan)
             .Where(item => item.CustomerId == customerKey
                 && item.WeekStartDate == weekStartDate
                 && item.MenuVersionId == version.MenuVersionId)
@@ -63,6 +63,9 @@ public sealed class MrxEditScopeQuery(IpcManagementContext context)
                     .Select(shiftGroup =>
                     {
                         var quantity = shiftGroup.SelectMany(item => item.Mealquantityplanlines)
+                            .Where(line => batch?.QuantityImportBatchId is null
+                                || (line.QuantityPlan?.ImportBatchId is not null
+                                    && line.QuantityPlan.ImportBatchId.AsSpan().SequenceEqual(batch.QuantityImportBatchId)))
                             .OrderByDescending(item => item.UpdatedAt)
                             .FirstOrDefault();
                         var slots = shiftGroup.SelectMany(item => item.Menu.Menuitems)

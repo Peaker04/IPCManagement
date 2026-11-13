@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
+import { StateBoundary, type StateBoundaryProps } from '../../../components/workbench/StateBoundary';
 import { DataGrid } from '../../../components/workbench/DataGrid';
 import { ReconciliationLinesFilterToolbar, type LineStatusFilter } from '../ReconciliationLinesFilterToolbar';
-import { ReconciliationBlockerStrip } from '../ReconciliationBlockerStrip';
 import { ReconciliationDispositionModal } from '../ReconciliationDispositionModal';
 import { ReconciliationLineDetailModal } from '../../../components/workbench/ReconciliationLineDetailModal';
 import { useReconciliationColumns } from '../reconciliationColumns';
@@ -9,30 +9,46 @@ import type { ReconciliationLineItem } from '../../../api/mrxApi';
 import { normalizeSearchText } from '../../../utils/search';
 
 export interface ReconciliationLinesBranchProps {
+  resolvedBatchId?: string;
+  bodyState: Omit<StateBoundaryProps, 'children'>;
+  hasBatch: boolean;
+  dayNavigation: ReactNode;
   lines: ReconciliationLineItem[];
   statusLabels: Record<string, string>;
   isCompleted?: boolean;
   onReloadData: () => void | Promise<void>;
   statusFilter: LineStatusFilter;
   onStatusFilterChange: (status: LineStatusFilter) => void;
-  showBlocker?: boolean;
-  onNavigateWarehouse?: () => void;
 }
 
 export function ReconciliationLinesBranch({
+  resolvedBatchId,
+  bodyState,
+  hasBatch,
+  dayNavigation,
   lines,
   statusLabels,
   isCompleted = false,
   onReloadData,
   statusFilter,
   onStatusFilterChange,
-  showBlocker = false,
-  onNavigateWarehouse,
 }: ReconciliationLinesBranchProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [localBatchId, setLocalBatchId] = useState(resolvedBatchId);
   const [selectedDispositionLine, setSelectedDispositionLine] = useState<ReconciliationLineItem | null>(null);
   const [bulkLines, setBulkLines] = useState<ReconciliationLineItem[] | null>(null);
   const [inspectedDetailLine, setInspectedDetailLine] = useState<ReconciliationLineItem | null>(null);
+  if (resolvedBatchId !== undefined && resolvedBatchId !== localBatchId) {
+    setLocalBatchId(resolvedBatchId);
+    if (localBatchId !== undefined) {
+      setSearchTerm('');
+      setIsSearchOpen(false);
+      setSelectedDispositionLine(null);
+      setBulkLines(null);
+      setInspectedDetailLine(null);
+    }
+  }
 
   const needsReviewCount = useMemo(
     () => lines.filter((l) => (l.issuedRequiredDifference ?? 0) > 0 && !l.disposition).length,
@@ -77,16 +93,16 @@ export function ReconciliationLinesBranch({
     onSelectDetailLine: (line) => setInspectedDetailLine(line),
   });
 
+  const isBlocked = Boolean(bodyState.isForbidden || bodyState.isModeConflict || bodyState.isConflict);
+  const isPending = Boolean(bodyState.isPreviousData || bodyState.isLoading);
+
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
-      {showBlocker && (
-        <ReconciliationBlockerStrip
-          needsReviewCount={needsReviewCount}
-          onFilterNeedsReview={() => onStatusFilterChange('NEEDS_REVIEW')}
-          onNavigateWarehouse={onNavigateWarehouse}
-        />
-      )}
-      <ReconciliationLinesFilterToolbar
+      {hasBatch && !isBlocked && <ReconciliationLinesFilterToolbar
+        isSearchOpen={isSearchOpen}
+        onSearchOpenChange={setIsSearchOpen}
+        isPending={isPending}
+        dayNavigation={dayNavigation}
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         statusFilter={statusFilter}
@@ -98,7 +114,7 @@ export function ReconciliationLinesBranch({
         disposedCount={disposedCount}
         matchedCount={matchedCount}
         onBulkDisposition={
-          needsReviewCount > 1
+          needsReviewCount > 1 && !isPending
             ? () => {
                 const unresolved = lines.filter(
                   (l) => (l.issuedRequiredDifference ?? 0) > 0 && !l.disposition
@@ -110,7 +126,8 @@ export function ReconciliationLinesBranch({
               }
             : undefined
         }
-      />
+      />}
+      <StateBoundary {...bodyState}>
       <DataGrid
         data={filteredLines}
         columns={columns}
@@ -118,12 +135,13 @@ export function ReconciliationLinesBranch({
         minWidth="min-w-[1140px]"
         emptyMessage="Không có dòng đối soát nào phù hợp với bộ lọc."
       />
+      </StateBoundary>
 
       <ReconciliationDispositionModal
         key={selectedDispositionLine?.materialCode ?? (bulkLines ? 'bulk' : 'empty')}
         selectedLine={selectedDispositionLine}
         selectedLines={bulkLines ?? undefined}
-        isOpen={Boolean(selectedDispositionLine || bulkLines)}
+        isOpen={hasBatch && !isBlocked && !isPending && Boolean(selectedDispositionLine || bulkLines)}
         onClose={() => {
           setSelectedDispositionLine(null);
           setBulkLines(null);
@@ -135,7 +153,7 @@ export function ReconciliationLinesBranch({
       />
 
       <ReconciliationLineDetailModal
-        isOpen={Boolean(inspectedDetailLine)}
+        isOpen={hasBatch && !isBlocked && !isPending && Boolean(inspectedDetailLine)}
         onClose={() => setInspectedDetailLine(null)}
         line={inspectedDetailLine}
         isCompleted={isCompleted}

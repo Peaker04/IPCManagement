@@ -92,20 +92,26 @@ test('@G2-Admission five actual identities use server MRX authority; Manager is 
           try { await expect(page.locator('body')).not.toContainText('Đang tải'); }
           catch { readiness = 'NEEDS_EVIDENCE_LOADING'; }
           if (role === 'admin' && route.endsWith('view=bom')) {
-            expect(await page.getByRole('row').count(), 'BOM coverage must not render the entire catalog').toBeLessThanOrEqual(52);
             const firstCode = await page.getByRole('row').nth(1).getByRole('cell').first().innerText();
-            const grid = page.getByRole('table').locator('..');
-            const lastDish = await page.evaluate(async () => {
+            const pagination = page.getByRole('navigation', { name: 'Phân trang định mức BOM', exact: true });
+            const pageSize = Number(await pagination.getByRole('combobox', { name: 'Số dòng mỗi trang', exact: true }).inputValue());
+            expect(await page.getByRole('row').count(), 'BOM coverage must render only the current page').toBeLessThanOrEqual(pageSize + 1);
+            const coverage = await page.evaluate(async () => {
               const response = await fetch('/api/Dishes/bom-coverage', { headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}` } });
               if (!response.ok) throw new Error(`Coverage read ${response.status}`);
               const report = (await response.json()).data;
-              return report.dishes[report.dishes.length - 1].dishCode as string;
+              return { lastDish: report.dishes[report.dishes.length - 1].dishCode as string, count: report.dishes.length as number };
             });
-            await grid.evaluate((element) => { element.scrollTop = element.scrollHeight; });
-            await expect(page.getByRole('cell').filter({ hasText: lastDish })).toBeVisible();
-            await page.getByRole('textbox', { name: 'Tìm kiếm món ăn' }).fill(firstCode.trim());
+            const totalPages = Math.ceil(coverage.count / pageSize);
+            expect(totalPages).toBeGreaterThan(0);
+            for (let current = 1; current < totalPages; current++) {
+              await pagination.getByRole('button', { name: 'Trang sau', exact: true }).click();
+              await expect(pagination).toContainText(`Trang ${current + 1}/${totalPages}`);
+            }
+            await expect(page.getByRole('button', { name: 'Sao chép ' + coverage.lastDish, exact: true })).toBeVisible();
+            await page.getByRole('searchbox', { name: 'Tìm kiếm món ăn' }).fill(firstCode.trim());
             await expect(page.getByRole('row')).toHaveCount(2);
-            await page.getByRole('textbox', { name: 'Tìm kiếm món ăn' }).fill('');
+            await page.getByRole('searchbox', { name: 'Tìm kiếm món ăn' }).fill('');
           }
           if (role === 'thukho' || role === 'beptruong') {
             expect(responses.filter((response) => response.endpoint === '/api/coordination/customers' && response.status === 403), 'Auth must not prefetch a catalog this role cannot read').toEqual([]);

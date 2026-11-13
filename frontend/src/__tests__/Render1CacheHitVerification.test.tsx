@@ -1,3 +1,4 @@
+import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -286,7 +287,7 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
     expect(screen.getByRole('combobox', { name: 'Chọn khách hàng đối soát' })).toHaveValue('ANV');
   });
 
-  it('MrxBatchWorkbench: Render #1 synchronously mounts cached source and batch without skeleton flash when clicked from naked sidebar link', () => {
+  it('MrxBatchWorkbench: Render #1 mounts a fully cached source, batch and edit scope without a cold skeleton', () => {
     const testCustomerId = 'c-anv';
     const testWeek = '2026-10-26';
 
@@ -366,6 +367,10 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
     });
     vi.spyOn(bomApi, 'getSupportedPriceTiers').mockResolvedValue([]);
     serverStateCache.set(`mrx_source_${testCustomerId}_${testWeek}`, { source: mockSource, batch: mockBatch });
+    serverStateCache.set(`mrx_edit_scope_${testCustomerId}_${testWeek}_mv-published-1:1`, {
+      batchId: 'batch-weekly-1', batchStatus: 'DRAFT', batchVersion: 1,
+      menuVersionId: 'mv-published-1', days: [],
+    });
     serverStateCache.set('catalog_customers', [
       { customerId: 'c-anv', customerCode: 'ANV', customerName: 'AMANN' },
     ]);
@@ -602,5 +607,159 @@ describe('Gate 4: Synchronous Render #1 Cache-Hit & Anti-Skeleton Verification',
     // Verify reading from serverStateCache returns the cached item synchronously
     const cached = serverStateCache.get<typeof mockData>(`mrx_recon_${testBatchId}_2026-09-21`);
     expect(cached?.data.batchId).toBe(testBatchId);
+  });
+
+  it('E2: useWorkbenchQuery warm-cache transition synchronizes stateData and resolvedCacheKey so TTL expiry never reverts to previous cacheKey data', async () => {
+    vi.useFakeTimers();
+    try {
+      const { useWorkbenchQuery } = await import('../hooks/useWorkbenchQuery');
+      serverStateCache.set('mrx_test_a', { label: 'Data A' });
+      serverStateCache.set('mrx_test_b', { label: 'Data B' });
+
+      function Probe({ activeKey, tick }: { activeKey: string; tick: number }) {
+        const query = useWorkbenchQuery({
+          scopeKey: 'mrx_test',
+          cacheKey: activeKey,
+          queryFn: async () => ({ label: activeKey === 'mrx_test_a' ? 'Data A' : 'Data B' }),
+        });
+        return (
+          <div>
+            <span data-testid="probe-label">{query.data?.label ?? 'none'}</span>
+            <span data-testid="probe-prev">{String(query.stateProps.isPreviousData)}</span>
+            <span data-testid="probe-tick">{tick}</span>
+          </div>
+        );
+      }
+
+      const { rerender } = render(<Probe activeKey="mrx_test_a" tick={0} />);
+      expect(screen.getByTestId('probe-label')).toHaveTextContent('Data A');
+
+      // Switch to B (warm cache hit), then force B into stateData by advancing 61s and triggering B's fetch, or let B resolve
+      vi.advanceTimersByTime(61_000);
+      rerender(<Probe activeKey="mrx_test_b" tick={1} />);
+      await vi.runAllTimersAsync();
+      expect(screen.getByTestId('probe-label')).toHaveTextContent('Data B');
+
+      // Refresh A in cache so A is warm (!isStale), then switch from B -> A
+      serverStateCache.set('mrx_test_a', { label: 'Data A Fresh' });
+      rerender(<Probe activeKey="mrx_test_a" tick={2} />);
+      expect(screen.getByTestId('probe-label')).toHaveTextContent('Data A Fresh');
+      expect(screen.getByTestId('probe-prev')).toHaveTextContent('false');
+
+      // Advance past the 60s TTL while still on A and trigger an unrelated re-render (tick=3)
+      vi.advanceTimersByTime(61_000);
+      rerender(<Probe activeKey="mrx_test_a" tick={3} />);
+
+      // Must still show Data A Fresh with isPreviousData=false, NOT revert to Data B!
+      expect(screen.getByTestId('probe-label')).toHaveTextContent('Data A Fresh');
+      expect(screen.getByTestId('probe-prev')).toHaveTextContent('false');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('G4: useWorkbenchQuery survives React.StrictMode double-mount without aborting the in-flight request', async () => {
+    const React = await import('react');
+    const { useWorkbenchQuery } = await import('../hooks/useWorkbenchQuery');
+    let aborted = false;
+    let callCount = 0;
+
+    function StrictProbe() {
+      const query = useWorkbenchQuery({
+        scopeKey: 'mrx_strict_probe',
+        cacheKey: 'mrx_strict_probe_1',
+        queryFn: async (_scopeId, signal) => {
+          callCount += 1;
+          signal?.addEventListener('abort', () => {
+            aborted = true;
+          });
+          await new Promise((r) => setTimeout(r, 15));
+          return { status: 'OK_NO_ABORT' };
+        },
+      });
+      return <div data-testid="strict-val">{query.data?.status ?? 'LOADING'}</div>;
+    }
+
+    render(
+      <React.StrictMode>
+        <StrictProbe />
+      </React.StrictMode>
+    );
+
+    expect(await screen.findByText('OK_NO_ABORT')).toBeInTheDocument();
+    expect(aborted).toBe(false);
+    expect(callCount).toBe(1);
+  });
+
+  it('G8: AppShell keeps sidebar mounted while a suspending child route resolves and App mounts ReconciliationDashboardPage without a full-screen Suspense skeleton flash', async () => {
+    const { AppShell } = await import('../components/workbench/AppShell');
+    const { DirtyNavigationProvider } = await import('../components/workbench/DirtyNavigation');
+    const { App } = await import('../App');
+
+    let resolveSuspendingRoute!: () => void;
+    let isResolved = false;
+    const suspendingPromise = new Promise<void>((resolve) => {
+      resolveSuspendingRoute = () => {
+        isResolved = true;
+        resolve();
+      };
+    });
+
+    function SuspendingChildRoute() {
+      if (!isResolved) {
+        throw suspendingPromise;
+      }
+      return <div data-testid="resolved-child-route">Trạm đã tải xong</div>;
+    }
+
+    const { unmount } = render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/']}>
+          <DirtyNavigationProvider>
+            <Routes>
+              <Route element={<AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={[{ path: '/', title: 'Tổng quan MRX' }]} homePath="/" />}>
+                <Route path="/" element={<SuspendingChildRoute />} />
+              </Route>
+            </Routes>
+          </DirtyNavigationProvider>
+        </MemoryRouter>
+      </AuthProvider>
+    );
+
+    // Sidebar MUST stay visible even while the child route inside <Outlet /> is suspended!
+    expect(screen.getByRole('complementary', { name: 'Thanh điều hướng chính' })).toBeInTheDocument();
+
+    resolveSuspendingRoute();
+    expect(await screen.findByTestId('resolved-child-route')).toBeInTheDocument();
+    unmount();
+
+    // Now verify App mounts ReconciliationDashboardPage on / in MRX mode immediately after getOperationalMode resolves,
+    // without flashing a full-screen 6-column WorkbenchSkeleton without sidebar
+    localStorage.setItem('ipc_v3_token', 'admin-jwt-token');
+    vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue({
+      queueCounts: {}, queuePageNumber: 1, queuePageSize: 10, queueTotalCount: 0, queueTotalPages: 0,
+      pendingSourceChangesCount: 1,
+      awaitingWarehouseBatchesCount: 2,
+      unresolvedVariancesCount: 0,
+      completionReadyBatchesCount: 0,
+      items: [],
+      customerOptions: [],
+    });
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 20,
+      totalPages: 0,
+      hasPrev: false,
+      hasNext: false,
+    });
+
+    window.history.pushState({}, '', '/');
+    render(<App />);
+
+    // Wait for ProtectedRoute's getOperationalMode to finish and mount the MRX dashboard
+    expect(await screen.findByRole('heading', { name: 'Bàn điều hành đối soát' })).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: 'Thanh điều hướng chính' })).toBeInTheDocument();
   });
 });

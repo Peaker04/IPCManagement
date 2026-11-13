@@ -9,6 +9,7 @@ import * as apiTransport from '../api/client';
 import { ApiError } from '../api/client';
 import { mrxApi, type MrxKitchenCooking } from '../api/mrxApi';
 import { serverStateCache } from '../store/serverStateCache';
+import { workspaceSessionStore } from '../store/workspaceSessionStore';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { systemApi } from '../api/systemApi';
 import { MOCK_CHEF_DATA } from '../test/fixtures';
@@ -125,6 +126,22 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(screen.getByText('Chưa có KHSX được duyệt cho ngày, ca và khách hàng đã chọn.')).toBeInTheDocument();
   });
 
+  it('does not reopen another customer’s cached cooking batch when the active MRX customer has no batch', async () => {
+    serverStateCache.clearAll();
+    workspaceSessionStore.clearScope();
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 1,
+      updatedAt: '2026-11-02T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    workspaceSessionStore.setScope({ customerId: 'customer-2', customerCode: 'ANV', weekStartDate: '2026-11-02', batchId: '' });
+    serverStateCache.set('snapshot:mrx_cooking', { batchId: 'batch-1', selectedShift: 'ALL' });
+    const read = vi.spyOn(mrxApi, 'getKitchenCooking');
+    renderChef('/chef?view=mrx-cooking');
+    await waitFor(() => expect(mrxApi.getBatchPage).toHaveBeenCalled());
+    expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' })).toHaveValue('');
+    expect(read).not.toHaveBeenCalledWith('batch-1');
+    expect(workspaceSessionStore.getScope()).toMatchObject({ customerId: 'customer-2', batchId: '' });
+  });
+
   it('MRX cooking workbench renders sanitized cooking projection with allowed frozen fields and no warehouse/price columns', async () => {
     vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
       batchId: 'batch-1',
@@ -137,11 +154,11 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
         dishCode: 'MON-01',
         dishName: 'Cơm sườn nướng',
         servings: 1000,
-        ingredientCode: 'SUON-01',
+        ingredientCode: ' ',
         ingredientName: 'Sườn heo',
         unitName: 'kg',
         bomQuantityPerServing: 0.0000004,
-        wasteRatePercent: 5,
+        wasteRatePercent: 2.375,
         totalRequiredQuantity: 0.0004,
       }],
     });
@@ -152,10 +169,13 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(await screen.findByRole('heading', { name: 'Phiếu nấu theo lô' })).toBeInTheDocument();
     expect(await screen.findByText('Cơm sườn nướng')).toBeInTheDocument();
     expect(screen.getByText('Sườn heo')).toBeInTheDocument();
-    expect(screen.getByText('1.000')).toBeInTheDocument();
     const ingredient = screen.getByRole('row', { name: /Sườn heo/ });
+    expect(screen.getByRole('button', { name: /Cơm sườn nướng/ })).toHaveTextContent('1.000 suất');
+    expect(within(screen.getByRole('region', { name: /Nguyên liệu Cơm sườn nướng/ })).getByText('1.000')).toBeInTheDocument();
     const cells = within(ingredient).getAllByRole('cell');
     expect(cells[2]).toHaveTextContent(/^0,0000004$/);
+    expect(cells[3]).toHaveTextContent(/^2,375%$/);
+    expect(within(ingredient).queryByRole('button', { name: /Sao chép/ })).not.toBeInTheDocument();
     expect(cells[4]).toHaveTextContent(/^0,0004$/);
 
     const header = screen.getByRole('banner');
@@ -247,6 +267,8 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Lọc theo ca nấu' }), 'AFTERNOON');
     expect(screen.getByRole('heading', { name: 'Không có món cho ca đã chọn' })).toBeVisible();
     expect(screen.queryByRole('region', { name: /Món Cơm sườn nướng/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
     expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
@@ -326,9 +348,10 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(await screen.findByText('Chưa đủ dữ liệu phiếu nấu')).toBeVisible();
     expect(screen.queryByText(/được tạo từ phiên bản trước/)).not.toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' })).toHaveValue('batch-incomplete');
-    expect(screen.queryByRole('button', { name: 'Tải CSV cả lô' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Tải Excel cả lô' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'In phiếu nấu' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
+    expect(screen.getByRole('searchbox', { name: 'Tìm món, nguyên liệu trong phiếu nấu' })).toBeDisabled();
     expect(screen.queryByRole('region', { name: /Món/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Về Bàn điều hành' }));
     expect(router.state.location.pathname).toBe('/');
@@ -343,17 +366,20 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     serverStateCache.set('snapshot:mrx_cooking', { data: foreign });
     vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({ items: [{ batchId: 'batch-target', customerId: 'c-2',
       customerName: 'Khách B', customerCode: 'KB', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25',
-      status: 'TRANSFERRED', version: 3, createdAt: '2026-10-19T00:00:00Z' }],
-      totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false });
+      status: 'TRANSFERRED', version: 3, createdAt: '2026-10-19T00:00:00Z' },
+      { batchId: 'batch-foreign', customerId: 'c-1', customerName: 'Khách A', customerCode: 'KA',
+        weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'TRANSFERRED', version: 2,
+        createdAt: '2026-10-19T00:00:00Z' }],
+      totalCount: 2, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false });
     let resolveCooking!: (value: MrxKitchenCooking) => void;
     vi.spyOn(mrxApi, 'getKitchenCooking').mockReturnValue(new Promise((resolve) => { resolveCooking = resolve; }));
     const download = vi.spyOn(mrxApi, 'downloadKitchenCookingBlob').mockRejectedValueOnce(new ApiError(403, 'Không có quyền tải phiếu.'));
     renderChef('/chef?view=mrx-cooking&batchId=batch-target');
     expect(screen.queryByText('Món lô cũ')).not.toBeInTheDocument();
     expect(screen.queryByText('Gạo lô cũ')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'In phiếu nấu' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Tải CSV cả lô' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Tải Excel cả lô' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
     await act(async () => { resolveCooking({ ...foreign, batchId: 'batch-target', sourceVersion: 3,
       rows: [{ ...foreign.rows[0], dishCode: 'MON-B', dishName: 'Món lô đang chọn', ingredientName: 'Gạo lô đang chọn' }] }); });
     expect(await screen.findByText('Món lô đang chọn')).toBeVisible();
@@ -362,6 +388,18 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Tải CSV cả lô' }));
     expect(download).toHaveBeenCalledWith('batch-target', 'csv');
     expect(await screen.findByRole('alert')).toHaveTextContent('Không có quyền tải phiếu.');
+
+    let resolveNext!: (value: MrxKitchenCooking) => void;
+    vi.mocked(mrxApi.getKitchenCooking).mockReturnValueOnce(new Promise(resolve => { resolveNext = resolve; }));
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' }), 'batch-foreign');
+    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeDisabled();
+    await act(async () => { resolveNext(foreign); });
+    expect(await screen.findByText('Món lô cũ')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Tải CSV cả lô' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Tải Excel cả lô' })).toBeEnabled();
   });
 
   it('keeps cooking URL scope through navigation and catalogue paging beyond the first fifty batches', async () => {
@@ -371,9 +409,11 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     const target = { ...first, batchId: 'batch-target', customerId: 'c-2', customerName: 'Khách B', customerCode: 'KB' };
     const older = { ...first, batchId: 'batch-older', customerCode: 'KC', weekStartDate: '2026-10-12' };
     const reads: string[] = [];
+    let resolveOlder!: (response: Response) => void;
     vi.spyOn(globalThis, 'fetch').mockImplementation(async input => {
       const url = new URL(String(input), 'http://localhost');
       reads.push(url.pathname + url.search);
+      if (url.pathname.endsWith('/batch-older/kitchen-cooking')) return new Promise<Response>(resolve => { resolveOlder = resolve; });
       let data: unknown;
       if (url.pathname.endsWith('/system-operation-mode')) data = { mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 1, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
       else if (url.pathname.endsWith('/batches')) {
@@ -399,9 +439,139 @@ describe('Chef Feature (FR-CHEF — Bếp trưởng & bàn giao)', () => {
     expect(select).toHaveValue('batch-target');
     expect(router.state.location.search).toContain('batchId=batch-target');
     expect(reads.filter(path => path.endsWith('/batch-older/kitchen-cooking'))).toHaveLength(0);
+    await screen.findByText('Phiên bản: v1');
     await userEvent.selectOptions(select, 'batch-older');
     await waitFor(() => expect(reads).toContain('/api/reconciliation/batches/batch-older/kitchen-cooking'));
+    expect(screen.queryByText('Phiên bản: v1')).not.toBeInTheDocument();
+    expect(screen.getByText('Đang tải phạm vi mới')).toHaveClass('sr-only');
+    expect(screen.getByRole('button', { name: 'In phiếu nấu' })).toBeDisabled();
+    await act(async () => resolveOlder(Response.json({ success: true, data: { batchId: 'batch-older', sourceVersion: 2, rows: [] } })));
+    expect(await screen.findByText('Phiên bản: v2')).toBeInTheDocument();
     expect(select).toHaveValue('batch-older');
     expect(within(pager).getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+  });
+
+  it('E5 & E7: retains urlBatchId in fallbackBatchId when navigating back to /chef?view=mrx-cooking without batchId param, and redirects non-MRX views to mrx-cooking in MATERIAL_RECONCILIATION mode', async () => {
+    vi.restoreAllMocks();
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({
+      mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 1, updatedAt: '2026-10-19T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} },
+    });
+    const first = { batchId: 'batch-1', customerId: 'c-1', customerName: 'Khách A', customerCode: 'KA', weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 1, createdAt: '2026-10-19T00:00:00Z' };
+    const second = { ...first, batchId: 'batch-2', customerId: 'c-2', customerName: 'Khách B', customerCode: 'KB' };
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [first, second], totalCount: 2, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false,
+    });
+    vi.spyOn(mrxApi, 'getKitchenCooking').mockImplementation(async (id) => ({
+      batchId: id, sourceVersion: 1, rows: [],
+    }));
+
+    // Start on non-MRX view ?view=plans while in MATERIAL_RECONCILIATION mode -> E7 redirects to mrx-cooking
+    const router = createMemoryRouter([{ path: '/chef', element: <ChefDashboardPage /> }], {
+      initialEntries: ['/chef?view=plans'],
+    });
+    render(<AuthProvider><RouterProvider router={router} /></AuthProvider>);
+    const select = await screen.findByRole('combobox', { name: 'Chọn lô đối soát nấu' });
+    await waitFor(() => expect(router.state.location.search).toContain('view=mrx-cooking'));
+    await waitFor(() => expect(select).toHaveValue('batch-1'));
+
+    // Navigate via URL to batch-2, then click naked sidebar link /chef?view=mrx-cooking (without batchId)
+    await act(async () => { await router.navigate('/chef?view=mrx-cooking&batchId=batch-2'); });
+    expect(select).toHaveValue('batch-2');
+
+    await act(async () => { await router.navigate('/chef?view=mrx-cooking'); });
+    // E5: Must keep batch-2 selected and sync batchId=batch-2 back into URL instead of reverting to batch-1
+    expect(select).toHaveValue('batch-2');
+    await waitFor(() => expect(router.state.location.search).toContain('batchId=batch-2'));
+  });
+
+  it('K5: MrxCookingDishListBranch uses solid bg-slate-100 border-b border-slate-200 thead and omits transition-colors on tbody rows', async () => {
+    const { MrxCookingDishListBranch } = await import('../features/chef/branches/MrxCookingDishListBranch');
+    const { container } = render(
+      <MrxCookingDishListBranch
+        groups={[{
+          key: '2026-10-19-MORNING-M1',
+          serviceDate: '2026-10-19',
+          weekday: 'Thứ Hai',
+          shiftName: 'MORNING',
+          menuVariant: 'Mặn',
+          dishCode: 'M1',
+          dishName: 'Thịt kho tàu',
+          servings: 120,
+          rows: [{
+            serviceDate: '2026-10-19',
+            weekday: 'Thứ Hai',
+            shiftName: 'MORNING',
+            menuVariant: 'Mặn',
+            dishCode: 'M1',
+            dishName: 'Thịt kho tàu',
+            servings: 120,
+            ingredientCode: 'NL01',
+            ingredientName: 'Thịt ba chỉ',
+            unitName: 'kg',
+            bomQuantityPerServing: 0.15,
+            wasteRatePercent: 5,
+            totalRequiredQuantity: 18.9,
+          }],
+        }]}
+      />
+    );
+    const thead = container.querySelector('thead');
+    expect(screen.getByRole('button', { name: /Thịt kho tàu/ })).toHaveTextContent('120 suất');
+    expect(thead).toHaveClass('bg-slate-100', 'border-b', 'border-slate-200');
+    const bodyRow = container.querySelector('tbody tr');
+    expect(bodyRow).not.toHaveClass('transition-colors');
+  });
+
+  it('M8: MrxCookingWorkbench persists selectedShift and batchId to snapshot:mrx_cooking so returning from a naked sidebar link restores the selected shift', async () => {
+    vi.restoreAllMocks();
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({
+      mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 1, updatedAt: '2026-10-19T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} },
+    });
+    const batch = {
+      batchId: 'batch-m8',
+      customerId: 'c-1',
+      customerName: 'Khách A',
+      customerCode: 'KA',
+      weekStartDate: '2026-10-19',
+      weekEndDate: '2026-10-25',
+      status: 'IN_PROGRESS',
+      version: 1,
+      createdAt: '2026-10-19T00:00:00Z',
+    };
+    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
+      items: [batch], totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false,
+    });
+    vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({
+      batchId: 'batch-m8',
+      sourceVersion: 1,
+      rows: [{
+        serviceDate: '2026-10-19',
+        weekday: 'Thứ Hai',
+        shiftName: 'MORNING',
+        menuVariant: 'Mặn',
+        dishCode: 'M1',
+        dishName: 'Thịt kho',
+        servings: 100,
+        ingredientCode: 'NL01',
+        ingredientName: 'Thịt heo',
+        unitName: 'kg',
+        bomQuantityPerServing: 0.1,
+        wasteRatePercent: 0,
+        totalRequiredQuantity: 10,
+      }],
+    });
+
+    const { unmount } = renderChef('/chef?view=mrx-cooking&batchId=batch-m8');
+    expect(await screen.findByText('Thịt kho')).toBeInTheDocument();
+
+    const shiftSelect = screen.getByRole('combobox', { name: 'Lọc theo ca nấu' });
+    await userEvent.selectOptions(shiftSelect, 'MORNING');
+    expect(shiftSelect).toHaveValue('MORNING');
+    unmount();
+
+    renderChef('/chef?view=mrx-cooking');
+    expect(await screen.findByRole('combobox', { name: 'Lọc theo ca nấu' })).toHaveValue('MORNING');
   });
 });

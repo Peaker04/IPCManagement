@@ -7,7 +7,7 @@ public sealed class SystemOperationModeGuard(IpcManagementContext context)
 {
     public async Task<SystemOperationSnapshot> ReadRequiredAsync(CancellationToken cancellationToken = default)
     {
-        var rows = await context.Systemoperationmodes.AsNoTracking().Take(2).ToListAsync(cancellationToken);
+        var rows = await context.Systemoperationmodes.AsNoTracking().OrderBy(x => x.Id).Take(2).ToListAsync(cancellationToken);
         if (rows.Count != 1 || rows[0].Id != 1 || rows[0].Version < 1 || !SystemOperationEligibility.IsValidMode(rows[0].Mode))
             throw new SystemOperationAuthorityException("Cấu hình chế độ vận hành không hợp lệ.");
         var row = rows[0];

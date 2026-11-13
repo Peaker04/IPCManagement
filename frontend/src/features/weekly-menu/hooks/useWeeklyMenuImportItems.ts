@@ -88,7 +88,7 @@ export function useWeeklyMenuImportItems(initial: Omit<ImportScope, 'priceTierAm
     replace(current.current.map(item => item.id === id ? { ...item,
       customerId: intent === 'current-week' ? scope.customerId : item.customerId,
       weekStartDate: intent === 'current-week' ? scope.weekStartDate : '',
-      weekMode: intent === 'current-week' ? 'current' : 'auto', dateError: null, draftMatch: null, draftPage: 1,
+      weekMode: intent === 'current-week' ? 'current' : item.file ? 'auto' : 'manual', dateError: null, draftMatch: null, draftPage: 1,
       revision: item.revision + 1, preview: null, isPreviewing: false, error: null,
     } : item));
     setError(null);

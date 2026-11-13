@@ -245,6 +245,8 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     [Theory]
     [InlineData("100", 10, "0.1", "1")]
     [InlineData("0.0004", 1000, "0.0000004", "0.0004")]
+    [InlineData("0.0005", 1, "0.0000005", "0.000001")]
+    [InlineData("123.456781", 7, "0.123456781", "0.864197")]
     public async Task Committed_lineage_preserves_canonical_rate_before_serving_rounding(string raw, int servings, string rate, string total)
     {
         await using var fixture = await Fixture.CreateAsync();
@@ -268,9 +270,22 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         var expectedTotal = decimal.Parse(total, System.Globalization.CultureInfo.InvariantCulture);
         var contributor = Assert.Single(await context.Reconciliationbatchcontributors.AsNoTracking().ToListAsync());
         Assert.Equal(expectedTotal, contributor.SourceQuantity);
+        Assert.Equal(servings, contributor.FrozenServings);
+        Assert.Equal(decimal.Parse(raw, System.Globalization.CultureInfo.InvariantCulture), contributor.FrozenBomQuantityPerServing);
+        Assert.Equal(0.001m, contributor.FrozenBomUnitToBaseRate);
+        Assert.Equal(1m, contributor.FrozenCanonicalUnitToBaseRate);
+        var daily = Assert.Single(await context.Reconciliationbatchdailylines.AsNoTracking().ToListAsync());
+        var weekly = Assert.Single(await context.Reconciliationbatchlines.AsNoTracking().ToListAsync());
+        Assert.Equal(expectedTotal, daily.RequiredQuantity);
+        Assert.Equal(expectedTotal, weekly.RequiredQuantity);
+        Assert.Equal(daily.DailyLineId, contributor.DailyLineId);
+        Assert.Equal(weekly.BatchLineId, daily.BatchLineId);
+        Assert.Equal(fixture.IngredientId, daily.IngredientId);
+        Assert.Equal(weekly.CanonicalUnitId, daily.CanonicalUnitId);
+        Assert.Equal(await context.Ingredients.Where(item => item.IngredientId == fixture.IngredientId).Select(item => item.UnitId).SingleAsync(), weekly.CanonicalUnitId);
+        Assert.Equal(new DateOnly(2026, 8, 25), daily.ServiceDate);
         var dishes = Payload<IReadOnlyList<ReconciliationBatchDishSummaryDto>>(await fixture.Controller.Dishes(committed.ReconciliationBatchId, default));
         Assert.Equal(expectedRate, Assert.Single(Assert.Single(dishes).Materials).CanonicalQtyPerServing);
-        Assert.Equal(expectedTotal, DecimalPolicy.RoundQuantity(expectedRate * servings));
         var kitchen = await new ReconciliationKitchenExportService(context).GetAsync(committed.ReconciliationBatchId);
         Assert.Equal(expectedRate, Assert.Single(kitchen!.Rows).BomQuantityPerServing);
         Assert.Equal(expectedTotal, Assert.Single(kitchen.Rows).TotalRequiredQuantity);
@@ -289,6 +304,8 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
     {
         await using var fixture = await Fixture.CreateAsync();
         var controller = fixture.Controller;
+        // HTTP preview starts with database-hydrated values, not tracked seed values.
+        fixture.Context.ChangeTracker.Clear();
 
         var previewResult = await controller.PreviewQuantityImport(
             new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Nguồn số suất chuẩn"), default);
@@ -301,8 +318,18 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         Assert.All(fixture.Context.Mealquantityplans, plan => Assert.Null(plan.ImportBatchId));
 
         var request = new CommitQuantityImportRequest(preview.Token, preview.ContentFingerprint, "Nguồn số suất chuẩn");
-        var first = Payload<QuantityImportCommitDto>(await controller.CommitQuantityImport(request, default));
+        fixture.ClearPreviewCache();
+        // A second service has no state from the preview service, only the shared DB and signing configuration.
+        var requestContext = new SystemOperationRequestContext { OperationKey = "reconciliation.quantity-import.commit", ExpectedModeVersion = 1 };
+        var runner = new ImmediateTransactionRunner();
+        await using var secondContext = new ImportTestContext(new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(fixture.Context.Database.GetDbConnection()).Options);
+        var batches = new ReconciliationBatchService(secondContext, runner, requestContext);
+        var secondInstance = new ReconciliationQuantityImportService(secondContext, runner, requestContext,
+            Microsoft.Extensions.Options.Options.Create(new JwtSettings { SecretKey = new string('q', 64), Issuer = "test" }), batches);
+        var first = await secondInstance.CommitAsync(request, GuidHelper.ToGuidString(fixture.ActorId));
         var replay = Payload<QuantityImportCommitDto>(await controller.CommitQuantityImport(request, default));
+        fixture.Context.ChangeTracker.Clear();
 
         Assert.Equal(first.ImportBatchId, replay.ImportBatchId);
         Assert.Equal(first.ReconciliationBatchId, replay.ReconciliationBatchId);
@@ -436,6 +463,39 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         .OrderBy(value => value, StringComparer.Ordinal)
         .ToList();
 
+    [Theory]
+    [InlineData("expired")]
+    [InlineData("other-purpose")]
+    [InlineData("other-key")]
+    [InlineData("tampered")]
+    public async Task Commit_rejects_invalid_preview_proof_without_writes(string scenario)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var preview = Payload<QuantityImportPreviewDto>(await fixture.Controller.PreviewQuantityImport(
+            new(GuidHelper.ToGuidString(fixture.MenuVersionId), "Preview proof"), default));
+        var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+        var original = handler.ReadJwtToken(preview.Token);
+        var now = DateTime.UtcNow;
+        var proof = scenario == "tampered"
+            ? preview.Token[..(preview.Token.LastIndexOf('.') + 1)] + new string('A', 43)
+            : handler.WriteToken(new System.IdentityModel.Tokens.Jwt.JwtSecurityToken(
+                issuer: "test",
+                audience: scenario == "other-purpose" ? "access-token-audience" : original.Audiences.Single(),
+                claims: original.Claims.Where(claim => claim.Type is "menuVersionId" or "fingerprint"),
+                notBefore: now.AddHours(-1),
+                expires: scenario == "expired" ? now.AddMinutes(-1) : now.AddMinutes(15),
+                signingCredentials: new Microsoft.IdentityModel.Tokens.SigningCredentials(
+                    new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(new string(scenario == "other-key" ? 'z' : 'q', 64))),
+                    Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256)));
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.Controller.CommitQuantityImport(
+            new(proof, preview.ContentFingerprint, "Preview proof"), default));
+        Assert.Equal("Phiên xem trước đã hết hạn hoặc không hợp lệ.", error.Message);
+        Assert.Empty(fixture.Context.Quantityimportbatches);
+        Assert.Empty(fixture.Context.Reconciliationbatches);
+        Assert.All(fixture.Context.Mealquantityplans, plan => Assert.Null(plan.ImportBatchId));
+    }
+
     [Fact]
     public async Task Commit_rejects_stale_source_without_persisting_authority()
     {
@@ -540,6 +600,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
         }
 
         public int CacheEntryCount => serviceProvider.GetRequiredService<MemoryCache>().Count;
+        public void ClearPreviewCache() => serviceProvider.GetRequiredService<MemoryCache>().Compact(1);
 
         public static async Task<Fixture> CreateAsync()
         {
@@ -576,7 +637,7 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
             var runner = new ImmediateTransactionRunner();
             var batchService = new ReconciliationBatchService(context, runner, requestContext);
             var cache = new MemoryCache(new MemoryCacheOptions());
-            var importService = new ReconciliationQuantityImportService(context, runner, requestContext, cache, batchService);
+            var importService = new ReconciliationQuantityImportService(context, runner, requestContext, Microsoft.Extensions.Options.Options.Create(new JwtSettings { SecretKey = new string('q', 64), Issuer = "test" }), batchService);
             var completionService = new ReconciliationCompletionService(context, batchService, runner, requestContext);
             var services = new ServiceCollection();
             services.AddControllers().AddApplicationPart(typeof(ReconciliationBatchesController).Assembly).AddControllersAsServices();

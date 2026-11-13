@@ -45,49 +45,49 @@ const variantConfig: Record<
     bg: 'bg-blue-50/90',
     border: 'border-blue-200',
     text: 'text-blue-900',
-    icon: <Info size={16} className="text-blue-600 shrink-0 mt-0.5" aria-hidden="true" />,
+    icon: <Info size={16} className="text-blue-600 shrink-0" aria-hidden="true" />,
     defaultTitle: 'Thông tin hệ thống',
   },
   success: {
     bg: 'bg-emerald-50/90',
     border: 'border-emerald-200',
     text: 'text-emerald-900',
-    icon: <CheckCircle2 size={16} className="text-emerald-600 shrink-0 mt-0.5" aria-hidden="true" />,
+    icon: <CheckCircle2 size={16} className="text-emerald-600 shrink-0" aria-hidden="true" />,
     defaultTitle: 'Thành công',
   },
   warning: {
     bg: 'bg-amber-50/90',
     border: 'border-amber-200',
     text: 'text-amber-900',
-    icon: <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />,
+    icon: <AlertTriangle size={16} className="text-amber-600 shrink-0" aria-hidden="true" />,
     defaultTitle: 'Cảnh báo vận hành',
   },
   error: {
     bg: 'bg-rose-50/90',
     border: 'border-rose-200',
     text: 'text-rose-900',
-    icon: <AlertCircle size={16} className="text-rose-600 shrink-0 mt-0.5" aria-hidden="true" />,
+    icon: <AlertCircle size={16} className="text-rose-600 shrink-0" aria-hidden="true" />,
     defaultTitle: 'Đã xảy ra lỗi',
   },
   stale: {
     bg: 'bg-slate-50',
     border: 'border-slate-300',
     text: 'text-slate-800',
-    icon: <Clock size={16} className="text-slate-500 shrink-0 mt-0.5" aria-hidden="true" />,
+    icon: <Clock size={16} className="text-slate-500 shrink-0" aria-hidden="true" />,
     defaultTitle: 'Dữ liệu có thể chưa mới nhất',
   },
   conflict: {
     bg: 'bg-orange-50/90',
     border: 'border-orange-200',
     text: 'text-orange-950',
-    icon: <RefreshCw size={16} className="text-orange-600 shrink-0 mt-0.5" aria-hidden="true" />,
+    icon: <RefreshCw size={16} className="text-orange-600 shrink-0" aria-hidden="true" />,
     defaultTitle: 'Xung đột dữ liệu đồng thời (409 Conflict)',
   },
   offline: {
     bg: 'bg-zinc-100',
     border: 'border-zinc-300',
     text: 'text-zinc-900',
-    icon: <WifiOff size={16} className="text-zinc-600 shrink-0 mt-0.5" aria-hidden="true" />,
+    icon: <WifiOff size={16} className="text-zinc-600 shrink-0" aria-hidden="true" />,
     defaultTitle: 'Mất kết nối mạng',
   },
 };
@@ -117,7 +117,7 @@ export function InlineBanner({
       aria-live={isAlert ? 'assertive' : 'polite'}
       className={twMerge(
         clsx(
-          'flex items-start justify-between gap-3 px-3.5 py-2.5 rounded border text-xs leading-relaxed transition-all shadow-2xs',
+          'flex items-center justify-between gap-3 px-3.5 py-2.5 rounded border text-xs leading-relaxed ui-control-motion shadow-2xs',
           config.bg,
           config.border,
           config.text,
@@ -126,7 +126,7 @@ export function InlineBanner({
       )}
       {...props}
     >
-      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
         {config.icon}
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-xs leading-snug">

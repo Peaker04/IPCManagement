@@ -5,6 +5,7 @@ import { test, expect } from '../fixtures/mrxTest';
 import { createTransferredBatch, scenarioScope } from '../fixtures/mrxWorkflow';
 import type { StockSnapshot } from '../core/mysqlVerifier';
 import { evidenceStep } from '../fixtures/actionEvidence';
+import { getMrxShiftLabel } from '../../../src/constants/mrxConstants';
 import type { MrxKitchenCooking } from '../../../src/api/mrxApi';
 
 function guidToDotNetHex(value: string): string {
@@ -137,9 +138,7 @@ test.describe('@G1-Golden MRX Golden Path Lifecycle (Horizontal & Vertical)', ()
       const serviceDate = day.toISOString().slice(0, 10);
       await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${createdBatchId}&date=${serviceDate}`);
       await expect(thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true })).toBeEnabled();
-      await evidenceStep(thukhoPage, scope, `warehouse-fill-day-${offset + 1}`, 'WAREHOUSESTAFF', async () => {
-        await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
-      }, { batchId: createdBatchId, serviceDate });
+      await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
       await evidenceStep(thukhoPage, scope, `warehouse-confirm-day-${offset + 1}`, 'WAREHOUSESTAFF', async () => {
         const issued = thukhoPage.waitForResponse((response) => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST');
         await thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
@@ -167,9 +166,14 @@ test.describe('@G1-Golden MRX Golden Path Lifecycle (Horizontal & Vertical)', ()
       expect(target!.servings).toBe(1000);
       expect(target!.totalRequiredQuantity).toBe(2.586);
       expect(target!.unitName).toBe('kg');
-      const group = beptruongPage.getByRole('region', { name: `Món ${target!.dishName} · ${target!.menuVariant}`, exact: true })
-        .filter({ hasText: `${target!.weekday} · ${scope.weekStartDate.split('-').reverse().join('/')} · ${target!.shiftName}` })
-        .filter({ has: beptruongPage.getByText(`(${target!.dishCode})`, { exact: true }) });
+      const shiftLabel = getMrxShiftLabel(target!.shiftName);
+      const dish = beptruongPage.getByRole('region', { name: `Món ${target!.dishName} · ${target!.menuVariant}`, exact: true })
+        .filter({ hasText: `${scope.weekStartDate.split('-').reverse().join('/')} · ${shiftLabel}` });
+      await expect(dish).toHaveCount(1);
+      await dish.getByRole('button').click();
+      const group = beptruongPage.getByRole('region', { name: `Nguyên liệu ${target!.dishName} · ${target!.menuVariant}`, exact: true })
+        .filter({ hasText: `${target!.weekday} · ${scope.weekStartDate.split('-').reverse().join('/')} · ${shiftLabel}` })
+        .filter({ hasText: `(${target!.dishCode})` });
       await expect(group).toHaveCount(1);
       const ingredient = group.getByRole('row').filter({ hasText: target!.ingredientCode });
       await expect(ingredient).toHaveCount(1);

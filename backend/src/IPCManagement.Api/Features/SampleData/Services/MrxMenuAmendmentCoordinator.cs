@@ -10,8 +10,7 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class MrxMenuAmendmentCoordinator(
     IpcManagementContext context,
-    IMrxSourceChangeGateway gateway,
-    Func<CreateMenuAmendmentRequest, string?, CancellationToken, Task<MenuAmendmentResultDto>> createAsync)
+    IMrxSourceChangeGateway gateway)
 {
     /// <summary>BR-MRX-EDIT-1: Admin/Quản lý áp dụng trực tiếp qua MRX source-change gateway.</summary>
     public async Task<MenuAmendmentResultDto> ApplyMrxAsync(
@@ -116,10 +115,62 @@ internal sealed class MrxMenuAmendmentCoordinator(
         return gateway.PreviewAsync(request, cancellationToken);
     }
 
-    public Task<MenuAmendmentResultDto> SubmitMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
+    public async Task<MenuAmendmentResultDto> SubmitMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
     {
         RequireMrxBaseVersion(request);
-        return createAsync(request, actorUserId, cancellationToken);
+        var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người tạo thay đổi thực đơn.");
+        var customerId = GuidHelper.ParseGuidString(request.CustomerId) ?? throw new ArgumentException("CustomerId không hợp lệ.");
+        var baseVersionId = GuidHelper.ParseGuidString(request.ExpectedBaseMenuVersionId) ?? throw new ArgumentException("ExpectedBaseMenuVersionId không hợp lệ.");
+        var preview = await gateway.PreviewAsync(request, cancellationToken);
+        var amendmentId = GuidHelper.NewId();
+        var now = DateTime.UtcNow;
+        var result = new MenuAmendmentResultDto
+        {
+            MenuAmendmentId = GuidHelper.ToGuidString(amendmentId),
+            Status = "PENDING_REVIEW",
+            RequiresReconciliation = false,
+            AffectedReconciliationBatchIds = preview.AffectedReconciliationBatchIds,
+            ImpactLines = preview.ImpactLines,
+            LockedDates = preview.LockedDates,
+            MaterialImpact = preview.MaterialImpact
+        };
+        var amendment = new MenuAmendment
+        {
+            MenuAmendmentId = amendmentId,
+            CustomerId = customerId,
+            WeekStartDate = request.WeekStartDate,
+            BaseMenuVersionId = baseVersionId,
+            Status = "PENDING_REVIEW",
+            Reason = request.Reason.Trim(),
+            ImpactSnapshotJson = JsonSerializer.Serialize(result),
+            CreatedBy = actorId,
+            CreatedAt = now,
+            Lines = preview.ImpactLines.Select(line => new MenuAmendmentLine
+            {
+                MenuAmendmentLineId = GuidHelper.NewId(),
+                MenuAmendmentId = amendmentId,
+                ServiceDate = line.ServiceDate,
+                ShiftName = line.ShiftName,
+                DishSlot = line.DishSlot,
+                OldDishId = GuidHelper.ParseGuidString(line.OldDishId),
+                NewDishId = GuidHelper.ParseGuidString(line.NewDishId)!
+            }).ToList()
+        };
+        context.Menuamendments.Add(amendment);
+        context.Auditlogs.Add(new AuditLog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = now,
+            ChangedBy = actorId,
+            BusinessArea = "Reconciliation",
+            EntityName = nameof(MenuAmendment),
+            EntityId = amendmentId,
+            FieldName = "Status",
+            NewValue = "PENDING_REVIEW",
+            Reason = amendment.Reason
+        });
+        await context.SaveChangesAsync(cancellationToken);
+        return result;
     }
 
     public async Task<IReadOnlyList<MenuAmendmentInboxItemDto>> GetMrxInboxAsync(CancellationToken cancellationToken = default)
@@ -127,10 +178,10 @@ internal sealed class MrxMenuAmendmentCoordinator(
         var items = await context.Menuamendments.AsNoTracking()
             .Include(item => item.Lines)
             .Include(item => item.Customer)
-            .Where(item => item.Status == "PENDING_REVIEW" || item.Status == "RECONCILIATION_REQUIRED")
+            .Where(item => (item.Status == "PENDING_REVIEW" || item.Status == "RECONCILIATION_REQUIRED") && item.BaseMenuVersionId != null)
             .OrderByDescending(item => item.CreatedAt)
             .ToListAsync(cancellationToken);
-        return items.Select(MapMrxInboxItem).ToList();
+        return items.Select(MapMrxInboxItem).Where(item => !item.RequiresReconciliation).ToList();
     }
 
     private static void RequireMrxBaseVersion(CreateMenuAmendmentRequest request)

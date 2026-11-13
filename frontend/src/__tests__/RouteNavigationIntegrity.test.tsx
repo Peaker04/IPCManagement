@@ -1,3 +1,4 @@
+import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
@@ -42,7 +43,7 @@ function renderAppWithRoute(initialUrl: string, mode: 'DEFAULT' | 'MATERIAL_RECO
     <AuthProvider resolveEligibility={(actor, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, actor, mode)}>
       <MemoryRouter initialEntries={[initialUrl]}>
         <DirtyNavigationProvider>
-          <AppShell navigation={eligible} homePath={mode === 'MATERIAL_RECONCILIATION' ? '/weekly-menu?view=mrx-batch' : '/'}>
+          <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={eligible} homePath={mode === 'MATERIAL_RECONCILIATION' ? '/weekly-menu?view=mrx-batch' : '/'}>
             <Routes>
               <Route path="/weekly-menu" element={<WeeklyMenuPage />} />
               <Route path="/warehouse" element={<WarehousePage />} />

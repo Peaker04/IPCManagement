@@ -43,7 +43,7 @@ internal sealed class WeeklyMenuImportPersistence(
         var existingDishes = await context.Dishes
             .Include(dish => dish.Dishboms)
             .ToListAsync(cancellationToken);
-        var menuCodes = plan.Items.Select(item => $"MENU-{customer.CustomerCode}-{item.ServiceDate:yyyyMMdd}-{item.DbShiftName}").Distinct().ToList();
+        var menuCodes = plan.Items.Select(item => BuildMenuCode(customer, item.ServiceDate, item.DbShiftName)).Distinct().ToList();
         var serviceDates = plan.Items.Select(item => item.ServiceDate).Distinct().ToList();
         var existingMenus = await context.Menus.Where(menu => menuCodes.Contains(menu.MenuCode)).ToListAsync(cancellationToken);
         var existingMenuItems = await context.Menuitems.Where(item => menuCodes.Contains(item.Menu.MenuCode)).ToListAsync(cancellationToken);
@@ -492,6 +492,13 @@ internal sealed class WeeklyMenuImportPersistence(
         return dish;
     }
 
+    private static string BuildMenuCode(Customer customer, DateOnly serviceDate, string shiftName)
+    {
+        var code = $"MENU-{customer.CustomerCode}-{serviceDate:yyyyMMdd}-{shiftName}";
+        // Preserve legacy codes; hash overflow rather than truncate customer/day/shift identity.
+        return code.Length <= 50 ? code : $"MENU-{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(code.ToUpperInvariant())))[..32]}";
+    }
+
     private Menu EnsureMenu(
         DateOnly serviceDate,
         string shiftName,
@@ -501,7 +508,7 @@ internal sealed class WeeklyMenuImportPersistence(
         List<Menu> menus,
         SampleDataImportCountsDto counts)
     {
-        var menuCode = $"MENU-{customer.CustomerCode}-{serviceDate:yyyyMMdd}-{shiftName}";
+        var menuCode = BuildMenuCode(customer, serviceDate, shiftName);
         var existing = menus.FirstOrDefault(item =>
             string.Equals(item.MenuCode, menuCode, StringComparison.OrdinalIgnoreCase));
         var menuName = $"Thực đơn {customer.CustomerCode} {WeeklyMenuWorkbookSyntaxPolicy.ToVietnameseShift(shiftName)} {serviceDate:dd/MM/yyyy}";

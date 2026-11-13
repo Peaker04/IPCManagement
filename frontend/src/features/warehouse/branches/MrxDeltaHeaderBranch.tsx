@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react';
 import { clsx } from 'clsx';
+import type { ReactNode } from 'react';
 import { WorkspaceHeader } from '../../../components/workbench/WorkspaceHeader';
 import { Button } from '../../../components/ui/button';
 
@@ -7,19 +8,24 @@ export interface MrxDeltaHeaderBranchProps {
   onNavigateDaily: () => void;
   isRefreshing: boolean;
   onRefresh: () => void | Promise<void>;
+  filters?: ReactNode;
 }
 
 export function MrxDeltaHeaderBranch({
   onNavigateDaily,
   isRefreshing,
   onRefresh,
+  filters,
 }: MrxDeltaHeaderBranchProps) {
   return (
     <WorkspaceHeader
+      responsive
       title="Lịch sử thay đổi nguồn"
       breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
+      contextSelectors={filters}
       actions={
         <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 whitespace-nowrap">Chỉ đọc</span>
           <Button
             variant="outline"
             size="default"
@@ -39,7 +45,7 @@ export function MrxDeltaHeaderBranch({
             size="default"
             onClick={onNavigateDaily}
           >
-            Xem trạm xuất kho ngày →
+            Xuất kho ngày
           </Button>
         </div>
       }

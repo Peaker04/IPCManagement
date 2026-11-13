@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
   schedule:
     # 09:00 thứ Hai giờ Việt Nam (02:00 UTC).
     - cron: "0 2 * * 1"
