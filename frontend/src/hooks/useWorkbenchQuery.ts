@@ -50,7 +50,7 @@ interface CacheWrapper<T> {
 }
 
 function isCacheWrapper<T>(entry: unknown): entry is CacheWrapper<T> {
-  if (typeof entry !== 'object' || entry === null || !('data' in entry)) return false;
+  if (entry === null || typeof entry !== 'object' || !('data' in entry)) return false;
   if ('isCompatibilityBlocked' in entry) return true;
   const keys = Object.keys(entry as object);
   // Legacy daily snapshots kept navigation metadata next to the query payload.
@@ -58,7 +58,7 @@ function isCacheWrapper<T>(entry: unknown): entry is CacheWrapper<T> {
 }
 
 function hasCompatibilityFlag(entry: unknown): entry is { isCompatibilityBlocked?: boolean } {
-  return typeof entry === 'object' && entry !== null && 'isCompatibilityBlocked' in entry;
+  return entry !== null && typeof entry === 'object' && 'isCompatibilityBlocked' in entry;
 }
 
 function resolveCachePayload<T>(entry: unknown): T | null {

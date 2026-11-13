@@ -13,6 +13,7 @@ const runs = job => (job.steps ?? []).map(step => step.run ?? '').join('\n')
 
 test('FE and BE run independently, with MySQL only in BE', () => {
   assert.ok(verify.jobs.frontend && verify.jobs.backend)
+  assert.equal(verify.jobs.frontend['runs-on'], 'windows-latest')
   assert.equal(verify.jobs.frontend.needs, undefined)
   assert.equal(verify.jobs.backend.needs, undefined)
   assert.equal(verify.jobs.frontend.services, undefined)
@@ -48,8 +49,8 @@ test('aggregate rejects failure, cancellation, skip, missing or unknown result',
 test('Verify and CodeQL cover both branches eligible for Git deployment', () => {
   const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'))
   const branches = ['main', 'dev']
-  assert.ok(Object.values(vercel.git.deploymentEnabled).every(enabled => enabled === false),
-    'Automatic Git deployment must remain off while operational qualification is blocked')
+  assert.equal(vercel.git.deploymentEnabled, false,
+    'Use scalar false: a wildcard object can leave slash-containing branches unmatched and enabled')
   for (const workflow of [verify, codeql]) {
     for (const branch of branches) {
       assert.ok(workflow.on.push.branches.includes(branch), `push ${branch}`)

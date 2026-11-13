@@ -275,7 +275,7 @@ export function StateBoundary({
 
   // 4. Error State (Non-destructive when existing data is available; excludes 404 which is an Empty State)
   // Recoverable refresh errors use the stable content region below.
-  if (error && !hasExistingData && !showForbidden && !showConflict && !isModeConflict && !isResourceNotFound && !isLineageMissing409) {
+  if (error && !hasExistingData && !isResourceNotFound && !isLineageMissing409) {
     const message = typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.';
 
     if (scope === 'widget') {

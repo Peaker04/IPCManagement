@@ -119,7 +119,7 @@ describe('Weekly Menu MRX scope and source', () => {
       validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
     });
 
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
+    const sourceView = renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
 
     expect(await screen.findByRole('heading', { name: 'Hoàn thiện nguồn tuần' })).toBeInTheDocument();
     expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
@@ -127,6 +127,7 @@ describe('Weekly Menu MRX scope and source', () => {
     expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
+    sourceView.unmount();
     localStorage.setItem('ipc_v3_user', JSON.stringify({
       userId: 'manager-1', fullName: 'Quản lý', username: 'manager', roleCode: 'Manager', roleName: 'Quản lý',
       isActive: true, isAdminFullAccess: false, permissions: ['reconciliation.source.read'],
@@ -147,10 +148,9 @@ describe('Weekly Menu MRX scope and source', () => {
 
     expect(await screen.findByRole('heading', { name: 'Duyệt thay đổi nguồn MRX' })).toBeVisible();
     expect(screen.getByText('Đổi món trưa từ Dashboard')).toBeVisible();
-    return;
-    expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nhập Excel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Bảng sửa nguồn MRX')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nhập Excel' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Chỉnh sửa món' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
   });
