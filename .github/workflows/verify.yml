@@ -151,16 +151,22 @@ jobs:
           --results-directory "${{ github.workspace }}/.artifacts/test-results/backend"
       - name: Integration tests on MySQL
         id: integration
+        env:
+          # CI preloads the model schema above. Development startup would replay
+          # migrations over those tables. Migration replay is tested separately below.
+          ASPNETCORE_ENVIRONMENT: Testing
         run: >-
           dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
           --no-build --no-restore
-          --filter "FullyQualifiedName~IPCManagement.Api.Tests.Integration"
+          --filter "FullyQualifiedName~IPCManagement.Api.Tests.Integration&Category!=EvidenceOwned"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=integration-tests.trx"
           --results-directory "${{ env.TEST_RESULTS_DIR }}"
       - name: Validate integration execution evidence
         if: always() && steps.integration.outcome != 'skipped' && steps.integration.outcome != ''
-        run: python3 scripts/ci_test_results.py --trx "${{ env.TEST_RESULTS_DIR }}/integration-tests.trx"
+        run: >-
+          python3 scripts/ci_test_results.py --trx "${{ env.TEST_RESULTS_DIR }}/integration-tests.trx"
+          --expected Auth_Menu_Demand_Issue_Report_Lifecycle_Should_Run_EndToEnd
       # Fresh entrypoint also invokes PurchaseHistory proof. Do not select both:
       # concurrent DROP/CREATE of lane8 would race. Preserve sequential DB phases.
       - name: Fresh migration replay
@@ -207,7 +213,7 @@ jobs:
         with:
           name: backend-test-results
           path: |
-            .artifacts/test-results
+            .artifacts/test-results/**/*.trx
             .artifacts/shape-*.txt
           retention-days: 7
           if-no-files-found: warn
