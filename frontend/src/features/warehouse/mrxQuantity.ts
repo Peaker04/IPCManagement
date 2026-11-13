@@ -1,3 +1,13 @@
+export function parseMrxQuantityText(text: string): string | null {
+  if (!/^\d+(?:[.,]\d+)?$/.test(text)) return null;
+  const canonical = text.replace(',', '.');
+  return Number.isFinite(Number(canonical)) ? canonical : null;
+}
+
+export function formatMrxQuantityText(canonical: string): string {
+  return canonical.replace('.', ',');
+}
+
 // Match BE quantity rounding without losing decimal half-micros to binary floating point.
 export function normalizeQuantity(value: number, multiplier = 1): number {
   if (!Number.isFinite(value) || value <= 0 || !Number.isSafeInteger(multiplier) || multiplier <= 0) return 0;

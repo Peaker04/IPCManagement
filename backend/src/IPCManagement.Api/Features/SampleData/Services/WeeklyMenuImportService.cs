@@ -45,7 +45,7 @@ internal sealed class WeeklyMenuImportService(
         {
             return WeeklyMenuImportValidationPolicy.BuildInvalidResult(
                 fileName,
-                customerId,
+                customerId, weekStartDate,
                 "UNKNOWN_CUSTOMER",
                 "Không tìm thấy khách hàng đang hoạt động để import thực đơn.",
                 "customerId");
@@ -85,7 +85,7 @@ internal sealed class WeeklyMenuImportService(
         {
             return WeeklyMenuImportValidationPolicy.BuildInvalidResult(
                 fileName,
-                GuidHelper.ToGuidString(customer.CustomerId),
+                GuidHelper.ToGuidString(customer.CustomerId), weekStartDate,
                 "FILE_READ_ERROR",
                 WeeklyMenuImportValidationPolicy.UnreadableWorkbookMessage,
                 "file");
@@ -94,7 +94,7 @@ internal sealed class WeeklyMenuImportService(
         {
             return WeeklyMenuImportValidationPolicy.BuildInvalidResult(
                 fileName,
-                GuidHelper.ToGuidString(customer.CustomerId),
+                GuidHelper.ToGuidString(customer.CustomerId), weekStartDate,
                 WeeklyMenuImportValidationPolicy.ResolveCode(ex.Message),
                 ex.Message,
                 WeeklyMenuImportValidationPolicy.ResolveField(ex.Message));

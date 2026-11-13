@@ -19,6 +19,7 @@ export interface MrxBatchHeaderBranchProps {
   batch: MrxBatch | null;
   source?: MrxWeeklySource | null;
   statusLabels: Record<string, string>;
+  isPending?: boolean;
   isSubmitting: boolean;
   isRefreshing: boolean;
   onRefresh: () => void | Promise<void>;
@@ -47,6 +48,7 @@ export function MrxBatchHeaderBranch({
   batch,
   source,
   statusLabels,
+  isPending = false,
   isSubmitting,
   isRefreshing,
   onRefresh,
@@ -57,6 +59,7 @@ export function MrxBatchHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
+      className="mrx-scope-header"
       title={source && !batch ? 'Hoàn thiện nguồn tuần' : 'Chuẩn bị lô đối soát'}
       breadcrumb="Đối soát MRX · Trạm Điều phối"
       contextSelectors={
@@ -84,11 +87,11 @@ export function MrxBatchHeaderBranch({
             className="h-9 w-36 font-mono text-sm"
           />
           <WorkspaceHeader.BadgeSlot variant="status">
-            {batch && batch.status !== 'COMPLETED' ? (
+            {isPending ? <span role="status" className="sr-only">Đang tải phạm vi mới</span> : batch && batch.status !== 'COMPLETED' ? (
               <Badge
                 variant="info"
                 size="default"
-                className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap animate-in fade-in duration-150"
+                className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap"
               >
                 {statusLabels[batch.status] ?? batch.status}
               </Badge>
@@ -115,10 +118,10 @@ export function MrxBatchHeaderBranch({
           {onOpenImport && (
             <Button
               variant={source || batch || primaryAction ? 'outline' : 'default'}
-              disabled={isSubmitting || Boolean(importDisabledReason)}
+              disabled={isSubmitting || isPending || Boolean(importDisabledReason)}
               title={importDisabledReason}
               onClick={onOpenImport}
-            >{batch?.status === 'COMPLETED' ? 'Nhập thực đơn mới' : 'Nhập Excel'}</Button>
+            >{!isPending && batch?.status === 'COMPLETED' ? 'Nhập thực đơn mới' : 'Nhập Excel'}</Button>
           )}
           {primaryAction && (
             <ActionGuard
@@ -132,7 +135,7 @@ export function MrxBatchHeaderBranch({
               <Button
                 variant="default"
                 size="default"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isPending}
                 onClick={primaryAction.action}
               >
                 {isSubmitting ? 'Đang xử lý...' : primaryAction.label}

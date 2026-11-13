@@ -34,6 +34,7 @@ coverage/
 /results-stress.json
 .dotnet-tools/
 __pycache__/
+/frontend/.vitest-*-canary-*/
 *.pyc
 npm-debug.log*
 yarn-debug.log*
@@ -82,3 +83,7 @@ Desktop.ini
 # Local dev runtime logs (BE + Vite)
 *.log
 .superpowers/
+
+# Pi project package cache
+.pi/git/
+.pi/npm/

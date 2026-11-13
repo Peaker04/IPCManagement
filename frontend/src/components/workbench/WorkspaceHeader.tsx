@@ -84,7 +84,7 @@ export function WorkspaceHeader({
     >
       {/* Left: Title + Inline Context Selectors */}
       <div className={responsive ? 'contents' : 'flex items-center gap-3.5 min-w-0 flex-1 overflow-x-auto no-scrollbar'}>
-        <div className="flex flex-col min-w-0 shrink-0">
+        <div data-slot="header-title" className="flex flex-col min-w-0 shrink-0">
           {breadcrumb && (
             <span className="text-xs font-semibold text-slate-500 tracking-wider uppercase truncate leading-none mb-0.5">
               {breadcrumb}
@@ -98,7 +98,7 @@ export function WorkspaceHeader({
         {contextSelectors && (
           <>
             {!responsive && <div className="h-5 w-px bg-slate-200 shrink-0 hidden sm:block" aria-hidden="true" />}
-            <div className={clsx('flex items-center gap-2 sm:gap-2.5 min-w-0', responsive ? 'flex-wrap col-span-2 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1' : 'flex-1 sm:flex-initial')}>
+            <div data-slot="header-scope" className={clsx('flex items-center gap-2 sm:gap-2.5 min-w-0', responsive ? 'flex-wrap col-span-2 row-start-2 xl:col-span-1 xl:col-start-2 xl:row-start-1' : 'flex-1 sm:flex-initial')}>
               {contextSelectors}
             </div>
           </>
@@ -107,7 +107,7 @@ export function WorkspaceHeader({
 
       {/* Right: Actions (Rule D7: Max 1 primary button) */}
       {actions && (
-        <div className={clsx('flex items-center gap-2.5 shrink-0 pl-2', responsive && 'ml-auto max-w-full col-start-2 row-start-1 xl:col-start-3 [&_[data-slot=header-actions]]:flex-wrap')}>
+        <div data-slot="header-command-region" className={clsx('flex items-center gap-2.5 shrink-0 pl-2', responsive && 'ml-auto max-w-full col-start-2 row-start-1 xl:col-start-3 [&_[data-slot=header-actions]]:flex-wrap')}>
           {actions}
         </div>
       )}

@@ -209,8 +209,7 @@ internal sealed class MenuAmendmentService(
     private MrxMenuAmendmentCoordinator CreateMrxCoordinator()
         => new(
             context,
-            sourceChangeGateway,
-            CreateAsync);
+            sourceChangeGateway);
 
     public Task<MenuAmendmentResultDto> ApplyMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, IReadOnlyCollection<string> actorRoles, CancellationToken cancellationToken = default)
         => CreateMrxCoordinator().ApplyMrxAsync(request, actorUserId, actorRoles, cancellationToken);

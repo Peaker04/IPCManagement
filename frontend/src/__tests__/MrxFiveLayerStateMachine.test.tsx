@@ -123,6 +123,7 @@ describe('MRX 5-Layer State Machine & Transition Matrix Verification', () => {
       },
       history: { items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false },
     });
+    workspaceSessionStore.setScope({ customerId: 'c-1', customerCode: 'DAV', weekStartDate: '2026-09-21', batchId: 'b-valid-1', serviceDate: '2026-09-21' });
 
     render(
       <AuthProvider>
@@ -233,13 +234,13 @@ describe('MRX 5-Layer State Machine & Transition Matrix Verification', () => {
       expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Chưa có dữ liệu đối soát cho ngày đã chọn/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Chưa có lô đối soát cho tháng/i })).toBeInTheDocument();
   });
 
   // --------------------------------------------------------------------------
   // CASE L5: VALID BATCH WITH 0 LINES (Legitimate Empty Dataset)
   // --------------------------------------------------------------------------
-  it('L5 Empty Dataset: Valid batch with 0 lines displays honest empty state and preserves it on revisit', () => {
+  it('L5 Empty Dataset: Valid batch with 0 lines displays honest empty state after refresh without a skeleton', async () => {
     vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
       { customerId: 'c-1', customerCode: 'DAV', customerName: 'Draxlmaier' },
     ]);
@@ -253,7 +254,7 @@ describe('MRX 5-Layer State Machine & Transition Matrix Verification', () => {
       lines: [],
     });
 
-    serverStateCache.set('snapshot:reconciliation', {
+    serverStateCache.set('snapshot:mrx_reconciliation', {
       customerCode: 'DAV',
       batchId: 'b-empty-lines',
       serviceDate: '2026-09-21',
@@ -275,7 +276,7 @@ describe('MRX 5-Layer State Machine & Transition Matrix Verification', () => {
     );
 
     expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
-    expect(screen.getByText(/Chưa có dữ liệu rà soát dòng ngày/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Chưa có dữ liệu rà soát dòng ngày/i)).toBeInTheDocument();
   });
 
   // --------------------------------------------------------------------------

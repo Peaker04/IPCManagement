@@ -30,6 +30,8 @@ public sealed record ReconciliationDispositionDto(string Category, string Reason
 public sealed class ReconciliationBatchPageQuery : PagedRequestDto
 {
     public string? CustomerId { get; set; }
+    public string? CustomerCode { get; set; }
+    public string? BatchId { get; set; }
     public DateOnly? WeekStartDate { get; set; }
     public DateOnly? WeekFrom { get; set; }
     public DateOnly? WeekTo { get; set; }
@@ -49,9 +51,14 @@ public sealed record ReconciliationBatchSummaryDto(
     DateOnly WeekEndDate);
 public sealed record ReconciliationDispositionCategoryDto(string Value, string Label);
 public sealed record ReconciliationDraftSourceDto(string MenuVersionId, string MenuLabel, string QuantityImportBatchId, string ImportBatchLabel);
-public sealed record ReconciliationSourceChangeDto(string ChangeId, DateTime ChangedAt, string Actor, string BusinessArea, string EntityName, string? EntityId, string? FieldName, string? OldValue, string? NewValue, string? Reason);
+public sealed record ReconciliationSourceChangeDto(string ChangeId, DateTime ChangedAt, string Actor, string BusinessArea, string EntityName, string? EntityId, string? FieldName, string? OldValue, string? NewValue, string? Reason)
+{
+    public string? OldDisplayValue { get; init; }
+    public string? NewDisplayValue { get; init; }
+}
 public sealed class ReconciliationSourceDeltaPageQuery : PagedRequestDto
 {
+    public string? CustomerCode { get; set; }
     public string? BatchId { get; set; }
     public DateOnly? ServiceDate { get; set; }
     public string? WorkKind { get; set; }
@@ -283,11 +290,17 @@ public sealed record ReconciliationPreparationWorkbookDto(
     public IReadOnlyList<ReconciliationPreparationMenuRowDto> MenuRows { get; init; } = [];
 }
 
-public sealed class MrxOperationalSummaryQuery
+public class MrxHistoricalScopeQuery
 {
     public string? CustomerId { get; set; }
     public DateOnly? WeekFrom { get; set; }
     public DateOnly? WeekTo { get; set; }
+}
+
+public sealed class MrxOperationalSummaryQuery : MrxHistoricalScopeQuery
+{
+    public int QueuePage { get; set; } = 1;
+    public int QueuePageSize { get; set; } = 10;
 }
 
 public sealed record MrxOperationalQueueItemDto(
@@ -309,7 +322,14 @@ public sealed record MrxOperationalSummaryDto(
     int? UnresolvedVariancesCount,
     int? CompletionReadyBatchesCount,
     IReadOnlyList<MrxOperationalQueueItemDto> Items,
-    IReadOnlyList<MrxCustomerOptionDto> CustomerOptions);
+    IReadOnlyList<MrxCustomerOptionDto> CustomerOptions)
+{
+    public int QueuePageNumber { get; init; } = 1;
+    public int QueuePageSize { get; init; } = 10;
+    public IReadOnlyDictionary<string, int> QueueCounts { get; init; } = new Dictionary<string, int>();
+    public int QueueTotalCount => QueueCounts.Values.Sum();
+    public int QueueTotalPages => QueueCounts.Count == 0 ? 0 : QueueCounts.Values.Max(count => (int)Math.Ceiling((double)count / QueuePageSize));
+}
 
 public sealed record MrxTransactionHistoryRowDto(
     string TransactionType,

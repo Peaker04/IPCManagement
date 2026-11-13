@@ -1,5 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -98,9 +99,14 @@ public sealed class MenuScheduleService : IMenuScheduleService
         }
 
         ServiceCalendar.EnsureServiceDay(schedule.ServiceDate);
-        var actorId = ResolveActorId(userId);
+        if (await MrxReconBatchGuard.AnyBatchAsync(_context, schedule.WeekStartDate, schedule.CustomerId, CancellationToken.None))
+        {
+            throw new BusinessRuleException(MrxReconBatchGuard.BatchExistsMessage);
+        }
+
+        var actorId = MenuScheduleAuditWriter.ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
-        var auditCorrelationId = ResolveCorrelationId(correlationId);
+        var auditCorrelationId = MenuScheduleAuditWriter.ResolveCorrelationId(correlationId);
         var reason = string.IsNullOrWhiteSpace(request.Reason)
             ? "Cập nhật quy tắc contract/suất ăn"
             : request.Reason.Trim();
@@ -120,7 +126,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
                     schedule.CustomerId,
                     schedule.WeekStartDate,
                     nextPrice);
-                AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
+                MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
                     nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), nextPrice.ToString(), reason, auditCorrelationId);
                 schedule.MenuPrice = nextPrice;
             }
@@ -128,7 +134,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
         if (schedule.BomRatePercent != FixedBomRatePercent)
         {
-            AddAudit(actorId, changedAt, "PortionRule", nameof(MenuSchedule), schedule.MenuScheduleId,
+            MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "PortionRule", nameof(MenuSchedule), schedule.MenuScheduleId,
                 nameof(MenuSchedule.BomRatePercent), schedule.BomRatePercent.ToString(), FixedBomRatePercent.ToString(), reason, auditCorrelationId);
             schedule.BomRatePercent = FixedBomRatePercent;
         }
@@ -136,7 +142,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
         var status = MenuSchedulePolicy.NormalizeMenuScheduleStatus(request.Status);
         if (status is not null && !string.Equals(schedule.Status, status, StringComparison.OrdinalIgnoreCase))
         {
-            AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
+            MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
                 nameof(MenuSchedule.Status), schedule.Status, status, reason, auditCorrelationId);
             schedule.Status = status;
         }
@@ -164,9 +170,14 @@ public sealed class MenuScheduleService : IMenuScheduleService
             throw new ArgumentException("Trạng thái version thực đơn không hợp lệ.");
         }
 
-        var actorId = ResolveActorId(userId);
+        if (await MrxReconBatchGuard.AnyBatchAsync(_context, schedule.WeekStartDate, schedule.CustomerId, CancellationToken.None))
+        {
+            throw new BusinessRuleException(MrxReconBatchGuard.BatchExistsMessage);
+        }
+
+        var actorId = MenuScheduleAuditWriter.ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
-        var auditCorrelationId = ResolveCorrelationId(correlationId);
+        var auditCorrelationId = MenuScheduleAuditWriter.ResolveCorrelationId(correlationId);
         var version = await EnsureMenuVersionAsync(schedule.CustomerId, schedule.WeekStartDate, actorId, changedAt);
         var oldVersionStatus = version.Status;
 
@@ -194,7 +205,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
             : request.Reason.Trim();
         if (!string.Equals(version.Status, status, StringComparison.OrdinalIgnoreCase))
         {
-            AddAudit(
+            MenuScheduleAuditWriter.AddAudit(_context,
                 actorId,
                 changedAt,
                 "MenuVersion",
@@ -219,7 +230,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
             weekSchedules.Any(item => !string.Equals(item.Status, status, StringComparison.OrdinalIgnoreCase)))
         {
             var weekRange = $"{schedule.WeekStartDate:yyyy-MM-dd}..{schedule.WeekStartDate.AddDays(6):yyyy-MM-dd}";
-            AddAudit(
+            MenuScheduleAuditWriter.AddAudit(_context,
                 actorId,
                 changedAt,
                 "MenuVersion",
@@ -239,7 +250,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
                 continue;
             }
 
-            AddAudit(
+            MenuScheduleAuditWriter.AddAudit(_context,
                 actorId,
                 changedAt,
                 "MenuVersion",
@@ -274,7 +285,12 @@ public sealed class MenuScheduleService : IMenuScheduleService
             throw new ArgumentException("Vui lòng nhập lý do rollback thực đơn.");
         }
 
-        var actorId = ResolveActorId(userId);
+        if (await MrxReconBatchGuard.AnyBatchAsync(_context, weekStartDate, customerId, CancellationToken.None))
+        {
+            throw new BusinessRuleException(MrxReconBatchGuard.BatchExistsMessage);
+        }
+
+        var actorId = MenuScheduleAuditWriter.ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
         MenuVersionRollbackResultDto? transactionResult = null;
         return await _transactionRunner.ExecuteAsync(
@@ -312,7 +328,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
                     MenuSchedulePolicy.IsPublishedMenuVersionStatus(version.Status) &&
                     !version.MenuVersionId.SequenceEqual(target.MenuVersionId)))
                 {
-                    AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), activeVersion.MenuVersionId,
+                    MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "MenuVersion", nameof(MenuVersion), activeVersion.MenuVersionId,
                         nameof(MenuVersion.Status), activeVersion.Status, "SUPERSEDED", reason);
                     activeVersion.Status = "SUPERSEDED";
                     activeVersion.UpdatedAt = changedAt;
@@ -320,7 +336,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
                 if (!string.Equals(target.Status, "PUBLISHED", StringComparison.OrdinalIgnoreCase))
                 {
-                    AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
+                    MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
                         nameof(MenuVersion.Status), target.Status, "PUBLISHED", reason);
                 }
 
@@ -328,7 +344,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
                 target.PublishedBy = actorId;
                 target.PublishedAt = changedAt;
                 target.UpdatedAt = changedAt;
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
+                MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
                     "Rollback", current.VersionNo.ToString(), target.VersionNo.ToString(), reason);
 
                 var weekSchedules = (await _context.Menuschedules
@@ -339,7 +355,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
                 foreach (var schedule in weekSchedules.Where(schedule =>
                     !string.Equals(schedule.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)))
                 {
-                    AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
+                    MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
                         nameof(MenuSchedule.Status), schedule.Status, "ACTIVE", reason);
                     schedule.Status = "ACTIVE";
                 }
@@ -494,7 +510,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
         };
 
         _context.Menuversions.Add(version);
-        AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), version.MenuVersionId,
+        MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "MenuVersion", nameof(MenuVersion), version.MenuVersionId,
             "VersionCreated", null, version.SourceImportBatch, "Tạo header version cho thực đơn tuần");
         return version;
     }
@@ -519,7 +535,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
         foreach (var request in materialRequests)
         {
-            AddAudit(actorId, changedAt, "Demand", nameof(MaterialRequest), request.RequestId,
+            MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "Demand", nameof(MaterialRequest), request.RequestId,
                 nameof(MaterialRequest.Status), request.Status, "CANCELLED", reason);
             request.Status = "CANCELLED";
         }
@@ -539,7 +555,7 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
         foreach (var request in purchaseRequests)
         {
-            AddAudit(actorId, changedAt, "Purchase", nameof(PurchaseRequest), request.PurchaseRequestId,
+            MenuScheduleAuditWriter.AddAudit(_context, actorId, changedAt, "Purchase", nameof(PurchaseRequest), request.PurchaseRequestId,
                 nameof(PurchaseRequest.Status), request.Status, "CANCELLED", reason);
             request.Status = "CANCELLED";
         }
@@ -547,42 +563,4 @@ public sealed class MenuScheduleService : IMenuScheduleService
         return (materialRequests.Count, purchaseRequests.Count);
     }
 
-    private static byte[] ResolveActorId(string? userId)
-        => GuidHelper.ParseGuidString(userId) ?? GuidHelper.NewId();
-
-    private void AddAudit(
-        byte[] actorId,
-        DateTime changedAt,
-        string businessArea,
-        string entityName,
-        byte[] entityId,
-        string fieldName,
-        string? oldValue,
-        string? newValue,
-        string reason,
-        string? correlationId = null)
-    {
-        _context.Auditlogs.Add(new AuditLog
-        {
-            AuditId = GuidHelper.NewId(),
-            ChangedAt = changedAt,
-            ChangedBy = actorId,
-            BusinessArea = businessArea,
-            EntityName = entityName,
-            EntityId = entityId,
-            FieldName = fieldName,
-            OldValue = oldValue,
-            NewValue = newValue,
-            Reason = reason,
-            CorrelationId = correlationId
-        });
-    }
-
-    private static string ResolveCorrelationId(string? correlationId)
-    {
-        var value = string.IsNullOrWhiteSpace(correlationId)
-            ? Guid.NewGuid().ToString("N")
-            : correlationId.Trim();
-        return value[..Math.Min(value.Length, 128)];
-    }
 }

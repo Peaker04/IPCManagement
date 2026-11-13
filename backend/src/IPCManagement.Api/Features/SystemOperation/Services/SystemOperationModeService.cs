@@ -30,7 +30,7 @@ public sealed class SystemOperationModeService(IpcManagementContext context, Sys
         return await transactions.ExecuteAsync(
             async operationToken =>
             {
-                var rows = await context.Systemoperationmodes.Take(2).ToListAsync(operationToken);
+                var rows = await context.Systemoperationmodes.OrderBy(x => x.Id).Take(2).ToListAsync(operationToken);
                 if (rows.Count != 1 || rows[0].Id != 1 || rows[0].Version < 1 || !SystemOperationEligibility.IsValidMode(rows[0].Mode))
                     throw new SystemOperationAuthorityException("Cấu hình chế độ vận hành không hợp lệ.");
                 var row = rows[0];

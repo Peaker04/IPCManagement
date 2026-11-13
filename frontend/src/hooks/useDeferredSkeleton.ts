@@ -1,17 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 
-/**
- * Enterprise Cognitive Latency Deferral Hook (NN/g Doherty Threshold & SAP Fiori Invariant)
- * - Suppresses skeleton flashing if loading finishes within 150ms.
- * - Enforces minimum display duration (250ms) once shown to eliminate perceptual visual jerk.
- */
+export const LOADING_INDICATOR_DELAY_MS = 150;
+
+// Each read owns a fresh delay. Ready data is never held by the default policy.
+// An explicit minimum duration remains supported for callers that require it.
 export function useDeferredSkeleton(
   isLoading: boolean,
-  delayMs = 150,
-  minDurationMs = 250
+  delayMs = LOADING_INDICATOR_DELAY_MS,
+  minDurationMs = 0
 ): boolean {
   const [showSkeleton, setShowSkeleton] = useState(() => delayMs === 0 && isLoading);
+  const [previousLoading, setPreviousLoading] = useState(isLoading);
   const shownAtRef = useRef<number | null>(null);
+
+  // Synchronize before paint: a zero-duration hide timer can otherwise be
+  // canceled by the next read, carrying the previous visible state into it.
+  if (previousLoading !== isLoading) {
+    setPreviousLoading(isLoading);
+    if (minDurationMs === 0) setShowSkeleton(delayMs === 0 && isLoading);
+  }
 
   useEffect(() => {
     let delayTimer: ReturnType<typeof setTimeout> | undefined;
@@ -27,6 +34,7 @@ export function useDeferredSkeleton(
         }, delayMs);
       }
     } else {
+      if (!showSkeleton) shownAtRef.current = null;
       if (showSkeleton) {
         const shownAt = shownAtRef.current ?? Date.now();
         const elapsed = Date.now() - shownAt;

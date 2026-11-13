@@ -24,6 +24,7 @@ export interface DataGridProps<T = unknown> {
   emptyIcon?: LucideIcon;
   className?: string;
   minWidth?: string;
+  hideHeaderWhenEmpty?: boolean;
 }
 
 /**
@@ -44,6 +45,7 @@ export function DataGrid<T>({
   emptyIcon: CustomEmptyIcon,
   className,
   minWidth,
+  hideHeaderWhenEmpty = false,
 }: DataGridProps<T>) {
   const EmptyIcon = CustomEmptyIcon || Boxes;
   const [focusedRowIndex, setFocusedRowIndex] = useState<number>(0);
@@ -56,24 +58,6 @@ export function DataGrid<T>({
   const effectiveFocusedIndex = selectedRowIndex >= 0
     ? selectedRowIndex
     : data.length > 0 ? Math.min(focusedRowIndex, data.length - 1) : 0;
-
-  if (data.length === 0 && (emptyState || emptyMessage)) {
-    return (
-      <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 bg-white text-center">
-        {emptyState || (
-          <div className="flex flex-col items-center justify-center">
-            <div
-              aria-hidden="true"
-              className="w-10 h-10 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-2.5 text-slate-400"
-            >
-              <EmptyIcon size={20} strokeWidth={1.75} />
-            </div>
-            <p className="text-xs text-slate-500 max-w-sm leading-relaxed">{emptyMessage}</p>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   const handleRowKeyDown = (event: React.KeyboardEvent<HTMLTableRowElement>, index: number, row: T) => {
     if (!onRowClick) return;
@@ -119,13 +103,13 @@ export function DataGrid<T>({
     <div
       className={twMerge(
         clsx(
-          'flex-1 min-h-0 w-full overflow-auto bg-white select-text relative scroll-smooth overscroll-contain',
+          'flex-1 min-h-0 w-full overflow-auto bg-white select-text relative overscroll-contain',
           className
         )
       )}
     >
-      <table className={twMerge('w-full text-left text-sm text-slate-800 border-collapse table-fixed', minWidth ?? 'min-w-full')}>
-        <thead className="sticky top-0 z-20 bg-slate-100/95 backdrop-blur-xs border-b border-slate-200">
+      <table className={twMerge('w-full text-left text-sm text-slate-800 border-collapse table-fixed', data.length === 0 && (emptyState || emptyMessage) && 'h-full', hideHeaderWhenEmpty && data.length === 0 ? 'min-w-full' : minWidth ?? 'min-w-full')}>
+        {(!hideHeaderWhenEmpty || data.length > 0) && <thead className="sticky top-0 z-20 bg-slate-100 border-b border-slate-200">
           <tr>
             {columns.map((col, colIdx) => (
               <th
@@ -143,52 +127,70 @@ export function DataGrid<T>({
               </th>
             ))}
           </tr>
-        </thead>
+        </thead>}
         <tbody className="divide-y divide-slate-100">
-          {data.map((row, actualIndex) => {
-            const key = keyExtractor(row, actualIndex);
-            const isSelected = selectedKey === key;
-            const isFocused = actualIndex === effectiveFocusedIndex;
-            const isHighlighted = highlightedKeys?.includes(key);
-            return (
-              <tr
-                key={key}
-                ref={(el) => { rowRefs.current[actualIndex] = el; }}
-                onClick={() => {
-                  setFocusedRowIndex(actualIndex);
-                  onRowClick?.(row);
-                }}
-                onKeyDown={(e) => handleRowKeyDown(e, actualIndex, row)}
-                tabIndex={onRowClick ? (isFocused ? 0 : -1) : undefined}
-                aria-selected={onRowClick ? isSelected : undefined}
-                data-highlighted={isHighlighted ? true : undefined}
-                className={clsx(
-                  'h-10 transition-colors',
-                  onRowClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500',
-                  isHighlighted && 'animate-row-flash bg-blue-50/80',
-                  isSelected
-                    ? 'bg-blue-50 hover:bg-blue-100/70'
-                    : 'hover:bg-slate-50/80',
-                  actualIndex % 2 === 1 ? 'bg-slate-50' : 'bg-white'
-                )}
-              >
-                {columns.map((col, colIdx) => (
-                  <td
-                    key={col.id}
-                    style={{ minWidth: col.minWidth }}
-                    className={clsx(
-                      'px-3 py-1 truncate text-sm',
-                      colIdx === 0 && 'sticky left-0 z-10 bg-inherit shadow-[1px_0_0_0_var(--border-subtle)]',
-                      col.align === 'right' && 'text-right',
-                      col.align === 'center' && 'text-center'
-                    )}
+          {data.length === 0 && (emptyState || emptyMessage) ? (
+            <tr className="h-full">
+              <td colSpan={Math.max(1, columns.length)} className="h-full p-8 bg-white text-center align-middle">
+                <div className="flex flex-col items-center justify-center">
+                  <div
+                    aria-hidden="true"
+                    className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-3 text-slate-400"
                   >
-                    {col.cell(row, actualIndex)}
-                  </td>
-                ))}
-              </tr>
-            );
-          })}
+                    <EmptyIcon size={22} strokeWidth={1.75} />
+                  </div>
+                  {emptyState || (
+                    <p className="text-xs text-slate-500 max-w-sm leading-relaxed">{emptyMessage}</p>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ) : (
+            data.map((row, actualIndex) => {
+              const key = keyExtractor(row, actualIndex);
+              const isSelected = selectedKey === key;
+              const isFocused = actualIndex === effectiveFocusedIndex;
+              const isHighlighted = highlightedKeys?.includes(key);
+              return (
+                <tr
+                  key={key}
+                  ref={(el) => { rowRefs.current[actualIndex] = el; }}
+                  onClick={() => {
+                    setFocusedRowIndex(actualIndex);
+                    onRowClick?.(row);
+                  }}
+                  onKeyDown={(e) => handleRowKeyDown(e, actualIndex, row)}
+                  tabIndex={onRowClick ? (isFocused ? 0 : -1) : undefined}
+                  aria-selected={onRowClick ? isSelected : undefined}
+                  data-highlighted={isHighlighted ? true : undefined}
+                  className={clsx(
+                    'h-10 transition-colors',
+                    onRowClick && 'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-500',
+                    isHighlighted && 'animate-row-flash bg-blue-50/80',
+                    isSelected
+                      ? 'bg-blue-50 hover:bg-blue-100/70'
+                      : 'hover:bg-slate-50/80',
+                    actualIndex % 2 === 1 ? 'bg-slate-50' : 'bg-white'
+                  )}
+                >
+                  {columns.map((col, colIdx) => (
+                    <td
+                      key={col.id}
+                      style={{ minWidth: col.minWidth }}
+                      className={clsx(
+                        'px-3 py-1 truncate text-sm',
+                        colIdx === 0 && 'sticky left-0 z-10 bg-inherit shadow-[1px_0_0_0_var(--border-subtle)]',
+                        col.align === 'right' && 'text-right',
+                        col.align === 'center' && 'text-center'
+                      )}
+                    >
+                      {col.cell(row, actualIndex)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
     </div>

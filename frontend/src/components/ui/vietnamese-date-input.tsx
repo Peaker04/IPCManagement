@@ -90,7 +90,7 @@ export const VietnameseDateInput = React.forwardRef<HTMLInputElement, Vietnamese
 
     return (
       <Popover.Root>
-        <div className="inline-flex flex-col gap-1">
+        <div className="relative inline-flex flex-col">
         <div className="relative inline-flex items-center shrink-0 w-40 min-w-[160px]">
           <input
             {...props}
@@ -137,14 +137,14 @@ export const VietnameseDateInput = React.forwardRef<HTMLInputElement, Vietnamese
             <CalendarDays className="size-4" aria-hidden="true" />
           </Popover.Trigger>
         </div>
-        {message && <span id={errorId} role="alert" className="text-xs">{message}</span>}
+        {message && <span id={errorId} role="alert" className="absolute top-full left-0 mt-1 z-30 rounded border border-red-200 bg-red-50 px-2 py-0.5 text-xs text-red-700 shadow-xs whitespace-nowrap">{message}</span>}
         </div>
 
         <Popover.Portal>
           <Popover.Positioner side="bottom" align="start" sideOffset={6} className="z-[1200]">
             <Popover.Popup
               aria-label="Lịch chọn ngày"
-              className="w-[280px] rounded-lg border border-slate-200 bg-white p-3 shadow-xl select-none text-slate-800"
+              className="ui-popup-enter w-[280px] rounded-lg border border-slate-200 bg-white p-3 shadow-xl select-none text-slate-800"
             >
               {/* Header: Tháng M năm YYYY */}
               <div className="mb-2 flex items-center justify-between gap-1.5">

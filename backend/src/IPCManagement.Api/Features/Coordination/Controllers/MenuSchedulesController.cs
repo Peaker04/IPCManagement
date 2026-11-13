@@ -81,6 +81,10 @@ public sealed class MenuSchedulesController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
+        catch (BusinessRuleException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpPost("menu-versions/rollback")]
@@ -94,6 +98,10 @@ public sealed class MenuSchedulesController : ControllerBase
             return Ok(ApiResponse<MenuVersionRollbackResultDto>.SuccessResult(result, "Đã quay lại version thực đơn trước đó."));
         }
         catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

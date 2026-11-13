@@ -18,6 +18,11 @@ public sealed class ReconciliationReportsController(
     ReconciliationBatchService service,
     ReconciliationReportsService reportsService) : ControllerBase
 {
+    [HttpGet("source-changes"), Authorize(Policy = AuthorizationPolicies.ReconciliationSourceReadAccess)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<ReconciliationSourceChangeDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSourceChanges([FromQuery] string batchId, [FromQuery] PagedRequestDto page, CancellationToken token)
+        => Ok(ApiResponse<PagedResponseDto<ReconciliationSourceChangeDto>>.SuccessResult(await service.GetSourceChangesPageAsync(batchId, page, token)));
+
     [HttpGet("operational-summary")]
     [Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<MrxOperationalSummaryDto>), StatusCodes.Status200OK)]
@@ -69,26 +74,26 @@ public sealed class ReconciliationReportsController(
     [HttpGet("completed-register")]
     [Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<MrxCompletedRegisterReportDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCompletedRegister([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, CancellationToken token = default)
+    public async Task<IActionResult> GetCompletedRegister([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, CancellationToken token = default, [FromQuery] MrxHistoricalScopeQuery? scope = null)
         => Ok(ApiResponse<MrxCompletedRegisterReportDto>.SuccessResult(await reportsService.GetCompletedRegisterAsync(
-            new PagedRequestDto { PageNumber = pageNumber, PageSize = pageSize }, token)));
+            new PagedRequestDto { PageNumber = pageNumber, PageSize = pageSize }, scope ?? new(), token)));
 
     [HttpGet("completed-register/csv")]
     [Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess)]
     [Produces("text/csv")]
-    public async Task<IActionResult> ExportCompletedRegister([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, CancellationToken token = default)
+    public async Task<IActionResult> ExportCompletedRegister([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, CancellationToken token = default, [FromQuery] MrxHistoricalScopeQuery? scope = null)
     {
-        var report = await reportsService.GetCompletedRegisterAsync(
-            new PagedRequestDto { PageNumber = pageNumber, PageSize = pageSize }, token);
-        return File(ReconciliationReportsService.BuildCompletedRegisterCsv(report.Rows), "text/csv; charset=utf-8", "so-lo-da-hoan-tat.csv");
+        var rows = new List<MrxCompletedRegisterRowDto>();
+        await foreach (var row in reportsService.StreamCompletedRegisterExportAsync(scope ?? new(), token)) rows.Add(row);
+        return File(ReconciliationReportsService.BuildCompletedRegisterCsv(rows), "text/csv; charset=utf-8", "so-lo-da-hoan-tat.csv");
     }
 
     [HttpGet("audit-trail")]
     [Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<MrxAuditTrailReportDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAuditTrail([FromQuery] string? batchId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, CancellationToken token = default)
+    public async Task<IActionResult> GetAuditTrail([FromQuery] string? batchId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, CancellationToken token = default, [FromQuery] string? search = null)
         => Ok(ApiResponse<MrxAuditTrailReportDto>.SuccessResult(await reportsService.GetAuditTrailAsync(
-            batchId, new PagedRequestDto { PageNumber = pageNumber, PageSize = pageSize }, token)));
+            batchId, new PagedRequestDto { PageNumber = pageNumber, PageSize = pageSize, SearchKeyword = search }, token)));
 
     [HttpGet("audit-trail/csv")]
     [Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess)]

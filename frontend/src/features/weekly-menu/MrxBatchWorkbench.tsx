@@ -79,7 +79,13 @@ export function MrxBatchWorkbench() {
     loadSource,
     primaryAction,
   } = useMrxBatchWorkspace();
-  const sourceEdit = useMrxSourceEdit({ customerId, weekStartDate, enabled: Boolean(source) });
+  const sourceEdit = useMrxSourceEdit({
+    customerId,
+    weekStartDate,
+    enabled: Boolean(source),
+    isParentTransitioning: Boolean(stateProps.isPreviousData),
+    sourceVersionKey: `${source?.menuVersionId ?? ''}:${batch?.version ?? ''}`,
+  });
   const dirtyNavigation = useOptionalDirtyNavigation();
   const registerDirty = dirtyNavigation?.registerDirty;
   const sourceDirty = sourceEdit.changedLines.length > 0 || Boolean(sourceChangeReason.trim());
@@ -147,7 +153,7 @@ export function MrxBatchWorkbench() {
     if (await sourceEdit.preview()) setIsSourceReviewOpen(true);
   };
   const hasMissingSplit = missingServingsCount > 0;
-  const isSplitScopeUnavailable = Boolean(source && (sourceEdit.isLoading || !sourceEdit.editScope));
+  const isSplitScopeUnavailable = Boolean(source && (sourceEdit.isLoading || sourceEdit.isTransitioningScope || !sourceEdit.editScope));
   const footerNeedsServings = primaryAction?.label === 'Kiểm tra định lượng';
   const footerPrimaryLabel = footerNeedsServings ? 'Lưu & kiểm tra định lượng' : primaryAction?.label;
   const changeServings = (date: string, shift: string, variant: 'savory' | 'vegetarian', value: number | null) => {
@@ -175,10 +181,13 @@ export function MrxBatchWorkbench() {
     setIsSourceReviewOpen(false);
   };
 
+  const isScopePending = !stateProps.error && Boolean(stateProps.isPreviousData || stateProps.isLoading);
+
   return (
     <WorkspaceFrame.Root className="select-text">
       {!reviewRequest && <>
       <MrxBatchHeaderBranch
+        isPending={isScopePending}
         customers={customers}
         customerId={customerId}
         onSelectCustomer={(nextId) => {
@@ -218,53 +227,51 @@ export function MrxBatchWorkbench() {
 
       <TelemetrySubbar
         responsive
+        className="mrx-tools-subbar"
         leftControls={
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold text-slate-700">Vòng đời lô:</span>
-            {batch ? (
-              <ReconciliationLifecycleStrip status={batch.status} />
-            ) : (
-              <span className="text-xs font-medium text-slate-500 italic bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                Chưa khởi tạo lô đối soát
-              </span>
-            )}
+            <ReconciliationLifecycleStrip status={batch?.status} isPending={isScopePending} />
+            {!batch && !isScopePending && <span className="sr-only">Chưa khởi tạo lô đối soát</span>}
           </div>
         }
-        telemetryPills={
-          source ? (
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-slate-500">Phiên bản nguồn:</span>
-              <strong className="font-mono text-slate-900">v{source.menuVersionNo ?? '—'}</strong>
-              <span className="text-slate-300">·</span>
-              <Badge
-                variant={
-                  source.menuVersionStatus === 'PUBLISHED' || source.menuVersionStatus === 'ACTIVE'
-                    ? 'success'
-                    : 'warning'
-                }
-                size="sm"
-              >
-                {source.menuVersionStatus === 'PUBLISHED' || source.menuVersionStatus === 'ACTIVE'
-                  ? 'Đã xuất bản'
-                  : 'Bản nháp'}
-              </Badge>
-              {missingServingsCount > 0 && (
-                <>
-                  <span className="text-slate-300">·</span>
-                  <Badge variant="warning" size="sm">Thiếu {missingServingsCount} ô số suất</Badge>
-                </>
-              )}
-              {batch?.status === 'DRAFT' && (
-                <span className="text-slate-500 hidden xl:inline">· Kiểm tra phân rã định lượng rồi bấm "Đóng băng lô"</span>
-              )}
-              {batch?.status === 'READY' && (
-                <span className="text-slate-500 hidden xl:inline">· Sẵn sàng chuyển sang Kho</span>
-              )}
-            </div>
-          ) : null
-        }
+        telemetryPills={<div className="mrx-metadata-slot">{isScopePending ? <span role="status" className="sr-only">Đang xác minh dữ liệu nguồn…</span> :
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-slate-500">Phiên bản nguồn:</span>
+            <strong className="font-mono text-slate-900 min-w-[2ch] tabular-nums">{source ? `v${source.menuVersionNo ?? '—'}` : '—'}</strong>
+            {source && (
+              <>
+                <span className="text-slate-300">·</span>
+                <Badge
+                  variant={
+                    source.menuVersionStatus === 'PUBLISHED' || source.menuVersionStatus === 'ACTIVE'
+                      ? 'success'
+                      : 'warning'
+                  }
+                  size="sm"
+                >
+                  {source.menuVersionStatus === 'PUBLISHED' || source.menuVersionStatus === 'ACTIVE'
+                    ? 'Đã xuất bản'
+                    : 'Bản nháp'}
+                </Badge>
+                {missingServingsCount > 0 && (
+                  <>
+                    <span className="text-slate-300">·</span>
+                    <Badge variant="warning" size="sm">Thiếu {missingServingsCount} ô số suất</Badge>
+                  </>
+                )}
+                {batch?.status === 'DRAFT' && (
+                  <span className="text-slate-500 hidden xl:inline">· Kiểm tra phân rã định lượng rồi bấm "Đóng băng lô"</span>
+                )}
+                {batch?.status === 'READY' && (
+                  <span className="text-slate-500 hidden xl:inline">· Sẵn sàng chuyển sang Kho</span>
+                )}
+              </>
+            )}
+          </div>}
+        </div>}
         rightActions={
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5" inert={isScopePending || undefined}>
             {sourceDirty && <Button variant="outline" size="xs" disabled={busy} onClick={() => guardScopeChange(() => sourceGridRef.current?.focus())}>Bỏ sửa nguồn</Button>}
             {batch && !isSourceReviewOpen && (
               <Button
@@ -324,6 +331,7 @@ export function MrxBatchWorkbench() {
         <InlineBanner
           variant="success"
           title={changeMessage}
+          children={!canOpenWarehouse && batch?.status === 'TRANSFERRED' ? 'Đã bàn giao · Chờ Kho xuất nguyên liệu.' : undefined}
           actionLabel={canOpenWarehouse && batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') ? 'Mở trạm Kho xuất ngày' : undefined}
           onAction={canOpenWarehouse && batch && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS')
             ? () => navigate(`/warehouse?view=mrx-daily&batchId=${batch.batchId}&date=${weekStartDate}`)
@@ -333,7 +341,7 @@ export function MrxBatchWorkbench() {
         />
       )}
 
-      {batch && !canOpenWarehouse && !reviewRequest && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') && (
+      {batch && !changeMessage && !canOpenWarehouse && !reviewRequest && (batch.status === 'TRANSFERRED' || batch.status === 'IN_PROGRESS') && (
         <InlineBanner variant="info" title={batch.status === 'TRANSFERRED' ? 'Đã bàn giao · Chờ Kho xuất nguyên liệu.' : 'Kho đang xử lý xuất nguyên liệu cho lô.'} />
       )}
 
@@ -369,7 +377,11 @@ export function MrxBatchWorkbench() {
           />
         ) : <StateBoundary
           {...stateProps}
-          onRetry={() => loadSource(true)}
+          isLoading={stateProps.isLoading || Boolean(source && !sourceEdit.editScope && !sourceEdit.error)}
+          hasExistingData={Boolean(source && sourceEdit.editScope)}
+          error={stateProps.error || (!sourceEdit.editScope ? sourceEdit.error : null)}
+          isPreviousData={Boolean(stateProps.isPreviousData || sourceEdit.isTransitioningScope)}
+          onRetry={() => { if (source && !sourceEdit.editScope) void sourceEdit.reload(); else void loadSource(true); }}
           loadingVariant="matrix"
           loadingGeometry={{ kind: 'matrix', columns: 8, rows: 10, columnWidths: ['160px', '14%', '14%', '14%', '14%', '14%', '14%', '14%'] }}
           isEmpty={stateProps.isEmpty || Boolean(batch && !source)}
@@ -429,19 +441,20 @@ export function MrxBatchWorkbench() {
                   </div>
                 ) : null}
 
-                {showServingErrors && hasMissingSplit && <p id={servingErrorId} role="alert" className="px-3 py-2 text-xs text-slate-700">Cần nhập đủ suất Mặn và Chay. Còn thiếu {missingServingsCount} ô số suất.</p>}
                 {sourceEdit.error && <InlineBanner variant="error">{sourceEdit.error.message}</InlineBanner>}
                 <div ref={sourceGridRef} tabIndex={-1} className="min-h-0 flex-1">
-                  <MrxSourceEditGrid disabled={busy} servingErrorId={showServingErrors && hasMissingSplit ? servingErrorId : undefined} mode={sourceMode} readOnly={!canEditSource} editScope={sourceEdit.editScope} draft={sourceEdit.draft} dishOptions={sourceEdit.dishOptions} onServingsChange={changeServings} onDishChange={changeDish} lockedHighlight={sourceEdit.lockedHighlight} />
+                  <MrxSourceEditGrid disabled={busy || sourceEdit.isLoading || sourceEdit.isTransitioningScope} servingErrorId={showServingErrors && hasMissingSplit ? servingErrorId : undefined} mode={sourceMode} readOnly={!canEditSource} editScope={sourceEdit.editScope} draft={sourceEdit.draft} dishOptions={sourceEdit.dishOptions} onServingsChange={changeServings} onDishChange={changeDish} lockedHighlight={sourceEdit.lockedHighlight} />
                 </div>
 
                 {!isCompleted && <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 bg-white px-3 py-2">
-                  <span className="text-xs text-slate-600">
-                    {sourceEdit.changedLines.length > 0
-                      ? `${sourceEdit.changedLines.length} thay đổi chưa xem ảnh hưởng`
-                      : hasMissingSplit ? `Thiếu ${missingServingsCount} ô số suất`
-                        : batch?.status === 'TRANSFERRED' || batch?.status === 'IN_PROGRESS' ? 'Đã bàn giao Kho; ngày đã xuất được khóa sửa'
-                            : 'Nguồn tuần đã sẵn sàng kiểm tra định lượng'}
+                  <span id={showServingErrors && hasMissingSplit ? servingErrorId : undefined} role={showServingErrors && hasMissingSplit ? 'alert' : undefined} className="text-xs text-slate-600">
+                    {showServingErrors && hasMissingSplit
+                      ? `Cần nhập đủ suất Mặn và Chay. Còn thiếu ${missingServingsCount} ô số suất.`
+                      : sourceEdit.changedLines.length > 0
+                        ? `${sourceEdit.changedLines.length} thay đổi chưa xem ảnh hưởng`
+                        : hasMissingSplit ? `Thiếu ${missingServingsCount} ô số suất`
+                          : batch?.status === 'TRANSFERRED' || batch?.status === 'IN_PROGRESS' ? 'Đã bàn giao Kho; ngày đã xuất được khóa sửa'
+                              : 'Nguồn tuần đã sẵn sàng kiểm tra định lượng'}
                   </span>
                   {canEditSource && (sourceEdit.changedLines.length > 0 ? (
                     <Button ref={reviewTriggerRef} variant="default" size="sm" disabled={busy} onClick={() => void reviewSource()}>

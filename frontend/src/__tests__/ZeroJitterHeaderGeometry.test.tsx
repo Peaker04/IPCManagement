@@ -6,6 +6,29 @@ import { MrxDailyHeaderBranch } from '../features/warehouse/branches/MrxDailyHea
 import type { MrxBatch, MrxBatchSummary } from '../api/mrxApi';
 
 describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
+  it('keeps pending warehouse and source headers from presenting old-scope actions and statuses', () => {
+    const dailyProps = { batches: [], activeBatchId: 'b', batchStatus: 'COMPLETED',
+      onSelectBatch: vi.fn(), activeDate: '2026-09-21', onSelectDate: vi.fn(), isWeeklyAll: false,
+      hasInitialIssue: true, onOpenSupplemental: vi.fn(), onFillAll: vi.fn(), onSubmit: vi.fn(),
+      canSubmit: false, saving: false, linesCount: 3 };
+    const { rerender } = render(<>
+      <MrxDailyHeaderBranch {...dailyProps} isPending />
+      <MrxBatchHeaderBranch customers={[]} customerId="c" weekStartDate="2026-09-21" isPending
+        onSelectCustomer={vi.fn()} onSelectWeekStartDate={vi.fn()}
+        batch={{ batchId: 'a', status: 'READY', version: 1, createdAt: '2026-09-21', menuVersionId: 'm', quantityImportBatchId: 'i', lines: [] }}
+        statusLabels={{ READY: 'Sẵn sàng chuyển kho' }} isSubmitting={false} isRefreshing={false} onRefresh={vi.fn()} primaryAction={null} />
+    </>);
+    expect(screen.getAllByText('Đang tải phạm vi mới')).toHaveLength(2);
+    for (const status of screen.getAllByText('Đang tải phạm vi mới')) expect(status).toHaveClass('sr-only');
+    expect(screen.queryByRole('button', { name: 'Xuất bổ sung ca' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Sẵn sàng chuyển kho')).not.toBeInTheDocument();
+    rerender(<MrxDailyHeaderBranch {...dailyProps} scopeError />);
+    expect(screen.getByText('Không xác minh được lô')).toBeInTheDocument();
+    expect(screen.queryByText('Đang tải phạm vi mới')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Xuất bổ sung ca' })).not.toBeInTheDocument();
+    rerender(<MrxDailyHeaderBranch {...dailyProps} />);
+    expect(screen.getByRole('button', { name: 'Xuất bổ sung ca' })).toBeEnabled();
+  });
   it('reserves fixed badge anchor slot when batchStatus is null, maintaining layout geometry', () => {
     const { container: emptyContainer } = render(
       <ReconciliationHeaderBranch
@@ -14,13 +37,12 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         customers={[{ customerId: 'c1', customerCode: 'ANV', customerName: 'Amann' }]}
         onSelectCustomer={vi.fn()}
         batchId="b1"
-        batches={[{
-          batchId: 'b1', status: 'IN_PROGRESS', version: 1, createdAt: '2026-09-14T00:00:00Z',
-          customerId: 'c1', customerCode: 'ANV', customerName: 'Amann', weekStartDate: '2026-09-14', weekEndDate: '2026-09-20',
-        } satisfies MrxBatchSummary]}
+        batchCount={1}
+        batches={[]}
+        selectedMonth="2026-09"
+        onSelectMonth={vi.fn()}
         onSelectBatch={vi.fn()}
-        serviceDate="2026-09-14"
-        onSelectDate={vi.fn()}
+        onOpenBatchPicker={vi.fn()}
         batchStatus={undefined}
         statusLabels={{ IN_PROGRESS: 'Đang đối chiếu' }}
         isRefreshing={false}
@@ -68,7 +90,8 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
 
     const slot = populatedContainer.querySelector('.min-w-\\[110px\\]');
     expect(slot).toBeInTheDocument();
-    expect(slot?.querySelector('.animate-in')).toBeInTheDocument();
+    expect(slot).toContainElement(screen.getByText('Đang xuất ca'));
+    expect(slot?.querySelector('.animate-in')).not.toBeInTheDocument();
     expect(screen.getByText('Đang xuất ca')).toBeInTheDocument();
   });
 
@@ -108,10 +131,12 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         customers={[{ customerId: 'c1', customerCode: 'ANV', customerName: 'Amann' }]}
         onSelectCustomer={vi.fn()}
         batchId="b1"
+        batchCount={0}
         batches={[]}
+        selectedMonth="2026-09"
+        onSelectMonth={vi.fn()}
         onSelectBatch={vi.fn()}
-        serviceDate="2026-09-14"
-        onSelectDate={vi.fn()}
+        onOpenBatchPicker={vi.fn()}
         batchStatus="IN_PROGRESS"
         statusLabels={{ IN_PROGRESS: 'Đang đối chiếu' }}
         isRefreshing={false}
@@ -132,10 +157,12 @@ describe('Zero-Jitter Header Geometry & Reserved Badge Anchors', () => {
         customers={[{ customerId: 'c1', customerCode: 'ANV', customerName: 'Amann' }]}
         onSelectCustomer={vi.fn()}
         batchId="b1"
+        batchCount={0}
         batches={[]}
+        selectedMonth="2026-09"
+        onSelectMonth={vi.fn()}
         onSelectBatch={vi.fn()}
-        serviceDate="2026-09-14"
-        onSelectDate={vi.fn()}
+        onOpenBatchPicker={vi.fn()}
         batchStatus="IN_PROGRESS"
         statusLabels={{ IN_PROGRESS: 'Đang đối chiếu' }}
         isRefreshing={false}

@@ -4,9 +4,9 @@
 import http from 'k6/http';
 import { check, fail } from 'k6';
 
-export const BASE_URL = __ENV.BASE_URL || 'http://localhost:8001';
+export const BASE_URL = __ENV.BASE_URL || 'http://localhost:5262';
 export const USERNAME = __ENV.K6_USERNAME || 'admin';
-export const PASSWORD = __ENV.K6_PASSWORD || '';
+export const PASSWORD = __ENV.K6_PASSWORD || 'FA624MHycNsN3DIp';
 
 // Danh mục endpoint đo hiệu năng.
 // "name" dùng làm tag để đặt threshold riêng cho từng endpoint.
@@ -23,6 +23,27 @@ export const ENDPOINTS = [
   { name: 'report-price-variance',  method: 'GET', path: '/api/workflow-reports/price-variance/by-supplier/page?pageNumber=1&pageSize=20', target: 3000 },
   { name: 'report-kpis',            method: 'GET', path: '/api/workflow-reports/operational-kpis',                                        target: 3000 },
 ];
+
+export const MRX_ENDPOINTS = [
+  { name: 'mrx-system-mode',          method: 'GET', path: '/api/system-operation-mode',                                                            target: 300 },
+  { name: 'mrx-operational-summary',  method: 'GET', path: '/api/reconciliation/reports/operational-summary',                                       target: 800 },
+  { name: 'mrx-batches-page',         method: 'GET', path: '/api/reconciliation/batches?PageNumber=1&PageSize=20',                                  target: 500 },
+  { name: 'mrx-transactions-history', method: 'GET', path: '/api/reconciliation/reports/transactions-history?PageNumber=1&PageSize=25',             target: 500 },
+  { name: 'mrx-variance-register',    method: 'GET', path: '/api/reconciliation/reports/variance-register',                                         target: 800 },
+  { name: 'mrx-audit-trail',          method: 'GET', path: '/api/reconciliation/reports/audit-trail?PageNumber=1&PageSize=50',                      target: 500 },
+  { name: 'mrx-completed-register',   method: 'GET', path: '/api/reconciliation/reports/completed-register?PageNumber=1&PageSize=50',               target: 500 },
+];
+
+export function buildMrxThresholds(extra) {
+  const t = Object.assign({
+    http_req_failed: ['rate<0.01'],
+    checks: ['rate>0.99'],
+  }, extra || {});
+  for (const ep of MRX_ENDPOINTS) {
+    t[`http_req_duration{name:${ep.name}}`] = [`p(95)<${ep.target}`];
+  }
+  return t;
+}
 
 // Sinh object thresholds cho options từ danh mục trên:
 //   p(95) của từng endpoint phải dưới ngưỡng mục tiêu.

@@ -139,7 +139,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
   });
   }
 
-  test('@G5-Session Same actor recovers the original draft after 401; foreign/stale drafts stay unavailable and stock changes once', async ({ dieuphoiPage, adminPage, thukhoPage, dbVerifier }) => {
+  test('@G5-Session Same actor recovers the original draft after 401; foreign/stale drafts stay unavailable, one issue and unchanged physical stock', async ({ dieuphoiPage, adminPage, thukhoPage, dbVerifier }) => {
     test.setTimeout(240_000);
     const scope = scenarioScope(dbVerifier, 4);
     const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
@@ -167,6 +167,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     // Abort before forwarding: unlike committed-response loss, the server receives no command.
     let precommit: CreateMrxIssueRequest | undefined;
     await thukhoPage.route('**/api/inventory-issues', async (route) => {
+      if (route.request().method() !== 'POST') { await route.continue(); return; }
       precommit = route.request().postDataJSON() as CreateMrxIssueRequest;
       await route.abort('connectionfailed');
     });
@@ -179,9 +180,19 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     expect(dbVerifier.query(`SELECT commandId FROM lifecyclecommandreceipts WHERE commandId='${precommit!.commandId}';`)).toHaveLength(0);
     for (const [id, stock] of opening) expect(dbVerifier.captureStockSnapshot(binaryId(id))).toEqual(stock);
     await thukhoPage.unroute('**/api/inventory-issues');
+    const quarantinedDraft = await thukhoPage.evaluate(({ id, date, lineId }) => {
+      const key = Object.keys(localStorage).find(item => item.endsWith(`mrx_initial_${id}_${date}`));
+      const raw = key ? localStorage.getItem(key) : null;
+      const draft = raw ? JSON.parse(raw) : null;
+      return { present: Boolean(raw), version: draft?.version, outcomeUnknown: draft?.outcomeUnknown, selectedQuantity: draft?.quantities?.[lineId] };
+    }, { id: batchId, date: scope.weekStartDate, lineId: selected.dailyLineId });
+    fs.writeFileSync(path.join(evidence, 'precommit-transport-no-write.json'), JSON.stringify({ batchId, commandId: precommit!.commandId,
+      fault: 'Playwright abort before route forwarding; not a natural network incident', serverCommandNotForwarded: true,
+      noIssue: true, noReceipt: true, unchangedVersionAndStocks: true, draftBeforeReload: quarantinedDraft, recovery: 'NOT_REACHED' }, null, 2));
     await thukhoPage.getByRole('button', { name: 'Tải lại để kiểm tra kết quả', exact: true }).click();
+    await expect(thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true })).toBeVisible();
     await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2.75');
+    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
     await expect(thukhoPage.getByRole('button', { name: /^Lịch sử phiếu \(\s*0\s*\)$/ })).toBeVisible();
     fs.writeFileSync(path.join(evidence, 'precommit-transport-no-write.json'), JSON.stringify({batchId,commandId:precommit!.commandId,fault:'Playwright abort before route forwarding; not a natural network incident',serverCommandNotForwarded:true,noIssue:true,noReceipt:true,unchangedVersionAndStocks:true,draftQuantityAfterExplicitRecovery:'2.75'},null,2));
     const saved = await thukhoPage.evaluate(({ id, date }) => {
@@ -189,6 +200,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
       if (!key) throw new Error('Actual pre-submit draft snapshot missing.');
       return { key, json: localStorage.getItem(key)! };
     }, { id: batchId, date: scope.weekStartDate });
+    expect(JSON.parse(saved.json).commandId).toBe(precommit!.commandId);
     await respectApiBudget(adminPage);
     await adminPage.goto(url);
     await adminPage.evaluate(({ key, json }) => localStorage.setItem(key, json), saved);
@@ -197,25 +209,29 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     expect(new URL(adminPage.url()).searchParams.get('batchId')).toBe(batchId);
     expect(new URL(adminPage.url()).searchParams.get('date')).toBe(scope.weekStartDate);
     await expect(adminPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true })).toHaveCount(0);
-    await respectApiBudget(thukhoPage, 32);
-    await thukhoPage.evaluate(({ key, json }) => {
-      const stale = JSON.parse(json); stale.version += 1;
-      localStorage.setItem(key, JSON.stringify(stale));
-    }, saved);
-    await thukhoPage.reload();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toBeVisible();
-    expect(new URL(thukhoPage.url()).searchParams.get('batchId')).toBe(batchId);
-    expect(new URL(thukhoPage.url()).searchParams.get('date')).toBe(scope.weekStartDate);
-    await expect(thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true })).toHaveCount(0);
+    for (const invalid of ['stale-version', 'missing-command', 'invalid-command']) {
+      await respectApiBudget(thukhoPage, 32);
+      await thukhoPage.evaluate(({ key, json, invalid }) => {
+        const draft = JSON.parse(json);
+        if (invalid === 'stale-version') draft.version += 1;
+        else draft.commandId = invalid === 'missing-command' ? undefined : 'not-a-command-uuid';
+        localStorage.setItem(key, JSON.stringify(draft));
+      }, { ...saved, invalid });
+      await thukhoPage.reload();
+      await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toBeVisible();
+      expect(new URL(thukhoPage.url()).searchParams.get('batchId')).toBe(batchId);
+      expect(new URL(thukhoPage.url()).searchParams.get('date')).toBe(scope.weekStartDate);
+      await expect(thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true })).toHaveCount(0);
+    }
     await thukhoPage.evaluate(({ key, json }) => localStorage.setItem(key, json), saved);
     await thukhoPage.reload();
     await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2.75');
+    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
     await expect(thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true })).toBeEnabled();
     await respectApiBudget(thukhoPage);
     await thukhoPage.reload();
     await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2.75');
+    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
     await respectApiBudget(thukhoPage);
     // Model a genuinely missing browser session; the unmodified server must deny the actual POST.
     await thukhoPage.evaluate(() => localStorage.removeItem('ipc_v3_token'));
@@ -224,28 +240,34 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const denied = await deniedResponse;
     expect(denied.status()).toBe(401);
     const commandId = denied.request().postDataJSON().commandId as string;
-    expect(commandId).toMatch(/^[a-f0-9-]{36}$/i);
-    await thukhoPage.waitForURL('**/login');
+    expect(commandId).toBe(precommit!.commandId);
+    const reauthDialog = thukhoPage.getByRole('dialog', { name: 'Phiên làm việc ca đã hết hạn (401)', exact: true });
+    await expect(reauthDialog).toBeVisible();
+    expect(new URL(thukhoPage.url()).pathname).toBe('/warehouse');
     expect(JSON.parse((await thukhoPage.evaluate((key) => localStorage.getItem(key), saved.key))!).quantities[selected.dailyLineId]).toBe('2.75');
     expect(issueSubmits).toBe(2);
     expect(dbVerifier.query(versionSql)).toEqual(beforeVersion);
     expect(dbVerifier.query(`SELECT HEX(issueId) AS id FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${binaryId(batchId)}');`)).toHaveLength(0);
     expect(dbVerifier.query(`SELECT commandId FROM lifecyclecommandreceipts WHERE commandId='${commandId}';`)).toHaveLength(0);
     for (const [id, stock] of opening) expect(dbVerifier.captureStockSnapshot(binaryId(id))).toEqual(stock);
+    fs.writeFileSync(path.join(evidence, 'session-denial-no-write.json'), JSON.stringify({ batchId, commandId, deniedStatus: denied.status(),
+      samePendingCommand: commandId === precommit!.commandId, originalDraftQuantity: '2.75', noIssue: true, noReceipt: true,
+      unchangedVersionAndStocks: true, recovery: 'actual in-place session reauthentication dialog; not legacy login redirect' }, null, 2));
     const credentials = readQualificationCredentials().thukho;
-    await thukhoPage.getByLabel('Tên đăng nhập', { exact: true }).fill(credentials.username);
-    await thukhoPage.getByLabel('Mật khẩu', { exact: true }).fill(credentials.password);
+    await reauthDialog.getByPlaceholder('Nhập mật khẩu...', { exact: true }).fill(credentials.password);
     await respectLoginBudget();
     const login = thukhoPage.waitForResponse((response) => response.url().toLowerCase().endsWith('/api/auth/login') && response.request().method() === 'POST');
-    await thukhoPage.getByRole('button', { name: 'Đăng nhập vào hệ thống', exact: true }).click();
-    expect((await login).ok()).toBe(true);
-    await thukhoPage.waitForURL((location) => !location.pathname.endsWith('/login'));
+    await reauthDialog.getByRole('button', { name: 'Tiếp tục phiên làm việc', exact: true }).click();
+    const authenticated = await login;
+    expect(authenticated.ok()).toBe(true);
+    expect((await authenticated.json()).data.user.username).toBe(credentials.username);
+    await expect(reauthDialog).toHaveCount(0);
     await respectApiBudget(thukhoPage);
     await thukhoPage.goto(url);
     await thukhoPage.reload();
     await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toBeVisible();
     await thukhoPage.getByRole('button', { name: 'Khôi phục bản nháp', exact: true }).click();
-    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2.75');
+    await expect(thukhoPage.getByLabel(`Số lượng thực xuất ${selected.ingredientName}`, { exact: true })).toHaveValue('2,75');
     expect(issueSubmits).toBe(2);
     expect(dbVerifier.query(versionSql)).toEqual(beforeVersion);
     expect(dbVerifier.query(`SELECT HEX(issueId) AS id FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${binaryId(batchId)}');`)).toHaveLength(0);
@@ -305,6 +327,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
   });
 
   test.describe('Coordinated member lifecycle', () => {
+  test.use({ actionTimeout: 15_000 });
   test.setTimeout(420_000);
   test('@G5-Coordinated two actual customers share ingredients; stale last member rolls back all effects, then committed group response loss replays exactly', async ({ dieuphoiPage, adminPage, managerPage, thukhoPage, beptruongPage, dbVerifier }) => {
     let batchIds: string[] = [];
@@ -353,31 +376,35 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     await thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true }).click();
     const preparationFile = path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-preparation.xlsx');
     await (await workbookDownload).saveAs(preparationFile);
-    const workbookRows = parseCookingFile(preparationFile, 'xlsx');
-    expect(workbookRows[2]).toEqual(['Khách hàng', 'Ngày phục vụ', 'Ca', 'Thực đơn', 'Mã món', 'Tên món', 'Số suất']);
-    const materialsAt = workbookRows.findIndex(row => row[0] === 'NGUYÊN LIỆU THEO NHÀ CUNG CẤP');
-    expect(materialsAt).toBeGreaterThan(3);
-    const menus = workbookRows.slice(3, materialsAt);
+    const summaryRows = parseCookingFile(preparationFile, 'xlsx', 1);
+    const detailRows = parseCookingFile(preparationFile, 'xlsx', 2);
+    const menuRows = parseCookingFile(preparationFile, 'xlsx', 3);
+    expect(summaryRows[0].slice(0, 4)).toEqual(['Nhà cung cấp', 'Mã nguyên liệu', 'Tên nguyên liệu', 'Đơn vị tính']);
+    expect(detailRows[0]).toEqual(['Khách hàng', 'Mã lô đối soát', 'Ngày phục vụ', 'Ca', 'Mã nguyên liệu', 'Tên nguyên liệu', 'Đơn vị tính', 'Số lượng', 'Phân loại', 'Trạng thái xuất', 'Nhà cung cấp']);
+    expect(menuRows[2]).toEqual(['Khách hàng', 'Ngày phục vụ', 'Ca', 'Thực đơn', 'Mã món', 'Tên món', 'Số suất']);
+    const menus = menuRows.slice(3);
     const scopedBatches = batchIds.map(id => `UNHEX('${binaryId(id)}')`).join(',');
-    const expectedMenus = dbVerifier.query<{ customer: string; date: string; shift: string; variant: string; code: string; name: string; servings: string }>(`SELECT DISTINCT c.customerName AS customer, DATE_FORMAT(d.ServiceDate,'%d/%m/%Y') AS date, rc.FrozenShiftName AS shift, rc.FrozenMenuVariant AS variant, rc.FrozenDishCode AS code, rc.FrozenDishName AS name, CAST(rc.FrozenServings AS CHAR) AS servings FROM reconciliationbatchcontributors rc JOIN reconciliationbatchdailylines d ON d.DailyLineId=rc.DailyLineId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate BETWEEN '${scope.weekStartDate}' AND DATE_ADD('${scope.weekStartDate}', INTERVAL 6 DAY) AND d.RequiredQuantity>0 AND rc.InvalidatedAt IS NULL;`);
+    const expectedMenus = dbVerifier.query<{ customer: string; date: string; shift: string; variant: string; code: string; name: string; servings: string }>(`SELECT DISTINCT CONCAT(c.customerCode,' · ',c.customerName) AS customer, DATE_FORMAT(d.ServiceDate,'%d/%m/%Y') AS date, rc.FrozenShiftName AS shift, rc.FrozenMenuVariant AS variant, rc.FrozenDishCode AS code, rc.FrozenDishName AS name, CAST(rc.FrozenServings AS CHAR) AS servings FROM reconciliationbatchcontributors rc JOIN reconciliationbatchdailylines d ON d.DailyLineId=rc.DailyLineId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate BETWEEN '${scope.weekStartDate}' AND DATE_ADD('${scope.weekStartDate}', INTERVAL 6 DAY) AND d.RequiredQuantity>0 AND rc.InvalidatedAt IS NULL;`);
     expect(menus.map(row => row.join('|')).sort()).toEqual(expectedMenus.map(row => [row.customer, row.date,
       row.shift === 'MORNING' ? 'Sáng' : row.shift === 'AFTERNOON' ? 'Chiều' : row.shift,
       row.variant === 'savory' ? 'Mặn' : row.variant === 'vegetarian' ? 'Chay' : row.variant, row.code, row.name, row.servings].join('|')).sort());
-    const materialHeaders = workbookRows.slice(materialsAt + 1).find(row => row[0] === 'Mã nguyên liệu')!;
-    for (const member of preparedMembers) expect(materialHeaders).toContain(member.customerName);
+    const materialHeaders = summaryRows[0];
+    for (const member of preparedMembers) expect(materialHeaders).toContain(`${member.customerCode} · ${member.customerName}`);
     const materialQuantities = new Map<string, bigint>();
-    let supplier = '';
-    for (const row of workbookRows.slice(materialsAt + 1)) {
-      if (row.length === 1 && row[0].startsWith('Nhà cung cấp: ')) { supplier = row[0]; continue; }
-      if (row[0] === 'Mã nguyên liệu') continue;
-      expect(supplier).toMatch(/^Nhà cung cấp: .+/);
-      expect(micros(row[row.length - 1])).toBe(row.slice(3, -1).reduce((sum, quantity) => sum + micros(quantity), 0n));
-      materialHeaders.slice(3, -1).forEach((customer, index) => {
-        const key = `${customer}|${row[0]}|${row[2]}`;
-        materialQuantities.set(key, (materialQuantities.get(key) ?? 0n) + micros(row[index + 3]));
+    for (const row of summaryRows.slice(1)) {
+      expect(micros(row[row.length - 1])).toBe(row.slice(4, -1).reduce((sum, quantity) => sum + micros(quantity), 0n));
+      materialHeaders.slice(4, -1).forEach((customer, index) => {
+        const key = `${customer}|${row[1]}|${row[3]}`;
+        materialQuantities.set(key, (materialQuantities.get(key) ?? 0n) + micros(row[index + 4]));
       });
     }
-    const expectedQuantities = dbVerifier.query<{ customer: string; code: string; unit: string; quantity: string }>(`SELECT c.customerName AS customer, i.ingredientCode AS code, u.unitName AS unit, CAST(SUM(d.RequiredQuantity) AS CHAR) AS quantity FROM reconciliationbatchdailylines d JOIN ingredients i ON i.ingredientId=d.IngredientId JOIN units u ON u.unitId=d.CanonicalUnitId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate BETWEEN '${scope.weekStartDate}' AND DATE_ADD('${scope.weekStartDate}', INTERVAL 6 DAY) AND d.RequiredQuantity>0 GROUP BY c.customerName, i.ingredientCode, u.unitName;`);
+    const detailQuantities = new Map<string, bigint>();
+    for (const row of detailRows.slice(1)) {
+      const key = `${row[0]}|${row[4]}|${row[6]}`;
+      detailQuantities.set(key, (detailQuantities.get(key) ?? 0n) + micros(row[7]));
+    }
+    expect([...detailQuantities].sort()).toEqual([...materialQuantities].filter(([, quantity]) => quantity > 0n).sort());
+    const expectedQuantities = dbVerifier.query<{ customer: string; code: string; unit: string; quantity: string }>(`SELECT CONCAT(c.customerCode,' · ',c.customerName) AS customer, i.ingredientCode AS code, u.unitName AS unit, CAST(SUM(d.RequiredQuantity) AS CHAR) AS quantity FROM reconciliationbatchdailylines d JOIN ingredients i ON i.ingredientId=d.IngredientId JOIN units u ON u.unitId=d.CanonicalUnitId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate BETWEEN '${scope.weekStartDate}' AND DATE_ADD('${scope.weekStartDate}', INTERVAL 6 DAY) AND d.RequiredQuantity>0 GROUP BY c.customerCode, c.customerName, i.ingredientCode, u.unitName;`);
     expect([...materialQuantities].filter(([, quantity]) => quantity > 0n).map(([key, quantity]) => `${key}|${quantity}`).sort())
       .toEqual(expectedQuantities.map(row => `${row.customer}|${row.code}|${row.unit}|${micros(row.quantity)}`).sort());
     // Retained-client compatibility only: preparation UI is export-only. Commands use a separately read exact day, never weekly allocations.
@@ -404,11 +431,18 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const staleMember = originalCommandDay.batches[originalCommandDay.batches.length-1];
     await managerPage.goto(`/weekly-menu?view=mrx-batch&customerId=${staleMember.customerId}&weekStartDate=${scope.weekStartDate}`);
     const shortDate = scope.weekStartDate.slice(5).split('-').reverse().join('/');
-    const servings = managerPage.getByRole('spinbutton', { name: `Số suất Mặn ${shortDate} MORNING`, exact: true });
+    const servings = managerPage.getByRole('spinbutton', { name: `Số suất Mặn ${shortDate} Sáng`, exact: true });
     await servings.fill(String(Number(await servings.inputValue())+1));
     await managerPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
     await managerPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} advance last group member`);
-    await managerPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+    const previewResponse = managerPage.waitForResponse(response => response.url().endsWith('/amendments/preview') && response.request().method() === 'POST');
+    await managerPage.getByRole('button', { name: /^(?:Xem ảnh hưởng|Kiểm tra lại ảnh hưởng)$/ }).click();
+    const materialImpact = (await (await previewResponse).json()).data.materialImpact as Array<{ ingredientName: string; previousQuantity: number; newQuantity: number }>;
+    const fineChange = materialImpact.find(item => Math.abs(item.newQuantity - item.previousQuantity) > 0 && Math.abs(item.newQuantity - item.previousQuantity) < 0.005);
+    expect(fineChange, 'Actual source change must include a small nonzero material delta').toBeTruthy();
+    const impactRow = managerPage.getByRole('row').filter({ has: managerPage.getByRole('rowheader', { name: fineChange!.ingredientName, exact: true }) });
+    await expect(impactRow.getByRole('cell').last()).toHaveText(new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 6 }).format(fineChange!.newQuantity - fineChange!.previousQuantity));
+    await managerPage.screenshot({ path: path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-source-impact.png') });
     await managerPage.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
     const changed = managerPage.waitForResponse((r) => r.url().endsWith('/mrx-apply') && r.request().method() === 'POST');
     await managerPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click();

@@ -4,6 +4,10 @@ Industrial kitchen management: customer weekly menus, servings and BOM, material
 
 `DEFAULT` and `MATERIAL_RECONCILIATION` share master data/physical stock but have separate workflow records and permissions.
 
+## MRX hosting limit
+
+Multiple customers may use the same API instance. Do not deploy multiple API replicas yet: Excel import previews still use process-local tickets. See [MRX replica gate](docs/OPERATIONS.md#mrx-replica-gate) before changing instance count or promoting a new backend artifact.
+
 ## Quick start
 
 Prerequisites: Node 22.19+, npm, the .NET SDK selected by `global.json`, and authorized MySQL configuration. Follow [ENGINEERING](docs/ENGINEERING.md) to configure local secrets and verify actual listeners/readiness. Setup is not authorization for migration, seeding or business-data creation.

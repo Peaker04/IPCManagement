@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { WorkbenchSkeleton } from '../../../components/workbench/WorkbenchSkeleton';
 import { LocalFindBar } from '../../../components/workbench/LocalFindBar';
-import { normalizeSearchText } from '../../../utils/search';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
 import { PaginationBar } from '../../../components/workbench/PaginationBar';
 import { formatVietnameseDateTime } from '../../../utils/dates';
-import { formatAuditActor, formatAuditArea, formatAuditEntity, formatAuditField } from '../../../utils/formatters';
+import { formatAuditActor, formatAuditArea, formatAuditEntity, formatAuditField, formatAuditValue } from '../../../utils/formatters';
 import type { MrxAuditTrailReport, MrxSourceChangeItem } from '../../../api/mrxApi';
 
 export interface ReconciliationAuditBranchProps {
@@ -15,6 +15,9 @@ export interface ReconciliationAuditBranchProps {
   page?: number;
   pending?: boolean;
   onPageChange?: (page: number) => void;
+  searchTerm?: string;
+  onSearchChange?: (value: string) => void;
+  sourceTotalCount?: number;
 }
 
 export function ReconciliationAuditBranch({
@@ -24,15 +27,16 @@ export function ReconciliationAuditBranch({
   page = 1,
   pending = false,
   onPageChange,
+  searchTerm = '',
+  onSearchChange,
+  sourceTotalCount,
 }: ReconciliationAuditBranchProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const query = normalizeSearchText(searchTerm);
-  const visibleChanges = useMemo(() => sourceChanges?.filter(row =>
-    [formatAuditActor(row.actor), formatAuditArea(row.businessArea), formatAuditEntity(row.entityName),
-      formatAuditField(row.fieldName), row.oldValue, row.newValue, row.reason]
-      .some(value => normalizeSearchText(value).includes(query))
-  ) ?? [], [sourceChanges, query]);
-  const totalPages = auditReport ? Math.ceil(auditReport.totalCount / 50) : undefined;
+  const visibleAuditRows = auditReport?.rows ?? [];
+  const sourcePageRows = sourceChanges ?? [];
+  const totalCount = auditSubTab === 'warehouse' ? auditReport?.totalCount : sourceTotalCount;
+  const totalPages = totalCount === undefined ? undefined : Math.ceil(totalCount / 50);
+  const query = searchTerm.trim();
+  const isColdTarget = pending && !(auditSubTab === 'source' ? sourceChanges : auditReport);
 
   const auditColumns = useMemo<ColumnDef<MrxAuditTrailReport['rows'][number]>[]>(() => [
     {
@@ -63,7 +67,7 @@ export function ReconciliationAuditBranch({
       id: 'newVal',
       header: 'Giá trị mới',
       width: '16%',
-      cell: (row) => <span className="text-xs font-mono text-slate-800">{row.newValue ?? '—'}</span>,
+      cell: (row) => <span className="text-xs text-slate-800" title={row.newValue ?? ''}>{formatAuditValue(row.fieldName, row.newValue)}</span>,
     },
     {
       id: 'reason',
@@ -108,9 +112,9 @@ export function ReconciliationAuditBranch({
       header: 'Biến động giá trị',
       width: '20%',
       cell: (row) => (
-        <span className="text-xs font-mono text-slate-800">
-          <span className="line-through text-slate-400 mr-1">{row.oldValue || '—'}</span>
-          <span>→ <strong>{row.newValue || '—'}</strong></span>
+        <span className="text-xs text-slate-800" title={`Gốc: ${row.oldValue || '—'} → ${row.newValue || '—'}`}>
+          <span className="line-through text-slate-500 mr-1">{row.oldDisplayValue || formatAuditValue(row.fieldName, row.oldValue)}</span>
+          <span>→ <strong>{row.newDisplayValue || formatAuditValue(row.fieldName, row.newValue)}</strong></span>
         </span>
       ),
     },
@@ -124,30 +128,45 @@ export function ReconciliationAuditBranch({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
-      {auditSubTab === 'source' && <LocalFindBar label="Tìm trong lịch sử nguồn và BOM" value={searchTerm} onChange={setSearchTerm}
-        matched={sourceChanges ? visibleChanges.length : undefined} total={sourceChanges?.length}
-        scope="Trong lịch sử nguồn của lô đã tải; không lọc trang kiểm toán Kho." />}
-      {auditSubTab === 'warehouse' ? (
+      <LocalFindBar
+        label={auditSubTab === 'source' ? 'Tìm trong lịch sử nguồn và BOM' : 'Tìm trong nhật ký kiểm toán kho'}
+        value={searchTerm}
+        onChange={value => onSearchChange?.(value)} disabled={!onSearchChange}
+        matched={totalCount} total={totalCount}
+        scope={auditSubTab === 'source' ? 'Tìm trong toàn bộ lịch sử nguồn và BOM của lô.' : 'Tìm trong toàn bộ nhật ký kiểm toán kho của lô.'}
+      />
+      {isColdTarget ? <WorkbenchSkeleton geometry={{ kind: 'table', columns: 6, rows: 10 }} /> : auditSubTab === 'warehouse' ? (
         <DataGrid
-          data={auditReport?.rows ?? []}
+          data={visibleAuditRows}
+          hideHeaderWhenEmpty
           columns={auditColumns}
+          minWidth="min-w-[1100px]"
           keyExtractor={(row, idx) => row.auditId || `audit-${idx}`}
-          emptyMessage="Chưa có nhật ký kiểm toán nào cho phạm vi này."
+          emptyMessage={query ? 'Không có bản ghi kiểm toán khớp tìm kiếm.' : 'Chưa có nhật ký kiểm toán nào cho phạm vi này.'}
         />
       ) : (
         <DataGrid
-          data={visibleChanges}
+          data={sourcePageRows}
+          hideHeaderWhenEmpty
           columns={sourceChangeColumns}
+          minWidth="min-w-[1100px]"
           keyExtractor={(row, idx) => row.changeId || `sc-${idx}`}
           emptyMessage={query ? 'Không có thay đổi nguồn khớp tìm kiếm.' : 'Lô đối soát chưa có ghi nhận thay đổi nguồn hay điều chỉnh BOM nào.'}
         />
       )}
-      {auditSubTab === 'warehouse' && onPageChange && <PaginationBar
-        label="Phân trang nhật ký kiểm toán"
-        page={page} pageSize={50} totalCount={auditReport?.totalCount} totalPages={totalPages}
-        hasPrev={Boolean(auditReport && page > 1)} hasNext={Boolean(totalPages && page < totalPages)}
-        pending={pending} onPageChange={onPageChange}
-      />}
+      {onPageChange && (
+        <PaginationBar
+          label="Phân trang nhật ký kiểm toán"
+          page={page}
+          pageSize={50}
+          totalCount={totalCount}
+          totalPages={totalPages}
+          hasPrev={page > 1}
+          hasNext={Boolean(totalPages && page < totalPages)}
+          pending={pending}
+          onPageChange={onPageChange}
+        />
+      )}
     </div>
   );
 }

@@ -187,4 +187,17 @@ describe('AdminCustomersBranch Component Tests (Rule TA-2 & TA-4)', () => {
 
     expect(await screen.findByRole('dialog', { name: 'Thêm khách hàng mới' })).toBeInTheDocument();
   });
+
+  it('H5: AdminCustomersBranch renders min-h-11 TelemetrySubbar and keeps tạm dừng pill mounted even when inactiveCount is 0', async () => {
+    const { container } = render(<AuthProvider><AdminCustomersBranch /></AuthProvider>);
+    expect(await screen.findByText('Công ty May Amann')).toBeInTheDocument();
+    expect(screen.getByText(/tạm dừng/)).toBeInTheDocument();
+    expect(screen.getByText('Khách hàng:').closest('div.min-h-11')).not.toBeNull();
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm khách hàng trong danh sách' }), { target: { value: 'KHONG_KHOP_XYZ' } });
+    expect(screen.getByText('Không có khách hàng khớp tìm kiếm')).toBeInTheDocument();
+    expect(container.querySelectorAll('table').length).toBe(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa bộ lọc' }));
+    expect(screen.getByText('Công ty May Amann')).toBeInTheDocument();
+  });
 });

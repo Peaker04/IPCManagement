@@ -11,6 +11,8 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
+using IPCManagement.Api.Features.SampleData.Controllers;
+using Microsoft.AspNetCore.Mvc;
 
 namespace IPCManagement.Api.Tests;
 
@@ -106,8 +108,10 @@ public class WeeklyMenuImportParserTests
         }
     }
 
-    [Fact]
-    public async Task BuildWeeklyMenuTemplateAsync_Should_ReturnCanonicalAnvWorkbook()
+    [Theory]
+    [InlineData("2026-07-20")]
+    [InlineData(null)]
+    public async Task BuildWeeklyMenuTemplateAsync_Should_ReturnCanonicalAnvWorkbook(string? requestedWeek)
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
             .UseInMemoryDatabase($"weekly-menu-template-{Guid.NewGuid():N}")
@@ -124,11 +128,17 @@ public class WeeklyMenuImportParserTests
         await context.SaveChangesAsync();
 
         var service = new WeeklyMenuTemplateService(context);
-        var result = await service.BuildWeeklyMenuTemplateAsync(
-            GuidHelper.ToGuidString(customerId),
-            new DateOnly(2026, 7, 20));
-        result.CustomerCode.Should().Be("ANV");
-        using var archive = new ZipArchive(new MemoryStream(result.Content), ZipArchiveMode.Read);
+        var controller = new WeeklyMenuImportsController(null!, service, null!, null!, null!, null!, null!, null!);
+        var response = await controller.DownloadWeeklyMenuTemplateAsync(GuidHelper.ToGuidString(customerId), requestedWeek, CancellationToken.None);
+        var result = response.Should().BeOfType<FileContentResult>().Subject;
+        var datePart = result.FileDownloadName["IPC_MauThucDon_ANV_".Length..^".xlsx".Length];
+        var fileWeek = DateOnly.ParseExact(datePart, "yyyy-MM-dd");
+        fileWeek.DayOfWeek.Should().Be(DayOfWeek.Monday);
+        if (requestedWeek is not null) fileWeek.Should().Be(DateOnly.Parse(requestedWeek));
+        else fileWeek.Should().BeOnOrBefore(DateOnly.FromDateTime(DateTime.UtcNow)).And.BeOnOrAfter(DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-6));
+        result.FileDownloadName.Should().Be($"IPC_MauThucDon_ANV_{fileWeek:yyyy-MM-dd}.xlsx");
+        using var archive = new ZipArchive(new MemoryStream(result.FileContents), ZipArchiveMode.Read);
+        ReadEntry(archive, "xl/worksheets/sheet1.xml").Should().Contain(fileWeek.ToString("dd/MM/yyyy"));
         var workbookXml = ReadEntry(archive, "xl/workbook.xml");
         workbookXml.Should().Contain("25k").And.Contain("30k").And.Contain("34k");
         workbookXml.Should().NotContain("ANV 25k").And.NotContain("DAV 25k");
@@ -179,7 +189,22 @@ public class WeeklyMenuImportParserTests
             .And.Contain("""<mergeCell ref="D13:I13"/>""")
             .And.Contain("""<mergeCell ref="D32:I32"/>""")
             .And.NotContain("""<mergeCell ref="C13:I13"/>""");
-        sheet1Xml.Should().Contain("zoomScale=\"55\"").And.Contain("zoomScaleNormal=\"55\"");
+        foreach (var sheetXml in new[] { sheet1Xml, sheet2Xml, sheet3Xml })
+        {
+            XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            var sheet = XDocument.Parse(sheetXml).Root!;
+            ((int)sheet.Element(ns + "sheetViews")!.Element(ns + "sheetView")!.Attribute("zoomScale")!).Should().BeGreaterThanOrEqualTo(85);
+            var columns = sheet.Element(ns + "cols")!.Elements(ns + "col").ToArray();
+            var dayWidths = Enumerable.Range(4, 6).Select(day => (double)columns.Single(col => (int)col.Attribute("min")! <= day && (int)col.Attribute("max")! >= day).Attribute("width")!).ToArray();
+            dayWidths.Distinct().Should().ContainSingle("each day has the same amount of writing space");
+            dayWidths.Should().OnlyContain(width => width >= 20 && width <= 32);
+            var inputRow = sheet.Element(ns + "sheetData")!.Elements(ns + "row").Single(row => (string?)row.Attribute("r") == "9");
+            ((string?)inputRow.Attribute("customHeight")).Should().NotBe("1", "wrapped user input must be able to grow");
+            sheet.Element(ns + "pageSetup")!.Attribute("orientation")!.Value.Should().Be("landscape");
+            sheet.Element(ns + "pageSetup")!.Attribute("fitToWidth")!.Value.Should().Be("1");
+        }
+        var printAreas = XDocument.Parse(workbookXml).Descendants().Where(node => (string?)node.Attribute("name") == "_xlnm.Print_Area").Select(node => node.Value);
+        printAreas.Should().BeEquivalentTo("'25k'!$C$2:$I$32", "'30k'!$C$2:$I$32", "'34k'!$C$2:$I$32");
     }
 
     [Fact]

@@ -16,6 +16,7 @@ import { Tabs } from '../components/ui/tabs';
 import { SplitView } from '../components/workbench/SplitView';
 import { DataGrid } from '../components/workbench/DataGrid';
 import { StateBoundary } from '../components/workbench/StateBoundary';
+import { LocalizedBoundary } from '../components/workbench/LocalizedBoundary';
 import { WorkbenchSkeleton } from '../components/workbench/WorkbenchSkeleton';
 import { DocumentCodeCell } from '../components/workbench/DocumentCodeCell';
 import { PaginationBar } from '../components/workbench/PaginationBar';
@@ -33,6 +34,7 @@ import {
   formatAuditArea,
   formatAuditEntity,
   formatAuditField,
+  formatAuditValue,
 } from '../utils/formatters';
 
 function TestDirtyConsumer() {
@@ -60,7 +62,7 @@ describe('Core UI Primitives & Composites (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
     rerender(<PaginationBar {...props} totalCount={undefined} totalPages={undefined} />);
     expect(screen.getByRole('navigation')).toHaveTextContent('— lô');
-    expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
     rerender(<PaginationBar {...props} page={2} totalCount={1} totalPages={1} hasPrev />);
     await userEvent.click(screen.getByRole('button', { name: 'Trang trước' }));
     expect(changePage).toHaveBeenLastCalledWith(1);
@@ -262,6 +264,17 @@ describe('Core UI Primitives & Composites (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
+  it('Modal: returns keyboard focus to the close request after canceling discard', async () => {
+    const handleClose = vi.fn();
+    render(<Modal isOpen isDirty onClose={handleClose} title="Nhập thực đơn"><input aria-label="Tệp thực đơn" /></Modal>);
+    const close = screen.getByRole('button', { name: 'Đóng hộp thoại' });
+    await userEvent.click(close);
+    expect(screen.getByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
+    expect(close).toHaveFocus();
+    expect(handleClose).not.toHaveBeenCalled();
+  });
+
   it('Tabs: renders segmented switcher and switches active tab', async () => {
     const handleTabChange = vi.fn();
     render(
@@ -389,40 +402,50 @@ describe('Core UI Primitives & Composites (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(screen.queryByText('Dữ liệu thật')).not.toBeInTheDocument();
   });
 
-  it('StateBoundary: Level 1 & Level 2 refreshing maintains silent canvas stability and handles context pivot', () => {
+  it('StateBoundary: Level 1 & Level 2 refreshing maintains silent canvas stability and handles context pivot', async () => {
     // Level 1: Silent revalidation with existing data (100% opacity, zero flashing bar)
+    const content = <div data-testid="table-content"><Input aria-label="Bản nháp đang đọc" defaultValue="" /></div>;
     const { rerender } = render(
-      <StateBoundary isFetching={true} hasExistingData={true}>
-        <div data-testid="table-content">Dữ liệu bảng hiện tại</div>
-      </StateBoundary>
+      <StateBoundary isFetching={true} hasExistingData={true}>{content}</StateBoundary>
     );
+    const draft = screen.getByRole('textbox', { name: 'Bản nháp đang đọc' });
+    draft.focus();
+    await userEvent.type(draft, 'Giữ bản nháp');
+    const scrollRegion = draft.parentElement!;
+    scrollRegion.scrollTop = 45;
 
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.getByTestId('table-content')).toBeInTheDocument();
 
-    // Level 2: Context pivot with isPreviousData (70% opacity, pointer-events locked)
+    // Context pivot retains brightness and blocks interaction with previous-scope rows.
     rerender(
-      <StateBoundary isPreviousData={true} hasExistingData={true}>
-        <div data-testid="table-content">Dữ liệu bảng cũ</div>
-      </StateBoundary>
+      <StateBoundary isPreviousData={true} hasExistingData={true}>{content}</StateBoundary>
     );
 
     const container = screen.getByTestId('table-content').parentElement;
-    expect(container).toHaveClass('opacity-70');
+    expect(container).not.toHaveClass('opacity-70');
+    expect(container).toHaveAttribute('inert');
     expect(container).toHaveClass('pointer-events-none');
     expect(container).toHaveAttribute('inert');
     expect(screen.getByRole('progressbar', { name: 'Đang tải trang' })).toBeVisible();
 
     // Level 3: Non-destructive error handling preserves table
     rerender(
-      <StateBoundary error={new Error('Mất kết nối mạng tạm thời')} hasExistingData={true}>
-        <div data-testid="table-content">Dữ liệu vẫn được bảo toàn</div>
-      </StateBoundary>
+      <StateBoundary error={new Error('Mất kết nối mạng tạm thời')} hasExistingData={true}>{content}</StateBoundary>
     );
 
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.getByText(/Mất kết nối mạng tạm thời/)).toBeInTheDocument();
-    expect(screen.getByTestId('table-content')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Bản nháp đang đọc' })).toBe(draft);
+    expect(draft).toHaveValue('Giữ bản nháp');
+    expect(draft).toHaveFocus();
+    expect(scrollRegion.scrollTop).toBe(45);
+    rerender(<StateBoundary isFetching={true} hasExistingData={true}>{content}</StateBoundary>);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Đang tải nội dung')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Bản nháp đang đọc' })).toBe(draft);
+    expect(draft).toHaveValue('Giữ bản nháp');
+    expect(draft).toHaveFocus();
   });
 
   it('StateBoundary: handles filter-empty with onResetFilters and prerequisite-blocked with onNavigatePrerequisite', () => {
@@ -639,6 +662,20 @@ describe('Core UI Primitives & Composites (WCAG 2.1 AA & Zero AI-Slop)', () => {
     clearAllClientDrafts();
   });
 
+  it('reports a rejected document copy and clears the error after a successful keyboard retry', async () => {
+    const user = userEvent.setup();
+    const write = vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValueOnce(new Error('denied')).mockResolvedValueOnce();
+    try {
+      render(<DocumentCodeCell code="ISS-01" />);
+      await user.tab();
+      await user.keyboard('{Enter}');
+      expect(screen.getByRole('status')).toHaveTextContent('Không thể sao chép');
+      await user.keyboard('{Enter}');
+      expect(write).toHaveBeenLastCalledWith('ISS-01');
+      expect(screen.getByRole('status')).toHaveTextContent('Đã sao chép');
+    } finally { write.mockRestore(); }
+  });
+
   it('DocumentCodeCell: clicking code triggers onOpenDetail and copy button copies to clipboard with stopPropagation', async () => {
     const handleOpen = vi.fn();
     render(<DocumentCodeCell code="ISS-TEST-001" onOpenDetail={handleOpen} />);
@@ -661,9 +698,23 @@ describe('Core UI Primitives & Composites (WCAG 2.1 AA & Zero AI-Slop)', () => {
     expect(formatAuditEntity('ReconciliationDailyDisposition')).toBe('Xử lý chênh lệch');
     expect(formatAuditEntity('InventoryIssueLine')).toBe('Dòng xuất kho');
     expect(formatAuditEntity('BomAdjustment')).toBe('Điều chỉnh BOM');
+    expect(formatAuditEntity('QuantityImportBatch')).toBe('Đợt nhập số suất');
+    expect(formatAuditEntity('MealQuantityPlanLine')).toBe('Số suất theo món và ca');
     expect(formatAuditField('IssuedQty')).toBe('Số lượng thực xuất');
+    expect(formatAuditField('FinalServings')).toBe('Số suất chốt');
+    expect(formatAuditField('VegetarianServings')).toBe('Số suất chay');
+    expect(formatAuditField('SavoryServings')).toBe('Số suất mặn');
+    expect(formatAuditField('DishId')).toBe('Món ăn');
+    expect(formatAuditField('Commit')).toBe('Xác nhận nguồn số suất');
     expect(formatAuditField('Validity')).toBe('Hiệu lực giải trình');
     expect(formatAuditField('QuantityAndWaste')).toBe('Định lượng & hao hụt');
+  });
+
+  it('renders audit values in business terms while retaining the raw reference', () => {
+    expect(formatAuditValue('FinalServings', '19')).toBe('19 suất');
+    expect(formatAuditValue('Status', 'READY')).toBe('Sẵn sàng');
+    expect(formatAuditValue('DishId', 'c6e2070b-cb72-4ab7-ab6f-b8d1cc7be0c9')).toBe('Mã món c6e2070b-cb72-4ab7-ab6f-b8d1cc7be0c9');
+    expect(formatAuditValue('Commit', 'F18BAB97D4A5152F9271B64140D3065CAC25D93B5')).toBe('Đã xác nhận dữ liệu nguồn');
   });
 
   it('C7: PaginationBar footer reserves min-h-12 height across page-size selector visibility', () => {
@@ -681,5 +732,190 @@ describe('Core UI Primitives & Composites (WCAG 2.1 AA & Zero AI-Slop)', () => {
     );
     const nav = screen.getByRole('navigation', { name: 'Danh sách nguyên liệu' });
     expect(nav).toHaveClass('min-h-12');
+  });
+
+  it('F2: LocalizedBoundary renders WorkbenchSkeleton immediately on loading without an empty white div or 250ms hold', () => {
+    const { rerender } = render(
+      <LocalizedBoundary isLoading={true} loadingGeometry={{ kind: 'table', columns: 4, rows: 5 }}>
+        <div data-testid="real-table">Bảng thật</div>
+      </LocalizedBoundary>
+    );
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toBeInTheDocument();
+    expect(screen.queryByTestId('real-table')).not.toBeInTheDocument();
+
+    rerender(
+      <LocalizedBoundary isLoading={false} loadingGeometry={{ kind: 'table', columns: 4, rows: 5 }}>
+        <div data-testid="real-table">Bảng thật</div>
+      </LocalizedBoundary>
+    );
+    expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
+    expect(screen.getByTestId('real-table')).toBeInTheDocument();
+  });
+
+  it('G2: StateBoundary renders WorkbenchSkeleton immediately on Frame 0 without an empty aria-busy placeholder even in production mode', () => {
+    const { container } = render(
+      <StateBoundary
+        isLoading={true}
+        hasExistingData={false}
+        loadingGeometry={{ kind: 'table', columns: 4, rows: 5 }}
+      >
+        <div>Nội dung</div>
+      </StateBoundary>
+    );
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toBeInTheDocument();
+    const emptyBusy = Array.from(container.querySelectorAll('[aria-busy="true"]')).filter(
+      (el) => el.children.length === 0
+    );
+    expect(emptyBusy).toHaveLength(0);
+  });
+
+  it('G7: PaginationBar locks md:h-12 on desktop when pageSizeOptions are omitted', () => {
+    render(
+      <PaginationBar
+        label="Phân trang G7"
+        page={1}
+        pageSize={25}
+        totalCount={50}
+        totalPages={2}
+        hasPrev={false}
+        hasNext={true}
+        onPageChange={vi.fn()}
+      />
+    );
+    const nav = screen.getByRole('navigation', { name: 'Phân trang G7' });
+    expect(nav).toHaveClass('md:h-12');
+    expect(nav).toHaveClass('min-h-12');
+  });
+
+  it('H2: DataGrid keeps table and sticky thead mounted when data is empty and emptyMessage/emptyState is provided', () => {
+    render(
+      <DataGrid
+        data={[]}
+        columns={[
+          { id: 'code', header: 'Mã nguyên liệu', cell: () => null },
+          { id: 'name', header: 'Tên nguyên liệu', cell: () => null },
+        ]}
+        keyExtractor={(_, idx) => String(idx)}
+        emptyMessage="Không có dòng khớp bộ lọc."
+      />
+    );
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Mã nguyên liệu' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Tên nguyên liệu' })).toBeInTheDocument();
+    expect(screen.getByText('Không có dòng khớp bộ lọc.')).toBeInTheDocument();
+  });
+
+  it('H12: previous data stays full brightness and read-only', () => {
+    render(
+      <StateBoundary isPreviousData={true} hasExistingData={true}>
+        <div data-testid="h12-content">Dữ liệu hiện tại</div>
+      </StateBoundary>
+    );
+    const container = screen.getByTestId('h12-content').parentElement;
+    expect(container).not.toHaveClass('opacity-70');
+    expect(container).toHaveAttribute('inert');
+  });
+
+  it('I4 & I5: validation overlays preserve header height and previous-data status stays nonvisual', async () => {
+    render(
+      <div>
+        <VietnameseDateInput
+          aria-label="Ngày kiểm thử I4"
+          value="2026-10-19"
+          isDateAllowed={(iso) => iso === '2026-10-19'}
+          validationMessage="Ngày phải là Thứ Hai."
+          onChange={vi.fn()}
+        />
+        <StateBoundary isPreviousData={true} hasExistingData={true}>
+          <div>Nội dung I5</div>
+        </StateBoundary>
+      </div>
+    );
+
+    const dateInput = screen.getByRole('textbox', { name: 'Ngày kiểm thử I4' });
+    await userEvent.clear(dateInput);
+    await userEvent.type(dateInput, '20/10/2026');
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Ngày phải là Thứ Hai.');
+    expect(alert).toHaveClass('absolute');
+    expect(alert).toHaveClass('top-full');
+
+    const progressbar = screen.getByRole('progressbar', { name: 'Đang tải trang' });
+    expect(progressbar).toHaveClass('sr-only');
+    expect(screen.getByText('Nội dung I5').parentElement).toHaveAttribute('inert');
+  });
+
+  it('J1 & J2: previous-data status retains identity without a painted stroke and the table header stays solid', () => {
+    const { rerender, container } = render(
+      <StateBoundary isPreviousData={false} hasExistingData={true}>
+        <DataGrid
+          data={[{ id: '1', name: 'Gạo ST25' }]}
+          columns={[{ id: 'name', header: 'Nguyên liệu', cell: (r) => r.name }]}
+          keyExtractor={(r) => r.id}
+        />
+      </StateBoundary>
+    );
+
+    expect(screen.queryByRole('progressbar', { name: 'Đang tải trang' })).not.toBeInTheDocument();
+    const idleBar = container.querySelector('.sr-only[aria-hidden="true"]');
+    expect(idleBar).toBeInTheDocument();
+    expect(idleBar).toHaveClass('sr-only');
+    expect(container.querySelector('.h-0\\.5')).toBeNull();
+
+    const thead = container.querySelector('thead');
+    expect(thead).toHaveClass('bg-slate-100');
+    expect(thead).not.toHaveClass('backdrop-blur-xs');
+
+    rerender(
+      <StateBoundary isPreviousData={true} hasExistingData={true}>
+        <DataGrid
+          data={[{ id: '1', name: 'Gạo ST25' }]}
+          columns={[{ id: 'name', header: 'Nguyên liệu', cell: (r) => r.name }]}
+          keyExtractor={(r) => r.id}
+        />
+      </StateBoundary>
+    );
+
+    const activeBar = screen.getByRole('progressbar', { name: 'Đang tải trang' });
+    expect(activeBar).toBe(idleBar);
+    expect(activeBar).toHaveClass('sr-only');
+    expect(container.querySelector('table')?.closest('[inert]')).not.toBeNull();
+    expect(container.querySelector('.h-0\\.5')).toBeNull();
+  });
+
+  it('DataGrid centers read-only empty states without wide column headings and restores columns when rows arrive', () => {
+    const columns = [{ id: 'name', header: 'Nguyên liệu', cell: (row: { id: string; name: string }) => row.name }];
+    const { rerender } = render(<DataGrid data={[]} columns={columns} keyExtractor={row => row.id}
+      hideHeaderWhenEmpty minWidth="min-w-[1100px]" emptyMessage="Chưa có lịch sử" />);
+    expect(screen.queryByRole('columnheader')).not.toBeInTheDocument();
+    expect(screen.getByText('Chưa có lịch sử')).toBeVisible();
+    expect(screen.getByRole('table')).not.toHaveClass('min-w-[1100px]');
+    rerender(<DataGrid data={[{ id: 'i1', name: 'Gạo' }]} columns={columns} keyExtractor={row => row.id}
+      hideHeaderWhenEmpty minWidth="min-w-[1100px]" emptyMessage="Chưa có lịch sử" />);
+    expect(screen.getByRole('columnheader', { name: 'Nguyên liệu' })).toBeVisible();
+    expect(screen.getByRole('table')).toHaveClass('min-w-[1100px]');
+    expect(screen.getByText('Gạo')).toBeVisible();
+  });
+
+  it('DataGrid renders EmptyIcon badge and stretches table height (h-full) to center emptyState and emptyMessage vertically', () => {
+    const { container } = render(
+      <DataGrid
+        data={[]}
+        columns={[{ id: 'name', header: 'Nguyên liệu', cell: () => null }]}
+        keyExtractor={(_, idx) => String(idx)}
+        emptyState={
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-slate-900">Chưa có lịch sử thay đổi nguồn</p>
+            <p className="text-xs text-slate-500">Các thay đổi nguồn và dữ liệu tương thích cũ được giữ nguyên để tra cứu.</p>
+          </div>
+        }
+      />
+    );
+
+    const table = screen.getByRole('table');
+    expect(table).toHaveClass('h-full');
+    const iconBadge = container.querySelector('tbody .w-12.h-12.rounded-lg.bg-slate-100');
+    expect(iconBadge).not.toBeNull();
+    expect(iconBadge?.querySelector('svg')).not.toBeNull();
   });
 });

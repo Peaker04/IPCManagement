@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/badge';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { Tabs } from '../../components/ui/tabs';
-import { serverStateCache } from '../../store/serverStateCache';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import { adminApi, type ApprovalRuleItem } from '../../api/adminApi';
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
@@ -18,7 +18,7 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
 };
 
 export function ApprovalRulesPage() {
-  const cachedRules = serverStateCache.get<ApprovalRuleItem[]>('admin_approval_rules')?.data;
+  const cachedRules = getCachedArray<ApprovalRuleItem>('admin_approval_rules');
   const [rules, setRules] = useState<ApprovalRuleItem[]>(() => cachedRules || []);
   const [activeType, setActiveType] = useState('ALL');
   const [isLoading, setIsLoading] = useState(!cachedRules);
@@ -70,12 +70,12 @@ export function ApprovalRulesPage() {
 
   return <div className="flex-1 min-h-0 flex flex-col h-full bg-white select-text">
     <WorkspaceHeader title="Thiết lập quy trình duyệt" breadcrumb="Hệ thống · Quy trình phê duyệt" contextSelectors={<Badge variant="neutral" size="default" className="h-9 px-3">{rules.length} quy tắc phê duyệt hiệu lực</Badge>} actions={<Button variant="outline" size="default" onClick={loadData}>Làm mới</Button>} />
-    <TelemetrySubbar leftControls={<Tabs items={tabs} activeId={activeType} onChange={setActiveType} size="sm" />} telemetryPills={<span className="text-slate-500">{filteredRules.length} quy tắc trong phạm vi</span>} />
+    <TelemetrySubbar leftControls={<Tabs items={tabs} activeId={activeType} onChange={setActiveType} size="sm" />} telemetryPills={<span className="text-slate-500 tabular-nums"><strong className="inline-block min-w-[2ch] text-right font-mono text-slate-900">{filteredRules.length}</strong> quy tắc trong phạm vi</span>} />
     <StateBoundary
       isLoading={isLoading}
       error={error}
       onRetry={loadData}
-      isEmpty={!isLoading && !error && filteredRules.length === 0}
+      isEmpty={false}
       emptyScenario="empty-first-use"
       emptyTitle="Chưa có quy tắc phê duyệt"
       emptyDescription="Chưa thiết lập quy tắc phê duyệt cho loại chứng từ này."
@@ -83,7 +83,22 @@ export function ApprovalRulesPage() {
       onAction={loadData}
       contextDomain="approvals"
     >
-      <DataGrid data={filteredRules} columns={columns} keyExtractor={(row) => row.ruleId} />
+      <DataGrid
+        data={filteredRules}
+        columns={columns}
+        keyExtractor={(row) => row.ruleId}
+        emptyState={
+          <div className="text-center space-y-2">
+            <p className="text-sm font-semibold text-slate-900">Chưa có quy tắc phê duyệt</p>
+            <p className="text-xs text-slate-500 max-w-sm leading-relaxed">Chưa thiết lập quy tắc phê duyệt cho loại chứng từ này.</p>
+            <div className="pt-1">
+              <Button variant="outline" size="xs" onClick={loadData}>
+                Làm mới quy tắc
+              </Button>
+            </div>
+          </div>
+        }
+      />
     </StateBoundary>
   </div>;
 }

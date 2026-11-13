@@ -1,4 +1,6 @@
 import { StrictMode } from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -17,15 +19,16 @@ import { useAuth } from '../store/useAuth';
 import { apiClient } from '../api/client';
 
 function ProtectedModeContent() {
-  const { operationalMode, token, user } = useAuth();
-  return <><output aria-label="Chế độ đang hiển thị">{operationalMode}</output>
+  const { operationalMode, token, user, idleWarning } = useAuth();
+  return <>{idleWarning && <span role="status">Sắp hết phiên do không hoạt động</span>}<output aria-label="Chế độ đang hiển thị">{operationalMode}</output>
     <output aria-label="Token của phiên">{token}</output><output aria-label="Người dùng của phiên">{user?.fullName}</output>
     <input aria-label="Công việc đang nhập" /></>;
 }
 
-function renderProtectedMode() {
-  return render(<AuthProvider><MemoryRouter><Routes>
+function renderProtectedMode(onIdleExpired?: () => void) {
+  return render(<AuthProvider onIdleExpired={onIdleExpired}><MemoryRouter><Routes>
     <Route element={<ProtectedRoute />}><Route path="/" element={<ProtectedModeContent />} /></Route>
+    <Route path="/login" element={<LoginPage />} />
   </Routes></MemoryRouter></AuthProvider>);
 }
 
@@ -80,6 +83,70 @@ describe('Auth Feature (FR-AUTH)', () => {
     expect(screen.getByRole('textbox', { name: 'Công việc đang nhập' })).toBe(draft);
     expect(draft).toHaveValue('Nội dung chưa lưu');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('opens SessionExpiredModal in-place when both request and refresh fail with 401 without unmounting protected work', async () => {
+    const restoredUser = { ...JSON.parse(localStorage.getItem('ipc_v3_user')!), fullName: 'Tên mới sau xác thực' };
+    vi.spyOn(authApi, 'login').mockResolvedValue({ accessToken: 'restored-token', tokenType: 'Bearer', expiresIn: 1800, user: restoredUser });
+    localStorage.setItem('ipc_v3_token', 'expired-provider-token');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 1, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: ['dashboard'], pageTabs: {} } });
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response('', { status: 401 }));
+
+    const view = renderProtectedMode();
+    await screen.findByLabelText('Chế độ đang hiển thị');
+    const draft = screen.getByRole('textbox', { name: 'Công việc đang nhập' });
+    await userEvent.type(draft, 'Dữ liệu biểu mẫu dở dang');
+
+    await act(async () => {
+      await apiClient('/session-check').catch(() => undefined);
+    });
+
+    expect(localStorage.getItem('ipc_v3_token')).toBeNull();
+    expect(screen.getByRole('dialog', { name: /Phiên làm việc ca đã hết hạn/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Công việc đang nhập' })).toBe(draft);
+    expect(draft).toHaveValue('Dữ liệu biểu mẫu dở dang');
+    await userEvent.type(screen.getByPlaceholderText('Nhập mật khẩu...'), 'test-password');
+    await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục phiên làm việc' }));
+    expect(await screen.findByLabelText('Người dùng của phiên')).toHaveTextContent(restoredUser.fullName);
+    expect(JSON.parse(localStorage.getItem('ipc_v3_user')!)).toEqual(restoredUser);
+    expect(localStorage.getItem('ipc_v3_token')).toBe('restored-token');
+    expect(screen.getByRole('textbox', { name: 'Công việc đang nhập' })).toBe(draft);
+    view.unmount();
+    renderProtectedMode();
+    expect(await screen.findByLabelText('Token của phiên')).toHaveTextContent('restored-token');
+    expect(screen.getByLabelText('Người dùng của phiên')).toHaveTextContent(restoredUser.fullName);
+  });
+
+  it.each(['timer', 'sleep'])('warns at 58 minutes, resets on activity, and expires locally without waiting for revoke (%s)', async wake => {
+    vi.useFakeTimers();
+    const revoke = vi.spyOn(authApi, 'logout').mockImplementation(() => new Promise(() => {}));
+    const redirect = vi.fn(() => { expect(localStorage.getItem('ipc_v3_token')).toBeNull(); });
+    if (wake === 'sleep') {
+      vi.stubEnv('VITE_IDLE_TIMEOUT_MINUTES', '0');
+      vi.stubEnv('VITE_IDLE_WARNING_MINUTES', 'invalid');
+    }
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify({ success: true, data: {} })));
+    try {
+      renderProtectedMode(redirect);
+      await act(async () => {});
+      await act(async () => { vi.advanceTimersByTime(57 * 60_000); await apiClient('/background-poll'); });
+      await act(async () => { vi.advanceTimersByTime(60_000); });
+      expect(screen.getByText('Sắp hết phiên do không hoạt động')).toBeVisible();
+      act(() => window.dispatchEvent(new Event('pointerdown')));
+      expect(screen.queryByText('Sắp hết phiên do không hoạt động')).not.toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(58 * 60_000); });
+      expect(screen.getByText('Sắp hết phiên do không hoạt động')).toBeVisible();
+      await act(async () => {
+        if (wake === 'timer') vi.advanceTimersByTime(2 * 60_000);
+        else { vi.setSystemTime(Date.now() + 3 * 60_000); window.dispatchEvent(new Event('pointerdown')); }
+      });
+      expect(localStorage.getItem('ipc_v3_token')).toBeNull();
+      expect(localStorage.getItem('ipc_v3_user')).toBeNull();
+      expect(screen.getByRole('heading', { name: 'IPC MANAGEMENT' })).toBeVisible();
+      expect(screen.getByText('Phiên đã kết thúc do không hoạt động. Vui lòng đăng nhập lại.')).toBeVisible();
+      expect(revoke).toHaveBeenCalledOnce();
+      expect(redirect).toHaveBeenCalledOnce();
+    } finally { vi.useRealTimers(); vi.unstubAllEnvs(); }
   });
 
   it('blocks a stored DEFAULT route until the authoritative MRX mode arrives', async () => {
@@ -138,7 +205,25 @@ describe('Auth Feature (FR-AUTH)', () => {
     expect(screen.getByLabelText('Tên đăng nhập')).toHaveValue('');
     expect(screen.getByLabelText('Mật khẩu')).toHaveValue('');
     expect(screen.queryByText(/Tài khoản mẫu|Admin@123456|beptruong|quick login/i)).not.toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Đăng nhập vào hệ thống' })).toBeInTheDocument();
+  });
+
+  it('LoginPage: toggles password visibility using Lucide Eye and EyeOff icons', async () => {
+    renderWithProviders(<LoginPage />);
+
+    const passwordInput = screen.getByLabelText('Mật khẩu');
+    expect(passwordInput).toHaveAttribute('type', 'password');
+
+    const toggleBtn = screen.getByRole('button', { name: 'Hiện mật khẩu' });
+    expect(toggleBtn).toHaveAttribute('aria-pressed', 'false');
+    expect(toggleBtn.querySelector('svg')).not.toBeNull();
+
+    await userEvent.click(toggleBtn);
+    expect(passwordInput).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Ẩn mật khẩu' })).toHaveAttribute('aria-pressed', 'true');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ẩn mật khẩu' }));
+    expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
   it('LoginPage: successfully authenticates and redirects to dashboard', async () => {
@@ -273,5 +358,11 @@ describe('Auth Feature (FR-AUTH)', () => {
     expect(resolveLandingPath(CANONICAL_ROUTES, coordinator, 'MATERIAL_RECONCILIATION')).toBe('/weekly-menu?view=mrx-batch');
     expect(resolveLandingPath(CANONICAL_ROUTES, warehouse, 'MATERIAL_RECONCILIATION')).toBe('/warehouse?view=mrx-daily');
     expect(resolveLandingPath(CANONICAL_ROUTES, chef, 'MATERIAL_RECONCILIATION')).toBe('/chef?view=mrx-cooking');
+
+    const faviconSvg = readFileSync(resolve(process.cwd(), 'public/favicon.svg'), 'utf8');
+    expect(faviconSvg).toContain('#0f172a');
+    expect(faviconSvg).toContain('M17 21a1 1 0 0 0 1-1v-5.35');
+    expect(faviconSvg).toContain('M6 17h12');
+    expect(faviconSvg).not.toContain('#863bff');
   });
 });

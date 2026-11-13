@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '../fixtures/mrxTest';
 import { createTransferredBatch, scenarioScope, parseCookingFile, captureStationUI } from '../fixtures/mrxWorkflow';
-import type { MrxWarehouseDaily, MrxBatch, MrxCompletedRegisterReport, MrxTransactionHistoryReport } from '../../../src/api/mrxApi';
+import { respectApiBudget } from '../fixtures/authHelpers';
+import type { MrxWarehouseDaily, MrxBatch, MrxCompletedRegisterReport, MrxTransactionHistoryReport, CreateMrxIssueRequest } from '../../../src/api/mrxApi';
 
 test.describe('@G3-Alt Alternative Business Flows', () => {
   test('BOM import dialog exposes the two supported template downloads (discovery only)', async ({ adminPage }) => {
@@ -24,6 +25,7 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
 
   test.describe('Submitted lifecycle', () => {
   test.setTimeout(300_000);
+  test.use({ actionTimeout: 15_000 });
   test('@G3-Submitted Xuất thiếu → bổ sung → xử lý thừa → Manager chốt tuần và lịch sử, không trả hàng', async ({ dieuphoiPage, adminPage, thukhoPage, managerPage, beptruongPage, dbVerifier }) => {
     const scope = scenarioScope(dbVerifier, 1);
     const { batchId } = await createTransferredBatch({ coordinator: dieuphoiPage, admin: adminPage }, scope, true);
@@ -39,10 +41,56 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
       return (await response.json()).data;
     }, batchId) as Promise<MrxWarehouseDaily>;
     const daily = await readDaily();
+    const binaryId = (id: string) => {
+      const [a,b,c,d,e] = id.split('-');
+      const reverse = (part: string) => part.match(/../g)!.reverse().join('');
+      return `${reverse(a)}${reverse(b)}${reverse(c)}${d}${e}`.toUpperCase();
+    };
+    const stocks = () => dbVerifier.query('CHECKSUM TABLE currentstock,currentstocklots,stockmovements;');
+    const originalStocks = stocks();
+    const absentStock = () => dbVerifier.query(`SELECT DISTINCT HEX(d.IngredientId) AS ingredientId FROM reconciliationbatchdailylines d WHERE d.BatchId=UNHEX('${binaryId(batchId)}') AND NOT EXISTS(SELECT 1 FROM currentstock s WHERE s.ingredientId=d.IngredientId) ORDER BY ingredientId;`);
+    const originalAbsentStock = absentStock();
+    const business = () => dbVerifier.query('CHECKSUM TABLE reconciliationbatches,reconciliationbatchdailylines,reconciliationdailydispositions,inventoryissues,inventoryissuelines,lifecyclecommandreceipts,currentstock,currentstocklots,stockmovements;');
     const day = daily.dates.find((item) => item.serviceDate === scope.weekStartDate)!;
     expect(day).toBeTruthy();
     const line = day.lines.find((item) => item.requiredQuantity > 1)!;
     expect(line).toBeTruthy();
+    const valid: CreateMrxIssueRequest = {
+      commandId: '', expectedVersion: daily.sourceVersion, issueDate: scope.weekStartDate,
+      reconciliationBatchId: batchId, isSupplemental: false,
+      lines: day.lines.filter(item => item.requiredQuantity > 0).map(item => ({
+        reconciliationBatchLineId: item.batchLineId, reconciliationBatchDailyLineId: item.dailyLineId,
+        ingredientId: item.ingredientId, unitId: item.canonicalUnitId,
+        requestedQty: item.requiredQuantity, issuedQty: item.requiredQuantity,
+      })),
+    };
+    expect(valid.lines.length).toBeGreaterThan(1);
+    const first = valid.lines[0];
+    const other = valid.lines.find(item => item.ingredientId !== first.ingredientId)!;
+    const otherUnit = valid.lines.find(item => item.unitId !== first.unitId)!;
+    const otherDay = daily.dates.find(item => item.serviceDate !== scope.weekStartDate && item.lines.length > 0)!.lines[0];
+    expect(other).toBeTruthy(); expect(otherUnit).toBeTruthy();
+    const negativeResults: { name: string; status: number; message: string }[] = [];
+    for (const control of [
+      { name: 'daily identity', lines: [{ ...first, reconciliationBatchDailyLineId: otherDay.dailyLineId }, ...valid.lines.slice(1)], message: 'Dòng xuất kho không thuộc ngày đã chọn' },
+      { name: 'weekly identity', lines: [{ ...first, reconciliationBatchLineId: other.reconciliationBatchLineId }, ...valid.lines.slice(1)], message: 'Dòng tổng tuần không khớp' },
+      { name: 'ingredient identity', lines: [{ ...first, ingredientId: other.ingredientId }, ...valid.lines.slice(1)], message: 'Nguyên liệu hoặc đơn vị không khớp' },
+      { name: 'unit identity', lines: [{ ...first, unitId: otherUnit.unitId }, ...valid.lines.slice(1)], message: 'Nguyên liệu hoặc đơn vị không khớp' },
+      { name: 'duplicate', lines: [...valid.lines, first], message: 'Một dòng nguồn theo ngày không thể xuất lặp' },
+      { name: 'omitted', lines: valid.lines.slice(1), message: 'Phiếu xuất đầu tiên phải ghi nhận đủ' },
+    ]) {
+      await respectApiBudget(thukhoPage);
+      const before = business();
+      const result = await thukhoPage.evaluate(async (body) => {
+        const response = await fetch('/api/inventory-issues', { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION', 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, commandId: crypto.randomUUID() }) });
+        return { status: response.status, message: (await response.json()).message as string };
+      }, { ...valid, lines: control.lines });
+      expect(result.status, control.name).toBe(400);
+      expect(result.message, control.name).toContain(control.message);
+      expect(business(), control.name).toEqual(before);
+      negativeResults.push({ name: control.name, ...result });
+    }
+    fs.writeFileSync(path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'identity-rejections.json'), JSON.stringify({ batchId, sourceVersion: daily.sourceVersion, negativeResults, businessUnchanged: true }, null, 2));
     await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
     await captureStationUI(thukhoPage, 'daily-issue', 1280, 720, thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }));
     await thukhoPage.getByLabel(`Số lượng thực xuất ${line.ingredientName}`, { exact: true }).fill(String(line.requiredQuantity - 1));
@@ -52,10 +100,8 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     await expect(thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true })).toBeVisible();
     const short = (await readDaily()).dates.find((item) => item.serviceDate === scope.weekStartDate)!.lines.find((item) => item.dailyLineId === line.dailyLineId)!;
     expect(short.remainingQuantity).toBe(1);
-    const [a, b, c, d, e] = line.ingredientId.split('-');
     const reverse = (value: string) => value.match(/../g)!.reverse().join('');
-    const ingredientHex = `${reverse(a)}${reverse(b)}${reverse(c)}${d}${e}`.toUpperCase();
-    const before = dbVerifier.captureStockSnapshot(ingredientHex);
+    const before = stocks();
     const dailyHex = (() => { const [a,b,c,d,e] = line.dailyLineId.split('-'); return `${reverse(a)}${reverse(b)}${reverse(c)}${d}${e}`.toUpperCase(); })();
     const decisions = () => dbVerifier.query(`SELECT HEX(DispositionId) AS id, Version AS version FROM reconciliationdailydispositions WHERE DailyLineId=UNHEX('${dailyHex}');`);
     const beforeDecisions = decisions();
@@ -66,7 +112,7 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     expect(denied.status, denied.body.message).toBe(400);
     expect(denied.body.message).toContain('xuất thiếu phải được xuất bổ sung');
     expect(decisions()).toEqual(beforeDecisions);
-    expect(dbVerifier.captureStockSnapshot(ingredientHex)).toEqual(before);
+    expect(stocks()).toEqual(before);
     expect((await readDaily()).dates.find((item) => item.serviceDate === scope.weekStartDate)!.lines.find((item) => item.dailyLineId === line.dailyLineId)!.remainingQuantity).toBe(1);
     console.log('[BUSINESS] Genuine initial shortage1 cannot be waived by Manager; no stock/decision effects.');
     await thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
@@ -94,7 +140,7 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     expect(response.request().postDataJSON().isSupplemental).toBe(true);
     const created = (await response.json()).data;
     await expect(dialog).toHaveCount(0);
-    expect(dbVerifier.captureStockSnapshot(ingredientHex)).toEqual(before);
+    expect(stocks()).toEqual(before);
     expect(created.provisions).toEqual([]);
     await thukhoPage.reload();
     const reloaded = (await readDaily()).dates.find((item) => item.serviceDate === scope.weekStartDate)!.lines.find((item) => item.dailyLineId === line.dailyLineId)!;
@@ -107,9 +153,22 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     expect(Number(persisted[0].IssuedQty)).toBe(1);
     await thukhoPage.screenshot({ path: path.join(evidence, '11-supplemental-reloaded.png') });
     console.log('[UI] Xuất bổ sung thành công; reload hết thiếu, tồn vật lý không đổi và audit đúng phiếu/dòng/lý do.');
+    const beforeIncomplete = business();
+    const current = await readDaily();
+    expect(current.dates.find(item => item.serviceDate === scope.weekStartDate)!.lines.every(item => item.remainingQuantity === 0)).toBe(true);
+    expect(current.weeklyStatus).not.toBe('WEEK_COMPLETE');
+    const incomplete = await managerPage.evaluate(async ({ id, version }) => {
+      const response = await fetch(`/api/reconciliation/batches/${id}/complete`, { method: 'POST', signal: AbortSignal.timeout(15_000), headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION', 'Content-Type': 'application/json' }, body: JSON.stringify({ expectedVersion: version }) });
+      return { status: response.status, message: (await response.json()).message as string };
+    }, { id: batchId, version: current.sourceVersion });
+    fs.writeFileSync(path.join(evidence, 'incomplete-completion.json'), JSON.stringify({ batchId, expectedVersion: current.sourceVersion, selectedDateComplete: true, weeklyStatus: current.weeklyStatus, ...incomplete, before: beforeIncomplete, after: business() }, null, 2));
+    expect(incomplete.status).toBe(400);
+    expect(incomplete.message).toContain('vẫn còn ngày chưa xuất đủ');
+    expect(business()).toEqual(beforeIncomplete);
     const issueCodes = [created.issueCode];
     let overLine: MrxWarehouseDaily['dates'][number]['lines'][number] | undefined;
     for (let offset=1; offset<6; offset++) {
+      await respectApiBudget(thukhoPage);
       const date = new Date(`${scope.weekStartDate}T00:00:00Z`); date.setUTCDate(date.getUTCDate()+offset);
       const serviceDate=date.toISOString().slice(0,10);
       await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${batchId}&date=${serviceDate}`);
@@ -136,6 +195,7 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     const overDate = new Date(`${scope.weekStartDate}T00:00:00Z`); overDate.setUTCDate(overDate.getUTCDate() + 1);
     await managerPage.goto(`/reconciliation?batchId=${batchId}&date=${overDate.toISOString().slice(0,10)}`);
     for(const version of [1,2]) {
+      await respectApiBudget(managerPage);
       await managerPage.getByRole('toolbar', { name: 'Lọc trạng thái dòng' }).getByRole('button', { name: /^Tất cả/ }).click();
       const action = version === 1 ? 'Xử lý chênh lệch' : 'Xem hướng xử lý';
       await managerPage.getByRole('button', { name: `${action} ${overLine!.ingredientName}`, exact: true }).click();
@@ -155,11 +215,42 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     expect(dbVerifier.query(`SELECT CAST(Version AS CHAR) AS version, (InvalidatedAt IS NULL) AS active, Reason AS reason FROM reconciliationdailydispositions WHERE DailyLineId=UNHEX('${overHex}') ORDER BY Version;`)).toEqual([
       {version:'1',active:'0',reason:`${scope.reason} overage decision1`}, {version:'2',active:'1',reason:`${scope.reason} overage decision2`},
     ]);
+    await respectApiBudget(thukhoPage);
+    await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${batchId}&date=${overDate.toISOString().slice(0,10)}`);
+    await thukhoPage.getByRole('button', { name: 'Xuất bổ sung ca', exact: true }).click();
+    const extraDialog = thukhoPage.getByRole('dialog', { name: 'Xuất kho bổ sung trong ca' });
+    await extraDialog.getByLabel('Chọn nguyên liệu bổ sung', { exact: true }).selectOption(overLine!.dailyLineId);
+    await extraDialog.getByLabel('Số lượng xuất thêm', { exact: true }).fill('0.5');
+    await extraDialog.getByLabel('Lý do xuất bổ sung', { exact: true }).fill(`${scope.reason} invalidate decision`);
+    const extraPosted = thukhoPage.waitForResponse(response => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST', { timeout: 15_000 });
+    await extraDialog.getByRole('button', { name: 'Xác nhận xuất bổ sung', exact: true }).click();
+    const extraResponse = await extraPosted;
+    expect(extraResponse.status()).toBe(201);
+    issueCodes.push((await extraResponse.json()).data.issueCode);
+    const invalidated = dbVerifier.query(`SELECT CAST(Version AS CHAR) AS version, (InvalidatedAt IS NULL) AS active, Reason AS reason FROM reconciliationdailydispositions WHERE DailyLineId=UNHEX('${overHex}') ORDER BY Version;`);
+    expect(invalidated).toEqual([
+      {version:'1',active:'0',reason:`${scope.reason} overage decision1`}, {version:'2',active:'0',reason:`${scope.reason} overage decision2`},
+    ]);
+    expect((await managerBatch()).dailyReview!.weeklyStatus).not.toBe('WEEK_COMPLETE');
+    await respectApiBudget(managerPage);
+    await managerPage.reload();
+    await managerPage.getByRole('button', { name: 'Làm mới', exact: true }).click();
+    await managerPage.getByRole('toolbar', { name: 'Lọc trạng thái dòng' }).getByRole('button', { name: /^Tất cả/ }).click();
+    await managerPage.getByRole('button', { name: `Xử lý chênh lệch ${overLine!.ingredientName}`, exact: true }).click();
+    const renewed = managerPage.getByRole('dialog', { name: 'Xử lý chênh lệch theo ngày', exact: true });
+    await renewed.getByLabel('Lý do xử lý chênh lệch', { exact: true }).fill(`${scope.reason} overage decision3`);
+    const renewedSaved = managerPage.waitForResponse(response => response.url().endsWith(dispositionUrl) && response.request().method() === 'PUT', { timeout: 15_000 });
+    await renewed.getByRole('button', { name: 'Lưu hướng xử lý', exact: true }).click();
+    expect((await renewedSaved).status()).toBe(204);
+    await expect(renewed).toHaveCount(0);
+    expect(dbVerifier.query(`SELECT CAST(Version AS CHAR) AS version, (InvalidatedAt IS NULL) AS active, Reason AS reason FROM reconciliationdailydispositions WHERE DailyLineId=UNHEX('${overHex}') ORDER BY Version;`)).toEqual([
+      ...invalidated, {version:'3',active:'1',reason:`${scope.reason} overage decision3`},
+    ]);
     const ready=await managerBatch();
     expect(ready.dailyReview!.weeklyStatus).toBe('WEEK_COMPLETE');
     const accepted=ready.dailyReview!.lines.find((item)=>item.dailyLineId===overLine!.dailyLineId)!;
-    expect(accepted.issuedRequiredDifference).toBe(2);
-    expect(accepted.disposition!.reason).toBe(`${scope.reason} overage decision2`);
+    expect(accepted.issuedRequiredDifference).toBe(2.5);
+    expect(accepted.disposition!.reason).toBe(`${scope.reason} overage decision3`);
     await beptruongPage.goto(`/chef?view=mrx-cooking&batchId=${batchId}`);
     await expect(beptruongPage.getByRole('heading',{name:'Phiếu nấu theo lô',exact:true})).toBeVisible();
     await captureStationUI(beptruongPage, 'chef-cooking', 1920, 1080, beptruongPage.getByRole('button', { name: 'Tải Excel cả lô', exact: true }));
@@ -194,17 +285,21 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
       throw new Error('History exceeded declared20page bound');
     },batchId);
     expect(reports.completed).toBeTruthy();
-    expect(reports.completed!.totalVariance).toBe(2);
+    expect(reports.completed!.totalVariance).toBe(2.5);
     for(const code of issueCodes) expect(reports.documents).toContain(code);
     const batchHex=(()=>{const [a,b,c,d,e]=batchId.split('-');return `${reverse(a)}${reverse(b)}${reverse(c)}${d}${e}`.toUpperCase();})();
     const actualCodes=dbVerifier.query<{code:string}>(`SELECT issueCode AS code FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${batchHex}') ORDER BY issueCode;`).map((row)=>row.code);
     expect(reports.documents.sort()).toEqual(actualCodes);
+    expect(stocks()).toEqual(originalStocks);
+    expect(absentStock()).toEqual(originalAbsentStock);
+    fs.writeFileSync(path.join(evidence, 'completed-decision-ledger.json'), JSON.stringify({ batchId, finalStatus: 'COMPLETED', totalVariance: reports.completed!.totalVariance, invalidated, activeDecision: accepted.disposition, originalAbsentStock, noStockAbsenceVerified: originalAbsentStock.length > 0, physicalStocksUnchanged: true, documents: reports.documents, actualCodes }, null, 2));
     await managerPage.goto(`/reconciliation?view=completed&batchId=${batchId}`);
-    const completedRow = managerPage.getByRole('row').filter({ has: managerPage.getByText(batchId, { exact: true }) });
+    const completedAction = managerPage.getByRole('button', { name: `Đối chiếu lô tuần ${scope.weekStartDate.split('-').reverse().join('/')} · ${reports.completed!.customerName}`, exact: true });
+    const completedRow = managerPage.getByRole('row').filter({ has: completedAction });
     await expect(completedRow).toContainText(scope.weekStartDate.split('-').reverse().join('/'));
     expect(new Set(daily.dates.flatMap(day => day.lines.map(item => item.canonicalUnitId))).size).toBeGreaterThan(1);
     expect(reports.completed!.quantityUnitName).toBeNull();
-    await expect(completedRow.getByRole('cell', { name: 'Xem chi tiết theo đơn vị', exact: true })).toHaveCount(3);
+    await expect(completedRow.getByRole('cell', { name: 'Theo từng đơn vị', exact: true })).toHaveCount(3);
     await expect(completedRow).not.toContainText(/\+2\s*kg/);
     await captureStationUI(managerPage, 'completed-report', 1920, 1080, managerPage.getByRole('button', { name: 'Tải Excel Danh bạ hoàn tất', exact: true }));
     const downloaded = managerPage.waitForEvent('download');
@@ -219,6 +314,8 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
     expect(target[0].NgayBatDau).toBe(scope.weekStartDate.split('-').reverse().join('/'));
     expect([target[0].TongNhuCau, target[0].TongThucXuat, target[0].TongChenhLech]).toEqual(['', '', '']);
     expect(target[0].DonViCuaTong).toBe('Xem chi tiết theo đơn vị');
+    await completedAction.click();
+    await expect(managerPage).toHaveURL(new RegExp(`batchId=${batchId}(?:&|$)`));
     const required=dbVerifier.query<{qty:string}>(`SELECT CAST(SUM(RequiredQuantity) AS CHAR) AS qty FROM reconciliationbatchdailylines WHERE BatchId=UNHEX('${batchHex}');`)[0].qty;
     const issued=dbVerifier.query<{qty:string}>(`SELECT CAST(SUM(l.issuedQty) AS CHAR) AS qty FROM inventoryissuelines l JOIN inventoryissues i ON i.issueId=l.issueId WHERE i.reconciliationBatchId=UNHEX('${batchHex}');`)[0].qty;
     // Legacy JSON totals stay compatible; business XLSX must not label mixed-unit sums as quantities.
@@ -238,16 +335,30 @@ test.describe('@G3-Alt Alternative Business Flows', () => {
       const rows = parseCookingFile(reportFile, 'xlsx');
       expect(rows[0][0]).toBe(report.header);
       expect(rows.length).toBeGreaterThan(1);
-      expect(rows.flat()).toContain(`${scope.reason} overage decision2`);
+      if (report.view === 'audit') {
+        const previousDecision = dbVerifier.query<{ id: string }>(`SELECT HEX(DispositionId) AS id FROM reconciliationdailydispositions WHERE DailyLineId=UNHEX('${overHex}') AND Version=2;`);
+        expect(previousDecision).toHaveLength(1);
+        const invalidation = rows.slice(1).filter(row => row[4] === 'ReconciliationDailyDisposition' && binaryId(row[5]) === previousDecision[0].id && row[6] === 'Validity');
+        expect(invalidation).toHaveLength(1);
+        expect(invalidation[0].slice(7,10)).toEqual([
+          `ACCEPTED_VARIANCE|${scope.reason} overage decision2|v2`, 'INVALIDATED',
+          'Supplemental inventory issue changed the daily linked issued quantity.',
+        ]);
+        expect(rows.flat()).toContain(`${scope.reason} invalidate decision`);
+      } else {
+        expect(rows.flat()).toContain(`${scope.reason} overage decision3`);
+      }
       if (report.view === 'variances') {
         expect(rows.slice(1).every(row => row[0] === batchId)).toBe(true);
-        const overage = rows.slice(1).find(row => row[12] === `${scope.reason} overage decision2`);
+        const overage = rows.slice(1).find(row => row[12] === `${scope.reason} overage decision3`);
         expect(overage).toBeTruthy();
-        expect(Number(overage![9])).toBe(2);
+        expect(Number(overage![9])).toBe(2.5);
       }
     }
-    fs.writeFileSync(path.join(evidence,'no-return-lifecycle.json'),JSON.stringify({batchId,shortageDeniedStatus:denied.status,supplementalQty:1,overageQty:2,decisionVersions:[1,2],finalStatus:'COMPLETED',totalVariance:reports.completed!.totalVariance,documents:reports.documents,completedUiAndFileVerified:true,exported:target[0],limitation:'Negative shortage and corroborating report reads use authenticated public HTTP; completed register UI and parsed XLSX export are real FE actions. No return or kitchen-ack commands.'},null,2));
-    console.log('[BUSINESS]6dates + supplementary issue, overage2 retained honestly, decision correction append-only, Chef view, distinct Manager completion/reload and exact scoped report documents verified.');
+    expect(stocks()).toEqual(originalStocks);
+    expect(absentStock()).toEqual(originalAbsentStock);
+    fs.writeFileSync(path.join(evidence,'no-return-lifecycle.json'),JSON.stringify({batchId,negativeResults,incompleteCompletion:incomplete,shortageDeniedStatus:denied.status,supplementalQty:1,invalidationSupplementalQty:0.5,overageQty:2.5,decisionVersions:[1,2,3],invalidated,originalAbsentStock,noStockAbsenceVerified:originalAbsentStock.length>0,physicalStocksUnchanged:true,finalStatus:'COMPLETED',totalVariance:reports.completed!.totalVariance,documents:reports.documents,completedUiAndFileVerified:true,exported:target[0],limitation:'Negative identity/shortage/completion and corroborating reads use authenticated public HTTP. No return/actual command supported for new MRX lineage. Decision correction/invalidation/replacement is serial, not concurrent decision contention.'},null,2));
+    console.log('[BUSINESS]6dates + supplementary issues, overage2.5 retained honestly, decision correction/invalidation append-only, Chef view, distinct Manager completion/reload and exact scoped report documents verified.');
   });
   });
 

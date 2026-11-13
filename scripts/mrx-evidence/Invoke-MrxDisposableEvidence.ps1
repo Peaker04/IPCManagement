@@ -5,7 +5,7 @@ param(
     [string]$CampaignId,
     [ValidateSet('G1', 'Qualification')]
     [string]$Profile = 'G1',
-    [ValidateSet('Admission', 'Golden', 'Supplemental', 'Race', 'Recovery', 'Session', 'SupplementalRecovery', 'CampaignBaseline', 'RepairCheck', 'CombinedFE', 'SourceCustomer', 'RemainingFE', 'MeasurementCheck', 'Quantitative', 'LifecycleAcceptance', 'MenuIntegrityPerformance')]
+    [ValidateSet('Admission', 'Golden', 'Supplemental', 'Race', 'Recovery', 'Session', 'SupplementalRecovery', 'CampaignBaseline', 'RepairCheck', 'CombinedFE', 'SourceCustomer', 'RemainingFE', 'MeasurementCheck', 'Quantitative', 'LifecycleAcceptance', 'MenuIntegrityPerformance', 'CustomerWorstCase', 'SourceAtomicity', 'ExportConsistency', 'UiAcceptance', 'ModalAcceptance', 'LifecycleTail', 'Coordinated', 'MenuCoverage', 'MenuReimport')]
     [string]$Diagnostic,
     [string]$SourceSettings = 'backend/src/IPCManagement.Api/appsettings.json',
     [string]$EvidenceDirectory = '.artifacts/mrx-evidence'
@@ -274,7 +274,10 @@ function Invoke-MigrationAndRelationalEvidence {
     if ($Diagnostic -ne 'MenuIntegrityPerformance') {
         if ($Profile -eq 'G1') { Invoke-CheckedProcess -FilePath 'dotnet' -Arguments @('tool', 'restore') }
         Invoke-CheckedProcess -FilePath 'dotnet' -Arguments @(
-            'ef', 'database', 'update', '--project', 'backend/src/IPCManagement.Api',
+            'build', 'backend/src/IPCManagement.Api/IPCManagement.Api.csproj', '-c', 'Release', '--no-restore'
+        )
+        Invoke-CheckedProcess -FilePath 'dotnet' -Arguments @(
+            'ef', 'database', 'update', '--configuration', 'Release', '--no-build', '--project', 'backend/src/IPCManagement.Api',
             '--startup-project', 'backend/src/IPCManagement.Api'
         ) -Environment $targetEnvironment
     }
@@ -292,7 +295,7 @@ function Invoke-MigrationAndRelationalEvidence {
     })
 
     Invoke-CheckedProcess -FilePath 'dotnet' -Arguments @(
-        'ef', 'migrations', 'has-pending-model-changes', '--configuration', 'Release', '--project', 'backend/src/IPCManagement.Api',
+        'ef', 'migrations', 'has-pending-model-changes', '--configuration', 'Release', '--no-build', '--project', 'backend/src/IPCManagement.Api',
         '--startup-project', 'backend/src/IPCManagement.Api', '--', '--no-connect'
     ) -Environment $targetEnvironment
 
@@ -396,7 +399,7 @@ function Initialize-QualificationCredentials {
             existingUsersUpdated = 0; rolesChanged = 0; browserCreated = $false
         })
     }
-    if ([string]::IsNullOrWhiteSpace($Diagnostic) -or $Diagnostic -in @('SourceCustomer', 'LifecycleAcceptance', 'CombinedFE', 'RemainingFE', 'CampaignBaseline')) {
+    if ([string]::IsNullOrWhiteSpace($Diagnostic) -or $Diagnostic -in @('SourceCustomer', 'CustomerWorstCase', 'LifecycleAcceptance', 'CombinedFE', 'RemainingFE', 'CampaignBaseline')) {
         # Owner-approved LC-12 prerequisite, isolated from existing G/KG and physical stock.
         Assert-MrxEvidenceTarget -DatabaseName $targetDatabase -RunId $runId | Out-Null
         $canonical = [int64](Invoke-MySqlQuery -Database $targetDatabase -Sql "SELECT COUNT(*) FROM units WHERE unitCode = 'KG' AND baseUnitCode = 'KG' AND convertRateToBase = 1;")
@@ -508,7 +511,7 @@ function Invoke-PreparedG1Evidence {
         'endurance-smoke' = '@G8-Five-User'; endurance = '@G8-Five-User'; 'http-host' = '@G8-HTTP'
     }
     if ($Diagnostic -and $Diagnostic -notin @('CampaignBaseline', 'RepairCheck', 'RemainingFE', 'MeasurementCheck', 'Quantitative', 'LifecycleAcceptance', 'MenuIntegrityPerformance')) {
-        $diagnosticCases = @{ Admission = '@G2-'; Golden = '@G1-Golden|Stock oracle rejects'; Supplemental = '@G3-Submitted'; Race = '@G4-Race'; Recovery = '@G5-Recovery Committed initial'; SupplementalRecovery = '@G5-Recovery Committed supplemental'; Session = '@G5-Session'; CombinedFE = '@G6-Merged-Customer|@G3-Submitted'; SourceCustomer = '@G6-Merged-Customer' }
+        $diagnosticCases = @{ Admission = '@G2-'; Golden = '@G1-Golden|Stock oracle rejects'; Supplemental = '@G3-Submitted'; Race = '@G4-Race'; Recovery = '@G5-Recovery Committed initial'; SupplementalRecovery = '@G5-Recovery Committed supplemental'; Session = '@G5-Session'; CombinedFE = '@G6-Merged-Customer|@G3-Submitted'; SourceCustomer = '@G6-Merged-Customer'; CustomerWorstCase = '@G6-Merged-Customer|@G6-Customer-Concurrency'; SourceAtomicity = '@G6-Direct-Source-Edit'; ExportConsistency = '@T7-Export-Consistency'; UiAcceptance = '@MRX-UiAcceptance'; ModalAcceptance = '@MRX-ModalAcceptance'; LifecycleTail = '@G5-Coordinated|@G6-(Direct-Source-Edit|Merged-Customer)'; Coordinated = '@G5-Coordinated'; MenuCoverage = '@G6-Menu-Coverage'; MenuReimport = '@G6-Menu-Coverage reimports-and-groups' }
         $phases = [ordered]@{ functional = $diagnosticCases[$Diagnostic] }
     }
     if ($Diagnostic -eq 'RepairCheck') {
@@ -522,7 +525,7 @@ function Invoke-PreparedG1Evidence {
         $phases = [ordered]@{ functional='@G1-Golden'; memory='@G7-Memory'; 'endurance-smoke'='@G8-Five-User'; desktop='@G7-Desktop' }
     }
     if ($Diagnostic -eq 'Quantitative') {
-        $phases = [ordered]@{ functional='@G1-Golden'; 'endurance-smoke'='@G8-Five-User'; desktop='@G7-Desktop'; endurance='@G8-Five-User'; 'http-host'='@G8-HTTP' }
+        $phases = [ordered]@{ functional='@G1-Golden'; 'endurance-smoke'='@G8-Five-User'; 'http-host'='@G8-HTTP'; endurance='@G8-Five-User'; desktop='@G7-Desktop' }
     }
     if ($Diagnostic -eq 'CampaignBaseline') {
         $phases.Remove('endurance'); $phases.Remove('http-host')
@@ -546,11 +549,23 @@ function Invoke-PreparedG1Evidence {
             'http-host' { 900000 }
             default { 420000 }
         }
+        $phaseWatch = [Diagnostics.Stopwatch]::StartNew()
         Write-Host "[PHASE START] $phase UTC=$([DateTime]::UtcNow.ToString('o')) budgetMs=$budgetMs; fail-fast, no next phase after failure."
         try {
             Assert-EvidencePortsFree
             if ($CampaignId) { Get-MrxCampaignStorage -Root (Get-MrxCampaignPaths -RepoRoot $repoRoot -CampaignId $CampaignId).root -WorkingDirectory $tempRoot | Out-Null }
             Invoke-Npm -Arguments @('run', 'test:e2e:mrx', '--', '--grep', $phases[$phase], '--headed', '--workers=1', '--max-failures=1', '--global-timeout', ([string]$budgetMs), '--output', (Join-Path $evidenceRoot "playwright-$phase")) -Environment $environment
+            if ($Diagnostic -eq 'ExportConsistency') {
+                $remainingSeconds = [int][Math]::Floor(($budgetMs - $phaseWatch.ElapsedMilliseconds) / 1000)
+                if ($remainingSeconds -lt 1) { throw 'Export owner has no remaining phase budget.' }
+                $hangBudget = ([string][Math]::Min(300, $remainingSeconds)) + 's'
+                Invoke-CheckedProcess -FilePath 'dotnet' -Arguments @(
+                    'test', 'backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj', '-c', 'Release', '--no-build', '--no-restore',
+                    '--filter', 'FullyQualifiedName~IPCManagement.Api.Tests.Integration.MrxExportConsistencyMySqlTests',
+                    '--blame-hang-timeout', $hangBudget, '--blame-hang-dump-type', 'none',
+                    '--results-directory', (Join-Path $evidenceRoot 'native-export-test-results')
+                ) -Environment $environment
+            }
             $phaseResults.Add(@{ phase=$phase; result='PASS' })
             Write-Host "[PHASE PASS] $phase UTC=$([DateTime]::UtcNow.ToString('o'))"
         } catch {

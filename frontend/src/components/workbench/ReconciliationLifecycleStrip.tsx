@@ -27,27 +27,31 @@ const STATUS_RANK: Record<string, number> = {
 };
 
 export interface ReconciliationLifecycleStripProps {
+  isPending?: boolean;
   status?: string;
   className?: string;
 }
 
-export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: ReconciliationLifecycleStripProps) {
-  const currentRank = STATUS_RANK[status] ?? 1;
-  const isCompleted = status === 'COMPLETED';
+export function ReconciliationLifecycleStrip({ status, isPending = false, className }: ReconciliationLifecycleStripProps) {
+  const currentRank = !isPending && status ? STATUS_RANK[status] ?? 0 : 0;
+  const isCompleted = !isPending && status === 'COMPLETED';
 
   return (
-    <nav aria-label="Tiến trình vòng đời lô đối soát" className={clsx('flex items-center gap-1 select-none', className)}>
+    <nav aria-label="Tiến trình vòng đời lô đối soát" aria-busy={isPending || undefined}
+      data-current-label={isPending ? 'Đang tải…' : LIFECYCLE_STEPS.find(step => step.status === status)?.label ?? 'Chưa có lô'}
+      className={clsx('mrx-lifecycle-strip flex items-center gap-1 select-none', className)}>
       {LIFECYCLE_STEPS.map((step) => {
-        const isCurrent = step.status === status;
+        const isCurrent = !isPending && step.status === status;
         const isPast = isCompleted || step.step < currentRank;
 
         return (
           <div
             key={step.status}
+            aria-label={step.label}
             aria-current={isCurrent ? 'step' : undefined}
             title={`${step.label} · Phụ trách: ${step.owner}`}
             className={clsx(
-              'h-7 px-2 rounded flex items-center gap-1.5 text-xs transition-colors',
+              'mrx-lifecycle-step h-7 px-2 rounded flex items-center gap-1.5 text-xs transition-colors',
               isCurrent
                 ? 'bg-slate-900 text-white font-semibold shadow-2xs'
                 : isPast
@@ -72,7 +76,7 @@ export function ReconciliationLifecycleStrip({ status = 'DRAFT', className }: Re
                 step.step
               )}
             </span>
-            <span className={clsx('truncate whitespace-nowrap', !isCurrent && 'hidden 2xl:inline')}>{step.label}</span>
+            <span className="mrx-lifecycle-step-label truncate whitespace-nowrap">{step.label}</span>
           </div>
         );
       })}

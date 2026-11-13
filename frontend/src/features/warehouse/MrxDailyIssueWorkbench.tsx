@@ -13,6 +13,8 @@ import { StateBoundary } from '../../components/workbench/StateBoundary';
 import { WorkbenchSkeleton } from '../../components/workbench/WorkbenchSkeleton';
 import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
+import { LocalFindBar } from '../../components/workbench/LocalFindBar';
+import { normalizeSearchText } from '../../utils/search';
 import { DataGrid, type ColumnDef } from '../../components/workbench/DataGrid';
 import { DocumentCodeCell } from '../../components/workbench/DocumentCodeCell';
 import { useOptionalDirtyNavigation } from '../../components/workbench/dirty-navigation-context';
@@ -27,6 +29,8 @@ import { workspaceSessionStore } from '../../store/workspaceSessionStore';
 import { useMrxDailyWorkspace } from './hooks/useMrxDailyWorkspace';
 import { useAuth } from '../../store/useAuth';
 import type { MrxWarehouseDaily, MrxIssuePage } from '../../api/mrxApi';
+import type { MrxBatchSummary } from '../../api/mrxApi';
+import { ReconciliationBatchPicker } from '../../components/workbench/ReconciliationBatchPicker';
 
 interface MrxDailyIssueWorkbenchProps {
   batchId?: string;
@@ -101,6 +105,17 @@ export function MrxDailyIssueWorkbench({
   } = useMrxDailyWorkspace({ batchId: propBatchId, serviceDate: propServiceDate });
 
   const [activeTab, setActiveTab] = useState<'demand' | 'history'>('demand');
+  const [historySearchTerm, setHistorySearchTerm] = useState('');
+  const [historyPickerOpen, setHistoryPickerOpen] = useState(false);
+  const historyQuery = normalizeSearchText(historySearchTerm);
+  const filteredHistoryItems = useMemo(() => {
+    const items = history?.items ?? [];
+    if (!historyQuery) return items;
+    return items.filter((row) =>
+      [row.issueCode, row.issueDate, toVietnameseDate(row.issueDate), row.issuedByName, row.shiftName ? getMrxShiftLabel(row.shiftName) : '']
+        .some((val) => normalizeSearchText(String(val ?? '')).includes(historyQuery))
+    );
+  }, [history?.items, historyQuery]);
   const isIssueOutcomeUnknown = issueOutcomeUnknown;
   const isOutsideBatchDate = Boolean(daily?.dates.length && !isWeeklyAll && !day);
   const dirtyNavigation = useOptionalDirtyNavigation();
@@ -168,9 +183,28 @@ export function MrxDailyIssueWorkbench({
     },
   ], [setInspectedIssueId]);
 
+  const isScopePending = !stateProps.error && Boolean(activeBatchId && (daily?.batchId !== activeBatchId || stateProps.isLoading));
+
+  const selectBatch = (newId: string, historicalBatch?: MrxBatchSummary) => {
+    if (scopeLocked || newId === activeBatchId) return;
+    guardScopeChange(() => {
+      const b = historicalBatch ?? batches.find(item => item.batchId === newId);
+      setActiveBatchId(newId);
+      if (b) workspaceSessionStore.setScope({ batchId: newId, customerId: b.customerId, customerCode: b.customerCode || '',
+        customerName: b.customerName || '', weekStartDate: b.weekStartDate || '' });
+      const cachedForNew = serverStateCache.get<{ daily: MrxWarehouseDaily | null; history: MrxIssuePage | null }>(`mrx_daily_${newId}`)?.data;
+      const newDate = cachedForNew?.daily?.dates[0]?.serviceDate || b?.weekStartDate || '';
+      setActiveDate(newDate);
+      setSearchParams(curr => { const next = new URLSearchParams(curr); next.set('batchId', newId);
+        if (newDate) next.set('date', newDate); else next.delete('date'); return next; });
+    });
+  };
+
   return (
     <WorkspaceFrame.Root className="select-text">
       <MrxDailyHeaderBranch
+        isPending={isScopePending}
+        scopeError={Boolean(stateProps.error)}
         batches={batches}
         activeBatchId={activeBatchId}
         activeBatchLabel={(() => {
@@ -185,32 +219,7 @@ export function MrxDailyIssueWorkbench({
         })()}
         batchStatus={daily?.batchId === activeBatchId ? daily.batchStatus : undefined}
         scopeLocked={scopeLocked}
-        onSelectBatch={(newId) => {
-          if (scopeLocked || newId === activeBatchId) return;
-          guardScopeChange(() => {
-            const b = batches.find((item) => item.batchId === newId);
-            setActiveBatchId(newId);
-            if (b) {
-              workspaceSessionStore.setScope({
-                batchId: newId,
-                customerId: b.customerId,
-                customerCode: b.customerCode || '',
-                customerName: b.customerName || '',
-                weekStartDate: b.weekStartDate || '',
-              });
-            }
-            const cachedForNew = serverStateCache.get<{ daily: MrxWarehouseDaily | null; history: MrxIssuePage | null }>(`mrx_daily_${newId}`)?.data;
-            const newDate = cachedForNew?.daily?.dates[0]?.serviceDate || b?.weekStartDate || '';
-            setActiveDate(newDate);
-            setSearchParams((curr) => {
-              const next = new URLSearchParams(curr);
-              next.set('batchId', newId);
-              if (newDate) next.set('date', newDate);
-              else next.delete('date');
-              return next;
-            });
-          });
-        }}
+        onSelectBatch={selectBatch}
         activeDate={activeDate}
         onSelectDate={(newDate) => {
           if (scopeLocked || newDate === activeDate) return;
@@ -241,16 +250,18 @@ export function MrxDailyIssueWorkbench({
         canSubmit={canSubmit}
         saving={saving}
         linesCount={lines.length}
-        catalogNavigation={<PaginationBar label="Phân trang danh sách lô xuất kho" placement="selector" page={catalogPaging?.pageNumber ?? catalogPage} pageSize={50}
+        catalogNavigation={<><PaginationBar label="Phân trang danh sách lô xuất kho" placement="selector" page={catalogPaging?.pageNumber ?? catalogPage} pageSize={50}
           totalCount={catalogPaging?.totalCount} totalPages={catalogPaging?.totalPages}
           hasPrev={catalogPaging?.hasPrev ?? false} hasNext={catalogPaging?.hasNext ?? false}
-          pending={scopeLocked || catalogLoading || Boolean(catalogError)} onPageChange={changeCatalogPage} />}
+          pending={scopeLocked || catalogLoading || Boolean(catalogError)} onPageChange={changeCatalogPage} />
+          <Button variant="outline" size="sm" disabled={scopeLocked} onClick={() => setHistoryPickerOpen(true)}>Tìm lô cũ</Button></>}
       />
 
       {catalogError && activeBatchId && <InlineBanner variant="error" actionLabel="Tải lại danh sách lô" onAction={retryCatalog}>{catalogError.message}</InlineBanner>}
 
       <TelemetrySubbar
         responsive
+        className="mrx-tools-subbar"
         leftControls={
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1 bg-slate-200/70 p-0.5 rounded">
@@ -269,49 +280,45 @@ export function MrxDailyIssueWorkbench({
                 Lịch sử phiếu (<Num value={history?.totalCount} />)
               </button>
             </div>
-            {activeTab === 'demand' && (
-              <MrxDailyDateTabsBranch
-                dates={daily?.dates}
-                activeDate={activeDate}
-                disabled={scopeLocked}
-                onSelectDate={(newDate) => {
-                  if (scopeLocked || newDate === activeDate) return;
-                  guardScopeChange(() => {
-                    setActiveDate(newDate);
-                    workspaceSessionStore.setScope({ serviceDate: newDate, weekStartDate: newDate === 'ALL' ? undefined : weekStartFor(newDate) });
-                    setSearchParams((curr) => {
-                      const next = new URLSearchParams(curr);
-                      next.set('date', newDate);
-                      return next;
-                    });
+            <MrxDailyDateTabsBranch
+              dates={daily?.dates}
+              activeDate={activeDate}
+              disabled={scopeLocked || isScopePending || activeTab === 'history'}
+              onSelectDate={(newDate) => {
+                if (scopeLocked || activeTab === 'history' || newDate === activeDate) return;
+                guardScopeChange(() => {
+                  setActiveDate(newDate);
+                  workspaceSessionStore.setScope({ serviceDate: newDate, weekStartDate: newDate === 'ALL' ? undefined : weekStartFor(newDate) });
+                  setSearchParams((curr) => {
+                    const next = new URLSearchParams(curr);
+                    next.set('date', newDate);
+                    return next;
                   });
-                }}
-                isWeeklyAll={isWeeklyAll}
-              />
-            )}
+                });
+              }}
+              isWeeklyAll={isWeeklyAll}
+            />
           </div>
         }
-        telemetryPills={
+        telemetryPills={<div className="mrx-metadata-slot mrx-metadata-slot-compact">{isScopePending ? <span role="status" className="text-xs">Đang xác minh dữ liệu lô mới…</span> :
           isWeeklyAll ? (
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs tabular-nums">
               <span className="text-slate-500">Mã lô:</span>
               <strong className="font-mono text-slate-900">{daily?.batchId ? daily.batchId.slice(0, 8) : '—'}</strong>
               <span className="text-slate-300">·</span>
               <span className="text-slate-500">Tổng nguyên liệu:</span>
-              <strong className="font-mono text-slate-900">{weeklyAggregateLines.length}</strong>
+              <strong className="inline-block min-w-[3ch] text-right font-mono text-slate-900">{daily ? weeklyAggregateLines.length : '—'}</strong>
             </div>
           ) : (
-            day && (
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-500">Phiên bản:</span>
-                <strong className="font-mono text-slate-900">v{daily?.sourceVersion ?? '—'}</strong>
-                <span className="text-slate-300">·</span>
-                <span className="text-slate-500">Mặt hàng ca:</span>
-                <strong className="font-mono text-slate-900">{lines.length}</strong>
-              </div>
-            )
-          )
-        }
+            <div className="flex items-center gap-2 text-xs tabular-nums">
+              <span className="text-slate-500">Phiên bản:</span>
+              <strong className="inline-block min-w-[3ch] text-right font-mono text-slate-900">{daily?.sourceVersion ? `v${daily.sourceVersion}` : '—'}</strong>
+              <span className="text-slate-300">·</span>
+              <span className="text-slate-500">Mặt hàng ca:</span>
+              <strong className="inline-block min-w-[3ch] text-right font-mono text-slate-900">{day ? lines.length : '—'}</strong>
+            </div>
+          )}
+        </div>}
         rightActions={
           <Button
             variant="outline"
@@ -366,20 +373,20 @@ export function MrxDailyIssueWorkbench({
           {...stateProps}
           onRetry={() => { if (!activeBatchId && catalogError) retryCatalog(); else void load(true); }}
           error={stateProps.error || (!activeBatchId ? catalogError : null)}
-          hasExistingData={Boolean(activeTab === 'history' ? history : daily)}
-          isLoading={stateProps.isLoading || Boolean(!stateProps.error && activeBatchId && (!daily || (activeTab === 'history' && !history)))}
+          hasExistingData={Boolean(daily || history)}
+          isPreviousData={stateProps.isPreviousData || Boolean(activeTab === 'history' && !history && daily && !stateProps.error)}
+          isLoading={stateProps.isLoading || Boolean(!stateProps.error && activeBatchId && !daily && !history)}
           onResolveConflict={() => load(true)}
           loadingVariant="table"
           customSkeleton={<div className="flex-1 min-h-0 flex flex-col bg-white">
-            {activeTab === 'demand' && <div aria-hidden="true" className="px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0"><div className="h-8 w-60 rounded bg-slate-200 animate-pulse" /></div>}
+            {activeTab === 'demand' && <div aria-hidden="true" className="px-4 py-2 border-b border-slate-200 bg-slate-50 shrink-0"><div className="h-8 w-60 rounded bg-slate-200" /></div>}
             <WorkbenchSkeleton geometry={{ kind: 'table', columns: 5, rows: 10,
               columnWidths: activeTab === 'history' ? ['24%', '18%', '16%', '18%', '24%']
                 : isWeeklyAll ? ['34%', '10%', '18%', '18%', '20%'] : ['30%', '16%', '20%', '20%', '14%'],
             }} />
           </div>}
           emptyIcon={Boxes}
-          className={stateProps.isEmpty || isLegacyMissing ? '[&]:justify-start' : undefined}
-          isEmpty={activeTab === 'history' ? Boolean(history && history.items.length === 0) : stateProps.isEmpty || isLegacyMissing}
+          isEmpty={activeTab === 'history' || (daily?.batchId === activeBatchId && day && !isLegacyMissing) ? false : stateProps.isEmpty || isLegacyMissing}
           emptyTitle={activeTab === 'history' ? 'Chưa có phiếu xuất kho nào cho lô này.' : isLegacyMissing ? "Lô đối soát chưa có phân rã định lượng theo ngày" : (!isWeeklyAll && lines.length === 0 ? "Không có định lượng cần xuất cho ngày đã chọn" : stateProps.emptyTitle)}
           emptyDescription={activeTab === 'history' ? 'Các phiếu xuất của lô đã chọn.' : isLegacyMissing ? "Lô thiếu dữ liệu theo ngày. Chọn lô khác để xuất kho." : isOutsideBatchDate ? 'Ngày đã chọn nằm ngoài tuần của lô. Chọn ngày trên lịch xuất ca hoặc xem tổng hợp cả tuần.' : (!isWeeklyAll && lines.length === 0 ? "Ngày này không có định mức cần xuất." : stateProps.emptyDescription)}
           isPartial={isLegacyMissing}
@@ -409,11 +416,20 @@ export function MrxDailyIssueWorkbench({
             </fieldset>
           ) : (
             <div className="flex-1 min-h-0 flex flex-col bg-white">
+              <LocalFindBar
+                label="Tìm kiếm trong lịch sử phiếu xuất"
+                value={historySearchTerm}
+                onChange={setHistorySearchTerm}
+                matched={filteredHistoryItems.length}
+                total={history?.items.length ?? 0}
+                clearLabel="Xóa tìm trong lịch sử phiếu"
+                scope="Tìm trong trang lịch sử phiếu xuất hiện tại."
+              />
               <DataGrid
-                data={history?.items ?? []}
+                data={filteredHistoryItems}
                 columns={historyColumns}
                 keyExtractor={(row) => row.issueId}
-                emptyMessage="Chưa có phiếu xuất kho nào cho lô này."
+                emptyMessage={historyQuery ? "Không tìm thấy phiếu xuất nào khớp với từ khóa." : "Chưa có phiếu xuất kho nào cho lô này."}
               />
               <PaginationBar label="Phân trang phiếu xuất MRX" page={history?.pageNumber ?? historyPage} pageSize={25}
                 totalCount={history?.totalCount} totalPages={history?.totalPages}
@@ -447,6 +463,8 @@ export function MrxDailyIssueWorkbench({
         onClose={() => setInspectedIssueId(null)}
         issueId={inspectedIssueId}
       />
+      {historyPickerOpen && <ReconciliationBatchPicker selectedBatchId={activeBatchId} onClose={() => setHistoryPickerOpen(false)}
+        onSelect={batch => { selectBatch(batch.batchId, batch); setHistoryPickerOpen(false); }} />}
     </WorkspaceFrame.Root>
   );
 }

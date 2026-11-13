@@ -151,6 +151,8 @@ public class AuthorizationPoliciesTests
     [Fact]
     public void ReconciliationDecisionMetadataAndReports_Should_UseDecisionPolicy()
     {
+        Policy(typeof(ReconciliationReportsController), nameof(ReconciliationReportsController.GetSourceChanges))
+            .Should().Be(AuthorizationPolicies.ReconciliationSourceReadAccess);
         Policy(typeof(ReconciliationActualsController), nameof(ReconciliationActualsController.DispositionCategories))
             .Should().Be(AuthorizationPolicies.ReconciliationDispositionAccess);
         Policy(typeof(ReconciliationReportsController), nameof(ReconciliationReportsController.Get))

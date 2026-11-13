@@ -106,13 +106,12 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
 
         var kitchenIssueLines = QueryIssueLines(new WorkflowReportQueryDto());
         var totalKitchenIssuedQty = await kitchenIssueLines.SumAsync(item => item.IssuedQty);
-        var kitchenIssueIds = await kitchenIssueLines
+        var kitchenIssueIdsQuery = kitchenIssueLines
             .Select(item => item.IssueId)
-            .Distinct()
-            .ToListAsync();
+            .Distinct();
         var kitchenReturnTotals = await _context.Inventoryreturnlines
             .AsNoTracking()
-            .Where(item => kitchenIssueIds.Contains(item.Return.IssueId))
+            .Where(item => kitchenIssueIdsQuery.Contains(item.Return.IssueId))
             .GroupBy(item => item.Return.ReturnType)
             .Select(group => new { ReturnType = group.Key, Quantity = group.Sum(item => item.Quantity) })
             .ToListAsync();
@@ -172,8 +171,15 @@ public sealed class OperationalKpiReportService : IOperationalKpiReportService
             return 0;
         }
 
-        var stockRows = await _context.Currentstocks
-            .AsNoTracking()
+        var inMemory = string.Equals(_context.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory", StringComparison.Ordinal);
+        var demandIngredientIds = demandRows.Select(item => item.IngredientId).DistinctBy(Convert.ToHexString).ToList();
+        var stockQuery = _context.Currentstocks.AsNoTracking();
+        if (!inMemory)
+        {
+            stockQuery = stockQuery.Where(stock => demandIngredientIds.Contains(stock.IngredientId));
+        }
+
+        var stockRows = await stockQuery
             .Select(stock => new KpiUnitQuantityProjection
             {
                 IngredientId = stock.IngredientId,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { UserInfo, OperationalMode } from '../types';
+import type { UserInfo, OperationalMode, LoginResponse } from '../types';
+import { useIdleSession } from '../hooks/useIdleSession';
 import { authApi } from '../api/authApi';
 import { systemApi } from '../api/systemApi';
 import { AuthContext } from './useAuth';
@@ -11,10 +12,11 @@ const USER_KEY = 'ipc_v3_user';
 const MODE_KEY = 'ipc_v3_mode';
 const MODE_VERSION_KEY = 'ipc_v3_mode_version';
 
-export function AuthProvider({ children, resolveLanding = () => '/', resolveEligibility = () => false }: {
+export function AuthProvider({ children, resolveLanding = () => '/', resolveEligibility = () => false, onIdleExpired }: {
   children: ReactNode;
   resolveLanding?: (user: UserInfo, mode: OperationalMode) => string;
   resolveEligibility?: (user: UserInfo, mode: OperationalMode, pathname: string, search: string) => boolean;
+  onIdleExpired?: () => void;
 }) {
   const [user, setUser] = useState<UserInfo | null>(() => {
     try {
@@ -44,8 +46,9 @@ export function AuthProvider({ children, resolveLanding = () => '/', resolveElig
   const [operationalModeError, setOperationalModeError] = useState<Error | null>(null);
 
   useEffect(() => {
-    const handleExpiredEvent = () => {
+    const handleExpiredEvent = (event: Event) => {
       if (token && user) {
+        event.preventDefault();
         setIsSessionExpired(true);
       }
     };
@@ -86,6 +89,19 @@ export function AuthProvider({ children, resolveLanding = () => '/', resolveElig
   }, [applyModeSnapshot]);
 
   const isAuthenticated = !!token && !!user;
+  const expireIdleSession = useCallback(() => {
+    // Revoke best-effort, but never let an offline server delay local logout.
+    void authApi.logout().catch(() => undefined);
+    clearSessionState();
+    try { sessionStorage.setItem('ipc_login_notice', 'Phiên đã kết thúc do không hoạt động. Vui lòng đăng nhập lại.'); } catch { /* Storage may be unavailable. */ }
+    setIsSessionExpired(false);
+    setIsOperationalModeReady(false);
+    setOperationalModeError(null);
+    setToken(null);
+    setUser(null);
+    onIdleExpired?.();
+  }, [onIdleExpired]);
+  const idleWarning = useIdleSession(isAuthenticated && !isSessionExpired, expireIdleSession);
 
   useEffect(() => {
     if (!isAuthenticated || isOperationalModeReady) return;
@@ -104,6 +120,7 @@ export function AuthProvider({ children, resolveLanding = () => '/', resolveElig
       const resp = await authApi.login(username, password);
       localStorage.setItem(TOKEN_KEY, resp.accessToken);
       localStorage.setItem(USER_KEY, JSON.stringify(resp.user));
+      sessionStorage.removeItem('ipc_login_notice');
       try {
         const modeSnapshot = await systemApi.getOperationalMode();
         applyModeSnapshot(modeSnapshot);
@@ -153,11 +170,21 @@ export function AuthProvider({ children, resolveLanding = () => '/', resolveElig
     return allowed.includes(userRoleCode) || allowed.includes(userRoleName);
   }, [user]);
 
-  const handleSessionRestored = useCallback((newToken: string) => {
-    localStorage.setItem(TOKEN_KEY, newToken);
-    setToken(newToken);
-    setIsSessionExpired(false);
-  }, []);
+  const handleSessionRestored = useCallback(async (response: LoginResponse) => {
+    if (response.user.userId !== user?.userId) throw new Error('Tài khoản xác thực không khớp phiên làm việc.');
+    localStorage.setItem(TOKEN_KEY, response.accessToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(response.user));
+    try {
+      applyModeSnapshot(await systemApi.getOperationalMode());
+      setToken(response.accessToken);
+      setUser(response.user);
+      setIsSessionExpired(false);
+    } catch (cause) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      throw cause;
+    }
+  }, [applyModeSnapshot, user?.userId]);
 
   const handleSessionCancel = useCallback(() => {
     setIsSessionExpired(false);
@@ -180,6 +207,7 @@ export function AuthProvider({ children, resolveLanding = () => '/', resolveElig
         operationalModeReasonRequired,
         landingPath,
         isSessionExpired,
+        idleWarning,
         triggerSessionExpired: () => setIsSessionExpired(true),
         reloadOperationalMode,
         login,

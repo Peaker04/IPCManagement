@@ -9,7 +9,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { weeklyMenuApi, type WeeklyMenuData } from '../../api/weeklyMenuApi';
-import { serverStateCache } from '../../store/serverStateCache';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import type { CustomerOption } from '../../types';
 import { WeeklyScheduleView } from './views/WeeklyScheduleView';
 import { MaterialDemandView } from './views/MaterialDemandView';
@@ -53,12 +53,12 @@ export function WeeklyMenuPage() {
   }
 
   if (view === 'mrx-materials' || view === 'mrx-plans') {
-    return <MrxQuantityInspectionPage key={`${view}:${searchParams.get('customerId') ?? ''}:${searchParams.get('weekStartDate') ?? ''}`}
+    return <MrxQuantityInspectionPage
       view={view === 'mrx-materials' ? 'materials' : 'plans'} />;
   }
 
   if (view === 'mrx-batch') {
-    return <MrxBatchWorkbench key={`${searchParams.get('customerId') ?? ''}:${searchParams.get('weekStartDate') ?? ''}`} />;
+    return <MrxBatchWorkbench />;
   }
 
   return <DefaultWeeklyMenuPage />;
@@ -78,7 +78,7 @@ function DefaultWeeklyMenuPage() {
     : 'schedule';
 
   const snapshot = serverStateCache.get<WeeklyMenuSnapshot>('snapshot:weekly_menu')?.data;
-  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const cachedCustomers = getCachedArray<CustomerOption>('catalog_customers');
   const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
   const initialCustomerCode = snapshot?.customerCode || cachedCustomers?.[0]?.customerCode || '';
   const initialWeek = snapshot?.weekStartDate || currentWeekStart();

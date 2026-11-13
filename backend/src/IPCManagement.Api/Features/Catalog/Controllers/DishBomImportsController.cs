@@ -28,10 +28,8 @@ public sealed class DishBomImportsController(
         [FromQuery] BomTemplateQueryDto query,
         CancellationToken cancellationToken)
     {
-        var bytes = await templateService.BuildAsync(query, cancellationToken);
-        var scope = string.IsNullOrWhiteSpace(query.CustomerId) ? "global" : query.CustomerId;
-        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"bom-template-{query.TemplateType}-{query.PriceTier:0}-{scope}.xlsx");
+        var template = await templateService.BuildAsync(query, cancellationToken);
+        return File(template.Content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", template.FileName);
     }
 
     [HttpPost("bom-import/preview")]

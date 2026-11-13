@@ -19,9 +19,8 @@ export default defineConfig({
     baseURL: process.env.MRX_E2E_BASE_URL ?? 'http://127.0.0.1:5174',
     launchOptions: process.env.MRX_E2E_PROFILE === 'qualification' && process.env.MRX_E2E_PHASE === 'functional'
       ? { slowMo: 250 } : undefined,
-    trace: process.env.MRX_E2E_PHASE === 'data-path-performance' ? 'off'
-      : process.env.MRX_E2E_PROFILE === 'qualification' && process.env.MRX_E2E_PHASE === 'functional'
-        ? 'on' : 'retain-on-failure',
+    trace: process.env.MRX_E2E_PROFILE === 'qualification' || process.env.MRX_E2E_PHASE === 'data-path-performance'
+      ? 'off' : 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'off',
     viewport: { width: 1440, height: 900 },

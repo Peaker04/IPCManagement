@@ -5,6 +5,7 @@ import { Num } from '../ui/num';
 
 interface PaginationBarProps {
   label: string;
+  hideVisibleLabel?: boolean;
   page: number;
   pageSize: number;
   totalCount?: number;
@@ -17,20 +18,22 @@ interface PaginationBarProps {
   placement?: 'footer' | 'toolbar' | 'selector';
 }
 
-export function PaginationBar({ label, page, pageSize, totalCount, totalPages, hasPrev, hasNext, pending, onPageChange, onPageSizeChange, placement = 'footer' }: PaginationBarProps) {
+export function PaginationBar({ label, hideVisibleLabel, page, pageSize, totalCount, totalPages, hasPrev, hasNext, pending, onPageChange, onPageSizeChange, placement = 'footer' }: PaginationBarProps) {
   const isSelector = placement === 'selector';
-  const showNavigation = totalPages === undefined || totalPages > 1 || page > 1 || hasPrev || hasNext;
+  const showNavigation = isSelector
+    ? (totalPages !== undefined && totalPages > 1) || page > 1 || hasPrev || hasNext
+    : totalPages === undefined || totalPages > 1 || page > 1 || hasPrev || hasNext;
   const showControls = showNavigation || Boolean(onPageSizeChange);
   // shortcut: reserve the <md floating-menu footprint; update if AppShell changes its trigger.
   return (
     <nav aria-label={label} aria-busy={pending || undefined} className={isSelector
       ? showControls ? 'inline-flex items-center gap-1 shrink-0' : 'sr-only'
-      : `min-h-12 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-white px-4 pt-2 shrink-0 ${placement === 'footer' ? 'pb-16 md:pb-2' : 'pb-2'}`}>
-      {isSelector ? <span className="text-xs text-slate-500 whitespace-nowrap">
+      : `min-h-12 md:h-12 flex flex-wrap md:flex-nowrap items-center justify-between gap-2 border-t border-slate-200 bg-white px-4 pt-1.5 shrink-0 ${placement === 'footer' ? 'pb-16 md:py-0' : 'pb-1.5 md:py-0'}`}>
+      {isSelector ? <span className={`inline-block min-w-[6ch] text-right text-xs text-slate-500 whitespace-nowrap tabular-nums ${showControls ? '' : 'invisible'}`}>
         <span className="sr-only"><Num value={totalCount} /> lô · </span>{showControls && <><span className="sr-only">Trang </span>{page}/{totalPages ?? '—'}</>}
-      </span> : <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
-        <span className="font-medium text-slate-700">{label}</span>
-        <span>{totalPages !== 0 && <>Trang {page}/{totalPages ?? '—'} · </>}<Num value={totalCount} /> kết quả</span>
+      </span> : <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 tabular-nums">
+        {!hideVisibleLabel && <span className="font-medium text-slate-700">{label}</span>}
+        <span>{totalPages !== 0 && <>Trang {page}/{totalPages ?? '—'} · </>}<span className="inline-block min-w-[3ch] text-right font-mono tabular-nums"><Num value={totalCount} /></span> kết quả</span>
       </div>}
       {showControls && <div className="flex flex-wrap items-center gap-1">
         {onPageSizeChange && <div className="w-36 shrink-0"><Select

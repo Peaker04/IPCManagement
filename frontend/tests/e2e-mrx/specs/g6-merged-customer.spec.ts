@@ -1,11 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { test, expect } from '../fixtures/mrxTest';
+import { respectApiBudget } from '../fixtures/authHelpers';
 import { createTransferredBatch, scenarioScope, parseCookingFile, writeBomImportWorkbook } from '../fixtures/mrxWorkflow';
 import type { StockSnapshot } from '../core/mysqlVerifier';
 import type { MrxEditScope, MrxKitchenCooking, MrxWarehouseDaily } from '../../../src/api/mrxApi';
 
 test.setTimeout(360_000);
+test.use({ actionTimeout: 15_000 });
 test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve one-BOM servings and durable quantities', async ({ managerPage, adminPage, dieuphoiPage, beptruongPage, thukhoPage, dbVerifier }) => {
   const scope = scenarioScope(dbVerifier, 10);
   const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
@@ -25,7 +27,7 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   await dialog.getByLabel('Mã khách hàng', { exact: true }).fill(code);
   await dialog.getByLabel('Tên khách hàng', { exact: true }).fill(name);
   const created = managerPage.waitForResponse((r) => r.url().endsWith('/api/coordination/customers/contract') && r.request().method() === 'POST');
-  await dialog.getByRole('button', { name: 'Tạo khách hàng & Hợp đồng', exact: true }).click();
+  await dialog.getByRole('button', { name: 'Tạo khách hàng', exact: true }).click();
   const response = await created;
   expect(response.status(), await response.text()).toBe(201);
   const customer = (await response.json()).data;
@@ -38,7 +40,8 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   await dieuphoiPage.goto(`/weekly-menu?view=mrx-batch&customerId=${customer.customerId}&weekStartDate=${scope.weekStartDate}`);
   await expect(dieuphoiPage.getByLabel('Chọn khách hàng MRX', { exact: true })).toHaveValue(customer.customerId);
   await expect(dieuphoiPage.getByLabel('Chọn khách hàng MRX').locator('option:checked')).toHaveText(`${code} - ${name}`);
-  await dieuphoiPage.getByLabel('Chọn khách hàng MRX').selectOption({ label: 'ANV - AMANN' });
+  scope.customer = { customerId: customer.customerId, label: `${code} - ${name}` };
+  await expect(dieuphoiPage.getByLabel('Chọn khách hàng MRX')).toHaveValue(scope.customer.customerId);
   await beptruongPage.goto('/admin-data?view=customers');
   await expect(beptruongPage.getByRole('button', { name: 'Thêm khách hàng mới', exact: true })).toHaveCount(0);
   const denied = await beptruongPage.evaluate(async () => (await fetch('/api/coordination/customer-contracts', { headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' } })).status);
@@ -46,27 +49,40 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   console.log('[UI] Manager created/reloaded shared customer; Coordinator selected it in MRX; Chef denied.');
 
   const beforeInvalidImport = dbVerifier.query('CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches;');
-  await dieuphoiPage.getByRole('button', { name: 'Nhập thực đơn Excel', exact: true }).first().click();
-  await dieuphoiPage.locator('select#import-customer-select').selectOption({ label: 'ANV - AMANN' });
+  await dieuphoiPage.getByRole('button', { name: 'Nhập Excel', exact: true }).first().click();
+  await dieuphoiPage.locator('select#import-customer-select').selectOption(customer.customerId);
+  const dateField = dieuphoiPage.getByLabel('Tuần bắt đầu nhập', { exact: true });
+  if (await dateField.getAttribute('readonly') !== null) await dieuphoiPage.getByRole('button', { name: 'Đổi tuần', exact: true }).click();
   await dieuphoiPage.getByLabel('Tuần bắt đầu nhập', { exact: true }).fill(scope.weekStartDate.split('-').reverse().join('/'));
   await dieuphoiPage.getByLabel('Tuần bắt đầu nhập', { exact: true }).press('Enter');
   await dieuphoiPage.setInputFiles('input[type="file"]', path.resolve('README.md'));
-  const invalidPreview = dieuphoiPage.waitForResponse((r) => r.url().endsWith('/weekly-menu/import/preview') && r.request().method() === 'POST');
-  await dieuphoiPage.getByRole('button', { name: 'Xem trước', exact: true }).click();
+  await expect(dieuphoiPage.getByText('Vui lòng chọn file .xlsx.', { exact: true })).toBeVisible();
+  await expect(dieuphoiPage.getByRole('button', { name: 'Xem trước', exact: true })).toBeDisabled();
+  await dieuphoiPage.getByLabel('Chọn file Excel thực đơn', { exact: true }).setInputFiles({ name: 'invalid-content.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: fs.readFileSync(path.resolve('README.md')) });
+  await dieuphoiPage.locator('button[role="radio"]:has-text("25.000")').click();
+  const invalidPreviewButton = dieuphoiPage.getByRole('button', { name: 'Xem trước', exact: true });
+  await expect(invalidPreviewButton).toBeEnabled();
+  const invalidPreview = dieuphoiPage.waitForResponse((r) => r.url().endsWith('/weekly-menu/import/preview') && r.request().method() === 'POST', { timeout: 15_000 });
+  await invalidPreviewButton.click();
   const invalidResponse = await invalidPreview;
   expect(invalidResponse.status()).toBe(200); // Preview returns a validation DTO, not a persisted import.
   const invalid = (await invalidResponse.json()).data;
   expect(invalid.validation.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'FILE_READ_ERROR', severity: 'error' })]));
   await expect(dieuphoiPage.getByRole('button', { name: 'Xác nhận nhập', exact: true })).toBeDisabled();
-  await expect(dieuphoiPage.getByRole('status')).toContainText('Có lỗi cần sửa');
+  await expect(dieuphoiPage.getByText('Có lỗi cần sửa', { exact: true })).toBeVisible();
   await expect(dieuphoiPage.getByRole('dialog')).toContainText(invalid.validation.issues.find((i: { code: string }) => i.code === 'FILE_READ_ERROR').message);
   expect(dbVerifier.query('CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches;')).toEqual(beforeInvalidImport);
   await dieuphoiPage.getByRole('button', { name: 'Đóng', exact: true }).click();
-  fs.writeFileSync(path.join(evidence, 'invalid-import-no-write.json'), JSON.stringify({ input: 'existing README.md (not a workbook)', code: 'FILE_READ_ERROR', commitDisabled: true, sourceUnchanged: true, recovery: 'Next real valid-workbook import in this same scope' }, null, 2));
+  fs.writeFileSync(path.join(evidence, 'invalid-import-no-write.json'), JSON.stringify({ input: 'README.md rejected by client; same non-workbook bytes uploaded as invalid-content.xlsx to reach server parser', code: 'FILE_READ_ERROR', commitDisabled: true, sourceUnchanged: true, recovery: 'Next real valid-workbook import in this same scope' }, null, 2));
   const { batchId, menuVersionId } = await createTransferredBatch({ coordinator: dieuphoiPage, admin: adminPage }, scope);
   await adminPage.bringToFront();
-  await adminPage.goto(`/weekly-menu?view=mrx-batch&weekStartDate=${scope.weekStartDate}`);
+  await adminPage.goto(`/weekly-menu?view=mrx-batch&customerId=${customer.customerId}&weekStartDate=${scope.weekStartDate}`);
   const customerId = await adminPage.getByLabel('Chọn khách hàng MRX').inputValue();
+  expect(customerId).toBe(customer.customerId);
+  const customerHex = binaryId(customerId);
+  expect(dbVerifier.query(`SELECT HEX(customerId) AS customer FROM menuversions WHERE menuVersionId=UNHEX('${binaryId(menuVersionId)}');`)).toEqual([{ customer: customerHex }]);
+  expect(dbVerifier.query(`SELECT HEX(v.customerId) AS customer, HEX(b.MenuVersionId) AS version FROM reconciliationbatches b JOIN menuversions v ON v.menuVersionId=b.MenuVersionId WHERE b.BatchId=UNHEX('${binaryId(batchId)}');`)).toEqual([{ customer: customerHex, version: binaryId(menuVersionId) }]);
+  expect(dbVerifier.query(`SELECT HEX(q.customerId) AS customer FROM mealquantityplanlines q JOIN menuschedules s ON s.menuScheduleId=q.menuScheduleId WHERE s.menuVersionId=UNHEX('${binaryId(menuVersionId)}') GROUP BY q.customerId;`)).toEqual([{ customer: customerHex }]);
   const readScope = () => adminPage.evaluate(async ({ customerId, week }) => {
     const r = await fetch(`/api/reconciliation/weekly-menu/edit-scope?customerId=${customerId}&weekStartDate=${week}`, { headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' } });
     if (!r.ok) throw new Error(`Edit scope ${r.status}`);
@@ -80,23 +96,22 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   expect(dishes.length).toBeGreaterThanOrEqual(4);
   const short = scope.weekStartDate.slice(5).split('-').reverse().join('/');
   async function choose(slotLabel: string, dish: typeof slots[number]) {
-    const input = adminPage.getByRole('combobox', { name: `${slotLabel} ${short} MORNING`, exact: true });
+    const input = adminPage.getByRole('combobox', { name: `${slotLabel} ${short} Sáng` });
     await input.fill(dish.dishName!);
     await adminPage.getByRole('listbox').getByRole('option').filter({ has: adminPage.getByText(dish.dishCode!, { exact: true }) }).click();
   }
   const snapshots: object[] = [];
   const remountObservations: object[] = [];
   async function applyAndCheck(label: string, expectedIds: string[], servings: number) {
+    await respectApiBudget(adminPage);
     await adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
     await adminPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} ${label}`);
-    await adminPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+    await adminPage.getByRole('button', { name: /^(?:Xem ảnh hưởng|Kiểm tra lại ảnh hưởng)$/ }).click();
     await adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
     const applied = adminPage.waitForResponse((r) => r.url().endsWith('/mrx-apply') && r.request().method() === 'POST');
-    const refreshed = adminPage.waitForResponse((r) => r.url().endsWith('/reconciliation/batches/quantity-import/preview') && r.request().method() === 'POST');
     await adminPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click();
-    const [applyResponse, refreshResponse] = await Promise.all([applied, refreshed]);
+    const applyResponse = await applied;
     expect(applyResponse.status()).toBe(200);
-    expect(refreshResponse.status()).toBe(200);
     await expect(adminPage.getByText('Đã áp dụng thay đổi nguồn.', { exact: true })).toBeVisible();
     const remountStarted = performance.now();
     await adminPage.reload();
@@ -111,6 +126,7 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
     expect(persisted.savoryServings).toBe(servings);
     const customerHex = binaryId(customerId), batchHex = binaryId(batchId);
     // Independent SQL oracle over distinct source dishes and applicable real BOMs, not renderer/projection output.
+    expect(customerId).toBe(customer.customerId);
     const quantities = dbVerifier.query<{ ingredient: string; qty: string }>(`WITH source AS (
       SELECT DISTINCT q.quantityPlanLineId, q.customerId, q.savoryServings, q.vegetarianServings, s.menuPrice, s.serviceDate, m.dishId,
         CASE WHEN m.dishSlot LIKE 'vegetarian-%' THEN 'vegetarian' ELSE 'savory' END AS variant
@@ -133,21 +149,21 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   }
   function editToggle() { return adminPage.getByRole('button', { name: 'Chỉnh sửa món', exact: true }); }
   await editToggle().click();
-  await adminPage.getByRole('button', { name: `Sửa từng dòng ${slots[0].slotLabel} ${short} MORNING`, exact: true }).click();
+  await adminPage.getByRole('button', { name: `Tách để sửa riêng ${slots[0].slotLabel} ${short} Sáng`, exact: true }).click();
   for (const slot of slots) await choose(slot.slotLabel, slots[0]);
-  await adminPage.getByRole('button', { name: 'Hoàn tất sửa từng dòng', exact: true }).click();
-  await expect(adminPage.getByRole('combobox', { name: `${slots[0].slotLabel} ${short} MORNING`, exact: true }).locator('xpath=ancestor::td')).toHaveAttribute('rowspan', '4');
-  await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short} MORNING`, exact: true }).fill('1200');
+  await adminPage.getByRole('button', { name: 'Xem menu đã gộp', exact: true }).click();
+  await expect(adminPage.getByRole('cell', { name: `${slots[0].dishName}, 1 ngày, 4 loại món`, exact: true })).toHaveAttribute('rowspan', '4');
+  await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short} Sáng`, exact: true }).fill('1200');
   await applyAndCheck('large-four-slots', slots.map(() => slots[0].dishId!), 1200);
   await editToggle().click();
   await choose(slots[0].slotLabel, dishes.find((d) => d.dishId !== slots[0].dishId)!);
   const replacement = dishes.find((d) => d.dishId !== slots[0].dishId)!;
   await applyAndCheck('replace-whole-group', slots.map(() => replacement.dishId!), 1200);
   await editToggle().click();
-  await adminPage.getByRole('button', { name: `Sửa từng dòng ${slots[0].slotLabel} ${short} MORNING`, exact: true }).click();
+  await adminPage.getByRole('button', { name: `Tách để sửa riêng ${slots[0].slotLabel} ${short} Sáng`, exact: true }).click();
   for (const [index, slot] of slots.entries()) await choose(slot.slotLabel, dishes[index]);
-  await adminPage.getByRole('button', { name: 'Hoàn tất sửa từng dòng', exact: true }).click();
-  await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short} MORNING`, exact: true }).fill('1250');
+  await adminPage.getByRole('button', { name: 'Xem menu đã gộp', exact: true }).click();
+  await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short} Sáng`, exact: true }).fill('1250');
   await applyAndCheck('four-small-dishes', dishes.slice(0,4).map((d) => d.dishId!), 1250);
   await editToggle().click();
   await choose(slots[2].slotLabel, dishes[0]);
@@ -162,13 +178,66 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
     const remaining = await Promise.all(Array.from({ length: Math.max(0, first.totalPages - 1) }, (_, index) => getPage(index + 2)));
     return [...first.items, ...remaining.flatMap((page) => page.items)];
   });
-  const candidateIds = catalog.filter((d) => d.isActive).map((d) => `UNHEX('${binaryId(d.dishId)}')`);
-  expect(candidateIds.length).toBeGreaterThan(0);
-  const missingRows = dbVerifier.query<{ id: string }>(`SELECT HEX(d.dishId) AS id FROM dishes d WHERE d.dishId IN (${candidateIds.join(',')}) AND NOT EXISTS (SELECT 1 FROM dishbom b WHERE b.dishId=d.dishId AND (b.customerId IS NULL OR b.customerId=UNHEX('${binaryId(customerId)}')) AND b.bomStatus='PUBLISHED' AND b.priceTierAmount=25000 AND b.effectiveFrom<='${scope.weekStartDate}' AND (b.effectiveTo IS NULL OR b.effectiveTo>='${scope.weekStartDate}')) ORDER BY id LIMIT 1;`);
-  expect(missingRows, 'Missing-BOM proof requires a real uncovered catalog dish, not invented fixtures.').toHaveLength(1);
-  const missing = catalog.find((d) => binaryId(d.dishId) === missingRows[0].id)!;
+  async function createDish(dishCode: string, dishName: string) {
+    await respectApiBudget(adminPage);
+    const result = await adminPage.evaluate(async (body) => {
+      const response = await fetch('/api/Dishes', { method: 'POST', headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'Content-Type': 'application/json', 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' }, body: JSON.stringify(body) });
+      return { status: response.status, body: await response.json() };
+    }, { dishCode, dishName });
+    expect(result.status).toBe(201);
+    const dish = result.body.data as typeof catalog[number];
+    expect(dish.dishCode).toBe(dishCode);
+    expect(dish.dishName).toBe(dishName);
+    return dish;
+  }
+  async function importCustomerBom(file: string, createdRows: number) {
+    await respectApiBudget(adminPage);
+    const page = await adminPage.context().newPage();
+    try {
+      await page.goto('/admin-data?view=bom');
+      await page.getByRole('button', { name: 'Nhập BOM Excel', exact: true }).click();
+      await page.getByLabel('Phạm vi áp dụng BOM', { exact: true }).selectOption(customerId);
+      await page.getByLabel('Chọn file Excel định mức BOM', { exact: true }).setInputFiles(file);
+      const preview = page.waitForResponse((r) => r.url().endsWith('/bom-import/preview') && r.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Xem trước', exact: true }).click();
+      const previewResponse = await preview;
+      expect(previewResponse.status()).toBe(200);
+      expect((await previewResponse.json()).data.canCommit).toBe(true);
+      const commit = page.waitForResponse((r) => r.url().endsWith('/bom-import/commit') && r.request().method() === 'POST');
+      await page.getByRole('button', { name: 'Xác nhận nhập BOM hàng loạt', exact: true }).click();
+      const committed = await commit;
+      expect(committed.status()).toBe(200);
+      const result = (await committed.json()).data;
+      expect(result.createdRows).toBe(createdRows);
+      expect(result.updatedRows).toBe(0);
+    } finally { await page.close(); }
+  }
+  const dishCode = `UP${scope.caseId.replace(/[^a-z0-9]/gi, '')}`.toUpperCase();
+  const dishName = `MÓN MỚI ĐẬU ${dishCode}`;
+  const missing = await createDish(dishCode, dishName);
+  expect(missing.dishCode).toBe(dishCode);
+  expect(missing.dishName).toBe(dishName);
+  const missingHex = binaryId(missing.dishId);
+  expect(dbVerifier.query(`SELECT dishCode AS code, dishName AS name FROM dishes WHERE dishId=UNHEX('${missingHex}');`)).toEqual([{ code: dishCode, name: dishName }]);
+  expect(dbVerifier.query(`SELECT HEX(bomId) AS id FROM dishbom WHERE dishId=UNHEX('${missingHex}');`)).toEqual([]);
+  catalog.push(missing);
+  const ingredient = dbVerifier.query<{ code: string; unit: string }>(`SELECT i.ingredientCode AS code, u.unitCode AS unit FROM dishbom b JOIN ingredients i ON i.ingredientId=b.ingredientId JOIN units u ON u.unitId=i.unitId WHERE b.dishId=UNHEX('${binaryId(dishes[3].dishId!)}') AND b.bomStatus='PUBLISHED' ORDER BY i.ingredientCode LIMIT 1;`);
+  expect(ingredient).toHaveLength(1);
+  const pairName = `MRX CÙNG TÊN ${dishCode}`;
+  const declaredPair = [];
+  for (const suffix of ['A', 'B']) declaredPair.push(await createDish(`${dishCode}${suffix}`, pairName));
+  expect(new Set(declaredPair.map((dish) => dish.dishId)).size).toBe(2);
+  const pairFile = path.join(evidence, 'declared-same-name-boms.xlsx');
+  writeBomImportWorkbook(pairFile, declaredPair.map((dish, index) => ({ dishCode: dish.dishCode, ingredientCode: ingredient[0].code, unitCode: ingredient[0].unit, quantity: index === 0 ? '0.125000' : '0.250000', status: 'PUBLISHED', date: scope.weekStartDate, note: `${scope.reason} declared same-name pair` })));
+  await importCustomerBom(pairFile, 2);
+  const pairIds = declaredPair.map((dish) => `UNHEX('${binaryId(dish.dishId)}')`).join(',');
+  expect(dbVerifier.query(`SELECT HEX(b.dishId) AS id,CAST(b.grossQtyPerServing AS CHAR) AS quantity FROM dishbom b WHERE b.dishId IN (${pairIds}) AND b.customerId=UNHEX('${customerHex}') AND b.bomStatus='PUBLISHED' AND b.effectiveFrom='${scope.weekStartDate}' AND b.effectiveTo='${scope.weekStartDate}' ORDER BY quantity;`)).toEqual(declaredPair.map((dish, index) => ({ id: binaryId(dish.dishId), quantity: index === 0 ? '0.125000' : '0.250000' })));
+  catalog.push(...declaredPair);
+  await respectApiBudget(adminPage);
+  await adminPage.reload();
+  fs.writeFileSync(path.join(evidence, 'declared-same-name-prerequisite.json'), JSON.stringify({ type: 'AUTHORIZED_CLONE_ONLY_CATALOGUE_FIXTURE', customerId, serviceDate: scope.weekStartDate, dishes: declaredPair, quantities: ['0.125000', '0.250000'], stockSeeded: false }, null, 2));
   const prerequisites = {
-    sameNameDifferentIds: dbVerifier.query<{id:string;dishName:string;dishCode:string}>(`SELECT HEX(d.dishId) AS id, d.dishName, d.dishCode FROM dishes d WHERE d.isActive=1 AND EXISTS (SELECT 1 FROM dishes other WHERE other.isActive=1 AND other.dishName=d.dishName AND other.dishId<>d.dishId) AND EXISTS (SELECT 1 FROM dishbom b WHERE b.dishId=d.dishId AND b.bomStatus='PUBLISHED' AND (b.customerId IS NULL OR b.customerId=UNHEX('${binaryId(customerId)}')) AND b.priceTierAmount=25000 AND b.effectiveFrom<='${scope.weekStartDate}' AND (b.effectiveTo IS NULL OR b.effectiveTo>='${scope.weekStartDate}')) ORDER BY d.dishName,id LIMIT 10;`),
+    sameNameDifferentIds: dbVerifier.query<{id:string;dishName:string;dishCode:string}>(`SELECT HEX(d.dishId) AS id, d.dishName, d.dishCode FROM dishes d WHERE d.dishId IN (${pairIds}) AND d.isActive=1 AND EXISTS (SELECT 1 FROM dishes other WHERE other.isActive=1 AND other.dishName=d.dishName AND other.dishId<>d.dishId) AND EXISTS (SELECT 1 FROM dishbom b WHERE b.dishId=d.dishId AND b.bomStatus='PUBLISHED' AND (b.customerId IS NULL OR b.customerId=UNHEX('${binaryId(customerId)}')) AND b.priceTierAmount=25000 AND b.effectiveFrom<='${scope.weekStartDate}' AND (b.effectiveTo IS NULL OR b.effectiveTo>='${scope.weekStartDate}')) ORDER BY d.dishName,id LIMIT 10;`),
     nonCanonicalBoms: dbVerifier.query(`SELECT d.dishCode, b.bomStatus, HEX(b.customerId) AS customer, CAST(b.priceTierAmount AS CHAR) AS tier, bu.unitCode AS bomUnit, cu.unitCode AS canonicalUnit, bu.baseUnitCode AS bomBase, cu.baseUnitCode AS canonicalBase, CAST(bu.convertRateToBase AS CHAR) AS bomRate, CAST(cu.convertRateToBase AS CHAR) AS canonicalRate FROM dishbom b JOIN dishes d ON d.dishId=b.dishId JOIN ingredients i ON i.ingredientId=b.ingredientId JOIN units bu ON bu.unitId=b.unitId JOIN units cu ON cu.unitId=i.unitId WHERE b.unitId<>i.unitId AND b.bomStatus='PUBLISHED' AND b.effectiveFrom<='${scope.weekStartDate}' AND (b.effectiveTo IS NULL OR b.effectiveTo>='${scope.weekStartDate}') ORDER BY d.dishCode LIMIT 10;`),
     retainedZeroLines: dbVerifier.query(`SELECT HEX(DailyLineId) AS id, HEX(IngredientId) AS ingredient FROM reconciliationbatchdailylines WHERE BatchId=UNHEX('${binaryId(batchId)}') AND RequiredQuantity=0 ORDER BY id;`),
   };
@@ -193,17 +262,24 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   const beforeFrozen = frozenState();
   await editToggle().click();
   await choose(slots[0].slotLabel, { ...slots[0], ...missing });
-  await adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
-  await adminPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} genuine missing BOM`);
   const rejected = adminPage.waitForResponse((r) => r.url().endsWith('/amendments/preview') && r.request().method() === 'POST');
-  await adminPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+  await adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
   expect((await rejected).status()).toBe(422);
   await expect(adminPage.getByText('Món thay thế chưa có định mức cho ngày phục vụ.', { exact: true })).toBeVisible();
-  await expect(adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true })).toBeDisabled();
+  await expect(adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true })).toHaveCount(0);
   expect(await readScope()).toEqual(beforeMissing);
   expect(frozenState()).toEqual(beforeFrozen);
   await adminPage.screenshot({ path: path.join(evidence, '22-real-missing-bom-blocked.png') });
-  await adminPage.getByRole('button', { name: 'Quay lại thực đơn', exact: true }).click();
+  const recoveryFile = path.join(evidence, 'new-uppercase-dish-bom.xlsx');
+  writeBomImportWorkbook(recoveryFile, [{ dishCode, ingredientCode: ingredient[0].code, unitCode: ingredient[0].unit, quantity: '0.125000', status: 'PUBLISHED', date: scope.weekStartDate, note: scope.reason }]);
+  await importCustomerBom(recoveryFile, 1);
+  expect(dbVerifier.query(`SELECT CAST(grossQtyPerServing AS CHAR) AS quantity FROM dishbom WHERE dishId=UNHEX('${missingHex}') AND customerId=UNHEX('${customerHex}') AND bomStatus='PUBLISHED';`)).toEqual([{ quantity: '0.125000' }]);
+  const sameDishIds = slots.map((slot) => beforeMissing.days.find((day) => day.serviceDate === scope.weekStartDate)!.shifts.find((s) => s.shiftName === 'MORNING')!.slots.find((s) => s.dishSlot === slot.dishSlot)!.dishId!);
+  sameDishIds[0] = missing.dishId;
+  await applyAndCheck('same-new-dish-bom-recovered', sameDishIds, 1250);
+  expect(dbVerifier.query(`SELECT CAST(c.SourceQuantity AS CHAR) AS quantity FROM reconciliationbatchcontributors c JOIN reconciliationbatchdailylines d ON d.DailyLineId=c.DailyLineId WHERE d.BatchId=UNHEX('${batchHex}') AND d.ServiceDate='${scope.weekStartDate}' AND c.DishId=UNHEX('${missingHex}') AND c.InvalidatedAt IS NULL;`)).toEqual([{ quantity: '156.250000' }]);
+  fs.writeFileSync(path.join(evidence, 'new-customer-uppercase-bom-recovery.json'), JSON.stringify({ customerId, menuVersionId, batchId, dishId: missing.dishId, dishCode, dishName, missingBomStatus: 422, bomQuantity: '0.125000', servings: 1250, sourceQuantity: '156.250000', sameDishRecovered: true }, null, 2));
+  await editToggle().click();
   if (sameNameAction.status === 'PASS') await choose(slots[1].slotLabel, dishes[1]);
   await choose(slots[0].slotLabel, dishes[1]);
   await applyAndCheck('missing-bom-recovered-partial-merge', [dishes[1], dishes[1], dishes[0], dishes[3]].map((d) => d.dishId!), 1250);
@@ -216,6 +292,7 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   await bomPage.getByRole('button', {name:'Nhập BOM Excel',exact:true}).click();
   await bomPage.getByLabel('Phạm vi áp dụng BOM',{exact:true}).selectOption(customerId);
   async function importConversionBom(rows: {unit:string;quantity:string;status:string}[], label:string) {
+    await respectApiBudget(adminPage);
     const file=path.join(evidence,`approved-conversion-${label}.xlsx`);
     writeBomImportWorkbook(file, rows.map(row => ({ dishCode: dishes[3].dishCode!, ingredientCode: units.ingredient, unitCode: row.unit, quantity: row.quantity, status: row.status, date: scope.weekStartDate, note: `${scope.reason} điều kiện định mức đã duyệt ${label}` })));
     await bomPage.getByLabel('Chọn file Excel định mức BOM',{exact:true}).setInputFiles(file);
@@ -237,18 +314,15 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   const badFixture=await importConversionBom([{unit:units.incompatible,quantity:units.gross,status:'PUBLISHED'}],'incompatible');
   const noWriteSql='CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors,reconciliationsourcerevisions,inventoryissues,inventoryissuelines,currentstock,currentstocklots,stockmovements,dishbom,auditlogs;';
   const afterBadPreparation=dbVerifier.query(noWriteSql);
-  await adminPage.getByRole('spinbutton',{name:`Số suất Mặn ${short} MORNING`,exact:true}).fill('1251');
-  await adminPage.getByRole('button',{name:/Tiếp tục xem ảnh hưởng \(\d+\)/}).click();
-  await adminPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} invalid conversion rejection`);
+  await adminPage.getByRole('spinbutton',{name:`Số suất Mặn ${short} Sáng`,exact:true}).fill('1251');
   const invalidConversion=adminPage.waitForResponse((r)=>r.url().endsWith('/amendments/preview') && r.request().method()==='POST');
-  await adminPage.getByRole('button',{name:'Xem ảnh hưởng',exact:true}).click();
+  await adminPage.getByRole('button',{name:/Tiếp tục xem ảnh hưởng \(\d+\)/}).click();
   const invalidResult=await invalidConversion;
   expect(invalidResult.status(),await invalidResult.text()).toBe(400);
   expect((await invalidResult.json()).message).toMatch(/quy đổi/);
   expect(dbVerifier.query(noWriteSql)).toEqual(afterBadPreparation);
   await expect(adminPage.getByText('Đơn vị nguyên liệu chưa có quy đổi chuẩn hợp lệ.',{exact:true})).toBeVisible();
-  await expect(adminPage.getByRole('button',{name:'Áp dụng ngay',exact:true})).toBeDisabled();
-  await adminPage.getByRole('button',{name:'Quay lại thực đơn',exact:true}).click();
+  await expect(adminPage.getByRole('button',{name:'Áp dụng ngay',exact:true})).toHaveCount(0);
   const goodFixture=await importConversionBom([{unit:units.incompatible,quantity:units.gross,status:'ARCHIVED'},{unit:units.compatible,quantity:units.convertedGross,status:'PUBLISHED'}],'compatible');
   await bomPage.close();
   await applyAndCheck('valid-conversion', [dishes[1],dishes[1],dishes[0],dishes[3]].map((d)=>d.dishId!),1251);
@@ -260,6 +334,7 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   const batchState = () => dbVerifier.query(`SELECT Status, Version FROM reconciliationbatches WHERE BatchId=UNHEX('${batchHex}');`);
   const issueCodes: string[] = [];
   for (let offset = 0; offset < 6; offset++) {
+    await respectApiBudget(thukhoPage);
     const date = new Date(`${scope.weekStartDate}T00:00:00Z`);
     date.setUTCDate(date.getUTCDate() + offset);
     const serviceDate = date.toISOString().slice(0,10);
@@ -328,7 +403,7 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
     expect([...new Set(exportedEdited.map((r) => r[4]))].sort()).toEqual([...new Set(savory.map((r) => r.dishName))].sort());
     expect(exportedEdited.every((r) => r[5] === '1251')).toBe(true);
     for (const row of exports[format].slice(1)) {
-      expect(row[11]).toBe('ANV - AMANN');
+      expect(row[11]).toBe(scope.customer!.label);
       expect(row[12]).toBe(scope.weekStartDate.split('-').reverse().join('/'));
       expect(row[13]).toBe(weekEnd.toISOString().slice(0,10).split('-').reverse().join('/'));
       const source = cooking.rows.find((r) => row[0] === r.serviceDate.split('-').reverse().join('/') && row[2] === r.shiftName && row[3] === r.menuVariant && row[4] === r.dishName && row[6] === r.ingredientName);
@@ -372,7 +447,7 @@ test('@G6-Merged-Customer shared customer UI and four-slot dish editing preserve
   await (await historyDownload).saveAs(historyFile);
   const historyText = parseCookingFile(historyFile, 'xlsx').flat().join('\n');
   expect([...new Set(historyText.match(/ISS-[A-Z0-9-]+/g))].sort()).toEqual([...issueCodes].sort());
-  fs.writeFileSync(path.join(evidence, 'merged-dish-customer.json'), JSON.stringify({ customerId: customer.customerId, sourceCustomerId: customerId, customerCode: code, batchId, menuVersionId, acceptedSource, sourceVersionAtChef: cooking.sourceVersion, issueCodes, terminal: batchState(), chefExports: { csvRows: exports.csv.length-1, xlsxRows: exports.xlsx.length-1, noMutations: true, standaloneCustomerWeek: true }, missingBomStatus: 422, snapshots, limitation: 'Declared clone-only alternate-unit/customer-day BOM prerequisites exercised through real FE and six-decimal canonical/stock oracles; same-name/different-ID still requires its separate prerequisite verdict. No production conversion-metadata certification or new-customer BOM onboarding claim.' }, null, 2));
+  fs.writeFileSync(path.join(evidence, 'merged-dish-customer.json'), JSON.stringify({ customerId: customer.customerId, sourceCustomerId: customerId, customerCode: code, batchId, menuVersionId, acceptedSource, sourceVersionAtChef: cooking.sourceVersion, issueCodes, terminal: batchState(), chefExports: { csvRows: exports.csv.length-1, xlsxRows: exports.xlsx.length-1, noMutations: true, standaloneCustomerWeek: true }, missingBomStatus: 422, snapshots, limitation: 'Declared clone-only alternate-unit/customer-day BOM prerequisites exercised through real FE and six-decimal canonical/stock oracles; same-name/different-ID still requires its separate prerequisite verdict. No production conversion-metadata certification; normalized-name import ambiguity and complete C01–C07 policy matrix remain separate, unqualified cases.' }, null, 2));
 });
 
 function binaryId(value: string) {

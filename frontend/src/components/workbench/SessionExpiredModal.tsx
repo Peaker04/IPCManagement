@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { Lock, AlertCircle } from 'lucide-react';
+import { Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../api/authApi';
+import type { LoginResponse } from '../../types';
 
 export interface SessionExpiredModalProps {
   isOpen: boolean;
   username?: string;
-  onSuccess: (token: string) => void;
+  onSuccess: (response: LoginResponse) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -23,6 +24,7 @@ export function SessionExpiredModal({
   onCancel,
 }: SessionExpiredModalProps) {
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,7 +40,7 @@ export function SessionExpiredModal({
 
     try {
       const resp = await authApi.login(username, password);
-      onSuccess(resp.accessToken);
+      await onSuccess(resp);
       setPassword('');
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Xác thực lại không thành công.');
@@ -52,7 +54,7 @@ export function SessionExpiredModal({
       isOpen={isOpen}
       onClose={onCancel}
       title="Phiên làm việc ca đã hết hạn (401)"
-      maxWidth="sm"
+      maxWidth="max-w-md"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex items-start gap-3 p-3 rounded bg-amber-50 border border-amber-200 text-xs text-amber-900">
@@ -75,18 +77,31 @@ export function SessionExpiredModal({
             <label className="text-xs font-semibold text-slate-700 select-none">
               Mật khẩu xác thực ca <span className="text-rose-500">*</span>
             </label>
-            <Input
-              type="password"
-              placeholder="Nhập mật khẩu..."
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (error) setError(null);
-              }}
-              autoFocus
-              disabled={isSubmitting}
-              className="mt-1"
-            />
+            <div className="relative mt-1">
+              <Input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Nhập mật khẩu..."
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError(null);
+                }}
+                autoFocus
+                disabled={isSubmitting}
+                className="pr-9"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                disabled={isSubmitting}
+                aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                aria-pressed={showPassword}
+                title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                className="absolute inset-y-0 right-0 flex w-9 items-center justify-center rounded-r text-slate-500 transition-colors hover:text-slate-800 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-400 cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+              >
+                {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+              </button>
+            </div>
           </div>
         </div>
 

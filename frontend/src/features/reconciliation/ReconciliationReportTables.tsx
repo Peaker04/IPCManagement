@@ -16,6 +16,7 @@ interface ReconciliationReportTablesProps {
   activeTab: 'variances' | 'transactions' | 'audit' | 'completed';
   batchId: string;
   isReportLoading?: boolean;
+  hasExactReport?: boolean;
   reportError?: Error | null;
   onRetry?: () => void;
   variancesReport: MrxVarianceRegisterReport | null;
@@ -30,12 +31,16 @@ interface ReconciliationReportTablesProps {
   onCompletedPageChange?: (page: number) => void;
   sourceChanges?: MrxSourceChangeItem[] | null;
   auditSubTab?: 'warehouse' | 'source';
+  auditSearch?: string;
+  onAuditSearchChange?: (value: string) => void;
+  sourceTotalCount?: number;
 }
 
 export function ReconciliationReportTables({
   activeTab,
   batchId,
   isReportLoading = false,
+  hasExactReport = false,
   reportError,
   onRetry,
   variancesReport,
@@ -50,8 +55,19 @@ export function ReconciliationReportTables({
   onCompletedPageChange,
   sourceChanges,
   auditSubTab = 'warehouse',
+  auditSearch,
+  onAuditSearchChange,
+  sourceTotalCount,
 }: ReconciliationReportTablesProps) {
-  if (!batchId && activeTab !== 'completed') {
+  const hasExactTabReport = Boolean(
+    (activeTab === 'variances' && variancesReport) ||
+    (activeTab === 'transactions' && transactionsReport) ||
+    (activeTab === 'audit' && (auditSubTab === 'source' ? sourceChanges : auditReport)) ||
+    (activeTab === 'completed' && completedReport)
+  );
+  const hasCurrentReport = hasExactTabReport;
+
+  if (!batchId && !isReportLoading && !hasCurrentReport && activeTab !== 'completed') {
     return (
       <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 bg-white text-center">
         <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center mb-3 text-slate-400">
@@ -65,30 +81,25 @@ export function ReconciliationReportTables({
     );
   }
 
-  const hasCurrentReport = Boolean(
-    (activeTab === 'variances' && variancesReport) ||
-    (activeTab === 'transactions' && transactionsReport) ||
-    (activeTab === 'audit' && (auditSubTab === 'source' ? sourceChanges : auditReport)) ||
-    (activeTab === 'completed' && completedReport)
-  );
-
   const columnWidths = activeTab === 'completed' ? ['21%', '21%', '12%', '12%', '10%', '12%', '12%']
     : activeTab === 'variances' ? ['12%', '10%', '24%', '8%', '10%', '10%', '10%', '18%']
-    : activeTab === 'transactions' ? ['14%', '20%', '12%', '22%', '14%', '18%']
+    : activeTab === 'transactions' ? ['14%', '16%', '12%', '18%', '14%', '16%', '10%']
     : auditSubTab === 'source' ? ['16%', '14%', '14%', '16%', '16%', '24%']
     : ['16%', '14%', '12%', '18%', '20%', '20%'];
 
   return (
     <LocalizedBoundary
       loadingGeometry={{ kind: 'table', columns: columnWidths.length, columnWidths, rows: 10 }}
-      isLoading={isReportLoading && !hasCurrentReport}
+      isLoading={activeTab !== 'audit' && isReportLoading && !hasCurrentReport}
+      hasExistingData={hasExactReport}
       error={reportError}
       onRetry={onRetry}
+      retryPending={isReportLoading}
       emptyTitle="Chưa có dữ liệu báo cáo"
       emptyDescription="Không có bản ghi báo cáo nào khả dụng cho lô đối soát đã chọn."
     >
-      <div aria-busy={isReportLoading || undefined} inert={isReportLoading || undefined} className={`relative flex-1 min-h-0 flex flex-col ${isReportLoading ? 'opacity-70 transition-opacity duration-150' : ''}`}>
-      {isReportLoading && <><span role="status" className="sr-only">Đang tải trang báo cáo</span><div aria-hidden="true" className="absolute top-0 inset-x-0 h-0.5 bg-slate-400 animate-pulse z-20" /></>}
+      <div aria-busy={isReportLoading || undefined} inert={isReportLoading || undefined} className="relative flex-1 min-h-0 flex flex-col">
+      {isReportLoading && <span role="status" className="sr-only">Đang tải trang báo cáo</span>}
       {activeTab === 'variances' && <ReconciliationVariancesBranch batchId={batchId} report={variancesReport} />}
       {activeTab === 'transactions' && (
         <ReconciliationTransactionsBranch
@@ -99,7 +110,7 @@ export function ReconciliationReportTables({
           pending={isReportLoading}
         />
       )}
-      {activeTab === 'audit' && <ReconciliationAuditBranch batchId={batchId} auditReport={auditReport} sourceChanges={sourceChanges ?? null} auditSubTab={auditSubTab} page={auditPage} onPageChange={onAuditPageChange} pending={isReportLoading} />}
+      {activeTab === 'audit' && <ReconciliationAuditBranch batchId={batchId} auditReport={auditReport} sourceChanges={sourceChanges ?? null} auditSubTab={auditSubTab} page={auditPage} onPageChange={onAuditPageChange} pending={isReportLoading} searchTerm={auditSearch} onSearchChange={onAuditSearchChange} sourceTotalCount={sourceTotalCount} />}
       {activeTab === 'completed' && <ReconciliationCompletedBranch report={completedReport ?? null} page={completedPage} onPageChange={onCompletedPageChange} pending={isReportLoading} />}
       </div>
     </LocalizedBoundary>

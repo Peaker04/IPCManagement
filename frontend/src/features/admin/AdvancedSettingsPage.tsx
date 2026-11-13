@@ -53,7 +53,7 @@ export function AdvancedSettingsPage() {
             <Badge
               variant={operationalMode === 'MATERIAL_RECONCILIATION' ? 'warning' : 'neutral'}
               size="default"
-              className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap animate-in fade-in duration-150"
+              className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap"
             >
               Chế độ hiện tại: {operationalMode === 'MATERIAL_RECONCILIATION' ? 'Đối soát MRX' : 'Mặc định (DEFAULT)'}
             </Badge>
@@ -79,24 +79,24 @@ export function AdvancedSettingsPage() {
         }
       />
 
-      {feedback && (
-        <InlineBanner
-          variant={feedback.type === 'error' ? (feedback.status === 409 ? 'conflict' : 'error') : 'success'}
-          actionLabel={feedback.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
-          onAction={feedback.status === 409 ? () => { setFeedback(null); void reloadOperationalMode(); } : undefined}
-          onClose={() => setFeedback(null)}
-          className="shrink-0"
-        >
-          {feedback.message}
-        </InlineBanner>
-      )}
-
       <TelemetrySubbar
         leftControls={<span className="text-xs font-semibold text-slate-700">Đang xem: Chế độ vận hành</span>}
         telemetryPills={<span className="text-xs text-slate-500">Chế độ được xác thực và bảo vệ bằng phiên bản đồng thời.</span>}
       />
 
-      <WorkspaceFrame.Body>
+      <WorkspaceFrame.Body className="flex flex-col flex-1 min-h-0">
+        {feedback && (
+          <InlineBanner
+            variant={feedback.type === 'error' ? (feedback.status === 409 ? 'conflict' : 'error') : 'success'}
+            actionLabel={feedback.status === 409 ? 'Tải lại dữ liệu mới nhất' : undefined}
+            onAction={feedback.status === 409 ? () => { setFeedback(null); void reloadOperationalMode(); } : undefined}
+            onClose={() => setFeedback(null)}
+            className="shrink-0"
+          >
+            {feedback.message}
+          </InlineBanner>
+        )}
+
         <SplitView
           masterWidthClass="w-7/12"
           master={

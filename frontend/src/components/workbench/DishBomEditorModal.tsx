@@ -9,6 +9,7 @@ import { Badge } from '../ui/badge';
 import { Num } from '../ui/num';
 import { IdentifierText } from '../ui/identifier-text';
 import { InlineBanner } from '../ui/inline-banner';
+import { WorkbenchSkeleton } from './WorkbenchSkeleton';
 import { SearchableCombobox } from '../ui/searchable-combobox';
 import { bomApi, type DishBomLine } from '../../api/bomApi';
 import { adminApi, type IngredientItem } from '../../api/adminApi';
@@ -238,6 +239,8 @@ export function DishBomEditorModal({
       title={`Định mức BOM: ${dish.dishName}`}
       description={readOnly ? 'Chi tiết nguyên liệu theo mốc giá · Chỉ xem.' : 'Quản lý định lượng BOM theo mốc giá và phạm vi khách hàng.'}
       maxWidth="max-w-4xl"
+      className="h-[min(40rem,85dvh)]"
+      bodyClassName="min-h-0"
       footer={(requestClose) => (
         <div className="flex items-center justify-between w-full">
           <div className="text-xs text-slate-500">
@@ -250,7 +253,7 @@ export function DishBomEditorModal({
       )}
     >
       <div className="space-y-4">
-        {isLoadingTiers && <p role="status">Đang tải mốc giá BOM…</p>}
+        {isLoadingTiers && <p role="status" className="sr-only">Đang tải mốc giá BOM…</p>}
         {tierError && <InlineBanner variant="error" actionLabel="Tải lại mốc giá" onAction={() => void retryTiers()}>{tierError.message}</InlineBanner>}
         {feedback && (
           <InlineBanner
@@ -266,7 +269,7 @@ export function DishBomEditorModal({
         <div className="flex flex-wrap items-center justify-between gap-3 p-2.5 bg-slate-50 border border-slate-200 rounded text-xs">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-slate-700">Mốc giá suất ăn chuẩn:</span>
-            <div className="flex gap-1" role="radiogroup" aria-label="Mốc giá BOM">
+            <div className="flex gap-1 min-h-7" role="radiogroup" aria-label="Mốc giá BOM" aria-busy={isLoadingTiers || undefined}>
               {tiers.map((tier) => {
                 const isSelected = selectedPriceTier === tier;
                 return (
@@ -323,9 +326,7 @@ export function DishBomEditorModal({
           </div>
 
           {isLoading ? (
-            <div className="p-8 text-center text-xs text-slate-500 animate-pulse">
-              Đang tải danh sách định mức nguyên liệu…
-            </div>
+            <WorkbenchSkeleton geometry={{ kind: 'table', columns: readOnly ? 5 : 6, rows: 5 }} />
           ) : visibleBomLines.length === 0 ? (
             <div className="p-6 text-center text-xs text-slate-500 italic bg-slate-50/50">
               {readOnly ? 'Chưa có nguyên liệu nào ở mốc giá này.' : 'Chưa có nguyên liệu nào ở mốc giá này. Sử dụng form bên dưới để thêm nguyên liệu vào định mức.'}

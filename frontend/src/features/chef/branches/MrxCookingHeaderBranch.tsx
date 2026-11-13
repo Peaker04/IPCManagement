@@ -13,6 +13,7 @@ export interface MrxCookingHeaderBranchProps {
   onSelectBatch: (id: string) => void;
   selectedShift: 'ALL' | 'MORNING' | 'AFTERNOON';
   onSelectShift: (shift: 'ALL' | 'MORNING' | 'AFTERNOON') => void;
+  isPending?: boolean;
   data: MrxKitchenCooking | null;
   catalogNavigation?: ReactNode;
   actions?: ReactNode;
@@ -24,6 +25,7 @@ export function MrxCookingHeaderBranch({
   onSelectBatch,
   selectedShift,
   onSelectShift,
+  isPending = false,
   data,
   catalogNavigation,
   actions,
@@ -38,11 +40,12 @@ export function MrxCookingHeaderBranch({
   const fallbackCustomer = sessionScope.batchId === batchId ? (sessionScope.customerCode || sessionScope.customerName) : '';
   const fallbackBatchLabel = fallbackCustomer || fallbackWeek
     ? `${fallbackCustomer || 'Lô đã chọn'}${fallbackWeek ? ` · ${toVietnameseDate(fallbackWeek)}` : ''}`
-    : 'Lô đang chọn (ngoài trang danh sách)';
+    : 'Lô đã chọn';
 
   return (
     <WorkspaceHeader
       responsive
+      className="mrx-scope-header"
       title="Phiếu nấu theo lô"
       breadcrumb="Đối soát MRX · Bếp trưởng"
       actions={actions ? <WorkspaceHeader.Actions>{actions}</WorkspaceHeader.Actions> : undefined}
@@ -54,7 +57,7 @@ export function MrxCookingHeaderBranch({
               aria-label="Chọn lô đối soát nấu"
               options={batchId && !batches.some(batch => batch.batchId === batchId)
                 ? [{ value: batchId, label: fallbackBatchLabel }, ...batchOptions]
-                : batches.length === 0 ? [{ value: '', label: '(Chưa có lô đối soát)' }] : batchOptions}
+                : !batchId ? [{ value: '', label: '(Chưa chọn lô đối soát)' }, ...batchOptions] : batchOptions}
               value={batchId}
               disabled={batches.length === 0 && !batchId}
               onChange={(e) => onSelectBatch(e.target.value)}
@@ -74,11 +77,11 @@ export function MrxCookingHeaderBranch({
             />
           </div>
           <WorkspaceHeader.BadgeSlot variant="status">
-            {data && (
+            {isPending ? <span role="status" className="sr-only">Đang tải phạm vi mới</span> : data && (
               <Badge
                 variant="neutral"
                 size="default"
-                className="h-8 px-2.5 text-xs font-mono flex items-center shrink-0 whitespace-nowrap animate-in fade-in duration-150"
+                className="h-8 px-2.5 text-xs font-mono flex items-center shrink-0 whitespace-nowrap"
               >
                 Phiên bản: v{data.sourceVersion}
               </Badge>

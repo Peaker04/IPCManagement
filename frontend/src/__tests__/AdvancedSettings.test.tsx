@@ -56,4 +56,21 @@ describe('Advanced Settings', () => {
     expect(await screen.findByText(/Đang xem: Chế độ vận hành/)).toBeInTheDocument();
     expect(screen.queryByText(/Dọn cache ngay|Chẩn đoán Kết nối|Database Engine|MySQL 8\.0/i)).not.toBeInTheDocument();
   });
+
+  it('H11: AdvancedSettingsPage renders feedback InlineBanner inside WorkspaceFrame.Body below TelemetrySubbar', async () => {
+    localStorage.setItem('ipc_v3_token', 'admin-session');
+    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'DEFAULT', label: 'Mặc định', version: 7, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.spyOn(systemApi, 'setOperationalMode').mockRejectedValue(new ApiError(409, 'Chế độ vận hành đã thay đổi.'));
+    renderPage();
+
+    await screen.findByText(/Chế độ hiện tại: Mặc định/);
+    await userEvent.click(screen.getByRole('radio', { name: /Đối soát Nguyên liệu/i }));
+    await userEvent.click(screen.getByRole('button', { name: 'Lưu cấu hình hệ thống' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Xác nhận chuyển chế độ' }));
+
+    const alert = await screen.findByRole('alert');
+    const subbar = screen.getByText(/Đang xem: Chế độ vận hành/).closest('div.min-h-11')!;
+    // Feedback alert must follow TelemetrySubbar in DOM order so TelemetrySubbar never shifts down
+    expect(Boolean(subbar.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+  });
 });

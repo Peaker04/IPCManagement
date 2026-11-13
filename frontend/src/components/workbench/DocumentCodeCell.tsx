@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { FileText, Copy, Check } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { FileText, Copy, Check, CircleAlert } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -21,16 +21,22 @@ export function DocumentCodeCell({
   title = 'Bấm để xem chi tiết phiếu xuất kho',
   className,
 }: DocumentCodeCellProps) {
-  const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState<{ code: string; ok: boolean } | null>(null);
+  const copied = feedback?.code === code && feedback.ok;
+  const failed = feedback?.code === code && !feedback.ok;
+  useEffect(() => {
+    if (!feedback?.ok) return;
+    const timer = setTimeout(() => setFeedback(null), 1500);
+    return () => clearTimeout(timer);
+  }, [feedback]);
 
   const handleCopy = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setFeedback({ code, ok: true });
     } catch {
-      // Clipboard write fallback
+      setFeedback({ code, ok: false });
     }
   }, [code]);
 
@@ -57,15 +63,16 @@ export function DocumentCodeCell({
         type="button"
         onClick={handleCopy}
         className="inline-flex items-center justify-center size-6 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
-        title={copied ? 'Đã sao chép!' : 'Sao chép mã chứng từ'}
+        title={failed ? 'Không thể sao chép. Hãy sao chép mã thủ công.' : copied ? 'Đã sao chép!' : 'Sao chép mã chứng từ'}
         aria-label={`Sao chép mã chứng từ ${code}`}
       >
-        {copied ? (
+        {failed ? <CircleAlert size={12} className="text-rose-700" aria-hidden="true" /> : copied ? (
           <Check size={12} className="text-emerald-600" aria-hidden="true" />
         ) : (
           <Copy size={12} aria-hidden="true" />
         )}
       </button>
+      <span role="status" className="sr-only">{failed ? 'Không thể sao chép mã chứng từ.' : copied ? 'Đã sao chép mã chứng từ.' : ''}</span>
     </div>
   );
 }

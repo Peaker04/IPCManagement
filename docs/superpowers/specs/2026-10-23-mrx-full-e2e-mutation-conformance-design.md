@@ -1,3 +1,5 @@
+> Reference archive (2026-11-13): the FE snapshot names/paths in this historical document are preserved in `D:/IPCArchives/frontend-reference-snapshots/2026-11-13-frontend-references.zip` with per-file hashes in its adjacent manifest. Both original trees, including their unique configs/tests, are retained there.
+
 # Đặc Tả Kỹ Thuật: Chuẩn Hóa Toàn Diện 15 Bề Mặt MRX, Khôi Phục Nhập Thực Đơn & Kiểm Thử E2E Mutation Cô Lập
 *(MRX Full-Matrix Conformance, Weekly Menu Import Restoration & Isolated E2E Mutation Specification)*
 

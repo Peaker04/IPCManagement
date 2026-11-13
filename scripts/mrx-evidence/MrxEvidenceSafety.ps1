@@ -94,8 +94,8 @@ function Get-MrxCampaignStorage {
 
 function Assert-MrxCampaignInvocation {
     param([string]$Mode, [string]$Profile, [string]$CampaignId, [string]$Diagnostic)
-    if ($Diagnostic -eq 'MenuIntegrityPerformance' -and ($Profile -cne 'Qualification' -or $Mode -notin @('Preflight','Execute') -or $CampaignId)) {
-        throw 'MenuIntegrityPerformance requires a fresh Qualification Preflight/Execute, never G1 or a retained campaign.'
+    if ($Diagnostic -in @('MenuIntegrityPerformance','SourceAtomicity','ExportConsistency') -and ($Profile -cne 'Qualification' -or $Mode -notin @('Preflight','Execute') -or $CampaignId)) {
+        throw "$Diagnostic requires a fresh Qualification Preflight/Execute, never G1 or a retained campaign."
     }
     if ($Mode -eq 'Run' -and $env:MRX_COORDINATED_TAIL_RECEIPT -and $Diagnostic -cne 'RepairCheck') { throw 'Retained-member continuation is diagnostic-only RepairCheck, never full lifecycle acceptance.' }
     if ($Mode -eq 'Execute' -and $CampaignId) { throw 'Legacy Execute cannot resume or replace a campaign.' }

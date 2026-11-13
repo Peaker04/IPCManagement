@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../../store/useAuth';
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue';
 import { PaginationBar } from '../../../components/workbench/PaginationBar';
@@ -31,6 +31,7 @@ type CatalogPageInfo = Pick<PagedResult<CatalogItem>,
 
 interface CatalogQueryResult {
   requestKey: string;
+  activeView: 'ingredients' | 'dishes';
   items: CatalogItem[];
   pageInfo: CatalogPageInfo;
 }
@@ -46,11 +47,13 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
   } = useUrlWorkbenchState({ defaultView: 'ingredients' });
 
   const { user, operationalMode } = useAuth();
+  const searchInput = useRef<HTMLInputElement>(null);
   const [isComposing, setIsComposing] = useState(false);
   const keyword = searchKeyword.trim();
   const settledKeyword = useDebouncedValue(keyword, 300);
-  const scopeKey = JSON.stringify(['admin', activeView, user?.userId, user?.roleCode, operationalMode]);
-  const cacheKey = JSON.stringify([scopeKey, keyword, pageNumber, pageSize]);
+  const scopeKey = JSON.stringify(['admin', 'catalog', user?.userId, user?.roleCode, operationalMode]);
+  const viewScopeKey = JSON.stringify(['admin', activeView, user?.userId, user?.roleCode, operationalMode]);
+  const cacheKey = JSON.stringify([viewScopeKey, keyword, pageNumber, pageSize]);
 
   const catalogQuery = useWorkbenchQuery<CatalogQueryResult>({
     scopeKey,
@@ -61,10 +64,10 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
       const search = { pageNumber, pageSize, searchKeyword: keyword || undefined };
       if (activeView === 'ingredients') {
         const result = await adminApi.getIngredients(search, signal);
-        return { requestKey: cacheKey, items: result.items, pageInfo: result };
+        return { requestKey: cacheKey, activeView: 'ingredients', items: result.items, pageInfo: result };
       } else {
         const result = await adminApi.getDishes(search, signal);
-        return { requestKey: cacheKey, items: result.items, pageInfo: result };
+        return { requestKey: cacheKey, activeView: 'dishes', items: result.items, pageInfo: result };
       }
     },
     isDatasetEmpty: (res) => !res || !res.items || res.items.length === 0,
@@ -75,9 +78,10 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
 
   const items = queryResult?.items ?? [];
   const isPreviousResult = Boolean(queryResult && queryResult.requestKey !== cacheKey);
-  const pageInfo = queryResult?.requestKey === cacheKey ? queryResult.pageInfo : undefined;
-  const canonicalPage = pageInfo ? Math.max(1, Math.min(pageInfo.pageNumber, pageInfo.totalPages || 1)) : pageNumber;
-  const needsPageCorrection = Boolean(pageInfo && !stateProps.isFetching && !stateProps.error && canonicalPage !== pageNumber);
+  const pageInfo = stateProps.error ? (queryResult?.requestKey === cacheKey ? queryResult.pageInfo : undefined) : queryResult?.pageInfo;
+  const exactPageInfo = queryResult?.requestKey === cacheKey ? queryResult.pageInfo : undefined;
+  const canonicalPage = exactPageInfo ? Math.max(1, Math.min(exactPageInfo.pageNumber, exactPageInfo.totalPages || 1)) : pageNumber;
+  const needsPageCorrection = Boolean(exactPageInfo && !stateProps.isFetching && !stateProps.error && canonicalPage !== pageNumber);
   const pending = stateProps.isLoading || stateProps.isFetching || isComposing || needsPageCorrection;
   useEffect(() => {
     if (needsPageCorrection) setPageNumber(canonicalPage, true);
@@ -204,6 +208,7 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
         contextSelectors={
           <>
             <Input
+              ref={searchInput}
               type="search"
               aria-label="Tìm kiếm danh mục"
               placeholder={activeView === 'ingredients' ? 'Tìm mã, tên nguyên liệu...' : 'Tìm mã, tên món ăn...'}
@@ -213,9 +218,9 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
               onCompositionEnd={() => setIsComposing(false)}
               className="h-9 w-full sm:w-60 text-sm"
             />
-            <Button variant="outline" size="default" className="h-9 text-xs" aria-label="Xóa tìm kiếm danh mục" disabled={!searchKeyword} onClick={() => setSearchKeyword('')}>Xóa</Button>
+            <Button variant="outline" size="default" className="h-9 text-xs" aria-label="Xóa tìm kiếm danh mục" disabled={!searchKeyword} onClick={() => { setSearchKeyword(''); searchInput.current?.focus(); }}>Xóa tìm kiếm</Button>
             <WorkspaceHeader.BadgeSlot variant="metric">
-              <Badge variant="neutral" size="default" className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap animate-in fade-in duration-150">
+              <Badge variant="neutral" size="default" className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap">
                 <Num value={pageInfo?.totalCount} /> {activeView === 'ingredients' ? 'nguyên liệu' : 'món ăn'}
               </Badge>
             </WorkspaceHeader.BadgeSlot>
@@ -253,25 +258,51 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
           {...stateProps}
           isLoading={stateProps.isLoading || needsPageCorrection}
           hasExistingData={stateProps.hasExistingData && !needsPageCorrection && !(stateProps.error && isPreviousResult)}
-          isEmpty={stateProps.isEmpty && !needsPageCorrection}
-          emptyScenario={searchKeyword.trim() ? 'filter-empty' : 'true-empty'}
+          isEmpty={stateProps.isEmpty && !needsPageCorrection && !keyword}
+          emptyScenario={keyword ? 'filter-empty' : 'true-empty'}
           onResetFilters={() => setSearchKeyword('')}
-          actionLabel={searchKeyword.trim() ? 'Xóa từ khóa tìm kiếm' : undefined}
-          onAction={searchKeyword.trim() ? () => setSearchKeyword('') : () => void loadData(true)}
+          actionLabel={keyword ? 'Xóa từ khóa tìm kiếm' : undefined}
+          onAction={keyword ? () => setSearchKeyword('') : () => void loadData(true)}
           contextDomain="catalog"
           onRetry={() => void loadData(true)}
         >
-          {activeView === 'ingredients' ? (
+          {(queryResult?.activeView ?? activeView) === 'ingredients' ? (
             <DataGrid<IngredientItem>
               data={items as IngredientItem[]}
               columns={ingredientColumns}
               keyExtractor={(row) => row.ingredientId}
+              emptyState={
+                keyword ? (
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-semibold text-slate-900">Không tìm thấy danh mục phù hợp</p>
+                    <p className="text-xs text-slate-500 max-w-sm leading-relaxed">Thử từ khóa khác hoặc xóa tìm kiếm.</p>
+                    <div className="pt-1">
+                      <Button variant="outline" size="xs" onClick={() => setSearchKeyword('')}>
+                        Xóa từ khóa tìm kiếm
+                      </Button>
+                    </div>
+                  </div>
+                ) : undefined
+              }
             />
           ) : (
             <DataGrid<DishItem>
               data={items as DishItem[]}
               columns={dishColumns}
               keyExtractor={(row) => row.dishId}
+              emptyState={
+                keyword ? (
+                  <div className="text-center space-y-2">
+                    <p className="text-sm font-semibold text-slate-900">Không tìm thấy danh mục phù hợp</p>
+                    <p className="text-xs text-slate-500 max-w-sm leading-relaxed">Thử từ khóa khác hoặc xóa tìm kiếm.</p>
+                    <div className="pt-1">
+                      <Button variant="outline" size="xs" onClick={() => setSearchKeyword('')}>
+                        Xóa từ khóa tìm kiếm
+                      </Button>
+                    </div>
+                  </div>
+                ) : undefined
+              }
             />
           )}
         </StateBoundary>

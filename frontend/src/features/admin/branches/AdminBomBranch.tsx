@@ -20,6 +20,7 @@ import { InlineBanner } from '../../../components/ui/inline-banner';
 import { ActionGuard } from '../../../components/ui/action-guard';
 import { useAuth } from '../../../store/useAuth';
 import { serverStateCache } from '../../../store/serverStateCache';
+import { invalidateMrxCaches } from '../../../api/mrxCacheInvalidation';
 
 const CATALOG_WRITE_ROLES = ['Admin', 'ADMIN', 'Manager', 'MANAGER', 'Quản lý'];
 
@@ -37,10 +38,12 @@ export function AdminBomBranch() {
     enabled: selectedTier === undefined || (!tiersLoading && !tiersError && tierValid),
     queryFn: (_, signal) => bomApi.getBomCoverage(selectedTier, signal),
   });
-  const report = coverageQuery.stateProps.isPreviousData || !tierValid ||
-    (coverageQuery.data?.priceTier ?? undefined) !== selectedTier ? null : coverageQuery.data;
   const { isLoading: queryLoading, error, isFetching } = coverageQuery.stateProps;
-  const isLoading = queryLoading || (isFetching && !report) || (Boolean(selectedTier) && tiersLoading);
+  const report = !tierValid || (error && (coverageQuery.data?.priceTier ?? undefined) !== selectedTier)
+    ? null
+    : coverageQuery.data;
+  const isPreviousReport = Boolean(report && !error && (coverageQuery.stateProps.isPreviousData || (report.priceTier ?? undefined) !== selectedTier));
+  const isLoading = !report && (queryLoading || isFetching || (Boolean(selectedTier) && tiersLoading));
   const statusFilter = filters.bomStatus === 'MISSING' || filters.bomStatus === 'COMPLETE' ? filters.bomStatus : 'ALL';
   const setStatusFilter = (value: 'ALL' | 'MISSING' | 'COMPLETE') => setFilter('bomStatus', value);
   const [, setSearchParams] = useSearchParams();
@@ -58,6 +61,7 @@ export function AdminBomBranch() {
   const afterSaved = () => {
     serverStateCache.deletePrefix('admin_data_bom_coverage');
     serverStateCache.deletePrefix('snapshot:admin_bom_coverage');
+    invalidateMrxCaches();
     void loadData();
   };
 
@@ -155,7 +159,7 @@ export function AdminBomBranch() {
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white">
       {/* Zone 2: Telemetry Subbar with 4 KPI items */}
-      <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div className="min-h-11 px-4 py-1.5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-500">Độ phủ định mức BOM:</span>
           <span className="font-semibold text-slate-800 flex items-center gap-1.5">
@@ -197,10 +201,10 @@ export function AdminBomBranch() {
           <button
             type="button"
             onClick={() => setStatusFilter('ALL')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer ${
+            className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer ${
               statusFilter === 'ALL'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                ? 'bg-slate-900 border-slate-900 text-white'
+                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
             }`}
           >
             Tất cả ({report ? totalCount : '—'})
@@ -208,10 +212,10 @@ export function AdminBomBranch() {
           <button
             type="button"
             onClick={() => setStatusFilter('MISSING')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
               statusFilter === 'MISSING'
-                ? 'bg-amber-600 text-white font-bold'
-                : 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100'
+                ? 'bg-amber-600 border-amber-600 text-white'
+                : 'bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100'
             }`}
           >
             <AlertTriangle size={12} aria-hidden="true" />
@@ -220,10 +224,10 @@ export function AdminBomBranch() {
           <button
             type="button"
             onClick={() => setStatusFilter('COMPLETE')}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1 rounded border text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
               statusFilter === 'COMPLETE'
-                ? 'bg-emerald-700 text-white font-bold'
-                : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                ? 'bg-emerald-700 border-emerald-700 text-white'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-800 hover:bg-emerald-100'
             }`}
           >
             <CheckCircle2 size={12} aria-hidden="true" />
@@ -262,24 +266,36 @@ export function AdminBomBranch() {
         <StateBoundary
           isLoading={isLoading}
           isFetching={isFetching}
+          isPreviousData={isPreviousReport}
           hasExistingData={Boolean(report)}
           error={error}
           onRetry={() => void loadData()}
-          isEmpty={!isLoading && !error && filteredDishes.length === 0}
-          emptyScenario={searchQuery.trim() || statusFilter !== 'ALL' ? 'filter-empty' : 'true-empty'}
-          onResetFilters={clearFilters}
-          actionLabel={searchQuery.trim() || statusFilter !== 'ALL' ? 'Xóa bộ lọc (Xem tất cả)' : undefined}
-          onAction={clearFilters}
-          emptyTitle={statusFilter === 'MISSING' ? 'Đã hoàn tất định mức BOM' : 'Không tìm thấy món ăn'}
+          isEmpty={!isLoading && !error && dishes.length === 0 && !searchQuery.trim() && statusFilter === 'ALL'}
+          emptyScenario="true-empty"
+          emptyTitle="Không tìm thấy món ăn"
           emptyDescription="Không có món phù hợp bộ lọc."
           contextDomain="catalog"
         >
           <DataGrid
-            key={`${statusFilter}:${searchQuery}:${currentPage}:${pageSize}`}
             data={pageDishes}
             columns={columns}
             keyExtractor={(row) => row.dishId}
             minWidth="min-w-[900px]"
+            emptyState={
+              <div className="text-center space-y-2">
+                <p className="text-sm font-semibold text-slate-900">
+                  {statusFilter === 'MISSING' ? 'Đã hoàn tất định mức BOM' : 'Không tìm thấy món ăn'}
+                </p>
+                <p className="text-xs text-slate-500 max-w-sm leading-relaxed">Không có món phù hợp bộ lọc.</p>
+                {(searchQuery.trim() || statusFilter !== 'ALL') && (
+                  <div className="pt-1">
+                    <Button type="button" variant="outline" size="xs" onClick={clearFilters}>
+                      Xóa bộ lọc (Xem tất cả)
+                    </Button>
+                  </div>
+                )}
+              </div>
+            }
           />
         </StateBoundary>
       </div>

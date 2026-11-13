@@ -55,6 +55,7 @@ public class DishBomPolicyTests
         DishBomPolicy.MapStatusLabel("DRAFT").Should().Be("Draft");
         DishBomPolicy.NormalizeTemplateType(null, hasDishFilter: false).Should().Be("missing");
         DishBomPolicy.NormalizeTemplateType(null, hasDishFilter: true).Should().Be("dish");
+        DishBomPolicy.NormalizeTemplateType("by-dish", hasDishFilter: false).Should().Be("all");
         DishBomPolicy.NormalizeTemplateType("unknown", hasDishFilter: true).Should().Be("missing");
     }
 }

@@ -463,6 +463,10 @@ public class SampleDataImportServiceTests
             new DateOnly(2026, 6, 15),
             25000m);
 
+        result.CustomerId.Should().Be(setup.CustomerIdString);
+        result.WeekStartDate.Should().Be(new DateOnly(2026, 6, 15));
+        result.PreviewToken.Should().BeNull();
+        result.PreviewExpiresAt.Should().BeNull();
         result.Validation.HasCriticalErrors.Should().BeTrue();
         result.Validation.Issues.Should().ContainSingle(issue =>
             issue.Code == "FILE_READ_ERROR" &&

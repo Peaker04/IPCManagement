@@ -8,6 +8,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { AdminBomBranch } from '../features/admin/branches/AdminBomBranch';
 import type { BomCoverageReport } from '../api/bomApi';
 import * as apiTransport from '../api/client';
+import { serverStateCache } from '../store/serverStateCache';
 
 describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
   const mockCoverageReport: BomCoverageReport = {
@@ -231,6 +232,60 @@ describe('AdminBomBranch Sub-tree Branch Tests (Rule TA-2 & TA-4)', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Định mức BOM: Gà hấp lá chanh/)).toBeInTheDocument();
+    });
+  });
+
+  it('K3: keeps DataGrid table and sticky thead mounted when filter or search returns 0 dishes', async () => {
+    const { container } = render(<MemoryRouter><AdminBomBranch /></MemoryRouter>);
+    await screen.findByText('Cơm sườn nướng');
+    expect(container.querySelectorAll('table').length).toBe(1);
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Tìm kiếm món ăn' }), { target: { value: 'KHONG_TON_TAI_XYZ' } });
+    expect(screen.getByText('Không tìm thấy món ăn')).toBeInTheDocument();
+    expect(container.querySelectorAll('table').length).toBe(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /Xóa bộ lọc/i }));
+    expect(screen.getByText('Cơm sườn nướng')).toBeInTheDocument();
+  });
+
+  it('M9: invalidates mrx_preview_ and mrx_source_ cache entries when BOM is saved', async () => {
+    serverStateCache.set('mrx_preview_c1_2026-10-19', { items: [] });
+    serverStateCache.set('mrx_source_c1_2026-10-19', { items: [] });
+
+    vi.mocked(apiTransport.apiClient).mockImplementation(async (endpoint, options) => {
+      const url = new URL(endpoint, 'http://localhost');
+      if (url.pathname === '/system-operation-mode') return { mode: 'MATERIAL_RECONCILIATION', label: 'MRX', version: 1, updatedAt: '2026-11-02T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } };
+      if (url.pathname === '/Dishes/bom-price-tiers') return [25000, 30000, 34000];
+      if (url.pathname === '/Dishes/bom-coverage') return mockCoverageReport;
+      if (url.pathname === '/Dishes/d-3/bom' && (!options || !options.method || options.method === 'GET')) return [];
+      if (url.pathname === '/Dishes/d-3/bom' && options?.method === 'POST') return {
+        bomId: 'bom-new', dishId: 'd-3', dishCode: 'MON-03', dishName: 'Gà hấp lá chanh',
+        ingredientId: 'ing-1', ingredientCode: 'NL-GA', ingredientName: 'Thịt gà',
+        unitId: 'u-kg', unitCode: 'kg', unitName: 'kg', priceTierAmount: 25000,
+        bomScope: 'global', grossQtyPerServing: 0.2, wasteRatePercent: 0,
+        bomStatus: 'PUBLISHED', bomStatusLabel: 'Đã phát hành', effectiveFrom: '2026-01-01',
+      };
+      if (url.pathname === '/ingredients') return {
+        items: [{ ingredientId: 'ing-1', ingredientCode: 'NL-GA', ingredientName: 'Thịt gà', unitId: 'u-kg', unitName: 'kg', isActive: true }],
+        totalCount: 1, pageNumber: 1, pageSize: 200, totalPages: 1, hasPrev: false, hasNext: false,
+      };
+      if (url.pathname === '/coordination/customers') return [];
+      throw new Error(`Unexpected request ${endpoint}`);
+    });
+
+    render(<MemoryRouter><AdminBomBranch /></MemoryRouter>);
+    await screen.findByText('Gà hấp lá chanh');
+
+    const editBtns = screen.getAllByRole('button', { name: 'Chỉnh sửa BOM' });
+    fireEvent.click(editBtns[2]);
+
+    const qtyInput = await screen.findByLabelText('Định mức / suất');
+    fireEvent.change(qtyInput, { target: { value: '0.2' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Thêm vào BOM' }));
+
+    await waitFor(() => {
+      expect(serverStateCache.get('mrx_preview_c1_2026-10-19')).toBeNull();
+      expect(serverStateCache.get('mrx_source_c1_2026-10-19')).toBeNull();
     });
   });
 });

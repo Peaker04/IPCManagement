@@ -1,6 +1,7 @@
 using System.Data;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Transactions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,7 +29,7 @@ public sealed class ReconciliationCompletionService(
                 var usesDailyLineage = dailyProjection is not null
                     && dailyProjection.Compatibility.ReasonCode != "LEGACY_DAILY_LINEAGE_MISSING";
                 if (usesDailyLineage && dailyProjection!.WeeklyStatus != "WEEK_COMPLETE")
-                    throw new InvalidOperationException("Chưa thể hoàn tất khi vẫn còn ngày chưa xuất đủ hoặc chênh lệch chưa xử lý.");
+                    throw new BusinessRuleException("Chưa thể hoàn tất khi vẫn còn ngày chưa xuất đủ hoặc chênh lệch chưa xử lý.");
                 if (!usesDailyLineage)
                 {
                     var lineIds = batch.Lines.Select(x => x.BatchLineId).ToList();
@@ -43,11 +44,11 @@ public sealed class ReconciliationCompletionService(
                             actuals.Where(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)).ToList(),
                             dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId)),
                             ReconciliationBatchService.LinkedQuantity(linkedIssued, line.BatchLineId));
-                        if (comparison.IssuedQuantity is null) throw new InvalidOperationException("Mọi dòng phải có số lượng xuất kho liên kết.");
+                        if (comparison.IssuedQuantity is null) throw new BusinessRuleException("Mọi dòng phải có số lượng xuất kho liên kết.");
                         if (comparison.Triggers.Count > 0)
                         {
                             var disposition = dispositions.FirstOrDefault(x => x.BatchLineId.AsSpan().SequenceEqual(line.BatchLineId));
-                            if (disposition is null || string.IsNullOrWhiteSpace(disposition.Reason)) throw new InvalidOperationException("Mọi dòng cần kiểm tra phải có hướng xử lý và lý do.");
+                            if (disposition is null || string.IsNullOrWhiteSpace(disposition.Reason)) throw new BusinessRuleException("Mọi dòng cần kiểm tra phải có hướng xử lý và lý do.");
                         }
                     }
                 }

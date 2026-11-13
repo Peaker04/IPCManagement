@@ -68,6 +68,7 @@ public static class DishBomPolicy
             : templateType.Trim().ToLowerInvariant();
         return normalized switch
         {
+            "by-dish" => "all",
             "missing" or "blank" or "all" or "dish" => normalized,
             _ => "missing"
         };

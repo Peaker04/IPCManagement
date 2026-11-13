@@ -151,6 +151,7 @@ internal static class WeeklyMenuImportValidationPolicy
     internal static WeeklyMenuImportResultDto BuildInvalidResult(
         string fileName,
         string customerId,
+        DateOnly? weekStartDate,
         string code,
         string message,
         string field)
@@ -162,6 +163,7 @@ internal static class WeeklyMenuImportValidationPolicy
         {
             FileName = fileName,
             CustomerId = customerId,
+            WeekStartDate = weekStartDate,
             Validation = validation,
             Warnings = [message]
         };

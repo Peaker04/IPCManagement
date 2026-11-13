@@ -10,6 +10,7 @@ import { clearAllServerCache } from '../store/serverStateCache';
 import userEvent from '@testing-library/user-event';
 import * as apiTransport from '../api/client';
 import { mrxApi, type MrxMaterialInspectionPage } from '../api/mrxApi';
+import { adminApi } from '../api/adminApi';
 import { MrxQuantityInspectionPage } from '../features/weekly-menu/MrxQuantityInspectionPage';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { systemApi } from '../api/systemApi';
@@ -74,7 +75,7 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
           ] },
         { ingredientId: 'i-2', ingredientCode: 'ING-2', ingredientName: 'Gia vị', canonicalUnitId: 'kg', canonicalUnitName: '', requiredQuantity: 0.000123,
           contributions: [{ serviceDate: '2026-10-19', shift: 'MORNING', quantityPlanLineId: 'line-1', dishId: 'dish-1', dishName: 'Đậu chay xào', dishSlot: 'main', finalServings: 1,
-            material: { ...material, dishBomId: 'bom-3', ingredientId: 'i-2', ingredientCode: 'ING-2', ingredientName: 'Gia vị', grossQuantityPerServing: 0.000123, sourceUnitId: 'g', sourceUnitName: 'g', requiredQuantity: 0.000123, canonicalUnitName: '' } }] },
+            material: { ...material, dishBomId: 'bom-3', ingredientId: 'i-2', ingredientCode: 'ING-2', ingredientName: 'Gia vị', grossQuantityPerServing: 0.0000004, sourceUnitId: 'g', sourceUnitName: 'g', requiredQuantity: 0.000123, canonicalUnitName: '' } }] },
       ], totalCount: 2, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false },
     };
     const transport = vi.spyOn(apiTransport, 'apiClient').mockImplementation(async path => {
@@ -93,7 +94,7 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
     const missingUnit = screen.getByRole('row', { name: /Gia vị/ });
     expect(within(missingUnit).getByText('Chưa rõ đơn vị', { exact: true })).toBeVisible();
     await userEvent.click(missingUnit);
-    expect(screen.getByText('0,000123 g', { exact: true })).toBeVisible();
+    expect(screen.getByText('0,0000004 g', { exact: true })).toBeVisible();
     expect(screen.getByText('0,000123 Chưa rõ đơn vị', { exact: true })).toBeVisible();
     transport.mockRestore();
   });
@@ -127,6 +128,22 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
       hasPrev: false,
       hasNext: false,
     });
+    vi.spyOn(mrxApi, 'getEditScope').mockResolvedValue({
+      batchId: null,
+      batchStatus: null,
+      batchVersion: null,
+      menuVersionId: 'mv-w42',
+      days: [],
+    });
+    vi.spyOn(adminApi, 'getDishes').mockResolvedValue({
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 100,
+      totalPages: 0,
+      hasPrev: false,
+      hasNext: false,
+    });
 
     // First visit: loads from network
     const { unmount } = render(
@@ -139,8 +156,7 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
       </AuthProvider>
     );
 
-    expect(await screen.findByText('Phiên bản nguồn:')).toBeInTheDocument();
-    expect(screen.getByText('v3')).toBeInTheDocument();
+    expect(await screen.findByText('v3')).toBeInTheDocument();
     expect(apiCalls).toBe(1);
 
     // Unmount (user navigates away to another route)
@@ -308,10 +324,9 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
       </AuthProvider>
     );
 
-    expect(await screen.findByRole('combobox', { name: 'Chọn lô đối soát' })).toBeInTheDocument();
-    const batchSelect = screen.getByRole('combobox', { name: 'Chọn lô đối soát' });
-    expect(batchSelect).toBeDisabled();
-    expect(batchSelect).toHaveTextContent('(Chưa có lô đối soát)');
+    expect(await screen.findByRole('heading', { name: /Chưa có lô đối soát cho tháng/ })).toBeVisible();
+    expect(screen.getByRole('combobox', { name: 'Tháng đối soát' })).toBeEnabled();
+    expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát' })).toBeDisabled();
   });
 
   // 7. Tab view=completed: Tự động ẩn Stepper tiến trình và thanh đếm số râu ria của lô đang chạy
@@ -331,8 +346,8 @@ describe('Full MRX Modernization & Anti-Slop Suite (Zero-Skeleton, Truthful Step
       </AuthProvider>
     );
 
-    // Shows completed register subtitle
-    expect(await screen.findByText('Lô đối soát đã hoàn tất')).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', { name: 'Kỳ thời gian' })).toHaveValue('ALL');
+    expect(screen.getByRole('combobox', { name: 'Khách hàng hồ sơ hoàn tất' })).toBeVisible();
 
     // Hides active batch lifecycle stepper
     expect(screen.queryByText('Đang xuất ca')).not.toBeInTheDocument();

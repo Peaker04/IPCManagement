@@ -1,4 +1,6 @@
 import { PaginationBar } from '../../components/workbench/PaginationBar';
+import { WorkbenchSkeleton } from '../../components/workbench/WorkbenchSkeleton';
+import { useDeferredSkeleton } from '../../hooks/useDeferredSkeleton';
 import { useState, useRef, useEffect } from 'react';
 import { Modal } from '../../components/ui/modal';
 import { Button } from '../../components/ui/button';
@@ -14,6 +16,7 @@ import type { CustomerOption } from '../../types';
 import { useSupportedPriceTiers } from '../../hooks/useSupportedPriceTiers';
 import { useWeeklyMenuImportItems } from './hooks/useWeeklyMenuImportItems';
 import { WeeklyMenuImportPreview } from './WeeklyMenuImportPreview';
+import { getMrxDishSlotLabel, getMrxShiftLabel } from '../../constants/mrxConstants';
 
 interface WeeklyMenuImportModalProps {
   isOpen: boolean;
@@ -61,9 +64,12 @@ export function WeeklyMenuImportModal({
   const [isDownloading, setIsDownloading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeModalTab, setActiveModalTab] = useState<'upload' | 'history'>('upload');
-  const [historyState, setHistoryState] = useState<{ customerId: string; items: WeeklyMenuImportHistoryItem[]; error: string | null } | null>(null);
+  const [historyState, setHistoryState] = useState<{ customerId: string; page: number; items: WeeklyMenuImportHistoryItem[]; totalCount: number; error: string | null } | null>(null);
+  const [historyPage, setHistoryPage] = useState(1);
   const [historyRetry, setHistoryRetry] = useState(0);
   const history = historyState?.customerId === selectedCustomerId ? historyState : null;
+  const historyPending = !history || history.page !== historyPage;
+  const showHistorySkeleton = useDeferredSkeleton(historyPending && !history);
   const historyItems = history?.items ?? [];
   const [isRollingBack, setIsRollingBack] = useState(false);
   const [confirmRollbackId, setConfirmRollbackId] = useState<string | null>(null);
@@ -86,13 +92,13 @@ export function WeeklyMenuImportModal({
   useEffect(() => {
     if (activeModalTab !== 'history' || !isOpen) return;
     let ignore = false;
-    weeklyMenuApi.getImportHistory(selectedCustomerId)
+    weeklyMenuApi.getImportHistory(selectedCustomerId, historyPage, 20)
       .then((res) => {
-        if (!ignore) setHistoryState({ customerId: selectedCustomerId, items: res.items, error: null });
+        if (!ignore) setHistoryState({ customerId: selectedCustomerId, page: historyPage, items: res.items, totalCount: res.totalCount, error: null });
       })
-      .catch((cause: unknown) => { if (!ignore) setHistoryState({ customerId: selectedCustomerId, items: [], error: cause instanceof Error ? cause.message : 'Không thể tải lịch sử nhập.' }); });
+      .catch((cause: unknown) => { if (!ignore) setHistoryState({ customerId: selectedCustomerId, page: historyPage, items: [], totalCount: 0, error: cause instanceof Error ? cause.message : 'Không thể tải lịch sử nhập.' }); });
     return () => { ignore = true; snapshotRequest.current += 1; };
-  }, [activeModalTab, selectedCustomerId, isOpen, historyRetry]);
+  }, [activeModalTab, selectedCustomerId, historyPage, isOpen, historyRetry]);
 
   const executeRollback = async (menuVersionId: string) => {
     if (isRollingBack || isLoading) return;
@@ -103,8 +109,8 @@ export function WeeklyMenuImportModal({
       const res = await weeklyMenuApi.rollbackImport(menuVersionId);
       setRollbackSuccess(`Đã hủy phiên nhập thành công (gỡ bỏ ${res.menuSchedulesRemoved} lịch thực đơn).`);
       // Reload history
-      const historyRes = await weeklyMenuApi.getImportHistory(selectedCustomerId);
-      setHistoryState({ customerId: selectedCustomerId, items: historyRes.items, error: null });
+      const historyRes = await weeklyMenuApi.getImportHistory(selectedCustomerId, historyPage, 20);
+      setHistoryState({ customerId: selectedCustomerId, page: historyPage, items: historyRes.items, totalCount: historyRes.totalCount, error: null });
       onImportSuccess();
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : 'Không thể hủy phiên nhập.');
@@ -121,7 +127,6 @@ export function WeeklyMenuImportModal({
     const request = ++snapshotRequest.current;
     setSnapshotVersionId(menuVersionId);
     setIsLoadingSnapshot(true);
-    setHistorySnapshot(null);
     setHistorySnapshotMessage(null);
     setSnapshotError(null);
     try {
@@ -129,6 +134,7 @@ export function WeeklyMenuImportModal({
       if (request === snapshotRequest.current) setHistorySnapshot(snapshot);
     } catch (cause) {
       if (request !== snapshotRequest.current) return;
+      setHistorySnapshot(null);
       if (cause instanceof ApiError && cause.status === 404) setHistorySnapshotMessage('Không có dữ liệu nguồn được lưu cho phiên nhập này.');
       else setSnapshotError(cause instanceof Error ? cause.message : 'Không thể tải nguồn đã lưu.');
     } finally {
@@ -142,7 +148,7 @@ export function WeeklyMenuImportModal({
     setError(null);
     try {
       const url = weeklyMenuApi.getWeeklyMenuTemplateUrl(selectedCustomerId, toIsoDate(weekStartDate));
-      await downloadAuthenticatedFile(url, 'mau-thuc-don-tuan.xlsx');
+      await downloadAuthenticatedFile(url);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể tải mẫu thực đơn. Vui lòng thử lại.'); }
     finally { setIsDownloading(false); }
   };
@@ -187,8 +193,9 @@ export function WeeklyMenuImportModal({
         onClose();
       }}
       title="Nhập thực đơn tuần từ file Excel"
-      description="Chọn 1–10 file; xác nhận khách hàng, tuần và mốc giá riêng cho từng file. Nhóm chỉ lưu bản nháp, MRX chỉ nhận phạm vi chưa có lô."
+      description="Kiểm tra khách hàng, tuần và mức giá trước khi nhập. Nhập nhiều file sẽ lưu bản nháp."
       maxWidth="max-w-5xl"
+      className={activeModalTab === 'history' ? 'mrx-import-history-frame' : undefined}
       footer={(requestClose) => (
         <div className="flex items-center justify-between w-full">
           {activeModalTab === 'upload' ? (
@@ -251,7 +258,7 @@ export function WeeklyMenuImportModal({
                 : 'border-transparent text-slate-500 hover:text-slate-800'
             }`}
           >
-            Lịch sử import & Khôi phục ({historyItems.length})
+            Lịch sử nhập ({history && !history.error ? history.totalCount : '—'})
           </button>
         </div>
 
@@ -268,26 +275,29 @@ export function WeeklyMenuImportModal({
         {activeModalTab === 'history' ? (
           <div className="space-y-3">
             <p className="text-xs text-slate-600">
-              Danh sách các phiên nhập thực đơn gần đây của khách hàng. Có thể hủy phiên import nếu chưa chốt đối soát.
+              Có thể hủy phiên nhập khi lô chưa chốt đối soát.
             </p>
-            {history?.error && <InlineBanner variant="error" actionLabel="Tải lại lịch sử" onAction={() => { setHistoryState(null); setHistoryRetry((value) => value + 1); clearSnapshot(); }}>{history.error}</InlineBanner>}
-            {!history && <p role="status">Đang tải lịch sử nhập…</p>}
-            {history && !history.error && <div className="border border-slate-200 rounded overflow-x-auto">
+            <div className="mrx-import-history-table border border-slate-200 rounded overflow-x-auto" aria-busy={historyPending || undefined} data-loading-phase={showHistorySkeleton ? 'visible' : 'reserved'}>
               <table className="w-full text-left text-sm border-collapse">
                 <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 sticky top-0">
                   <tr>
                     <th className="p-2.5">Phiên bản / File</th>
                     <th className="p-2.5">Tuần bắt đầu</th>
                     <th className="p-2.5">Thời gian tải</th>
-                    <th className="p-2.5 text-center">Dòng hợp lệ</th>
+                    <th className="p-2.5 text-right">Dòng hợp lệ</th>
                     <th className="p-2.5 text-right">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
-                  {historyItems.length === 0 ? (
+                  {!history ? <>
+                    <tr><td colSpan={5}><span role="status" className="sr-only">Đang tải lịch sử nhập…</span></td></tr>
+                    {Array.from({ length: 5 }, (_, row) => <tr key={row} data-skeleton-mark aria-hidden="true"><td colSpan={5} className="h-10 bg-slate-50" /></tr>)}
+                  </> : history.error ? <tr><td colSpan={5} className="p-3">
+                    <InlineBanner variant="error" actionLabel="Tải lại lịch sử" onAction={() => { setHistoryState(null); setHistoryRetry((value) => value + 1); clearSnapshot(); }}>{history.error}</InlineBanner>
+                  </td></tr> : historyItems.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="p-4 text-center text-slate-500 italic">
-                        Chưa có lịch sử import cho khách hàng này.
+                        Chưa có lịch sử nhập cho khách hàng này.
                       </td>
                     </tr>
                   ) : (
@@ -305,7 +315,7 @@ export function WeeklyMenuImportModal({
                         <td className="p-2.5 text-slate-600">
                           {new Date(item.createdAt).toLocaleDateString('vi-VN')}
                         </td>
-                        <td className="p-2.5 text-center font-mono font-bold text-slate-800">
+                        <td className="p-2.5 text-right font-mono tabular-nums font-bold text-slate-800">
                           {item.successRowCount}
                         </td>
                         <td className="p-2.5 text-right">
@@ -313,7 +323,7 @@ export function WeeklyMenuImportModal({
                             <Button
                               variant="outline"
                               size="xs"
-                              disabled={isLoadingSnapshot}
+                              disabled={isLoadingSnapshot || historyPending}
                               onClick={() => void showImportSnapshot(item.menuVersionId)}
                             >
                               Xem nguồn
@@ -324,7 +334,7 @@ export function WeeklyMenuImportModal({
                                   <Button
                                     variant="destructive"
                                     size="xs"
-                                    disabled={isRollingBack}
+                                    disabled={isRollingBack || historyPending}
                                     onClick={() => void executeRollback(item.menuVersionId)}
                                     className="h-7 px-2 text-xs"
                                   >
@@ -344,7 +354,7 @@ export function WeeklyMenuImportModal({
                                 <Button
                                   variant="outline"
                                   size="xs"
-                                  disabled={isRollingBack}
+                                  disabled={isRollingBack || historyPending}
                                   onClick={() => handleRollback(item.menuVersionId)}
                                   className="text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                                 >
@@ -361,11 +371,15 @@ export function WeeklyMenuImportModal({
                   )}
                 </tbody>
               </table>
-            </div>}
+            </div>
+            {history && !history.error && <PaginationBar label="Phân trang lịch sử nhập" hideVisibleLabel page={history.page} pageSize={20} totalCount={history.totalCount} pending={historyPending}
+              totalPages={Math.max(1, Math.ceil(history.totalCount / 20))} hasPrev={historyPage > 1}
+              hasNext={historyPage * 20 < history.totalCount} onPageChange={page => { clearSnapshot(); setHistoryPage(page); }} placement="toolbar" />}
             {(isLoadingSnapshot || historySnapshotMessage || historySnapshot || snapshotError) && (
-              <div className="border border-slate-200 rounded p-3" aria-live="polite">
-                {isLoadingSnapshot ? (
-                  <p className="text-xs text-slate-500">Đang tải bằng chứng nguồn…</p>
+              <div className="border border-slate-200 rounded p-3" aria-live="polite" aria-busy={isLoadingSnapshot || undefined}>
+                {isLoadingSnapshot && historySnapshot && <span className="sr-only">Đang tải nguồn khác; nội dung đang hiển thị thuộc lần xem trước.</span>}
+                {isLoadingSnapshot && !historySnapshot ? (
+                  <WorkbenchSkeleton geometry={{ kind: 'table', columns: 3, rows: 5 }} />
                 ) : snapshotError ? (
                   <InlineBanner variant="error" actionLabel="Tải lại nguồn" onAction={() => void showImportSnapshot(snapshotVersionId)}>{snapshotError}</InlineBanner>
                 ) : historySnapshotMessage ? (
@@ -378,13 +392,13 @@ export function WeeklyMenuImportModal({
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs">
                         <thead className="text-slate-500">
-                          <tr><th className="py-1">Ngày</th><th>Ca / slot</th><th>Món</th></tr>
+                          <tr><th className="py-1">Ngày</th><th>Ca / Nhóm món</th><th>Món</th></tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {historySnapshot.rows.map((row) => (
                             <tr key={`${row.serviceDate}-${row.shiftName}-${row.sourceOrder}-${row.dishSlot}`}>
                               <td className="py-1 font-mono">{toVietnameseDate(row.serviceDate)}</td>
-                              <td>{row.shiftName} · {row.dishSlot}</td>
+                              <td>{getMrxShiftLabel(row.shiftName)} · {getMrxDishSlotLabel(row.dishSlot)}</td>
                               <td>{row.dishName}</td>
                             </tr>
                           ))}
@@ -407,10 +421,10 @@ export function WeeklyMenuImportModal({
           </div>
         ) : (
           <>
-            {isLoadingTiers && <p role="status">Đang tải mốc giá BOM…</p>}
+            {isLoadingTiers && <p role="status" className="sr-only">Đang tải mốc giá BOM…</p>}
             {tierError && <InlineBanner variant="error" actionLabel="Tải lại mốc giá" onAction={() => void retryTiers()}>{tierError.message}</InlineBanner>}
             {imports.duplicateScope && <InlineBanner variant="warning">Mỗi khách hàng và tuần chỉ được có một file trong nhóm.</InlineBanner>}
-            {imports.items.length > 1 && <p className="text-xs">Nhóm chỉ lưu bản nháp, không tự động công bố. Phạm vi MRX đã có lô phải import lại từng file.</p>}
+            {imports.items.length > 1 && <p className="text-xs">Nhập nhóm chỉ lưu bản nháp, không tự động công bố. Muốn cập nhật tuần đã có lô, hãy nhập từng file và xem trước các ngày được phép thay đổi.</p>}
             <div className="space-y-2" aria-label="Các file nhập">
               {imports.items.filter(candidate => candidate.file).map(candidate => <div key={candidate.id} className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" aria-pressed={candidate.id === item.id} onClick={() => setSelectedItemId(candidate.id)}>{candidate.file!.name}</Button>
@@ -438,6 +452,7 @@ export function WeeklyMenuImportModal({
               onChange={(e) => {
                 if (imports.isCommitting || isRollingBack) return;
                 imports.updateItem(item.id, { customerId: e.target.value });
+                setHistoryPage(1);
                 clearSnapshot();
               }}
               className="w-full h-9 text-sm"
@@ -453,7 +468,7 @@ export function WeeklyMenuImportModal({
             <VietnameseDateInput
               aria-label="Tuần bắt đầu nhập"
               aria-describedby={weekContextId}
-              readOnly={item.weekMode === 'auto' || item.weekMode === 'saved' || item.weekMode === 'current'}
+              readOnly={item.weekMode === 'saved' || item.weekMode === 'current'}
               required
               isDateAllowed={isWeekStartDate}
               validationMessage="Ngày bắt đầu tuần phải là Thứ Hai."
@@ -465,7 +480,7 @@ export function WeeklyMenuImportModal({
               onChange={(date) => imports.updateItem(item.id, { weekStartDate: date })}
               className="w-full h-9 font-mono text-sm"
             />
-            {(item.weekMode === 'auto' || item.weekMode === 'saved') && <Button variant="ghost" size="sm" disabled={imports.isCommitting || isRollingBack} onClick={() => imports.enableWeekChange(item.id)}>Đổi tuần</Button>}
+            {item.weekMode === 'saved' && <Button variant="ghost" size="sm" disabled={imports.isCommitting || isRollingBack} onClick={() => imports.enableWeekChange(item.id)}>Đổi tuần</Button>}
             </div>
             <div id={weekContextId} className="min-h-5 text-xs text-slate-600" aria-live="polite">
               {weekContext}
@@ -482,7 +497,7 @@ export function WeeklyMenuImportModal({
           <span className="block text-xs font-semibold text-slate-700 mb-1.5">
             Mức giá suất ăn <span className="text-rose-600">*</span>
           </span>
-          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Mốc giá suất ăn">
+          <div className="grid grid-cols-3 gap-2 min-h-9" role="radiogroup" aria-label="Mốc giá suất ăn" aria-busy={isLoadingTiers || undefined}>
             {tiers.map((tier) => {
               const isSelected = item.priceTierAmount === tier;
               return (
@@ -543,7 +558,12 @@ export function WeeklyMenuImportModal({
           </label>
         </div>}
 
-        {previewResult && <WeeklyMenuImportPreview key={`${item.id}-${previewResult.previewToken ?? item.revision}`} result={previewResult} priceTierAmount={item.priceTierAmount} />}
+        {previewResult && <>
+          <p role="status" className="text-xs text-slate-700">{imports.items.length > 1 ? 'Xác nhận sẽ lưu các file thành bản nháp.'
+            : isMrxReimport ? mrxActorRole === 'COORDINATOR' ? 'Xác nhận sẽ gửi thay đổi nguồn để duyệt; các ngày đã xuất kho không được sửa.' : 'Xác nhận sẽ áp dụng các ngày được phép thay đổi vào lô hiện tại.'
+              : autoPublish ? 'Xác nhận sẽ lưu và xuất bản thực đơn để lập lô đối soát.' : 'Xác nhận sẽ chỉ lưu thực đơn thành bản nháp.'}</p>
+          <WeeklyMenuImportPreview key={`${item.id}-${previewResult.previewToken ?? item.revision}`} result={previewResult} priceTierAmount={item.priceTierAmount} />
+        </>}
       </>
     )}
   </div>

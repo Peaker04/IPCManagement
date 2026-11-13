@@ -54,6 +54,7 @@ public sealed class ReconciliationToleranceInitializer(IpcManagementContext cont
         context.ChangeTracker.Clear();
         var rows = await context.Reconciliationtolerances.AsNoTracking()
             .Where(row => row.ScopeKind == ReconciliationToleranceAuthority.SystemDefaultScope)
+            .OrderBy(row => row.ToleranceId)
             .Take(2)
             .ToListAsync(cancellationToken);
         return ReconciliationToleranceAuthority.ReadSystemDefault(rows);

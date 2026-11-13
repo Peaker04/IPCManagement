@@ -79,7 +79,7 @@ function Invoke-SevenZipWithPassword([string[]]$Arguments, [string]$Password) {
 }
 
 function New-DefaultsFile([string]$RunDirectory) {
-    $connector = Join-Path $workspace 'backend/src/IPCManagement.Api/bin/Release/net9.0/MySqlConnector.dll'
+    $connector = Join-Path $workspace 'backend/src/IPCManagement.Api/bin/Release/net10.0/MySqlConnector.dll'
     Assert-File $connector 'MySqlConnector Release assembly'
     Add-Type -Path $connector
     $json = Get-Content -Raw -LiteralPath $settings | ConvertFrom-Json

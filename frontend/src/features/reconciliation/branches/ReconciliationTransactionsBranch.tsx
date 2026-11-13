@@ -78,7 +78,7 @@ export function ReconciliationTransactionsBranch({ report, page, onPageChange, p
       header: 'Người thực hiện',
       width: '10%',
       minWidth: '110px',
-      cell: (row) => <span className="text-xs text-slate-700">{row.actorName || 'Thủ kho'}</span>,
+      cell: (row) => <span className="text-xs text-slate-700">{row.actorName?.trim() || 'Chưa rõ'}</span>,
     },
   ], []);
 
@@ -86,6 +86,8 @@ export function ReconciliationTransactionsBranch({ report, page, onPageChange, p
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
       <DataGrid
         data={report?.items ?? []}
+        hideHeaderWhenEmpty
+        minWidth="min-w-[1100px]"
         columns={transactionColumns}
         keyExtractor={(row, idx) => `${row.documentCode}-${row.ingredientCode || idx}`}
         emptyMessage="Chưa có giao dịch kho nào cho lô này."

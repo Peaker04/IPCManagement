@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS build
 
 WORKDIR /src
 
@@ -14,7 +14,7 @@ RUN dotnet publish backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
     --no-restore \
     /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.12 AS runtime
 
 WORKDIR /app
 

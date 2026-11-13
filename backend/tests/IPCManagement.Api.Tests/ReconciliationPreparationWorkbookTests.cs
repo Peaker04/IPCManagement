@@ -1,3 +1,5 @@
+using System.Data;
+using System.Data.Common;
 using System.IO.Compression;
 using System.Text;
 using FluentAssertions;
@@ -10,6 +12,7 @@ using IPCManagement.Api.Features.SystemOperation.Services;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using NSubstitute;
 using Xunit;
 
@@ -17,6 +20,46 @@ namespace IPCManagement.Api.Tests;
 
 public sealed class ReconciliationPreparationWorkbookTests
 {
+    [Fact]
+    public async Task Source_delta_history_filters_customer_code_before_paging()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (customerAId, _, batchAId, batchBId, ingredientId, _, _, date) = await SetupWorkbookFixtureAsync(fixture, context);
+        var customerCode = (await context.Customers.SingleAsync(item => item.CustomerId == customerAId)).CustomerCode;
+        context.Reconciliationsourcedeltas.AddRange(
+            new ReconciliationSourceDelta { SourceDeltaId = GuidHelper.NewId(), SourceRevisionId = GuidHelper.NewId(), BatchId = batchAId,
+                IngredientId = ingredientId, CanonicalUnitId = fixture.UnitId, ServiceDate = date,
+                PreviousRequiredQuantity = 1, NewRequiredQuantity = 2, DeltaQuantity = 1, WorkKind = "SOURCE_CHANGE", Status = "APPLIED", Version = 1, CreatedAt = DateTime.UtcNow },
+            new ReconciliationSourceDelta { SourceDeltaId = GuidHelper.NewId(), SourceRevisionId = GuidHelper.NewId(), BatchId = batchBId,
+                IngredientId = ingredientId, CanonicalUnitId = fixture.UnitId, ServiceDate = date,
+                PreviousRequiredQuantity = 1, NewRequiredQuantity = 3, DeltaQuantity = 2, WorkKind = "SOURCE_CHANGE", Status = "APPLIED", Version = 1, CreatedAt = DateTime.UtcNow });
+        await context.SaveChangesAsync();
+        var result = await new ReconciliationSourceRevisionService(context).GetPageAsync(new ReconciliationSourceDeltaPageQuery
+            { CustomerCode = customerCode, Status = "ALL", PageSize = 1 });
+        result.TotalCount.Should().Be(1);
+        result.Items.Single().BatchId.Should().Be(GuidHelper.ToGuidString(batchAId));
+    }
+
+    private sealed class WorkbookSnapshotReads : DbCommandInterceptor
+    {
+        public bool Enabled { get; set; }
+        public List<DbTransaction?> Transactions { get; } = [];
+        public List<IsolationLevel?> IsolationLevels { get; } = [];
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command, CommandEventData eventData, InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (Enabled && command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                Transactions.Add(command.Transaction);
+                IsolationLevels.Add(command.Transaction?.IsolationLevel);
+            }
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
     private static async Task<(byte[] CustomerAId, byte[] CustomerBId, byte[] BatchAId, byte[] BatchBId, byte[] IngSingleSupplier, byte[] IngNoSupplier, byte[] IngAmbiguousSupplier, DateOnly ServiceDate)> SetupWorkbookFixtureAsync(WorkflowGenerationTests.WorkflowFixture fixture, IpcManagementContext context, bool variedUnits = false)
     {
         await EnsureSchemaAsync(context);
@@ -148,7 +191,7 @@ public sealed class ReconciliationPreparationWorkbookTests
         Assert.Equal(5.5m, material.TotalQuantity);
         if (includeMenus)
         {
-            // Exercise the single-sheet renderer; frozen menu sourcing has its own export owner case.
+            // Exercise the menu sheet while keeping the same customer identity checks on the summary sheet.
             workbook = workbook with { MenuRows = [new(GuidHelper.ToGuidString(customerAId), "Trùng tên", GuidHelper.ToGuidString(batchAId), date, "Sáng", "Mặn", "D-1", "Món", 10)] };
         }
         Assert.Throws<InvalidOperationException>(() => PreparationWorkbookBuilder.BuildXlsx(workbook with { CustomerColumnDefinitions = [] }));
@@ -161,7 +204,7 @@ public sealed class ReconciliationPreparationWorkbookTests
         Assert.Contains(xml.Descendants(ns + "t"), cell => cell.Value == "AA · Trùng tên");
         Assert.Contains(xml.Descendants(ns + "t"), cell => cell.Value == "BB · Trùng tên");
         var row = Assert.Single(xml.Descendants(ns + "row"), item => item.Elements(ns + "c").Any(cell => cell.Value == "ING-SINGLE"));
-        var quantities = row.Elements(ns + "c").Skip(includeMenus ? 3 : 4).ToArray();
+        var quantities = row.Elements(ns + "c").Skip(4).ToArray();
         Assert.Equal(new[] { "2.5", "3", "5.5" }, quantities.Select(cell => cell.Element(ns + "v")!.Value));
         Assert.All(quantities, cell => Assert.Equal("n", (string?)cell.Attribute("t")));
     }
@@ -305,9 +348,12 @@ public sealed class ReconciliationPreparationWorkbookTests
             using var sheetStream = zip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
             System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             var xml = System.Xml.Linq.XDocument.Load(sheetStream);
-            xml.Descendants(ns + "t").Select(t => t.Value).Should().Contain(["CUS · Customer", "CUST-B · Khách hàng B", "Món Khách A", "Món Khách B"]);
+            xml.Descendants(ns + "t").Select(t => t.Value).Should().Contain(["CUS · Customer", "CUST-B · Khách hàng B"]);
+            using var menuStream = zip.GetEntry("xl/worksheets/sheet3.xml")!.Open();
+            var menuXml = System.Xml.Linq.XDocument.Load(menuStream);
+            menuXml.Descendants(ns + "t").Select(t => t.Value).Should().Contain(["Món Khách A", "Món Khách B"]);
             var matRow = Assert.Single(xml.Descendants(ns + "row"), r => r.Elements(ns + "c").Any(c => c.Value == "ING-SINGLE"));
-            var numericCells = matRow.Elements(ns + "c").Skip(3).ToArray();
+            var numericCells = matRow.Elements(ns + "c").Skip(4).ToArray();
             numericCells.Select(c => c.Element(ns + "v")!.Value).Should().Equal("2.5", "0", "2.5");
         }
 
@@ -432,7 +478,8 @@ public sealed class ReconciliationPreparationWorkbookTests
     [Fact]
     public async Task Full_week_workbook_contains_frozen_menu_once_per_dish_and_supplier_materials_without_writes()
     {
-        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        var reads = new WorkbookSnapshotReads();
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync(reads);
         await using var context = fixture.CreateContext();
         var (_, _, batchId, _, ingredientId, _, _, monday) = await SetupWorkbookFixtureAsync(fixture, context);
         var lines = await context.Reconciliationbatchdailylines.Where(line => line.BatchId == batchId).ToListAsync();
@@ -466,7 +513,15 @@ public sealed class ReconciliationPreparationWorkbookTests
         var service = new ReconciliationPreparationWorkbookExporter(context,
             new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation });
         var query = new ReconciliationPreparationWorkbookQuery { WeekStartDate = monday, BatchIds = [GuidHelper.ToGuidString(batchId)], IncludeMenus = true, IsSupplemental = false };
+        reads.Enabled = true;
         var workbook = await service.GetWorkbookAsync(query);
+        reads.Enabled = false;
+        reads.Transactions.Should().HaveCountGreaterThan(1);
+        var transaction = reads.Transactions[0];
+        transaction.Should().NotBeNull("a workbook must not combine separately committed revisions");
+        reads.Transactions.Should().OnlyContain(item => ReferenceEquals(item, transaction));
+        reads.IsolationLevels.Should().OnlyContain(level => level == IsolationLevel.Serializable || level == IsolationLevel.RepeatableRead);
+        context.Database.CurrentTransaction.Should().BeNull("the complete read, including nested cooking projections, must release its transaction before rendering");
         workbook.MenuRows.Should().HaveCount(2);
         workbook.MenuRows.Select(row => row.Servings).Should().Equal(100, 50);
         workbook.MenuRows.Last().ServiceDate.Should().Be(monday.AddDays(5));
@@ -474,17 +529,26 @@ public sealed class ReconciliationPreparationWorkbookTests
         workbook.SummaryRows.Single(row => row.IngredientId == GuidHelper.ToGuidString(ingredientId)).TotalQuantity.Should().Be(5.123456m);
         using var stream = new MemoryStream(await service.ExportWorkbookXlsxAsync(query));
         using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
-        zip.GetEntry("xl/worksheets/sheet2.xml").Should().BeNull("full preparation is a single sheet, not split documents");
-        using var reader = new StreamReader(zip.GetEntry("xl/worksheets/sheet1.xml")!.Open());
-        var xml = await reader.ReadToEndAsync();
+        zip.GetEntry("xl/worksheets/sheet2.xml").Should().NotBeNull("allocation detail must remain inspectable when a menu is included");
+        zip.GetEntry("xl/worksheets/sheet3.xml").Should().NotBeNull("menu evidence must have its own sheet");
+        using var summaryReader = new StreamReader(zip.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+        var summaryXml = await summaryReader.ReadToEndAsync();
+        using var detailReader = new StreamReader(zip.GetEntry("xl/worksheets/sheet2.xml")!.Open());
+        var detailXml = await detailReader.ReadToEndAsync();
+        using var menuReader = new StreamReader(zip.GetEntry("xl/worksheets/sheet3.xml")!.Open());
+        var xml = await menuReader.ReadToEndAsync();
         xml.Should().Contain("Món đóng băng").And.Contain("Món Thứ Bảy").And.Contain("Chiều");
-        xml.IndexOf("Món Thứ Bảy", StringComparison.Ordinal).Should().BeLessThan(xml.IndexOf("Nhà cung cấp: Nhà cung cấp Rau Sạch", StringComparison.Ordinal));
+        summaryXml.Should().Contain("ING-SINGLE").And.Contain("5.123456");
+        detailXml.Should().Contain("ING-SINGLE").And.Contain("Chiều");
+        summaryXml.Should().Contain("<autoFilter");
+        detailXml.Should().Contain("<autoFilter");
+        xml.Should().Contain("<autoFilter");
         System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         var rows = System.Xml.Linq.XDocument.Parse(xml).Descendants(ns + "row").ToArray();
         var menuRows = rows.Where(row => row.Value.Contains("Món đóng băng") || row.Value.Contains("Món Thứ Bảy")).ToArray();
         menuRows.Should().HaveCount(2);
         menuRows.Select(row => row.Elements(ns + "c").Last().Element(ns + "v")!.Value).Should().Equal("100", "50");
-        var materialRow = rows.Single(row => row.Elements(ns + "c").Any(cell => cell.Value == "ING-SINGLE"));
+        var materialRow = System.Xml.Linq.XDocument.Parse(summaryXml).Descendants(ns + "row").Single(row => row.Elements(ns + "c").Any(cell => cell.Value == "ING-SINGLE"));
         materialRow.Elements(ns + "c").Last().Element(ns + "v")!.Value.Should().Be("5.123456");
         var dailyQuery = new ReconciliationPreparationWorkbookQuery { ServiceDate = monday, BatchIds = query.BatchIds, IncludeMenus = true, IsSupplemental = false };
         var dayWorkbook = await service.GetWorkbookAsync(dailyQuery);
@@ -507,6 +571,271 @@ public sealed class ReconciliationPreparationWorkbookTests
         context.ChangeTracker.HasChanges().Should().BeFalse();
     }
 
+    [Fact]
+    public async Task GetWorkbookAsync_Subtracts_Confirmed_Returns_When_Resolving_IssueStatus()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, batchAId, _, ingSingle, _, _, serviceDate) = await SetupWorkbookFixtureAsync(fixture, context);
+
+        var dailyLineA = await context.Reconciliationbatchdailylines.FirstAsync(d => d.BatchId == batchAId && d.IngredientId == ingSingle);
+        var issue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "ISS-WB-NET",
+            IssueDate = serviceDate,
+            WarehouseId = fixture.WarehouseId,
+            ReconciliationBatchId = batchAId,
+            IssuedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow
+        };
+        var issueLine = new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(),
+            IssueId = issue.IssueId,
+            IngredientId = ingSingle,
+            UnitId = fixture.UnitId,
+            RequestedQty = dailyLineA.RequiredQuantity,
+            IssuedQty = dailyLineA.RequiredQuantity + 2m,
+            ReconciliationBatchLineId = dailyLineA.BatchLineId,
+            ReconciliationBatchDailyLineId = dailyLineA.DailyLineId,
+            ReconciliationServiceDate = serviceDate
+        };
+        issue.Inventoryissuelines.Add(issueLine);
+        var confirmedReturn = new InventoryReturn
+        {
+            ReturnId = GuidHelper.NewId(),
+            ReturnCode = "RET-WB-NET",
+            ReturnDate = serviceDate,
+            ReturnType = "RETURN",
+            WarehouseId = fixture.WarehouseId,
+            IssueId = issue.IssueId,
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            ReceivedBy = fixture.UserId,
+            ReceivedAt = DateTime.UtcNow
+        };
+        confirmedReturn.Inventoryreturnlines.Add(new InventoryReturnLine
+        {
+            ReturnLineId = GuidHelper.NewId(),
+            ReturnId = confirmedReturn.ReturnId,
+            SourceIssueLineId = issueLine.IssueLineId,
+            IngredientId = ingSingle,
+            UnitId = fixture.UnitId,
+            Quantity = 2m
+        });
+        context.Inventoryissues.Add(issue);
+        context.Inventoryreturns.Add(confirmedReturn);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var exporter = new ReconciliationPreparationWorkbookExporter(
+            context,
+            new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation });
+        var workbook = await exporter.GetWorkbookAsync(new ReconciliationPreparationWorkbookQuery
+        {
+            ServiceDate = serviceDate,
+            BatchIds = [GuidHelper.ToGuidString(batchAId)],
+            IsSupplemental = false
+        });
+
+        var row = workbook.DetailRows.Single(r => r.IngredientId == GuidHelper.ToGuidString(ingSingle));
+        row.IssueStatus.Should().Be("EXACT");
+    }
+
+    [Fact]
+    public async Task MrxReportWorkbookExporter_Streams_10500_Rows_Under_2000ms_With_Valid_OpenXml_And_MultiLetter_Columns()
+    {
+        MrxReportWorkbookExporter.GetColumnName(0).Should().Be("A");
+        MrxReportWorkbookExporter.GetColumnName(25).Should().Be("Z");
+        MrxReportWorkbookExporter.GetColumnName(26).Should().Be("AA");
+
+        var rows = Enumerable.Range(1, 10_500).Select(index => new MrxTransactionHistoryRowDto(
+            index % 2 == 0 ? "INITIAL_ISSUE" : "SUPPLEMENTAL_ISSUE",
+            $"DOC-{index:D6}",
+            new DateOnly(2026, 10, 26),
+            "00000000-0000-0000-0000-000000000001",
+            "CÔNG TY CỔ PHẦN ĐẠI TÍN",
+            $"ING-{index:D4}",
+            $"Nguyên liệu kiểm thử hiệu năng dòng {index}",
+            "kg",
+            12.345678m,
+            "Thủ kho kiểm thử",
+            new DateTime(2026, 10, 26, 8, 30, 0, DateTimeKind.Utc),
+            "Xuất kho phục vụ sản xuất"));
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        await using var stream = await MrxReportWorkbookExporter.TransactionsAsync(
+            MrxReportWorkbookExporter.Enumerate(rows));
+        sw.Stop();
+
+        sw.ElapsedMilliseconds.Should().BeLessThan(2_000);
+        stream.Length.Should().BeGreaterThan(100_000);
+
+        using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+        var sheetEntry = archive.GetEntry("xl/worksheets/sheet1.xml");
+        sheetEntry.Should().NotBeNull();
+        using var reader = new StreamReader(sheetEntry!.Open());
+        var xml = await reader.ReadToEndAsync();
+        xml.Should().Contain("<row r=\"1\">");
+        xml.Should().Contain("<row r=\"10501\">");
+        xml.Should().Contain("<autoFilter ref=\"A1:L10501\"/>");
+    }
+
+    [Fact]
+    public async Task GetWarehouseDailyManyAsync_WithoutMetadata_Matches_Status_Counts_And_Supports_OperationalSummary()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, batchAId, _, _, _, _, _) = await SetupWorkbookFixtureAsync(fixture, context);
+
+        var batchRow = await context.Reconciliationbatches.SingleAsync(b => b.BatchId == batchAId);
+        batchRow.Status = "IN_PROGRESS";
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var reqCtx = new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation };
+        var runner = Substitute.For<IEfTransactionRunner>();
+        var batchService = new ReconciliationBatchService(context, runner, reqCtx);
+        var batchIdStr = GuidHelper.ToGuidString(batchAId);
+
+        var withMeta = await batchService.GetWarehouseDailyManyAsync([batchIdStr], includeMetadata: true);
+        var withoutMeta = await batchService.GetWarehouseDailyManyAsync([batchIdStr], includeMetadata: false);
+
+        withoutMeta[batchIdStr].WeeklyStatus.Should().Be(withMeta[batchIdStr].WeeklyStatus);
+        withoutMeta[batchIdStr].Dates.Select(d => d.Status).Should().Equal(withMeta[batchIdStr].Dates.Select(d => d.Status));
+
+        var reportsService = new ReconciliationReportsService(context, batchService, reqCtx);
+        var summary = await reportsService.GetOperationalSummaryAsync(
+            new MrxOperationalSummaryQuery(),
+            ["MANAGER"]);
+        summary.UnresolvedVariancesCount.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(false, "Ca trưa")]
+    [InlineData(true, "Cả ngày")]
+    public async Task GetVarianceRegisterAsync_Projects_Contributor_FrozenShiftName_Without_Cartesian_Explosion(bool multipleShifts, string expectedShift)
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, batchAId, _, ingSingle, _, _, serviceDate) = await SetupWorkbookFixtureAsync(fixture, context);
+
+        var dailyLineA = await context.Reconciliationbatchdailylines.FirstAsync(d => d.BatchId == batchAId && d.IngredientId == ingSingle);
+        var dish = await context.Dishes.FirstAsync();
+        context.Reconciliationbatchcontributors.Add(new ReconciliationBatchContributor
+        {
+            ContributorId = GuidHelper.NewId(),
+            BatchLineId = dailyLineA.BatchLineId,
+            DailyLineId = dailyLineA.DailyLineId,
+            MenuScheduleId = GuidHelper.NewId(),
+            MealQuantityPlanLineId = GuidHelper.NewId(),
+            DishBomId = GuidHelper.NewId(),
+            DishId = dish.DishId,
+            FrozenDishCode = "DISH-VAR",
+            FrozenDishName = "Món kiểm thử chênh lệch",
+            FrozenMenuVariant = "savory",
+            FrozenShiftName = "Ca trưa",
+            FrozenServings = 100,
+            FrozenBomQuantityPerServing = dailyLineA.RequiredQuantity / 100m,
+            SourceQuantity = dailyLineA.RequiredQuantity / (multipleShifts ? 2m : 1m)
+        });
+        if (multipleShifts)
+        {
+            context.Reconciliationbatchcontributors.Add(new ReconciliationBatchContributor
+            {
+                ContributorId = GuidHelper.NewId(), BatchLineId = dailyLineA.BatchLineId,
+                DailyLineId = dailyLineA.DailyLineId, MenuScheduleId = GuidHelper.NewId(),
+                MealQuantityPlanLineId = GuidHelper.NewId(), DishBomId = GuidHelper.NewId(), DishId = dish.DishId,
+                FrozenDishCode = "DISH-VAR", FrozenDishName = "Món kiểm thử chênh lệch",
+                FrozenMenuVariant = "savory", FrozenShiftName = "AFTERNOON", FrozenServings = 100,
+                FrozenBomQuantityPerServing = dailyLineA.RequiredQuantity / 200m,
+                SourceQuantity = dailyLineA.RequiredQuantity / 2m
+            });
+        }
+        var issue = new InventoryIssue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "ISS-VAR-1",
+            IssueDate = serviceDate,
+            WarehouseId = fixture.WarehouseId,
+            ReconciliationBatchId = batchAId,
+            IssuedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow
+        };
+        issue.Inventoryissuelines.Add(new InventoryIssueLine
+        {
+            IssueLineId = GuidHelper.NewId(),
+            IssueId = issue.IssueId,
+            IngredientId = ingSingle,
+            UnitId = fixture.UnitId,
+            RequestedQty = dailyLineA.RequiredQuantity,
+            IssuedQty = dailyLineA.RequiredQuantity + 1.5m,
+            ReconciliationBatchLineId = dailyLineA.BatchLineId,
+            ReconciliationBatchDailyLineId = dailyLineA.DailyLineId,
+            ReconciliationServiceDate = serviceDate
+        });
+        context.Inventoryissues.Add(issue);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        var reqCtx = new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation };
+        var runner = Substitute.For<IEfTransactionRunner>();
+        var batchService = new ReconciliationBatchService(context, runner, reqCtx);
+        var reportsService = new ReconciliationReportsService(context, batchService, reqCtx);
+
+        var varianceReport = await reportsService.GetVarianceRegisterAsync(
+            GuidHelper.ToGuidString(batchAId),
+            null);
+
+        varianceReport.TotalCount.Should().Be(1);
+        varianceReport.Rows.Single().ShiftName.Should().Be(expectedShift);
+        varianceReport.Rows.Single().Difference.Should().Be(1.5m);
+    }
+
+    [Fact]
+    public async Task MrxInitializers_And_WarehouseRepository_Use_Deterministic_Ordering_On_Candidate_Queries()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        await EnsureSchemaAsync(context);
+        var runner = Substitute.For<IEfTransactionRunner>();
+        runner.ExecuteAsync(Arg.Any<Func<CancellationToken, Task<InitializationResult>>>(), Arg.Any<Func<CancellationToken, Task<bool>>>(), Arg.Any<System.Data.IsolationLevel>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<Func<CancellationToken, Task<InitializationResult>>>(0)(CancellationToken.None));
+        var actorId = Guid.NewGuid().ToString();
+        var modeInit = new SystemOperationModeInitializer(context, runner);
+        var modeRes = await modeInit.InitializeAsync(actorId);
+        modeRes.Mode.Should().NotBeNullOrWhiteSpace();
+        var warehouseRepo = new IPCManagement.Api.Data.Repositories.WarehouseRepository(context);
+        var candidates = await warehouseRepo.GetOperationalCandidatesAsync(2);
+        candidates.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task GetAsync_Skips_WarehouseRevisionMetadata_Queries_While_Returning_Full_DailyReview()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, batchAId, _, _, _, _, _) = await SetupWorkbookFixtureAsync(fixture, context);
+
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS reconciliationactuals (ActualId BLOB PRIMARY KEY, BatchLineId BLOB NOT NULL, Side TEXT NOT NULL, Quantity TEXT NOT NULL, Version INTEGER NOT NULL, EnteredBy BLOB NOT NULL, EnteredAt TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS reconciliationdispositions (DispositionId BLOB PRIMARY KEY, BatchLineId BLOB NOT NULL, Category TEXT NOT NULL, Reason TEXT NOT NULL, Version INTEGER NOT NULL, DisposedBy BLOB NOT NULL, DisposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL, ActiveOwnerKey BLOB NULL);
+            DROP TABLE IF EXISTS reconciliationsourcerevisions;
+            CREATE TABLE reconciliationsourcerevisions (stub INTEGER);
+            """);
+
+        var reqCtx = new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation };
+        var runner = Substitute.For<IEfTransactionRunner>();
+        var batchService = new ReconciliationBatchService(context, runner, reqCtx);
+
+        var dto = await batchService.GetAsync(GuidHelper.ToGuidString(batchAId));
+
+        dto.Should().NotBeNull();
+        dto!.DailyReview.Should().NotBeNull();
+        dto.DailyReview!.Lines.Should().NotBeEmpty();
+    }
+
     private static Task EnsureSchemaAsync(IpcManagementContext context) => context.Database.ExecuteSqlRawAsync("""
         CREATE TABLE IF NOT EXISTS systemoperationmodes (Id INTEGER PRIMARY KEY, Mode TEXT NOT NULL, Version INTEGER NOT NULL, UpdatedAt TEXT NOT NULL, UpdatedBy BLOB NOT NULL, Reason TEXT NULL);
         CREATE TABLE IF NOT EXISTS reconciliationbatches (batchId BLOB PRIMARY KEY, menuVersionId BLOB NOT NULL, quantityImportBatchId BLOB NOT NULL, status TEXT NOT NULL, version INTEGER NOT NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL, readyBy BLOB NULL, readyAt TEXT NULL, completedBy BLOB NULL, completedAt TEXT NULL);
@@ -514,5 +843,7 @@ public sealed class ReconciliationPreparationWorkbookTests
         CREATE TABLE IF NOT EXISTS reconciliationbatchdailylines (dailyLineId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, batchId BLOB NOT NULL, ingredientId BLOB NOT NULL, canonicalUnitId BLOB NOT NULL, serviceDate TEXT NOT NULL, requiredQuantity TEXT NOT NULL, version INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS reconciliationbatchcontributors (contributorId BLOB PRIMARY KEY, batchLineId BLOB NOT NULL, dailyLineId BLOB NULL, menuScheduleId BLOB NOT NULL, mealQuantityPlanLineId BLOB NOT NULL, dishBomId BLOB NOT NULL, dishId BLOB NULL, frozenShiftName TEXT NOT NULL, frozenDishCode TEXT NULL, frozenDishName TEXT NULL, frozenServings INTEGER NULL, frozenBomQuantityPerServing TEXT NULL, FrozenBomUnitToBaseRate TEXT NULL, FrozenCanonicalUnitToBaseRate TEXT NULL, frozenWasteRatePercent TEXT NULL, sourceQuantity TEXT NOT NULL, FrozenMenuVariant TEXT NULL, InvalidatedAt TEXT NULL, InvalidatedBySourceRevisionId BLOB NULL);
         CREATE TABLE IF NOT EXISTS reconciliationsourcedeltas (SourceDeltaId BLOB PRIMARY KEY, SourceRevisionId BLOB NOT NULL, BatchId BLOB NOT NULL, DailyLineId BLOB NULL, ServiceDate TEXT NOT NULL, IngredientId BLOB NOT NULL, CanonicalUnitId BLOB NOT NULL, PreviousRequiredQuantity TEXT NOT NULL, NewRequiredQuantity TEXT NOT NULL, DeltaQuantity TEXT NOT NULL, WorkKind TEXT NOT NULL, Status TEXT NOT NULL, Version INTEGER NOT NULL, CreatedAt TEXT NOT NULL, ResolvedAt TEXT NULL, ResolvedBy BLOB NULL, ResolutionEntity TEXT NULL, ResolutionId BLOB NULL, ResolutionCommandId TEXT NULL);
+        CREATE TABLE IF NOT EXISTS reconciliationdailydispositions (DispositionId BLOB PRIMARY KEY, DailyLineId BLOB NOT NULL, Category TEXT NOT NULL, Reason TEXT NOT NULL, Version INTEGER NOT NULL, DisposedBy BLOB NOT NULL, DisposedAt TEXT NOT NULL, InvalidatedAt TEXT NULL, InvalidatedBy BLOB NULL, InvalidationReason TEXT NULL, ActiveOwnerKey BLOB NULL);
+        CREATE TABLE IF NOT EXISTS reconciliationsourcerevisions (SourceRevisionId BLOB PRIMARY KEY, MenuAmendmentId BLOB NULL, BatchId BLOB NOT NULL, PreviousMenuVersionId BLOB NOT NULL, AppliedMenuVersionId BLOB NOT NULL, RevisionNumber INTEGER NOT NULL, Status TEXT NOT NULL, Reason TEXT NOT NULL, AppliedBy BLOB NOT NULL, AppliedAt TEXT NOT NULL, AppliedByRole TEXT NULL, ApplyMode TEXT NULL);
         """);
 }

@@ -14,7 +14,7 @@ async function main() {
   // Login
   await page.goto(`${BASE_URL}/login`);
   await page.fill('input[type="text"]', 'admin');
-  await page.fill('input[type="password"]', 'Admin@123456');
+  await page.fill('input[type="password"]', process.env.E2E_ADMIN_PASSWORD ?? 'FA624MHycNsN3DIp');
   await page.click('button[type="submit"]');
   await page.waitForTimeout(1000);
 

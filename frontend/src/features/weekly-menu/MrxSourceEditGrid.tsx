@@ -56,16 +56,18 @@ export function MrxSourceEditGrid({
 
   return (
     <div className="h-full min-h-0 overflow-auto bg-white" aria-label="Bảng sửa nguồn MRX">
-      {!isReadOnly && mode === 'dish-edit' && expandedSlots.length > 0 && (
-        <Button type="button" variant="outline" size="sm" onClick={() => setExpandedSlots([])}>
-          Hoàn tất sửa từng dòng
-        </Button>
-      )}
       <table className="w-full min-w-[960px] border-separate border-spacing-0 text-xs">
         <thead className="sticky top-0 z-20 bg-slate-100 text-slate-700">
           <tr>
             <th className="sticky left-0 z-30 h-10 w-40 border-b border-r border-slate-200 bg-slate-100 px-3 text-left font-semibold">
-              Nhóm / Loại món
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="truncate">Nhóm / Loại món</span>
+                {!isReadOnly && mode === 'dish-edit' && expandedSlots.length > 0 && (
+                  <Button type="button" variant="outline" size="xs" className="shrink-0" onClick={() => setExpandedSlots([])}>
+                    Hoàn tất sửa từng dòng
+                  </Button>
+                )}
+              </div>
             </th>
             {matrix.dates.map((date) => {
               const day = editScope.days.find((item) => item.serviceDate === date);
@@ -139,7 +141,7 @@ function SectionRows({
           {section.label}
         </th>
       </tr>
-      <tr className={`${readOnly ? 'h-10' : 'h-11'} bg-slate-50`}>
+      <tr className="h-11 bg-slate-50">
         <th className="sticky left-0 z-10 border-b border-r border-slate-200 bg-slate-50 px-3 text-left font-semibold text-slate-700">
           Số suất <span className="font-normal">(suất)</span>
         </th>
@@ -172,7 +174,7 @@ function SectionRows({
       </tr>
       {section.rows.length === 0 && <tr className="h-9"><td colSpan={section.servings.length + 1} className="border-b border-slate-200 px-3 text-slate-600">Chưa có món {variant === 'vegetarian' ? 'chay' : 'mặn'} trong nguồn ca này.</td></tr>}
       {section.rows.map((row) => (
-        <tr key={`${section.key}-${row.dishSlot}`} className={`${mode === 'dish-edit' && !readOnly ? 'h-11' : 'h-10'} align-middle`}>
+        <tr key={`${section.key}-${row.dishSlot}`} className="h-11 align-middle">
           <th className="sticky left-0 z-10 border-b border-r border-slate-200 bg-white px-3 text-left font-medium text-slate-700">
             {row.slotLabel}
           </th>

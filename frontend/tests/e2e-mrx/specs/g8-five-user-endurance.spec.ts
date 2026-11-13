@@ -31,6 +31,7 @@ test('@G8-Five-User five distinct active browser actors, bounded 2–5s think ti
   let aborted = false;
   const stop = new AbortController();
   const activities: Promise<unknown>[] = [];
+  const browserCdp = await browser.newBrowserCDPSession();
   try {
     for (const role of Object.keys(routes) as MrxRole[]) {
       const context = await browser.newContext({ baseURL: process.env.MRX_E2E_BASE_URL, viewport: { width: 1366, height: 768 } });
@@ -57,6 +58,12 @@ test('@G8-Five-User five distinct active browser actors, bounded 2–5s think ti
         if (response && actor.requests.length < 20000) actor.requests.push({ status: response.status(), durationMs: timing.responseEnd - timing.requestStart, path: pathname });
       });
       page.on('pageerror', (error) => { actor.errors.push(error.message); aborted = true; stop.abort(); });
+      page.on('crash', () => {
+        failures.push({ role, event: 'page-crash', observedAtUtc: new Date().toISOString(), actions: actor.actions.length, route: actor.actions.at(-1)?.route });
+        output('endurance-crash.json', { role, actions: actor.actions.length, lastAction: actor.actions.at(-1), resources: resources.at(-1), failures });
+        aborted = true;
+        stop.abort();
+      });
       actors.push(actor);
     }
     expect(new Set(actors.map((actor) => actor.identity.userId)).size).toBe(5);
@@ -72,6 +79,9 @@ test('@G8-Five-User five distinct active browser actors, bounded 2–5s think ti
       const ids = state.processes.map((item: { pid: number }) => item.pid).join(',');
       if (!/^\d+(,\d+)*$/.test(ids)) throw new Error('Invalid owned process sampling identities.');
       const sample = execFileSync('powershell.exe', ['-NoProfile', '-Command', `Get-Process -Id ${ids} -ErrorAction Stop | Select-Object Id,WorkingSet64,PrivateMemorySize64,HandleCount,@{n='ThreadCount';e={$_.Threads.Count}} | ConvertTo-Json -Compress`]).toString();
+      const { processInfo } = await browserCdp.send('SystemInfo.getProcessInfo');
+      const chromeIds = processInfo.map(item => item.id).filter(id => Number.isSafeInteger(id) && id > 0);
+      const chromeSample = chromeIds.length === 0 ? '[]' : execFileSync('powershell.exe', ['-NoProfile', '-Command', `$ids=@(${chromeIds.join(',')}); Get-Process -ErrorAction Stop | Where-Object { $ids -contains $_.Id } | Select-Object Id,WorkingSet64,PrivateMemorySize64,HandleCount,@{n='ThreadCount';e={$_.Threads.Count}} | ConvertTo-Json -Compress`]).toString();
       for (const actor of actors) {
         if (Date.now() >= actor.identity.expiresAt && !expiryProof.some((item) => item.role === actor.role)) {
           const expired = await actor.context.request.get('http://127.0.0.1:5263/api/Auth/me', { headers: { Authorization: `Bearer ${originalTokens.get(actor.role)}` } });
@@ -87,7 +97,8 @@ test('@G8-Five-User five distinct active browser actors, bounded 2–5s think ti
         aborted = true;
         throw new Error('Activity watchdog: at least one actor made no progress for90s; stopping, not waiting for the soak deadline.');
       }
-      resources.push({ elapsedMs: Date.now() - start, healthStatus: health.status, freeBytes, processes: JSON.parse(sample) });
+      resources.push({ elapsedMs: Date.now() - start, healthStatus: health.status, freeBytes, processes: JSON.parse(sample),
+        chromeProcesses: JSON.parse(chromeSample || '[]'), chromeProcessTypes: processInfo.map(item => ({ id: item.id, type: item.type, cpuTime: item.cpuTime })) });
       output('endurance-resources.json', resources);
     };
     const loops = actors.map(async (actor) => {
@@ -135,7 +146,8 @@ test('@G8-Five-User five distinct active browser actors, bounded 2–5s think ti
     aborted = true;
     stop.abort();
     await Promise.allSettled(activities);
-    await Promise.all(actors.map((actor) => actor.context.close()));
+    await browserCdp.detach().catch(() => {});
+    await Promise.allSettled(actors.map((actor) => actor.context.close()));
   }
 });
 

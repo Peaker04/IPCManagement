@@ -56,17 +56,21 @@ internal static class MrxReportWorkbookExporter
                 Entry(zip, "_rels/.rels", "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>");
                 Entry(zip, "xl/workbook.xml", $"<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"{name}\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
                 Entry(zip, "xl/_rels/workbook.xml.rels", "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>");
-                await using var writer = new StreamWriter(zip.CreateEntry("xl/worksheets/sheet1.xml").Open(), new UTF8Encoding(false), 4096);
+                await using var writer = new StreamWriter(zip.CreateEntry("xl/worksheets/sheet1.xml").Open(), new UTF8Encoding(false), 65536);
                 await writer.WriteAsync("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetViews><sheetView workbookViewId=\"0\"><pane xSplit=\"1\" ySplit=\"1\" topLeftCell=\"B2\" activePane=\"bottomRight\" state=\"frozen\"/></sheetView></sheetViews><sheetData>".AsMemory(), token);
-                await writer.WriteAsync(Row(1, headers.Cast<object?>().ToArray()).AsMemory(), token);
+                var rowBuffer = new StringBuilder(1024);
+                WriteRow(rowBuffer, 1, headers.Cast<object?>().ToArray());
+                await writer.WriteAsync(rowBuffer, token);
                 var count = 1;
                 await foreach (var row in rows.WithCancellation(token))
                 {
                     if (++count > 1_048_576 || file.Position > MaxBytes)
                         throw new BusinessRuleException("Báo cáo vượt giới hạn Excel hoặc 64 MiB. Hãy thu hẹp phạm vi rồi tải lại.");
-                    await writer.WriteAsync(Row(count, row).AsMemory(), token);
+                    WriteRow(rowBuffer, count, row);
+                    await writer.WriteAsync(rowBuffer, token);
                 }
-                await writer.WriteAsync($"</sheetData><autoFilter ref=\"A1:{(char)('A' + headers.Length - 1)}{count}\"/></worksheet>".AsMemory(), token);
+                var lastCol = GetColumnName(Math.Max(0, headers.Length - 1));
+                await writer.WriteAsync($"</sheetData><autoFilter ref=\"A1:{lastCol}{count}\"/></worksheet>".AsMemory(), token);
             }
             if (file.Length > MaxBytes) throw new BusinessRuleException("Báo cáo vượt 64 MiB. Hãy thu hẹp phạm vi rồi tải lại.");
             file.Position = 0;
@@ -75,26 +79,46 @@ internal static class MrxReportWorkbookExporter
         catch { await file.DisposeAsync(); throw; }
     }
 
-    private static string Row(int index, object?[] values)
+    internal static string GetColumnName(int colIndex)
     {
-        var xml = new StringBuilder($"<row r=\"{index}\">");
+        if (colIndex < 26) return ((char)('A' + colIndex)).ToString();
+        var chars = new Stack<char>(3);
+        var current = colIndex;
+        while (current >= 0)
+        {
+            chars.Push((char)('A' + (current % 26)));
+            current = (current / 26) - 1;
+        }
+        return new string(chars.ToArray());
+    }
+
+    private static void WriteRow(StringBuilder xml, int index, object?[] values)
+    {
+        xml.Clear();
+        xml.Append("<row r=\"").Append(index).Append("\">");
         for (var col = 0; col < values.Length; col++)
         {
             var value = values[col];
-            var reference = $"{(char)('A' + col)}{index}";
+            var colName = GetColumnName(col);
             if (value is decimal or int or long)
-                xml.Append($"<c r=\"{reference}\" t=\"n\"><v>{Convert.ToString(value, CultureInfo.InvariantCulture)}</v></c>");
+            {
+                xml.Append("<c r=\"").Append(colName).Append(index).Append("\" t=\"n\"><v>")
+                   .Append(Convert.ToString(value, CultureInfo.InvariantCulture))
+                   .Append("</v></c>");
+            }
             else
             {
                 var text = value switch { DateOnly date => date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), DateTime time => time.ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture), _ => value?.ToString() ?? string.Empty };
                 if (text.Length > 32767)
-                    throw new BusinessRuleException($"Ô {reference} vượt giới hạn 32767 ký tự của Excel. Hãy thu hẹp nội dung nguồn rồi tải lại.");
+                    throw new BusinessRuleException($"Ô {colName}{index} vượt giới hạn 32767 ký tự của Excel. Hãy thu hẹp nội dung nguồn rồi tải lại.");
                 try { System.Xml.XmlConvert.VerifyXmlChars(text); }
-                catch (System.Xml.XmlException) { throw new BusinessRuleException($"Ô {reference} chứa ký tự không được Excel hỗ trợ. Hãy kiểm tra nội dung nguồn."); }
-                xml.Append($"<c r=\"{reference}\" t=\"inlineStr\"><is><t xml:space=\"preserve\">{SecurityElement.Escape(text)}</t></is></c>");
+                catch (System.Xml.XmlException) { throw new BusinessRuleException($"Ô {colName}{index} chứa ký tự không được Excel hỗ trợ. Hãy kiểm tra nội dung nguồn."); }
+                xml.Append("<c r=\"").Append(colName).Append(index).Append("\" t=\"inlineStr\"><is><t xml:space=\"preserve\">")
+                   .Append(SecurityElement.Escape(text))
+                   .Append("</t></is></c>");
             }
         }
-        return xml.Append("</row>").ToString();
+        xml.Append("</row>");
     }
 
     private static void Entry(ZipArchive zip, string path, string content)

@@ -18,6 +18,7 @@ using MySqlConnector;
 
 namespace IPCManagement.Api.Tests.Integration;
 
+[Trait("Category", "EvidenceOwned")]
 public sealed class WeeklyMenuImportMySqlConcurrencyTests
 {
     [RequiresMySqlFact]

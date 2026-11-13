@@ -1,3 +1,5 @@
+> Reference archive (2026-11-13): the FE snapshot names/paths in this historical document are preserved in `D:/IPCArchives/frontend-reference-snapshots/2026-11-13-frontend-references.zip` with per-file hashes in its adjacent manifest. Both original trees, including their unique configs/tests, are retained there.
+
 # Đặc Tả Thiết Kế Kiến Trúc & Chuẩn Hóa Runtime Toàn Diện Phân Hệ MRX
 *(MRX Production Runtime Conformance & Industrial UX Architecture Specification)*
 

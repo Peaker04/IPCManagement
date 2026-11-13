@@ -264,7 +264,7 @@ public sealed class ReconciliationQuantityImportReachabilityTests
             var reconciliationController = new ReconciliationBatchesController(
                 batchService,
                 null!,
-                new ReconciliationQuantityImportService(context, transactionRunner, requestContext, cache, batchService),
+                new ReconciliationQuantityImportService(context, transactionRunner, requestContext, Microsoft.Extensions.Options.Options.Create(new IPCManagement.Api.Security.JwtSettings { SecretKey = new string('q', 64), Issuer = "test" }), batchService),
                 currentUser)
             {
                 ControllerContext = ControllerContext()

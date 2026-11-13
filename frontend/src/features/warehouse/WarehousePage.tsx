@@ -28,7 +28,8 @@ export function WarehousePage() {
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
 
-  if (!view && operationalMode === 'MATERIAL_RECONCILIATION') {
+  const mrxView = view === 'mrx-daily' || view === 'mrx-preparation' || view === 'mrx-issues';
+  if (!mrxView && operationalMode === 'MATERIAL_RECONCILIATION') {
     const batchId = searchParams.get('batchId');
     const serviceDate = searchParams.get('date');
     const params = new URLSearchParams();

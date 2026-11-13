@@ -77,7 +77,7 @@ public sealed partial class ReconciliationServiceTests
         var requestContext = ProtectedContext();
         var service = new ReconciliationBatchService(context, runner, requestContext);
         using var cache = new MemoryCache(new MemoryCacheOptions());
-        var quantityImports = new ReconciliationQuantityImportService(context, runner, requestContext, cache, service);
+        var quantityImports = new ReconciliationQuantityImportService(context, runner, requestContext, Microsoft.Extensions.Options.Options.Create(new IPCManagement.Api.Security.JwtSettings { SecretKey = new string('q', 64), Issuer = "test" }), service);
         var completion = new ReconciliationCompletionService(context, service, runner, requestContext);
         var controller = new IPCManagement.Api.Features.Reconciliation.Controllers.ReconciliationBatchesController(
             service, completion, quantityImports, new StubCurrentUser());
@@ -229,7 +229,7 @@ public sealed partial class ReconciliationServiceTests
         Assert.Contains("Actual PURCHASED corrected", retained.InvalidationReason);
         var invalidation = Assert.Single(context.Auditlogs.Where(x => x.EntityName == "ReconciliationDisposition"));
         Assert.Equal("INVALIDATED", invalidation.NewValue);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor)));
+        await Assert.ThrowsAsync<BusinessRuleException>(() => completion.CompleteAsync(GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor)));
 
         await actuals.SetDispositionAsync(GuidHelper.ToGuidString(fixture.Line.BatchLineId), new("ACCEPTED_VARIANCE", "Đã xét số liệu mới", null), GuidHelper.ToGuidString(fixture.Actor));
         Assert.Equal(2, context.Reconciliationdispositions.Count());
@@ -366,8 +366,10 @@ public sealed partial class ReconciliationServiceTests
         finally { SqliteConnection.ClearAllPools(); File.Delete(databasePath); }
     }
 
-    [Fact]
-    public async Task Independent_relational_disposition_writers_produce_one_winner_and_one_conflict()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Independent_relational_disposition_writers_produce_one_winner_and_one_conflict(bool daily)
     {
         var databasePath = Path.Combine(Path.GetTempPath(), $"ipc-disposition-{Guid.NewGuid():N}.db");
         try
@@ -375,36 +377,90 @@ public sealed partial class ReconciliationServiceTests
             var options = new DbContextOptionsBuilder<IpcManagementContext>().UseSqlite($"Data Source={databasePath};Default Timeout=10").Options;
             byte[] lineBytes;
             byte[] actorBytes;
+            byte[] predecessorId;
+            DateTime predecessorAt;
             await using (var seed = new ReconciliationTestContext(options))
             {
                 await seed.Database.EnsureCreatedAsync();
                 var fixture = SeedInProgressLine(seed, purchasedVersion: 1, issuedVersion: 1);
                 lineBytes = fixture.Line.BatchLineId;
                 actorBytes = fixture.Actor;
+                var predecessor = seed.Reconciliationdispositions.Local.Single();
+                predecessorId = predecessor.DispositionId;
+                predecessorAt = predecessor.DisposedAt;
+                if (daily)
+                {
+                    var day = new ReconciliationBatchDailyLine
+                    {
+                        DailyLineId = GuidHelper.NewId(), BatchId = fixture.Batch.BatchId, BatchLineId = lineBytes,
+                        BatchLine = fixture.Line, IngredientId = fixture.Line.IngredientId, CanonicalUnitId = fixture.Line.CanonicalUnitId,
+                        ServiceDate = new DateOnly(2026, 8, 25), RequiredQuantity = 10m, Version = 1
+                    };
+                    var issueLine = seed.Inventoryissuelines.Local.Single();
+                    issueLine.ReconciliationBatchDailyLineId = day.DailyLineId;
+                    issueLine.ReconciliationServiceDate = day.ServiceDate;
+                    issueLine.IssuedQty = 12m;
+                    lineBytes = day.DailyLineId;
+                    predecessorId = GuidHelper.NewId();
+                    seed.AddRange(day, new ReconciliationDailyDisposition
+                    {
+                        DispositionId = predecessorId, DailyLineId = lineBytes, Category = "ACCEPTED_VARIANCE",
+                        Reason = "Kết luận cũ", Version = 1, DisposedBy = actorBytes, DisposedAt = predecessorAt
+                    });
+                }
                 await seed.SaveChangesAsync();
             }
 
             await using var firstContext = new ReconciliationTestContext(options);
             await using var secondContext = new ReconciliationTestContext(options);
-            await firstContext.Reconciliationdispositions.SingleAsync(x => x.BatchLineId == lineBytes);
-            await secondContext.Reconciliationdispositions.SingleAsync(x => x.BatchLineId == lineBytes);
-            var gate = new Barrier(2);
+            if (daily)
+            {
+                await firstContext.Reconciliationdailydispositions.SingleAsync(x => x.DailyLineId == lineBytes);
+                await secondContext.Reconciliationdailydispositions.SingleAsync(x => x.DailyLineId == lineBytes);
+            }
+            else
+            {
+                await firstContext.Reconciliationdispositions.SingleAsync(x => x.BatchLineId == lineBytes);
+                await secondContext.Reconciliationdispositions.SingleAsync(x => x.BatchLineId == lineBytes);
+            }
+            using var gate = new Barrier(2);
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
             var first = new ReconciliationActualService(firstContext, new BarrierTransactionRunner(gate), ProtectedContext());
             var second = new ReconciliationActualService(secondContext, new BarrierTransactionRunner(gate), ProtectedContext());
             var lineId = GuidHelper.ToGuidString(lineBytes);
             var actorId = GuidHelper.ToGuidString(actorBytes);
 
-            var results = await Task.WhenAll(Capture(() => first.SetDispositionAsync(lineId, new("CORRECTION_REQUIRED", "Kết luận thứ nhất", 1), actorId)), Capture(() => second.SetDispositionAsync(lineId, new("FOLLOW_UP_REQUIRED", "Kết luận thứ hai", 1), actorId)));
+            var results = await Task.WhenAll(
+                Capture(() => daily
+                    ? first.SetDailyDispositionAsync(lineId, new("CORRECTION_REQUIRED", "Kết luận thứ nhất", 1), actorId, deadline.Token)
+                    : first.SetDispositionAsync(lineId, new("CORRECTION_REQUIRED", "Kết luận thứ nhất", 1), actorId, deadline.Token)),
+                Capture(() => daily
+                    ? second.SetDailyDispositionAsync(lineId, new("FOLLOW_UP_REQUIRED", "Kết luận thứ hai", 1), actorId, deadline.Token)
+                    : second.SetDispositionAsync(lineId, new("FOLLOW_UP_REQUIRED", "Kết luận thứ hai", 1), actorId, deadline.Token)));
 
             Assert.Single(results, error => error is null);
             Assert.Single(results, error => error is DbUpdateConcurrencyException);
             await using var verify = new ReconciliationTestContext(options);
-            var decisions = await verify.Reconciliationdispositions.AsNoTracking().ToListAsync();
+            var decisions = daily
+                ? (await verify.Reconciliationdailydispositions.AsNoTracking().ToListAsync()).Select(row => (row.DispositionId, row.Version, row.Category, row.Reason, row.DisposedBy, row.DisposedAt, row.InvalidatedAt)).ToList()
+                : (await verify.Reconciliationdispositions.AsNoTracking().ToListAsync()).Select(row => (row.DispositionId, row.Version, row.Category, row.Reason, row.DisposedBy, row.DisposedAt, row.InvalidatedAt)).ToList();
             Assert.Equal(2, decisions.Count);
-            var predecessor = Assert.Single(decisions, row => row.InvalidatedAt != null);
-            Assert.Equal("Kết luận cũ", predecessor.Reason);
-            Assert.Equal(1, predecessor.Version);
-            Assert.Equal(2, Assert.Single(decisions, row => row.InvalidatedAt == null).Version);
+            var retained = Assert.Single(decisions, row => row.DispositionId.SequenceEqual(predecessorId));
+            Assert.NotNull(retained.InvalidatedAt);
+            Assert.Equal("Kết luận cũ", retained.Reason);
+            Assert.Equal("ACCEPTED_VARIANCE", retained.Category);
+            Assert.Equal(1, retained.Version);
+            Assert.Equal(actorBytes, retained.DisposedBy);
+            Assert.Equal(predecessorAt, retained.DisposedAt);
+            var active = Assert.Single(decisions, row => row.InvalidatedAt == null);
+            Assert.Equal(2, active.Version);
+            Assert.Equal(results[0] is null ? "Kết luận thứ nhất" : "Kết luận thứ hai", active.Reason);
+            Assert.Equal(results[0] is null ? "CORRECTION_REQUIRED" : "FOLLOW_UP_REQUIRED", active.Category);
+            if (daily)
+            {
+                Assert.Equal(12m, (await verify.Inventoryissuelines.AsNoTracking().SingleAsync()).IssuedQty);
+                Assert.Single(await verify.Reconciliationdispositions.AsNoTracking().ToListAsync(), row => row.InvalidatedAt == null && row.Version == 1);
+            }
         }
         finally { SqliteConnection.ClearAllPools(); File.Delete(databasePath); }
     }
@@ -420,7 +476,7 @@ public sealed partial class ReconciliationServiceTests
         var batches = new ReconciliationBatchService(context, runner, ProtectedContext());
         var completion = new ReconciliationCompletionService(context, batches, runner, ProtectedContext());
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(
+        var error = await Assert.ThrowsAsync<BusinessRuleException>(() => completion.CompleteAsync(
             GuidHelper.ToGuidString(fixture.Batch.BatchId), new(1), GuidHelper.ToGuidString(fixture.Actor)));
 
         Assert.Contains("số lượng xuất kho liên kết", error.Message, StringComparison.OrdinalIgnoreCase);
@@ -793,6 +849,44 @@ public sealed partial class ReconciliationServiceTests
     }
 
     [Fact]
+    public async Task Source_changes_resolve_dish_ids_to_business_names_without_losing_raw_audit_values()
+    {
+        await using var context = CreateContext();
+        var actorId = GuidHelper.NewId();
+        var batchId = GuidHelper.NewId();
+        var scheduleId = GuidHelper.NewId();
+        var dishId = GuidHelper.NewId();
+        context.Dishes.Add(new Dish { DishId = dishId, DishCode = "DISH-07", DishName = "Cá kho" });
+        context.Reconciliationbatches.Add(new ReconciliationBatch
+        {
+            BatchId = batchId, MenuVersionId = GuidHelper.NewId(), QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "READY", Version = 1, CreatedBy = actorId, CreatedAt = DateTime.UtcNow,
+            Lines = [new ReconciliationBatchLine
+            {
+                BatchLineId = GuidHelper.NewId(), IngredientId = GuidHelper.NewId(), CanonicalUnitId = GuidHelper.NewId(),
+                RequiredQuantity = 1, FrozenTolerance = 0.1m, ToleranceSourceKind = "TEST", ToleranceSourceVersion = "1", Version = 1,
+                Contributors = [new ReconciliationBatchContributor
+                {
+                    ContributorId = GuidHelper.NewId(), MenuScheduleId = scheduleId,
+                    MealQuantityPlanLineId = GuidHelper.NewId(), DishBomId = GuidHelper.NewId(), SourceQuantity = 1
+                }]
+            }]
+        });
+        context.Auditlogs.Add(new AuditLog
+        {
+            AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow, ChangedBy = actorId,
+            BusinessArea = "Planning", EntityName = nameof(MenuItem), EntityId = scheduleId,
+            FieldName = "DishId", NewValue = GuidHelper.ToGuidString(dishId), Reason = "Đổi món"
+        });
+        await context.SaveChangesAsync();
+
+        var row = Assert.Single(await new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext())
+            .ListSourceChangesAsync(GuidHelper.ToGuidString(batchId)));
+        Assert.Equal(GuidHelper.ToGuidString(dishId), row.NewValue);
+        Assert.Equal("Cá kho (DISH-07)", row.NewDisplayValue);
+    }
+
+    [Fact]
     public async Task List_batches_projects_business_week_instead_of_creation_date()
     {
         await using var context = CreateContext();
@@ -818,14 +912,23 @@ public sealed partial class ReconciliationServiceTests
         var firstVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = week, VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         var secondVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = week, VersionNo = 2, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         var otherVersion = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = otherCustomerId, WeekStartDate = week, VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
-        context.Menuversions.AddRange(firstVersion, secondVersion, otherVersion);
+        var previousWeek = new MenuVersion { MenuVersionId = GuidHelper.NewId(), CustomerId = customerId, WeekStartDate = week.AddDays(-7), VersionNo = 1, Status = "PUBLISHED", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        context.Menuversions.AddRange(firstVersion, secondVersion, otherVersion, previousWeek);
         var older = new ReconciliationBatch { BatchId = GuidHelper.ParseGuidString("00000000-0000-0000-0000-000000000001")!, MenuVersionId = firstVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 2, CreatedBy = GuidHelper.NewId(), CreatedAt = new DateTime(2026, 10, 18, 9, 0, 0, DateTimeKind.Utc) };
         var newer = new ReconciliationBatch { BatchId = GuidHelper.ParseGuidString("00000000-0000-0000-0000-000000000002")!, MenuVersionId = secondVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 3, CreatedBy = GuidHelper.NewId(), CreatedAt = new DateTime(2026, 10, 18, 9, 0, 0, DateTimeKind.Utc) };
         context.Reconciliationbatches.AddRange(older, newer,
             new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = otherVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 1, CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow },
             new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = firstVersion.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "COMPLETED", Version = 4, CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow });
+        var previousWeekBatch = new ReconciliationBatch { BatchId = GuidHelper.NewId(), MenuVersionId = previousWeek.MenuVersionId, QuantityImportBatchId = GuidHelper.NewId(), Status = "READY", Version = 1, CreatedBy = GuidHelper.NewId(), CreatedAt = DateTime.UtcNow.AddYears(1) };
+        context.Reconciliationbatches.Add(previousWeekBatch);
         await context.SaveChangesAsync();
         var service = new ReconciliationBatchService(context, new ImmediateTransactionRunner(), ProtectedContext());
+        var monthPage = await service.GetPageAsync(new ReconciliationBatchPageQuery
+        {
+            CustomerId = GuidHelper.ToGuidString(customerId), WeekFrom = new DateOnly(2026, 10, 1), WeekTo = new DateOnly(2026, 10, 31), Status = "READY", PageSize = 1
+        });
+        Assert.Equal(3, monthPage.TotalCount);
+        Assert.Equal(GuidHelper.ToGuidString(older.BatchId), Assert.Single(monthPage.Items).BatchId);
 
         var firstPage = await service.GetPageAsync(new ReconciliationBatchPageQuery
         {
@@ -857,6 +960,12 @@ public sealed partial class ReconciliationServiceTests
         });
         Assert.Equal(2, inPeriod.TotalCount);
         Assert.Single(inPeriod.Items);
+        var exactBatch = await service.GetPageAsync(new ReconciliationBatchPageQuery
+        {
+            CustomerId = GuidHelper.ToGuidString(customerId), BatchId = GuidHelper.ToGuidString(newer.BatchId), PageSize = 1
+        });
+        Assert.Equal(1, exactBatch.TotalCount);
+        Assert.Equal(GuidHelper.ToGuidString(newer.BatchId), Assert.Single(exactBatch.Items).BatchId);
     }
 
     [Theory]
@@ -926,7 +1035,7 @@ public sealed partial class ReconciliationServiceTests
         if (firstIssued > 5)
         {
             Assert.Equal("NEEDS_REVIEW", selected.Status);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(batchId, new(1), actor));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => completion.CompleteAsync(batchId, new(1), actor));
             await actuals.SetDailyDispositionAsync(selected.DailyLineId!, new("ACCEPTED_VARIANCE", "Daily decision", null), actor);
             await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => actuals.SetDailyDispositionAsync(
                 selected.DailyLineId!, new("ACCEPTED_VARIANCE", "Stale writer", null), actor));
@@ -961,13 +1070,13 @@ public sealed partial class ReconciliationServiceTests
         {
             // Before disposition, shortage blocks weekly completion
             Assert.NotEqual("WEEK_COMPLETE", (await batches.GetAsync(batchId))!.DailyReview!.WeeklyStatus);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(batchId, new(1), actor));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => completion.CompleteAsync(batchId, new(1), actor));
 
             await Assert.ThrowsAsync<BusinessRuleException>(() => actuals.SetDailyDispositionAsync(
                 GuidHelper.ToGuidString(second.DailyLineId), new("ACCEPTED_VARIANCE", "Cannot waive shortage", null), actor));
             context.ChangeTracker.Clear();
             Assert.NotEqual("WEEK_COMPLETE", (await batches.GetAsync(batchId))!.DailyReview!.WeeklyStatus);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(batchId, new(1), actor));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => completion.CompleteAsync(batchId, new(1), actor));
             Assert.Equal("IN_PROGRESS", (await batches.GetAsync(batchId))!.Status);
         }
         else

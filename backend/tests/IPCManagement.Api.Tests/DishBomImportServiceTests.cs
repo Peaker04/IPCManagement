@@ -15,6 +15,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using NSubstitute;
 using System.Text;
+using System.Xml.Linq;
 
 namespace IPCManagement.Api.Tests;
 
@@ -179,6 +180,10 @@ public class DishBomImportServiceTests
         Assert.DoesNotContain(changes, item => item.EntityName is nameof(ReconciliationBatch) or nameof(InventoryIssue) or nameof(MenuSchedule));
         Assert.DoesNotContain(changes, item => item.FieldName == "BulkImport");
         Assert.DoesNotContain(changes, item => item.EntityId == GuidHelper.ToGuidString(unrelatedBomId));
+        var paged = await new ReconciliationBatchService(context, new EfTransactionRunner(context), new SystemOperationRequestContext())
+            .GetSourceChangesPageAsync(GuidHelper.ToGuidString(batchId), new() { PageSize = 1 });
+        Assert.Equal(1, paged.TotalCount);
+        Assert.Equal(change.ChangeId, Assert.Single(paged.Items).ChangeId);
     }
 
     [Fact]
@@ -247,11 +252,13 @@ public class DishBomImportServiceTests
     [Fact]
     public void BomTemplateWorkbookBuilder_Should_IncludeGuidanceWorksheet()
     {
+        var longDishName = string.Concat(Enumerable.Repeat("Thịt nạc heo kho tiêu xanh ", 7)).Trim();
+        var longNote = "Sơ chế kỹ, chia đều theo suất.\n" + string.Concat(Enumerable.Repeat("Giữ nóng và đóng riêng phần nước sốt. ", 5));
         var bytes = BomTemplateWorkbookBuilder.Build(
             25000,
-            "Global",
+            "Dùng chung",
             new DateOnly(2026, 9, 4),
-            [],
+            [["DISH-BOM", longDishName, "25000", "", "Thịt nạc heo", "Kilôgam", "0.1", "0", "2026-09-04", "", "PUBLISHED", longNote]],
             ["Thịt nạc heo"],
             ["Kilôgam", "Quả", "Lít"]);
         using var archive = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
@@ -277,6 +284,22 @@ public class DishBomImportServiceTests
         sheetXml.Should().Contain("Hao hụt phải từ 0 đến 100%");
         sheetXml.Should().Contain("hidden=\"1\"");
         sheetXml.Should().NotContain("Cột BẮT BUỘC: IngredientName");
+        XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        var worksheet = XDocument.Parse(sheetXml).Root!;
+        var dataRow = worksheet.Element(ns + "sheetData")!.Elements(ns + "row").Single(row => (string?)row.Attribute("r") == "5");
+        ((double?)dataRow.Attribute("ht") ?? 18).Should().BeGreaterThan(48, "long Vietnamese dish names and multiline notes must not be clipped");
+        dataRow.Descendants(ns + "t").Select(cell => cell.Value).Should().Contain(longDishName).And.Contain(longNote);
+        using var styleReader = new StreamReader(archive.GetEntry("xl/styles.xml")!.Open());
+        var styles = XDocument.Parse(styleReader.ReadToEnd()).Root!.Element(ns + "cellXfs")!.Elements().ToArray();
+        foreach (var cell in dataRow.Elements(ns + "c").Take(6))
+            styles[(int?)cell.Attribute("s") ?? 0].Element(ns + "alignment")!.Attribute("wrapText")!.Value.Should().Be("1");
+        worksheet.Element(ns + "pageSetup")!.Attribute("orientation")!.Value.Should().Be("landscape");
+        xml.Should().Contain("_xlnm.Print_Area").And.Contain("'BOM'!$A$1:$F$5").And.Contain("'HUONG_DAN'!$A$1:$C$14");
+        using var guidanceReader = new StreamReader(archive.GetEntry("xl/worksheets/sheet2.xml")!.Open());
+        var guidance = XDocument.Parse(guidanceReader.ReadToEnd()).Root!;
+        var guidanceNote = guidance.Element(ns + "sheetData")!.Elements(ns + "row").Single(row => (string?)row.Attribute("r") == "13");
+        ((double?)guidanceNote.Attribute("ht") ?? 18).Should().BeGreaterThanOrEqualTo(40);
+        guidance.Element(ns + "pageSetup")!.Attribute("fitToWidth")!.Value.Should().Be("1");
 
         using var catalogReader = new StreamReader(archive.GetEntry("xl/worksheets/sheet3.xml")!.Open());
         catalogReader.ReadToEnd().Should()
@@ -295,6 +318,7 @@ public class DishBomImportServiceTests
             {
                 typeof(Unit), typeof(Warehouse), typeof(Dish), typeof(Ingredient), typeof(DishBom), typeof(BomAdjustment),
                 typeof(ReconciliationBatch), typeof(ReconciliationBatchLine), typeof(ReconciliationBatchContributor),
+                typeof(ReconciliationSourceRevision), typeof(MenuSchedule),
                 typeof(MealQuantityPlanLine), typeof(AuditLog)
             };
             foreach (var entityType in typeof(AuditLog).Assembly.GetTypes().Where(type => type.Namespace == typeof(AuditLog).Namespace && type.IsClass && !included.Contains(type)))
@@ -321,6 +345,8 @@ public class DishBomImportServiceTests
             modelBuilder.Entity<ReconciliationBatchLine>().HasOne(item => item.Batch).WithMany(item => item.Lines).HasForeignKey(item => item.BatchId);
             modelBuilder.Entity<ReconciliationBatchContributor>().HasKey(item => item.ContributorId);
             modelBuilder.Entity<ReconciliationBatchContributor>().HasOne(item => item.BatchLine).WithMany(item => item.Contributors).HasForeignKey(item => item.BatchLineId);
+            modelBuilder.Entity<ReconciliationSourceRevision>().HasKey(item => item.SourceRevisionId);
+            modelBuilder.Entity<MenuSchedule>().HasKey(item => item.MenuScheduleId);
             modelBuilder.Entity<MealQuantityPlanLine>().HasKey(item => item.QuantityPlanLineId);
             modelBuilder.Entity<MealQuantityPlanLine>().Ignore(item => item.QuantityPlan);
             modelBuilder.Entity<MealQuantityPlanLine>().Ignore(item => item.MenuSchedule);

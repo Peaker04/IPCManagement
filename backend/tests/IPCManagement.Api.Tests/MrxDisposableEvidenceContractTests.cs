@@ -22,13 +22,7 @@ public class MrxDisposableEvidenceContractTests
             . ([scriptblock]::Create($owner.Extent.Text))
             Invoke-CheckedProcess -FilePath 'powershell.exe' -Arguments @('-NoProfile','-NonInteractive','-Command',"[Console]::Out.Write(('o'*262144)); [Console]::Error.Write(('e'*262144))") -StandardOutputPath '{{output.Replace("'", "''", StringComparison.Ordinal)}}'
             """;
-        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = "powershell.exe",
-            Arguments = $"-NoProfile -NonInteractive -EncodedCommand {Convert.ToBase64String(Encoding.Unicode.GetBytes(script))}",
-            UseShellExecute = false, CreateNoWindow = true,
-            RedirectStandardOutput = true, RedirectStandardError = true,
-        })!;
+        using var process = System.Diagnostics.Process.Start(NewPowerShellInfo(script))!;
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         var exited = false;
@@ -455,6 +449,75 @@ public class MrxDisposableEvidenceContractTests
             """).Should().Be(0);
     }
 
+    [Theory]
+    [InlineData("CustomerWorstCase", "@G6-Merged-Customer onboarding", "@G6-Customer-Concurrency independent scopes")]
+    [InlineData("SourceAtomicity", "@G6-Direct-Source-Edit issue-first", "@G6-Direct-Source-Edit apply-first")]
+    [InlineData("ExportConsistency", "@T7-Export-Consistency setup", "@T7-Export-Consistency setup")]
+    public void Bounded_diagnostic_runs_only_its_functional_owners(string diagnostic, string firstOwner, string secondOwner)
+    {
+        InvokeGuard($$"""
+            if ('{{diagnostic}}' -in @('SourceAtomicity','ExportConsistency')) {
+                foreach ($mode in @('Preflight','Execute')) { Assert-MrxCampaignInvocation -Mode $mode -Profile Qualification -Diagnostic '{{diagnostic}}' }
+                foreach ($invocation in @(@{Mode='Execute';Profile='G1'},@{Mode='Run';Profile='Qualification';CampaignId='{{RunId}}'})) {
+                    $refused=$false
+                    try { Assert-MrxCampaignInvocation @invocation -Diagnostic '{{diagnostic}}' } catch { $refused=$true }
+                    if (-not $refused) { throw 'Diagnostic escaped fresh Qualification admission.' }
+                }
+            }
+            $repoRoot='{{FindRepositoryRoot().Replace("'", "''", StringComparison.Ordinal)}}'
+            $tokens=$null; $errors=$null
+            $ast=[Management.Automation.Language.Parser]::ParseFile((Join-Path $repoRoot 'scripts/mrx-evidence/Invoke-MrxDisposableEvidence.ps1'),[ref]$tokens,[ref]$errors)
+            if ($errors.Count) { throw 'Runner parse failed.' }
+            $owner=$ast.EndBlock.Statements | Where-Object { $_ -is [Management.Automation.Language.FunctionDefinitionAst] -and $_.Name -eq 'Invoke-PreparedG1Evidence' }
+            . ([scriptblock]::Create($owner.Extent.Text))
+            $repoRoot=Join-Path ([IO.Path]::GetTempPath()) ('ipc-customer-selector-'+[Guid]::NewGuid().ToString('N'))
+            $evidenceRoot=Join-Path $repoRoot 'evidence'; $tempRoot=$repoRoot
+            $Profile='Qualification'; $Diagnostic='{{diagnostic}}'; $CampaignId=$null; $runId='{{RunId}}'; $targetDatabase='{{Target}}'
+            $defaultsFile='test-only'; $processFile='test-only'; $runtimeDirectory='test-only'
+            $qualificationCredentialsFile='test-only'; $qualificationTargetConnection='test-only'
+            $candidateManifest=@{head='test-only';workingTreeSha256=('A'*64)}
+            $api=Join-Path $repoRoot '.artifacts/dotnet/bin/IPCManagement.Api/release'
+            $fe=Join-Path $repoRoot 'frontend/dist'
+            New-Item -ItemType Directory -Path $evidenceRoot,$api,$fe | Out-Null
+            Set-Content (Join-Path $api 'IPCManagement.Api.dll') 'test-only'
+            Set-Content (Join-Path $fe 'index.html') 'test-only'
+            $script:selections=@(); $script:exportOwners=0
+            function Invoke-Npm { param($Arguments,$Environment)
+                if ($Arguments[1] -eq 'test:e2e:mrx') {
+                    $index=[Array]::IndexOf($Arguments,'--grep')
+                    if ($index -lt 0 -or -not $Arguments[$index+1]) { throw 'Customer diagnostic has no bounded selection.' }
+                    $script:selections+=@{pattern=$Arguments[$index+1];phase=$Environment['MRX_E2E_PHASE']}
+                } elseif ($Arguments[1] -ne 'build:fe') { throw 'Unadmitted command.' }
+            }
+            function Invoke-CheckedProcess { param($FilePath,$Arguments,$Environment)
+                if ($Arguments[0] -eq 'build') { return }
+                if ($Diagnostic -cne 'ExportConsistency' -or $Arguments[0] -cne 'test') { throw 'Unadmitted process.' }
+                $filter=[Array]::IndexOf($Arguments,'--filter'); $hang=[Array]::IndexOf($Arguments,'--blame-hang-timeout')
+                if ($filter -lt 0 -or $Arguments[$filter+1] -cne 'FullyQualifiedName~IPCManagement.Api.Tests.Integration.MrxExportConsistencyMySqlTests' -or $hang -lt 0) { throw 'Export worker escaped bounded owner.' }
+                $dump=[Array]::IndexOf($Arguments,'--blame-hang-dump-type'); $results=[Array]::IndexOf($Arguments,'--results-directory')
+                if ($dump -lt 0 -or $Arguments[$dump+1] -cne 'none' -or $results -lt 0 -or $Arguments[$results+1] -cne (Join-Path $evidenceRoot 'native-export-test-results')) { throw 'Export timeout diagnostics escaped safe owned storage.' }
+                if ($Environment['IPC_MRX_TARGET_CONNECTION_STRING'] -cne $qualificationTargetConnection -or $Environment['MRX_EVIDENCE_RUN_ID'] -cne $runId) { throw 'Export worker lost clone identity.' }
+                $script:exportOwners++
+            }
+            function Write-EvidenceJson { param($Path,$Value) }
+            function Assert-EvidencePortsFree { }
+            function Stop-RunOwnedE2eProcesses { }
+            try {
+                Invoke-PreparedG1Evidence -SourceBuilder (ConvertFrom-MrxConnectionString 'Server=localhost;Database=ipcmanagement;Uid=test;Pwd=test;')
+                if ($script:selections.Count -ne 1 -or $script:selections[0].phase -cne 'functional') { throw 'Customer diagnostic escaped one functional phase.' }
+                if ($Diagnostic -ceq 'ExportConsistency' -and $script:exportOwners -ne 1) { throw 'Expected exactly one bounded MySQL export owner.' }
+                $pattern=$script:selections[0].pattern
+                foreach ($name in @('{{firstOwner}}','{{secondOwner}}')) {
+                    if ($name -notmatch $pattern) { throw ('Missing customer owner: '+$name) }
+                }
+                $otherOwners=if ($Diagnostic -ceq 'SourceAtomicity') { @('@G6-Merged-Customer','@G6-Customer-Concurrency') } else { @('@G6-Direct-Source-Edit') }
+                foreach ($name in (@('@G1-Golden','@G4-Race','@G5-Recovery','@G7-Desktop','@G8-Five-User','@G6-Menu-Coverage')+$otherOwners)) {
+                    if ($name -match $pattern) { throw ('Unadmitted owner selected: '+$name) }
+                }
+            } finally { Remove-Item -LiteralPath $repoRoot -Recurse -Force }
+            """).Should().Be(0);
+    }
+
     [Fact]
     public void Lifecycle_acceptance_selects_required_business_owners_without_quantitative_fallthrough()
     {
@@ -729,15 +792,8 @@ public class MrxDisposableEvidenceContractTests
             .Replace("'", "''", StringComparison.Ordinal);
         var command = $"$ErrorActionPreference='Stop'; . '{scriptPath}'; {assertion}";
 
-        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = "powershell.exe",
-            Arguments = $"-NoProfile -NonInteractive -EncodedCommand {Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(command))}",
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-        }) ?? throw new InvalidOperationException("Could not start Windows PowerShell.");
+        using var process = System.Diagnostics.Process.Start(NewPowerShellInfo(command))
+            ?? throw new InvalidOperationException("Could not start Windows PowerShell.");
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         if (!process.WaitForExit(30_000))
@@ -750,6 +806,23 @@ public class MrxDisposableEvidenceContractTests
         var error = stderr.GetAwaiter().GetResult();
         if (process.ExitCode != 0) Console.Error.WriteLine(error);
         return process.ExitCode;
+    }
+
+    private static System.Diagnostics.ProcessStartInfo NewPowerShellInfo(string command)
+    {
+        var info = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "powershell.exe",
+            Arguments = $"-NoProfile -NonInteractive -EncodedCommand {Convert.ToBase64String(Encoding.Unicode.GetBytes(command))}",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        // PowerShell 7 module paths are incompatible with the Windows PowerShell
+        // 5.1 child used by these Windows contract tests. Let it load its defaults.
+        info.Environment.Remove("PSModulePath");
+        return info;
     }
 
     private static string FindRepositoryRoot()

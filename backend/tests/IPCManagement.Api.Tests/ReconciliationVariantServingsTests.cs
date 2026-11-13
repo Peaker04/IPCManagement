@@ -241,7 +241,7 @@ public sealed class ReconciliationVariantServingsTests
         };
         var runner = new ImmediateTransactionRunner();
         var batchService = new ReconciliationBatchService(context, runner, requestContext);
-        return new ReconciliationQuantityImportService(context, runner, requestContext, cache, batchService);
+        return new ReconciliationQuantityImportService(context, runner, requestContext, Microsoft.Extensions.Options.Options.Create(new IPCManagement.Api.Security.JwtSettings { SecretKey = new string('q', 64), Issuer = "test" }), batchService);
     }
 
     private static async Task PublishSourceAsync(IpcManagementContext context, WorkflowGenerationTests.WorkflowFixture fixture)

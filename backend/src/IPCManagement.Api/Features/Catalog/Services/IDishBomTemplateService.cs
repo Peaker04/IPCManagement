@@ -4,5 +4,5 @@ namespace IPCManagement.Api.Features.Catalog.Services;
 
 public interface IDishBomTemplateService
 {
-    Task<byte[]> BuildAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default);
+    Task<(byte[] Content, string FileName)> BuildAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default);
 }

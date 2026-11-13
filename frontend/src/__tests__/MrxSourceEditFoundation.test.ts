@@ -9,6 +9,7 @@ import { apiClient } from '../api/client';
 import { invalidateMrxCaches } from '../api/mrxCacheInvalidation';
 import { toMrxErrorMessage } from '../api/mrxErrors';
 import { mrxApi } from '../api/mrxApi';
+import { getMrxShiftLabel } from '../constants/mrxConstants';
 import { useWorkbenchQuery } from '../hooks/useWorkbenchQuery';
 import { serverStateCache } from '../store/serverStateCache';
 
@@ -16,6 +17,13 @@ describe('MRX source edit frontend foundation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     serverStateCache.clearAll();
+  });
+
+  it.each([
+    ['EVENING', 'Tối'], ['Ca tối', 'Tối'],
+    ['FULLDAY', 'Cả ngày'], ['Cả ngày', 'Cả ngày'],
+  ])('labels backend cooking shift %s as %s', (shift, label) => {
+    expect(getMrxShiftLabel(shift)).toBe(label);
   });
 
   it('deletePrefix removes matching memory and session entries and notifies listeners', () => {

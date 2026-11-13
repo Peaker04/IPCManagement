@@ -9,6 +9,7 @@ import { Num } from '../../components/ui/num';
 import { mrxApi, type MrxBatchDishSummary } from '../../api/mrxApi';
 import { normalizeQuantity } from './mrxQuantity';
 import { invalidateMrxCaches } from '../../api/mrxCacheInvalidation';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 
 export interface DailyLineOption {
   dailyLineId: string;
@@ -61,7 +62,15 @@ export function MrxSupplementalIssueModal({
 }: MrxSupplementalIssueModalProps) {
   const [mode, setMode] = useState<'direct' | 'by-dish'>('direct');
   const scope = `${activeBatchId}_${activeDate}`;
-  const [catalog, setCatalog] = useState<{ batchId: string; dishes: MrxBatchDishSummary[]; error: Error | null } | null>(null);
+  const dishesCacheKey = activeBatchId ? `mrx_batch_dishes_${activeBatchId}` : '';
+  const warmDishesEntry = dishesCacheKey ? serverStateCache.get<MrxBatchDishSummary[]>(dishesCacheKey) : null;
+  const warmDishesArray = dishesCacheKey ? getCachedArray<MrxBatchDishSummary>(dishesCacheKey) : undefined;
+  const [catalog, setCatalog] = useState<{ batchId: string; dishes: MrxBatchDishSummary[]; error: Error | null } | null>(() =>
+    warmDishesEntry && warmDishesArray ? { batchId: activeBatchId, dishes: warmDishesArray, error: null } : null
+  );
+  if (isOpen && activeBatchId && warmDishesEntry && !warmDishesEntry.isStale && warmDishesArray && catalog?.batchId !== activeBatchId) {
+    setCatalog({ batchId: activeBatchId, dishes: warmDishesArray, error: null });
+  }
   const [catalogRetry, setCatalogRetry] = useState(0);
   const [selection, setSelection] = useState<{ scope: string; dishId: string } | null>(null);
   const [servings, setServings] = useState<{ scope: string; value: string } | null>(null);
@@ -73,10 +82,17 @@ export function MrxSupplementalIssueModal({
 
   useEffect(() => {
     if (!isOpen || !activeBatchId) return;
+    if (catalogRetry === 0) {
+      const cached = serverStateCache.get<MrxBatchDishSummary[]>(`mrx_batch_dishes_${activeBatchId}`);
+      if (cached && !cached.isStale) return;
+    }
     let ignore = false;
     mrxApi.getBatchDishes(activeBatchId)
       .then((items) => {
-        if (!ignore) setCatalog({ batchId: activeBatchId, dishes: items, error: null });
+        if (!ignore) {
+          serverStateCache.set(`mrx_batch_dishes_${activeBatchId}`, items);
+          setCatalog({ batchId: activeBatchId, dishes: items, error: null });
+        }
       })
       .catch((cause: unknown) => {
         if (!ignore) setCatalog({ batchId: activeBatchId, dishes: [], error: cause instanceof Error ? cause : new Error('Không thể tải định mức món.') });

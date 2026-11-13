@@ -15,7 +15,7 @@ import { InlineBanner } from '../../components/ui/inline-banner';
 import { coordinationApi, type CoordinationOrderItem, type CoordinationShiftSummary } from '../../api/coordinationApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import { todayInBusinessTimezone } from '../../utils/dates';
-import { serverStateCache } from '../../store/serverStateCache';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import type { CustomerOption } from '../../types';
 
 const SHIFT_TABS = [
@@ -32,7 +32,7 @@ interface MealOrdersSnapshot {
 
 export function MealOrdersPage() {
   const snapshot = serverStateCache.get<MealOrdersSnapshot>('snapshot:meal_orders')?.data;
-  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const cachedCustomers = getCachedArray<CustomerOption>('catalog_customers');
   const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
   const initialCustomerCode = snapshot?.customerCode || cachedCustomers?.[0]?.customerCode || '';
   const [customerCode, setCustomerCode] = useState(() => initialCustomerCode);

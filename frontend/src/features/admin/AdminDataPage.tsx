@@ -34,5 +34,5 @@ export function AdminDataPage() {
     );
   }
 
-  return <AdminCatalogBranch key={JSON.stringify([view, user?.userId, user?.roleCode, operationalMode])} activeView={view === 'dishes' ? 'dishes' : 'ingredients'} />;
+  return <AdminCatalogBranch key={JSON.stringify([user?.userId, user?.roleCode, operationalMode])} activeView={view === 'dishes' ? 'dishes' : 'ingredients'} />;
 }

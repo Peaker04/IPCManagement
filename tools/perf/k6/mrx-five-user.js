@@ -10,6 +10,7 @@ const credentials = JSON.parse(open(__ENV.MRX_E2E_CREDENTIALS_FILE).replace(/^\u
 const scope = JSON.parse(open(`${__ENV.MRX_E2E_ARTIFACT_DIRECTORY}/measurement-scope.json`));
 const roles = ['admin', 'dieuphoi', 'thukho', 'beptruong', 'manager'];
 export const options = {
+  setupTimeout: '90s',
   scenarios: { mrx: { executor: 'constant-vus', vus: 5, duration: '10m', gracefulStop: '10s' } },
   thresholds: { http_req_failed: ['rate==0'], checks: ['rate==1'], http_req_duration: ['p(75)<=300','p(95)<800'] },
 };

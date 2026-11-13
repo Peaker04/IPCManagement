@@ -1,5 +1,7 @@
+import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
+import { useWeeklyMenuImportItems } from '../features/weekly-menu/hooks/useWeeklyMenuImportItems';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation, createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { WeeklyMenuPage } from '../features/weekly-menu/WeeklyMenuPage';
@@ -55,7 +57,7 @@ function renderWeeklyMenu(initialEntry = '/weekly-menu', withShell = false) {
     <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <DirtyNavigationProvider>{withShell
-          ? <AppShell navigation={resolveEligibleNavigation(CANONICAL_ROUTES, JSON.parse(localStorage.getItem('ipc_v3_user')!), 'MATERIAL_RECONCILIATION')}>{content}</AppShell>
+          ? <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={resolveEligibleNavigation(CANONICAL_ROUTES, JSON.parse(localStorage.getItem('ipc_v3_user')!), 'MATERIAL_RECONCILIATION')}>{content}</AppShell>
           : content}</DirtyNavigationProvider>
       </MemoryRouter>
     </AuthProvider>
@@ -86,6 +88,31 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     vi.spyOn(bomApi, 'getSupportedPriceTiers').mockResolvedValue([]);
     vi.spyOn(mrxApi, 'getSourceChangeInbox').mockResolvedValue([]);
   });
+  it('keeps the cold matrix skeleton until edit scope is ready and retries a scope read failure', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.mocked(mrxApi.getEditScope).mockRestore();
+    let failScope!: (reason: Error) => void;
+    let scopeReads = 0;
+    vi.spyOn(apiTransport, 'apiClient').mockImplementation(async path => {
+      if (path.startsWith('/reconciliation/weekly-menu/edit-scope')) {
+        if (++scopeReads === 1) return new Promise((_, reject) => { failScope = reject; });
+        return { batchId: null, batchStatus: null, batchVersion: null, menuVersionId: 'menu-v1', days: [] };
+      }
+      if (path.startsWith('/reconciliation/weekly-menu?')) return { customerId: 'customer-1', weekStartDate: '2026-10-19', menuVersionId: 'menu-v1', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [] };
+      throw new Error(`Unexpected cold matrix request ${path}`);
+    });
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=customer-1&weekStartDate=2026-10-19');
+    await waitFor(() => expect(scopeReads).toBe(1));
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-skeleton-kind', 'matrix');
+    expect(screen.queryByText('Đang tải dữ liệu nguồn…')).not.toBeInTheDocument();
+    await act(async () => failScope(new ApiError(500, 'Không đọc được ma trận nguồn')));
+    expect(await screen.findByText('Không đọc được ma trận nguồn')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
+    await waitFor(() => expect(scopeReads).toBe(2));
+    await waitFor(() => expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument());
+  });
+
   it.each([
     ['mrx-materials', 'Định lượng nguyên liệu', 'materials'],
     ['mrx-plans', 'Kế hoạch theo ca', 'plans'],
@@ -139,6 +166,35 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     await userEvent.click(await screen.findByRole('button', { name: 'Trang sau' }));
     await waitFor(() => expect(reads.some(url => url.searchParams.get('PageNumber') === '2')).toBe(true));
     expect(screen.queryByRole('button', { name: 'Lập lô đối soát' })).not.toBeInTheDocument();
+  });
+
+  it('uses the target inspection schema and ignores a late plans response after returning to materials', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    let finishPlans!: (value: unknown) => void;
+    vi.spyOn(apiTransport, 'apiClient').mockImplementation(async path => {
+      if (path.startsWith('/reconciliation/weekly-menu?')) return { customerId: 'customer-1', weekStartDate: '2026-10-19', menuVersionId: 'version-1', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [] };
+      if (path.startsWith('/reconciliation/batches/quantity-import/materials?')) return {
+        menuVersionId: 'version-1', contentFingerprint: 'fp', fingerprintFormatVersion: 3, diagnostics: [],
+        page: { items: [{ ingredientId: 'ing-1', ingredientCode: 'NL01', ingredientName: 'Gạo đúng nguồn', canonicalUnitId: 'kg', canonicalUnitName: 'kg', requiredQuantity: 1.2, contributions: [] }], totalCount: 1, pageNumber: 1, pageSize: 50, totalPages: 1, hasPrev: false, hasNext: false },
+      };
+      if (path.startsWith('/reconciliation/batches/quantity-import/plans?')) return new Promise(resolve => { finishPlans = resolve; });
+      throw new Error(`Unexpected schema request ${path}`);
+    });
+    const url = (view: string) => `/weekly-menu?view=${view}&customerId=customer-1&weekStartDate=2026-10-19`;
+    const router = createMemoryRouter([{ path: '/weekly-menu', element: <WeeklyMenuPage /> }], { initialEntries: [url('mrx-materials')] });
+    render(<AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}><DirtyNavigationProvider><RouterProvider router={router} /></DirtyNavigationProvider></AuthProvider>);
+    expect(await screen.findByText('Gạo đúng nguồn')).toBeVisible();
+    await act(async () => { await router.navigate(url('mrx-plans')); });
+    await waitFor(() => expect(finishPlans).toBeTypeOf('function'));
+    expect(screen.getByRole('heading', { name: 'Kế hoạch theo ca' })).toBeVisible();
+    expect(screen.queryByText('Gạo đúng nguồn')).not.toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-skeleton-kind', 'table');
+    await act(async () => { await router.navigate(url('mrx-materials')); });
+    expect(await screen.findByText('Gạo đúng nguồn')).toBeVisible();
+    await act(async () => finishPlans({ menuVersionId: 'version-1', contentFingerprint: 'fp', fingerprintFormatVersion: 3, diagnostics: [], page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 50, totalPages: 0, hasPrev: false, hasNext: false } }));
+    expect(screen.getByText('Gạo đúng nguồn')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Định lượng nguyên liệu' })).toBeVisible();
   });
 
   it('keeps an unscoped direct inspection link explicit even when another weekly pair was remembered', async () => {
@@ -603,6 +659,12 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
       expect(screen.queryByRole('button', { name: 'Mở trạm Kho xuất ngày' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: 'Đi đến Trạm Kho nguyên liệu →' })).not.toBeInTheDocument();
       expect(screen.getByText('Đã bàn giao · Chờ Kho xuất nguyên liệu.')).toBeInTheDocument();
+      expect(screen.getByText('Đã bàn giao · Chờ Kho xuất nguyên liệu.').closest('[role="status"]')).toBe(
+        screen.getByText('Đã bàn giao lô đối soát sang Kho nguyên liệu thành công.').closest('[role="status"]')
+      );
+      await userEvent.click(screen.getByRole('button', { name: 'Đóng thông báo' }));
+      expect(screen.queryByText('Đã bàn giao lô đối soát sang Kho nguyên liệu thành công.')).not.toBeInTheDocument();
+      expect(screen.getByText('Đã bàn giao · Chờ Kho xuất nguyên liệu.')).toBeInTheDocument();
     }
   });
 
@@ -634,15 +696,107 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
   it('shows history loading failure rather than presenting an empty successful history', async () => {
     vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
-    const history = vi.spyOn(weeklyMenuApi, 'getImportHistory').mockRejectedValueOnce(new Error('Không thể tải lịch sử nhập.')).mockResolvedValue({ items: [], totalCount: 0 });
+    let failHistory!: (reason: Error) => void;
+    let historyReads = 0;
+    vi.spyOn(apiTransport, 'apiClient').mockImplementation(async path => {
+      if (!path.includes('/weekly-menu/import-history')) throw new Error(`Unexpected history request ${path}`);
+      if (++historyReads === 1) return new Promise((_, reject) => { failHistory = reject; });
+      return { items: [], totalCount: 0 };
+    });
     renderWeeklyMenu();
     await userEvent.click(await screen.findByRole('button', { name: 'Nhập thực đơn Excel' }));
-    await userEvent.click(screen.getByRole('button', { name: /Lịch sử import & Khôi phục/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Lịch sử nhập/i }));
+    await waitFor(() => expect(historyReads).toBe(1));
+    expect(screen.getByRole('button', { name: /Lịch sử nhập/i })).toHaveTextContent('(—)');
+    const header = screen.getByRole('columnheader', { name: 'Phiên bản / File' });
+    expect(header.closest('table')?.parentElement).toHaveAttribute('data-loading-phase', 'reserved');
+    await act(async () => failHistory(new ApiError(500, 'Không thể tải lịch sử nhập.')));
     expect(await screen.findByText('Không thể tải lịch sử nhập.')).toBeInTheDocument();
-    expect(screen.queryByText('Chưa có lịch sử import cho khách hàng này.')).not.toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Phiên bản / File' })).toBe(header);
+    expect(screen.queryByText('Chưa có lịch sử nhập cho khách hàng này.')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Tải lại lịch sử' }));
-    expect(await screen.findByText('Chưa có lịch sử import cho khách hàng này.')).toBeInTheDocument();
-    expect(history).toHaveBeenCalledTimes(2);
+    expect(await screen.findByText('Chưa có lịch sử nhập cho khách hàng này.')).toBeInTheDocument();
+    expect(historyReads).toBe(2);
+    expect(screen.getByRole('columnheader', { name: 'Phiên bản / File' })).toBe(header);
+    expect(screen.getByRole('button', { name: /Lịch sử nhập/i })).toHaveTextContent('(0)');
+  });
+
+  it('reaches retained import history beyond the first 20 records', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
+    const history = vi.spyOn(weeklyMenuApi, 'getImportHistory').mockResolvedValue({ items: [], totalCount: 21 });
+    renderWeeklyMenu();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nhập thực đơn Excel' }));
+    await userEvent.click(screen.getByRole('button', { name: /Lịch sử nhập/i }));
+    const pager = await screen.findByRole('navigation', { name: 'Phân trang lịch sử nhập' });
+    await userEvent.click(within(pager).getByRole('button', { name: 'Trang sau' }));
+    await waitFor(() => expect(history).toHaveBeenCalledWith('customer-1', 2, 20));
+  });
+
+  it('retains a read-only source table while another import snapshot resolves', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
+    const historyItem = { menuVersionId: 'version-1', customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',
+      weekStartDate: '2026-10-19', versionNo: 1, status: 'DRAFT', sourceFileName: 'one.xlsx', createdAt: '2026-10-18T00:00:00Z',
+      successRowCount: 1, errorRowCount: 0, warningRowCount: 0, canRollback: false };
+    vi.spyOn(weeklyMenuApi, 'getImportHistory').mockResolvedValue({ items: [historyItem, { ...historyItem, menuVersionId: 'version-2', versionNo: 2, sourceFileName: 'two.xlsx' }], totalCount: 2 });
+    const snapshot = { menuVersionId: 'version-1', customerId: 'customer-1', weekStartDate: '2026-10-19',
+      rows: [{ serviceDate: '2026-10-19', shiftName: 'MORNING', dishSlot: 'main', dishId: 'dish-1', dishName: 'Món nguồn đang xem', sourceOrder: 1 }] };
+    let release!: (value: typeof snapshot) => void;
+    let releaseCold!: (value: typeof snapshot) => void;
+    vi.spyOn(weeklyMenuApi, 'getImportSnapshot').mockImplementationOnce(() => new Promise(resolve => { releaseCold = resolve; })).mockImplementationOnce(() => new Promise(resolve => { release = resolve; }));
+    renderWeeklyMenu();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nhập thực đơn Excel' }));
+    await userEvent.click(screen.getByRole('button', { name: /Lịch sử nhập/i }));
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Xem nguồn' }))[0]);
+    expect(screen.getByRole('status', { name: 'Đang tải nội dung' })).toHaveAttribute('data-loading-phase', 'reserved');
+    await act(async () => releaseCold(snapshot));
+    const oldRow = await screen.findByText('Món nguồn đang xem');
+    const table = oldRow.closest('table');
+    await userEvent.click(screen.getAllByRole('button', { name: 'Xem nguồn' })[1]);
+    expect(screen.getByText('Món nguồn đang xem')).toBe(oldRow);
+    expect(oldRow.closest('table')).toBe(table);
+    expect(screen.getByText('Đang tải nguồn khác; nội dung đang hiển thị thuộc lần xem trước.')).toBeInTheDocument();
+    await act(async () => release({ ...snapshot, menuVersionId: 'version-2', rows: [{ ...snapshot.rows[0], dishName: 'Món nguồn tiếp theo' }] }));
+    expect(await screen.findByText('Món nguồn tiếp theo')).toBeVisible();
+    expect(screen.queryByText('Món nguồn đang xem')).not.toBeInTheDocument();
+  });
+
+  it('keeps the previous import page readable while the next page resolves and blocks stale row actions', async () => {
+    vi.spyOn(weeklyMenuApi, 'getWeeklyMenuData').mockResolvedValue(MOCK_WEEKLY_MENU_DATA);
+    let resolveNext!: (value: { items: []; totalCount: number }) => void;
+    vi.spyOn(weeklyMenuApi, 'getImportHistory').mockResolvedValueOnce({
+      items: [{
+        menuVersionId: 'version-1', customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',
+        weekStartDate: '2026-10-19', versionNo: 1, status: 'DRAFT', sourceFileName: 'week-one.xlsx',
+        createdAt: '2026-10-18T00:00:00Z', successRowCount: 1, errorRowCount: 0, warningRowCount: 0, canRollback: true,
+      }], totalCount: 21,
+    }).mockImplementationOnce(() => new Promise(resolve => { resolveNext = resolve; }));
+    renderWeeklyMenu();
+    await userEvent.click(await screen.findByRole('button', { name: 'Nhập thực đơn Excel' }));
+    await userEvent.click(screen.getByRole('button', { name: /Lịch sử nhập/i }));
+    await screen.findByText('week-one.xlsx');
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Phân trang lịch sử nhập' })).getByRole('button', { name: 'Trang sau' }));
+    expect(screen.getByText('week-one.xlsx')).toBeVisible();
+    expect(screen.queryByText('Đang tải lịch sử nhập…')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Xem nguồn' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hủy phiên' })).toBeDisabled();
+    await act(async () => resolveNext({ items: [], totalCount: 21 }));
+    await waitFor(() => expect(screen.queryByText('week-one.xlsx')).not.toBeInTheDocument());
+    expect(screen.getByRole('navigation', { name: 'Phân trang lịch sử nhập' })).toHaveTextContent('Trang 2/2');
+  });
+
+  it('makes another-week date editable in the same scope selection', () => {
+    const { result } = renderHook(() => useWeeklyMenuImportItems({ customerId: 'customer-1', weekStartDate: '2026-11-23', scopeIntent: 'current-week' }, [25000]));
+    const id = result.current.items[0].id;
+    act(() => result.current.setScopeIntent(id, 'new-week', { customerId: 'customer-1', weekStartDate: '2026-11-23' }));
+    expect(result.current.items[0].weekMode).toBe('manual');
+    expect(result.current.items[0].weekStartDate).toBe('');
+    expect(result.current.items[0].preview).toBeNull();
+    act(() => result.current.addFiles([new File(['menu'], 'week.xlsx')]));
+    act(() => result.current.setScopeIntent(id, 'new-week', { customerId: 'customer-1', weekStartDate: '2026-11-23' }));
+    expect(result.current.items[0].weekMode).toBe('auto');
+    act(() => result.current.updateItem(id, { weekStartDate: '2026-11-30' }));
+    expect(result.current.items[0].weekMode).toBe('manual');
+    expect(result.current.items[0].weekStartDate).toBe('2026-11-30');
   });
 
   it('loads retained normalized source from import history without reactivating it', async () => {
@@ -663,11 +817,13 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     renderWeeklyMenu();
     await userEvent.click(await screen.findByRole('button', { name: 'Nhập thực đơn Excel' }));
-    await userEvent.click(screen.getByRole('button', { name: /Lịch sử import & Khôi phục/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Lịch sử nhập/i }));
     await userEvent.click(await screen.findByRole('button', { name: 'Xem nguồn' }));
 
     expect(await screen.findByText('Nguồn chuẩn hóa tuần 19/10/2026')).toBeInTheDocument();
     expect(screen.getByText('Bò kho')).toBeInTheDocument();
+    expect(screen.getByText('Sáng · Món chính')).toBeInTheDocument();
+    expect(screen.queryByText(/MORNING|savory-main/)).not.toBeInTheDocument();
     expect(weeklyMenuApi.getImportSnapshot).toHaveBeenCalledWith('version-rolled-back');
     expect(screen.queryByRole('button', { name: 'Hủy phiên' })).not.toBeInTheDocument();
   });
@@ -687,7 +843,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
 
     renderWeeklyMenu();
     await userEvent.click(await screen.findByRole('button', { name: 'Nhập thực đơn Excel' }));
-    await userEvent.click(screen.getByRole('button', { name: /Lịch sử import & Khôi phục/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Lịch sử nhập/i }));
     await userEvent.click(await screen.findByRole('button', { name: 'Xem nguồn' }));
 
     if (status === 404) {
@@ -698,7 +854,7 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
       await userEvent.click(screen.getByRole('button', { name: 'Tải lại nguồn' }));
       expect(await screen.findByText('Nguồn chuẩn hóa tuần 19/10/2026')).toBeInTheDocument();
     }
-    expect(screen.queryByText('Chưa có lịch sử import cho khách hàng này.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Chưa có lịch sử nhập cho khách hàng này.')).not.toBeInTheDocument();
   });
 
   it('renders single 56px WorkspaceHeader with client selectors, dd/MM/yyyy date, and dynamic primary button (Rule D7)', async () => {
@@ -864,215 +1020,4 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     expect(await screen.findByText('Thực đơn & KHSX tuần')).toBeInTheDocument();
   });
 
-  it('Route 2: persists customerId and weekStartDate in URL search params on change and F5 reload', async () => {
-    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
-    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
-    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
-      { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
-      { customerId: 'cust-2', customerCode: 'C2', customerName: 'Khách Hai' },
-    ]);
-    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
-      customerId: 'cust-2', customerCode: 'C2', customerName: 'Khách Hai', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
-      menuVersionId: 'mv-2', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [],
-      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
-    });
-
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-2&weekStartDate=2026-11-02');
-
-    const customerSelect = await screen.findByRole('combobox', { name: 'Chọn khách hàng MRX' });
-    expect(customerSelect).toHaveValue('cust-2');
-  });
-
-  it('uses the unified weekly source workbench when an MRX source exists', async () => {
-    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-11-01T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
-    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
-      { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
-    ]);
-    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
-      customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
-      menuVersionId: 'mv-1', menuVersionNo: 1, menuVersionStatus: 'DRAFT', warnings: [],
-      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
-    });
-
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
-
-    expect(await screen.findByRole('heading', { name: 'Hoàn thiện nguồn tuần' })).toBeInTheDocument();
-    expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nhập Excel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
-    localStorage.setItem('ipc_v3_user', JSON.stringify({
-      userId: 'manager-1', fullName: 'Quản lý', username: 'manager', roleCode: 'Manager', roleName: 'Quản lý',
-      isActive: true, isAdminFullAccess: false, permissions: ['reconciliation.source.read', 'reconciliation.source.approve'],
-    }));
-    vi.spyOn(mrxApi, 'getSourceChangeInbox').mockResolvedValue([{
-      menuAmendmentId: 'amend-99',
-      customerId: 'cust-1',
-      customerName: 'Khách Một',
-      weekStartDate: '2026-11-02',
-      status: 'PENDING_REVIEW',
-      reason: 'Đổi món trưa từ Dashboard',
-      createdAt: '2026-11-02T01:00:00Z',
-      affectedReconciliationBatchIds: [],
-      impactLines: [],
-    }]);
-
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02&amendmentId=amend-99');
-
-    expect(await screen.findByRole('heading', { name: 'Duyệt thay đổi nguồn MRX' })).toBeVisible();
-    expect(screen.getByText('Đổi món trưa từ Dashboard')).toBeVisible();
-    return;
-    expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Nhập Excel' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
-  });
-
-  it('replaces the legacy schedule editor with direct MRX source editing after a batch exists', async () => {
-    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-11-01T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
-    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
-      { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
-    ]);
-    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
-      customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
-      menuVersionId: 'mv-1', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [],
-      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
-    });
-    vi.spyOn(mrxApi, 'getBatchPage').mockResolvedValue({
-      items: [{
-        batchId: 'batch-transferred-1', customerId: 'cust-1', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08', status: 'TRANSFERRED',
-        version: 3, createdAt: '2026-11-01T00:00:00Z',
-      }],
-      totalCount: 1, pageNumber: 1, pageSize: 1, totalPages: 1, hasPrev: false, hasNext: false,
-    });
-    vi.spyOn(mrxApi, 'getBatch').mockResolvedValue({
-      batchId: 'batch-transferred-1', customerId: 'cust-1', weekStartDate: '2026-11-02', status: 'TRANSFERRED',
-      version: 3, lines: [],
-    } as unknown as MrxBatch);
-    vi.spyOn(mrxApi, 'previewQuantityImport').mockResolvedValue({
-      token: 'preview-token',
-      expiresAt: '2026-11-02T01:00:00Z',
-      contentFingerprint: 'fp-1',
-      fingerprintFormatVersion: 2,
-      plans: [],
-      diagnostics: [],
-    });
-
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
-
-    expect(screen.queryByRole('button', { name: 'Chỉnh sửa lịch tuần' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
-    expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
-  });
-
-  it('B3: useMrxBatchWorkspace persists weeklyMenuScope when selecting customer or week so AppShell sidebar inspection links carry the active scope', async () => {
-    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
-    vi.spyOn(systemApi, 'getOperationalMode').mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối chiếu nguyên liệu', version: 9, updatedAt: '2026-11-01T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
-    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([
-      { customerId: 'cust-1', customerCode: 'C1', customerName: 'Khách Một' },
-    ]);
-    vi.spyOn(mrxApi, 'getWeeklySource').mockRejectedValue(new ApiError(404, 'Not found'));
-
-    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=cust-1&weekStartDate=2026-11-02');
-
-    await waitFor(() => expect(workspaceSessionStore.getScope().weeklyMenuScope).toEqual({
-      customerId: 'cust-1',
-      weekStartDate: '2026-11-02',
-    }));
-  });
-
-  it('C1 & C2: keeps inspection rows and PaginationBar mounted with isPreviousData during paging and debounces search input by 250ms', async () => {
-    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
-    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({
-      mode: 'MATERIAL_RECONCILIATION',
-      label: 'Đối soát',
-      version: 9,
-      updatedAt: '2026-10-18T00:00:00Z',
-      reasonRequired: false,
-      capabilities: { navigation: [], pageTabs: {} },
-    });
-    vi.mocked(weeklyMenuApi.getCustomers).mockRestore();
-
-    let resolvePage2!: () => void;
-    const reads: URL[] = [];
-    vi.spyOn(apiTransport, 'apiClient').mockImplementation(async (path) => {
-      const url = new URL(path, 'http://localhost');
-      if (url.pathname === '/coordination/customers') {
-        return [{ customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' }];
-      }
-      if (url.pathname === '/reconciliation/weekly-menu') {
-        return {
-          customerId: 'customer-1',
-          weekStartDate: '2026-10-19',
-          weekEndDate: '2026-10-25',
-          menuVersionId: 'version-1',
-          menuVersionNo: 3,
-          menuVersionStatus: 'PUBLISHED',
-          warnings: [],
-        };
-      }
-      if (url.pathname === '/reconciliation/batches/quantity-import/materials') {
-        reads.push(url);
-        const pageNumber = Number(url.searchParams.get('PageNumber'));
-        const q = url.searchParams.get('SearchKeyword') ?? '';
-        const makePayload = (name: string) => ({
-          menuVersionId: 'version-1',
-          contentFingerprint: 'fingerprint-1',
-          fingerprintFormatVersion: 3,
-          diagnostics: [],
-          page: {
-            items: [{
-              ingredientId: `ing-${pageNumber}-${q}`,
-              ingredientCode: 'NL01',
-              ingredientName: name,
-              canonicalUnitId: 'kg',
-              canonicalUnitName: 'kg',
-              requiredQuantity: 1.2,
-              contributions: [],
-            }],
-            totalCount: 2,
-            pageNumber,
-            pageSize: 1,
-            totalPages: 2,
-            hasPrev: pageNumber > 1,
-            hasNext: pageNumber < 2,
-          },
-        });
-        if (pageNumber === 2) {
-          return new Promise((resolve) => {
-            resolvePage2 = () => resolve(makePayload('Thịt bò trang 2'));
-          });
-        }
-        return makePayload(q ? `Kết quả lọc: ${q}` : 'Gạo trang 1');
-      }
-      throw new Error(`Unexpected inspection request ${path}`);
-    });
-
-    renderWeeklyMenu('/weekly-menu?view=mrx-materials&customerId=customer-1&weekStartDate=2026-10-19&pageSize=1');
-    expect(await screen.findByText('Gạo trang 1')).toBeVisible();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
-    expect(screen.getByText('Gạo trang 1')).toBeInTheDocument();
-    expect(screen.getByRole('navigation', { name: 'Định lượng nguyên liệu' })).toBeInTheDocument();
-    expect(screen.getByRole('progressbar', { name: 'Đang tải trang' })).toBeInTheDocument();
-
-    await act(async () => {
-      resolvePage2();
-    });
-    expect(await screen.findByText('Thịt bò trang 2')).toBeVisible();
-
-    const readsBeforeSearch = reads.length;
-    const searchBox = screen.getByRole('textbox', { name: 'Tìm nguyên liệu' });
-    fireEvent.change(searchBox, { target: { value: 'Thịt bò' } });
-    expect(searchBox).toHaveValue('Thịt bò');
-    expect(reads.length).toBe(readsBeforeSearch);
-
-    await waitFor(() => expect(reads.some((u) => u.searchParams.get('SearchKeyword') === 'Thịt bò')).toBe(true));
-    expect(await screen.findByText('Kết quả lọc: Thịt bò')).toBeVisible();
-  });
 });

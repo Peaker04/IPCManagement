@@ -17,7 +17,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
         _context = context;
     }
 
-    public async Task<byte[]> BuildAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default)
+    public async Task<(byte[] Content, string FileName)> BuildAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default)
     {
         var priceTier = DishBomPolicy.NormalizePriceTier(query.PriceTier);
         var customerId = DishBomPolicy.ParseOptionalCustomerId(query.CustomerId);
@@ -108,13 +108,16 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
             .ToList();
 
         var scope = customerCode is null ? "Dùng chung" : $"Khách hàng {customerCode}";
-        return BomTemplateWorkbookBuilder.Build(
+        var scopeLabel = templateType switch { "missing" => "CacMonThieu", "dish" => "TheoMon", "blank" => "Trong", _ => "ToanBo" };
+        var scopeDescription = templateType switch { "missing" => "Các món thiếu định lượng", "dish" => "Theo món", "blank" => "Mẫu trống", _ => "Toàn bộ món" };
+        var content = BomTemplateWorkbookBuilder.Build(
             priceTier,
-            $"{scope} / {templateType}",
+            $"{scope} / {scopeDescription}",
             today,
             rows,
             ingredientNames,
             unitOptions);
+        return (content, TemplateFileNames.Bom(customerCode, priceTier, scopeLabel));
     }
 
     private async Task<string?> ResolveCustomerCodeAsync(byte[]? customerId, CancellationToken cancellationToken)

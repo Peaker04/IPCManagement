@@ -1,0 +1,13 @@
+# Reconciliation semantic filters and exact-week scope — approved design
+
+Operator approved color refinement and replacement of long batch dropdown/pager with customer → week → day, requesting strong regression coverage for scope selection.
+
+Operate refinement only; retain canonical DESIGN and CSS token authority. Filter tones: All neutral, Needs review warning, Disposed info, Matched success, including zero counts; selection is aria-pressed and visible outline, not color alone.
+
+Use existing CustomerId+WeekStartDate server filtering before paging; no all-history fetch or client truncation. Header replaces historical batch dropdown with Vietnamese week input (normalizes chosen date to Monday); lines additionally show day input aligned to that week. Reports share selected customer/week, completed register remains global as before. Preserve explicit batch links, resolving authoritative customer/week from batch detail even when outside remembered scope. No automatic fallback to another week after authoritative empty response. Distinguish loading, empty, API error/retry, permission/mode denial and stale continuity; stale scope cannot authorize writes or export.
+
+One exact-week match selects automatically. Multiple matches require explicit choice; never assume customer+week is unique. A bounded chooser dialog uses existing Modal/DataGrid and footer PaginationBar, 25 rows/page, querying the same exact customer/week, so even >100 matches are accessible without an oversized dropdown. Its page state is local to the chooser and cannot change the selected batch until a row is chosen. One blocking modal at a time, cancel preserves scope.
+
+Week-scoped catalog cache keys must include customer/week; do not interpret an old unfiltered snapshot's empty/first100 list as evidence of no exact-week match. Late responses/errors from previous scope ignored. Same-week day change keeps batch and does not reread catalog. URL/history retains explicit date/batch selection; correct links work across report branches. Existing MRX/DEFAULT, RBAC, lineage/quantity rules remain unchanged. No new dependency/schema or business writes; existing dirty workspace preserved; no delegation/commit/install/deploy.
+
+Verification: owner RED→GREEN for scoped query, no fallback on empty, >100-history access, ambiguous-week chooser and its later pages, rapid customer/week races, cache isolation, deep links, daily date, F5/history, report scopes/error retry, selected filter accessibility. Existing owner cases are extended/migrated only when old dropdown/paging behavior was intentionally replaced; do not delete independent recovery/RBAC/race assertions. Browser/production claims require actual evidence, not jsdom.
