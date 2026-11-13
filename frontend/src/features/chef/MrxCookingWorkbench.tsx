@@ -10,38 +10,58 @@ import { WorkbenchSkeleton } from '../../components/workbench/WorkbenchSkeleton'
 import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { InlineBanner } from '../../components/ui/inline-banner';
 import { Button } from '../../components/ui/button';
-import { serverStateCache } from '../../store/serverStateCache';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import { workspaceSessionStore } from '../../store/workspaceSessionStore';
 import { toVietnameseDate } from '../../utils/dates';
 import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
 import { MrxCookingHeaderBranch } from './branches/MrxCookingHeaderBranch';
 import { MrxCookingDishListBranch, type DishGroup } from './branches/MrxCookingDishListBranch';
+import { ReconciliationBatchPicker } from '../../components/workbench/ReconciliationBatchPicker';
 
 export function MrxCookingWorkbench() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const sessionScope = workspaceSessionStore.getScope();
   const urlBatchId = searchParams.get('batchId') || '';
-  const cachedBatches = serverStateCache.get<MrxBatchSummary[]>('mrx_daily_batches')?.data;
+  const cachedBatches = getCachedArray<MrxBatchSummary>('mrx_daily_batches');
   const snapshot = serverStateCache.get<{ batchId?: string; selectedShift?: 'ALL' | 'MORNING' | 'AFTERNOON' }>('snapshot:mrx_cooking')?.data;
   const [batches, setBatches] = useState<MrxBatchSummary[]>(() => cachedBatches ?? []);
   const [batchListError, setBatchListError] = useState<Error | null>(null);
   const [batchListRetry, setBatchListRetry] = useState(0);
   const [catalogPage, setCatalogPage] = useState(1);
+  const [historyPickerOpen, setHistoryPickerOpen] = useState(false);
   const [catalogInfo, setCatalogInfo] = useState<MrxBatchPage | null>(null);
   const [catalogLoading, setCatalogLoading] = useState(!cachedBatches);
-  const resolvedBatchId = urlBatchId || snapshot?.batchId || sessionScope.batchId || (cachedBatches?.[0]?.batchId || '');
+  const hasSessionSelection = Boolean(sessionScope.customerId || sessionScope.customerCode || sessionScope.weekStartDate);
+  const matchingSessionBatch = cachedBatches?.find(batch => batch.customerId === sessionScope.customerId && batch.weekStartDate === sessionScope.weekStartDate)
+    || cachedBatches?.find(batch => batch.customerId === sessionScope.customerId);
+  const resolvedBatchId = urlBatchId || sessionScope.batchId || (hasSessionSelection ? matchingSessionBatch?.batchId : cachedBatches?.[0]?.batchId) || '';
   const [fallbackBatchId, setBatchId] = useState(() => resolvedBatchId);
+  if (urlBatchId && urlBatchId !== fallbackBatchId) {
+    setBatchId(urlBatchId);
+  }
   const batchId = urlBatchId || fallbackBatchId;
+  useEffect(() => {
+    if (!urlBatchId && fallbackBatchId) {
+      setSearchParams((curr) => {
+        const next = new URLSearchParams(curr);
+        next.set('batchId', fallbackBatchId);
+        return next;
+      }, { replace: true });
+    }
+  }, [urlBatchId, fallbackBatchId, setSearchParams]);
   const selectionRef = useRef({ batchId, urlBatchId, setSearchParams });
   useEffect(() => { selectionRef.current = { batchId, urlBatchId, setSearchParams }; }, [batchId, urlBatchId, setSearchParams]);
   const [selectedShift, setSelectedShift] = useState<'ALL' | 'MORNING' | 'AFTERNOON'>(() => snapshot?.selectedShift || 'ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  useEffect(() => {
+    serverStateCache.set('snapshot:mrx_cooking', { batchId, selectedShift });
+  }, [batchId, selectedShift]);
 
   const cookingQuery = useWorkbenchQuery<MrxKitchenCooking>({
     scopeKey: 'mrx_cooking',
     cacheKey: `mrx_cooking_${batchId}`,
-    snapshotKey: 'snapshot:mrx_cooking',
+    snapshotKey: `snapshot:mrx_cooking_${batchId || 'none'}`,
     scopeId: batchId,
     isCatalogLoading: !batchId && catalogLoading,
     queryFn: () => mrxApi.getKitchenCooking(batchId),
@@ -59,8 +79,10 @@ export function MrxCookingWorkbench() {
     stateProps.error?.message.includes('LEGACY_DAILY_LINEAGE_MISSING') ||
     stateProps.isPartial
   );
-  const data = !isLegacyLineageMissing && cookingData?.batchId === batchId ? cookingData : null;
-  const isForeignData = Boolean(cookingData && cookingData.batchId !== batchId);
+  const [hasUserSwitchedBatch, setHasUserSwitchedBatch] = useState(false);
+  const isTransitioningBatch = Boolean(hasUserSwitchedBatch && cookingData && cookingData.batchId !== batchId && !stateProps.error && !isLegacyLineageMissing);
+  const data = !isLegacyLineageMissing ? (cookingData?.batchId === batchId ? cookingData : (isTransitioningBatch ? cookingData : null)) : null;
+  const isForeignData = Boolean(cookingData && cookingData.batchId !== batchId && !isTransitioningBatch);
 
   useEffect(() => {
     let ignore = false;
@@ -88,7 +110,12 @@ export function MrxCookingWorkbench() {
             });
             return;
           }
-          const chosen = items.find((b) => b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS') || items[0];
+          if (batchId && workspaceSessionStore.getScope().batchId === batchId) return;
+          const scope = workspaceSessionStore.getScope();
+          const chosen = scope.customerId
+            ? items.find(b => b.customerId === scope.customerId && b.weekStartDate === scope.weekStartDate) || items.find(b => b.customerId === scope.customerId)
+            : items.find((b) => b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS') || items[0];
+          if (!chosen) return;
           setBatchId(chosen.batchId);
           workspaceSessionStore.setScope({
             batchId: chosen.batchId,
@@ -157,8 +184,10 @@ export function MrxCookingWorkbench() {
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const canOutput = Boolean(data?.batchId === batchId && data.rows.length > 0
+    && !stateProps.isFetching && !stateProps.isPreviousData && !stateProps.error && !isLegacyLineageMissing);
   async function downloadCooking(format: 'csv' | 'xlsx') {
-    if (!batchId || !data?.rows.length || isDownloading) return;
+    if (!canOutput || isDownloading) return;
     setIsDownloading(true);
     setDownloadError(null);
     try {
@@ -180,56 +209,56 @@ export function MrxCookingWorkbench() {
       setIsDownloading(false);
     }
   }
+  const isScopePending = !stateProps.error && Boolean(!data || data.batchId !== batchId);
   const hasData = Boolean(data && data.rows.length > 0);
+  const hasCurrentData = hasData && !isScopePending;
   const isFilteredEmpty = hasData && visibleDishGroups.length === 0;
 
   const displayedError = isLegacyLineageMissing ? null : stateProps.error;
   const nextAvailableBatch = batches.find((b) => b.batchId !== batchId && (b.status === 'READY' || b.status === 'TRANSFERRED' || b.status === 'IN_PROGRESS'));
+
+  const selectBatch = (newId: string, historicalBatch?: MrxBatchSummary) => {
+    const b = historicalBatch ?? batches.find(item => item.batchId === newId);
+    setHasUserSwitchedBatch(true);
+    setBatchId(newId);
+    if (b) {
+      setBatches(previous => previous.some(item => item.batchId === b.batchId) ? previous : [b, ...previous]);
+      workspaceSessionStore.setScope({ batchId: newId, customerId: b.customerId, customerCode: b.customerCode || '',
+        customerName: b.customerName || '', weekStartDate: b.weekStartDate });
+    }
+    setSearchParams(curr => { const next = new URLSearchParams(curr); next.set('batchId', newId); return next; }, { replace: true });
+  };
 
   return (
     <WorkspaceFrame.Root className="select-text">
       <MrxCookingHeaderBranch
         batches={batches}
         batchId={batchId}
-        onSelectBatch={(newId) => {
-          const b = batches.find((item) => item.batchId === newId);
-          setBatchId(newId);
-          if (b) {
-            workspaceSessionStore.setScope({
-              batchId: newId,
-              customerId: b.customerId,
-              customerCode: b.customerCode || '',
-              customerName: b.customerName || '',
-            });
-          }
-          setSearchParams((curr) => {
-            const next = new URLSearchParams(curr);
-            next.set('batchId', newId);
-            return next;
-          }, { replace: true });
-        }}
+        onSelectBatch={selectBatch}
         selectedShift={selectedShift}
         onSelectShift={(shift) => setSelectedShift(shift)}
-        data={data}
-        actions={hasData ? <>
-          <Button variant="outline" size="sm" disabled={!hasData || isDownloading} onClick={() => void downloadCooking('csv')}>Tải CSV cả lô</Button>
-          <Button variant="outline" size="sm" disabled={!hasData || isDownloading} onClick={() => void downloadCooking('xlsx')}>Tải Excel cả lô</Button>
-          <Button variant="outline" size="sm" disabled={!hasData || isFilteredEmpty} onClick={() => window.print()}>In phiếu nấu</Button>
-        </> : undefined}
-        catalogNavigation={<PaginationBar label="Phân trang danh sách lô nấu" placement="selector" page={catalogInfo?.pageNumber ?? catalogPage} pageSize={50}
+        isPending={isScopePending}
+        data={isScopePending ? null : data}
+        actions={<>
+          <Button variant="outline" size="sm" disabled={!canOutput || isDownloading} onClick={() => void downloadCooking('csv')}>Tải CSV cả lô</Button>
+          <Button variant="outline" size="sm" disabled={!canOutput || isDownloading} onClick={() => void downloadCooking('xlsx')}>Tải Excel cả lô</Button>
+          <Button variant="outline" size="sm" disabled={!canOutput || isFilteredEmpty} onClick={() => { if (canOutput && !isFilteredEmpty) window.print(); }}>In phiếu nấu</Button>
+        </>}
+        catalogNavigation={<><PaginationBar label="Phân trang danh sách lô nấu" placement="selector" page={catalogInfo?.pageNumber ?? catalogPage} pageSize={50}
           totalCount={catalogInfo?.totalCount} totalPages={catalogInfo?.totalPages}
           hasPrev={catalogInfo?.hasPrev ?? false} hasNext={catalogInfo?.hasNext ?? false}
-          pending={catalogLoading || Boolean(batchListError)} onPageChange={next => { setCatalogLoading(true); setCatalogPage(next); }} />}
+          pending={catalogLoading || Boolean(batchListError)} onPageChange={next => { setCatalogLoading(true); setCatalogPage(next); }} />
+          <Button variant="outline" size="sm" onClick={() => setHistoryPickerOpen(true)}>Tìm lô cũ</Button></>}
       />
 
-      {!isLegacyLineageMissing && !displayedError && <LocalFindBar label="Tìm món, nguyên liệu trong phiếu nấu" value={searchTerm} onChange={setSearchTerm}
-        disabled={!hasData}
+      <LocalFindBar label="Tìm món, nguyên liệu trong phiếu nấu" value={searchTerm} onChange={setSearchTerm}
+        disabled={!hasData || isLegacyLineageMissing || Boolean(displayedError)}
         matched={visibleDishGroups.length} total={filteredDishGroups.length}
         scope="Trong ca; giữ đủ nguyên liệu mỗi món, tệp tải vẫn cả lô.">
-        <span className="text-xs text-slate-600">Số món: <strong className="font-mono text-slate-900">{hasData ? `${visibleDishGroups.length}/${filteredDishGroups.length}` : '—'}</strong></span>
-        <span className="text-xs text-slate-600">Tổng suất trong ca: <strong className="font-mono text-slate-900">{!hasData ? '—' : totalFilteredServings === null ? 'Chưa xác định' : `${totalFilteredServings} suất`}</strong></span>
-        <span className="text-xs text-slate-600">Dòng nguyên liệu đang xem: <strong className="font-mono text-slate-900">{hasData ? visibleDishGroups.reduce((sum, group) => sum + group.rows.length, 0) : '—'}</strong></span>
-      </LocalFindBar>}
+        <span className="text-xs text-slate-600">Số món: <strong className="inline-block min-w-[3ch] text-right font-mono tabular-nums text-slate-900">{hasCurrentData ? `${visibleDishGroups.length}/${filteredDishGroups.length}` : '—'}</strong></span>
+        <span className="text-xs text-slate-600">Tổng suất trong ca: <strong className="inline-block min-w-[3ch] text-right font-mono tabular-nums text-slate-900">{!hasCurrentData ? '—' : totalFilteredServings === null ? 'Chưa xác định' : `${totalFilteredServings} suất`}</strong></span>
+        <span className="text-xs text-slate-600">Dòng nguyên liệu đang xem: <strong className="inline-block min-w-[3ch] text-right font-mono tabular-nums text-slate-900">{hasCurrentData ? visibleDishGroups.reduce((sum, group) => sum + group.rows.length, 0) : '—'}</strong></span>
+      </LocalFindBar>
 
       <WorkspaceFrame.Body>
         {batchListError && <InlineBanner variant="error" actionLabel="Tải lại danh sách lô" onAction={() => { setCatalogLoading(true); setBatchListError(null); setBatchListRetry((value) => value + 1); }}>{batchListError.message}</InlineBanner>}
@@ -237,9 +266,10 @@ export function MrxCookingWorkbench() {
         <StateBoundary
           {...stateProps}
           hasExistingData={Boolean(data)}
+          isPreviousData={stateProps.isPreviousData || isTransitioningBatch}
           customSkeleton={<div className="flex-1 min-h-0 flex flex-col bg-white">
             <div aria-hidden="true" className="px-4 py-2 bg-slate-50 border-b border-slate-200 shrink-0 space-y-0.5">
-              <div className="h-5 w-64 rounded bg-slate-200 animate-pulse" /><div className="h-4 w-48 rounded bg-slate-200 animate-pulse" />
+              <div className="h-5 w-64 rounded bg-slate-200" /><div className="h-4 w-48 rounded bg-slate-200" />
             </div>
             <WorkbenchSkeleton geometry={{ kind: 'table', columns: 5, rows: 8, columnWidths: ['35%', '12%', '18%', '15%', '20%'] }} className="[&_[data-skeleton-header]]:h-8 [&_[data-skeleton-row]]:h-9" />
           </div>}
@@ -248,11 +278,11 @@ export function MrxCookingWorkbench() {
           onRetry={() => { if (batchId) void loadCookingData(true); }}
           onResolveConflict={() => { if (batchId) void loadCookingData(true); }}
           isPartial={false}
-          isEmpty={stateProps.isEmpty || isLegacyLineageMissing || isFilteredEmpty}
-          emptyTitle={isFilteredEmpty ? (queryText ? 'Không có món khớp tìm kiếm' : 'Không có món cho ca đã chọn') : isLegacyLineageMissing ? 'Chưa đủ dữ liệu phiếu nấu' : stateProps.emptyTitle}
-          emptyDescription={isFilteredEmpty ? 'Xóa tìm kiếm hoặc chọn ca khác. Tệp tải xuống vẫn gồm cả lô.' : isLegacyLineageMissing ? 'Dữ liệu đóng băng thiếu hoặc chưa khớp; chưa thể xem, in hay tải phiếu nấu.' : 'Cần lịch món, số suất và BOM đã đóng băng.'}
-          actionLabel={isFilteredEmpty ? (queryText ? 'Xóa tìm trong phiếu nấu' : 'Xem tất cả ca') : isLegacyLineageMissing && nextAvailableBatch ? `Chuyển lô ${nextAvailableBatch.customerCode ?? 'khác'} · ${toVietnameseDate(nextAvailableBatch.weekStartDate)}` : isLegacyLineageMissing ? 'Về Bàn điều hành' : (!batchId || batches.length === 0 ? 'Về Bàn điều hành' : undefined)}
-          onAction={isFilteredEmpty ? () => queryText ? setSearchTerm('') : setSelectedShift('ALL') : isLegacyLineageMissing && nextAvailableBatch ? () => {
+          isEmpty={stateProps.isEmpty || isLegacyLineageMissing}
+          emptyTitle={isLegacyLineageMissing ? 'Chưa đủ dữ liệu phiếu nấu' : stateProps.emptyTitle}
+          emptyDescription={isLegacyLineageMissing ? 'Dữ liệu đóng băng thiếu hoặc chưa khớp; chưa thể xem, in hay tải phiếu nấu.' : 'Cần lịch món, số suất và BOM đã đóng băng.'}
+          actionLabel={isLegacyLineageMissing && nextAvailableBatch ? `Chuyển lô ${nextAvailableBatch.customerCode ?? 'khác'} · ${toVietnameseDate(nextAvailableBatch.weekStartDate)}` : isLegacyLineageMissing ? 'Về Bàn điều hành' : (!batchId || batches.length === 0 ? 'Về Bàn điều hành' : undefined)}
+          onAction={isLegacyLineageMissing && nextAvailableBatch ? () => {
             setBatchId(nextAvailableBatch.batchId);
             setSearchParams((curr) => {
               const next = new URLSearchParams(curr);
@@ -261,9 +291,23 @@ export function MrxCookingWorkbench() {
             }, { replace: true });
           } : (isLegacyLineageMissing || !batchId || batches.length === 0 ? () => navigate('/') : undefined)}
         >
-          <MrxCookingDishListBranch groups={visibleDishGroups} />
+          <MrxCookingDishListBranch
+            groups={visibleDishGroups}
+            emptyFilterState={
+              isFilteredEmpty
+                ? {
+                    title: queryText ? 'Không có món khớp tìm kiếm' : 'Không có món cho ca đã chọn',
+                    description: 'Xóa tìm kiếm hoặc chọn ca khác. Tệp tải xuống vẫn gồm cả lô.',
+                    actionLabel: queryText ? 'Xóa tìm trong phiếu nấu' : 'Xem tất cả ca',
+                    onAction: () => (queryText ? setSearchTerm('') : setSelectedShift('ALL')),
+                  }
+                : undefined
+            }
+          />
         </StateBoundary>
       </WorkspaceFrame.Body>
+      {historyPickerOpen && <ReconciliationBatchPicker selectedBatchId={batchId} onClose={() => setHistoryPickerOpen(false)}
+        onSelect={batch => { selectBatch(batch.batchId, batch); setHistoryPickerOpen(false); }} />}
     </WorkspaceFrame.Root>
   );
 }

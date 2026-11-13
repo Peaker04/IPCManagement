@@ -16,7 +16,7 @@ import { chefApi, type ChefDashboardData, type ChefIssueItem, type ChefPlanLineI
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
 import { formatVietnameseDate, todayInBusinessTimezone } from '../../utils/dates';
-import { serverStateCache } from '../../store/serverStateCache';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import { MrxCookingWorkbench } from './MrxCookingWorkbench';
 
 const SHIFT_OPTIONS = [
@@ -31,7 +31,8 @@ export function ChefDashboardPage() {
   const [searchParams] = useSearchParams();
   const view = searchParams.get('view');
 
-  if (!view && operationalMode === 'MATERIAL_RECONCILIATION') {
+  const mrxView = view === 'mrx-cooking';
+  if (!mrxView && operationalMode === 'MATERIAL_RECONCILIATION') {
     const batchId = searchParams.get('batchId');
     const params = new URLSearchParams();
     params.set('view', 'mrx-cooking');
@@ -57,7 +58,7 @@ function DefaultChefDashboardPage() {
   const [searchParams] = useSearchParams();
   const activeView = searchParams.get('view') === 'issues' ? 'issues' : 'plans';
   const snapshot = serverStateCache.get<ChefSnapshot>('snapshot:chef')?.data;
-  const cachedCustomers = serverStateCache.get<CustomerOption[]>('catalog_customers')?.data;
+  const cachedCustomers = getCachedArray<CustomerOption>('catalog_customers');
   const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
   const initialCustomerId = snapshot?.customerId || cachedCustomers?.[0]?.customerId || '';
   const [customerId, setCustomerId] = useState(() => initialCustomerId);

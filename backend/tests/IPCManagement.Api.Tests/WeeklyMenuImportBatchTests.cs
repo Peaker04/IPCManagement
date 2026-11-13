@@ -59,6 +59,37 @@ public sealed class WeeklyMenuImportBatchTests
     }
 
     [Fact]
+    public async Task Long_customer_codes_produce_bounded_distinct_menu_codes_and_reimport_reuses_menus()
+    {
+        await using var harness = await ReimportHarness.CreateAsync();
+        var context = harness.Scenario.Context;
+        var customers = new[] { "A", "B" }.Select(suffix => new Customer
+        {
+            CustomerId = GuidHelper.NewId(), CustomerCode = new string('X', 49) + suffix,
+            CustomerName = "Long customer " + suffix, IsActive = true
+        }).ToArray();
+        context.Customers.AddRange(customers);
+        await context.SaveChangesAsync();
+        var persistence = new WeeklyMenuImportPersistence(context, new WeeklyMenuImportResultBuilder(context), new WeeklyMenuAuditActorResolver(context));
+        var plan = harness.Plan(harness.CurrentDishName, harness.CurrentDishName);
+        foreach (var customer in customers)
+        {
+            await persistence.CommitAsync(plan, customer, 25000m, harness.Scenario.ManagerIdString, CancellationToken.None);
+            await context.SaveChangesAsync();
+        }
+        var menus = await context.Menuschedules.Where(row => customers.Select(customer => customer.CustomerId).Contains(row.CustomerId))
+            .Select(row => row.Menu!).ToListAsync();
+        menus.Should().HaveCount(4);
+        menus.Select(menu => menu.MenuCode).Should().OnlyHaveUniqueItems();
+        menus.Should().AllSatisfy(menu => menu.MenuCode.Length.Should().BeLessThanOrEqualTo(50));
+        var ids = menus.Select(menu => Convert.ToHexString(menu.MenuId)).Order().ToArray();
+        await persistence.CommitAsync(plan, customers[0], 25000m, harness.Scenario.ManagerIdString, CancellationToken.None);
+        await context.SaveChangesAsync();
+        (await context.Menuschedules.Where(row => customers.Select(customer => customer.CustomerId).Contains(row.CustomerId))
+            .Select(row => row.MenuId).ToListAsync()).Select(Convert.ToHexString).Order().Should().Equal(ids);
+    }
+
+    [Fact]
     public async Task Reimporting_identical_dishes_at_another_tier_is_rejected_without_changing_frozen_source()
     {
         await using var harness = await ReimportHarness.CreateAsync();
@@ -100,6 +131,23 @@ public sealed class WeeklyMenuImportBatchTests
         (await verify.Menuschedules.CountAsync()).Should().Be(schedulesBefore);
         (await verify.Menuschedules.AnyAsync(item => item.CustomerId == freshCustomer.CustomerId)).Should().BeFalse();
         (await verify.Reconciliationsourcerevisions.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Reimport_commit_rejects_changed_file_fingerprint_without_source_writes()
+    {
+        await using var harness = await ReimportHarness.CreateAsync();
+        var prepared = harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName));
+        var before = await harness.Scenario.CountsAsync();
+        prepared.Plan.SourceChecksum = "changed-after-preview";
+
+        var commit = () => harness.Service.CommitPreparedSingleAsync(
+            prepared, harness.Scenario.ManagerIdString, ["Quản lý"], CancellationToken.None);
+
+        await commit.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("File hoặc phạm vi import đã thay đổi sau khi xem trước. Vui lòng kiểm tra lại file.");
+        (await harness.Scenario.CountsAsync()).Should().Be(before);
+        await harness.Scenario.AssertSourceUnchangedAsync();
     }
 
     [Fact]

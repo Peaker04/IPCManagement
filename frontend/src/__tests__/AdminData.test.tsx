@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { AdminDataPage } from '../features/admin/AdminDataPage';
 import { AuthProvider } from '../store/authContext';
-import type { PagedQueryParams, PagedResult, IngredientItem, DishItem } from '../api/adminApi';
+import { adminApi, type PagedQueryParams, type PagedResult, type IngredientItem, type DishItem } from '../api/adminApi';
 import * as transport from '../api/client';
 
 function renderPage(initialEntry = '/admin-data') {
@@ -308,5 +308,56 @@ describe('AdminDataPage — Conformance & Behavioral Audit', () => {
   it('renders AdminBomBranch when navigating to /admin-data?view=bom', async () => {
     renderPage('/admin-data?view=bom');
     expect(await screen.findByText('Hệ thống · Quản trị dữ liệu · Định mức BOM')).toBeInTheDocument();
+  });
+
+  it('H5: switching /admin-data?view=ingredients to /admin-data?view=dishes retains previous catalog table rows via isPreviousData instead of unmounting into WorkbenchSkeleton', async () => {
+    ingredientResponse.mockResolvedValue(mockIngredientsPage1);
+    let resolveDishes!: (value: PagedResult<DishItem>) => void;
+    dishResponse.mockImplementation(() => new Promise((resolve) => { resolveDishes = resolve; }));
+
+    const router = createMemoryRouter([{ path: '/admin-data', element: <AdminDataPage /> }], {
+      initialEntries: ['/admin-data?view=ingredients'],
+    });
+    render(<AuthProvider><RouterProvider router={router} /></AuthProvider>);
+    expect(await screen.findByText('Gạo tẻ ST25')).toBeInTheDocument();
+
+    await act(async () => {
+      await router.navigate('/admin-data?view=dishes');
+    });
+
+    // Previous table rows stay mounted while dishes query is in flight!
+    expect(screen.getByText('Gạo tẻ ST25')).toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Đang tải nội dung' })).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveDishes(mockDishesPage);
+    });
+    expect(await screen.findByText('Thịt kho tàu nước dừa')).toBeInTheDocument();
+  });
+
+  it('L2 & L3: keeps DataGrid table and sticky thead mounted when catalog search returns 0 items or when switching to an empty approval-rules tab', async () => {
+    ingredientResponse.mockImplementation(async (params) =>
+      params?.searchKeyword
+        ? { items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasPrev: false, hasNext: false }
+        : mockIngredientsPage1
+    );
+    const { unmount } = renderPage('/admin-data?view=ingredients&q=KhongCo');
+    expect(await screen.findByText('Không tìm thấy danh mục phù hợp')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Mã nguyên liệu' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa từ khóa tìm kiếm' }));
+    expect(await screen.findByText('Gạo tẻ ST25')).toBeInTheDocument();
+    unmount();
+
+    vi.spyOn(adminApi, 'getApprovalRules').mockResolvedValue([
+      { ruleId: 'R-01', ruleName: 'Duyệt PO', documentType: 'purchase-order', minAmount: 0, maxAmount: 1000000, slaHours: 24, isActive: true },
+    ]);
+    const { ApprovalRulesPage } = await import('../features/admin/ApprovalRulesPage');
+    render(<AuthProvider><ApprovalRulesPage /></AuthProvider>);
+    expect(await screen.findByText('Duyệt PO')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Điều chỉnh thực đơn/i }));
+    expect(await screen.findByText('Chưa có quy tắc phê duyệt')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Mã quy tắc' })).toBeInTheDocument();
   });
 });

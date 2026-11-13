@@ -96,8 +96,7 @@ export function DishBomBatchImportModal({
     try {
       const custId = scopeCustomer !== 'GLOBAL' ? scopeCustomer : undefined;
       const url = bomApi.getBomTemplateUrl(selectedPriceTier, custId, templateType);
-      const suffix = templateType === 'missing' ? 'cac-mon-thieu' : 'toan-bo';
-      await downloadAuthenticatedFile(url, `dinh-luong-${selectedPriceTier}-${suffix}.xlsx`);
+      await downloadAuthenticatedFile(url);
     } catch (cause) { setFeedback({ type: 'error', message: cause instanceof Error ? cause.message : 'Không thể tải mẫu định lượng. Vui lòng thử lại.' }); }
     finally { setIsDownloading(false); }
   };
@@ -200,10 +199,10 @@ export function DishBomBatchImportModal({
       }
     >
       <div className="space-y-4 text-xs text-slate-700">
-        {isLoadingTiers && <p role="status">Đang tải mốc giá BOM…</p>}
+        {isLoadingTiers && <p role="status" className="sr-only">Đang tải mốc giá BOM…</p>}
         {tierError && <InlineBanner variant="error" actionLabel="Tải lại mốc giá" onAction={() => void retryTiers()}>{tierError.message}</InlineBanner>}
         {customerError && <InlineBanner variant="error" actionLabel="Tải lại khách hàng" onAction={() => { setIsLoadingCustomers(true); setCustomerRetry((value) => value + 1); }}>{customerError.message}</InlineBanner>}
-        {isLoadingCustomers && <p role="status">Đang tải phạm vi khách hàng…</p>}
+        {isLoadingCustomers && <p role="status" className="sr-only">Đang tải phạm vi khách hàng…</p>}
         {feedback && (
           <InlineBanner variant={feedback.type} onClose={() => setFeedback(null)}>
             {feedback.message}
@@ -230,7 +229,7 @@ export function DishBomBatchImportModal({
               <span className="block font-semibold text-slate-700 mb-1">
                 Mức giá suất ăn <span className="text-rose-600">*</span>
               </span>
-              <div className="flex gap-2" role="radiogroup" aria-label="Mốc giá BOM">
+              <div className="flex gap-2 min-h-8" role="radiogroup" aria-label="Mốc giá BOM" aria-busy={isLoadingTiers || undefined}>
                 {tiers.map((tier) => {
                   const isSelected = selectedPriceTier === tier;
                   return (

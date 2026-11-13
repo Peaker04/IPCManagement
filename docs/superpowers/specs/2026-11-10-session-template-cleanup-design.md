@@ -1,0 +1,9 @@
+# Session and template cleanup — approved design
+
+Approved by operator (2026-11-10) after review verdicts 1–3.
+
+1. Idle: existing VITE_IDLE_TIMEOUT_MINUTES default 60, VITE_IDLE_WARNING_MINUTES default 2; invalid/nonpositive settings fall back. Warn after 58 minutes, resume on real user input, expire after 60. Use wall-clock elapsed time so sleep/background timers cannot extend a session; background HTTP is not activity. On idle expiry clear local session immediately, best-effort revoke, let ProtectedRoute return to /login with notice: “Phiên đã kết thúc do không hoạt động. Vui lòng đăng nhập lại.” Unsaved memory-only work cannot be promised after logout. Ordinary token expiry retains existing refresh/in-place reauthentication flow. Restore full login response, current user/permissions and authoritative mode; forbid identity replacement.
+2. Filenames: backend owns template names. Weekly: IPC_MauThucDon_<CustomerCode>_<yyyy-MM-dd week>.xlsx. BOM: IPC_MauDinhLuong_<CustomerCode|Chung>_<PriceTier>_<PhamVi>.xlsx (ToanBo, CacMonThieu, TheoMon, Trong). Sanitize filename segments. Template consumers use safe Content-Disposition filenames; explicit report filenames remain unchanged.
+3. Workbooks: preserve parser coordinates/headers, tier sheets, metadata, validation and protection. BOM text wraps, bounded widths, row growth from content, merged explanatory headings, print setup. Weekly day columns equal width, normal readable zoom, input rows may grow, landscape fit-to-width printing. No new spreadsheet library or renderer installation; no private fixture publication.
+
+Existing React/Vite, native browser events, OpenXML ZIP builders and test tools only. No schema/data/deploy/commit changes. WORK.md remains sole execution-state owner. No claim of live Excel, multi-tab or production qualification from unit tests.

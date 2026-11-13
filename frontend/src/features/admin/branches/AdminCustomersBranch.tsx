@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Users, UserPlus, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { StateBoundary } from '../../../components/workbench/StateBoundary';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
@@ -16,13 +16,25 @@ import { InlineBanner } from '../../../components/ui/inline-banner';
 import { useAuth } from '../../../store/useAuth';
 import { Input } from '../../../components/ui/input';
 import { Checkbox } from '../../../components/ui/checkbox';
+import { useWorkbenchQuery } from '../../../hooks/useWorkbenchQuery';
 
 const CUSTOMER_WRITE_ROLES = ['ADMIN', 'MANAGER', 'Quản lý', 'COORDINATOR', 'Điều phối'];
 
 export function AdminCustomersBranch() {
-  const [contracts, setContracts] = useState<CustomerContractItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { user, operationalMode, hasRole } = useAuth();
+  const canManage = hasRole(CUSTOMER_WRITE_ROLES);
+  const customersQuery = useWorkbenchQuery<CustomerContractItem[]>({
+    scopeKey: `admin_customers_${user?.userId}_${operationalMode}`,
+    cacheKey: `admin_data_customers_${user?.userId}_${operationalMode}`,
+    snapshotKey: `snapshot:admin_data_customers_${user?.userId}_${operationalMode}`,
+    queryFn: () => customerApi.getCustomerContracts(),
+    isDatasetEmpty: (res) => !res || res.length === 0,
+  });
+  const contracts = useMemo(() => customersQuery.data ?? [], [customersQuery.data]);
+  const { isLoading, isFetching, error, hasExistingData, isPreviousData } = customersQuery.stateProps;
+  const setContracts = customersQuery.setData;
+  const loadData = () => customersQuery.refetch(true);
+
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedId, setSelectedId] = useState('');
@@ -32,8 +44,6 @@ export function AdminCustomersBranch() {
   const [statusSaving, setStatusSaving] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const statusPending = useRef(false);
-  const { hasRole } = useAuth();
-  const canManage = hasRole(CUSTOMER_WRITE_ROLES);
   const metadataDirty = Boolean(statusTarget && (editNote.trim() !== (statusTarget.note || '') || editActive !== statusTarget.isActive));
   const saveCustomer = async () => {
     if (!statusTarget || statusPending.current || !canManage || !metadataDirty) return;
@@ -45,7 +55,7 @@ export function AdminCustomersBranch() {
         ...(editNote.trim() !== (statusTarget.note || '') ? { note: editNote.trim() } : {}),
         ...(editActive !== statusTarget.isActive ? { isActive: editActive } : {}),
       });
-      setContracts(current => current.map(customer => customer.customerId === saved.customerId ? saved : customer));
+      setContracts(current => (current ?? []).map(customer => customer.customerId === saved.customerId ? saved : customer));
       setStatusTarget(null);
     } catch (cause) {
       setStatusError(cause instanceof Error ? cause.message : 'Không thể cập nhật trạng thái khách hàng.');
@@ -60,30 +70,6 @@ export function AdminCustomersBranch() {
   ), [contracts, query]);
   const selectedCustomer = !isLoading && !error ? filteredContracts.find(customer => customer.customerId === selectedId) : undefined;
   const isFilterEmpty = contracts.length > 0 && filteredContracts.length === 0;
-
-  const loadData = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await customerApi.getCustomerContracts();
-      setContracts(data || []);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err : new Error('Không thể tải danh sách khách hàng.'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let ignore = false;
-    customerApi.getCustomerContracts()
-      .then((data) => { if (!ignore) setContracts(data || []); })
-      .catch((cause: unknown) => {
-        if (!ignore) setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách khách hàng.'));
-      })
-      .finally(() => { if (!ignore) setIsLoading(false); });
-    return () => { ignore = true; };
-  }, []);
 
   const columns = useMemo<ColumnDef<CustomerContractItem>[]>(() => [
     {
@@ -141,27 +127,23 @@ export function AdminCustomersBranch() {
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-white">
       {/* Zone 2: Telemetry Subbar (44px) */}
-      <div className="px-4 py-2 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
+      <div className="min-h-11 px-4 py-1.5 border-b border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-500">Khách hàng:</span>
           <span className="font-semibold text-slate-800 flex items-center gap-1.5">
             <Users size={14} className="text-slate-500" aria-hidden="true" />
-            <strong className="font-mono"><Num value={!isLoading && !error ? totalCount : undefined} /></strong> doanh nghiệp
+            <strong className="font-mono"><Num value={hasExistingData && !error ? totalCount : undefined} /></strong> doanh nghiệp
           </span>
           <span className="text-slate-300">·</span>
           <span className="font-semibold text-emerald-700 flex items-center gap-1">
             <CheckCircle2 size={13} aria-hidden="true" />
-            <strong className="font-mono"><Num value={!isLoading && !error ? activeCount : undefined} /></strong> đang phục vụ
+            <strong className="font-mono"><Num value={hasExistingData && !error ? activeCount : undefined} /></strong> đang phục vụ
           </span>
-          {inactiveCount > 0 && (
-            <>
-              <span className="text-slate-300">·</span>
-              <span className="font-semibold text-slate-500 flex items-center gap-1">
-                <AlertCircle size={13} aria-hidden="true" />
-                <strong className="font-mono">{inactiveCount}</strong> tạm dừng
-              </span>
-            </>
-          )}
+          <span className="text-slate-300">·</span>
+          <span className="font-semibold text-slate-500 flex items-center gap-1">
+            <AlertCircle size={13} aria-hidden="true" />
+            <strong className="font-mono"><Num value={hasExistingData && !error ? inactiveCount : undefined} /></strong> tạm dừng
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -202,22 +184,24 @@ export function AdminCustomersBranch() {
       </div>
 
       <LocalFindBar label="Tìm khách hàng trong danh sách" value={searchTerm} onChange={setSearchTerm}
-        matched={!isLoading && !error ? filteredContracts.length : undefined} total={!isLoading && !error ? totalCount : undefined}
+        matched={hasExistingData && !error ? filteredContracts.length : undefined} total={hasExistingData && !error ? totalCount : undefined}
         scope="Trong danh sách khách hàng đã tải." />
 
       {/* Main DataGrid */}
       <div className="flex-1 min-h-0 flex flex-col">
         <StateBoundary
           isLoading={isLoading}
+          isFetching={isFetching}
+          isPreviousData={isPreviousData}
+          hasExistingData={hasExistingData}
           error={error}
           onRetry={() => void loadData()}
-          isEmpty={!isLoading && !error && filteredContracts.length === 0}
-          emptyScenario={isFilterEmpty ? 'filter-empty' : 'empty-first-use'}
-          onResetFilters={() => setSearchTerm('')}
-          emptyTitle={isFilterEmpty ? 'Không có khách hàng khớp tìm kiếm' : 'Chưa có khách hàng'}
-          emptyDescription={isFilterEmpty ? 'Xóa tìm kiếm để xem lại danh sách đã tải.' : 'Thêm khách hàng để bắt đầu lập thực đơn.'}
-          actionLabel={isFilterEmpty ? 'Xóa bộ lọc' : canManage ? 'Thêm khách hàng mới' : undefined}
-          onAction={isFilterEmpty ? () => setSearchTerm('') : canManage ? () => setIsCreateModalOpen(true) : undefined}
+          isEmpty={!isLoading && !error && !isFilterEmpty && filteredContracts.length === 0}
+          emptyScenario="empty-first-use"
+          emptyTitle="Chưa có khách hàng"
+          emptyDescription="Thêm khách hàng để bắt đầu lập thực đơn."
+          actionLabel={canManage ? 'Thêm khách hàng mới' : undefined}
+          onAction={canManage ? () => setIsCreateModalOpen(true) : undefined}
           contextDomain="catalog"
         >
           <DataGrid
@@ -227,6 +211,17 @@ export function AdminCustomersBranch() {
             selectedKey={selectedCustomer?.customerId}
             onRowClick={canManage ? row => setSelectedId(row.customerId) : undefined}
             minWidth="min-w-[680px]"
+            emptyState={
+              <div className="text-center space-y-2">
+                <p className="text-sm font-semibold text-slate-900">Không có khách hàng khớp tìm kiếm</p>
+                <p className="text-xs text-slate-500 max-w-sm leading-relaxed">Xóa tìm kiếm để xem lại danh sách đã tải.</p>
+                <div className="pt-1">
+                  <Button type="button" variant="outline" size="xs" onClick={() => setSearchTerm('')}>
+                    Xóa bộ lọc
+                  </Button>
+                </div>
+              </div>
+            }
           />
         </StateBoundary>
       </div>

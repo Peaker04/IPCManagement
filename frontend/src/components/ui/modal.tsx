@@ -38,6 +38,7 @@ export function Modal({
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const [discardTrigger, setDiscardTrigger] = useState<HTMLElement | null>(null);
   const dirtyNavigation = useOptionalDirtyNavigation();
   const registerDirty = dirtyNavigation?.registerDirty;
   const dirtyKey = useId();
@@ -46,6 +47,7 @@ export function Modal({
   const handleSafeClose = useCallback(() => {
     if (closeDisabled) return;
     if (isDirty) {
+      setDiscardTrigger(document.activeElement as HTMLElement | null);
       setIsDiscardConfirmOpen(true);
       return;
     }
@@ -54,9 +56,15 @@ export function Modal({
 
   const discardAndClose = useCallback(() => {
     if (closeDisabled) return;
+    setDiscardTrigger(null);
     setIsDiscardConfirmOpen(false);
     onClose();
   }, [closeDisabled, onClose]);
+
+  const cancelDiscard = useCallback(() => setIsDiscardConfirmOpen(false), []);
+  useEffect(() => {
+    if (!isDiscardConfirmOpen && discardTrigger) discardTrigger.focus();
+  }, [isDiscardConfirmOpen, discardTrigger]);
 
   useEffect(() => {
     if (!isOpen || (!isDirty && !closeDisabled) || !registerDirty) return;
@@ -64,7 +72,7 @@ export function Modal({
   }, [dirtyKey, registerDirty, isDirty, closeDisabled, isOpen]);
 
   const handleEscape = useEffectEvent(() => {
-    if (isDiscardConfirmOpen) setIsDiscardConfirmOpen(false);
+    if (isDiscardConfirmOpen) cancelDiscard();
     else handleSafeClose();
   });
 
@@ -216,7 +224,7 @@ export function Modal({
                 {confirmCloseMessage || 'Các thay đổi trong biểu mẫu này chưa được lưu và sẽ bị mất nếu bạn đóng.'}
               </p>
               <div className="mt-4 flex justify-end gap-2">
-                <Button variant="outline" size="sm" onClick={() => setIsDiscardConfirmOpen(false)} autoFocus>
+                <Button variant="outline" size="sm" onClick={cancelDiscard} autoFocus>
                   Tiếp tục chỉnh sửa
                 </Button>
                 <Button variant="destructive" size="sm" onClick={discardAndClose} disabled={closeDisabled}>

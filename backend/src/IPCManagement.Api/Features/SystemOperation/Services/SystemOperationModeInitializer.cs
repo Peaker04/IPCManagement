@@ -45,7 +45,10 @@ public sealed class SystemOperationModeInitializer(IpcManagementContext context,
     private async Task<SystemOperationMode?> ReadAuthorityAsync(CancellationToken cancellationToken)
     {
         context.ChangeTracker.Clear();
-        var rows = await context.Systemoperationmodes.AsNoTracking().Take(2).ToListAsync(cancellationToken);
+        var rows = await context.Systemoperationmodes.AsNoTracking()
+            .OrderBy(row => row.Id)
+            .Take(2)
+            .ToListAsync(cancellationToken);
         if (rows.Count > 1) throw new SystemOperationAuthorityException("Có nhiều hơn một dòng chế độ vận hành.");
         if (rows.Count == 0) return null;
         var row = rows[0];

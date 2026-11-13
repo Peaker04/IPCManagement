@@ -60,6 +60,8 @@ export function getMrxDishSlotLabel(slot?: string | null): string {
 }
 
 export function getMrxShiftLabel(shift: string): string {
+  if (shift === 'EVENING' || shift === 'Ca tối') return 'Tối';
+  if (shift === 'FULLDAY' || shift === 'Cả ngày') return 'Cả ngày';
   const canonical = shift === 'Ca sáng' ? 'MORNING' : shift === 'Ca chiều' ? 'AFTERNOON' : shift;
   return MRX_SHIFT_OPTIONS.find(option => option.value === canonical)?.label ?? `Chưa rõ ca (${shift || 'trống'})`;
 }

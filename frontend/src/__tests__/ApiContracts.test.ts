@@ -185,6 +185,45 @@ describe('Frontend API contracts against backend DTOs', () => {
     expect(localStorage.getItem('ipc_v3_token')).toBe('next-session');
   });
 
+  it('preserves session continuity across multi-step token renewals while a concurrent response is decoding', async () => {
+    const user = JSON.parse(localStorage.getItem('ipc_v3_user')!);
+    localStorage.setItem('ipc_v3_token', 'token-step-1');
+    let finishFirstBody!: (body: unknown) => void;
+    let refreshCount = 0;
+    const fetchMock = vi.fn().mockImplementation(async (input: string, init: RequestInit) => {
+      const url = String(input);
+      const auth = new Headers(init?.headers).get('Authorization');
+      if (url.endsWith('/auth/refresh')) {
+        refreshCount += 1;
+        const nextToken = refreshCount === 1 ? 'token-step-2' : 'token-step-3';
+        return jsonResponse({ accessToken: nextToken, tokenType: 'Bearer', expiresIn: 1800, user });
+      }
+      if (url.endsWith('/reconciliation/first')) {
+        if (auth === 'Bearer token-step-2') {
+          const delayed = jsonResponse({ step: 1 });
+          vi.spyOn(delayed, 'json').mockImplementation(() => new Promise(resolve => { finishFirstBody = resolve; }));
+          return delayed;
+        }
+        return new Response('', { status: 401 });
+      }
+      if (url.endsWith('/reconciliation/second')) {
+        return auth === 'Bearer token-step-3' ? jsonResponse({ step: 2 }) : new Response('', { status: 401 });
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const firstPromise = apiClient('/reconciliation/first');
+    await vi.waitFor(() => expect(finishFirstBody).toBeTypeOf('function'));
+    // While firstPromise is decoding its JSON body under token-step-2, a second request triggers another refresh to token-step-3.
+    const secondResult = await apiClient('/reconciliation/second');
+    expect(secondResult).toEqual({ step: 2 });
+    expect(localStorage.getItem('ipc_v3_token')).toBe('token-step-3');
+
+    finishFirstBody({ success: true, data: { step: 1 } });
+    await expect(firstPromise).resolves.toEqual({ step: 1 });
+  });
+
   it('changes operational mode with the latest version and no optimistic local write', async () => {
     localStorage.setItem('ipc_v3_mode', 'DEFAULT');
     const response = { mode: 'MATERIAL_RECONCILIATION' as const, label: 'Đối chiếu nguyên liệu', version: 8, updatedAt: '2026-10-17T00:00:00Z', reasonRequired: true, capabilities: { navigation: [], pageTabs: {} } };
@@ -604,5 +643,27 @@ describe('Frontend API contracts against backend DTOs', () => {
         credentials: 'same-origin',
       }),
     );
+  });
+
+  it('F4: deduplicates concurrent identical GET requests in-flight and allows sequential calls after resolution', async () => {
+    let resolveFirst!: (res: Response) => void;
+    const fetchMock = vi.fn().mockImplementationOnce(() => new Promise<Response>((resolve) => {
+      resolveFirst = resolve;
+    })).mockImplementationOnce(async () => jsonResponse({ round: 2 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const p1 = apiClient<{ round: number }>('/reconciliation/dedup-test');
+    const p2 = apiClient<{ round: number }>('/reconciliation/dedup-test');
+    await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+
+    resolveFirst(jsonResponse({ round: 1 }));
+    const [r1, r2] = await Promise.all([p1, p2]);
+    expect(r1).toEqual({ round: 1 });
+    expect(r2).toEqual({ round: 1 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const r3 = await apiClient<{ round: number }>('/reconciliation/dedup-test');
+    expect(r3).toEqual({ round: 2 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

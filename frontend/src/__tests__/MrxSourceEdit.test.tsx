@@ -283,6 +283,73 @@ describe('MRX direct source edit', () => {
     });
   });
 
+  it.each(['success', 'error'] as const)('revalidates cached pre-batch scope before allowing commands (%s)', async outcome => {
+    vi.mocked(mrxApi.getEditScope).mockRestore();
+    vi.mocked(adminApi.getDishes).mockRestore();
+    const cached = { ...scope, batchId: null, batchStatus: null, batchVersion: null,
+      days: scope.days.map(day => ({ ...day, isLocked: false, lockReason: null })) };
+    serverStateCache.set('mrx_edit_scope_customer-1_2026-06-15_menu-v1:', cached);
+    let resolveRead!: (value: MrxEditScope) => void;
+    let rejectRead!: (reason: Error) => void;
+    const freshRead = new Promise<MrxEditScope>((resolve, reject) => { resolveRead = resolve; rejectRead = reject; });
+    const sent: unknown[] = [];
+    vi.spyOn(apiTransport, 'apiClient').mockImplementation(async (path, options) => {
+      if (path.startsWith('/reconciliation/weekly-menu/edit-scope')) return freshRead;
+      if (path.startsWith('/Dishes')) return { items: [{ dishId: 'dish-1', dishCode: 'M01', dishName: 'Cơm thịt', isActive: true }, { dishId: 'dish-2', dishCode: 'C01', dishName: 'Cơm chay', isActive: true }], totalCount: 2, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false };
+      if (path.endsWith('/mrx-apply') && options?.method === 'POST') {
+        sent.push(JSON.parse(String(options.body)));
+        throw new ApiError(409, 'Lô đã thay đổi', undefined, 'MRX_SOURCE_STALE');
+      }
+      throw new Error(`Unexpected scope revalidation request ${path}`);
+    });
+    const { result } = renderHook(() => useMrxSourceEdit({ customerId: 'customer-1', weekStartDate: '2026-06-15', sourceVersionKey: 'menu-v1:' }));
+    expect(result.current.editScope).toEqual(cached);
+    await act(async () => {});
+    act(() => result.current.setServings('2026-06-16', 'MORNING', 'savory', 125));
+    await act(async () => { await result.current.apply('Sửa nguồn khi đang xác minh'); });
+    expect(sent).toHaveLength(0);
+    await act(async () => {
+      if (outcome === 'success') resolveRead(scope);
+      else rejectRead(new ApiError(500, 'Không tải được nguồn mới'));
+    });
+    if (outcome === 'error') {
+      await act(async () => { await result.current.apply('Không dùng cache khi tải lỗi'); });
+      expect(sent).toHaveLength(0);
+      expect(result.current.error).not.toBeNull();
+      return;
+    }
+    expect(result.current.editScope?.batchVersion).toBe(3);
+    act(() => result.current.setServings('2026-06-16', 'MORNING', 'savory', 125));
+    await act(async () => { expect(await result.current.apply('Dùng scope đã xác minh')).toBe(false); });
+    expect(sent).toEqual([expect.objectContaining({ expectedBatchVersion: 3, expectedBaseMenuVersionId: 'menu-v1' })]);
+    expect(result.current.draft['2026-06-16'].MORNING.savoryServings).toBe(125);
+    expect(result.current.error).not.toBeNull();
+  });
+
+  it.each(['success', 'error'] as const)('keeps the new customer draft when an older customer read finishes late (%s)', async outcome => {
+    let resolveOld!: (value: MrxEditScope) => void;
+    let rejectOld!: (cause: Error) => void;
+    const nextScope = { ...scope, batchId: 'batch-2', menuVersionId: 'menu-v2' };
+    vi.mocked(mrxApi.getEditScope).mockImplementation(customerId => customerId === 'customer-1'
+      ? new Promise((resolve, reject) => { resolveOld = resolve; rejectOld = reject; })
+      : Promise.resolve(nextScope));
+    const { result, rerender } = renderHook(({ customerId }) => useMrxSourceEdit({ customerId, weekStartDate: '2026-06-15' }),
+      { initialProps: { customerId: 'customer-1' } });
+    await waitFor(() => expect(mrxApi.getEditScope).toHaveBeenCalledWith('customer-1', '2026-06-15'));
+    rerender({ customerId: 'customer-2' });
+    await waitFor(() => expect(result.current.editScope?.batchId).toBe('batch-2'));
+    act(() => result.current.setServings('2026-06-16', 'MORNING', 'savory', 125));
+    await act(async () => {
+      if (outcome === 'success') resolveOld(scope);
+      else rejectOld(new ApiError(500, 'Không tải được khách hàng trước'));
+    });
+    expect(result.current.error).toBeNull();
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.editScope?.batchId).toBe('batch-2');
+    expect(result.current.draft['2026-06-16'].MORNING.savoryServings).toBe(125);
+    expect(result.current.changedLines).toContainEqual(expect.objectContaining({ newSavoryServings: 125 }));
+  });
+
   it('does not resend an accepted source change when its authoritative reload fails, and recovers by reading only', async () => {
     vi.mocked(mrxApi.getEditScope).mockRestore();
     vi.mocked(adminApi.getDishes).mockRestore();
@@ -334,9 +401,10 @@ describe('MRX direct source edit', () => {
     expect(adminApi.getDish).toHaveBeenCalledTimes(2);
   });
 
-  it('lets an unreferenced dish beyond the first catalog page be selected', async () => {
+  it('refreshes a cached catalog so a new unreferenced dish beyond its first page can be selected', async () => {
     vi.restoreAllMocks();
     const first = Array.from({ length: 100 }, (_, i) => ({ dishId: `dish-${i + 1}`, dishCode: `M${i + 1}`, dishName: 'Cơm thịt', isActive: true }));
+    serverStateCache.set('mrx_catalog_dishes', first);
     const last = { dishId: 'dish-101', dishCode: 'M101', dishName: 'Cơm thịt', isActive: true };
     vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
       const url = new URL(String(input), 'http://localhost');
@@ -371,6 +439,14 @@ describe('MRX direct source edit', () => {
       serviceDate: '2026-06-16', shiftName: 'MORNING', dishSlot: 'savory-main', newDishId: 'dish-1',
       newSavoryServings: 95, newVegetarianServings: 10,
     }]);
+  });
+
+  it('shows six-decimal material changes before approving a source correction', () => {
+    render(<MrxSourceChangePanel previewResult={{ ...preview, materialImpact: [{ ...preview.materialImpact[0], previousQuantity: 3.333333, newQuantity: 3.333334 }] }} actorRole="MANAGER" changedLinesCount={1}
+      reason="Điều chỉnh số suất" onReasonChange={() => {}} onPreview={() => {}} onApply={() => {}} onSubmit={() => {}} isSubmitting={false} />);
+    expect(screen.getByText('3,333333')).toBeVisible();
+    expect(screen.getByText('3,333334')).toBeVisible();
+    expect(screen.getByText('0,000001')).toBeVisible();
   });
 
   it('shows role-appropriate action and requires reason plus confirmation for apply', async () => {
@@ -460,8 +536,8 @@ describe('MRX direct source edit', () => {
     await user.upload(screen.getByLabelText(/Chọn file Excel thực đơn/i), new NativeFile(['abc'], 'menu.xlsx') as unknown as File);
     await user.click(await screen.findByRole('radio', { name: /25.000/ }));
     await waitFor(() => expect(history).toHaveBeenCalled());
-    await user.click(screen.getByRole('button', { name: 'Đổi tuần' }));
     const date = screen.getByRole('textbox', { name: 'Tuần bắt đầu nhập' });
+    expect(date).not.toHaveAttribute('readonly');
     await user.type(date, '22/06/2026');
     await user.tab();
     await act(async () => respond(new Response(JSON.stringify({ success: true, data: { items: [{ menuVersionId: 'draft-1', customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier', weekStartDate: '2026-06-15', versionNo: 1, status: 'DRAFT', createdAt: '2026-06-10T07:00:00Z', successRowCount: 1, errorRowCount: 0, warningRowCount: 0, canRollback: true }], totalCount: 1 } }), { status: 200, headers: { 'Content-Type': 'application/json' } })));
@@ -618,7 +694,7 @@ describe('MRX direct source edit', () => {
     expect(screen.getByText('Món mặn 2')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'second.xlsx' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Chọn khách hàng nhập thực đơn' }), 'customer-2');
-    await user.click(screen.getByRole('button', { name: 'Đổi tuần' }));
+    expect(screen.getByRole('textbox', { name: 'Tuần bắt đầu nhập' })).not.toHaveAttribute('readonly');
     await user.type(screen.getByRole('textbox', { name: 'Tuần bắt đầu nhập' }), '22/06/2026');
     await user.tab();
     await user.click(screen.getByRole('radio', { name: /34.000/ }));
@@ -789,7 +865,7 @@ describe('MRX direct source edit', () => {
     await user.click(await screen.findByRole('button', { name: 'Nhập Excel' }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Phạm vi nhập Excel' }), 'new-week');
     await user.selectOptions(screen.getByRole('combobox', { name: 'Chọn khách hàng nhập thực đơn' }), 'customer-2');
-    await user.click(screen.getByRole('button', { name: 'Đổi tuần' }));
+    expect(screen.getByRole('textbox', { name: 'Tuần bắt đầu nhập' })).not.toHaveAttribute('readonly');
     const date = screen.getByRole('textbox', { name: 'Tuần bắt đầu nhập' });
     await user.clear(date);
     await user.type(date, '22/06/2026');

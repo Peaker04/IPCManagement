@@ -4,6 +4,14 @@ import { WorkspaceFrame } from '../components/workbench/WorkspaceFrame';
 import { LocalizedBoundary } from '../components/workbench/LocalizedBoundary';
 
 describe('WorkspaceFrame and LocalizedBoundary', () => {
+  it('keeps report data visible and locks retry until the pending request settles', () => {
+    const boundary = (pending: boolean) => <LocalizedBoundary error="offline" hasExistingData onRetry={() => {}} retryPending={pending}><div>Existing report</div></LocalizedBoundary>;
+    const { rerender } = render(boundary(true));
+    expect(screen.getByRole('button', { name: 'Đang xử lý...' })).toBeDisabled();
+    expect(screen.getByText('Existing report')).toBeVisible();
+    rerender(boundary(false));
+    expect(screen.getByRole('button', { name: 'Thử lại' })).toBeEnabled();
+  });
   it('renders frame header and body independently', () => {
     render(
       <WorkspaceFrame.Root>

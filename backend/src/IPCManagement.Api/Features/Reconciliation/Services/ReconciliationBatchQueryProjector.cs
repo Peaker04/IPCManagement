@@ -19,21 +19,28 @@ internal static class ReconciliationBatchQueryProjector
         if (request.WeekFrom is not null && request.WeekTo is not null && request.WeekFrom > request.WeekTo)
             throw new BusinessRuleException("Ngày bắt đầu không được sau ngày kết thúc.");
         var customerId = string.IsNullOrWhiteSpace(request.CustomerId) ? null : requiredId(request.CustomerId);
+        var customerCode = string.IsNullOrWhiteSpace(request.CustomerCode) ? null : request.CustomerCode.Trim().ToUpperInvariant();
+        var batchId = string.IsNullOrWhiteSpace(request.BatchId) ? null : requiredId(request.BatchId);
         var status = string.IsNullOrWhiteSpace(request.Status) ? null : request.Status.Trim().ToUpperInvariant();
         var query =
             from batch in context.Reconciliationbatches.AsNoTracking()
             join menuVersion in context.Menuversions.AsNoTracking()
                 on batch.MenuVersionId equals menuVersion.MenuVersionId
             where customerId == null || menuVersion.CustomerId == customerId
+            where batchId == null || batch.BatchId == batchId
             where request.WeekStartDate == null || menuVersion.WeekStartDate == request.WeekStartDate
             where request.WeekFrom == null || menuVersion.WeekStartDate >= request.WeekFrom
             where request.WeekTo == null || menuVersion.WeekStartDate <= request.WeekTo
             where status == null || batch.Status == status
             select new { Batch = batch, menuVersion.CustomerId, menuVersion.WeekStartDate };
 
+        if (customerCode is not null)
+            query = query.Where(item => context.Customers.Any(customer => customer.CustomerId == item.CustomerId && customer.CustomerCode.ToUpper() == customerCode));
+
         var totalCount = await query.CountAsync(token);
         var rows = await query
-            .OrderByDescending(item => item.Batch.CreatedAt)
+            .OrderByDescending(item => item.WeekStartDate)
+            .ThenByDescending(item => item.Batch.CreatedAt)
             .ThenBy(item => item.Batch.BatchId)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
@@ -118,8 +125,15 @@ internal static class ReconciliationBatchQueryProjector
                             available ? canonicalRate : null, available ? null : FrozenBomQuantityPolicy.UnavailableReason);
                     }).OrderBy(material => material.ServiceDate).ThenBy(material => material.IngredientName).ToList();
                 var scopes = dishGroup
-                    .GroupBy(item => new { ServiceDate = dailyLinesById[Convert.ToHexString(item.Contributor.DailyLineId!)].ServiceDate, item.Contributor.FrozenShiftName, item.Contributor.FrozenServings })
-                    .Select(group => new ReconciliationBatchDishScopeDto(group.Key.ServiceDate.ToString("yyyy-MM-dd"), group.Key.FrozenShiftName!, group.Key.FrozenServings!.Value, group.Key.FrozenServings.Value, 0))
+                    .GroupBy(item => new { ServiceDate = dailyLinesById[Convert.ToHexString(item.Contributor.DailyLineId!)].ServiceDate, ShiftName = item.Contributor.FrozenShiftName! })
+                    .Select(group =>
+                    {
+                        var totalServings = group
+                            .Select(item => (Variant: item.Contributor.FrozenMenuVariant ?? string.Empty, Servings: item.Contributor.FrozenServings!.Value))
+                            .Distinct()
+                            .Sum(item => item.Servings);
+                        return new ReconciliationBatchDishScopeDto(group.Key.ServiceDate.ToString("yyyy-MM-dd"), group.Key.ShiftName, totalServings, totalServings, 0);
+                    })
                     .OrderBy(scope => scope.ServiceDate).ThenBy(scope => scope.ShiftName).ToList();
                 return new ReconciliationBatchDishSummaryDto(GuidHelper.ToGuidString(first.DishId!), first.FrozenDishCode!, first.FrozenDishName!, materials, scopes);
             })

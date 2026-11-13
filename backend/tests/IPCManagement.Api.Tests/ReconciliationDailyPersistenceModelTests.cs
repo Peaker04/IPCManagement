@@ -5,6 +5,7 @@ using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Features.Reconciliation.Services;
 using IPCManagement.Api.Features.Reconciliation.Contracts;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -342,7 +343,7 @@ public sealed class ReconciliationDailyPersistenceModelTests
 
         var completionContext = new SystemOperationRequestContext { OperationKey = "reconciliation.complete", ExpectedModeVersion = 1 };
         var completion = new ReconciliationCompletionService(context, service, new ImmediateTransactionRunner(), completionContext);
-        var completionError = await Assert.ThrowsAsync<InvalidOperationException>(() => completion.CompleteAsync(
+        var completionError = await Assert.ThrowsAsync<BusinessRuleException>(() => completion.CompleteAsync(
             GuidHelper.ToGuidString(batchId), new CompleteReconciliationBatchRequest(4), GuidHelper.ToGuidString(actor)));
         Assert.Contains("ngày chưa xuất đủ", completionError.Message);
 

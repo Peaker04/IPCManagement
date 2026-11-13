@@ -1,3 +1,5 @@
+import { MRX_STATUS_LABELS } from '../constants/mrxConstants';
+
 export function formatNumber(
   value: number | string | null | undefined,
   format: 'currency' | 'quantity' | 'percent' | 'rate' | 'plain' = 'plain',
@@ -110,10 +112,15 @@ export function formatAuditArea(area?: string | null): string {
 export function formatAuditEntity(entity?: string | null): string {
   if (!entity) return '—';
   switch (entity) {
+    case 'QuantityImportBatch': return 'Đợt nhập số suất';
+    case 'MealQuantityPlanLine': return 'Số suất theo món và ca';
     case 'MenuVersion': return 'Phiên bản thực đơn';
     case 'MenuAmendment': return 'Điều chỉnh thực đơn';
     case 'MenuAmendmentScheduleLine': return 'Dòng điều chỉnh lịch ăn';
     case 'BomAdjustment': return 'Điều chỉnh BOM';
+    case 'DishBom': return 'Định mức món ăn';
+    case 'Menu': return 'Thực đơn';
+    case 'MenuItem': return 'Món trong thực đơn';
     case 'ReconciliationDailyDisposition': return 'Xử lý chênh lệch';
     case 'ReconciliationSourceRevision': return 'Phiên bản nguồn đối soát';
     case 'InventoryIssueLine': return 'Dòng xuất kho';
@@ -135,6 +142,11 @@ export function formatAuditEntity(entity?: string | null): string {
 export function formatAuditField(field?: string | null): string {
   if (!field) return '—';
   switch (field) {
+    case 'FinalServings': return 'Số suất chốt';
+    case 'VegetarianServings': return 'Số suất chay';
+    case 'SavoryServings': return 'Số suất mặn';
+    case 'DishId': return 'Món ăn';
+    case 'Commit': return 'Xác nhận nguồn số suất';
     case 'IssuedQty': return 'Số lượng thực xuất';
     case 'ReceivedAt': return 'Xác nhận nhận hàng';
     case 'Category': return 'Phân loại giải trình';
@@ -153,5 +165,17 @@ export function formatAuditField(field?: string | null): string {
     default:
       return field;
   }
+}
+
+export function formatAuditValue(field?: string | null, value?: string | null): string {
+  if (!value) return '—';
+  if (field === 'Commit') return 'Đã xác nhận dữ liệu nguồn';
+  if (field === 'Status') return MRX_STATUS_LABELS[value] ?? value;
+  if (field === 'DishId' && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(value)) return `Mã món ${value}`;
+  if (['FinalServings', 'VegetarianServings', 'SavoryServings', 'Servings'].includes(field ?? '') && /^\d+(?:\.\d+)?$/.test(value))
+    return `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 6 }).format(Number(value))} suất`;
+  if (['IssuedQty', 'Quantity'].includes(field ?? '') && /^\d+(?:\.\d+)?$/.test(value))
+    return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 6 }).format(Number(value));
+  return value;
 }
 

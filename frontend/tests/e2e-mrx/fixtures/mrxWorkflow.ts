@@ -52,7 +52,7 @@ export async function captureStationUI(page: Page, name: string, width: number, 
   fs.writeFileSync(`${file}.json`, JSON.stringify({ geometry, keyboard: 'Tab/Shift+Tab returned to control', control: await control.innerText() }, null, 2));
 }
 
-export async function createTransferredBatch(pages: { coordinator: Page; admin: Page; recordSteps?: boolean; sourceScenario?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void>; sourceAccepted?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void> }, scope: MrxScenarioScope, auditUI = false): Promise<{ batchId: string; menuVersionId: string }> {
+export async function createTransferredBatch(pages: { coordinator: Page; admin: Page; recordSteps?: boolean; afterTransfer?: () => Promise<void>; sourceScenario?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void>; sourceAccepted?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void> }, scope: MrxScenarioScope, auditUI = false): Promise<{ batchId: string; menuVersionId: string }> {
   const { coordinator, admin } = pages;
   // Golden opts in explicitly; shared setup must not instrument memory/endurance measurements.
   const step: typeof evidenceStep = pages.recordSteps ? evidenceStep : async (page, _scope, _name, _role, action) => {
@@ -65,14 +65,23 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   await coordinator.goto(url);
   if (auditUI) await coordinator.setViewportSize({ width: 1366, height: 768 });
   await step(coordinator, scope, 'source-open-import', 'COORDINATOR', async () => {
-    await coordinator.getByRole('button', { name: 'Nhập thực đơn Excel', exact: true }).first().click();
+    await coordinator.getByRole('button', { name: 'Nhập Excel', exact: true }).first().click();
     await expect(coordinator.getByLabel('Tuần bắt đầu nhập', { exact: true })).toBeVisible();
   });
+  const scopeIntent = coordinator.getByLabel('Phạm vi nhập Excel');
+  await expect(scopeIntent).toBeVisible();
+  await scopeIntent.selectOption('current-week');
+  await expect(coordinator.getByLabel('Tuần bắt đầu nhập', { exact: true })).not.toBeEditable();
+  await scopeIntent.selectOption('new-week');
   await coordinator.locator('select#import-customer-select').selectOption(scope.customer ? { value: scope.customer.customerId } : { label: 'ANV - AMANN' });
+  await coordinator.setInputFiles('input[type="file"]', scope.workbook);
   const dateInput = coordinator.getByLabel('Tuần bắt đầu nhập', { exact: true });
+  if (await dateInput.getAttribute('readonly') !== null) {
+    await coordinator.getByRole('button', { name: 'Đổi tuần', exact: true }).click();
+  }
+  await expect(dateInput).toBeEditable();
   await dateInput.fill(scope.weekStartDate.split('-').reverse().join('/'));
   await dateInput.press('Enter');
-  await coordinator.setInputFiles('input[type="file"]', scope.workbook);
   const price = coordinator.locator('button[role="radio"]:has-text("25.000")');
   if (await price.isVisible()) await price.click();
   await step(coordinator, scope, 'source-preview-import', 'COORDINATOR', async () => {
@@ -90,11 +99,13 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
       && response.url().includes('/weekly-menu/') && response.url().includes('commit'));
     await coordinator.getByRole('button', { name: 'Xác nhận nhập', exact: true }).click();
     const result = await imported;
+    expect(result.ok()).toBe(true);
     await expect(coordinator.getByRole('dialog')).toHaveCount(0);
     return result;
   }))!;
   expect(importResponse.ok()).toBe(true);
   const importedData = (await importResponse.json()).data;
+  expect(importedData?.menuVersionId).toBeTruthy();
   const publish = coordinator.getByRole('button', { name: 'Xuất bản thực đơn tuần' });
   if (await publish.isVisible()) await step(coordinator, scope, 'source-publish', 'COORDINATOR', async () => {
     await publish.click();
@@ -111,7 +122,7 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
     await expect(coordinator.getByRole('button', { name: 'Xem menu đã gộp', exact: true })).toBeVisible();
   });
   const shortDate = scope.weekStartDate.slice(5).split('-').reverse().join('/');
-  const mainDish = coordinator.getByRole('combobox', { name: `Món chính ${shortDate} MORNING`, exact: true });
+  const mainDish = coordinator.getByRole('combobox', { name: `Món chính ${shortDate} Sáng`, exact: true });
   mainDishName = await mainDish.inputValue();
   expect(mainDishName).not.toBe('');
   if (auditUI) await captureStationUI(coordinator, 'source-editor', 1366, 768, coordinator.getByRole('button', { name: 'Xem menu đã gộp', exact: true }));
@@ -119,7 +130,7 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
     await mainDish.fill(mainDishName);
     const mainOptionName = (await coordinator.getByRole('listbox').getByRole('option', { selected: true }).innerText()).replace(/\s+/g, ' ').trim();
     await mainDish.press('Escape');
-    await coordinator.getByRole('combobox', { name: `Phụ 1 ${shortDate} MORNING`, exact: true }).fill(mainDishName);
+    await coordinator.getByRole('combobox', { name: `Phụ 1 ${shortDate} Sáng`, exact: true }).fill(mainDishName);
     await coordinator.getByRole('listbox').getByRole('option', { name: mainOptionName, exact: true }).click();
     await coordinator.getByRole('button', { name: 'Xem menu đã gộp', exact: true }).click();
     await expect(coordinator.getByRole('spinbutton', { name: /Số suất Mặn/ }).first()).toBeVisible();
@@ -134,14 +145,14 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   }
   const firstSavoryValue = await savory.first().inputValue();
   await step(coordinator, scope, 'source-open-impact', 'COORDINATOR', async () => {
-    await coordinator.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
+    await coordinator.getByRole('button', { name: /(?:Tiếp tục xem ảnh hưởng|Kiểm tra số suất) \(\d+\)/ }).click();
     await expect(coordinator.getByRole('button', { name: 'Quay lại thực đơn' })).toBeVisible();
     await expect(coordinator.getByRole('spinbutton', { name: /Số suất/ })).toHaveCount(0);
   });
   await coordinator.getByLabel('Lý do thay đổi nguồn').fill(scope.reason);
   await step(coordinator, scope, 'source-preview-impact', 'COORDINATOR', async () => {
     const response = coordinator.waitForResponse((item) => item.url().endsWith('/weekly-menu/amendments/preview') && item.request().method() === 'POST');
-    await coordinator.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+    await coordinator.getByRole('button', { name: 'Kiểm tra lại ảnh hưởng', exact: true }).click();
     const result = await response;
     await expect(coordinator.getByRole('button', { name: 'Gửi duyệt', exact: true })).toBeEnabled();
     return result;
@@ -149,25 +160,25 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   if (auditUI) await captureStationUI(coordinator, 'source-review', 1366, 768, coordinator.getByRole('button', { name: 'Gửi duyệt', exact: true }));
   await expect(coordinator.getByText(/Nguồn thay đổi:/)).toContainText('6 ngày.');
   await coordinator.screenshot({ path: path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, `${artifactPrefix}-review-summary.png`) });
-  await coordinator.locator('summary').filter({ hasText: 'Thay đổi thực đơn và số suất' }).click();
+  await expect(coordinator.getByRole('heading', { name: /^Số suất đề nghị theo ca/ })).toBeVisible();
   await expect(coordinator.getByRole('table', { name: 'Thay đổi số suất theo ca' })).toBeVisible();
   const columnGeometry = await coordinator.getByRole('table', { name: 'Thay đổi số suất theo ca' }).evaluate((table) => {
     const headings = Array.from(table.querySelectorAll('thead th'));
     const cells = Array.from(table.querySelectorAll('tbody tr:first-child > *'));
     return headings.map((heading, index) => ({ header: heading.textContent, delta: Math.abs(heading.getBoundingClientRect().right - cells[index].getBoundingClientRect().right), headerAlign: getComputedStyle(heading).textAlign, cellAlign: getComputedStyle(cells[index]).textAlign }));
   });
-  expect(columnGeometry).toHaveLength(7);
+  expect(columnGeometry).toHaveLength(5);
   for (const column of columnGeometry) {
     expect(column.delta).toBeLessThanOrEqual(1);
     expect(column.headerAlign.replace('start', 'left').replace('end', 'right')).toBe(column.cellAlign.replace('start', 'left').replace('end', 'right'));
   }
   fs.writeFileSync(path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, `${artifactPrefix}-column-alignment.json`), JSON.stringify(columnGeometry, null, 2));
-  await expect(coordinator.locator('summary').filter({ hasText: 'Chi tiết định lượng nguyên liệu' })).toHaveCount(0);
+  await expect(coordinator.getByRole('heading', { name: /^Chi tiết định lượng nguyên liệu/ })).toHaveCount(0);
   await coordinator.screenshot({ path: path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, `${artifactPrefix}-review-source-details.png`) });
   await coordinator.getByRole('button', { name: 'Quay lại thực đơn' }).click();
   await expect(savory.first()).toHaveValue(firstSavoryValue);
-  await expect(coordinator.getByRole('button', { name: /Tiếp tục xem ảnh hưởng/ })).toBeFocused();
-  await coordinator.getByRole('button', { name: /Tiếp tục xem ảnh hưởng/ }).click();
+  await expect(coordinator.getByRole('button', { name: /Tiếp tục xem ảnh hưởng|Kiểm tra số suất/ })).toBeFocused();
+  await coordinator.getByRole('button', { name: /Tiếp tục xem ảnh hưởng|Kiểm tra số suất/ }).click();
   await expect(coordinator.getByLabel('Lý do thay đổi nguồn')).toHaveValue(scope.reason);
   await step(coordinator, scope, 'source-submit-review', 'COORDINATOR', async () => {
     const response = coordinator.waitForResponse((item) => item.url().endsWith('/weekly-menu/amendments/mrx-submit') && item.request().method() === 'POST');
@@ -203,16 +214,16 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   await coordinator.bringToFront();
   await coordinator.reload();
   await pages.sourceAccepted?.(coordinator, scope);
-  await step(coordinator, scope, 'source-check-quantity', 'COORDINATOR', async () => {
+  const quantityPreview = await step(coordinator, scope, 'source-check-quantity', 'COORDINATOR', async () => {
     const response = coordinator.waitForResponse((item) => item.url().endsWith('/batches/quantity-import/preview') && item.request().method() === 'POST');
     await coordinator.getByRole('button', { name: 'Lưu & kiểm tra định lượng', exact: true }).click();
     const result = await response;
-    await expect(coordinator.getByRole('button', { name: 'Tạo lô nháp', exact: true })).toBeEnabled();
+    await expect(coordinator.getByRole('button', { name: 'Lập lô đối soát', exact: true })).toBeEnabled();
     return result;
   });
   const result = (await step(coordinator, scope, 'source-create-draft-batch', 'COORDINATOR', async () => {
     const created = coordinator.waitForResponse((response) => response.url().endsWith('/api/reconciliation/batches/quantity-import/commit') && response.request().method() === 'POST');
-    await coordinator.getByRole('button', { name: 'Tạo lô nháp', exact: true }).click();
+    await coordinator.getByRole('button', { name: 'Lập lô đối soát', exact: true }).click();
     const response = await created;
     await expect(coordinator.getByRole('button', { name: 'Đóng băng lô', exact: true })).toBeEnabled();
     return response;
@@ -229,6 +240,7 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
       await expect(coordinator.getByRole('button', { name: label, exact: true })).toBeHidden();
       return result;
     }, { batchId });
+    if (action === 'transfer-to-warehouse') await pages.afterTransfer?.();
     console.log(`[UI] Điều phối: đã bấm ${label}; server xác nhận thành công.`);
   }
   if (!pages.sourceScenario) {
@@ -253,7 +265,7 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
       await expect(control).toBeInViewport({ ratio: 1 });
       await control.click({ trial: true });
     }
-    for (const name of ['Món & BOM đã đóng băng', 'Nhập lại Excel', 'Chỉnh sửa món']) {
+    for (const name of ['Món & BOM đã đóng băng', 'Nhập Excel', 'Chỉnh sửa món']) {
       const control = coordinator.getByRole('button', { name, exact: true });
       await expect(control).toBeInViewport({ ratio: 1 });
       await control.click({ trial: true });
@@ -268,7 +280,8 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   console.log('[UI] Ma trận thật gộp ngang 6 ngày, dọc 2 slot sau duyệt/reload; cột khớp <=1px; lệnh không bị che tại 960–1920px.');
   await coordinator.screenshot({ path: path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, `${artifactPrefix}-04-transferred.png`) });
   }
-  const menuVersionId = importedData?.menuVersionId as string;
+  // Approval creates a new source revision; the batch uses the quantity-preview request, not the original import.
+  const menuVersionId = quantityPreview!.request().postDataJSON().menuVersionId as string;
   expect(menuVersionId).toBeTruthy();
   return { batchId, menuVersionId };
 }
@@ -293,7 +306,7 @@ export function writeBomImportWorkbook(file: string, rows: { dishCode: string; i
   execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { stdio: 'pipe', timeout: 15_000 });
 }
 
-export function parseCookingFile(file: string, format: 'csv' | 'xlsx', sheet: 1 | 2 = 1): string[][] {
+export function parseCookingFile(file: string, format: 'csv' | 'xlsx', sheet: 1 | 2 | 3 = 1): string[][] {
   const literal = `'${file.replace(/'/g, "''")}'`;
   const script = `$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); ` + (format === 'csv'
     ? `$rows=@(Import-Csv -LiteralPath ${literal} -Encoding UTF8); if($rows.Count -eq 0){throw 'Empty CSV'}; $result=[Collections.Generic.List[object]]::new(); $result.Add([string[]]@($rows[0].PSObject.Properties.Name)); foreach($r in $rows){$result.Add([string[]]@($r.PSObject.Properties.Value))}; ConvertTo-Json -InputObject $result.ToArray() -Depth 4 -Compress`

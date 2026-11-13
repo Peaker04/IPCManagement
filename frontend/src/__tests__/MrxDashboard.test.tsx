@@ -10,6 +10,7 @@ import * as apiTransport from '../api/client';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { systemApi } from '../api/systemApi';
 import { ReconciliationDashboardPage } from '../features/dashboard/ReconciliationDashboardPage';
+import { ChefDashboardPage } from '../features/chef/ChefDashboardPage';
 import { WeeklyMenuPage } from '../features/weekly-menu/WeeklyMenuPage';
 import { adminApi } from '../api/adminApi';
 import { bomApi } from '../api/bomApi';
@@ -17,16 +18,52 @@ import { serverStateCache } from '../store/serverStateCache';
 import { workspaceSessionStore } from '../store/workspaceSessionStore';
 
 const summary: MrxOperationalSummary = {
+  queueCounts: {}, queuePageNumber: 1, queuePageSize: 10, queueTotalCount: 0, queueTotalPages: 0,
   pendingSourceChangesCount: 3, awaitingWarehouseBatchesCount: 4, pendingDeltasCount: 0,
   unresolvedVariancesCount: 2, completionReadyBatchesCount: 1, items: [],
   customerOptions: [{ customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier' }],
 };
 
-function renderDashboard() {
-  return render(<AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}><MemoryRouter><ReconciliationDashboardPage /></MemoryRouter></AuthProvider>);
+function renderDashboard(entry = '/') {
+  return render(<AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}><MemoryRouter initialEntries={[entry]}><ReconciliationDashboardPage /></MemoryRouter></AuthProvider>);
 }
 
 describe('MRX Dashboard — authoritative facts and scope', () => {
+  it.each([
+    ['/?period=YEAR&year=2024', '2024-01-01', '2024-12-31'],
+    ['/?period=RANGE&from=2023-01-01&to=2025-12-31', '2023-01-01', '2025-12-31'],
+  ])('sends historical boundaries from %s to both summary and batch reads', async (url, weekFrom, weekTo) => {
+    const read = vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue(summary);
+    renderDashboard(url);
+    await waitFor(() => expect(read).toHaveBeenCalledWith({ weekFrom, weekTo }));
+    expect(mrxApi.getBatchPage).toHaveBeenCalledWith({ weekFrom, weekTo, pageNumber: 1, pageSize: 20 });
+  });
+
+  it('pages batches without repeating the operational summary read', async () => {
+    const read = vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue(summary);
+    vi.mocked(mrxApi.getBatchPage).mockImplementation(async filters => ({ items: [], totalCount: 21, totalPages: 2,
+      pageNumber: filters?.pageNumber ?? 1, pageSize: 20, hasNext: filters?.pageNumber !== 2, hasPrev: filters?.pageNumber === 2 }));
+    renderDashboard();
+    const pager = await screen.findByRole('navigation', { name: 'Phân trang lô đối soát' });
+    await waitFor(() => expect(within(pager).getByRole('button', { name: 'Trang sau' })).toBeEnabled());
+    await userEvent.click(within(pager).getByRole('button', { name: 'Trang sau' }));
+    await waitFor(() => expect(mrxApi.getBatchPage).toHaveBeenCalledWith({ pageNumber: 2, pageSize: 20 }));
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies a complete year once without requests for partial keystrokes', async () => {
+    const read = vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue(summary);
+    renderDashboard();
+    await screen.findByText('Lô chờ Kho xuất');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Kỳ thời gian' }), 'YEAR');
+    const year = screen.getByRole('textbox', { name: 'Năm tra cứu' });
+    await userEvent.clear(year);
+    await userEvent.type(year, '2024');
+    expect(read).toHaveBeenCalledTimes(1);
+    await userEvent.click(screen.getByRole('button', { name: 'Áp dụng kỳ' }));
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith({ weekFrom: '2024-01-01', weekTo: '2024-12-31' }));
+    expect(read).toHaveBeenCalledTimes(2);
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
     localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
@@ -56,6 +93,7 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     expect(screen.queryByText('Đổi nguồn chờ duyệt')).not.toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     await act(async () => resolveSummary(count === 4 ? summary : { ...summary,
+      queueCounts: {}, queuePageNumber: 1, queuePageSize: 10, queueTotalCount: 0, queueTotalPages: 0,
       pendingSourceChangesCount: null, awaitingWarehouseBatchesCount: count ? 4 : null,
       unresolvedVariancesCount: null, completionReadyBatchesCount: null,
     }));
@@ -135,6 +173,36 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     expect(screen.queryByRole('button', { name: /Kho xuất định lượng ngày/ })).not.toBeInTheDocument();
     await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Lọc theo khách hàng' }), 'customer-1');
     await waitFor(() => expect(getSummary).toHaveBeenLastCalledWith({ customerId: 'customer-1' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Mở trạm làm việc' }));
+    expect(workspaceSessionStore.getScope()).toMatchObject({ customerId: 'customer-1', batchId: 'batch-1', weekStartDate: '2026-10-19' });
+  });
+
+  it('carries the selected dashboard batch into a naked Chef route despite an older Chef snapshot', async () => {
+    workspaceSessionStore.clearScope();
+    serverStateCache.clearAll();
+    localStorage.setItem('ipc_v3_user', JSON.stringify({ userId: 'admin-1', username: 'admin', fullName: 'Quản trị',
+      roleCode: 'ADMIN', roleName: 'Admin', isActive: true, isAdminFullAccess: true, permissions: [] }));
+    const selected = { batchId: 'batch-2', customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier',
+      weekStartDate: '2026-10-19', weekEndDate: '2026-10-25', status: 'IN_PROGRESS', version: 2, createdAt: '2026-10-19T00:00:00Z' };
+    vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue(summary);
+    vi.mocked(mrxApi.getBatchPage).mockResolvedValue({ items: [selected], totalCount: 1, pageNumber: 1, pageSize: 20,
+      totalPages: 1, hasPrev: false, hasNext: false });
+    const cooking = vi.spyOn(mrxApi, 'getKitchenCooking').mockResolvedValue({ batchId: selected.batchId, sourceVersion: 2, rows: [] });
+    serverStateCache.set('snapshot:mrx_cooking', { batchId: 'batch-1', selectedShift: 'ALL' });
+    const router = createMemoryRouter([
+      { path: '/', element: <ReconciliationDashboardPage /> },
+      { path: '/reconciliation', element: null },
+      { path: '/chef', element: <ChefDashboardPage /> },
+    ]);
+    render(<AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
+      <RouterProvider router={router} />
+    </AuthProvider>);
+    await userEvent.click(await screen.findByRole('button', { name: 'Mở trạm làm việc' }));
+    expect(workspaceSessionStore.getScope().batchId).toBe('batch-2');
+    await act(async () => { await router.navigate('/chef?view=mrx-cooking'); });
+    await waitFor(() => expect(cooking).toHaveBeenCalledWith('batch-2'));
+    expect(screen.getByRole('combobox', { name: 'Chọn lô đối soát nấu' })).toHaveValue('batch-2');
+    expect(cooking).not.toHaveBeenCalledWith('batch-1');
   });
 
   it('loads Chef facts and MRX customer filters without requiring Coordination access', async () => {
@@ -203,5 +271,24 @@ describe('MRX Dashboard — authoritative facts and scope', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
     expect((await screen.findByText('Đổi nguồn chờ duyệt')).parentElement).toHaveTextContent('3');
     expect(getSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it('hides the empty work queue without hiding the batch overview', async () => {
+    vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue({
+      ...summary,
+      items: [],
+    });
+    renderDashboard();
+    expect(await screen.findByRole('region', { name: 'Danh sách lô theo bộ lọc' })).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Công việc theo vai trò' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Không có công việc chờ xử lý theo bộ lọc hiện tại.')).not.toBeInTheDocument();
+  });
+
+  it('I9: ReconciliationDashboardPage renders Danh sách lô theo bộ lọc above Công việc theo vai trò so queue item count changes never shift the batch table vertically', async () => {
+    vi.spyOn(mrxApi, 'getOperationalSummary').mockResolvedValue({ ...summary, items: [{ queueType: 'AWAITING_WAREHOUSE', workObjectId: 'batch-1', title: 'Lô chờ', subtitle: 'Chờ xuất kho', targetUrl: '/reconciliation?batchId=batch-1', createdAt: '2026-10-19T00:00:00Z', ownerRole: 'MANAGER', actionKind: 'OWN_ACTION' }] });
+    renderDashboard();
+    const batchSection = await screen.findByRole('region', { name: 'Danh sách lô theo bộ lọc' });
+    const queueSection = await screen.findByRole('region', { name: 'Công việc theo vai trò' });
+    expect(batchSection.compareDocumentPosition(queueSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

@@ -1372,6 +1372,8 @@ public partial class WorkflowGenerationTests
     public async Task MenuVersionRollback_Should_PublishPreviousVersion_AndInvalidateDemand()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
+        await using (var schemaContext = fixture.CreateContext())
+            await EnsureMrxRevisionSchemaAsync(schemaContext);
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         byte[] customerId;

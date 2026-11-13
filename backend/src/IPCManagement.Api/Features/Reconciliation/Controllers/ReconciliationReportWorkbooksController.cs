@@ -4,6 +4,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using IPCManagement.Api.Features.Reconciliation.Contracts;
 
 namespace IPCManagement.Api.Features.Reconciliation.Controllers;
 
@@ -31,8 +32,8 @@ public sealed class ReconciliationReportWorkbooksController(
     [HttpGet("completed-register/xlsx")]
     [Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess)]
     [Produces(MrxReportWorkbookExporter.ContentType)]
-    public async Task<IActionResult> ExportCompletedRegisterXlsx(CancellationToken token)
-        => File(await MrxReportWorkbookExporter.CompletedAsync(reportsService.StreamCompletedRegisterExportAsync(token), token), MrxReportWorkbookExporter.ContentType, "so-lo-da-hoan-tat.xlsx");
+    public async Task<IActionResult> ExportCompletedRegisterXlsx(CancellationToken token, [FromQuery] MrxHistoricalScopeQuery? scope = null)
+        => File(await MrxReportWorkbookExporter.CompletedAsync(reportsService.StreamCompletedRegisterExportAsync(scope ?? new(), token), token), MrxReportWorkbookExporter.ContentType, "so-lo-da-hoan-tat.xlsx");
 
     [HttpGet("audit-trail/xlsx")]
     [Authorize(Policy = AuthorizationPolicies.ReconciliationReadAccess)]

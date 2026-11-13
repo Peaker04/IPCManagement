@@ -76,6 +76,12 @@ export const workspaceSessionStore = {
   setScope(patch: Partial<WorkspaceSessionScope>): WorkspaceSessionScope {
     const { serviceDate, weekStartDate, weeklyMenuScope, ...identity } = patch;
     const updated: WorkspaceSessionScope = { ...currentScope, ...identity };
+    const changedCustomer = patch.customerId !== undefined
+      ? patch.customerId !== currentScope.customerId
+      : patch.customerCode !== undefined && patch.customerCode !== currentScope.customerCode;
+    const nextWeek = isIsoDate(weekStartDate) ? weekStartDate : isIsoDate(serviceDate) ? weekStartFor(serviceDate) : '';
+    const changedWeek = Boolean(nextWeek && nextWeek !== currentScope.weekStartDate);
+    if ((changedCustomer || changedWeek) && patch.batchId === undefined) updated.batchId = '';
     if (weeklyMenuScope !== undefined) updated.weeklyMenuScope = normalizeWeeklyScope(weeklyMenuScope);
     // Whole-week sentinels belong to the local view, never the shared calendar scope.
     if (serviceDate === '' || isIsoDate(serviceDate)) updated.serviceDate = serviceDate;

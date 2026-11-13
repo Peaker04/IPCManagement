@@ -12,6 +12,8 @@ export interface MrxDailyHeaderBranchProps {
   batches: MrxBatchSummary[];
   activeBatchId: string;
   activeBatchLabel?: string;
+  scopeError?: boolean;
+  isPending?: boolean;
   batchStatus?: string;
   onSelectBatch: (id: string) => void;
   activeDate: string;
@@ -34,6 +36,8 @@ export function MrxDailyHeaderBranch({
   batches,
   activeBatchId,
   activeBatchLabel,
+  scopeError = false,
+  isPending = false,
   batchStatus,
   onSelectBatch,
   activeDate,
@@ -62,17 +66,18 @@ export function MrxDailyHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
+      className="mrx-scope-header"
       title="Xuất kho nguyên liệu theo ngày"
       breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
       contextSelectors={
         <>
           <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <div className="w-52 shrink-0 xl:w-60">
+          <div className="w-72 max-w-full shrink-0">
           <Select
             aria-label="Chọn lô đối soát xuất kho"
             options={activeBatchId && !batches.some((batch) => batch.batchId === activeBatchId)
-              ? [{ value: activeBatchId, label: activeBatchLabel || 'Lô đang chọn (ngoài trang danh sách)' }, ...batchOptions]
-              : batches.length === 0 ? [{ value: '', label: '(Chưa có lô đối soát)' }] : batchOptions}
+              ? [{ value: activeBatchId, label: activeBatchLabel || 'Lô đã chọn' }, ...batchOptions]
+              : !activeBatchId ? [{ value: '', label: '(Chưa chọn lô đối soát)' }, ...batchOptions] : batchOptions}
             value={activeBatchId}
             disabled={scopeLocked || (batches.length === 0 && !activeBatchId)}
             onChange={(e) => onSelectBatch(e.target.value)}
@@ -82,7 +87,6 @@ export function MrxDailyHeaderBranch({
           {catalogNavigation}
           </div>
           <VietnameseDateInput
-            key={activeBatchId}
             required
             isDateAllowed={(date) => !availableDates || availableDates.includes(date)}
             validationMessage="Ngày phải thuộc lô đối soát đang chọn."
@@ -94,11 +98,11 @@ export function MrxDailyHeaderBranch({
             className="h-9 w-38 sm:w-40 min-w-[155px] shrink-0 font-mono text-xs sm:text-sm tracking-tight"
           />
           <WorkspaceHeader.BadgeSlot variant="status">
-            {currentStatus ? (
+            {isPending ? <span role="status" className="sr-only">Đang tải phạm vi mới</span> : currentStatus ? (
               <Badge
                 variant={currentStatus === 'COMPLETED' ? 'neutral' : 'info'}
                 size="default"
-                className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap animate-in fade-in duration-150"
+                className="h-8 px-2.5 text-xs font-semibold flex items-center shrink-0 whitespace-nowrap"
               >
                 {MRX_STATUS_LABELS[currentStatus] ?? 'Chưa xác định'}
               </Badge>
@@ -107,8 +111,8 @@ export function MrxDailyHeaderBranch({
         </>
       }
       actions={
-        <WorkspaceHeader.Actions>
-          {!isWeeklyAll && !isServiceDate(activeDate) ? (
+        <WorkspaceHeader.Actions className="mrx-command-slot">
+          {scopeError ? <Badge variant="danger" size="default">Không xác minh được lô</Badge> : isPending ? <Badge variant="neutral" size="default">Đang xác minh lệnh xuất kho…</Badge> : !isWeeklyAll && !isServiceDate(activeDate) ? (
             <Badge variant="neutral" size="default">Ngày lịch sử · Chỉ xem</Badge>
           ) : isWeeklyAll ? (
             <Badge variant="neutral" size="default" className="h-9 px-3 text-xs flex items-center">

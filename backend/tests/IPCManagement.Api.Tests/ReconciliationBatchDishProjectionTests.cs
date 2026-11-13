@@ -74,6 +74,46 @@ public sealed partial class ReconciliationServiceTests
             Service(context).ListDishesAsync(GuidHelper.ToGuidString(batch.BatchId)));
     }
 
+    [Fact]
+    public async Task ListDishes_Should_SeparateSavoryAndVegetarianServingsInSameShift()
+    {
+        await using var context = CreateContext();
+        var (batch, bom) = Seed(context);
+        var line = batch.Lines.Single();
+        var dailyLine = line.DailyLines.Single();
+        var firstContributor = line.Contributors.Single();
+        firstContributor.FrozenMenuVariant = "savory";
+        firstContributor.FrozenServings = 50;
+        firstContributor.SourceQuantity = 5m;
+
+        line.Contributors.Add(new ReconciliationBatchContributor
+        {
+            ContributorId = GuidHelper.NewId(),
+            BatchLineId = line.BatchLineId,
+            BatchLine = line,
+            DailyLineId = dailyLine.DailyLineId,
+            DailyLine = dailyLine,
+            DishBomId = bom.BomId,
+            DishId = firstContributor.DishId,
+            FrozenShiftName = "MORNING",
+            FrozenDishCode = firstContributor.FrozenDishCode,
+            FrozenDishName = firstContributor.FrozenDishName,
+            FrozenMenuVariant = "vegetarian",
+            FrozenServings = 50,
+            FrozenBomQuantityPerServing = 1m,
+            FrozenWasteRatePercent = 0m,
+            MenuScheduleId = GuidHelper.NewId(),
+            MealQuantityPlanLineId = GuidHelper.NewId(),
+            SourceQuantity = 5m
+        });
+        await context.SaveChangesAsync();
+
+        var dishes = await Service(context).ListDishesAsync(GuidHelper.ToGuidString(batch.BatchId));
+        var scope = Assert.Single(Assert.Single(dishes).Scopes!);
+        Assert.Equal(100, scope.FrozenServings);
+        Assert.Equal(100, scope.CurrentServings);
+    }
+
     private static ReconciliationBatchService Service(IpcManagementContext context) =>
         new(context, Substitute.For<IEfTransactionRunner>(), new SystemOperationRequestContext());
 

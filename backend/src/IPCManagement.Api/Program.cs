@@ -194,12 +194,12 @@ builder.Services.AddCors(options =>
         if (builder.Environment.IsDevelopment())
         {
             policy.SetIsOriginAllowed(_ => true).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
-                .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
+                .WithExposedHeaders(CorrelationIdMiddleware.HeaderName, "Content-Disposition");
         }
         else
         {
             policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
-                .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
+                .WithExposedHeaders(CorrelationIdMiddleware.HeaderName, "Content-Disposition");
         }
     });
 });
@@ -352,13 +352,7 @@ app.UseExceptionMiddleware();
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "IPC Management API v1");
-        c.RoutePrefix = "swagger";
-    });
-    app.MapOpenApi();
+    app.UseApiContractDocumentation();
 }
 
 app.UseMiddleware<SampleDataProductionGuardMiddleware>();

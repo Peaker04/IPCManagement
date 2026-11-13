@@ -1,4 +1,3 @@
-using System.Globalization;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
@@ -51,17 +50,17 @@ public sealed partial class WeeklyMenuImportsController
         [FromQuery] string? weekStartDate,
         CancellationToken cancellationToken)
     {
-        var parsedWeekStart = WeeklyMenuImportValidationPolicy.ParseRequestedWeekStart(weekStartDate);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var parsedWeekStart = WeeklyMenuImportValidationPolicy.ParseRequestedWeekStart(weekStartDate)
+            ?? today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
         var template = await _templateService.BuildWeeklyMenuTemplateAsync(
             customerId,
             parsedWeekStart,
             cancellationToken);
-        var fileDate = (parsedWeekStart ?? DateOnly.FromDateTime(DateTime.UtcNow))
-            .ToString("yyyyMMdd", CultureInfo.InvariantCulture);
         return File(
             template.Content,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            $"weekly-menu-template-{template.CustomerCode}-{fileDate}.xlsx");
+            TemplateFileNames.WeeklyMenu(template.CustomerCode, parsedWeekStart));
     }
 
     [HttpGet("weekly-menu/import-history")]

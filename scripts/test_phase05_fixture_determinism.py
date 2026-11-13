@@ -14,10 +14,17 @@ FILES = ('weekly-menu-golden-ANV.xlsx', 'weekly-menu-golden-DAV.xlsx')
 class Phase05FixtureDeterminismTests(unittest.TestCase):
     def test_fixture_tool_generates_identical_workbooks_twice(self):
         with tempfile.TemporaryDirectory() as temp:
+            # Build once; compare independent executions of the same tool. Keep
+            # both workbook byte/content oracles below, not just a single hash.
+            tool = Path(temp, 'tool')
+            subprocess.run(
+                ['dotnet', 'build', str(PROJECT), '--no-restore', '--output', str(tool)],
+                cwd=ROOT, check=True, capture_output=True, text=True,
+            )
             first, second = Path(temp, 'first'), Path(temp, 'second')
             for output in (first, second):
                 subprocess.run(
-                    ['dotnet', 'run', '--project', str(PROJECT), '--', str(output), '2026-08-17'],
+                    ['dotnet', str(tool / 'Phase05WeeklyMenuFixtureTool.dll'), str(output), '2026-08-17'],
                     cwd=ROOT,
                     check=True,
                     capture_output=True,

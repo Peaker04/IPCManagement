@@ -2,6 +2,10 @@
 
 Load the owner for the task, then its source/tests. [AGENTS](../AGENTS.md) owns safety/task routing; [ENGINEERING](ENGINEERING.md#delivery-workflow) owns delivery/intake/verification gates; [ROADMAP](../ROADMAP.md) owns future outcomes; [WORK](../.planning/WORK.md) owns the current task only; [CHANGELOG](../CHANGELOG.md) owns released history; Git owns detailed history.
 
+Plans/specs and archived handoffs are historical snapshots, not additional task-state or policy owners. Their old commands may now be retired; use current manifests and [maintained tooling](ENGINEERING.md#maintained-tooling-and-disposable-output). WORK links its hash-verified historical snapshot rather than embedding the full journal. Document age is not proof of completion or permission to delete a still-referenced plan.
+
+The two legacy frontend reference trees have been consolidated into `D:/IPCArchives/frontend-reference-snapshots/2026-11-13-frontend-references.zip`, with per-file hashes in the adjacent manifest. Old FE folder names in historical documents identify those archived trees; they do not designate an active checkout. Current product source stays under this repository's frontend/backend directories.
+
 | Owner | Read when | Owns | Does not own |
 |---|---|---|---|
 | [DOMAIN](DOMAIN.md) | Business/data/lifecycle changes | Shared language, roles, status, identity/grain and lifecycle invariants | UI mechanics, deployment, bounded-mode detail |

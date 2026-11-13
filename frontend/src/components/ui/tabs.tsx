@@ -63,7 +63,7 @@ export function Tabs({
             onClick={() => onChange(tab.id)}
             onKeyDown={(e) => handleKeyDown(e, idx)}
             className={clsx(
-              'inline-flex items-center justify-center gap-1.5 rounded px-2.5 font-medium text-xs transition-all cursor-pointer',
+              'inline-flex items-center justify-center gap-1.5 rounded px-2.5 font-medium text-xs ui-control-motion cursor-pointer',
               size === 'sm' ? 'h-6 text-xs' : 'h-7 text-xs',
               isActive
                 ? 'bg-white text-slate-900 shadow-2xs font-semibold'

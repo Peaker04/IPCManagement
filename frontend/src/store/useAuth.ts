@@ -26,6 +26,7 @@ export interface AuthContextType {
   hasRole: (roleCode: string | string[]) => boolean;
   canNavigate: (pathname: string, search?: string) => boolean;
   isSessionExpired?: boolean;
+  idleWarning?: boolean;
   triggerSessionExpired?: () => void;
 }
 

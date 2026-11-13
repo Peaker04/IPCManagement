@@ -1,4 +1,4 @@
-import { useState, useEffect, startTransition, type MouseEvent, type ReactNode } from 'react';
+import { Suspense, useState, useEffect, startTransition, type MouseEvent, type ReactNode } from 'react';
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   CalendarDays,
@@ -20,6 +20,7 @@ import {
 import { clsx } from 'clsx';
 import { useAuth } from '../../store/useAuth';
 import { Badge } from '../ui/badge';
+import { InlineBanner } from '../ui/inline-banner';
 import { Button } from '../ui/button';
 import { useDirtyNavigation } from './dirty-navigation-context';
 import { NetworkConnectivityBanner } from './NetworkConnectivityBanner';
@@ -71,7 +72,9 @@ function toNavigationMenu(routes: AppShellNavigationRoute[], pathname: string, s
         const explicit = pathname === '/weekly-menu' && (current.has('customerId') || current.has('weekStartDate'));
         const customerId = current.get('customerId') ?? '';
         const weekStartDate = current.get('weekStartDate') ?? '';
-        const saved = scope.weeklyMenuScope || (scope.customerId && isWeekStartDate(scope.weekStartDate) ? { customerId: scope.customerId, weekStartDate: scope.weekStartDate } : undefined);
+        const activeBatchScope = scope.batchId && scope.customerId && isWeekStartDate(scope.weekStartDate)
+          ? { customerId: scope.customerId, weekStartDate: scope.weekStartDate } : undefined;
+        const saved = activeBatchScope || scope.weeklyMenuScope || (scope.customerId && isWeekStartDate(scope.weekStartDate) ? { customerId: scope.customerId, weekStartDate: scope.weekStartDate } : undefined);
         const matchingSaved = saved && (!customerId || customerId === saved.customerId) && (!weekStartDate || weekStartDate === saved.weekStartDate) ? saved : null;
         const pair = explicit ? customerId && isWeekStartDate(weekStartDate) ? { customerId, weekStartDate } : matchingSaved : saved;
         if (pair?.customerId && isWeekStartDate(pair.weekStartDate)) {
@@ -101,6 +104,7 @@ export interface AppShellProps {
   children?: ReactNode;
   navigation: AppShellNavigationRoute[];
   homePath?: string;
+  loadingFallback: ReactNode;
 }
 
 function activeParentKeyForPath(pathname: string): string | null {
@@ -118,8 +122,8 @@ function activeParentKeyForPath(pathname: string): string | null {
  * Left Sidebar: w-60 (240px) with hamburger toggle, real Lucide icons, nested tree with vertical guide line
  * Right Frame: flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40
  */
-export function AppShell({ children, navigation, homePath = '/' }: AppShellProps) {
-  const { user, logout, operationalMode, hasRole } = useAuth();
+export function AppShell({ children, navigation, homePath = '/', loadingFallback }: AppShellProps) {
+  const { user, logout, operationalMode, hasRole, idleWarning } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { requestNavigation } = useDirtyNavigation();
@@ -401,7 +405,7 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
                 title={isSidebarCollapsed ? userLabel : undefined}
                 className={clsx('rounded-full bg-slate-200 text-slate-800 flex items-center justify-center font-bold text-xs shrink-0 leading-none select-none', isSidebarCollapsed ? 'h-8 w-8' : 'h-7 w-7')}
               >
-                <span className="pt-[1px]">{user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}</span>
+                <span>{user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}</span>
               </div>
               {!isSidebarCollapsed && <div className="min-w-0">
                 <p className="text-xs font-semibold text-slate-900 truncate">
@@ -429,8 +433,13 @@ export function AppShell({ children, navigation, homePath = '/' }: AppShellProps
 
       {/* Right Workbench Frame */}
       <main className="flex-1 min-w-0 h-dvh flex flex-col overflow-hidden bg-slate-50/40">
+        {idleWarning && <InlineBanner variant="warning">Phiên sắp kết thúc do không hoạt động. Hãy thao tác để tiếp tục làm việc.</InlineBanner>}
         <NetworkConnectivityBanner />
-        {children || <Outlet />}
+        <Suspense
+          fallback={loadingFallback}
+        >
+          {children || <Outlet />}
+        </Suspense>
       </main>
     </div>
   );

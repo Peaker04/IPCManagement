@@ -7,7 +7,7 @@ import { Num } from '../../../components/ui/num';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
 import { toVietnameseDate } from '../../../utils/dates';
 import { formatUnitName } from '../../../utils/formatters';
-import { MRX_DISPOSITION_CATEGORY_LABELS } from '../../../constants/mrxConstants';
+import { MRX_DISPOSITION_CATEGORY_LABELS, getMrxShiftLabel } from '../../../constants/mrxConstants';
 import type { MrxVarianceRegisterReport } from '../../../api/mrxApi';
 
 export interface ReconciliationVariancesBranchProps {
@@ -15,11 +15,17 @@ export interface ReconciliationVariancesBranchProps {
   report: MrxVarianceRegisterReport | null;
 }
 
+function dispositionText(row: MrxVarianceRegisterReport['rows'][number]) {
+  if (!row.dispositionCategory) return 'Chưa xử lý';
+  const category = MRX_DISPOSITION_CATEGORY_LABELS[row.dispositionCategory] ?? 'Danh mục chưa xác định';
+  return `${category}: ${row.dispositionReason || '—'}`;
+}
+
 export function ReconciliationVariancesBranch({ report }: ReconciliationVariancesBranchProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const query = normalizeSearchText(searchTerm);
   const visibleRows = useMemo(() => report?.rows.filter(row =>
-    [row.ingredientName, row.ingredientCode, row.shiftName, row.dispositionReason].some(value => normalizeSearchText(value).includes(query))
+    [row.ingredientName, row.ingredientCode, row.shiftName, getMrxShiftLabel(row.shiftName), dispositionText(row), row.dispositionReason].some(value => normalizeSearchText(value).includes(query))
   ) ?? [], [report, query]);
   const varianceColumns = useMemo<ColumnDef<MrxVarianceRegisterReport['rows'][number]>[]>(() => [
     {
@@ -32,7 +38,7 @@ export function ReconciliationVariancesBranch({ report }: ReconciliationVariance
       id: 'shift',
       header: 'Ca',
       width: '10%',
-      cell: (row) => <span className="text-xs font-medium">{row.shiftName}</span>,
+      cell: (row) => <span className="text-xs font-medium">{row.shiftName === 'Cả ngày' ? row.shiftName : getMrxShiftLabel(row.shiftName)}</span>,
     },
     {
       id: 'ingredient',
@@ -85,27 +91,38 @@ export function ReconciliationVariancesBranch({ report }: ReconciliationVariance
       id: 'disposition',
       header: 'Hướng xử lý',
       width: '18%',
-      cell: (row) => (
-        <span className="text-xs truncate block" title={row.dispositionReason ?? ''}>
-          {row.dispositionCategory ? `${MRX_DISPOSITION_CATEGORY_LABELS[row.dispositionCategory] ?? 'Danh mục chưa xác định'}: ${row.dispositionReason || '—'}` : 'Chưa xử lý'}
-        </span>
-      ),
+      cell: (row) => {
+        const text = dispositionText(row);
+        return <span className="text-xs truncate block" title={text}>{text}</span>;
+      },
     },
   ], []);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col h-full bg-white">
-      <StateBoundary isEmpty={Boolean(report && report.rows.length === 0)}
-        emptyTitle="Chưa ghi nhận chênh lệch xuất kho"
-        emptyDescription="Xem tiến độ xuất kho tại Rà soát dòng ngày.">
-      {(Boolean(report?.rows.length) || Boolean(query)) && <LocalFindBar label="Tìm trong sổ chênh lệch" value={searchTerm} onChange={setSearchTerm}
+      <LocalFindBar label="Tìm trong sổ chênh lệch" value={searchTerm} onChange={setSearchTerm}
         matched={report ? visibleRows.length : undefined} total={report?.rows.length}
-        scope="Trong sổ tuần đã tải; tệp xuất vẫn cả lô." />}
+        disabled={!report || (report.rows.length === 0 && !query)}
+        scope="Trong sổ tuần đã tải; tệp xuất vẫn cả lô." />
+      <StateBoundary isEmpty={false}>
       <DataGrid
         data={visibleRows}
+        hideHeaderWhenEmpty
+        minWidth="min-w-[1100px]"
         columns={varianceColumns}
         keyExtractor={(_, idx) => `variance-${idx}`}
-        emptyMessage={query ? 'Không có dòng chênh lệch khớp tìm kiếm.' : 'Chưa ghi nhận chênh lệch xuất kho'}
+        emptyState={
+          <div className="text-center space-y-1">
+            <p className="text-sm font-semibold text-slate-900">
+              {query ? 'Không có dòng chênh lệch khớp tìm kiếm.' : 'Chưa ghi nhận chênh lệch xuất kho'}
+            </p>
+            {!query && (
+              <p className="text-xs text-slate-500 max-w-sm leading-relaxed">
+                Xem tiến độ xuất kho tại Rà soát dòng ngày.
+              </p>
+            )}
+          </div>
+        }
       />
       </StateBoundary>
     </div>

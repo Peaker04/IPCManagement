@@ -17,7 +17,7 @@ using Xunit;
 
 namespace IPCManagement.Api.Tests;
 
-public sealed class ReconciliationDashboardAndReportsTests(ITestOutputHelper output)
+public sealed partial class ReconciliationDashboardAndReportsTests(ITestOutputHelper output)
 {
     private static async Task EnsureSchemaAsync(IpcManagementContext context) => await context.Database.ExecuteSqlRawAsync("""
         CREATE TABLE IF NOT EXISTS systemoperationmodes (Id INTEGER PRIMARY KEY, Mode TEXT NOT NULL, Version INTEGER NOT NULL, UpdatedAt TEXT NOT NULL, UpdatedBy BLOB NOT NULL, Reason TEXT NULL);
@@ -203,6 +203,13 @@ public sealed class ReconciliationDashboardAndReportsTests(ITestOutputHelper out
         var boundedQueue = await service.GetOperationalSummaryAsync(new(), ["Admin"]);
         boundedQueue.PendingSourceChangesCount.Should().Be(23);
         boundedQueue.Items.Count(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().Be(10);
+        boundedQueue.QueueCounts["PENDING_SOURCE_CHANGE"].Should().Be(23);
+        boundedQueue.QueueTotalPages.Should().Be(3);
+        var secondQueue = await service.GetOperationalSummaryAsync(new() { QueuePage = 2 }, ["Admin"]);
+        secondQueue.Items.Where(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().HaveCount(10)
+            .And.NotContain(item => boundedQueue.Items.Any(first => first.WorkObjectId == item.WorkObjectId));
+        var thirdQueue = await service.GetOperationalSummaryAsync(new() { QueuePage = 3 }, ["Admin"]);
+        thirdQueue.Items.Count(item => item.QueueType == "PENDING_SOURCE_CHANGE").Should().Be(3);
     }
 
     [Fact]
@@ -421,6 +428,7 @@ public sealed class ReconciliationDashboardAndReportsTests(ITestOutputHelper out
         row.IssueNotes.Should().Contain("Xuất nguyên bao");
 
         var csvBytes = ReconciliationReportsService.BuildVarianceRegisterCsv(report.Rows);
+        csvBytes.Take(3).Should().Equal(0xEF, 0xBB, 0xBF);
         var csvStr = Encoding.UTF8.GetString(csvBytes);
         csvStr.Should().NotContain("ACCEPTED_VARIANCE");
         csvStr.Should().NotContain("Bao bì đóng gói lẻ");
@@ -648,6 +656,7 @@ public sealed class ReconciliationDashboardAndReportsTests(ITestOutputHelper out
         ((object?)row.TotalVariance).Should().BeNull();
 
         var csvBytes = ReconciliationReportsService.BuildCompletedRegisterCsv(report.Rows);
+        csvBytes.Take(3).Should().Equal(0xEF, 0xBB, 0xBF);
         var csvStr = Encoding.UTF8.GetString(csvBytes);
         csvStr.Should().Contain(GuidHelper.ToGuidString(completedBatchId));
         csvStr.Should().Contain(",0,0,,");
@@ -768,6 +777,17 @@ public sealed class ReconciliationDashboardAndReportsTests(ITestOutputHelper out
         report.TotalCount.Should().Be(5);
         report.Rows.Should().ContainSingle();
         report.Rows.Single().Reason.Should().Be("Kho bắt đầu xuất");
+
+        var searched = await service.GetAuditTrailAsync(GuidHelper.ToGuidString(batchId),
+            new PagedRequestDto { PageNumber = 1, PageSize = 1, SearchKeyword = "Coordinator" });
+        searched.TotalCount.Should().Be(1);
+        searched.Rows.Single().Reason.Should().Be("Coordinator chuyển trạng thái");
+        var sourceFirst = await batches.GetSourceChangesPageAsync(GuidHelper.ToGuidString(batchId), new PagedRequestDto { PageSize = 1 });
+        var sourceSecond = await batches.GetSourceChangesPageAsync(GuidHelper.ToGuidString(batchId), new PagedRequestDto { PageSize = 1, PageNumber = 2 });
+        sourceFirst.TotalCount.Should().Be(sourceChanges.Count);
+        sourceFirst.Items.Should().HaveCount(1);
+        sourceSecond.Items.Should().HaveCount(1);
+        sourceFirst.Items.Single().ChangeId.Should().NotBe(sourceSecond.Items.Single().ChangeId);
 
         var exportRows = await CollectAsync(service.StreamAuditTrailExportAsync(GuidHelper.ToGuidString(batchId)));
         exportRows.Should().HaveCount(5);

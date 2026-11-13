@@ -18,6 +18,18 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         CancellationToken token = default)
     {
         EnsureReconciliationMode();
+        // Keep every projection consistent; release read locks before rendering the Excel file.
+        return await new EfTransactionRunner(context).ExecuteAsync(
+            readToken => ReadWorkbookAsync(query, readToken),
+            _ => Task.FromResult(false),
+            isolationLevel: IsolationLevel.Serializable,
+            cancellationToken: token);
+    }
+
+    private async Task<ReconciliationPreparationWorkbookDto> ReadWorkbookAsync(
+        ReconciliationPreparationWorkbookQuery query,
+        CancellationToken token)
+    {
         var (start, end) = query.GetDateRange();
 
         var dailyQuery = context.Reconciliationbatchdailylines.AsNoTracking()
@@ -70,16 +82,13 @@ public sealed class ReconciliationPreparationWorkbookExporter(
             return new ReconciliationPreparationWorkbookDto([], [], [], 0m, 0m);
         }
 
-        var existingIssues = await context.Inventoryissues.AsNoTracking()
-            .Include(i => i.Inventoryissuelines)
-            .Where(i => i.ReconciliationBatchId != null && distinctBatchIds.Contains(i.ReconciliationBatchId))
-            .ToListAsync(token);
-
-        var issueLinesByDailyLineId = existingIssues
-            .SelectMany(i => i.Inventoryissuelines)
-            .Where(l => l.ReconciliationBatchDailyLineId != null)
-            .GroupBy(l => Convert.ToHexString(l.ReconciliationBatchDailyLineId!))
-            .ToDictionary(g => g.Key, g => g.Sum(l => l.IssuedQty), StringComparer.Ordinal);
+        var netIssues = await new ReconciliationNetIssueProjection(context).LoadByDailyLineIdsAsync(
+            dailyLines.Select(line => line.DailyLineId).ToList(),
+            token);
+        var issueLinesByDailyLineId = netIssues.ToDictionary(
+            item => item.Key,
+            item => item.Value.NetIssuedQuantity,
+            StringComparer.Ordinal);
 
         var ingredientIds = dailyLines.Select(d => d.IngredientId).Distinct(ByteArrayComparer.Instance).ToList();
         var quotations = await context.Supplierquotations.AsNoTracking()

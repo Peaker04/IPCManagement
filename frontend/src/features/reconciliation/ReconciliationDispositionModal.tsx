@@ -62,6 +62,7 @@ export function ReconciliationDispositionModal({
     setIsSubmitting(true);
     setError(null);
 
+    let anySucceeded = succeededLineIds.size > 0;
     await executeSafeMutation({
       mutationFn: async () => {
         for (const line of targetLines) {
@@ -80,6 +81,7 @@ export function ReconciliationDispositionModal({
                 expectedVersion: line.disposition?.version,
               });
             }
+            anySucceeded = true;
             setSucceededLineIds((prev) => new Set(prev).add(lineKey));
           }
         }
@@ -92,9 +94,11 @@ export function ReconciliationDispositionModal({
       },
       onConflict: (err) => {
         setError(err);
+        if (anySucceeded) void onSaved();
       },
       onError: (err) => {
         setError(err);
+        if (anySucceeded) void onSaved();
       },
     });
 
@@ -159,7 +163,7 @@ export function ReconciliationDispositionModal({
             </span>
             <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
               {targetLines.map((l) => (
-                <span key={l.dailyLineId} className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-700">
+                <span key={l.dailyLineId || l.id || l.materialCode} className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-700">
                   {l.materialName}: <strong className="font-mono">{l.issuedRequiredDifference != null && l.issuedRequiredDifference > 0 ? '+' : ''}<Num value={l.issuedRequiredDifference} format="plain" decimals={6} /> {l.unit}</strong>
                 </span>
               ))}

@@ -34,6 +34,9 @@ public sealed class ReconciliationReportsService(
         var canReadSource = HasRole(AuthorizationPolicies.ReconciliationSourceReadRoles);
         var canSeeWarehouse = canDecide || canIssue || canReadSource;
         var items = new List<MrxOperationalQueueItemDto>();
+        var queuePage = new PagedRequestDto { PageNumber = request.QueuePage, PageSize = request.QueuePageSize };
+        var queueSkip = (int)Math.Min((long)(queuePage.PageNumber - 1) * queuePage.PageSize, int.MaxValue);
+        var queueCounts = new Dictionary<string, int>();
         int? pendingChanges = null, awaitingWarehouse = null, pendingDeltas = null, unresolvedVariances = null, completionReady = null;
 
         var scopedBatches = from batch in context.Reconciliationbatches.AsNoTracking()
@@ -51,7 +54,8 @@ public sealed class ReconciliationReportsService(
                 .Where(m => request.WeekFrom == null || m.WeekStartDate >= request.WeekFrom)
                 .Where(m => request.WeekTo == null || m.WeekStartDate <= request.WeekTo);
             pendingChanges = await amendments.CountAsync(token);
-            foreach (var amendment in await amendments.OrderBy(m => m.CreatedAt).Take(10).ToListAsync(token))
+            queueCounts["PENDING_SOURCE_CHANGE"] = pendingChanges.Value;
+            foreach (var amendment in await amendments.OrderBy(m => m.CreatedAt).ThenBy(m => m.MenuAmendmentId).Skip(queueSkip).Take(queuePage.PageSize).ToListAsync(token))
                 items.Add(new("PENDING_SOURCE_CHANGE", GuidHelper.ToGuidString(amendment.MenuAmendmentId),
                     $"Thay đổi nguồn: {amendment.Reason}", $"Tuần {amendment.WeekStartDate:dd/MM/yyyy}",
                     $"/weekly-menu?view=mrx-batch&customerId={GuidHelper.ToGuidString(amendment.CustomerId)}&weekStartDate={amendment.WeekStartDate:yyyy-MM-dd}&amendmentId={GuidHelper.ToGuidString(amendment.MenuAmendmentId)}",
@@ -62,7 +66,8 @@ public sealed class ReconciliationReportsService(
         {
             var transferred = scopedBatches.Where(row => row.Batch.Status == "TRANSFERRED");
             awaitingWarehouse = await transferred.CountAsync(token);
-            foreach (var row in await transferred.OrderBy(row => row.Batch.CreatedAt).Take(10).ToListAsync(token))
+            queueCounts["AWAITING_WAREHOUSE"] = awaitingWarehouse.Value;
+            foreach (var row in await transferred.OrderBy(row => row.Batch.CreatedAt).ThenBy(row => row.Batch.BatchId).Skip(queueSkip).Take(queuePage.PageSize).ToListAsync(token))
                 items.Add(new("AWAITING_WAREHOUSE", GuidHelper.ToGuidString(row.Batch.BatchId), "Chờ Kho xuất nguyên liệu",
                     $"Tuần {row.WeekStartDate:dd/MM/yyyy}",
                     canIssue ? $"/warehouse?view=mrx-daily&batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}" : null,
@@ -76,7 +81,8 @@ public sealed class ReconciliationReportsService(
                 where delta.Status == "PENDING"
                 select delta;
             pendingDeltas = await deltas.CountAsync(token);
-            foreach (var delta in await deltas.OrderBy(d => d.CreatedAt).Take(10).ToListAsync(token))
+            queueCounts["PENDING_DELTA"] = pendingDeltas.Value;
+            foreach (var delta in await deltas.OrderBy(d => d.CreatedAt).ThenBy(d => d.SourceDeltaId).Skip(queueSkip).Take(queuePage.PageSize).ToListAsync(token))
                 items.Add(new("PENDING_DELTA", GuidHelper.ToGuidString(delta.SourceDeltaId), "Biến động nguồn lịch sử",
                     $"Ngày {delta.ServiceDate:dd/MM/yyyy}", null,
                     delta.CreatedAt, "WAREHOUSE", "READ_ONLY"));
@@ -86,23 +92,35 @@ public sealed class ReconciliationReportsService(
         {
             unresolvedVariances = 0;
             completionReady = 0;
-            var activeBatches = await scopedBatches.Where(row => row.Batch.Status == "IN_PROGRESS").ToListAsync(token);
-            var dailyByBatch = await batchService.GetWarehouseDailyManyAsync(activeBatches.Select(row => GuidHelper.ToGuidString(row.Batch.BatchId)).ToList(), token);
-            foreach (var row in activeBatches)
+            queueCounts["UNRESOLVED_VARIANCE"] = 0;
+            queueCounts["COMPLETION_READY"] = 0;
+            var activeQuery = scopedBatches.Where(row => row.Batch.Status == "IN_PROGRESS");
+            // Bound the daily projection while keeping ordinary hundred-batch scopes in one bulk read.
+            const int summaryChunkSize = 128;
+            var activeCount = await activeQuery.CountAsync(token);
+            for (var offset = 0; offset < activeCount; offset += summaryChunkSize)
             {
+              var activeBatches = await activeQuery.OrderBy(row => row.Batch.CreatedAt).ThenBy(row => row.Batch.BatchId)
+                  .Skip(offset).Take(summaryChunkSize).ToListAsync(token);
+              var dailyByBatch = await batchService.GetWarehouseDailyManyAsync(activeBatches.Select(row => GuidHelper.ToGuidString(row.Batch.BatchId)).ToList(), token, includeMetadata: false);
+              foreach (var row in activeBatches)
+              {
                 if (!dailyByBatch.TryGetValue(GuidHelper.ToGuidString(row.Batch.BatchId), out var daily)) continue;
                 var overages = daily.Dates.SelectMany(d => d.Lines).Count(l => l.QuantityStatus == "OVER_ISSUED" && !l.HasValidDisposition);
                 unresolvedVariances += overages;
-                if (overages > 0 && items.Count(i => i.QueueType == "UNRESOLVED_VARIANCE") < 10)
+                if (overages > 0) queueCounts["UNRESOLVED_VARIANCE"] += 1;
+                if (overages > 0 && queueCounts["UNRESOLVED_VARIANCE"] > queueSkip && items.Count(i => i.QueueType == "UNRESOLVED_VARIANCE") < queuePage.PageSize)
                     items.Add(new("UNRESOLVED_VARIANCE", GuidHelper.ToGuidString(row.Batch.BatchId), $"Còn {overages} dòng xuất vượt cần xử lý",
                         $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
                         row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
                 if (daily.WeeklyStatus != "WEEK_COMPLETE" || overages > 0) continue;
                 completionReady += 1;
-                if (items.Count(i => i.QueueType == "COMPLETION_READY") < 10)
+                queueCounts["COMPLETION_READY"] += 1;
+                if (queueCounts["COMPLETION_READY"] > queueSkip && items.Count(i => i.QueueType == "COMPLETION_READY") < queuePage.PageSize)
                     items.Add(new("COMPLETION_READY", GuidHelper.ToGuidString(row.Batch.BatchId), "Lô sẵn sàng chốt tuần",
                         $"Tuần {row.WeekStartDate:dd/MM/yyyy}", $"/reconciliation?batchId={GuidHelper.ToGuidString(row.Batch.BatchId)}",
                         row.Batch.CreatedAt, "MANAGER", "OWN_ACTION"));
+              }
             }
         }
 
@@ -113,7 +131,8 @@ public sealed class ReconciliationReportsService(
             .OrderBy(customer => customer.CustomerCode)
             .Select(customer => new MrxCustomerOptionDto(GuidHelper.ToGuidString(customer.CustomerId), customer.CustomerCode, customer.CustomerName))
             .ToListAsync(token);
-        return new(pendingChanges, awaitingWarehouse, pendingDeltas, unresolvedVariances, completionReady, items, customerOptions);
+        return new(pendingChanges, awaitingWarehouse, pendingDeltas, unresolvedVariances, completionReady, items, customerOptions)
+        { QueuePageNumber = queuePage.PageNumber, QueuePageSize = queuePage.PageSize, QueueCounts = queueCounts };
     }
 
     public async Task<PagedResponseDto<MrxTransactionHistoryRowDto>> GetTransactionsHistoryAsync(
@@ -165,7 +184,6 @@ public sealed class ReconciliationReportsService(
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Ingredient)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.CanonicalUnit)
             .Include(d => d.BatchLine).ThenInclude(bl => bl.Batch)
-            .Include(d => d.BatchLine).ThenInclude(bl => bl.Contributors.Where(contributor => contributor.InvalidatedAt == null))
             .Where(d => d.RequiredQuantity > 0);
 
         if (!string.IsNullOrWhiteSpace(batchId))
@@ -207,6 +225,24 @@ public sealed class ReconciliationReportsService(
         var netIssues = await new ReconciliationNetIssueProjection(context)
             .LoadByDailyLineIdsAsync(dailyIds, token);
 
+        var contributorShifts = await context.Reconciliationbatchcontributors.AsNoTracking()
+            .Where(c => c.InvalidatedAt == null && c.DailyLineId != null && dailyIds.Contains(c.DailyLineId))
+            .OrderBy(c => c.ContributorId)
+            .Select(c => new { c.DailyLineId, c.FrozenShiftName })
+            .ToListAsync(token);
+        var shiftNameByDailyHex = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var cs in contributorShifts)
+        {
+            if (cs.DailyLineId is not null && !string.IsNullOrWhiteSpace(cs.FrozenShiftName))
+            {
+                var key = Convert.ToHexString(cs.DailyLineId);
+                shiftNameByDailyHex[key] = shiftNameByDailyHex.TryGetValue(key, out var previous)
+                    && !string.Equals(previous, cs.FrozenShiftName, StringComparison.Ordinal)
+                        ? "Cả ngày"
+                        : cs.FrozenShiftName;
+            }
+        }
+
         var distinctBatchIds = dailyLines.Select(d => d.BatchId).Distinct(ByteArrayComparer.Instance).ToList();
         var batches = await context.Reconciliationbatches.AsNoTracking()
             .Where(b => distinctBatchIds.Contains(b.BatchId))
@@ -235,11 +271,7 @@ public sealed class ReconciliationReportsService(
             dailyDispositions.TryGetValue(dHex, out var disp);
             var notes = auditNotes.GetValueOrDefault(GuidHelper.ToGuidString(d.DailyLineId)) ?? [];
 
-            var shiftName = d.BatchLine.Contributors
-                .Where(c => c.InvalidatedAt == null
-                    && c.DailyLineId != null && c.DailyLineId.SequenceEqual(d.DailyLineId))
-                .Select(c => c.FrozenShiftName)
-                .FirstOrDefault() ?? "Cả ngày";
+            var shiftName = shiftNameByDailyHex.GetValueOrDefault(dHex, "Cả ngày");
 
             var customerName = customerNameByBatchId.GetValueOrDefault(Convert.ToHexString(d.BatchId), "Khách hàng");
 
@@ -291,33 +323,52 @@ public sealed class ReconciliationReportsService(
                 r.DisposedAt?.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) ?? "",
                 Csv(string.Join("; ", r.IssueNotes))).Append("\r\n");
         }
-        return new UTF8Encoding(true).GetBytes(csv.ToString());
+        return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
     }
 
     public Task<MrxCompletedRegisterReportDto> GetCompletedRegisterAsync(PagedRequestDto page, CancellationToken token = default)
-        => GetCompletedRegisterCoreAsync(page, null, token);
+        => GetCompletedRegisterCoreAsync(page, null, new(), token);
+
+    public Task<MrxCompletedRegisterReportDto> GetCompletedRegisterAsync(PagedRequestDto page, MrxHistoricalScopeQuery scope, CancellationToken token = default)
+        => GetCompletedRegisterCoreAsync(page, null, scope, token);
 
     public async IAsyncEnumerable<MrxCompletedRegisterRowDto> StreamCompletedRegisterExportAsync(
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken token = default)
+    {
+        await foreach (var row in StreamCompletedRegisterExportAsync(new MrxHistoricalScopeQuery(), token)) yield return row;
+    }
+
+    public async IAsyncEnumerable<MrxCompletedRegisterRowDto> StreamCompletedRegisterExportAsync(
+        MrxHistoricalScopeQuery scope,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken token = default)
     {
         var cutoff = DateTime.UtcNow;
         for (var number = 1; ; number++)
         {
-            var page = await GetCompletedRegisterCoreAsync(new PagedRequestDto { PageNumber = number, PageSize = 100 }, cutoff, token);
+            var page = await GetCompletedRegisterCoreAsync(new PagedRequestDto { PageNumber = number, PageSize = 100 }, cutoff, scope, token);
             foreach (var row in page.Rows) { token.ThrowIfCancellationRequested(); yield return row; }
             if (page.Rows.Count < 100) yield break;
         }
     }
 
     private async Task<MrxCompletedRegisterReportDto> GetCompletedRegisterCoreAsync(
-        PagedRequestDto page, DateTime? cutoff, CancellationToken token)
+        PagedRequestDto page, DateTime? cutoff, MrxHistoricalScopeQuery scope, CancellationToken token)
     {
         EnsureReconciliationMode();
+
+        if (scope.WeekFrom is not null && scope.WeekTo is not null && scope.WeekFrom > scope.WeekTo)
+            throw new BusinessRuleException("Ngày bắt đầu không được sau ngày kết thúc.");
+        var customerId = string.IsNullOrWhiteSpace(scope.CustomerId) ? null : ReconciliationBatchService.RequiredId(scope.CustomerId);
 
         var query = context.Reconciliationbatches.AsNoTracking()
             .Include(b => b.Lines).ThenInclude(line => line.CanonicalUnit)
             .Where(b => b.Status == "COMPLETED")
             .Where(b => cutoff == null || (b.CreatedAt <= cutoff && (b.CompletedAt == null || b.CompletedAt <= cutoff)));
+        if (customerId is not null || scope.WeekFrom is not null || scope.WeekTo is not null)
+            query = query.Where(batch => context.Menuversions.Any(menu => menu.MenuVersionId == batch.MenuVersionId
+                && (customerId == null || menu.CustomerId == customerId)
+                && (scope.WeekFrom == null || menu.WeekStartDate >= scope.WeekFrom)
+                && (scope.WeekTo == null || menu.WeekStartDate <= scope.WeekTo)));
 
         var total = await query.CountAsync(token);
         var batches = await query
@@ -422,7 +473,7 @@ public sealed class ReconciliationReportsService(
                 r.TotalIssued is { } issued ? Number(issued) : "",
                 r.TotalVariance is { } variance ? Number(variance) : "").Append("\r\n");
         }
-        return new UTF8Encoding(true).GetBytes(csv.ToString());
+        return Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv.ToString())).ToArray();
     }
 
     public async Task<MrxAuditTrailReportDto> GetAuditTrailAsync(
@@ -430,7 +481,7 @@ public sealed class ReconciliationReportsService(
     {
         EnsureReconciliationMode();
         var parsedBatchId = string.IsNullOrWhiteSpace(batchId) ? null : ReconciliationBatchService.RequiredId(batchId);
-        var query = BuildAuditTrailQuery(parsedBatchId);
+        var query = await MrxAuditSearch.ApplyAsync(context, await BuildAuditTrailQueryAsync(parsedBatchId, token), page.SearchKeyword, token);
         var total = await query.CountAsync(token);
         var logs = await query.OrderByDescending(a => a.ChangedAt)
             .Skip((page.PageNumber - 1) * page.PageSize).Take(page.PageSize).ToListAsync(token);
@@ -445,7 +496,8 @@ public sealed class ReconciliationReportsService(
         EnsureReconciliationMode();
         var parsedBatchId = string.IsNullOrWhiteSpace(batchId) ? null : ReconciliationBatchService.RequiredId(batchId);
         await using var exportContext = MrxReportExportContext.Create(context);
-        var query = new MrxAuditScopeQuery(exportContext).Apply(exportContext.Auditlogs.AsNoTracking(), parsedBatchId)
+        var scoped = await new MrxAuditScopeQuery(exportContext).ApplyScopedAsync(exportContext.Auditlogs.AsNoTracking(), parsedBatchId, token);
+        var query = scoped
             .OrderByDescending(audit => audit.ChangedAt)
             .Select(audit => new
             {
@@ -462,8 +514,8 @@ public sealed class ReconciliationReportsService(
         }
     }
 
-    private IQueryable<AuditLog> BuildAuditTrailQuery(byte[]? batchId) =>
-        new MrxAuditScopeQuery(context).Apply(context.Auditlogs.AsNoTracking(), batchId);
+    private Task<IQueryable<AuditLog>> BuildAuditTrailQueryAsync(byte[]? batchId, CancellationToken token) =>
+        new MrxAuditScopeQuery(context).ApplyScopedAsync(context.Auditlogs.AsNoTracking(), batchId, token);
 
     private Task<IReadOnlyDictionary<string, string>> LoadAuditActorNamesAsync(
         IReadOnlyCollection<AuditLog> logs,

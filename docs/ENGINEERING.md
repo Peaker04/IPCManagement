@@ -16,6 +16,14 @@ Executable commands/settings belong to [root manifest](../package.json), [fronte
 | OPERATE | Observe the authorized build/environment, technical and business signals against OPERATIONS; existing targets are not measured achievement |
 | FEEDBACK | Route an incident/user report to fresh WORK intake; correct stable truth at its canonical owner. Change ROADMAP only for an owner-approved new/removed/reprioritized outcome or acceptance boundary, or an evidenced achieved outcome—not bug/refactor/validator/task progress |
 
+### Maintained tooling and disposable output
+
+`npm run test:repository-entrypoints` checks workflow npm callers, ordinary Playwright campaign isolation and retired runner behavior. The Phase05 fixture determinism test remains wired through its npm entry point; it is not replaced with a weaker smoke check. Ordinary browser configs exclude `e2e-mrx`; MRX campaigns require the dedicated evidence runner and separate operational authorization.
+
+The retired legacy DB/visual-audit `.mjs` entry points fail closed. Historical code and commands explain past evidence, not current execution permission. Use maintained `frontend/tests/browser` specs or the run-owned MRX evidence flow against a verified build/actor/server mode. A local mode hint or screenshot alone does not establish qualification.
+
+Keep launch stdout/stderr and disposable output under ignored `.artifacts/` rather than at the repository root. Preserve referenced logs before retirement; the housekeeping receipt maps old root log names to the verified archive. Browser profiles are session caches, while retained design content/previews and hash-bound MRX evidence are different retention classes. Backups/receipts require OPERATIONS authority and are never pruned by a general build cleanup.
+
 ### Feature intake contract
 
 Before meaningful implementation, establish **Actor; Trigger; Expected outcome; Permission; Current behavior; Requested behavior; Data/state affected; Failure paths; Acceptance criteria**. Derive known facts from current source/tests before asking the owner. Record the task-specific answers and source/oracle in WORK, not a new per-feature history system. Missing or contradictory required facts are UNKNOWN / OPEN QUESTION; resolve the affected boundary before coding rather than silently selecting policy.
@@ -28,7 +36,7 @@ Acceptance identifies the flow/bounded contract, actor/mode/scope, allowed actio
 
 ## Environment and local run
 
-Use Node 22.19+ with root npm workspace/lockfile; .NET SDK selection and roll-forward are in global.json (9.0.313 minimum 9.0.3xx/latestPatch, not a byte-exact SDK pin). Backend targets .NET 9/MySQL 8.0.36; Microsoft ASP.NET/EF test/runtime packages are serviced coherently. Inspect csproj/tool manifests for current package versions instead of duplicating a servicing inventory here.
+Use Node 22.19+ with root npm workspace/lockfile; .NET SDK selection and roll-forward are in global.json (10.0.401 minimum 10.0.4xx/latestPatch). Backend targets .NET 10/MySQL 8.0.36. ASP.NET is serviced at 10.0.12; EF/Pomelo remain version 9 for migration compatibility and require a separately verified provider upgrade because EF9 support has ended. Inspect csproj/tool manifests for current package versions instead of duplicating a servicing inventory here.
 
 From root, `npm ci` and `dotnet restore backend/IPCManagement.slnx` require installation/network authorization. Configure backend from the matching appsettings `.example` files with credentials outside Git. Run `npm run be` and `npm run fe` in separate terminals. Frontend defaults to Vite 5173 and `/api` proxied to `http://localhost:5262`; VITE_PROXY_TARGET can override the proxy. Confirm actual build/listeners and `/health/ready`, not remembered process IDs. Startup may observe existing database state; setup never authorizes migration, seed or warehouse activation.
 
@@ -49,7 +57,7 @@ ASP.NET configuration uses local appsettings/environment/secret store; tracked D
 | VITE_API_BASE_URL | Optional origin/base prefix **without trailing /api**; apiSlice appends /api. Omitted transport defaults to /api; separate-origin deployment must verify actual routing |
 | VITE_PROXY_TARGET | Local dev default http://localhost:5262; not a deployment reverse proxy |
 | VITE_ENABLE_MOCK_LOGIN | Off by default; only authorized Development/UI tests, never production |
-| VITE_IDLE_TIMEOUT_MINUTES / VITE_IDLE_WARNING_MINUTES | Defaults 60 / 2; nonpositive/invalid values fall back |
+| VITE_IDLE_TIMEOUT_MINUTES / VITE_IDLE_WARNING_MINUTES | Defaults 60 / 2; nonpositive/invalid values fall back. AuthProvider tracks user input (not HTTP/background refresh), warns nonblockingly, then clears local session and returns to login at deadline; wake after deadline cannot revive it. Revoke is best-effort/offline-safe; server token expiry remains independent. |
 
 DbContext construction uses the configured MySQL version without an implicit network version lookup. Readiness and operational-warehouse startup validation still fail closed on connectivity/migration/zero-multiple-config mismatch. DeploymentConfigurationValidator rejects unsafe non-Development examples/host/CORS. Reverse proxy/forwarded headers require a separate tested trusted-proxy change, not a setting guess. Auth storage, rotation and transaction mechanics are owned by ARCHITECTURE, not restated as a second contract here.
 

@@ -87,6 +87,25 @@ public class ExceptionMiddlewareTests
         body.GetProperty("message").GetString().Should().Be("Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
     }
 
+    [Fact]
+    public async Task InvokeAsync_Should_Return499WithoutErrorLog_When_RequestIsAborted()
+    {
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        var context = new DefaultHttpContext { RequestAborted = cts.Token };
+        context.Response.Body = new MemoryStream();
+        var logger = Substitute.For<ILogger<ExceptionMiddleware>>();
+        var environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns(Environments.Production);
+        var middleware = new ExceptionMiddleware(_ => throw new OperationCanceledException(cts.Token), logger, environment);
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.StatusCode.Should().Be(499);
+        context.Response.Body.Length.Should().Be(0);
+        logger.ReceivedCalls().Where(call => call.GetArguments().OfType<LogLevel>().Contains(LogLevel.Error)).Should().BeEmpty();
+    }
+
     private static ExceptionMiddleware CreateMiddleware(RequestDelegate next)
     {
         var logger = Substitute.For<ILogger<ExceptionMiddleware>>();

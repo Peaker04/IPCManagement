@@ -2,11 +2,9 @@ name: Verify
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main, dev]
   push:
-    branches:
-      - main
+    branches: [main, dev]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +15,51 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Shared fast quality gates
+        run: npm run verify:quick
+      - name: Architecture growth (advisory)
+        continue-on-error: true
+        env:
+          EVENT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          BASE_REF="$EVENT_BASE_REF"
+          if [ -z "$BASE_REF" ] || [[ "$BASE_REF" =~ ^0+$ ]] || ! git cat-file -e "$BASE_REF^{commit}" 2>/dev/null; then
+            BASE_REF="$(git rev-parse HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)"
+          fi
+          node scripts/check-architecture-growth.mjs --strict --base-ref "$BASE_REF"
+      - name: Lint frontend
+        run: npm run lint:fe
+      - name: Frontend dependency rules (existing baseline may only shrink)
+        run: npm run depcruise:fe
+      - name: Build frontend before bundle/source-ownership checks
+        run: npm run build:fe
+      - name: Route budgets (advisory)
+        continue-on-error: true
+        run: npm run check:route-budgets -w frontend
+      - name: Frontend unit tests and JUnit report
+        run: npm run test:fe:unit -- --maxWorkers=2 --reporter=default --reporter=junit --outputFile="${{ github.workspace }}/.artifacts/test-results/frontend-unit.xml"
+      - name: Frontend diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: .artifacts/test-results/frontend-unit.xml
+          retention-days: 7
+          if-no-files-found: warn
+
+  backend:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
@@ -33,15 +75,14 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-
     env:
       ASPNETCORE_ENVIRONMENT: Development
       DOTNET_NOLOGO: "true"
       DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      # All credentials below belong only to this ephemeral CI service.
       ConnectionStrings__DefaultConnection: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
-      # Bắt buộc phải set: nếu thiếu, integration test sẽ FAIL trong CI thay vì pass giả.
-      # Mật khẩu dưới đây chỉ tồn tại trong service container ephemeral của lượt chạy này.
       IPC_TEST_CONNECTION_STRING: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
+      MYSQL_PWD: "123456789"
       TEST_RESULTS_DIR: ${{ github.workspace }}/.artifacts/test-results
       JwtSettings__SecretKey: CI_VERIFY_SECRET_KEY_1234567890_ABCDEF
       JwtSettings__Issuer: IPCManagementAPI
@@ -49,296 +90,177 @@ jobs:
       JwtSettings__ExpiryMinutes: 30
       JwtSettings__RefreshExpiryDays: 1
       JwtSettings__MaxActiveRefreshTokens: 3
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
-
-      - name: Cache NuGet packages
+      - name: Cache NuGet packages (no lockfiles required by this cache)
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', '**/*.csproj', '**/*.slnx', 'dotnet-tools.json') }}
           restore-keys: |
             ${{ runner.os }}-nuget-
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-
-      - name: Install npm dependencies
-        run: npm ci
-
-      - name: Enforce repository ignore policy
-        run: npm run test:ignore-policy
-
-      - name: Enforce frontend test taxonomy
-        run: npm run test:frontend-test-taxonomy
-
-      - name: Regression test frontend unit launcher arguments
-        run: npm run test:frontend-unit-launcher
-
+      # Backend npm entrypoints use built-ins/dotnet and the pinned OpenAPI npx tool;
+      # frontend workspace dependencies are installed only by the frontend job.
+      - name: Restore backend solution
+        run: dotnet restore backend/IPCManagement.slnx
+      - name: Build API, test projects and database tool once
+        run: dotnet build backend/IPCManagement.slnx --no-restore
+      - name: Check generated API contract (separate Release build)
+        run: npm run check:api-contract
       - name: Verify deterministic Phase 05 Golden fixtures
         run: npm run test:phase05-fixture-determinism
-
-      - name: Regression test architecture growth gate
-        run: npm run test:architecture-growth
-
-      - name: Enforce architecture growth baseline (advisory)
-        continue-on-error: true
-        env:
-          EVENT_BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: |
-          BASE_REF="$EVENT_BASE_REF"
-          if [ -z "$BASE_REF" ] || [[ "$BASE_REF" =~ ^0+$ ]] || ! git cat-file -e "$BASE_REF^{commit}" 2>/dev/null; then
-            BASE_REF="$(git rev-parse HEAD^ 2>/dev/null || git rev-list --max-parents=0 HEAD)"
-          fi
-          node scripts/check-architecture-growth.mjs --strict --base-ref "$BASE_REF"
-
-      - name: Build backend
-        run: npm run build:be
-
-      - name: Check generated API contract
-        run: npm run check:api-contract
-
-      - name: Install EF Core CLI
-        run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.20
-
+      - name: Install EF Core CLI matching the current provider
+        run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.23 --allow-roll-forward
       - name: Check EF migration snapshot
-        run: >
+        run: >-
           ./.dotnet-tools/dotnet-ef migrations has-pending-model-changes
           --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
           --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
           --msbuildprojectextensionspath .artifacts/dotnet/obj/IPCManagement.Api
           --no-build
-
       - name: Install MySQL client
         run: sudo apt-get update && sudo apt-get install -y default-mysql-client
-
-      - name: Generate MySQL schema script
+      - name: Generate model schema
         run: |
-          mkdir -p ./.artifacts
+          mkdir -p .artifacts
           ./.dotnet-tools/dotnet-ef dbcontext script \
             --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
             --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
             --msbuildprojectextensionspath .artifacts/dotnet/obj/IPCManagement.Api \
-            --output ./.artifacts/ipc-schema.sql \
-            --no-build
-
-      # Vừa smoke-test schema sinh ra, vừa dựng sẵn database cho integration test chạy thật ở bước sau.
-      - name: Apply MySQL schema (smoke test + database cho integration test)
+            --output .artifacts/ipc-schema.sql --no-build
+      - name: Apply model schema to ephemeral integration database
         run: |
-          mysql -h 127.0.0.1 -uroot -p123456789 -e "DROP DATABASE IF EXISTS ipcmanagement_ci; CREATE DATABASE ipcmanagement_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          mysql -h 127.0.0.1 -uroot -p123456789 ipcmanagement_ci < ./.artifacts/ipc-schema.sql
-          mysql -h 127.0.0.1 -uroot -p123456789 -e "SELECT COUNT(*) AS created_tables FROM information_schema.tables WHERE table_schema = 'ipcmanagement_ci';"
-
-      # Evidence-owned Phase 42 cases consume ignored local archive/approval receipts and
-      # Provider-dependent recovery tests need separately authorized adapters; core tests are hermetic.
-      # RecoveryScriptContractTests remains Windows PowerShell-specific.
-      # Integration chạy riêng trên database vừa dựng ở bước kế tiếp; loại khỏi lượt
-      # unit/application chung để không chạy hai lần và không dùng lại database đã mutate.
-      - name: Test backend
-        run: >
-          npm run test:be --
-          --filter "FullyQualifiedName!~IPCManagement.Api.Tests.Integration&Category!=EvidenceOwned&FullyQualifiedName!~RecoveryScriptContractTests"
-          --logger "trx"
+          mysql -h 127.0.0.1 -uroot -e "DROP DATABASE IF EXISTS ipcmanagement_ci; CREATE DATABASE ipcmanagement_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -h 127.0.0.1 -uroot ipcmanagement_ci < .artifacts/ipc-schema.sql
+          mysql -h 127.0.0.1 -uroot -e "SELECT COUNT(*) AS created_tables FROM information_schema.tables WHERE table_schema = 'ipcmanagement_ci';"
+      - name: Backend core (integration/evidence/recovery retain separate ownership)
+        run: >-
+          npm run test:be:ci -- --no-build --no-restore
+          --logger trx
           --results-directory "${{ github.workspace }}/.artifacts/test-results/backend"
-
-      # Chạy riêng nhóm integration để log CI hiện rõ số test đã CHẠY trên MySQL thật.
-      - name: Integration test trên MySQL thật
+      - name: Integration tests on MySQL
         id: integration
-        run: >
+        run: >-
           dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
-          --no-build
+          --no-build --no-restore
           --filter "FullyQualifiedName~IPCManagement.Api.Tests.Integration"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=integration-tests.trx"
-          --results-directory "${{ github.workspace }}/.artifacts/test-results"
-
-      # B13 — Replay migration THẬT trên MySQL.
-      # Bước "Generate MySQL schema script" ở trên sinh schema từ MODEL, nên 36 migration
-      # viết tay chưa từng được thực thi một lần nào trong CI. Bộ test replay đã có sẵn trong
-      # repo nhưng bị khoá sau IPC_RUN_MYSQL_MIGRATION_TESTS, và biến đó chưa bao giờ được set
-      # trong CI -> test im lặng return sớm. Hai test dưới đây dựng database trắng từ baseline
-      # backend/database/IPCmanagement.sql rồi replay toàn bộ migration còn lại; chúng tự tạo
-      # database dùng-một-lần nên chạy được trên runner sạch.
-      #
-      # Test Supplier bên dưới gọi luôn proof fresh-install của PurchaseHistory trước khi kiểm
-      # schema supplier/exception. Không chọn cả hai entry point cùng lúc: xUnit sẽ chạy song
-      # song và hai lượt cùng DROP/CREATE ipc_lane8, tạo race "database exists".
-      # Hai test Migration_upgrade_* tự dựng lane disposable ở đúng predecessor migration
-      # và chạy ở bước riêng bên dưới. Không dùng chung database với fresh-install.
-      - name: Replay migration trên MySQL thật (B13)
+          --results-directory "${{ env.TEST_RESULTS_DIR }}"
+      - name: Validate integration execution evidence
+        if: always() && steps.integration.outcome != 'skipped' && steps.integration.outcome != ''
+        run: python3 scripts/ci_test_results.py --trx "${{ env.TEST_RESULTS_DIR }}/integration-tests.trx"
+      # Fresh entrypoint also invokes PurchaseHistory proof. Do not select both:
+      # concurrent DROP/CREATE of lane8 would race. Preserve sequential DB phases.
+      - name: Fresh migration replay
         id: migration_replay
         env:
           IPC_RUN_MYSQL_MIGRATION_TESTS: "1"
-        run: >
+        run: >-
           dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
-          --no-build
+          --no-build --no-restore
           --filter "FullyQualifiedName~Migration_fresh_install_applies_decision_exception_and_legacy_marker_schema"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=migration-replay.trx"
-          --results-directory "${{ github.workspace }}/.artifacts/test-results"
-
-      - name: Upgrade migration trên fixture có dữ liệu (B13)
+          --results-directory "${{ env.TEST_RESULTS_DIR }}"
+      - name: Validate fresh replay execution evidence
+        if: always() && steps.migration_replay.outcome != 'skipped' && steps.migration_replay.outcome != ''
+        run: >-
+          python3 scripts/ci_test_results.py --trx "${{ env.TEST_RESULTS_DIR }}/migration-replay.trx"
+          --expected Migration_fresh_install_applies_decision_exception_and_legacy_marker_schema
+      - name: Populated upgrade replay (separate lane8/lane9 fixtures)
+        id: migration_upgrade
         env:
           IPC_RUN_MYSQL_MIGRATION_TESTS: "1"
-        run: >
+        run: >-
           dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
-          --no-build
+          --no-build --no-restore
           --filter "FullyQualifiedName~Migration_upgrade_populated_clone_preserves_receipt_history|FullyQualifiedName~Migration_upgrade_preserves_supplier_snapshots_and_rejects_duplicate_purchase_order_keys"
           --logger "console;verbosity=normal"
           --logger "trx;LogFileName=migration-upgrade-replay.trx"
-          --results-directory "${{ github.workspace }}/.artifacts/test-results"
-
-      # B13 (phan 2) — schema tu MIGRATION phai bang schema tu MODEL.
-      # Buoc tren moi chi chung minh migration chay khong loi; buoc nay bat drift noi dung.
-      # Khong dung lai logic dung database: hai test fresh-install o buoc tren de lai
-      # `ipc_lane8` da qua baseline + replay toan bo migration. Neu ai doi ten database do,
-      # buoc nay do ngay thay vi so nham.
-      #
-      # Chu y ve pham vi so sanh:
-      #  - KHONG so DEFAULT: baseline co chu dich dat default SQL ma model EF khong khai,
-      #    nen so default se do vinh vien. Cung ly do nen chuan hoa bo co DEFAULT_GENERATED.
-      #  - KHONG so TEN index: MySQL tu dat ten index khoa ngoai theo thu tu tao
-      #    (customerId, customerId1, unitId3...) nen hai duong luon khac ten du phu cung cot.
-      #  - Bo qua stocktakes.activeWarehouseKey: cot GENERATED VIRTUAL do
-      #    20260726120000_AddStocktakeActiveWarehouseUnique tao de lam unique index co dieu
-      #    kien; model co y khong map no.
-      - name: Schema tu migration phai bang schema tu model (B13)
+          --results-directory "${{ env.TEST_RESULTS_DIR }}"
+      - name: Validate both upgrade cases executed
+        if: always() && steps.migration_upgrade.outcome != 'skipped' && steps.migration_upgrade.outcome != ''
+        run: >-
+          python3 scripts/ci_test_results.py --trx "${{ env.TEST_RESULTS_DIR }}/migration-upgrade-replay.trx"
+          --expected Migration_upgrade_populated_clone_preserves_receipt_history
+          --expected Migration_upgrade_preserves_supplier_snapshots_and_rejects_duplicate_purchase_order_keys
+      - name: Compare migration and model schema (nonempty evidence required)
         run: |
-          set -euo pipefail
-          MYSQL="mysql -h 127.0.0.1 -uroot -p123456789"
-          $MYSQL -e "DROP DATABASE IF EXISTS ipcmanagement_model_ci; CREATE DATABASE ipcmanagement_model_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          $MYSQL ipcmanagement_model_ci < ./.artifacts/ipc-schema.sql
-          shape () {
-            $MYSQL -N -B -e "
-              SELECT CONCAT('TBL|',table_name) FROM information_schema.tables
-               WHERE table_schema='$1' AND table_name<>'__EFMigrationsHistory'
-              UNION ALL
-              SELECT CONCAT('COL|',table_name,'|',column_name,'|',column_type,'|',is_nullable,'|',TRIM(REPLACE(extra,'DEFAULT_GENERATED','')))
-               FROM information_schema.columns
-               WHERE table_schema='$1' AND table_name<>'__EFMigrationsHistory'
-                 AND NOT (table_name='stocktakes' AND column_name='activeWarehouseKey')
-              UNION ALL
-              SELECT CONCAT('FK|',table_name,'|',column_name,'|',referenced_table_name,'|',referenced_column_name)
-               FROM information_schema.key_column_usage
-               WHERE table_schema='$1' AND referenced_table_name IS NOT NULL;" | sort
-          }
-          shape ipc_lane8               > ./.artifacts/shape-migrations.txt
-          shape ipcmanagement_model_ci  > ./.artifacts/shape-model.txt
-          echo "So dong doi chieu: migration=$(wc -l < ./.artifacts/shape-migrations.txt) model=$(wc -l < ./.artifacts/shape-model.txt)"
-          # Hai ve rong thi diff cung "khop" — phai chan truoc, khong de gate pass gia.
-          if [ ! -s ./.artifacts/shape-migrations.txt ]; then
-            echo "LOI: ipc_lane8 rong. Test replay migration o buoc tren khong chay hoac doi ten database."
-            exit 1
-          fi
-          if [ ! -s ./.artifacts/shape-model.txt ]; then
-            echo "LOI: ipcmanagement_model_ci rong. Khong nap duoc ./.artifacts/ipc-schema.sql."
-            exit 1
-          fi
-          if diff -u ./.artifacts/shape-model.txt ./.artifacts/shape-migrations.txt > ./.artifacts/shape-diff.txt; then
-            echo "OK: schema tu migration khop schema tu model."
-          else
-            echo "LOI: database cai moi bang migration KHAC voi model EF."
-            echo "  '-' = model co, duong migration thieu | '+' = duong migration co, model khong co"
-            cat ./.artifacts/shape-diff.txt
-            exit 1
-          fi
-
-      - name: Báo cáo số integration test đã chạy
-        if: always() && steps.integration.conclusion != 'skipped'
-        run: |
-          python3 - <<'PY'
-          import os
-          import sys
-          import xml.etree.ElementTree as ET
-
-          trx = os.path.join(os.environ["TEST_RESULTS_DIR"], "integration-tests.trx")
-          if not os.path.exists(trx):
-              print(f"LOI: khong tim thay {trx}. Integration test khong tao duoc ket qua.")
-              sys.exit(1)
-
-          namespace = "{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}"
-          root = ET.parse(trx).getroot()
-
-          outcomes = {}
-          details = []
-          for result in root.iter(f"{namespace}UnitTestResult"):
-              outcome = result.get("outcome", "Unknown")
-              outcomes[outcome] = outcomes.get(outcome, 0) + 1
-              details.append(f"{outcome} - {result.get('testName')}")
-
-          passed = outcomes.get("Passed", 0)
-          failed = outcomes.get("Failed", 0)
-          not_executed = outcomes.get("NotExecuted", 0)
-          executed = passed + failed
-
-          lines = [
-              "### Integration test tren MySQL that",
-              "",
-              f"- Da CHAY: **{executed}** (Passed {passed} / Failed {failed})",
-              f"- Bi skip (NotExecuted): {not_executed}",
-              "",
-          ]
-          lines += [f"- {item}" for item in details]
-          report = "\n".join(lines)
-          print(report)
-
-          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
-          if summary_path:
-              with open(summary_path, "a", encoding="utf-8") as handle:
-                  handle.write(report + "\n")
-
-          if executed == 0:
-              print(
-                  "LOI: khong co integration test nao duoc thuc thi. "
-                  "Kiem tra IPC_TEST_CONNECTION_STRING va database ipcmanagement_ci."
-              )
-              sys.exit(1)
-          PY
-
-      - name: Lint frontend
-        run: npm run lint:fe
-
-      # Cặp #1 của Phần K: xoá code chết TRƯỚC, chốt baseline SAU. Baseline
-      # (.dependency-cruiser-known-violations.json) ghi nhận 140 vi phạm đang tồn tại
-      # nên CI chỉ đỏ khi có vi phạm MỚI — không có baseline thì rào chắn bị hoãn vô
-      # thời hạn. Sửa được một vi phạm thì chạy `npm run depcruise:baseline -w frontend`
-      # để chốt lại baseline nhỏ hơn; baseline chỉ được co lại, không được phình ra.
-      - name: Luật phụ thuộc frontend (dependency-cruiser)
-        run: npm run depcruise:fe
-
-      # Build trước để source-ownership contract quét đúng manifest và emitted assets
-      # của production bundle; dist không được commit vào repository.
-      - name: Build frontend
-        run: npm run build:fe
-
-      - name: Check frontend route budgets (advisory)
-        continue-on-error: true
-        run: npm run check:route-budgets -w frontend
-
-      # Vitest là gate frontend dài nhất; chạy sau các gate tĩnh/build/budget để lỗi rẻ
-      # được báo trước thay vì chờ thêm vài phút.
-      - name: Test frontend (unit)
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        run: npm run test:unit -w frontend -- --maxWorkers=2
-
-      - name: Upload test results
+          mysql -h 127.0.0.1 -uroot -e "DROP DATABASE IF EXISTS ipcmanagement_model_ci; CREATE DATABASE ipcmanagement_model_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -h 127.0.0.1 -uroot ipcmanagement_model_ci < .artifacts/ipc-schema.sql
+          python3 scripts/ci_schema_parity.py
+      - name: Backend test and schema diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: .artifacts/test-results
+          name: backend-test-results
+          path: |
+            .artifacts/test-results
+            .artifacts/shape-*.txt
           retention-days: 7
           if-no-files-found: warn
+
+  # Native Windows contracts cannot be executed by the MySQL Linux runner.
+  # They remain a required gate; no category/allowlist padding or skipped tests.
+  windows-contracts:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('global.json', '**/*.csproj', '**/*.slnx', 'dotnet-tools.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: dotnet restore backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
+      - run: dotnet build backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --no-restore
+      - name: Windows PowerShell contracts (temporary adapters, no real database)
+        id: contracts
+        run: npm run test:be:windows -- --no-build --no-restore --logger "trx;LogFileName=windows-contracts.trx" --results-directory "${{ github.workspace }}/.artifacts/test-results"
+      - name: Validate Windows contract execution
+        if: always() && steps.contracts.outcome != 'skipped' && steps.contracts.outcome != ''
+        run: >-
+          python scripts/ci_test_results.py --trx "${{ github.workspace }}/.artifacts/test-results/windows-contracts.trx"
+          --expected Checked_process_drains_both_pipes_without_waiting_for_child_exit
+          --expected Recovery_script_should_require_provider_object_identity_and_live_lock_metadata
+      - name: Windows test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-contract-results
+          path: .artifacts/test-results/windows-contracts.trx
+          retention-days: 7
+          if-no-files-found: warn
+
+  # Keep the original check name required by existing branch rules.
+  verify:
+    needs: [frontend, backend, windows-contracts]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Require every execution job to succeed
+        env:
+          FRONTEND_RESULT: ${{ needs.frontend.result }}
+          BACKEND_RESULT: ${{ needs.backend.result }}
+          WINDOWS_RESULT: ${{ needs['windows-contracts'].result }}
+        run: node scripts/check-ci-job-results.mjs

@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Features.SystemOperation.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 namespace IPCManagement.Api.OpenApi;
 
@@ -49,22 +49,28 @@ public static class ApiContractServiceCollectionExtensions
                 Description = "Nhập JWT token: Bearer {token}"
             });
 
-            options.AddSecurityRequirement(new OpenApiSecurityRequirement
+            options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
             {
                 {
-                    new OpenApiSecurityScheme
-                    {
-                        Reference = new OpenApiReference
-                        {
-                            Type = ReferenceType.SecurityScheme,
-                            Id = "Bearer"
-                        }
-                    },
-                    Array.Empty<string>()
+                    new OpenApiSecuritySchemeReference("Bearer", document),
+                    []
                 }
             });
         });
 
         return services;
+    }
+
+    public static WebApplication UseApiContractDocumentation(this WebApplication app)
+    {
+        app.UseSwagger();
+        // Both development URLs expose the same schema used by contract generation.
+        app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "IPC Management API v1");
+            options.RoutePrefix = "swagger";
+        });
+        return app;
     }
 }

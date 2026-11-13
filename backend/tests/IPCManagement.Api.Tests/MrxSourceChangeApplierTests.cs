@@ -302,6 +302,132 @@ public sealed class MrxSourceChangeApplierTests
     }
 
     [Fact]
+    public async Task MenuScheduleService_blocks_rules_version_and_rollback_when_mrx_batch_exists()
+    {
+        await using var scenario = await Scenario.CreateAsync();
+        var secondVersion = new MenuVersion
+        {
+            MenuVersionId = GuidHelper.NewId(),
+            CustomerId = scenario.OpenPlanLine.CustomerId,
+            WeekStartDate = LockedDay,
+            VersionNo = 2,
+            Status = "PUBLISHED",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        scenario.Context.Menuversions.Add(secondVersion);
+        await scenario.Context.SaveChangesAsync();
+        scenario.Context.ChangeTracker.Clear();
+
+        var scheduleService = new IPCManagement.Api.Features.Coordination.Services.MenuScheduleService(
+            scenario.Context,
+            new IPCManagement.Api.Data.Transactions.EfTransactionRunner(scenario.Context));
+        var openScheduleId = GuidHelper.ToGuidString(scenario.OpenPlanLine.MenuScheduleId);
+
+        var updateRules = () => scheduleService.UpdateMenuScheduleRulesAsync(
+            openScheduleId,
+            new IPCManagement.Api.Features.Coordination.Contracts.UpdateMenuScheduleRulesRequest { MenuPrice = 50000m, Reason = "Sửa giá" },
+            scenario.ManagerIdString);
+        var updateVersion = () => scheduleService.UpdateMenuScheduleVersionAsync(
+            openScheduleId,
+            new IPCManagement.Api.Features.Coordination.Contracts.UpdateMenuScheduleVersionRequest { Status = "ACTIVE", Reason = "Kích hoạt" },
+            scenario.ManagerIdString);
+        var rollback = () => scheduleService.RollbackMenuVersionAsync(
+            new IPCManagement.Api.Features.Coordination.Contracts.RollbackMenuVersionRequest
+            {
+                CustomerId = scenario.Fixture.CustomerIdString,
+                WeekStartDate = LockedDay.ToString("yyyy-MM-dd"),
+                TargetVersionNo = 1,
+                Reason = "Rollback"
+            },
+            scenario.ManagerIdString);
+
+        await updateRules.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage(IPCManagement.Api.Features.Coordination.Services.MrxReconBatchGuard.BatchExistsMessage);
+        await updateVersion.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage(IPCManagement.Api.Features.Coordination.Services.MrxReconBatchGuard.BatchExistsMessage);
+        await rollback.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage(IPCManagement.Api.Features.Coordination.Services.MrxReconBatchGuard.BatchExistsMessage);
+    }
+
+    [Fact]
+    public async Task SubmitMrx_does_not_create_default_reconciliation_cases_and_inbox_excludes_default_amendments()
+    {
+        await using var scenario = await Scenario.CreateAsync();
+        var defaultAmendment = new MenuAmendment
+        {
+            MenuAmendmentId = GuidHelper.NewId(),
+            CustomerId = scenario.OpenPlanLine.CustomerId,
+            WeekStartDate = LockedDay,
+            BaseMenuVersionId = null,
+            Status = "RECONCILIATION_REQUIRED",
+            Reason = "Yêu cầu chế độ DEFAULT",
+            ImpactSnapshotJson = System.Text.Json.JsonSerializer.Serialize(new MenuAmendmentResultDto
+            {
+                Status = "RECONCILIATION_REQUIRED",
+                RequiresReconciliation = true,
+                ImpactLines = [new MenuAmendmentImpactLineDto { ServiceDate = OpenDay, ShiftName = "MORNING", DishSlot = "savory-main", CurrentServings = 100, NewServings = 120 }]
+            }),
+            CreatedBy = scenario.CoordinatorId,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-5)
+        };
+        scenario.Context.Menuamendments.Add(defaultAmendment);
+        await scenario.Context.SaveChangesAsync();
+
+        var submitted = await scenario.Service().SubmitMrxAsync(scenario.Request(Servings(OpenDay, 150, 0)), scenario.CoordinatorIdString);
+
+        submitted.Status.Should().Be("PENDING_REVIEW");
+        submitted.RequiresReconciliation.Should().BeFalse();
+        var inbox = await scenario.Service().GetMrxInboxAsync();
+        inbox.Should().ContainSingle(item => item.MenuAmendmentId == submitted.MenuAmendmentId);
+        inbox.Should().NotContain(item => item.MenuAmendmentId == GuidHelper.ToGuidString(defaultAmendment.MenuAmendmentId));
+    }
+
+    [Fact]
+    public async Task MrxEditScopeQuery_filters_meal_quantity_plan_lines_by_batch_import_id()
+    {
+        await using var scenario = await Scenario.CreateAsync();
+        var unattachedPlan = new MealQuantityPlan
+        {
+            QuantityPlanId = GuidHelper.NewId(),
+            ImportBatchId = null,
+            PlanCode = "QTY-UNATTACHED",
+            ServiceDate = OpenDay,
+            Status = "COMPLETED",
+            ConfirmationTime = new TimeOnly(10, 0),
+            ConfirmedBy = scenario.Fixture.UserId
+        };
+        var unattachedPlanLine = new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(),
+            QuantityPlanId = unattachedPlan.QuantityPlanId,
+            MenuScheduleId = scenario.OpenPlanLine.MenuScheduleId,
+            CustomerId = scenario.OpenPlanLine.CustomerId,
+            MenuId = scenario.OpenMenuId,
+            ShiftName = "MORNING",
+            ForecastServings = 999,
+            ConfirmedServings = 999,
+            FinalServings = 999,
+            SavoryServings = 999,
+            VegetarianServings = 0,
+            UpdatedAt = DateTime.UtcNow.AddHours(2)
+        };
+        scenario.Context.Mealquantityplans.Add(unattachedPlan);
+        scenario.Context.Mealquantityplanlines.Add(unattachedPlanLine);
+        await scenario.Context.SaveChangesAsync();
+        scenario.Context.ChangeTracker.Clear();
+
+        var scope = await new IPCManagement.Api.Features.Reconciliation.Services.MrxEditScopeQuery(scenario.Context)
+            .GetAsync(scenario.Fixture.CustomerIdString, LockedDay);
+
+        scope.Should().NotBeNull();
+        var openDayScope = scope!.Days.Single(day => day.ServiceDate == OpenDay);
+        var morningShift = openDayScope.Shifts.Single(shift => shift.ShiftName == "MORNING");
+        morningShift.SavoryServings.Should().Be(100);
+        morningShift.VegetarianServings.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Issue_and_apply_race_has_one_winner()
     {
         await using var scenario = await Scenario.CreateAsync();

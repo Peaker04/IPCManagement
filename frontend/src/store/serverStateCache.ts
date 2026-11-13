@@ -20,6 +20,20 @@ function isL2Persistable(key: string): boolean {
   );
 }
 
+function unwrapLegacyCachePayload(cacheKey: string, payload: unknown): unknown {
+  if (
+    !cacheKey.startsWith('snapshot:') &&
+    typeof payload === 'object' &&
+    payload !== null &&
+    'data' in payload &&
+    'isCompatibilityBlocked' in payload &&
+    !(payload as { isCompatibilityBlocked?: boolean }).isCompatibilityBlocked
+  ) {
+    return (payload as { data: unknown }).data;
+  }
+  return payload;
+}
+
 /**
  * Enterprise In-Memory Stale-While-Revalidate (SWR) Cache Store (Rule L4-DATA-01, S-DATA-01, S-DATA-03)
  * Dual-tier caching: L1 (In-Memory Map) backed by L2 (sessionStorage) for 0ms cold reload hydration.
@@ -42,14 +56,15 @@ class ServerStateCache {
           const cacheKey = fullKey.slice(L2_CACHE_PREFIX.length);
           const raw = sessionStorage.getItem(fullKey);
           if (raw) {
-            const entry = JSON.parse(raw);
+            const entry = JSON.parse(raw) as CacheEntry;
+            entry.data = unwrapLegacyCachePayload(cacheKey, entry.data);
             this.store.set(cacheKey, entry);
           }
         } else if (fullKey.startsWith(SNAPSHOT_STORAGE_PREFIX)) {
           const cacheKey = fullKey.slice(SNAPSHOT_STORAGE_PREFIX.length);
           const raw = sessionStorage.getItem(fullKey);
           if (raw) {
-            const entry = JSON.parse(raw);
+            const entry = JSON.parse(raw) as CacheEntry;
             this.store.set(cacheKey, entry);
           }
         }
@@ -63,6 +78,7 @@ class ServerStateCache {
     const entry = this.store.get(key);
     if (!entry) return null;
 
+    entry.data = unwrapLegacyCachePayload(key, entry.data);
     const isExpired = Date.now() - entry.timestamp > entry.ttlMs;
     if (isExpired) {
       entry.isStale = true;
@@ -146,6 +162,14 @@ class ServerStateCache {
         const entry = this.store.get(key);
         if (entry) {
           entry.isStale = true;
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            try {
+              sessionStorage.removeItem(`${L2_CACHE_PREFIX}${key}`);
+              sessionStorage.removeItem(`${SNAPSHOT_STORAGE_PREFIX}${key}`);
+            } catch {
+              // In-memory invalidation remains authoritative when session storage is unavailable.
+            }
+          }
           this.notify(key);
         }
       }
@@ -198,6 +222,21 @@ class ServerStateCache {
 }
 
 export const serverStateCache = new ServerStateCache();
+
+/**
+ * Safely unwraps an array from serverStateCache (even if a legacy CacheWrapper `{ data: T[] }` was persisted in sessionStorage).
+ */
+export function getCachedArray<T>(key: string): T[] | undefined {
+  const entry = serverStateCache.get<unknown>(key);
+  if (!entry) return undefined;
+  const raw = entry.data;
+  if (Array.isArray(raw)) return raw as T[];
+  if (typeof raw === 'object' && raw !== null && 'data' in raw) {
+    const inner = (raw as { data?: unknown }).data;
+    if (Array.isArray(inner)) return inner as T[];
+  }
+  return undefined;
+}
 
 /**
  * Global Session Teardown Cache Purge (Rule NFR-03)

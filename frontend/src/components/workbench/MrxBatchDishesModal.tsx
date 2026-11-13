@@ -8,9 +8,11 @@ import { Badge } from '../ui/badge';
 import { Num } from '../ui/num';
 import { IdentifierText } from '../ui/identifier-text';
 import { mrxApi, type MrxBatchDishSummary } from '../../api/mrxApi';
+import { getCachedArray, serverStateCache } from '../../store/serverStateCache';
 import { toVietnameseDate } from '../../utils/dates';
 import { ApiError } from '../../api/client';
 import { InlineBanner } from '../ui/inline-banner';
+import { WorkbenchSkeleton } from './WorkbenchSkeleton';
 
 export interface MrxBatchDishesModalProps {
   isOpen: boolean;
@@ -30,28 +32,53 @@ function MrxBatchDishesDialog({
   customerName,
 }: MrxBatchDishesModalProps) {
   const materialHeadingId = useId();
-  const [dishes, setDishes] = useState<MrxBatchDishSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const cacheKey = `mrx_batch_dishes_${batchId}`;
+  const [dishes, setDishes] = useState<MrxBatchDishSummary[]>(() => {
+    const cached = serverStateCache.get<MrxBatchDishSummary[]>(cacheKey);
+    const cachedItems = getCachedArray<MrxBatchDishSummary>(cacheKey);
+    return cached && !cached.isStale && cachedItems ? cachedItems : [];
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    const cached = serverStateCache.get<MrxBatchDishSummary[]>(cacheKey);
+    const cachedItems = getCachedArray<MrxBatchDishSummary>(cacheKey);
+    return !(cached && !cached.isStale && cachedItems);
+  });
   const [error, setError] = useState<Error | null>(null);
-  const [selectedDishId, setSelectedDishId] = useState<string | null>(null);
+  const [selectedDishId, setSelectedDishId] = useState<string | null>(() => {
+    const cached = serverStateCache.get<MrxBatchDishSummary[]>(cacheKey);
+    const cachedItems = getCachedArray<MrxBatchDishSummary>(cacheKey);
+    return cached && !cached.isStale && cachedItems ? (cachedItems[0]?.dishId ?? null) : null;
+  });
   const [shiftFilter, setShiftFilter] = useState<'ALL' | 'MORNING' | 'AFTERNOON'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!isOpen || !batchId) return;
+    if (attempt === 0) {
+      const warm = serverStateCache.get<MrxBatchDishSummary[]>(cacheKey);
+      if (warm && !warm.isStale) return;
+    }
     let ignore = false;
     mrxApi.getBatchDishes(batchId)
       .then((items) => {
         if (!ignore) {
-          setDishes(items || []);
-          if (items && items.length > 0) {
-            setSelectedDishId(items[0].dishId);
+          const normalized = items || [];
+          serverStateCache.set(cacheKey, normalized);
+          setDishes(normalized);
+          if (normalized.length > 0) {
+            setSelectedDishId((current) => current && normalized.some((d) => d.dishId === current) ? current : normalized[0].dishId);
+          } else {
+            setSelectedDishId(null);
           }
+          setError(null);
         }
       })
       .catch((cause: unknown) => {
         if (!ignore) {
+          serverStateCache.delete(cacheKey);
+          setDishes([]);
+          setSelectedDishId(null);
           setError(cause instanceof Error ? cause : new Error('Không thể tải danh sách món ăn trong lô đối soát.'));
         }
       })
@@ -59,7 +86,7 @@ function MrxBatchDishesDialog({
         if (!ignore) setIsLoading(false);
       });
     return () => { ignore = true; };
-  }, [isOpen, batchId, attempt]);
+  }, [isOpen, batchId, attempt, cacheKey]);
 
   const filteredDishes = useMemo(() => {
     return dishes.filter((d) => {
@@ -105,9 +132,7 @@ function MrxBatchDishesDialog({
     >
       <div className="space-y-4">
         {isLoading ? (
-          <div role="status" className="p-8 text-center text-xs text-slate-500 animate-pulse">
-            Đang tải dữ liệu món ăn đông cứng…
-          </div>
+          <WorkbenchSkeleton geometry={{ kind: 'split', columns: 3, rows: 6, splitRatio: '40/60' }} />
         ) : error ? (
           <InlineBanner
             variant={unavailable ? 'info' : 'error'}
@@ -144,8 +169,8 @@ function MrxBatchDishesDialog({
                     type="button"
                     onClick={() => setShiftFilter('ALL')}
                     aria-pressed={shiftFilter === 'ALL'}
-                    className={`flex-1 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
-                      shiftFilter === 'ALL' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                    className={`flex-1 py-0.5 rounded border text-xs font-semibold transition-colors cursor-pointer ${
+                      shiftFilter === 'ALL' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     Tất cả
@@ -154,8 +179,8 @@ function MrxBatchDishesDialog({
                     type="button"
                     onClick={() => setShiftFilter('MORNING')}
                     aria-pressed={shiftFilter === 'MORNING'}
-                    className={`flex-1 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
-                      shiftFilter === 'MORNING' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                    className={`flex-1 py-0.5 rounded border text-xs font-semibold transition-colors cursor-pointer ${
+                      shiftFilter === 'MORNING' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     Sáng
@@ -164,8 +189,8 @@ function MrxBatchDishesDialog({
                     type="button"
                     onClick={() => setShiftFilter('AFTERNOON')}
                     aria-pressed={shiftFilter === 'AFTERNOON'}
-                    className={`flex-1 py-0.5 rounded text-xs font-medium transition-colors cursor-pointer ${
-                      shiftFilter === 'AFTERNOON' ? 'bg-slate-900 text-white font-bold' : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-100'
+                    className={`flex-1 py-0.5 rounded border text-xs font-semibold transition-colors cursor-pointer ${
+                      shiftFilter === 'AFTERNOON' ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
                     }`}
                   >
                     Chiều
@@ -185,21 +210,16 @@ function MrxBatchDishesDialog({
                     const totalServings = scopes.reduce((sum, s) => sum + (s.frozenServings ?? 0), 0);
 
                     return (
-                      <button
+                      <div
                         key={dish.dishId}
-                        type="button"
-                        onClick={() => setSelectedDishId(dish.dishId)}
-                        aria-pressed={isSelected}
-                        className={`w-full text-left p-3 transition-colors cursor-pointer block ${
+                        className={`w-full p-3 flex items-start gap-2 transition-colors ${
                           isSelected ? 'bg-slate-100' : 'hover:bg-slate-50'
                         }`}
                       >
-                        <div className="flex items-center justify-between">
+                        <button type="button" onClick={() => setSelectedDishId(dish.dishId)} aria-pressed={isSelected} className="flex-1 min-w-0 text-left cursor-pointer">
                           <span className="font-semibold text-sm text-slate-900 truncate block">
                             {dish.dishName}
                           </span>
-                          <IdentifierText value={dish.dishCode} />
-                        </div>
                         <div className="flex items-center gap-2 mt-1 text-xs text-slate-500 font-mono">
                           <span>{scopes.length} ca</span>
                           <span>·</span>
@@ -207,7 +227,9 @@ function MrxBatchDishesDialog({
                           <span>·</span>
                           <span>{ingredientCount(dish)} loại NL</span>
                         </div>
-                      </button>
+                        </button>
+                        <IdentifierText value={dish.dishCode} className="shrink-0" />
+                      </div>
                     );
                   })
                 )}

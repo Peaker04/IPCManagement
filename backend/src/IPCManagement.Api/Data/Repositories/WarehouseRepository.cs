@@ -1,4 +1,4 @@
-﻿using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +60,7 @@ public class WarehouseRepository : IWarehouseRepository
                 WHERE `IsOperationalActive` = TRUE
                 """)
             .AsNoTracking()
+            .OrderBy(warehouse => warehouse.WarehouseId)
             .Take(limit)
             .ToListAsync();
     }

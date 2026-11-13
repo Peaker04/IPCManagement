@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { AlertCircle, AlertTriangle, Boxes, FileClock, FileCheck, FileSpreadsheet, SearchX, ShieldAlert, Truck, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { WorkbenchSkeleton, type SkeletonGeometry } from './WorkbenchSkeleton';
-import { useDeferredSkeleton } from '../../hooks/useDeferredSkeleton';
+import { LOADING_INDICATOR_DELAY_MS, useDeferredSkeleton } from '../../hooks/useDeferredSkeleton';
 
 export type EmptyScenario =
   | 'true-empty'
@@ -132,6 +132,7 @@ function navigateToPrerequisite(route: string): void {
 export function StateBoundary({
   scope = 'page',
   isLoading,
+  isFetching,
   delayMs,
   isPreviousData,
   hasExistingData,
@@ -179,36 +180,39 @@ export function StateBoundary({
   const showConflict = (isConflict || (errorStatus === 409 && !isLineageMissing409)) && !isModeConflict;
   const isResourceNotFound = notFoundAsEmpty && errorStatus === 404;
 
-  const skeletonDelay = typeof delayMs === 'number' ? delayMs : (process.env.NODE_ENV === 'test' ? 0 : 150);
-  const isDeferredLoading = useDeferredSkeleton(Boolean(isLoading && !hasExistingData), skeletonDelay, 250);
+  const skeletonDelay = typeof delayMs === 'number' ? delayMs : LOADING_INDICATOR_DELAY_MS;
+  const showLoadingMarks = useDeferredSkeleton(Boolean(isLoading && !hasExistingData), skeletonDelay);
 
-  // 1. Initial Loading State (ONLY when deferred loading threshold has elapsed to prevent <150ms rapid flicker)
-  if (isDeferredLoading && !hasExistingData) {
+  // Reserve geometry immediately; defer decorative marks, never ready data.
+  // Warm refreshes never replace the existing content with a skeleton.
+  if (isLoading && !hasExistingData) {
     if (customSkeleton) {
-      return <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>{customSkeleton}</div>;
+      return <div data-loading-phase={showLoadingMarks ? 'visible' : 'reserved'} className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>
+        <span role="status" className="sr-only">Đang tải nội dung</span>
+        <div data-skeleton-mark className="flex-1 min-h-0 w-full flex flex-col">{customSkeleton}</div>
+      </div>;
     }
 
     if (scope === 'widget') {
       return (
-        <div className={clsx('w-full h-full min-h-[96px] bg-slate-50 border border-slate-200/60 rounded p-4 flex flex-col justify-between animate-pulse', className)}>
-          <div className="h-3 w-1/3 bg-slate-200 rounded" />
-          <div className="h-5 w-1/2 bg-slate-200 rounded my-2" />
-          <div className="h-2.5 w-2/3 bg-slate-200 rounded" />
+        <div data-loading-phase={showLoadingMarks ? 'visible' : 'reserved'} className={clsx('w-full h-full min-h-[96px] flex flex-col', className)}>
+          <span role="status" className="sr-only">Đang tải nội dung</span>
+          <div data-skeleton-mark className="flex-1 bg-slate-50 border border-slate-200/60 rounded p-4 flex flex-col justify-between">
+          <div data-skeleton-mark className="h-3 w-1/3 bg-slate-200 rounded" />
+          <div data-skeleton-mark className="h-5 w-1/2 bg-slate-200 rounded my-2" />
+          <div data-skeleton-mark className="h-2.5 w-2/3 bg-slate-200 rounded" />
+          </div>
         </div>
       );
     }
 
     return (
       <WorkbenchSkeleton
+        delayMs={skeletonDelay}
         geometry={loadingGeometry ?? { kind: loadingVariant === 'cards' ? 'table' : loadingVariant, columns: loadingVariant === 'matrix' ? 7 : 6, rows: loadingVariant === 'form' ? 4 : 12, toolbar: false }}
         className={className}
       />
     );
-  }
-
-  // 1b. Fast Loading Window (<= 150ms): Suppress rapid skeleton flicker while network request resolves
-  if (isLoading && !hasExistingData && !isDeferredLoading) {
-    return <div className={clsx('flex-1 min-h-0 w-full flex flex-col bg-transparent', className)} aria-busy="true" />;
   }
 
   // 2. Permission-Denied State (403)
@@ -270,28 +274,9 @@ export function StateBoundary({
   }
 
   // 4. Error State (Non-destructive when existing data is available; excludes 404 which is an Empty State)
-  if (error && !showForbidden && !showConflict && !isModeConflict && !isResourceNotFound && !isLineageMissing409) {
+  // Recoverable refresh errors use the stable content region below.
+  if (error && !hasExistingData && !showForbidden && !showConflict && !isModeConflict && !isResourceNotFound && !isLineageMissing409) {
     const message = typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.';
-    if (hasExistingData) {
-      // Non-destructive inline alert: keeps data visible and allows retry
-      return (
-        <div className={clsx('flex-1 min-h-0 w-full flex flex-col', className)}>
-          <div role="alert" className="px-4 py-2 text-xs bg-rose-50 border-b border-rose-200 text-rose-800 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold">Không thể tải dữ liệu</span>
-              <span>: </span>
-              <span>{message}</span>
-            </div>
-            {onRetry && (
-              <Button variant="outline" size="xs" onClick={onRetry} className="h-6 px-2 text-xs">
-                Thử lại
-              </Button>
-            )}
-          </div>
-          {children}
-        </div>
-      );
-    }
 
     if (scope === 'widget') {
       return (
@@ -327,7 +312,7 @@ export function StateBoundary({
   }
 
   // 5. Empty State Scenarios (Triggered by isEmpty prop OR by 404 Not Found OR by legacy lineage missing)
-  if (isEmpty || isResourceNotFound || isLineageMissing409) {
+  if ((isEmpty && !(error && hasExistingData)) || isResourceNotFound || isLineageMissing409) {
     const resolvedScenario = isResourceNotFound
       ? (emptyScenario || 'empty-first-use')
       : isLineageMissing409
@@ -378,23 +363,24 @@ export function StateBoundary({
   // 6. Partial State Banner & Content
   return (
     <div className={clsx('flex-1 min-h-0 w-full flex flex-col relative', className)}>
+      {error && hasExistingData && <div role="alert" className="px-4 py-2 text-xs bg-rose-50 border-b border-rose-200 text-rose-800 flex items-center justify-between shrink-0">
+        <span><strong>Không thể tải dữ liệu</strong>: <span>{typeof error === 'string' ? error : error.message || 'Đã xảy ra lỗi khi tải dữ liệu.'}</span></span>
+        {onRetry && <Button variant="outline" size="xs" disabled={isFetching} onClick={onRetry} className="h-6 px-2 text-xs">{isFetching ? 'Đang thử lại…' : 'Thử lại'}</Button>}
+      </div>}
       {isPartial && (
         <div role="status" aria-live="polite" className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs text-amber-800 flex items-center justify-between shrink-0">
           <span>{partialMessage || 'Dữ liệu hiển thị một phần do các ca sản xuất đang diễn ra.'}</span>
         </div>
       )}
-      {isPreviousData && (
-        <div role="progressbar" aria-label="Đang tải trang" className="absolute inset-x-0 top-0 z-20 h-0.5 animate-pulse bg-slate-300" />
-      )}
-      {isPreviousData ? (
-        <div className="flex-1 min-h-0 w-full flex flex-col opacity-70 pointer-events-none select-none transition-opacity duration-150" aria-busy="true" inert>
-          {children}
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 w-full flex flex-col transition-opacity duration-150">
-          {children}
-        </div>
-      )}
+      <div
+        role={isPreviousData ? 'progressbar' : undefined}
+        aria-label={isPreviousData ? 'Đang tải trang' : undefined}
+        aria-hidden={!isPreviousData || undefined}
+        className="sr-only"
+      />
+      <div className={clsx('flex-1 min-h-0 w-full flex flex-col', isPreviousData && 'pointer-events-none select-none')} aria-busy={isPreviousData || undefined} inert={isPreviousData || undefined}>
+        {children}
+      </div>
     </div>
   );
 }

@@ -29,23 +29,43 @@ function toMicros(value: string): bigint {
 }
 
 test.setTimeout(300_000);
-test('@G6-Direct-Source-Edit fresh-scope source correction preserves issued date; two valid clients race source apply and first issue', async ({ adminPage, managerPage, dieuphoiPage, thukhoPage, beptruongPage, dbVerifier }) => {
-  const scope = scenarioScope(dbVerifier, 8);
+test.describe('ordered source commands', () => {
+test.use({ actionTimeout: 15_000 });
+for (const schedule of ['issue-first', 'apply-first'] as const) {
+test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued date and ordered public commands have one winner`, async ({ adminPage, managerPage, dieuphoiPage, thukhoPage, beptruongPage, dbVerifier }) => {
+  const scope = scenarioScope(dbVerifier, schedule === 'issue-first' ? 8 : 9);
+  const evidence = path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, schedule);
+  fs.mkdirSync(evidence, { recursive: true });
+  const stocks = () => dbVerifier.query('CHECKSUM TABLE currentstock,currentstocklots,stockmovements;');
+  const originalStocks = stocks();
   const { batchId } = await createTransferredBatch({ coordinator: dieuphoiPage, admin: adminPage }, scope);
   const batchHex = binaryId(batchId);
   const date = (offset: number) => { const day = new Date(`${scope.weekStartDate}T00:00:00Z`); day.setUTCDate(day.getUTCDate() + offset); return day.toISOString().slice(0,10); };
   const short = (offset: number) => date(offset).slice(5).split('-').reverse().join('/');
-  const sourceUrl = `/weekly-menu?view=mrx-batch&weekStartDate=${scope.weekStartDate}`;
+  const savoryInput = (page: Page, offset: number) => page.getByRole('spinbutton', { name: `Số suất Mặn ${short(offset)} Sáng`, exact: true });
+  const customerId = await dieuphoiPage.getByRole('combobox', { name: 'Chọn khách hàng MRX' }).inputValue();
+  expect(dbVerifier.query(`SELECT HEX(v.CustomerId) AS customer FROM reconciliationbatches b JOIN menuversions v ON v.MenuVersionId=b.MenuVersionId WHERE b.BatchId=UNHEX('${batchHex}');`)).toEqual([{ customer: binaryId(customerId) }]);
+  const sourceUrl = `/weekly-menu?view=mrx-batch&weekStartDate=${scope.weekStartDate}&customerId=${customerId}`;
+  const sourceReads: unknown[] = [];
+  managerPage.on('response', async (response) => {
+    if (response.request().method() !== 'GET' || new URL(response.url()).pathname !== '/api/reconciliation/weekly-menu') return;
+    try {
+      const body = await response.json();
+      sourceReads.push({ url: response.url(), status: response.status(), present: body.data != null, customer: body.data?.customerId, week: body.data?.weekStartDate, version: body.data?.menuVersionId });
+    } catch (error) { sourceReads.push({ url: response.url(), error: String(error) }); }
+    fs.writeFileSync(path.join(evidence, 'manager-source-reads.json'), JSON.stringify(sourceReads, null, 2));
+  });
   const frozen = () => dbVerifier.query(`SELECT HEX(DailyLineId) AS id, CAST(RequiredQuantity AS CHAR) AS qty FROM reconciliationbatchdailylines WHERE BatchId=UNHEX('${batchHex}') AND ServiceDate='${date(0)}' ORDER BY id;`);
-  const protectedState = () => dbVerifier.query('CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors,reconciliationsourcerevisions,reconciliationsourcedeltas;');
+  const protectedState = () => dbVerifier.query('CHECKSUM TABLE menuversions,menus,menuschedules,menuitems,mealquantityplans,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors,reconciliationsourcerevisions,reconciliationsourcedeltas;');
   const sourceBeforeReview = protectedState();
   async function submitCorrection(servings: string, reason: string) {
+    await respectApiBudget(dieuphoiPage);
     await dieuphoiPage.goto(sourceUrl);
-    await dieuphoiPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(1)} MORNING`, exact: true }).fill(servings);
+    await savoryInput(dieuphoiPage, 1).fill(servings);
     await dieuphoiPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
     await expect(dieuphoiPage.getByRole('button', { name: 'Gửi duyệt', exact: true })).toBeDisabled();
     await dieuphoiPage.getByLabel('Lý do thay đổi nguồn').fill(reason);
-    await dieuphoiPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+    await dieuphoiPage.getByRole('button', { name: /^(?:Xem ảnh hưởng|Kiểm tra lại ảnh hưởng)$/ }).click();
     const sent = dieuphoiPage.waitForResponse((r) => r.url().endsWith('/amendments/mrx-submit') && r.request().method() === 'POST');
     await dieuphoiPage.getByRole('button', { name: 'Gửi duyệt', exact: true }).click();
     const response = await sent;
@@ -92,79 +112,145 @@ test('@G6-Direct-Source-Edit fresh-scope source correction preserves issued date
   await managerPage.getByRole('button', { name: 'Phê duyệt thay đổi', exact: true }).click();
   await managerPage.getByRole('button', { name: 'Xác nhận phê duyệt', exact: true }).click();
   expect((await approved).status()).toBe(200);
+  const approvedSource = dbVerifier.query(`SELECT HEX(v.CustomerId) AS customer, HEX(b.MenuVersionId) AS source, b.Version AS version, COUNT(s.menuScheduleId) AS schedules FROM reconciliationbatches b JOIN menuversions v ON v.MenuVersionId=b.MenuVersionId JOIN menuschedules s ON s.MenuVersionId=b.MenuVersionId WHERE b.BatchId=UNHEX('${batchHex}') GROUP BY v.CustomerId,b.MenuVersionId,b.Version;`);
+  expect(approvedSource).toHaveLength(1);
+  fs.writeFileSync(path.join(evidence, 'manager-approved-source.json'), JSON.stringify({ sourceUrl, approvedSource, browserUrl: managerPage.url() }, null, 2));
   await managerPage.reload();
-  await expect(managerPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(1)} MORNING`, exact: true })).toHaveValue('1020');
-  await managerPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(1)} MORNING`, exact: true }).fill('1021');
+  await expect(savoryInput(managerPage, 1)).toHaveValue('1020');
+  await respectApiBudget(managerPage);
+  await savoryInput(managerPage, 1).fill('1021');
   await managerPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
   await managerPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} Manager direct apply`);
-  await managerPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+  await managerPage.getByRole('button', { name: /^(?:Xem ảnh hưởng|Kiểm tra lại ảnh hưởng)$/ }).click();
   await managerPage.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
   const appliedByManager = managerPage.waitForResponse((r) => r.url().endsWith('/mrx-apply') && r.request().method() === 'POST');
   await managerPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click();
   expect((await appliedByManager).status()).toBe(200);
   await managerPage.reload();
-  await expect(managerPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(1)} MORNING`, exact: true })).toHaveValue('1021');
-  fs.writeFileSync(path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'source-role-decisions.json'), JSON.stringify({ batchId, rejectedReason, rejection, resubmitReason, correctedServings: 1020, managerDirectServings: 1021, forbiddenApplyStatuses: [403,403,403], rejectedSourceUnchanged: true }, null, 2));
+  await expect(savoryInput(managerPage, 1)).toHaveValue('1021');
+  fs.writeFileSync(path.join(evidence, 'source-role-decisions.json'), JSON.stringify({ batchId, rejectedReason, rejection, resubmitReason, correctedServings: 1020, managerDirectServings: 1021, forbiddenApplyStatuses: [403,403,403], rejectedSourceUnchanged: true }, null, 2));
 
   await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${batchId}&date=${date(0)}`);
   await issue(thukhoPage);
   const originalFrozen = frozen();
   expect(originalFrozen.length).toBeGreaterThan(0);
   await adminPage.goto(sourceUrl);
-  await expect(adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(0)} MORNING`, exact: true })).toBeDisabled();
-  const open = adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(2)} MORNING`, exact: true });
+  await expect(savoryInput(adminPage, 0)).toBeDisabled();
+  const open = savoryInput(adminPage, 2);
   const changed = String(Number(await open.inputValue()) + 25);
   await open.fill(changed);
   await adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
   await adminPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} correction`);
-  await adminPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+  await adminPage.getByRole('button', { name: /^(?:Xem ảnh hưởng|Kiểm tra lại ảnh hưởng)$/ }).click();
   await adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
   await adminPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click();
   await expect(adminPage.getByText('Đã áp dụng thay đổi nguồn.', { exact: true })).toBeVisible();
   expect(frozen()).toEqual(originalFrozen);
   await adminPage.reload();
-  await expect(adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(2)} MORNING`, exact: true })).toHaveValue(changed);
-  await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(4)} MORNING`, exact: true }).fill('1030');
+  await expect(savoryInput(adminPage, 2)).toHaveValue(changed);
+  await respectApiBudget(adminPage);
+  await savoryInput(adminPage, 4).fill('1030');
   await adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
   await adminPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} race`);
-  await adminPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+  await adminPage.getByRole('button', { name: /^(?:Xem ảnh hưởng|Kiểm tra lại ảnh hưởng)$/ }).click();
   await adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
   await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${batchId}&date=${date(4)}`);
   await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
+  // The earlier warehouse client predates the Admin correction: prove its rejection, then use real recovery.
+  const beforeRecovery = protectedState();
+  const beforeRecoveryIssues = dbVerifier.query('CHECKSUM TABLE inventoryissues,inventoryissuelines,lifecyclecommandreceipts;');
+  const staleAttempt = thukhoPage.waitForResponse((response) => response.url().endsWith('/api/inventory-issues') && response.request().method() === 'POST', { timeout: 15_000 });
+  await thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click();
+  const stale = await staleAttempt;
+  expect(stale.status(), await stale.text()).toBe(409);
+  expect(protectedState()).toEqual(beforeRecovery);
+  expect(dbVerifier.query('CHECKSUM TABLE inventoryissues,inventoryissuelines,lifecyclecommandreceipts;')).toEqual(beforeRecoveryIssues);
+  const refreshedDaily = thukhoPage.waitForResponse((response) => response.url().endsWith(`/api/reconciliation/batches/${batchId}/warehouse-daily`) && response.request().method() === 'GET', { timeout: 15_000 });
+  await thukhoPage.getByRole('button', { name: 'Tải lại dữ liệu mới nhất', exact: true }).click();
+  const refreshed = await refreshedDaily;
+  expect(refreshed.status()).toBe(200);
+  fs.writeFileSync(path.join(evidence, 'warehouse-readiness.json'), JSON.stringify({ staleStatus: stale.status(), attemptedVersion: stale.request().postDataJSON().expectedVersion, refreshedVersion: (await refreshed.json()).data.sourceVersion, noSourceOrIssueOrReceiptWrites: true }, null, 2));
+  await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
+  await respectApiBudget(adminPage);
+  await respectApiBudget(thukhoPage);
+  const beforeRace = dbVerifier.query<{ version: string; menuVersion: string }>(`SELECT Version AS version, HEX(MenuVersionId) AS menuVersion FROM reconciliationbatches WHERE BatchId=UNHEX('${batchHex}');`);
+  expect(beforeRace).toHaveLength(1);
   const held: Route[] = [];
+  const observations: { kind: string; arrivedAt: number; releasedAt?: number }[] = [];
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timedOut = false;
+  const abortHeld = () => Promise.all(held.map((route) => route.abort('timedout').catch(() => {})));
   const barrier = async (route: Route) => {
     held.push(route);
-    if (held.length === 2) await Promise.all(held.map((item) => item.continue()));
+    observations.push({ kind: route.request().url().endsWith('/mrx-apply') ? 'apply' : 'issue', arrivedAt: Date.now() });
+    timer ??= setTimeout(() => { timedOut = true; void abortHeld(); }, 15_000);
   };
   const applyPattern = '**/api/coordination/weekly-menu/amendments/mrx-apply';
   const issuePattern = '**/api/inventory-issues';
   await adminPage.route(applyPattern, barrier);
   await thukhoPage.route(issuePattern, barrier);
-  const applyResponse = adminPage.waitForResponse((item) => item.url().endsWith('/api/coordination/weekly-menu/amendments/mrx-apply') && item.request().method() === 'POST');
-  const issueResponse = thukhoPage.waitForResponse((item) => item.url().endsWith('/api/inventory-issues') && item.request().method() === 'POST');
+  const applyResponse = adminPage.waitForResponse((item) => item.url().endsWith('/api/coordination/weekly-menu/amendments/mrx-apply') && item.request().method() === 'POST', { timeout: 15_000 });
+  const issueResponse = thukhoPage.waitForResponse((item) => item.url().endsWith('/api/inventory-issues') && item.request().method() === 'POST', { timeout: 15_000 });
+  const clicks = [adminPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click(), thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click()];
+  const settled = Promise.allSettled([applyResponse, issueResponse, ...clicks]);
   try {
-    await Promise.all([adminPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click(), thukhoPage.getByRole('button', { name: 'Xác nhận xuất kho', exact: true }).click()]);
+    await expect.poll(() => held.length, { timeout: 15_000 }).toBe(2);
+    const applyRoute = held.find((route) => route.request().url().endsWith('/mrx-apply'))!;
+    const issueRoute = held.find((route) => route.request().url().endsWith('/inventory-issues'))!;
+    const applyBody = applyRoute.request().postDataJSON();
+    const issueBody = issueRoute.request().postDataJSON() as CreateMrxIssueRequest;
+    expect(applyBody.expectedBatchVersion).toBe(Number(beforeRace[0].version));
+    expect(binaryId(applyBody.expectedBaseMenuVersionId)).toBe(beforeRace[0].menuVersion);
+    expect(issueBody.expectedVersion).toBe(Number(beforeRace[0].version));
+    expect(issueBody.isSupplemental).toBe(false);
+    expect(issueBody.commandId).toMatch(/^[a-f0-9-]{36}$/i);
+    const expectedLines = dbVerifier.query<{ daily: string; quantity: string }>(`SELECT HEX(DailyLineId) AS daily, CAST(RequiredQuantity AS CHAR) AS quantity FROM reconciliationbatchdailylines WHERE BatchId=UNHEX('${batchHex}') AND ServiceDate='${date(4)}' AND RequiredQuantity>0 ORDER BY daily;`);
+    expect(expectedLines.length).toBeGreaterThan(0);
+    expect(issueBody.lines.map((line) => ({ daily: binaryId(line.reconciliationBatchDailyLineId!), quantity: line.issuedQty.toFixed(6) })).sort((a,b) => a.daily.localeCompare(b.daily))).toEqual(expectedLines);
+    expect(dbVerifier.query(`SELECT issueId FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${batchHex}') AND IssueDate='${date(4)}';`)).toHaveLength(0);
+    const winnerKind = schedule === 'issue-first' ? 'issue' : 'apply';
+    const winnerRoute = winnerKind === 'issue' ? issueRoute : applyRoute;
+    const loserRoute = winnerKind === 'issue' ? applyRoute : issueRoute;
+    observations.find((item) => item.kind === winnerKind)!.releasedAt = Date.now();
+    await winnerRoute.continue();
+    const winner = await (winnerKind === 'issue' ? issueResponse : applyResponse);
+    expect(winner.status(), await winner.text()).toBe(winnerKind === 'issue' ? 201 : 200);
+    const winnerObservedAt = Date.now();
+    const batchAfterWinner = dbVerifier.query<{ version: string }>(`SELECT Version AS version FROM reconciliationbatches WHERE BatchId=UNHEX('${batchHex}');`);
+    expect(Number(batchAfterWinner[0].version)).toBe(Number(beforeRace[0].version) + 1);
+    const afterWinner = protectedState();
+    const afterWinnerLedgers = dbVerifier.query('CHECKSUM TABLE inventoryissues,inventoryissuelines,lifecyclecommandreceipts,menuamendments,menuamendmentlines;');
+    observations.find((item) => item.kind !== winnerKind)!.releasedAt = Date.now();
+    await loserRoute.continue();
     const [applied, issued] = await Promise.all([applyResponse, issueResponse]);
-    expect(held).toHaveLength(2);
     const statuses = [applied.status(), issued.status()];
-    expect(statuses.filter((status) => status >= 200 && status < 300)).toHaveLength(1);
-    expect(statuses).toContain(409);
-    const losingResponse = applied.status() === 409 ? applied : issued;
+    expect(statuses).toEqual(schedule === 'issue-first' ? [409, 201] : [200, 409]);
+    const losingResponse = schedule === 'issue-first' ? applied : issued;
     const conflict = await losingResponse.json();
     expect(conflict.success).toBe(false);
     expect(conflict.message.length).toBeGreaterThan(0);
+    if (schedule === 'issue-first') expect(conflict.code).toBe('MRX_DAY_LOCKED');
+    else expect(conflict.message).toContain('Danh sách xuất kho đã thay đổi');
+    expect(protectedState()).toEqual(afterWinner);
+    expect(dbVerifier.query('CHECKSUM TABLE inventoryissues,inventoryissuelines,lifecyclecommandreceipts,menuamendments,menuamendmentlines;')).toEqual(afterWinnerLedgers);
     expect(frozen()).toEqual(originalFrozen);
+    expect(stocks()).toEqual(originalStocks);
     const revisions = dbVerifier.query(`SELECT HEX(SourceRevisionId) AS id FROM reconciliationsourcerevisions WHERE BatchId=UNHEX('${batchHex}') AND Reason='${scope.reason} race';`);
-    expect(revisions.length).toBe(applied.ok() ? 1 : 0);
+    expect(revisions.length).toBe(schedule === 'apply-first' ? 1 : 0);
     const issues = dbVerifier.query(`SELECT HEX(issueId) AS id FROM inventoryissues WHERE reconciliationBatchId=UNHEX('${batchHex}') AND IssueDate='${date(4)}';`);
-    expect(issues.length).toBe(issued.ok() ? 1 : 0);
-    fs.writeFileSync(path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'source-issue-race.json'), JSON.stringify({ batchId, statuses, conflictCode: conflict.code, conflictMessage: conflict.message, frozenDateUnchanged: true, revisions, issues }, null, 2));
+    expect(issues.length).toBe(schedule === 'issue-first' ? 1 : 0);
+    const receipts = dbVerifier.query(`SELECT commandId FROM lifecyclecommandreceipts WHERE commandId='${issueBody.commandId}';`);
+    expect(receipts).toHaveLength(schedule === 'issue-first' ? 1 : 0);
+    expect(timedOut).toBe(false);
+    fs.writeFileSync(path.join(evidence, 'source-issue-race.json'), JSON.stringify({ schedule, batchId, statuses, requestVersions: { apply: applyBody.expectedBatchVersion, issue: issueBody.expectedVersion, source: applyBody.expectedBaseMenuVersionId }, expectedDailyLines: expectedLines, issueLines: issueBody.lines, observations, winnerObservedAt, beforeRace, batchAfterWinner, conflictCode: conflict.code, conflictMessage: conflict.message, frozenDateUnchanged: true, noLoserWrites: true, physicalStockUnchanged: true, revisions, issues, receipts, limitation: 'Ordered HTTP dispatch with persisted winner observed before loser release; not simultaneous internal DB lock overlap.' }, null, 2));
   } finally {
+    clearTimeout(timer);
+    await abortHeld();
+    await settled;
     await adminPage.unroute(applyPattern, barrier); await thukhoPage.unroute(issuePattern, barrier);
   }
 
   // Continue this same approved/rejected/raced source, not a fresh batch after the conflict.
-  const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
   const predecessor = dbVerifier.query(`SELECT HEX(l.issueLineId) AS id, HEX(l.issueId) AS issueId, CAST(l.issuedQty AS CHAR) AS quantity FROM inventoryissuelines l JOIN inventoryissues i ON i.issueId=l.issueId WHERE i.reconciliationBatchId=UNHEX('${batchHex}') ORDER BY id;`);
   expect(predecessor.length).toBeGreaterThan(0);
   const readDaily = () => thukhoPage.evaluate(async (id) => {
@@ -176,6 +262,7 @@ test('@G6-Direct-Source-Edit fresh-scope source correction preserves issued date
   expect(daily.dates.find((day) => day.serviceDate === date(0))!.remainingQuantity).toBe(0);
   const issuedDates: string[] = [];
   for (const day of daily.dates.filter((item) => item.isApplicable && item.remainingQuantity > 0)) {
+    await respectApiBudget(thukhoPage);
     await thukhoPage.goto(`/warehouse?view=mrx-daily&batchId=${batchId}&date=${day.serviceDate}`);
     await thukhoPage.getByRole('button', { name: 'Điền đủ toàn bộ', exact: true }).click();
     const opening = new Map(day.lines.filter((line) => line.requiredQuantity > 0).map((line) => [binaryId(line.ingredientId), dbVerifier.captureStockSnapshot(binaryId(line.ingredientId))]));
@@ -220,7 +307,9 @@ test('@G6-Direct-Source-Edit fresh-scope source correction preserves issued date
   }
   expect(outputs.xlsx).toEqual(outputs.csv);
   expect(dbVerifier.query('CHECKSUM TABLE currentstock,currentstocklots,stockmovements,inventoryissues,inventoryissuelines,reconciliationbatches,reconciliationbatchdailylines;')).toEqual(beforeChef);
+  await respectApiBudget(managerPage);
   await managerPage.goto(`/reconciliation?batchId=${batchId}`);
+  await managerPage.getByRole('button', { name: 'Làm mới', exact: true }).click();
   await managerPage.getByRole('button', { name: 'Chốt đối soát tuần', exact: true }).click();
   const completed = managerPage.waitForResponse((response) => response.url().endsWith(`/batches/${batchId}/complete`) && response.request().method() === 'POST');
   await managerPage.getByRole('button', { name: 'Xác nhận khóa chốt tuần', exact: true }).click();
@@ -247,8 +336,11 @@ test('@G6-Direct-Source-Edit fresh-scope source correction preserves issued date
   await (await historyDownload).saveAs(history);
   expect([...new Set(parseCookingFile(history, 'xlsx').flat().join('\n').match(/ISS-[A-Z0-9-]+/g))].sort()).toEqual([...codes].sort());
   fs.writeFileSync(path.join(evidence, 'source-decision-weekly-terminal.json'), JSON.stringify({ batchId, week: scope.weekStartDate, customer: identity.label, issuedDates, issueCodes: codes, chefRows: cooking.rows.length, chefFormats: ['csv', 'xlsx'], chefNoMutation: true, frozenDateUnchanged: true, predecessorIssueLinesRetained: true, terminal: 'COMPLETED', historyIsolated: true }, null, 2));
-  await managerPage.screenshot({ path: path.join(evidence, 'source-decision-weekly-terminal.png') });
-  console.log(`[BUSINESS] Source rejection/correction/approval and actual issue race reached same-batch weekly COMPLETED, ${codes.length} issues, Chef ${cooking.rows.length} rows/files, isolated history.`);
+  await managerPage.screenshot({ path: path.join(evidence, `source-decision-weekly-terminal-${schedule}.png`) });
+  expect(stocks()).toEqual(originalStocks);
+  console.log(`[BUSINESS] ${schedule}: source decisions and ordered public commands reached same-batch COMPLETED, ${codes.length} issues, Chef ${cooking.rows.length} rows/files, isolated history, unchanged physical stock.`);
+});
+}
 });
 
 for (const scenario of ['edits', 'reimports-and-groups', 'validation'] as const) {
@@ -279,7 +371,14 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     FROM dishes d WHERE d.isActive=1 ORDER BY d.dishCode;`);
   type RecipeFact = Omit<CoverageDish, 'materials'> & { materials: (CoverageDish['materials'][number] & { ingredientName: string; ingredientId: string; unitId: string; unitName: string; wasteRatePercent: number })[] };
   const catalog = rows.map((r) => JSON.parse(r.fact) as RecipeFact & { id: string }).filter((d) => d.materials?.length);
-  const dishes = (['savory', 'vegetarian'] as const).flatMap((variant) => catalog.filter((d) => d.variant === variant).slice(0, 4));
+  const stockableIngredients = new Set(dbVerifier.query<{ id: string }>(`SELECT HEX(s.ingredientId) AS id FROM currentstock s
+    JOIN warehouses w ON w.warehouseId=s.warehouseId AND w.IsOperationalActive=1
+    GROUP BY s.ingredientId HAVING COUNT(*)=1;`).map((row) => row.id));
+  const stockableDishes = catalog.filter((dish) => dish.materials.every((material) => stockableIngredients.has(material.ingredientId.toUpperCase())));
+  const dishes = (['savory', 'vegetarian'] as const).flatMap((variant) => stockableDishes.filter((d) => d.variant === variant).slice(0, 4));
+  for (const variant of ['savory', 'vegetarian'] as const) {
+    expect(dishes.filter((dish) => dish.variant === variant), `Clone needs four real ${variant} dishes whose BOM ingredients each have exactly one operational stock row`).toHaveLength(4);
+  }
   const manifest = writeMenuCoverage(scope, dishes);
   scope.workbook = manifest.workbook;
   const expected = manifest.source.map((r) => ({ ...r }));
@@ -302,6 +401,8 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
   let currentVersionId = '', customerId = '';
   let importedPredecessor: ReturnType<typeof capturePredecessor> | undefined;
   const short = (date: string) => date.slice(5).split('-').reverse().join('/');
+  const shiftLabel = (shift: string) => shift === 'MORNING' ? 'Sáng' : 'Chiều';
+  const prefixName = (name: string) => new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?: · Đổi món cho nhóm · \\d+ dòng)?$`);
   const sourceUrl = `/weekly-menu?view=mrx-batch&weekStartDate=${scope.weekStartDate}`;
   const sourceFacts = (): CoverageSource[] => dbVerifier.query<CoverageSource>(`SELECT CAST(s.serviceDate AS CHAR) AS date,s.shiftName AS shift,
     IF(m.dishSlot LIKE 'vegetarian-%','vegetarian','savory') AS variant,SUBSTRING_INDEX(m.dishSlot,'-',-1) AS slot,d.dishCode AS dishCode
@@ -404,7 +505,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     expect(sortCells(cells)).toEqual(sortCells(servings));
     await expect(page.getByRole('spinbutton', { name: /Số suất/ })).toHaveCount(servings.length * 2);
     for (const row of servings) for (const [variant, label] of [['savory', 'Mặn'], ['vegetarian', 'Chay']] as const) {
-      await expect(page.getByRole('spinbutton', { name: `Số suất ${label} ${short(row.date)} ${row.shift}`, exact: true })).toHaveValue(String(row[variant]));
+      await expect(page.getByRole('spinbutton', { name: `Số suất ${label} ${short(row.date)} ${shiftLabel(row.shift)}`, exact: true })).toHaveValue(String(row[variant]));
     }
     expect(rawInputs(), 'HTTP/DOM readback must not create or change serving rows').toEqual(actual);
     expect(unaffectedInputs(), 'Other customer/week input changed').toEqual(unaffectedBefore);
@@ -417,6 +518,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
   try {
     ({ batchId } = await createTransferredBatch({ coordinator: dieuphoiPage, admin: adminPage, recordSteps: true,
       sourceScenario: async (page) => {
+        console.log(`[MENU-COVERAGE ${scenario}] import committed; checking frozen source and ${servings.length} serving cells`);
         expect(previews).toHaveLength(1);
         expect(previews[0].response.ok()).toBe(true);
         expect(previews[0].checksum).toEqual(beforeImport);
@@ -427,10 +529,13 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
         importedPredecessor = capturePredecessor();
         expect(importedPredecessor.version[0]).toMatchObject({ customer: customerHex, week: scope.weekStartDate });
         expect(ordered(sourceFacts())).toEqual(ordered(expected));
+        console.log(`[MENU-COVERAGE ${scenario}] source facts match; checking empty serving cells`);
         for (const input of await page.getByRole('spinbutton', { name: /Số suất/ }).all()) await expect(input).toHaveValue('');
+        console.log(`[MENU-COVERAGE ${scenario}] empty cells verified; filling servings`);
         for (const row of servings) for (const [variant, label] of [['savory', 'Mặn'], ['vegetarian', 'Chay']] as const) {
-          await page.getByRole('spinbutton', { name: `Số suất ${label} ${short(row.date)} ${row.shift}`, exact: true }).fill(String(row[variant]));
+          await page.getByRole('spinbutton', { name: `Số suất ${label} ${short(row.date)} ${shiftLabel(row.shift)}`, exact: true }).fill(String(row[variant]));
         }
+        console.log(`[MENU-COVERAGE ${scenario}] all servings filled`);
       },
       sourceAccepted: async (page) => {
         expect(submissions).toHaveLength(1);
@@ -478,12 +583,12 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
       await adminPage.getByRole('button', { name: 'Chỉnh sửa món', exact: true }).click();
       for (const { target, code } of wholeGroup ? changes.slice(0, 1) : changes) {
         const slot = prior.days.find((d) => d.serviceDate === target.date)!.shifts.find((s) => s.shiftName === target.shift)!.slots.find((s) => s.dishSlot === `${target.variant}-${target.slot}`)!;
-        const expand = adminPage.getByRole('button', { name: new RegExp(`Tách để sửa riêng .* ${short(target.date)} ${target.shift}$`) });
+        const expand = adminPage.getByRole('button', { name: new RegExp(`Tách để sửa riêng .* ${short(target.date)} ${shiftLabel(target.shift)}$`) });
         for (let count = 0; !wholeGroup && await expand.count(); count++) {
           expect(count).toBeLessThan(10);
           await expand.first().click();
         }
-        const candidates = await adminPage.getByRole('combobox', { name: `${slot.slotLabel} ${short(target.date)} ${target.shift}`, exact: true }).all();
+        const candidates = await adminPage.getByRole('combobox', { name: prefixName(`${slot.slotLabel} ${short(target.date)} ${shiftLabel(target.shift)}`) }).all();
         const matching = [];
         for (const candidate of candidates) if (await candidate.inputValue() === slot.dishName) matching.push(candidate);
         expect(matching, 'Picker identity must match the exact source variant/dish, not first ambiguous accessible name').toHaveLength(1);
@@ -493,14 +598,22 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
         await adminPage.getByRole('listbox').getByRole('option').filter({ has: adminPage.getByText(dish.code, { exact: true }) }).click();
       }
     }
-    if (servingChange) await adminPage.getByRole('spinbutton', { name: `Số suất ${servingChange.variant === 'savory' ? 'Mặn' : 'Chay'} ${short(servingChange.date)} ${servingChange.shift}`, exact: true }).fill(String(servingChange.value));
+    if (servingChange) await adminPage.getByRole('spinbutton', { name: `Số suất ${servingChange.variant === 'savory' ? 'Mặn' : 'Chay'} ${short(servingChange.date)} ${shiftLabel(servingChange.shift)}`, exact: true }).fill(String(servingChange.value));
     await adminPage.getByRole('button', { name: /Tiếp tục xem ảnh hưởng \(\d+\)/ }).click();
     await adminPage.getByLabel('Lý do thay đổi nguồn').fill(`${scope.reason} ${label}`);
-    await adminPage.getByRole('button', { name: 'Xem ảnh hưởng', exact: true }).click();
+    console.log(`[MENU-COVERAGE ${scenario}] ${label}: checking impact preview opened by continue action`);
+    await expect(adminPage.getByRole('heading', { name: 'Xem trước ảnh hưởng' })).toBeVisible();
+    await expect(adminPage.getByText(/Nguồn thay đổi: \d+ ngày/)).toBeVisible();
+    await expect(adminPage.getByRole('button', { name: 'Kiểm tra lại ảnh hưởng', exact: true })).toBeVisible();
+    await expect(adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true })).toBeEnabled();
+    console.log(`[MENU-COVERAGE ${scenario}] ${label}: impact ready; opening confirmation`);
     await adminPage.getByRole('button', { name: 'Áp dụng ngay', exact: true }).click();
-    const applied = adminPage.waitForResponse((r) => r.url().endsWith('/mrx-apply') && r.request().method() === 'POST');
+    await expect(adminPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true })).toBeVisible();
+    console.log(`[MENU-COVERAGE ${scenario}] ${label}: confirmation visible; sending apply`);
+    const applied = adminPage.waitForResponse((r) => r.url().endsWith('/mrx-apply') && r.request().method() === 'POST', { timeout: 15_000 });
     await adminPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click();
     const response = await applied;
+    console.log(`[MENU-COVERAGE ${scenario}] ${label}: apply HTTP ${response.status()}`);
     expect(response.status(), await response.text()).toBe(200);
     const body = response.request().postDataJSON() as MrxMenuChangeRequest;
     assertCommand(body, declaredServings, changes);
@@ -539,10 +652,13 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
       await respectApiBudget(adminPage, 32);
       const prior = capturePredecessor();
       const beforePreview = dbVerifier.query('CHECKSUM TABLE menuversions,menuschedules,menuitems,mealquantityplanlines,reconciliationbatches,reconciliationbatchdailylines,reconciliationbatchcontributors;');
-      await adminPage.getByRole('button', { name: 'Nhập lại Excel', exact: true }).click();
-      await adminPage.locator('select#import-customer-select').selectOption({ label: 'ANV - AMANN' });
+      await adminPage.getByRole('button', { name: 'Nhập Excel', exact: true }).click();
+      await expect(adminPage.getByRole('combobox', { name: 'Phạm vi nhập Excel' })).toHaveValue('current-week');
+      await expect(adminPage.locator('select#import-customer-select')).toBeDisabled();
+      await expect(adminPage.locator('select#import-customer-select')).toHaveValue(customerId);
       const dateInput = adminPage.getByLabel('Tuần bắt đầu nhập', { exact: true });
-      await dateInput.fill(scope.weekStartDate.split('-').reverse().join('/')); await dateInput.press('Enter');
+      await expect(dateInput).toHaveValue(scope.weekStartDate.split('-').reverse().join('/'));
+      await expect(dateInput).toHaveAttribute('readonly');
       await adminPage.setInputFiles('input[type="file"]', workbook);
       await adminPage.locator('button[role="radio"]:has-text("25.000")').click();
       const preview = adminPage.waitForResponse((r) => r.url().endsWith('/weekly-menu/import/preview') && r.request().method() === 'POST');
@@ -576,14 +692,17 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     const rectangular = manifest.source.map((row) => ({ ...row, dishCode: rectangularDates.includes(row.date) && row.shift === 'MORNING' && row.variant === 'savory' && ['rau', 'canh'].includes(row.slot) ? anchor.dishCode : row.dishCode }));
     await reimport('IMP-04 rectangular reimport', manifest.rectangularWorkbook, rectangular);
     for (const shift of ['MORNING', 'AFTERNOON'] as const) for (const variant of ['savory', 'vegetarian'] as const) {
-      const vertical = expected.filter((r) => r.date === manifest.servings[4].date && r.shift === shift && r.variant === variant && ['main', 'sub1'].includes(r.slot));
-      expect(vertical).toHaveLength(2); expect(new Set(vertical.map((r) => r.dishCode)).size).toBe(1);
+      const verticalRows = ['main', 'sub1', 'rau', 'canh', 'dessert'].map((slot) => expected.find((r) => r.date === manifest.servings[4].date && r.shift === shift && r.variant === variant && r.slot === slot)!);
+      const firstDifferent = verticalRows.findIndex((row) => row.dishCode !== verticalRows[0].dishCode);
+      const vertical = verticalRows.slice(0, firstDifferent < 0 ? verticalRows.length : firstDifferent);
+      expect(vertical.length, 'The edited vertical group must cover at least two adjacent slots').toBeGreaterThanOrEqual(2);
       const horizontal = expected.filter((r) => r.date <= manifest.servings[2].date && r.shift === shift && r.variant === variant && r.slot === 'main');
       expect(horizontal).toHaveLength(2);
+      expect(new Set(horizontal.map((row) => row.dishCode)).size, 'Completion mode must have one horizontal dish group').toBe(1);
       const nextDish = dishes.filter((d) => d.variant === variant && d.code !== vertical[0].dishCode && d.code !== horizontal[0].dishCode).at(-1)!;
       await apply(`EDT-02 whole vertical ${shift} ${variant}`, vertical.map((target) => ({ target: { ...target }, code: nextDish.code })), undefined, true);
       const horizontalDish = dishes.filter((d) => d.variant === variant && d.code !== horizontal[0].dishCode && d.code !== vertical[0].dishCode).at(-1)!;
-      await apply(`EDT-01 whole horizontal ${shift} ${variant}`, horizontal.map((target) => ({ target: { ...target }, code: horizontalDish.code })), undefined, true);
+      await apply(`EDT-01 both horizontal members ${shift} ${variant}`, horizontal.map((target) => ({ target: { ...target }, code: horizontalDish.code })));
       const horizontalCode = horizontal[0].dishCode, verticalCode = vertical[0].dishCode;
       expect(horizontalCode).not.toBe(verticalCode);
       await apply(`SWP-03 all merged members ${shift} ${variant}`, [...vertical.map((target) => ({ target: { ...target }, code: horizontalCode })), ...horizontal.map((target) => ({ target: { ...target }, code: verticalCode }))]);
@@ -603,7 +722,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
       fs.writeFileSync(path.join(evidence, `${label}-no-write.json`), JSON.stringify({ batchId, request: response.request().postDataJSON(), code, noWrite: true }, null, 2));
       await adminPage.reload(); await checkInputs(adminPage, label); assertMaterials();
     }
-    await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(scope.weekStartDate)} MORNING`, exact: true }).fill('');
+    await adminPage.getByRole('spinbutton', { name: `Số suất Mặn ${short(scope.weekStartDate)} Sáng`, exact: true }).fill('');
     await rejectPreview('SRV-02-missing', 'MRX_SERVINGS_SPLIT_REQUIRED');
     const original = servings[0].savory;
     await apply('SRV-02 explicit zero', [], { date: scope.weekStartDate, shift: 'MORNING', variant: 'savory', value: 0 });
@@ -613,7 +732,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
     const prior = await editScope();
     const slot = prior.days[0].shifts.find((shift) => shift.shiftName === 'MORNING')!.slots.find((cell) => cell.dishSlot === 'savory-main')!;
     await adminPage.getByRole('button', { name: 'Chỉnh sửa món', exact: true }).click();
-    const candidates = await adminPage.getByRole('combobox', { name: `${slot.slotLabel} ${short(scope.weekStartDate)} MORNING`, exact: true }).all();
+    const candidates = await adminPage.getByRole('combobox', { name: `${slot.slotLabel} ${short(scope.weekStartDate)} Sáng`, exact: true }).all();
     const matching = [];
     for (const candidate of candidates) if (await candidate.inputValue() === slot.dishName) matching.push(candidate);
     expect(matching).toHaveLength(1);
@@ -692,7 +811,7 @@ test(`@G6-Menu-Coverage ${scenario}: four sections preserve source and independe
   const sortedRows = <T,>(values: T[]) => values.sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)));
   expect(sortedRows(cooking.rows.map((row) => ({ serviceDate: row.serviceDate, shiftName: row.shiftName, menuVariant: row.menuVariant,
     dishCode: row.dishCode, dishName: row.dishName, servings: row.servings, ingredientCode: row.ingredientCode, ingredientName: row.ingredientName,
-    unitName: row.unitName, bom: row.bomQuantityPerServing.toFixed(6), waste: row.wasteRatePercent?.toFixed(6), total: row.totalRequiredQuantity.toFixed(6) }))))
+    unitName: row.unitName, bom: row.bomQuantityPerServing?.toFixed(6), waste: row.wasteRatePercent?.toFixed(6), total: row.totalRequiredQuantity.toFixed(6) }))))
     .toEqual(sortedRows([...wantedCooking]));
   const fileRows = wantedCooking.map((row) => {
     const day = new Date(`${row.serviceDate}T00:00:00Z`), last = new Date(`${scope.weekStartDate}T00:00:00Z`); last.setUTCDate(last.getUTCDate() + 6);

@@ -6,11 +6,25 @@ if (args.Length >= 1 && args[0] == "reset-passwords")
 {
     await using var conn = await OpenServerConnectionAsync("backend/src/IPCManagement.Api/appsettings.json");
     await conn.ChangeDatabaseAsync("ipcmanagement");
-    var hash = BCrypt.Net.BCrypt.HashPassword("Admin@123456");
-    await using var cmd = new MySqlCommand("UPDATE users SET passwordHash = @hash WHERE username IN ('admin', 'beptruong', 'thukho', 'quanly', 'thumua', 'dieuphoi');", conn);
-    cmd.Parameters.AddWithValue("@hash", hash);
-    var affected = await cmd.ExecuteNonQueryAsync();
-    Console.WriteLine($"RESET_PASSWORDS_SUCCESS: {affected} users updated with password Admin@123456.");
+    var credentials = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["beptruong"] = "beptruong",
+        ["thukho"] = "thukho",
+        ["thumua"] = "thumua",
+        ["dieuphoi"] = "dieuphoi",
+        ["quanly"] = "quanly",
+        ["admin"] = "FA624MHycNsN3DIp"
+    };
+    var affected = 0;
+    foreach (var (username, plainPassword) in credentials)
+    {
+        var hash = BCrypt.Net.BCrypt.HashPassword(plainPassword);
+        await using var cmd = new MySqlCommand("UPDATE users SET passwordHash = @hash WHERE username = @username;", conn);
+        cmd.Parameters.AddWithValue("@hash", hash);
+        cmd.Parameters.AddWithValue("@username", username);
+        affected += await cmd.ExecuteNonQueryAsync();
+    }
+    Console.WriteLine($"RESET_PASSWORDS_SUCCESS: {affected} users updated with canonical role credentials.");
     return 0;
 }
 

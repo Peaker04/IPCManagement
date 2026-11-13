@@ -43,6 +43,16 @@ public sealed class ReconciliationSourceRevisionService(IpcManagementContext con
             throw new BusinessRuleException("Trạng thái lịch sử nguồn không hợp lệ.");
         var query = context.Reconciliationsourcedeltas.AsNoTracking();
         if (status != "ALL") query = query.Where(item => item.Status == status);
+        if (!string.IsNullOrWhiteSpace(request.CustomerCode))
+        {
+            var customerCode = request.CustomerCode.Trim();
+            var matchingBatches = from batch in context.Reconciliationbatches.AsNoTracking()
+                join menuVersion in context.Menuversions.AsNoTracking() on batch.MenuVersionId equals menuVersion.MenuVersionId
+                join customer in context.Customers.AsNoTracking() on menuVersion.CustomerId equals customer.CustomerId
+                where customer.CustomerCode == customerCode
+                select batch.BatchId;
+            query = query.Where(item => matchingBatches.Contains(item.BatchId));
+        }
         if (!string.IsNullOrWhiteSpace(request.BatchId))
         {
             var batchId = ReconciliationBatchService.RequiredId(request.BatchId);

@@ -1,3 +1,5 @@
+> Reference archive (2026-11-13): the FE snapshot names/paths in this historical document are preserved in `D:/IPCArchives/frontend-reference-snapshots/2026-11-13-frontend-references.zip` with per-file hashes in its adjacent manifest. Both original trees, including their unique configs/tests, are retained there.
+
 # Spec: MRX Dashboard Recovery, Sidebar IA Standardization & Action Bridges
 
 **Date:** 2026-10-28  

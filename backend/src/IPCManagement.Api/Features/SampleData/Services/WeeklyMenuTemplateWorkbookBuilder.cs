@@ -112,12 +112,18 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
             <sheet name="{Escape(FormatPriceTier(priceTier))}" sheetId="{index + 1}" r:id="rId{index + 1}"/>
             """)));
 
+        var lastRow = 8 + (4 * (profile.Slots.Count + 1));
+        var printNames = string.Concat(PriceTiers.Select((priceTier, index) => FormattableString.Invariant($"""
+            <definedName name="_xlnm.Print_Area" localSheetId="{index}">'{Escape(FormatPriceTier(priceTier))}'!$C$2:$I${lastRow}</definedName>
+            <definedName name="_xlnm.Print_Titles" localSheetId="{index}">'{Escape(FormatPriceTier(priceTier))}'!$1:$7</definedName>
+            """)));
         return $$"""
             <?xml version="1.0" encoding="UTF-8"?>
             <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
               <sheets>
                 {{sheets}}
               </sheets>
+              <definedNames>{{printNames}}</definedNames>
             </workbook>
             """;
     }
@@ -195,24 +201,19 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
         var lastRow = 8 + (4 * (profile.Slots.Count + 1));
         builder.AppendLine("""<?xml version="1.0" encoding="UTF-8"?>""");
         builder.AppendLine("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">""");
+        builder.AppendLine("  <sheetPr><pageSetUpPr fitToPage=\"1\"/></sheetPr>");
         builder.AppendLine(CultureInfo.InvariantCulture, $"  <dimension ref=\"A1:I{lastRow}\"/>");
         builder.AppendLine("""
           <sheetViews>
-            <sheetView workbookViewId="0" zoomScale="55" zoomScaleNormal="55">
+            <sheetView workbookViewId="0" zoomScale="100" zoomScaleNormal="100">
               <pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>
             </sheetView>
           </sheetViews>
-          <sheetFormatPr defaultRowHeight="19.5"/>
+          <sheetFormatPr defaultRowHeight="33"/>
           <cols>
-            <col min="1" max="1" width="2.875" customWidth="1"/>
-            <col min="2" max="2" width="13" customWidth="1"/>
-            <col min="3" max="3" width="22.125" customWidth="1"/>
-            <col min="4" max="4" width="35" customWidth="1"/>
-            <col min="5" max="5" width="38.25" customWidth="1"/>
-            <col min="6" max="6" width="35" customWidth="1"/>
-            <col min="7" max="7" width="40.5" customWidth="1"/>
-            <col min="8" max="8" width="38.25" customWidth="1"/>
-            <col min="9" max="9" width="41.5" customWidth="1"/>
+            <col min="1" max="2" width="2" customWidth="1"/>
+            <col min="3" max="3" width="18" customWidth="1"/>
+            <col min="4" max="9" width="22" customWidth="1"/>
           </cols>
           <sheetData>
         """);
@@ -239,6 +240,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
         }
 
         builder.AppendLine("  </mergeCells>");
+        builder.AppendLine("<pageMargins left=\"0.25\" right=\"0.25\" top=\"0.4\" bottom=\"0.4\" header=\"0.2\" footer=\"0.2\"/><pageSetup paperSize=\"9\" orientation=\"landscape\" fitToWidth=\"1\" fitToHeight=\"0\"/>");
         builder.AppendLine("</worksheet>");
         return builder.ToString();
     }
@@ -307,8 +309,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
 
     private static void AddMenuSlotRow(StringBuilder builder, int rowNumber, string slotLabel)
     {
-        var height = slotLabel.Contains("chính", StringComparison.OrdinalIgnoreCase) ? "37.5" : "24.75";
-        builder.Append(CultureInfo.InvariantCulture, $"    <row r=\"{rowNumber}\" ht=\"{height}\" customHeight=\"1\">");
+        builder.Append(CultureInfo.InvariantCulture, $"    <row r=\"{rowNumber}\">");
         AddCell(builder, "C", rowNumber, slotLabel, 5);
         for (var column = 4; column <= 9; column++)
         {
@@ -320,7 +321,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
 
     private static void AddMergedMenuSlotRow(StringBuilder builder, int rowNumber, string slotLabel)
     {
-        builder.Append(CultureInfo.InvariantCulture, $"    <row r=\"{rowNumber}\" ht=\"24.75\" customHeight=\"1\">");
+        builder.Append(CultureInfo.InvariantCulture, $"    <row r=\"{rowNumber}\">");
         AddCell(builder, "C", rowNumber, slotLabel, 5);
         for (var column = 4; column <= 9; column++)
         {

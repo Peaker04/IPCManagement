@@ -86,7 +86,7 @@ test('@G7-Memory thirty comparable route/dialog/Escape cycles with settled post-
   let failedRequests = 0;
   adminPage.on('requestfailed', () => { failedRequests++; });
   await adminPage.goto(weeklyUrl);
-  await expect(adminPage.getByRole('button', { name: 'Nhập lại Excel', exact: true })).toBeVisible();
+  await expect(adminPage.getByRole('button', { name: 'Nhập Excel', exact: true })).toBeVisible();
   await expect(adminPage.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue(scope.serviceDate.split('-').reverse().join('/'));
   await adminPage.waitForLoadState('networkidle');
   const timeOrigin = await adminPage.evaluate(() => performance.timeOrigin);
@@ -137,7 +137,7 @@ test('@G7-Memory thirty comparable route/dialog/Escape cycles with settled post-
     await adminPage.getByRole('link', { name: 'Chuẩn bị lô đối soát', exact: true }).click();
     await expect(adminPage.getByRole('textbox', { name: 'Tuần MRX bắt đầu' })).toHaveValue(scope.serviceDate.split('-').reverse().join('/'));
     await adminPage.waitForTimeout(3000);
-    await adminPage.getByRole('button', { name: 'Nhập lại Excel', exact: true }).click();
+    await adminPage.getByRole('button', { name: 'Nhập Excel', exact: true }).click();
     await expect(adminPage.getByRole('dialog')).toBeVisible();
     await adminPage.waitForTimeout(3000);
     await adminPage.keyboard.press('Escape');
