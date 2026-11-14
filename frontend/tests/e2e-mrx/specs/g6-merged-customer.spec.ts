@@ -455,3 +455,179 @@ function binaryId(value: string) {
   const reverse = (part: string) => part.match(/../g)!.reverse().join('');
   return `${reverse(a)}${reverse(b)}${reverse(c)}${d}${e}`.toUpperCase();
 }
+
+test('@G6-Menu-Reimport-Ingredient catalog ingredient create is visible after reload and rejects a case variant', async ({ adminPage, dbVerifier }) => {
+  const suffix = Date.now().toString(36).toUpperCase();
+  const code = `MRXCAT${suffix}`;
+  const name = `Nguyên liệu MRX ${suffix}`;
+  const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
+  await adminPage.goto('/admin-data?view=ingredients');
+  await expect(adminPage.getByRole('button', { name: 'Thêm nguyên liệu', exact: true })).toBeVisible();
+  await adminPage.screenshot({ path: path.join(evidence, 'catalog-ingredient-list-before.png') });
+  await adminPage.getByRole('button', { name: 'Thêm nguyên liệu', exact: true }).click();
+  const dialog = adminPage.getByRole('dialog', { name: 'Thêm nguyên liệu', exact: true });
+  const unitSelector = dialog.getByRole('combobox', { name: 'Đơn vị tính nguyên liệu' });
+  const unitId = await unitSelector.locator('option:not([value=""])').first().getAttribute('value');
+  expect(unitId).toBeTruthy();
+  await dialog.getByRole('textbox', { name: 'Mã nguyên liệu', exact: true }).fill(code);
+  await dialog.getByRole('textbox', { name: 'Tên nguyên liệu', exact: true }).fill(name);
+  await unitSelector.selectOption(unitId!);
+  await adminPage.screenshot({ path: path.join(evidence, 'catalog-ingredient-create-form.png') });
+  const createResponse = adminPage.waitForResponse(response => response.url().toLowerCase().endsWith('/api/ingredients') && response.request().method() === 'POST');
+  await dialog.getByRole('button', { name: 'Lưu nguyên liệu', exact: true }).click();
+  expect((await createResponse).status()).toBe(201);
+  await expect(dialog).toHaveCount(0);
+  await expect(adminPage.getByRole('row', { name: new RegExp(code) })).toBeVisible();
+  await adminPage.reload();
+  await expect(adminPage.getByRole('row', { name: new RegExp(code) })).toBeVisible();
+  await adminPage.screenshot({ path: path.join(evidence, 'catalog-ingredient-after-reload.png') });
+
+  const duplicate = await adminPage.evaluate(async ({ name, unitId, code }) => {
+    const response = await fetch('/api/Ingredients', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' },
+      body: JSON.stringify({ ingredientCode: `${code}B`, ingredientName: name.toUpperCase(), unitId, referencePrice: 0 }),
+    });
+    return response.status;
+  }, { name, unitId, code });
+  expect(duplicate).toBe(400);
+  const rows = dbVerifier.query<{ code: string }>(`SELECT ingredientCode AS code FROM ingredients WHERE ingredientCode IN ('${code}','${code}B') ORDER BY ingredientCode;`);
+  expect(rows).toEqual([{ code }]);
+  fs.writeFileSync(path.join(evidence, 'catalog-ingredient-create.json'), JSON.stringify({ code, createdStatus: 201, duplicateStatus: duplicate, persistedCodes: rows.map(row => row.code), reloaded: true, screenshots: ['catalog-ingredient-list-before.png', 'catalog-ingredient-create-form.png', 'catalog-ingredient-after-reload.png'] }, null, 2));
+});
+
+test('@G6-Menu-Reimport-Ingredient concurrent ingredient creates retain one active name and unit', async ({ adminPage, dbVerifier }) => {
+  const unitId = await adminPage.evaluate(async () => {
+    const response = await fetch('/api/Units', { headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' } });
+    if (!response.ok) throw new Error(`Units returned ${response.status}`);
+    const body = await response.json();
+    return body.data?.[0]?.unitId as string | undefined;
+  });
+  expect(unitId).toBeTruthy();
+  const attempts: Array<{ statuses: number[]; codes: string[] }> = [];
+  for (let index = 0; index < 5; index += 1) {
+    const suffix = `${Date.now().toString(36).toUpperCase()}${index}`;
+    const name = `MRX Race ${suffix}`;
+    const statuses = await adminPage.evaluate(async ({ unitId, name, suffix }) => Promise.all(['A', 'B'].map(async letter => {
+      const response = await fetch('/api/Ingredients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' },
+        body: JSON.stringify({ ingredientCode: `MRXR${suffix}${letter}`, ingredientName: letter === 'A' ? name : name.toUpperCase(), unitId, referencePrice: 0 }),
+      });
+      return response.status;
+    })), { unitId, name, suffix });
+    const rows = dbVerifier.query<{ code: string }>(`SELECT ingredientCode AS code FROM ingredients WHERE ingredientCode IN ('MRXR${suffix}A','MRXR${suffix}B') AND isActive=1 ORDER BY ingredientCode;`);
+    attempts.push({ statuses, codes: rows.map(row => row.code) });
+  }
+  fs.writeFileSync(path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'ingredient-concurrent-create.json'), JSON.stringify({ unitId, attempts }, null, 2));
+  for (const attempt of attempts) {
+    expect(attempt.statuses.filter(status => status === 201)).toHaveLength(1);
+    expect(attempt.codes).toHaveLength(1);
+  }
+});
+
+test('@G6-Menu-Reimport-BOM manual BOM editor creates ingredient without an accidental BOM write', async ({ adminPage, dbVerifier }) => {
+  const suffix = Date.now().toString(36).toUpperCase();
+  const code = `MRXBOM${suffix}`;
+  const name = `Nguyên liệu BOM ${suffix}`;
+  const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
+  const beforeBom = dbVerifier.query('CHECKSUM TABLE dishbom;');
+  await adminPage.goto('/admin-data?view=bom');
+  await adminPage.getByRole('button', { name: 'Chỉnh sửa BOM', exact: true }).first().click();
+  const dialog = adminPage.getByRole('dialog');
+  await expect(dialog.getByRole('button', { name: 'Tạo nguyên liệu mới', exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: 'Tạo nguyên liệu mới', exact: true }).click();
+  await dialog.getByLabel('Mã nguyên liệu mới', { exact: true }).fill(code);
+  await dialog.getByLabel('Tên nguyên liệu mới', { exact: true }).fill(name);
+  const unit = dialog.getByLabel('Đơn vị nguyên liệu mới', { exact: true });
+  const unitId = await unit.locator('option:not([value=""])').first().getAttribute('value');
+  expect(unitId).toBeTruthy();
+  await unit.selectOption(unitId!);
+  await adminPage.screenshot({ path: path.join(evidence, 'bom-editor-ingredient-create-form.png') });
+  const createResponse = adminPage.waitForResponse(response => response.url().toLowerCase().endsWith('/api/ingredients') && response.request().method() === 'POST');
+  await dialog.getByRole('button', { name: 'Lưu nguyên liệu', exact: true }).click();
+  expect((await createResponse).status()).toBe(201);
+  await expect(dialog.getByText('Đã tạo nguyên liệu. Nhập định mức/suất và bấm Thêm vào BOM để hoàn tất.', { exact: true })).toBeVisible();
+  expect(dbVerifier.query('CHECKSUM TABLE dishbom;')).toEqual(beforeBom);
+  expect(dbVerifier.query<{ code: string }>(`SELECT ingredientCode AS code FROM ingredients WHERE ingredientCode='${code}';`)).toEqual([{ code }]);
+  await adminPage.screenshot({ path: path.join(evidence, 'bom-editor-ingredient-selected.png') });
+  await adminPage.goto('/admin-data?view=ingredients');
+  await adminPage.getByPlaceholder('Tìm mã, tên nguyên liệu...').fill(code);
+  await expect(adminPage.getByRole('row', { name: new RegExp(code) })).toBeVisible();
+  await adminPage.screenshot({ path: path.join(evidence, 'bom-editor-ingredient-catalog-reload.png') });
+  fs.writeFileSync(path.join(evidence, 'bom-editor-ingredient-create.json'), JSON.stringify({ code, status: 201, persisted: true, bomUnchangedUntilAdd: true, catalogReloaded: true }, null, 2));
+});
+
+test('@G6-Menu-Reimport-BOM bulk missing BOM preview, correction, commit and case-variant reimport', async ({ adminPage, dbVerifier }) => {
+  const scope = scenarioScope(dbVerifier, 42);
+  const evidence = process.env.MRX_E2E_ARTIFACT_DIRECTORY!;
+  const suffix = Date.now().toString(36).toUpperCase();
+  const ingredientName = `Nguyên liệu Excel ${suffix}`;
+  const unit = dbVerifier.query<{ code: string; id: string }>("SELECT unitCode AS code, HEX(unitId) AS id FROM units WHERE unitCode='kg' LIMIT 1;");
+  expect(unit).toHaveLength(1);
+  const dishes = dbVerifier.query<{ code: string }>(`SELECT d.dishCode AS code FROM dishes d WHERE d.isActive=1 AND NOT EXISTS (SELECT 1 FROM dishbom b WHERE b.dishId=d.dishId AND b.customerId IS NULL AND b.priceTierAmount=25000 AND b.bomStatus='PUBLISHED' AND b.effectiveFrom<='${scope.weekStartDate}' AND (b.effectiveTo IS NULL OR b.effectiveTo>='${scope.weekStartDate}')) ORDER BY d.dishCode LIMIT 3;`);
+  expect(dishes, 'Clone requires three actual missing-BOM dishes; no production or fake seed is allowed.').toHaveLength(3);
+  const rows = dishes.map((dish, index) => ({ dishCode: dish.code, ingredientCode: '', ingredientName, unitCode: unit[0].code, quantity: String((index + 1) / 10), status: 'PUBLISHED', date: scope.weekStartDate, note: scope.reason }));
+  const invalidFile = path.join(evidence, 'missing-bom-invalid-unit.xlsx');
+  const validFile = path.join(evidence, 'missing-bom-corrected.xlsx');
+  writeBomImportWorkbook(invalidFile, rows.map((row, index) => index === 2 ? { ...row, unitCode: 'INVALID_UNIT' } : row));
+  writeBomImportWorkbook(validFile, rows);
+  const beforeBom = dbVerifier.query('CHECKSUM TABLE dishbom,ingredients;');
+  await adminPage.goto('/admin-data?view=bom');
+  await adminPage.getByRole('button', { name: 'Nhập BOM Excel', exact: true }).click();
+  const input = adminPage.getByLabel('Chọn file Excel định mức BOM', { exact: true });
+  await input.setInputFiles(invalidFile);
+  const invalidPreview = adminPage.waitForResponse(response => response.url().endsWith('/bom-import/preview') && response.request().method() === 'POST');
+  await adminPage.getByRole('button', { name: 'Xem trước', exact: true }).click();
+  const invalidResponse = await invalidPreview;
+  expect(invalidResponse.status()).toBe(200);
+  expect((await invalidResponse.json()).data.canCommit).toBe(false);
+  await expect(adminPage.getByRole('button', { name: 'Xác nhận nhập BOM hàng loạt', exact: true })).toBeDisabled();
+  expect(dbVerifier.query('CHECKSUM TABLE dishbom,ingredients;')).toEqual(beforeBom);
+  await adminPage.screenshot({ path: path.join(evidence, 'missing-bom-invalid-preview.png') });
+  await input.setInputFiles(validFile);
+  const validPreview = adminPage.waitForResponse(response => response.url().endsWith('/bom-import/preview') && response.request().method() === 'POST');
+  await adminPage.getByRole('button', { name: 'Xem trước', exact: true }).click();
+  const validResponse = await validPreview;
+  expect(validResponse.status()).toBe(200);
+  expect((await validResponse.json()).data.canCommit).toBe(true);
+  const codeCell = adminPage.getByTestId('bom-preview-viewport').locator('tbody tr').first().locator('td').nth(3);
+  const codeGeometry = async () => codeCell.evaluate(cell => ({ cellRight: cell.getBoundingClientRect().right, codeRight: cell.querySelector('button')!.getBoundingClientRect().right }));
+  expect((await codeGeometry()).codeRight).toBeLessThanOrEqual((await codeGeometry()).cellRight + 1);
+  await adminPage.screenshot({ path: path.join(evidence, 'missing-bom-corrected-preview.png') });
+  await adminPage.setViewportSize({ width: 1024, height: 768 });
+  expect((await codeGeometry()).codeRight).toBeLessThanOrEqual((await codeGeometry()).cellRight + 1);
+  await adminPage.screenshot({ path: path.join(evidence, 'missing-bom-corrected-preview-1024.png') });
+  await adminPage.setViewportSize({ width: 1440, height: 900 });
+  const commit = adminPage.waitForResponse(response => response.url().endsWith('/bom-import/commit') && response.request().method() === 'POST');
+  await adminPage.getByRole('button', { name: 'Xác nhận nhập BOM hàng loạt', exact: true }).click();
+  const committed = await commit;
+  expect(committed.status(), await committed.text()).toBe(200);
+  expect((await committed.json()).data.createdRows).toBe(3);
+  const ingredients = dbVerifier.query<{ id: string; code: string }>(`SELECT HEX(ingredientId) AS id, ingredientCode AS code FROM ingredients WHERE ingredientName='${ingredientName}';`);
+  expect(ingredients).toHaveLength(1);
+  const bomRows = dbVerifier.query<{ code: string }>(`SELECT d.dishCode AS code FROM dishbom b JOIN dishes d ON d.dishId=b.dishId WHERE b.ingredientId=UNHEX('${ingredients[0].id}') AND b.effectiveFrom='${scope.weekStartDate}' AND b.bomStatus='PUBLISHED' ORDER BY d.dishCode;`);
+  expect(bomRows.map(row => row.code)).toEqual(dishes.map(dish => dish.code));
+  await adminPage.screenshot({ path: path.join(evidence, 'missing-bom-committed.png') });
+  await adminPage.reload();
+  await adminPage.getByRole('searchbox', { name: 'Tìm kiếm món ăn' }).fill(dishes[0].code);
+  await adminPage.getByRole('button', { name: 'Chỉnh sửa BOM', exact: true }).click();
+  await expect(adminPage.getByRole('dialog').getByText(ingredientName, { exact: true })).toBeVisible();
+  await adminPage.screenshot({ path: path.join(evidence, 'missing-bom-after-reload.png') });
+  const beforeRepeat = dbVerifier.query('CHECKSUM TABLE dishbom,ingredients;');
+  const repeatFile = path.join(evidence, 'missing-bom-case-variant-repeat.xlsx');
+  writeBomImportWorkbook(repeatFile, rows.map(row => ({ ...row, ingredientName: ingredientName.toUpperCase() })));
+  await adminPage.goto('/admin-data?view=bom');
+  await adminPage.getByRole('button', { name: 'Nhập BOM Excel', exact: true }).click();
+  await adminPage.getByLabel('Chọn file Excel định mức BOM', { exact: true }).setInputFiles(repeatFile);
+  const repeatPreview = adminPage.waitForResponse(response => response.url().endsWith('/bom-import/preview') && response.request().method() === 'POST');
+  await adminPage.getByRole('button', { name: 'Xem trước', exact: true }).click();
+  expect((await (await repeatPreview).json()).data.canCommit).toBe(true);
+  const repeatCommit = adminPage.waitForResponse(response => response.url().endsWith('/bom-import/commit') && response.request().method() === 'POST');
+  await adminPage.getByRole('button', { name: 'Xác nhận nhập BOM hàng loạt', exact: true }).click();
+  const repeatResult = await repeatCommit;
+  expect(repeatResult.status(), await repeatResult.text()).toBe(200);
+  expect((await repeatResult.json()).data.createdRows).toBe(0);
+  expect(dbVerifier.query('CHECKSUM TABLE dishbom,ingredients;')).toEqual(beforeRepeat);
+  fs.writeFileSync(path.join(evidence, 'missing-bom-bulk-recovery.json'), JSON.stringify({ week: scope.weekStartDate, dishes: dishes.map(dish => dish.code), invalidPreview: 200, invalidCanCommit: false, commit: 200, ingredientCode: ingredients[0].code, ingredientRows: 1, bomRows: 3, reloaded: true, repeatStatus: 200, repeatCreatedRows: 0, repeatedDataUnchanged: true }, null, 2));
+});

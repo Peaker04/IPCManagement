@@ -378,7 +378,8 @@ public sealed class ReconciliationQuantityImportApplicationPathTests
 
         var warehouseResolver = Substitute.For<IOperationalWarehouseResolver>();
         warehouseResolver.ResolveAsync(Arg.Any<CancellationToken>()).Returns(fixture.WarehouseId);
-        await new IngredientService(new IngredientRepository(fixture.Context), warehouseResolver).UpdateAsync(
+        await new IngredientService(new IngredientRepository(fixture.Context), warehouseResolver,
+            fixture.Context, new EfTransactionRunner(fixture.Context)).UpdateAsync(
             GuidHelper.ToGuidString(fixture.IngredientId), new UpdateIngredientRequest
             {
                 IngredientName = "Ingredient edited",

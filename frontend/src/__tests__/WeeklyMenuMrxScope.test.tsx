@@ -1,16 +1,8 @@
-import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
+import { renderWeeklyMenu } from '../test/renderWeeklyMenu';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { WeeklyMenuPage } from '../features/weekly-menu/WeeklyMenuPage';
 import { MrxSourceEditGrid } from '../features/weekly-menu/MrxSourceEditGrid';
-import { ForbiddenPage } from '../features/auth/ForbiddenPage';
-import { AuthProvider } from '../store/authContext';
-import { isRouteEligible, resolveEligibleNavigation } from '../routes/navigationEligibility';
-import { AppShell } from '../components/workbench/AppShell';
-import { DirtyNavigationProvider } from '../components/workbench/DirtyNavigation';
-import { CANONICAL_ROUTES } from '../routes/routeRegistry';
 import { weeklyMenuApi } from '../api/weeklyMenuApi';
 import { mrxApi, type MrxBatch, type MrxMenuChangeResult } from '../api/mrxApi';
 import { systemApi } from '../api/systemApi';
@@ -20,11 +12,6 @@ import { ApiError } from '../api/client';
 import * as apiTransport from '../api/client';
 import { workspaceSessionStore } from '../store/workspaceSessionStore';
 import { serverStateCache } from '../store/serverStateCache';
-
-function LocationProbe() {
-  const location = useLocation();
-  return <div>{`${location.pathname}${location.search}`}</div>;
-}
 
 function mrxChangeResult(overrides: Partial<MrxMenuChangeResult>): MrxMenuChangeResult {
   return {
@@ -45,23 +32,6 @@ function mrxChangeResult(overrides: Partial<MrxMenuChangeResult>): MrxMenuChange
     status: 'PREVIEW',
     ...overrides,
   };
-}
-
-function renderWeeklyMenu(initialEntry = '/weekly-menu', withShell = false) {
-  const content = <Routes>
-    <Route path="/weekly-menu" element={<WeeklyMenuPage />} />
-    <Route path="/forbidden" element={<ForbiddenPage />} />
-    <Route path="/warehouse" element={<LocationProbe />} />
-  </Routes>;
-  return render(
-    <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <DirtyNavigationProvider>{withShell
-          ? <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={resolveEligibleNavigation(CANONICAL_ROUTES, JSON.parse(localStorage.getItem('ipc_v3_user')!), 'MATERIAL_RECONCILIATION')}>{content}</AppShell>
-          : content}</DirtyNavigationProvider>
-      </MemoryRouter>
-    </AuthProvider>
-  );
 }
 
 describe('Weekly Menu MRX scope and source', () => {
@@ -192,7 +162,40 @@ describe('Weekly Menu MRX scope and source', () => {
     expect(screen.queryByRole('button', { name: 'Điều chỉnh nguồn' })).not.toBeInTheDocument();
     expect(await screen.findByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Chỉnh sửa món' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nhập thực đơn mới' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Nhập Excel' })).not.toBeInTheDocument();
     expect(mrxApi.previewQuantityImport).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Nhập thực đơn mới' }));
+    expect(await screen.findByRole('dialog', { name: 'Nhập thực đơn tuần từ file Excel' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Phạm vi nhập Excel' })).not.toBeInTheDocument();
+  });
+
+  it('does not offer current-week import when batch authority fails to load', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.spyOn(mrxApi, 'getWeeklySource').mockResolvedValue({
+      customerId: 'customer-1', customerCode: 'DAV', customerName: 'Draxlmaier', weekStartDate: '2026-11-02', weekEndDate: '2026-11-08',
+      menuVersionId: 'mv-1', menuVersionNo: 1, menuVersionStatus: 'PUBLISHED', warnings: [],
+      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
+    });
+    vi.mocked(mrxApi.getBatchPage).mockRejectedValue(new ApiError(500, 'Không thể tải trạng thái lô.'));
+
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=customer-1&weekStartDate=2026-11-02');
+
+    expect(await screen.findByText('Không thể tải trạng thái lô.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Nhập Excel' })).not.toBeInTheDocument();
+  });
+
+  it('does not treat a missing weekly source as an empty batch when batch authority fails', async () => {
+    localStorage.setItem('ipc_v3_mode', 'MATERIAL_RECONCILIATION');
+    vi.mocked(systemApi.getOperationalMode).mockResolvedValue({ mode: 'MATERIAL_RECONCILIATION', label: 'Đối soát', version: 9, updatedAt: '2026-10-18T00:00:00Z', reasonRequired: false, capabilities: { navigation: [], pageTabs: {} } });
+    vi.spyOn(mrxApi, 'getWeeklySource').mockRejectedValue(new ApiError(404, 'Không có nguồn tuần.'));
+    vi.mocked(mrxApi.getBatchPage).mockRejectedValue(new ApiError(500, 'Không thể tải trạng thái lô.'));
+
+    renderWeeklyMenu('/weekly-menu?view=mrx-batch&customerId=customer-1&weekStartDate=2026-11-02');
+
+    expect(await screen.findByText('Không thể tải trạng thái lô.')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Nhập thực đơn Excel ngay' })).not.toBeInTheDocument();
   });
 
   it('B3: useMrxBatchWorkspace persists weeklyMenuScope when selecting customer or week so AppShell sidebar inspection links carry the active scope', async () => {

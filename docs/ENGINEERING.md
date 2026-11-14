@@ -22,6 +22,18 @@ Executable commands/settings belong to [root manifest](../package.json), [fronte
 
 The retired legacy DB/visual-audit `.mjs` entry points fail closed. Historical code and commands explain past evidence, not current execution permission. Use maintained `frontend/tests/browser` specs or the run-owned MRX evidence flow against a verified build/actor/server mode. A local mode hint or screenshot alone does not establish qualification.
 
+The root Playwright config forwards to the frontend config. From the repository root, use `npm run test:browser:loading -w frontend` for the Vite component loading fixture or `npm run test:browser:mrx-menu -w frontend` for the scoped MRX menu fixture with an explicit `IPC_REMEDIATION_BASE_URL`. Use `-- --list` to inspect discovery without launching a browser. The existing route conformance suite has its own local server and auth prerequisites. MRX campaign discovery and execution have a separate config and owner.
+
+The old `test:ui-*`, source-ownership, smoke, performance and screenshot aliases that referenced removed files have been retired. Archived plans may still mention them. Choose a maintained spec based on the assertion it provides.
+
+| Retired manual runner | Maintained coverage |
+| --- | --- |
+| `verify-batch1-live-browser` | `Approvals.test.tsx` covers filter reset, conflict and rejection draft preservation. `MealOrders.test.tsx` covers empty/error states, navigation to customer setup and absence of unsupported locking controls. |
+| `verify-mrx-matrix-and-modal-live` | `WeeklyMenu*.test.tsx` covers the workbench and scope changes. `mrx-menu-remediation.spec.ts` covers frozen facts, BOM details and keyboard focus. |
+| `verify-mrx-operational-recovery-live` | `Reconciliation.test.tsx` covers disposition failure and draft preservation, completion blockers and the no-batch path. `Warehouse.test.tsx` covers supplemental request failures. |
+
+Historical screenshots, the old seven-column matrix expectation and legacy UI action paths are evidence for their original build. The maintained tests above describe current controls and have their own assertions.
+
 Keep launch stdout/stderr and disposable output under ignored `.artifacts/` rather than at the repository root. Preserve referenced logs before retirement; the housekeeping receipt maps old root log names to the verified archive. Browser profiles are session caches, while retained design content/previews and hash-bound MRX evidence are different retention classes. Backups/receipts require OPERATIONS authority and are never pruned by a general build cleanup.
 
 ### Feature intake contract

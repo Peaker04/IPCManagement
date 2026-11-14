@@ -12,7 +12,7 @@ import { InlineBanner } from '../ui/inline-banner';
 import { WorkbenchSkeleton } from './WorkbenchSkeleton';
 import { SearchableCombobox } from '../ui/searchable-combobox';
 import { bomApi, type DishBomLine } from '../../api/bomApi';
-import { adminApi, type IngredientItem } from '../../api/adminApi';
+import { adminApi, type IngredientItem, type UnitItem } from '../../api/adminApi';
 import { weeklyMenuApi } from '../../api/weeklyMenuApi';
 import type { CustomerOption } from '../../types';
 
@@ -20,6 +20,8 @@ import { useSupportedPriceTiers } from '../../hooks/useSupportedPriceTiers';
 import { VietnameseDateInput } from '../ui/vietnamese-date-input';
 import { toVietnameseDate } from '../../utils/dates';
 import { ApiError } from '../../api/client';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { DishBomIngredientCreatePanel } from './DishBomIngredientCreatePanel';
 
 export interface DishBomEditorModalProps {
   isOpen: boolean;
@@ -40,6 +42,21 @@ export function DishBomEditorModal({
 }: DishBomEditorModalProps) {
   const [bomLines, setBomLines] = useState<DishBomLine[]>([]);
   const [ingredients, setIngredients] = useState<IngredientItem[]>([]);
+  const [ingredientSearch, setIngredientSearch] = useState('');
+  const [ingredientSearchError, setIngredientSearchError] = useState<string | null>(null);
+  const [searchRetry, setSearchRetry] = useState(0);
+  const hasSearched = useRef(false);
+  const ingredientSearchRef = useRef('');
+  const debouncedIngredientSearch = useDebouncedValue(ingredientSearch, 250);
+  const [units, setUnits] = useState<UnitItem[]>([]);
+  const [ingredientFormOpen, setIngredientFormOpen] = useState(false);
+  const [newCode, setNewCode] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newUnitId, setNewUnitId] = useState('');
+  const [newFreshDaily, setNewFreshDaily] = useState(false);
+  const [newReferencePrice, setNewReferencePrice] = useState('0');
+  const [unitError, setUnitError] = useState<string | null>(null);
+  const [ingredientOutcomeUnknown, setIngredientOutcomeUnknown] = useState(false);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,7 +79,7 @@ export function DishBomEditorModal({
   const [reloadNeeded, setReloadNeeded] = useState(false);
   const pending = useRef(false);
   const editDirty = Boolean(editingLine && (grossQty !== String(editingLine.grossQtyPerServing) || effectiveFrom || reason));
-  const formDirty = editingLine ? editDirty : grossQty !== '';
+  const formDirty = (editingLine ? editDirty : grossQty !== '') || Boolean(ingredientFormOpen && (newCode || newName || newUnitId));
   const clearForm = () => {
     setEditingLine(null);
     setGrossQty('');
@@ -88,6 +105,73 @@ export function DishBomEditorModal({
   const ingSelectId = useId();
   const qtyInputId = useId();
 
+  const loadUnits = async () => {
+    setUnitError(null);
+    try { setUnits(await adminApi.getUnits()); }
+    catch (cause) { setUnitError(cause instanceof Error ? cause.message : 'Không tải được đơn vị tính.'); }
+  };
+
+  const checkUnknownIngredient = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await adminApi.getIngredients({ searchKeyword: newCode.trim(), pageSize: 100 });
+      const existing = result.items.find(item => item.ingredientCode.toLocaleLowerCase('vi-VN') === newCode.trim().toLocaleLowerCase('vi-VN'));
+      if (existing) {
+        setIngredients(current => current.some(item => item.ingredientId === existing.ingredientId) ? current : [...current, existing]);
+        setSelectedIngredientId(existing.ingredientId);
+        setIngredientFormOpen(false);
+        setFeedback({ type: 'success', message: 'Nguyên liệu đã có trong danh mục. Nhập định mức/suất để thêm vào BOM.' });
+      } else {
+        setFeedback({ type: 'error', message: 'Chưa tìm thấy mã trong danh mục. Kiểm tra thông tin rồi lưu lại nếu cần.' });
+      }
+      setIngredientOutcomeUnknown(false);
+    } catch (cause) { setFeedback({ type: 'error', message: cause instanceof Error ? cause.message : 'Không kiểm tra được danh mục.' }); }
+    finally { setIsSubmitting(false); }
+  };
+
+  const handleCreateIngredient = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (pending.current || readOnly || reloadNeeded || !newCode.trim() || !newName.trim() || !newUnitId || unitError) return;
+    const price = Number(newReferencePrice);
+    if (!Number.isFinite(price) || price < 0) {
+      setFeedback({ type: 'error', message: 'Giá tham chiếu phải lớn hơn hoặc bằng 0.' });
+      return;
+    }
+    pending.current = true;
+    setIsSubmitting(true);
+    setFeedback(null);
+    let writeAttempted = false;
+    try {
+      const sameName = await adminApi.findActiveIngredientByNameAndUnit(newName, newUnitId);
+      if (sameName) {
+        setIngredients(current => current.some(item => item.ingredientId === sameName.ingredientId) ? current : [...current, sameName]);
+        setSelectedIngredientId(sameName.ingredientId);
+        setIngredientFormOpen(false);
+        setIngredientOutcomeUnknown(false);
+        setFeedback({ type: 'success', message: 'Nguyên liệu đã có trong danh mục. Đã chọn để nhập định mức BOM.' });
+        return;
+      }
+      if (ingredientOutcomeUnknown) {
+        setFeedback({ type: 'error', message: 'Chưa xác định kết quả tạo nguyên liệu. Kiểm tra lại danh mục theo mã trước khi thử tạo lại.' });
+        return;
+      }
+      writeAttempted = true;
+      const created = await adminApi.createIngredient({ ingredientCode: newCode.trim(), ingredientName: newName.trim(), unitId: newUnitId, isFreshDaily: newFreshDaily, referencePrice: price });
+      setIngredients(current => [...current, created]);
+      setSelectedIngredientId(created.ingredientId);
+      setIngredientFormOpen(false);
+      setNewCode(''); setNewName(''); setNewUnitId(''); setNewReferencePrice('0'); setNewFreshDaily(false);
+      setFeedback({ type: 'success', message: 'Đã tạo nguyên liệu. Nhập định mức/suất và bấm Thêm vào BOM để hoàn tất.' });
+    } catch (cause) {
+      const unknown = writeAttempted && (!(cause instanceof ApiError) || cause.status >= 500 || cause.code === 'SESSION_CHANGED');
+      if (unknown) setIngredientOutcomeUnknown(true);
+      setFeedback({ type: 'error', message: unknown ? 'Chưa xác định kết quả tạo nguyên liệu. Kiểm tra lại danh mục trước khi thử lại.' : cause instanceof Error ? cause.message : 'Không kiểm tra được danh mục nguyên liệu.' });
+    } finally {
+      pending.current = false;
+      setIsSubmitting(false);
+    }
+  };
+
   const loadData = async (dishId: string) => {
     setIsLoading(true);
     setFeedback(null);
@@ -99,7 +183,11 @@ export function DishBomEditorModal({
       ]);
       setBomLines(lines || []);
       const ingItems = ingResult?.items || [];
-      setIngredients(ingItems);
+      setIngredients(current => {
+        const selected = current.find(item => item.ingredientId === selectedIngredientId);
+        return selected && !ingItems.some(item => item.ingredientId === selected.ingredientId)
+          ? [...ingItems, selected] : ingItems;
+      });
       setCustomers(custList || []);
       if (ingItems.length > 0 && !selectedIngredientId) {
         setSelectedIngredientId(ingItems[0].ingredientId);
@@ -125,7 +213,7 @@ export function DishBomEditorModal({
       if (ignore) return;
       setBomLines(lines || []);
       const ingItems = ingResult?.items || [];
-      setIngredients(ingItems);
+      if (!ingredientSearchRef.current.trim()) setIngredients(ingItems);
       setCustomers(custList || []);
       setSelectedIngredientId((current) => current || ingItems[0]?.ingredientId || '');
     }).catch((cause: unknown) => {
@@ -138,6 +226,23 @@ export function DishBomEditorModal({
     });
     return () => { ignore = true; };
   }, [dish?.dishId, isOpen, readOnly]);
+
+  useEffect(() => {
+    if (!isOpen || readOnly || (!debouncedIngredientSearch.trim() && !hasSearched.current)) return;
+    let ignore = false;
+    setIngredientSearchError(null);
+    adminApi.getIngredients({ searchKeyword: debouncedIngredientSearch.trim() || undefined, pageSize: 100 })
+      .then(result => {
+        if (ignore) return;
+        setIngredients(current => {
+          const selected = current.find(item => item.ingredientId === selectedIngredientId);
+          return selected && !result.items.some(item => item.ingredientId === selected.ingredientId)
+            ? [...result.items, selected] : result.items;
+        });
+      })
+      .catch(cause => { if (!ignore) setIngredientSearchError(cause instanceof Error ? cause.message : 'Không tìm được nguyên liệu.'); });
+    return () => { ignore = true; };
+  }, [debouncedIngredientSearch, isOpen, readOnly, searchRetry, selectedIngredientId]);
 
   const handleAddLine = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,6 +339,10 @@ export function DishBomEditorModal({
       onClose={() => {
         if (isSubmitting) return;
         clearForm();
+        setIngredientFormOpen(false);
+        setIngredientSearch('');
+        ingredientSearchRef.current = '';
+        hasSearched.current = false;
         onClose();
       }}
       title={`Định mức BOM: ${dish.dishName}`}
@@ -394,6 +503,11 @@ export function DishBomEditorModal({
           )}
         </div>
 
+        {!readOnly && !editingLine && <DishBomIngredientCreatePanel
+          state={{ open: ingredientFormOpen, code: newCode, name: newName, unitId: newUnitId, referencePrice: newReferencePrice, freshDaily: newFreshDaily, units, unitError, searchError: ingredientSearchError, outcomeUnknown: ingredientOutcomeUnknown, busy: isSubmitting, reloadNeeded }}
+          actions={{ toggle: () => { setIngredientFormOpen(value => !value); if (!ingredientFormOpen && units.length === 0) void loadUnits(); }, retryUnits: () => void loadUnits(), retrySearch: () => setSearchRetry(value => value + 1), checkUnknown: () => void checkUnknownIngredient(), setCode: setNewCode, setName: setNewName, setUnitId: setNewUnitId, setReferencePrice: setNewReferencePrice, setFreshDaily: setNewFreshDaily }}
+          onSubmit={handleCreateIngredient}
+        />}
         {/* Form add new ingredient into BOM using SearchableCombobox */}
         {!readOnly && <form onSubmit={handleAddLine} className="p-3 bg-slate-50 border border-slate-200 rounded space-y-3">
           <div className="text-xs font-semibold text-slate-800 flex items-center justify-between">
@@ -416,6 +530,7 @@ export function DishBomEditorModal({
                 aria-label="Chọn nguyên liệu"
                 value={selectedIngredientId}
                 onChange={setSelectedIngredientId}
+                onSearchChange={value => { ingredientSearchRef.current = value; if (value.trim()) hasSearched.current = true; setIngredientSearch(value); }}
                 options={ingredients.map((ing) => ({
                   value: ing.ingredientId,
                   label: ing.ingredientName,

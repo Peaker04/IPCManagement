@@ -579,7 +579,7 @@ public sealed class MrxSourceChangeApplierTests
             await issueContext.SaveChangesAsync();
         }
 
-        public static async Task<Scenario> CreateAsync()
+        public static async Task<Scenario> CreateAsync(string batchStatus = "IN_PROGRESS", bool initialIssue = true)
         {
             var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
             await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -633,7 +633,7 @@ public sealed class MrxSourceChangeApplierTests
             var batch = new ReconciliationBatch
             {
                 BatchId = GuidHelper.NewId(), MenuVersionId = baseVersion.MenuVersionId, QuantityImportBatchId = batchImportId,
-                Status = "IN_PROGRESS", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow
+                Status = batchStatus, Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow
             };
             var batchLine = new ReconciliationBatchLine
             {
@@ -684,8 +684,11 @@ public sealed class MrxSourceChangeApplierTests
                 BaseVersion = baseVersion, LockedPlanLine = lockedPlanLine, OpenPlanLine = openPlanLine, OpenMenuId = openMenu.MenuId,
                 ManagerId = manager.UserId, CoordinatorId = coordinator.UserId
             };
-            context.Inventoryissues.Add(NewIssue(scenario, LockedDay, "ISS-MRX-0615"));
-            await context.SaveChangesAsync();
+            if (initialIssue)
+            {
+                context.Inventoryissues.Add(NewIssue(scenario, LockedDay, "ISS-MRX-0615"));
+                await context.SaveChangesAsync();
+            }
             context.ChangeTracker.Clear();
             return scenario;
         }

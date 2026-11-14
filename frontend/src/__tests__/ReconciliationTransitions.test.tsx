@@ -1,3 +1,4 @@
+import { renderReconciliation } from '../test/renderReconciliation';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -22,18 +23,6 @@ async function selectReviewBatch(batchId: string) {
   const select = await screen.findByRole('combobox', { name: 'Chọn lô đối soát' });
   await waitFor(() => expect(select).toBeEnabled());
   await userEvent.selectOptions(select, batchId);
-}
-
-function renderReconciliation(initialEntry = '/reconciliation') {
-  return render(
-    <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/reconciliation" element={<ReconciliationPage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
 }
 
 describe('Reconciliation transitions and reports', () => {

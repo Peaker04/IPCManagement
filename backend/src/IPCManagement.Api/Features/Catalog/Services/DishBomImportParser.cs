@@ -54,9 +54,14 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             .Where(group => group.Count() > 1)
             .Select(group => group.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var usedIngredientCodes = ingredientList
-            .Select(item => item.IngredientCode.Trim())
+        var allIngredientCodes = await context.Ingredients
+            .AsNoTracking()
+            .Select(item => item.IngredientCode)
+            .ToListAsync(cancellationToken);
+        var usedIngredientCodes = allIngredientCodes
+            .Select(code => code.Trim())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var generatedIngredientCodesByNameUnit = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var hasWarehouse = await context.Warehouses
             .AsNoTracking()
             .AnyAsync(cancellationToken);
@@ -187,7 +192,12 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
                 }
                 else
                 {
-                    ingredientCode = CreateUniqueIngredientCode(ingredientName, usedIngredientCodes);
+                    var nameUnitKey = NormalizeIngredientLookupKey(ingredientName, unit.UnitCode);
+                    if (!generatedIngredientCodesByNameUnit.TryGetValue(nameUnitKey, out ingredientCode))
+                    {
+                        ingredientCode = CreateUniqueIngredientCode(ingredientName, usedIngredientCodes);
+                        generatedIngredientCodesByNameUnit.Add(nameUnitKey, ingredientCode);
+                    }
                     warnings.Add($"Nguyên liệu mới sẽ được tạo khi xác nhận nhập: {ingredientCode}.");
                 }
             }
@@ -252,13 +262,24 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             var action = "create";
             if (dish is not null && ingredient is not null && unit is not null)
             {
-                var overlap = existingLines.FirstOrDefault(line =>
+                var overlaps = existingLines.Where(line =>
                     line.DishId.SequenceEqual(dish.DishId) &&
                     line.IngredientId.SequenceEqual(ingredient.IngredientId) &&
                     line.UnitId.SequenceEqual(unit.UnitId) &&
                     line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
-                    (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom));
-                action = overlap is null ? "create" : overlap.EffectiveFrom == effectiveFrom ? "update" : "version";
+                    (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom)).ToList();
+                if (overlaps.Count(line => line.EffectiveFrom == effectiveFrom) > 1)
+                    errors.Add("Có nhiều dòng BOM cùng ngày hiệu lực; hãy xử lý dữ liệu trùng trước khi nhập lại.");
+                var overlap = overlaps.OrderByDescending(line => line.EffectiveFrom).FirstOrDefault();
+                if (overlap is not null && overlap.EffectiveFrom == effectiveFrom && DishBomPolicy.IsPublished(overlap))
+                {
+                    if (status != DishBomPolicy.Published ||
+                        overlap.GrossQtyPerServing != DecimalPolicy.RoundQuantity(grossQty) ||
+                        overlap.WasteRatePercent != wasteRate || overlap.EffectiveTo != effectiveTo)
+                        errors.Add("Dòng BOM đã xuất bản không được ghi đè cùng ngày hiệu lực; hãy chỉnh sửa bằng phiên bản có ngày hiệu lực mới.");
+                    else action = "skip";
+                }
+                else action = overlap is null ? "create" : overlap.EffectiveFrom == effectiveFrom ? "update" : "version";
             }
 
             result.Add(new BomImportRow(

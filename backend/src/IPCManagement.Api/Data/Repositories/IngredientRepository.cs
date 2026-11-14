@@ -31,6 +31,11 @@ public class IngredientRepository : GenericRepository<Ingredient>, IIngredientRe
             .Where(i => i.WarehouseId == warehouseId && i.IsActive != false)
             .ToListAsync();
 
+    public async Task<IReadOnlyList<Ingredient>> GetActiveByUnitAsync(byte[] unitId)
+        => await _dbSet.AsNoTracking()
+            .Where(i => i.UnitId == unitId && i.IsActive != false)
+            .ToListAsync();
+
     public override async Task<(IEnumerable<Ingredient> Items, int TotalCount)> GetPagedAsync(
         int pageNumber, int pageSize, string? searchKeyword = null)
     {

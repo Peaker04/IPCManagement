@@ -74,7 +74,9 @@ internal sealed class MrxMenuAmendmentCoordinator(
             ?? throw new KeyNotFoundException("Không tìm thấy yêu cầu thay đổi thực đơn.");
         try
         {
-            return await gateway.ApplyAsync(pending, actorId, actorRoles, "APPROVED_REQUEST", null, cancellationToken);
+            var applyMode = ReadImpact(pending.ImpactSnapshotJson).SourceChangeMode == "REIMPORT"
+                ? "REIMPORT" : "APPROVED_REQUEST";
+            return await gateway.ApplyAsync(pending, actorId, actorRoles, applyMode, null, cancellationToken);
         }
         catch (MrxSourceChangeException error) when (error.Code == MrxErrorCodes.DayLocked)
         {
@@ -115,7 +117,8 @@ internal sealed class MrxMenuAmendmentCoordinator(
         return gateway.PreviewAsync(request, cancellationToken);
     }
 
-    public async Task<MenuAmendmentResultDto> SubmitMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
+    public async Task<MenuAmendmentResultDto> SubmitMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId,
+        CancellationToken cancellationToken = default, string? sourceChangeMode = null)
     {
         RequireMrxBaseVersion(request);
         var actorId = GuidHelper.ParseGuidString(actorUserId) ?? throw new UnauthorizedAccessException("Không xác định được người tạo thay đổi thực đơn.");
@@ -128,6 +131,7 @@ internal sealed class MrxMenuAmendmentCoordinator(
         {
             MenuAmendmentId = GuidHelper.ToGuidString(amendmentId),
             Status = "PENDING_REVIEW",
+            SourceChangeMode = sourceChangeMode,
             RequiresReconciliation = false,
             AffectedReconciliationBatchIds = preview.AffectedReconciliationBatchIds,
             ImpactLines = preview.ImpactLines,

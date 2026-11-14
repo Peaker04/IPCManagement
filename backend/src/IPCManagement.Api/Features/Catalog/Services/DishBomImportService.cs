@@ -66,6 +66,12 @@ public sealed class DishBomImportService : IDishBomImportService
                 var updated = 0;
                 var archived = 0;
                 var importedIngredients = new Dictionary<string, Ingredient>(StringComparer.OrdinalIgnoreCase);
+                foreach (var unitId in validRows
+                    .Where(row => row.Ingredient is null)
+                    .Select(row => row.Unit!.UnitId)
+                    .DistinctBy(key => Convert.ToHexString(key))
+                    .OrderBy(key => Convert.ToHexString(key)))
+                    await IngredientUnitLock.AcquireAsync(_context, unitId, token);
                 foreach (var row in validRows)
                 {
                     var effectiveFrom = row.EffectiveFrom;
@@ -73,7 +79,7 @@ public sealed class DishBomImportService : IDishBomImportService
                     var status = DishBomPolicy.NormalizeStatus(row.BomStatus);
                     var ingredient = row.Ingredient ?? await CreateImportedIngredientAsync(row, importedIngredients, token);
                     var unit = row.Unit!;
-                    var existing = await _context.Dishboms
+                    var overlaps = await _context.Dishboms
                         .Include(line => line.Ingredient)
                         .Include(line => line.Unit)
                         .Where(line =>
@@ -87,18 +93,22 @@ public sealed class DishBomImportService : IDishBomImportService
                             ? line.CustomerId == null
                             : line.CustomerId != null && line.CustomerId.SequenceEqual(customerId))
                         .OrderByDescending(line => line.EffectiveFrom)
-                                .FirstOrDefaultAsync(token);
+                        .ToListAsync(token);
+                    if (overlaps.Count(line => line.EffectiveFrom == effectiveFrom) > 1)
+                        throw new BusinessRuleException("Có nhiều dòng BOM cùng ngày hiệu lực; hãy xử lý dữ liệu trùng trước khi nhập lại.");
+                    var existing = overlaps.FirstOrDefault();
 
-                    if (existing is not null && DishBomPolicy.IsPublished(existing))
+                    if (existing is not null && existing.EffectiveFrom == effectiveFrom)
                     {
-                        if (existing.EffectiveFrom < effectiveFrom &&
-                            (existing.EffectiveTo is null || existing.EffectiveTo >= effectiveFrom))
+                        if (DishBomPolicy.IsPublished(existing))
                         {
-                            existing.EffectiveTo = effectiveFrom.AddDays(-1);
-                            archived++;
+                            if (status != DishBomPolicy.Published ||
+                                existing.GrossQtyPerServing != DecimalPolicy.RoundQuantity(row.GrossQtyPerServing) ||
+                                existing.WasteRatePercent != row.WasteRatePercent || existing.EffectiveTo != effectiveTo)
+                                throw new BusinessRuleException("Dòng BOM đã xuất bản đã thay đổi kể từ khi xem trước; hãy tải lại và tạo phiên bản có ngày hiệu lực mới.");
+                            continue;
                         }
-
-                        if (existing.EffectiveFrom == effectiveFrom)
+                        if (DishBomPolicy.NormalizeStatus(existing.BomStatus) == DishBomPolicy.Draft)
                         {
                             var oldGross = existing.GrossQtyPerServing;
                             var oldWaste = existing.WasteRatePercent;
@@ -117,6 +127,13 @@ public sealed class DishBomImportService : IDishBomImportService
                             updated++;
                             continue;
                         }
+                    }
+                    if (existing is not null && DishBomPolicy.IsPublished(existing) && status == DishBomPolicy.Published &&
+                        existing.EffectiveFrom < effectiveFrom &&
+                        (existing.EffectiveTo is null || existing.EffectiveTo >= effectiveFrom))
+                    {
+                        existing.EffectiveTo = effectiveFrom.AddDays(-1);
+                        archived++;
                     }
 
                     _context.Dishboms.Add(new DishBom
@@ -316,9 +333,22 @@ public sealed class DishBomImportService : IDishBomImportService
             .FirstOrDefaultAsync(item => item.IngredientCode == row.IngredientCode, cancellationToken);
         if (existingIngredient is not null)
         {
+            if (!(existingIngredient.IsActive ?? true) ||
+                !existingIngredient.UnitId.AsSpan().SequenceEqual(row.Unit!.UnitId) ||
+                !string.Equals(existingIngredient.IngredientName.Trim(), row.IngredientName.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BusinessRuleException($"Mã nguyên liệu '{row.IngredientCode}' đã được dùng cho nguyên liệu khác. Hãy xem trước lại file BOM.");
+            }
             importedIngredients[row.IngredientCode] = existingIngredient;
             return existingIngredient;
         }
+
+        var sameUnit = await _context.Ingredients.AsNoTracking()
+            .Where(item => item.UnitId == row.Unit!.UnitId && item.IsActive != false)
+            .Select(item => new { item.IngredientCode, item.IngredientName })
+            .ToListAsync(cancellationToken);
+        if (sameUnit.Any(item => string.Equals(item.IngredientName.Trim(), row.IngredientName.Trim(), StringComparison.OrdinalIgnoreCase)))
+            throw new BusinessRuleException($"Nguyên liệu '{row.IngredientName}' đã được tạo với mã khác kể từ khi xem trước. Hãy xem trước lại file BOM.");
 
         var warehouseId = await _operationalWarehouseResolver.ResolveAsync(cancellationToken);
 

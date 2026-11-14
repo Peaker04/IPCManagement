@@ -1,3 +1,4 @@
+import { renderReconciliation } from '../test/renderReconciliation';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -32,18 +33,6 @@ async function selectReviewBatch(batchId: string) {
   const select = await screen.findByRole('combobox', { name: 'Chọn lô đối soát' });
   await waitFor(() => expect(select).toBeEnabled());
   await userEvent.selectOptions(select, batchId);
-}
-
-function renderReconciliation(initialEntry = '/reconciliation') {
-  return render(
-    <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/reconciliation" element={<ReconciliationPage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
 }
 
 describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', () => {
@@ -325,12 +314,15 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     expect(screen.queryByRole('button', { name: 'Lưu hướng xử lý' })).not.toBeInTheDocument();
   });
 
-  it('surfaces 409 conflict inside disposition modal when version is stale', async () => {
+  it.each([
+    [409, 'Hướng xử lý theo ngày đã thay đổi.'],
+    [500, 'Không thể lưu hướng xử lý.'],
+  ])('preserves the disposition draft and displays HTTP %i failure', async (status, message) => {
     vi.spyOn(mrxApi, 'getDispositionCategories').mockResolvedValue([
       { value: 'ACCEPTED_VARIANCE', label: 'Chấp nhận sai lệch' },
     ]);
     vi.spyOn(mrxApi, 'setDailyDisposition').mockRejectedValueOnce(
-      new ApiError(409, 'Hướng xử lý theo ngày đã thay đổi.')
+      new ApiError(status, message)
     );
 
     renderReconciliation();
@@ -349,7 +341,8 @@ describe('Reconciliation Feature (FR-RECON — Đối soát nguyên liệu)', ()
     const saveBtn = screen.getByRole('button', { name: 'Lưu hướng xử lý' });
     await userEvent.click(saveBtn);
 
-    expect(await screen.findByText('Hướng xử lý theo ngày đã thay đổi.')).toBeInTheDocument();
+    expect(await within(screen.getByRole('dialog')).findByText(message)).toBeInTheDocument();
+    expect(reasonInput).toHaveValue('Lý do xung đột');
   });
 
   it('shows under-issued lines as Warehouse work, never a Manager waiver', async () => {

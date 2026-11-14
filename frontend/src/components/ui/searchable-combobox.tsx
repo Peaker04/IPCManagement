@@ -16,6 +16,7 @@ export interface SearchableComboboxProps {
   options: ComboboxOption[];
   value: string;
   onChange: (value: string) => void;
+  onSearchChange?: (search: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -30,6 +31,7 @@ export function SearchableCombobox({
   options = [],
   value,
   onChange,
+  onSearchChange,
   placeholder = 'Tìm kiếm hoặc chọn...',
   disabled = false,
   className,
@@ -87,6 +89,7 @@ export function SearchableCombobox({
 
   const handleSelect = (val: string) => {
     onChange(val);
+    onSearchChange?.('');
     setIsOpen(false);
     setSearchTerm('');
     setActiveValue(null);
@@ -136,6 +139,7 @@ export function SearchableCombobox({
           value={isOpen ? searchTerm : selectedOption ? selectedOption.label : ''}
           onChange={(e) => {
             setSearchTerm(e.target.value);
+            onSearchChange?.(e.target.value);
             if (!isOpen) setIsOpen(true);
           }}
           onFocus={() => {
@@ -158,6 +162,7 @@ export function SearchableCombobox({
               onClick={(e) => {
                 e.stopPropagation();
                 setSearchTerm('');
+                onSearchChange?.('');
                 inputRef.current?.focus();
               }}
             >

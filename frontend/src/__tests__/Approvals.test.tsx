@@ -67,6 +67,20 @@ describe('Approvals Feature (FR-APPR — Hàng đợi phê duyệt)', () => {
     expect(screen.queryByText(/SLA khẩn:|Đã duyệt hôm nay:/i)).not.toBeInTheDocument();
   });
 
+  it('restores the populated inbox when clearing an empty type filter', async () => {
+    renderApprovals();
+    const title = MOCK_APPROVALS[0].title;
+    await screen.findByRole('row', { name: new RegExp(title) });
+
+    await userEvent.click(screen.getByRole('tab', { name: /Đơn mua hàng PO/i }));
+    const reset = await screen.findByRole('button', { name: 'Xóa bộ lọc (Xem tất cả hồ sơ)' });
+    expect(screen.queryByRole('row', { name: new RegExp(title) })).not.toBeInTheDocument();
+
+    await userEvent.click(reset);
+    expect(screen.getByRole('tab', { name: /Tất cả yêu cầu/i })).toHaveAttribute('aria-selected', 'true');
+    expect(await screen.findByRole('row', { name: new RegExp(title) })).toBeInTheDocument();
+  });
+
   it('renders SplitView with Master Queue (Left) and Detail Decision Drawer (Right) with ZERO <details> tags', async () => {
     const { container } = renderApprovals();
 

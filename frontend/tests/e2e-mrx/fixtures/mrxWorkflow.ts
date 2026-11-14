@@ -52,7 +52,7 @@ export async function captureStationUI(page: Page, name: string, width: number, 
   fs.writeFileSync(`${file}.json`, JSON.stringify({ geometry, keyboard: 'Tab/Shift+Tab returned to control', control: await control.innerText() }, null, 2));
 }
 
-export async function createTransferredBatch(pages: { coordinator: Page; admin: Page; recordSteps?: boolean; afterTransfer?: () => Promise<void>; sourceScenario?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void>; sourceAccepted?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void> }, scope: MrxScenarioScope, auditUI = false): Promise<{ batchId: string; menuVersionId: string }> {
+export async function createTransferredBatch(pages: { coordinator: Page; admin: Page; recordSteps?: boolean; stopAtDraft?: boolean; afterPublish?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void>; afterTransfer?: () => Promise<void>; sourceScenario?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void>; sourceAccepted?: (coordinator: Page, scope: MrxScenarioScope) => Promise<void> }, scope: MrxScenarioScope, auditUI = false): Promise<{ batchId: string; menuVersionId: string }> {
   const { coordinator, admin } = pages;
   // Golden opts in explicitly; shared setup must not instrument memory/endurance measurements.
   const step: typeof evidenceStep = pages.recordSteps ? evidenceStep : async (page, _scope, _name, _role, action) => {
@@ -111,6 +111,7 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
     await publish.click();
     await expect(publish).toBeHidden();
   });
+  await pages.afterPublish?.(coordinator, scope);
   const savory = coordinator.getByRole('spinbutton', { name: /Số suất Mặn/ });
   let mainDishName = '';
   if (pages.sourceScenario) {
@@ -231,6 +232,11 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   expect(result.ok()).toBe(true);
   const batchId = (await result.json()).data?.reconciliationBatchId as string;
   expect(batchId).toBeTruthy();
+  if (pages.stopAtDraft) {
+    const menuVersionId = quantityPreview!.request().postDataJSON().menuVersionId as string;
+    expect(menuVersionId).toBeTruthy();
+    return { batchId, menuVersionId };
+  }
   for (const [action, label] of [['ready', 'Đóng băng lô'], ['transfer-to-warehouse', 'Chuyển sang Kho']]) {
     await step(coordinator, scope, `source-${action}`, 'COORDINATOR', async () => {
       const response = coordinator.waitForResponse((item) => item.url().endsWith(`/api/reconciliation/batches/${batchId}/${action}`) && item.request().method() === 'POST');
@@ -265,11 +271,12 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
       await expect(control).toBeInViewport({ ratio: 1 });
       await control.click({ trial: true });
     }
-    for (const name of ['Món & BOM đã đóng băng', 'Nhập Excel', 'Chỉnh sửa món']) {
+    for (const name of ['Món & BOM đã đóng băng', 'Nhập thực đơn mới', 'Chỉnh sửa món']) {
       const control = coordinator.getByRole('button', { name, exact: true });
       await expect(control).toBeInViewport({ ratio: 1 });
       await control.click({ trial: true });
     }
+    await expect(coordinator.getByRole('button', { name: 'Nhập Excel', exact: true })).toHaveCount(0);
     await expect(coordinator.getByRole('combobox', { name: 'Chọn khách hàng MRX' })).toBeInViewport({ ratio: 1 });
     await expect(coordinator.getByLabel('Tuần MRX bắt đầu', { exact: true })).toBeInViewport({ ratio: 1 });
     desktopMeasurements.push(measurement);
@@ -286,9 +293,9 @@ export async function createTransferredBatch(pages: { coordinator: Page; admin: 
   return { batchId, menuVersionId };
 }
 
-export function writeBomImportWorkbook(file: string, rows: { dishCode: string; ingredientCode: string; unitCode: string; quantity: string; status: string; date: string; note: string }[]): void {
+export function writeBomImportWorkbook(file: string, rows: { dishCode: string; ingredientCode: string; ingredientName?: string; unitCode: string; quantity: string; status: string; date: string; note: string }[]): void {
   const headers = ['Mã món', 'Tên món', 'Mức giá', 'Khách hàng', 'Tên nguyên liệu', 'Đơn vị', 'Định lượng/suất', 'Hao hụt (%)', 'Hiệu lực từ', 'Hiệu lực đến', 'Trạng thái', 'Ghi chú', 'Mã nguyên liệu'];
-  const values = rows.map(row => [row.dishCode, '', 25000, '', '', row.unitCode, Number(row.quantity), 0, row.date, row.date, row.status, row.note, row.ingredientCode]);
+  const values = rows.map(row => [row.dishCode, '', 25000, '', row.ingredientName ?? '', row.unitCode, Number(row.quantity), 0, row.date, row.date, row.status, row.note, row.ingredientCode]);
   if (values.some(row => !Number.isFinite(row[6]) || Number(row[6]) <= 0)) throw new Error('BOM fixture requires a positive finite quantity.');
   const escape = (value: unknown) => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const sheet = '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + [headers, ...values].map((row, index) =>
