@@ -1,14 +1,12 @@
-import { RouteWorkbenchLoadingFallback } from '../routes/RouteWorkbenchLoadingFallback';
+import { renderWeeklyMenu } from '../test/renderWeeklyMenu';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { act, render, renderHook, screen, waitFor, within } from '@testing-library/react';
 import { useWeeklyMenuImportItems } from '../features/weekly-menu/hooks/useWeeklyMenuImportItems';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useLocation, createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { WeeklyMenuPage } from '../features/weekly-menu/WeeklyMenuPage';
-import { ForbiddenPage } from '../features/auth/ForbiddenPage';
 import { AuthProvider } from '../store/authContext';
-import { isRouteEligible, resolveEligibleNavigation } from '../routes/navigationEligibility';
-import { AppShell } from '../components/workbench/AppShell';
+import { isRouteEligible } from '../routes/navigationEligibility';
 import { DirtyNavigationProvider } from '../components/workbench/DirtyNavigation';
 import { CANONICAL_ROUTES } from '../routes/routeRegistry';
 import { weeklyMenuApi, type RawWeeklyMenuResponse } from '../api/weeklyMenuApi';
@@ -20,11 +18,6 @@ import { bomApi } from '../api/bomApi';
 import { ApiError } from '../api/client';
 import * as apiTransport from '../api/client';
 import { workspaceSessionStore } from '../store/workspaceSessionStore';
-
-function LocationProbe() {
-  const location = useLocation();
-  return <div>{`${location.pathname}${location.search}`}</div>;
-}
 
 function mrxChangeResult(overrides: Partial<MrxMenuChangeResult>): MrxMenuChangeResult {
   return {
@@ -45,23 +38,6 @@ function mrxChangeResult(overrides: Partial<MrxMenuChangeResult>): MrxMenuChange
     status: 'PREVIEW',
     ...overrides,
   };
-}
-
-function renderWeeklyMenu(initialEntry = '/weekly-menu', withShell = false) {
-  const content = <Routes>
-    <Route path="/weekly-menu" element={<WeeklyMenuPage />} />
-    <Route path="/forbidden" element={<ForbiddenPage />} />
-    <Route path="/warehouse" element={<LocationProbe />} />
-  </Routes>;
-  return render(
-    <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <DirtyNavigationProvider>{withShell
-          ? <AppShell loadingFallback={<RouteWorkbenchLoadingFallback />} navigation={resolveEligibleNavigation(CANONICAL_ROUTES, JSON.parse(localStorage.getItem('ipc_v3_user')!), 'MATERIAL_RECONCILIATION')}>{content}</AppShell>
-          : content}</DirtyNavigationProvider>
-      </MemoryRouter>
-    </AuthProvider>
-  );
 }
 
 describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () => {
@@ -572,6 +548,10 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     await userEvent.click(await screen.findByRole('button', { name: 'Lưu & kiểm tra định lượng' }));
 
     expect(await screen.findByText('Món Canh bí đỏ chưa có định mức nguyên liệu.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mở món thiếu BOM →' })).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Nhập BOM Excel cho các món thiếu' }));
+    expect(await screen.findByText(/Với nguyên liệu mới, để trống mã nguyên liệu/)).toBeVisible();
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng' }));
     expect(screen.getByLabelText('Bảng sửa nguồn MRX')).toBeInTheDocument();
     expect(screen.getAllByText('Canh bí đỏ').length).toBeGreaterThan(0);
     expect(screen.queryByText('Tóm tắt định lượng và nguyên liệu')).not.toBeInTheDocument();
@@ -797,6 +777,25 @@ describe('Weekly Menu Feature (FR-MENU — 4 Views Zero AI-Slop Workbench)', () 
     act(() => result.current.updateItem(id, { weekStartDate: '2026-11-30' }));
     expect(result.current.items[0].weekMode).toBe('manual');
     expect(result.current.items[0].weekStartDate).toBe('2026-11-30');
+  });
+
+  it('keeps the selected file and clears current-week preview when its MRX batch closes', async () => {
+    const selectedFile = new File(['menu'], 'week.xlsx');
+    const { result, rerender } = renderHook(({ blockedScope }) => useWeeklyMenuImportItems(
+      { customerId: 'customer-1', weekStartDate: '2026-11-23', scopeIntent: 'current-week' }, [25000], blockedScope),
+      { initialProps: { blockedScope: undefined as { customerId: string; weekStartDate: string } | undefined } });
+    const id = result.current.items[0].id;
+    act(() => result.current.addFiles([selectedFile]));
+
+    rerender({ blockedScope: { customerId: 'customer-1', weekStartDate: '2026-11-23' } });
+
+    await waitFor(() => expect(result.current.items[0].weekStartDate).toBe(''));
+    expect(result.current.items[0].file).toBe(selectedFile);
+    expect(result.current.items[0].weekMode).toBe('manual');
+    act(() => result.current.updateItem(id, { weekStartDate: '2026-11-23', priceTierAmount: 25000 }));
+    expect(result.current.validScope(result.current.items[0])).toBe(false);
+    act(() => result.current.updateItem(id, { weekStartDate: '2026-11-30' }));
+    expect(result.current.validScope(result.current.items[0])).toBe(true);
   });
 
   it('loads retained normalized source from import history without reactivating it', async () => {

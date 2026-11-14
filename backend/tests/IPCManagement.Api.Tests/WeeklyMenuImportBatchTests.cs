@@ -89,10 +89,57 @@ public sealed class WeeklyMenuImportBatchTests
             .Select(row => row.MenuId).ToListAsync()).Select(Convert.ToHexString).Order().Should().Equal(ids);
     }
 
+    [Theory]
+    [InlineData("PUBLISHED")]
+    [InlineData("ACTIVE")]
+    public async Task Published_same_day_menu_can_be_reimported_only_in_mrx_before_a_batch_exists(string scheduleStatus)
+    {
+        await using var harness = await ReimportHarness.CreateAsync();
+        var context = harness.Scenario.Context;
+        var customer = new Customer
+        {
+            CustomerId = GuidHelper.NewId(), CustomerCode = "OPEN-MRX",
+            CustomerName = "Open MRX customer", IsActive = true
+        };
+        context.Customers.Add(customer);
+        await context.SaveChangesAsync();
+        var persistence = new WeeklyMenuImportPersistence(context,
+            new WeeklyMenuImportResultBuilder(context), new WeeklyMenuAuditActorResolver(context),
+            new SystemOperationRequestContext { Mode = SystemOperationEligibility.MaterialReconciliation });
+        var original = harness.Plan(harness.CurrentDishName, harness.CurrentDishName);
+        await persistence.CommitAsync(original, customer, 25000m, harness.Scenario.ManagerIdString, CancellationToken.None);
+        await context.SaveChangesAsync();
+        var schedules = await context.Menuschedules.Where(row => row.CustomerId == customer.CustomerId).ToListAsync();
+        schedules.ForEach(row => row.Status = scheduleStatus);
+        await context.SaveChangesAsync();
+
+        await persistence.CommitAsync(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName),
+            customer, 25000m, harness.Scenario.ManagerIdString, CancellationToken.None);
+        await context.SaveChangesAsync();
+
+        var updated = await context.Menuschedules.AsNoTracking().Include(row => row.Menu)
+            .ThenInclude(menu => menu.Menuitems).Where(row => row.CustomerId == customer.CustomerId).ToListAsync();
+        updated.Should().HaveCount(2);
+        updated.Should().OnlyContain(row => row.Status == "DRAFT");
+        updated.Single(row => row.ServiceDate == MrxSourceChangeApplierTests.OpenDay)
+            .Menu.Menuitems.Single().DishId.Should().Equal(harness.ReplacementDishId);
+
+        schedules.ForEach(row => row.Status = scheduleStatus);
+        await context.SaveChangesAsync();
+        var versionsBeforeDefaultAttempt = await context.Menuversions.CountAsync();
+        var defaultPersistence = new WeeklyMenuImportPersistence(context,
+            new WeeklyMenuImportResultBuilder(context), new WeeklyMenuAuditActorResolver(context));
+        var defaultAttempt = () => defaultPersistence.CommitAsync(original, customer, 25000m,
+            harness.Scenario.ManagerIdString, CancellationToken.None);
+        await defaultAttempt.Should().ThrowAsync<BusinessRuleException>().WithMessage($"*{scheduleStatus}*");
+        context.ChangeTracker.Clear();
+        (await context.Menuversions.CountAsync()).Should().Be(versionsBeforeDefaultAttempt);
+    }
+
     [Fact]
     public async Task Reimporting_identical_dishes_at_another_tier_is_rejected_without_changing_frozen_source()
     {
-        await using var harness = await ReimportHarness.CreateAsync();
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
         var context = harness.Scenario.Context;
         var versionsBefore = await context.Menuversions.CountAsync();
         var contributorsBefore = await context.Reconciliationbatchcontributors.CountAsync();
@@ -136,7 +183,7 @@ public sealed class WeeklyMenuImportBatchTests
     [Fact]
     public async Task Reimport_commit_rejects_changed_file_fingerprint_without_source_writes()
     {
-        await using var harness = await ReimportHarness.CreateAsync();
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
         var prepared = harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName));
         var before = await harness.Scenario.CountsAsync();
         prepared.Plan.SourceChecksum = "changed-after-preview";
@@ -153,7 +200,7 @@ public sealed class WeeklyMenuImportBatchTests
     [Fact]
     public async Task Reimport_preview_reports_day_outcomes()
     {
-        await using var harness = await ReimportHarness.CreateAsync();
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
 
         var preview = await harness.Service.PreviewPreparedAsync(
             harness.Plan(harness.CurrentDishName, harness.ReplacementDishName), harness.Customer, 25000m, CancellationToken.None);
@@ -161,19 +208,53 @@ public sealed class WeeklyMenuImportBatchTests
             harness.Plan(harness.ReplacementDishName, harness.CurrentDishName), harness.Customer, 25000m, CancellationToken.None);
 
         preview.MrxDayOutcomes.Should().BeEquivalentTo([
-            new MrxReimportDayDto(MrxSourceChangeApplierTests.LockedDay, "LOCKED_IDENTICAL"),
+            new MrxReimportDayDto(MrxSourceChangeApplierTests.LockedDay, "UNCHANGED"),
             new MrxReimportDayDto(MrxSourceChangeApplierTests.OpenDay, "CHANGED")
         ], options => options.WithStrictOrdering());
         lockedConflict.MrxDayOutcomes.Should().BeEquivalentTo([
-            new MrxReimportDayDto(MrxSourceChangeApplierTests.LockedDay, "LOCKED_CONFLICT"),
+            new MrxReimportDayDto(MrxSourceChangeApplierTests.LockedDay, "CHANGED"),
             new MrxReimportDayDto(MrxSourceChangeApplierTests.OpenDay, "UNCHANGED")
         ], options => options.WithStrictOrdering());
     }
 
     [Fact]
+    public async Task Reimport_preview_rejects_a_new_dish_before_commit_without_server_error()
+    {
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
+        var versionsBefore = await harness.Scenario.Context.Menuversions.CountAsync();
+
+        var preview = () => harness.Service.PreviewPreparedAsync(
+            harness.Plan(harness.CurrentDishName, "Món chưa có trong danh mục"),
+            harness.Customer, 25000m, CancellationToken.None);
+
+        await preview.Should().ThrowAsync<BusinessRuleException>()
+            .WithMessage("*món*chưa có*danh mục*");
+        (await harness.Scenario.Context.Menuversions.CountAsync()).Should().Be(versionsBefore);
+    }
+
+    [Theory]
+    [InlineData("READY", false)]
+    [InlineData("TRANSFERRED", false)]
+    [InlineData("IN_PROGRESS", true)]
+    [InlineData("COMPLETED", true)]
+    [InlineData("DRAFT", true)]
+    public async Task Closed_batch_rejects_file_preview_even_when_menu_is_identical(string status, bool hasIssue)
+    {
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: status, initialIssue: hasIssue);
+        var before = await harness.Scenario.CountsAsync();
+
+        var preview = () => harness.Service.PreviewPreparedAsync(
+            harness.Plan(harness.CurrentDishName, harness.CurrentDishName),
+            harness.Customer, 25000m, CancellationToken.None);
+
+        (await preview.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be("MRX_REIMPORT_CLOSED");
+        (await harness.Scenario.CountsAsync()).Should().Be(before);
+    }
+
+    [Fact]
     public async Task Reimporting_identical_merged_cells_preserves_continuation_slots()
     {
-        await using var harness = await ReimportHarness.CreateAsync();
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
         await harness.AddMergedContinuationAsync();
 
         var preview = await harness.Service.PreviewPreparedAsync(
@@ -183,7 +264,7 @@ public sealed class WeeklyMenuImportBatchTests
             CancellationToken.None);
 
         preview.MrxDayOutcomes.Should().BeEquivalentTo([
-            new MrxReimportDayDto(MrxSourceChangeApplierTests.LockedDay, "LOCKED_IDENTICAL"),
+            new MrxReimportDayDto(MrxSourceChangeApplierTests.LockedDay, "UNCHANGED"),
             new MrxReimportDayDto(MrxSourceChangeApplierTests.OpenDay, "UNCHANGED")
         ], options => options.WithStrictOrdering());
     }
@@ -191,7 +272,7 @@ public sealed class WeeklyMenuImportBatchTests
     [Fact]
     public async Task Committed_import_persists_deterministic_normalized_source_snapshot()
     {
-        await using var harness = await ReimportHarness.CreateAsync();
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
 
         var result = await harness.Service.CommitPreparedSingleAsync(
             harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName)),
@@ -223,17 +304,18 @@ public sealed class WeeklyMenuImportBatchTests
     }
 
     [Fact]
-    public async Task Reimport_identical_locked_day_is_skipped()
+    public async Task Reimport_is_rejected_after_first_issue_even_when_issued_day_is_identical()
     {
         await using var harness = await ReimportHarness.CreateAsync();
 
-        await harness.Service.CommitPreparedSingleAsync(
+        var commit = () => harness.Service.CommitPreparedSingleAsync(
             harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName)),
             harness.Scenario.ManagerIdString, ["Quản lý"], CancellationToken.None);
 
+        (await commit.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.ReimportClosed);
+
         await using var verify = harness.Scenario.Fixture.CreateContext();
-        (await verify.Reconciliationsourcedeltas.AsNoTracking().ToListAsync())
-            .Should().OnlyContain(item => item.ServiceDate == MrxSourceChangeApplierTests.OpenDay);
+        (await verify.Reconciliationsourcedeltas.AsNoTracking().CountAsync()).Should().Be(0);
         (await verify.Reconciliationbatchdailylines.AsNoTracking()
             .SingleAsync(item => item.DailyLineId == harness.Scenario.LockedDaily.DailyLineId)).Version.Should().Be(1);
     }
@@ -248,7 +330,7 @@ public sealed class WeeklyMenuImportBatchTests
             harness.Prepared(harness.Plan(harness.ReplacementDishName, harness.CurrentDishName)),
             harness.Scenario.ManagerIdString, ["Quản lý"], CancellationToken.None);
 
-        (await action.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.DayLocked);
+        (await action.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.ReimportClosed);
         harness.Scenario.Context.ChangeTracker.Clear();
         (await harness.Scenario.Context.Menuversions.CountAsync()).Should().Be(beforeVersions);
         (await harness.Scenario.Context.Menuamendments.CountAsync()).Should().Be(0);
@@ -257,7 +339,7 @@ public sealed class WeeklyMenuImportBatchTests
     [Fact]
     public async Task Coordinator_reimport_creates_pending_request()
     {
-        await using var harness = await ReimportHarness.CreateAsync();
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
 
         var result = await harness.Service.CommitPreparedSingleAsync(
             harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName)),
@@ -268,12 +350,67 @@ public sealed class WeeklyMenuImportBatchTests
         (await verify.Menuamendments.SingleAsync()).Status.Should().Be("PENDING_REVIEW");
         (await verify.Menuversions.CountAsync()).Should().Be(1);
         (await verify.Reconciliationsourcerevisions.CountAsync()).Should().Be(0);
+
+        var approved = await new MenuAmendmentService(verify).DecideMrxAsync(
+            result.MrxSourceChange.MenuAmendmentId,
+            new ReviewMenuAmendmentRequest { Approved = true },
+            harness.Scenario.ManagerIdString, ["Quản lý"], CancellationToken.None);
+        approved.Status.Should().Be("EXECUTED");
+        await using var afterApproval = harness.Scenario.Fixture.CreateContext();
+        (await afterApproval.Reconciliationsourcerevisions.SingleAsync()).ApplyMode.Should().Be(MrxSourceChangeApplier.ReimportMode);
+    }
+
+    [Fact]
+    public async Task Pending_reimport_cannot_be_approved_after_batch_becomes_ready()
+    {
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
+        var submitted = await harness.Service.CommitPreparedSingleAsync(
+            harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName)),
+            harness.Scenario.CoordinatorIdString, ["Điều phối"], CancellationToken.None);
+        await using var context = harness.Scenario.Fixture.CreateContext();
+        var batch = await context.Reconciliationbatches.SingleAsync();
+        batch.Status = "READY";
+        batch.Version++;
+        await context.SaveChangesAsync();
+        var versionsBefore = await context.Menuversions.CountAsync();
+
+        var approve = () => new MenuAmendmentService(context).DecideMrxAsync(
+            submitted.MrxSourceChange!.MenuAmendmentId,
+            new ReviewMenuAmendmentRequest { Approved = true },
+            harness.Scenario.ManagerIdString, ["Quản lý"], CancellationToken.None);
+
+        (await approve.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.ReimportClosed);
+        await using var verify = harness.Scenario.Fixture.CreateContext();
+        (await verify.Menuversions.CountAsync()).Should().Be(versionsBefore);
+        (await verify.Menuamendments.SingleAsync()).Status.Should().Be("PENDING_REVIEW");
+        (await verify.Reconciliationsourcerevisions.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Previewed_draft_reimport_cannot_commit_after_batch_becomes_ready()
+    {
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
+        var prepared = harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName));
+        var preview = await harness.Service.PreviewPreparedAsync(prepared.Plan, harness.Customer, 25000m, CancellationToken.None);
+        preview.MrxDayOutcomes.Should().Contain(item => item.Outcome == "CHANGED");
+        await using var context = harness.Scenario.Fixture.CreateContext();
+        var batch = await context.Reconciliationbatches.SingleAsync();
+        batch.Status = "READY";
+        batch.Version++;
+        await context.SaveChangesAsync();
+        var before = await harness.Scenario.CountsAsync();
+
+        var commit = () => harness.Service.CommitPreparedSingleAsync(prepared,
+            harness.Scenario.ManagerIdString, ["Quản lý"], CancellationToken.None);
+
+        (await commit.Should().ThrowAsync<MrxSourceChangeException>()).Which.Code.Should().Be(MrxErrorCodes.ReimportClosed);
+        (await harness.Scenario.CountsAsync()).Should().Be(before);
     }
 
     [Fact]
     public async Task Reimport_keeps_servings()
     {
-        await using var harness = await ReimportHarness.CreateAsync();
+        await using var harness = await ReimportHarness.CreateAsync(batchStatus: "DRAFT", initialIssue: false);
 
         await harness.Service.CommitPreparedSingleAsync(
             harness.Prepared(harness.Plan(harness.CurrentDishName, harness.ReplacementDishName)),
@@ -398,9 +535,10 @@ public sealed class WeeklyMenuImportBatchTests
         public byte[] CurrentDishId { get; }
         public WeeklyMenuImportService Service { get; }
 
-        public static async Task<ReimportHarness> CreateAsync(bool useRelationalTransaction = false)
+        public static async Task<ReimportHarness> CreateAsync(bool useRelationalTransaction = false,
+            string batchStatus = "IN_PROGRESS", bool initialIssue = true)
         {
-            var scenario = await MrxSourceChangeApplierTests.Scenario.CreateAsync();
+            var scenario = await MrxSourceChangeApplierTests.Scenario.CreateAsync(batchStatus, initialIssue);
             var currentDishId = scenario.LockedDaily.Contributors.Single().DishId;
             var currentDish = await scenario.Context.Dishes.Include(item => item.Dishboms)
                 .SingleAsync(item => item.DishId == currentDishId);

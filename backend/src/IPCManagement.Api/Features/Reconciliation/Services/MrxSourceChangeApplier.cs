@@ -109,6 +109,10 @@ public sealed class MrxSourceChangeApplier(
         var baseVersionId = tracked.BaseMenuVersionId ?? throw Stale("Yêu cầu chưa gắn phiên bản thực đơn gốc. Vui lòng tạo lại.");
         var scope = await LoadScopeAsync(tracked.CustomerId, tracked.WeekStartDate, baseVersionId, tracked: true, token);
         var batch = scope.Batch;
+        if (applyMode == ReimportMode && batch is not null && (batch.Status != "DRAFT"
+            || await context.Inventoryissues.AsNoTracking().AnyAsync(issue => issue.ReconciliationBatchId == batch.BatchId, token)))
+            throw new MrxSourceChangeException(MrxErrorCodes.ReimportClosed, StatusCodes.Status409Conflict,
+                "Lô đối soát đã chốt hoặc bắt đầu xuất kho. Không thể import lại tuần này; hãy dùng Chỉnh sửa món cho ngày còn mở.");
         var locked = batch is null ? new HashSet<DateOnly>() : await MrxDayLockReader.GetLockedDatesAsync(context, batch.BatchId, token);
 
         var rows = await BuildImpactAsync(scope, snapshot.ImpactLines.Select(ToRequestLine).ToList(), token);

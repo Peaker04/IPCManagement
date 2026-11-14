@@ -111,6 +111,7 @@ export function MrxBatchWorkbench() {
       : hasRole(['Coordinator', 'COORDINATOR', 'Điều phối']) ? 'COORDINATOR'
         : 'WAREHOUSE';
   const isCompleted = batch?.status === 'COMPLETED' || sourceEdit.editScope?.batchStatus === 'COMPLETED';
+  const canImportCurrentWeek = !batch || batch.status === 'DRAFT';
   const canImportMenus = operationalMode === 'MATERIAL_RECONCILIATION'
     && actorRole !== 'WAREHOUSE' && canNavigate('/weekly-menu', '?view=mrx-batch');
   const canEditSource = canImportMenus && !isCompleted;
@@ -217,8 +218,8 @@ export function MrxBatchWorkbench() {
         isSubmitting={busy || Boolean(reviewRequest)}
         isRefreshing={isRefreshing}
         onRefresh={handleRefresh}
-        onOpenImport={canImportMenus ? () => {
-          if (!source || isCompleted) openNewImport();
+        onOpenImport={canImportMenus && !stateProps.error ? () => {
+          if (!source || !canImportCurrentWeek) openNewImport();
           else if (canOpenImport) setIsImportModalOpen(true);
         } : undefined}
         importDisabledReason={importDisabledReason}
@@ -436,7 +437,7 @@ export function MrxBatchWorkbench() {
                     </ul>
                     <div className="mt-2 flex items-center justify-end gap-2 border-t border-amber-200/80 pt-2">
                       <Button size="xs" variant="default" onClick={() => setIsBatchBomModalOpen(true)} className="text-xs font-semibold">Nhập BOM Excel cho các món thiếu</Button>
-                      <Button size="xs" variant="outline" onClick={() => navigate('/admin-data?view=bom')} className="text-xs">Mở quản lý định mức BOM →</Button>
+                      <Button size="xs" variant="outline" onClick={() => navigate('/admin-data?view=bom&bomStatus=MISSING')} className="text-xs">Mở món thiếu BOM →</Button>
                     </div>
                   </div>
                 ) : null}
@@ -500,7 +501,8 @@ export function MrxBatchWorkbench() {
         initialCustomerId={customers.some((item) => item.customerId === customerId) ? customerId : undefined}
         initialWeekStartDate={isNewImport ? '' : weekStartDate}
         initialScopeIntent={isNewImport ? 'new-week' : 'current-week'}
-        currentWeekStartDate={isCompleted ? undefined : weekStartDate}
+        currentWeekStartDate={canImportCurrentWeek ? weekStartDate : undefined}
+        blockedScope={!canImportCurrentWeek ? { customerId, weekStartDate } : undefined}
         mrxActorRole={actorRole}
         onImportSuccess={handleImportSuccess}
       />}
@@ -517,8 +519,10 @@ export function MrxBatchWorkbench() {
         onClose={() => setIsBatchBomModalOpen(false)}
         initialCustomerId={customerId}
         initialTemplateType="missing"
+        mrxWeekStartDate={weekStartDate}
+        mrxMenuVersionId={source?.menuVersionId ?? undefined}
         missingDishesDiagnostics={preview?.diagnostics}
-        onImportSuccess={() => void loadSource(true)}
+        onImportSuccess={() => handleImportSuccess()}
       />
     </WorkspaceFrame.Root>
   );

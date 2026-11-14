@@ -98,7 +98,7 @@ public class DishBomImportServiceTests
     }
 
     [Fact]
-    public async Task CommitAsync_Should_ProjectOnlyContributorLinkedBomAdjustmentIntoSourceHistory()
+    public async Task PublishedBomReimport_ShouldBeBlockedWhileHistoricalAdjustmentsRemainVisibleInSourceHistory()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -155,8 +155,12 @@ public class DishBomImportServiceTests
         var bytes = Encoding.UTF8.GetBytes(csv);
         var request = new BomImportCommitRequestDto { PriceTier = 25000 };
         var preview = await importer.PreviewAsync(new MemoryStream(bytes), request);
-        preview.CanCommit.Should().BeTrue(string.Join("; ", preview.Rows.SelectMany(row => row.Errors)));
-        await importer.CommitAsync(new MemoryStream(bytes), request, GuidHelper.ToGuidString(actorId));
+        preview.CanCommit.Should().BeFalse();
+        preview.Rows.Should().OnlyContain(row => row.Errors.Any(error => error.Contains("đã xuất bản")));
+        context.Bomadjustments.AddRange(
+            new BomAdjustment { BomAdjustmentId = GuidHelper.NewId(), BomId = linkedBomId, OldGrossQtyPerServing = 0.1m, NewGrossQtyPerServing = 0.2m, OldWasteRatePercent = 1, NewWasteRatePercent = 2, Reason = "Điều chỉnh BOM liên quan", AdjustedBy = actorId, AdjustedAt = DateTime.UtcNow },
+            new BomAdjustment { BomAdjustmentId = GuidHelper.NewId(), BomId = unrelatedBomId, OldGrossQtyPerServing = 0.3m, NewGrossQtyPerServing = 0.4m, OldWasteRatePercent = 3, NewWasteRatePercent = 4, Reason = "Điều chỉnh BOM khác", AdjustedBy = actorId, AdjustedAt = DateTime.UtcNow });
+        await context.SaveChangesAsync();
         Assert.Equal(2, await context.Bomadjustments.CountAsync());
         context.Auditlogs.AddRange(
             new AuditLog { AuditId = GuidHelper.NewId(), ChangedAt = DateTime.UtcNow.AddMinutes(-3), ChangedBy = actorId, BusinessArea = "BOM", EntityName = nameof(DishBom), EntityId = linkedBomId, FieldName = "QuantityAndWaste", OldValue = "0.1 / hao hụt 1%", NewValue = "0.2 / hao hụt 2%", Reason = "Điều chỉnh BOM liên quan" },

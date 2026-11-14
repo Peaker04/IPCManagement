@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
+using IPCManagement.Api.Features.SystemOperation.Services;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +17,8 @@ namespace IPCManagement.Api.Features.SampleData.Services;
 internal sealed class WeeklyMenuImportPersistence(
     IpcManagementContext context,
     WeeklyMenuImportResultBuilder resultBuilder,
-    WeeklyMenuAuditActorResolver actorResolver) : IWeeklyMenuImportPersistence
+    WeeklyMenuAuditActorResolver actorResolver,
+    SystemOperationRequestContext? operationContext = null) : IWeeklyMenuImportPersistence
 {
     public async Task<WeeklyMenuImportResultDto> CommitAsync(
         WeeklyMenuImportPlan plan,
@@ -75,7 +78,8 @@ internal sealed class WeeklyMenuImportPersistence(
 
         foreach (var group in groupedItems)
         {
-            ValidateScheduleIsEditable(existingSchedules, customer, group.Key.ServiceDate, group.Key.DbShiftName);
+            ValidateScheduleIsEditable(existingSchedules, customer, group.Key.ServiceDate, group.Key.DbShiftName,
+                operationContext?.Mode == SystemOperationEligibility.MaterialReconciliation);
             var menu = EnsureMenu(
                 group.Key.ServiceDate,
                 group.Key.DbShiftName,
@@ -399,13 +403,16 @@ internal sealed class WeeklyMenuImportPersistence(
         IEnumerable<MenuSchedule> schedules,
         Customer customer,
         DateOnly serviceDate,
-        string shiftName)
+        string shiftName,
+        bool allowPublished)
     {
         var lockedSchedule = schedules.FirstOrDefault(item =>
             item.CustomerId.SequenceEqual(customer.CustomerId) &&
             item.ServiceDate == serviceDate &&
             string.Equals(item.ShiftName, shiftName, StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase));
+            !string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase) &&
+            !(allowPublished && (string.Equals(item.Status, "PUBLISHED", StringComparison.OrdinalIgnoreCase) ||
+                                 string.Equals(item.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))));
         if (lockedSchedule is not null)
         {
             throw new BusinessRuleException(

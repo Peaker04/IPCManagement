@@ -4246,9 +4246,12 @@ export interface paths {
                 readonly query?: {
                     readonly CustomerId?: string;
                     readonly DishId?: string;
+                    readonly EffectiveDate?: string;
                     readonly IncludeCurrent?: boolean;
+                    readonly MenuVersionId?: string;
                     readonly PriceTier?: number;
                     readonly TemplateType?: string;
+                    readonly WeekStartDate?: string;
                 };
                 readonly header?: never;
                 readonly path?: never;
@@ -15835,6 +15838,7 @@ export interface components {
             readonly menuAmendmentId: string;
             readonly reconciliationCaseId?: string | null;
             readonly requiresReconciliation: boolean;
+            readonly sourceChangeMode?: string | null;
             readonly status: string;
         };
         readonly MenuAmendmentResultDtoApiResponse: {

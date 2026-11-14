@@ -344,14 +344,18 @@ describe('AppShell Component (Nested Sidebar Rule N6 & 3-Zone Architecture)', ()
     window.history.back();
     const confirmation = await screen.findByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' });
     expect(confirmation).toBeVisible();
-    await waitFor(() => expect(window.location.pathname).toBe('/approvals'));
-    expect(screen.getByRole('link', { name: 'Duyệt vận hành' })).toHaveAttribute('aria-current', 'page');
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/approvals');
+      expect(screen.getByRole('link', { name: 'Duyệt vận hành' })).toHaveAttribute('aria-current', 'page');
+    });
     await userEvent.click(screen.getByRole('button', { name: 'Tiếp tục chỉnh sửa' }));
     window.history.back();
     await screen.findByRole('alertdialog', { name: 'Hủy thay đổi chưa lưu?' });
     await userEvent.click(screen.getByRole('button', { name: 'Hủy thay đổi' }));
-    await waitFor(() => expect(window.location.pathname).toBe('/'));
-    expect(screen.getByRole('link', { name: 'Tổng quan' })).toHaveAttribute('aria-current', 'page');
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/');
+      expect(screen.getByRole('link', { name: 'Tổng quan' })).toHaveAttribute('aria-current', 'page');
+    });
   });
 
   it('routes operational-mode changes to the guarded settings owner instead of mutating from the shell', async () => {

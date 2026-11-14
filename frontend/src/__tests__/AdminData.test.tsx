@@ -116,6 +116,39 @@ describe('AdminDataPage — Conformance & Behavioral Audit', () => {
   });
   afterEach(() => { expect(unexpected).toEqual([]); });
 
+  it('creates an ingredient from the catalog and refreshes the list', async () => {
+    const created = { ...mockIngredientsPage1.items[0], ingredientId: '00000000-0000-0000-0000-000000000004', ingredientCode: 'NL-RAU-RAM', ingredientName: 'Rau răm', referencePrice: 0, isFreshDaily: true };
+    ingredientResponse.mockImplementation(async params => params?.searchKeyword === 'NL-RAU-RAM'
+      ? { ...mockIngredientsPage1, items: [created], totalCount: 1, totalPages: 1, hasNext: false }
+      : mockIngredientsPage1);
+    const originalApi = vi.mocked(transport.apiClient).getMockImplementation()!;
+    vi.mocked(transport.apiClient).mockImplementation(async <T,>(endpoint: string, options?: RequestInit): Promise<T> => {
+      if (endpoint === '/Units') return [{ unitId: '00000000-0000-0000-0000-000000000010', unitCode: 'KG', unitName: 'Kilôgam', baseUnitCode: null, convertRateToBase: 1 }] as T;
+      if (endpoint === '/ingredients' && options?.method === 'POST') return { ingredientId: '00000000-0000-0000-0000-000000000004', ingredientCode: 'NL-RAU-RAM', ingredientName: 'Rau răm', unitId: '00000000-0000-0000-0000-000000000010', unitName: 'Kilôgam', warehouseId: '00000000-0000-0000-0000-000000000100', referencePrice: 0, isFreshDaily: true, isActive: true } as T;
+      return originalApi(endpoint, options) as Promise<T>;
+    });
+    renderPage('/admin-data?view=ingredients&q=Gạo');
+    fireEvent.click(await screen.findByRole('button', { name: 'Thêm nguyên liệu' }));
+    await screen.findByRole('option', { name: 'Kilôgam (KG)' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu' }), { target: { value: 'NL-RAU-RAM' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu' }), { target: { value: 'Rau răm' } });
+    fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị tính nguyên liệu' }), { target: { value: '00000000-0000-0000-0000-000000000010' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
+    await waitFor(() => expect(vi.mocked(transport.apiClient).mock.calls.some(([url, options]) => url === '/ingredients' && options?.method === 'POST')).toBe(true));
+    const body = vi.mocked(transport.apiClient).mock.calls.find(([url, options]) => url === '/ingredients' && options?.method === 'POST')?.[1]?.body;
+    expect(JSON.parse(String(body))).toMatchObject({ ingredientCode: 'NL-RAU-RAM', ingredientName: 'Rau răm', unitId: '00000000-0000-0000-0000-000000000010', referencePrice: 0 });
+    await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Tìm kiếm danh mục' })).toHaveValue('NL-RAU-RAM'));
+    expect(await screen.findByText('Rau răm')).toBeVisible();
+  });
+
+  it('does not offer catalog creation to a read-only role', async () => {
+    const user = JSON.parse(localStorage.getItem('ipc_v3_user')!);
+    localStorage.setItem('ipc_v3_user', JSON.stringify({ ...user, roleCode: 'CHEF', roleName: 'Chef', isAdminFullAccess: false, permissions: ['catalog.read'] }));
+    renderPage('/admin-data?view=ingredients');
+    expect(await screen.findByText('Gạo tẻ ST25')).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'Thêm nguyên liệu' })).not.toBeInTheDocument();
+  });
+
   it('debounces server search, resets page atomically and keeps actual rows while applying criteria', async () => {
     const get = ingredientResponse.mockResolvedValue(mockIngredientsPage2);
     renderPage('/admin-data?view=ingredients&page=2');
@@ -202,7 +235,7 @@ describe('AdminDataPage — Conformance & Behavioral Audit', () => {
     expect(screen.getByText('Kho Lương Thực')).toBeInTheDocument();
     expect(screen.getByText('Tiêu chuẩn')).toBeInTheDocument();
     expect(screen.queryByText(/Nhóm thực phẩm/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Thêm nguyên liệu/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Thêm nguyên liệu/i })).toBeVisible();
 
     expect(getIngsSpy).toHaveBeenCalledWith({ pageNumber: 1, pageSize: 25 }, expect.any(AbortSignal));
     expect(getDshsSpy).not.toHaveBeenCalled();

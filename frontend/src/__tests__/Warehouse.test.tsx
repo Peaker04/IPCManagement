@@ -1,9 +1,10 @@
+import { renderWarehouse } from '../test/renderWarehouse';
 import { useState } from 'react';
 import { MrxDailyLinesBranch } from '../features/warehouse/branches/MrxDailyLinesBranch';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { MrxSupplementalIssueModal } from '../features/warehouse/MrxSupplementalIssueModal';
 import { WarehousePage } from '../features/warehouse/WarehousePage';
 import { AuthProvider } from '../store/authContext';
@@ -20,18 +21,6 @@ import { DirtyNavigationProvider } from '../components/workbench/DirtyNavigation
 import type { MrxInventoryIssueDetail } from '../api/mrxApi';
 import { mrxApi, type MrxWarehouseDaily } from '../api/mrxApi';
 import { MOCK_WAREHOUSES, MOCK_ISSUES, MOCK_RECEIPTS } from '../test/fixtures';
-
-function renderWarehouse(initialEntry = '/warehouse') {
-  return render(
-    <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/warehouse" element={<WarehousePage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
-}
 
 describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () => {
   afterEach(() => vi.restoreAllMocks());

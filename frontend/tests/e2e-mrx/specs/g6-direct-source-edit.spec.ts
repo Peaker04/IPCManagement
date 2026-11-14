@@ -317,6 +317,30 @@ test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued dat
   await managerPage.reload();
   expect(dbVerifier.query(`SELECT Status FROM reconciliationbatches WHERE BatchId=UNHEX('${batchHex}');`)).toEqual([{ Status: 'COMPLETED' }]);
   await expect(managerPage.getByRole('button', { name: 'Chốt đối soát tuần', exact: true })).toHaveCount(0);
+  const completedSource = protectedState();
+  const completedStock = stocks();
+  await adminPage.goto(sourceUrl);
+  await adminPage.getByRole('button', { name: 'Làm mới', exact: true }).click();
+  await expect(adminPage.getByRole('button', { name: 'Nhập Excel', exact: true })).toHaveCount(0);
+  const completedImport = await adminPage.evaluate(async ({ bytes, customerId, weekStartDate }) => {
+    const body = new FormData();
+    body.append('file', new File([new Uint8Array(bytes)], 'completed-week.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    body.append('customerId', customerId);
+    body.append('weekStartDate', weekStartDate);
+    body.append('priceTierAmount', '25000');
+    const response = await fetch('/api/coordination/weekly-menu/import/preview', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${localStorage.getItem('ipc_v3_token')}`, 'X-Operational-Mode': 'MATERIAL_RECONCILIATION' },
+      body,
+    });
+    return { status: response.status, body: await response.json() };
+  }, { bytes: Array.from(fs.readFileSync(scope.workbook)), customerId, weekStartDate: scope.weekStartDate });
+  expect(completedImport.status).toBe(409);
+  expect(completedImport.body.code).toBe('MRX_REIMPORT_CLOSED');
+  expect(protectedState()).toEqual(completedSource);
+  expect(stocks()).toEqual(completedStock);
+  await adminPage.screenshot({ path: path.join(evidence, 'menu-completed-edit-only.png') });
+  fs.writeFileSync(path.join(evidence, 'menu-completed-reimport-blocked.json'), JSON.stringify({ batchId, week: scope.weekStartDate, status: completedImport.status, code: completedImport.body.code, sourceUnchanged: true, stockUnchanged: true }, null, 2));
   await managerPage.goto(`/reconciliation?view=transactions&batchId=${batchId}`);
   const visible = new Set<string>();
   for (let page = 1; page <= 10; page++) {

@@ -41,6 +41,7 @@ beforeEach(() => {
       items: [{ ingredientId: 'ing-1', ingredientCode: 'NL-BO-01', ingredientName: 'Thịt bò phi lê', unitId: 'unit-kg', unitName: 'kg', warehouseId: 'warehouse-1', referencePrice: 220000, isActive: true }],
       totalCount: 1, pageNumber: 1, pageSize: 200, totalPages: 1, hasPrev: false, hasNext: false,
     };
+    if (url.pathname === '/Units') return [{ unitId: 'unit-kg', unitCode: 'KG', unitName: 'Kilôgam', baseUnitCode: null, convertRateToBase: 1 }];
     if (url.pathname === '/coordination/customers') return [];
     if (url.pathname === '/Dishes/dish-1/bom' && !options?.method && updateAccepted && reloadFailure) throw new transport.ApiError(503, 'Không tải được nguồn');
     if (url.pathname === '/Dishes/dish-1/bom' && !options?.method) return updateAccepted
@@ -63,6 +64,144 @@ it('shows empty BOM guidance for a dish with no lines', async () => {
   render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
   expect(screen.getByText('Định mức BOM: Bò lúc lắc')).toBeVisible();
   expect(await screen.findByText(/Món ăn chưa có BOM/)).toBeVisible();
+});
+
+it('creates a missing catalog ingredient, then retains its selection after a separate BOM save', async () => {
+  const api = vi.mocked(transport.apiClient);
+  const base = api.getMockImplementation()!;
+  api.mockImplementation(async (endpoint, options) => {
+    if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=Rau')) return { items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false };
+    if (endpoint === '/ingredients' && options?.method === 'POST') return { ingredientId: 'ing-new', ingredientCode: 'NL-RAU-RAM', ingredientName: 'Rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: true, isActive: true };
+    return base(endpoint, options);
+  });
+  render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
+  expect(await screen.findByRole('option', { name: 'Kilôgam (KG)' })).toBeVisible();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-RAU-RAM' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
+  await waitFor(() => expect(api.mock.calls.filter(([url]) => String(url).includes('ingredients')).map(([url, options]) => `${options?.method ?? 'GET'} ${url}`)).toContain('POST /ingredients'));
+  expect(await screen.findByRole('combobox', { name: 'Chọn nguyên liệu' })).toHaveValue('Rau răm');
+  expect(api.mock.calls.some(([url, options]) => String(url).includes('/bom') && options?.method === 'POST')).toBe(false);
+  fireEvent.change(screen.getByRole('spinbutton', { name: 'Định mức / suất' }), { target: { value: '0.1' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Thêm vào BOM' }));
+  await waitFor(() => expect(api.mock.calls.some(([url, options]) => String(url).endsWith('/bom') && options?.method === 'POST')).toBe(true));
+  expect(await screen.findByRole('combobox', { name: 'Chọn nguyên liệu' })).toHaveValue('Rau răm');
+});
+
+it('reuses an existing ingredient with the same name and unit instead of creating a duplicate', async () => {
+  const api = vi.mocked(transport.apiClient);
+  const base = api.getMockImplementation()!;
+  api.mockImplementation(async (endpoint, options) => {
+    if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=Rau')) return {
+      items: [{ ingredientId: 'ing-existing', ingredientCode: 'NL-RAU', ingredientName: 'Rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: true, isActive: true }],
+      totalCount: 1, pageNumber: 1, pageSize: 20, totalPages: 1, hasPrev: false, hasNext: false,
+    };
+    return base(endpoint, options);
+  });
+  render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
+  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-MOI' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
+  expect(await screen.findByText('Nguyên liệu đã có trong danh mục. Đã chọn để nhập định mức BOM.')).toBeVisible();
+  expect(screen.getByRole('combobox', { name: 'Chọn nguyên liệu' })).toHaveValue('Rau răm');
+  expect(api.mock.calls.some(([url, options]) => url === '/ingredients' && options?.method === 'POST')).toBe(false);
+});
+
+it('does not silently select the first of two active ingredients with the same case-folded name and unit', async () => {
+  const api = vi.mocked(transport.apiClient);
+  const base = api.getMockImplementation()!;
+  api.mockImplementation(async (endpoint, options) => {
+    if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=RAU')) return {
+      items: [
+        { ingredientId: 'ing-a', ingredientCode: 'NL-RAU-A', ingredientName: 'rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: true, isActive: true },
+        { ingredientId: 'ing-b', ingredientCode: 'NL-RAU-B', ingredientName: 'Rau Răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: true, isActive: true },
+      ], totalCount: 2, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false,
+    };
+    return base(endpoint, options);
+  });
+  render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
+  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-RAU-C' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'RAU RĂM' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
+  expect(await screen.findByText(/nhiều nguyên liệu cùng tên và đơn vị/i)).toBeVisible();
+  expect(api.mock.calls.some(([url, options]) => url === '/ingredients' && options?.method === 'POST')).toBe(false);
+});
+
+it('searches the catalog beyond the first page from the BOM ingredient selector', async () => {
+  const api = vi.mocked(transport.apiClient);
+  const base = api.getMockImplementation()!;
+  api.mockImplementation(async (endpoint, options) => {
+    if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=G')) return {
+      items: [{ ingredientId: 'ing-far', ingredientCode: 'NL-GUNG', ingredientName: 'Gừng', unitId: 'unit-kg', unitName: 'kg', warehouseId: 'warehouse-1', referencePrice: 10000, isFreshDaily: true, isActive: true }],
+      totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false,
+    };
+    return base(endpoint, options);
+  });
+  render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
+  const selector = await screen.findByRole('combobox', { name: 'Chọn nguyên liệu' });
+  fireEvent.change(selector, { target: { value: 'Gừng' } });
+  expect(await screen.findByRole('option', { name: /Gừng/ })).toBeVisible();
+});
+
+it('checks every matching catalog page before creating an ingredient with an existing name and unit', async () => {
+  const api = vi.mocked(transport.apiClient);
+  const base = api.getMockImplementation()!;
+  api.mockImplementation(async (endpoint, options) => {
+    const url = new URL(String(endpoint), 'http://localhost');
+    if (url.pathname === '/ingredients' && url.searchParams.get('searchKeyword') === 'Rau răm') {
+      const second = url.searchParams.get('pageNumber') === '2';
+      return { items: second
+        ? [{ ingredientId: 'ing-existing', ingredientCode: 'NL-RAU', ingredientName: 'Rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: true, isActive: true }]
+        : [{ ingredientId: 'ing-other', ingredientCode: 'NL-RAU-OTHER', ingredientName: 'Rau răm hữu cơ', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: true, isActive: true }],
+      totalCount: 101, pageNumber: second ? 2 : 1, pageSize: 100, totalPages: 2, hasPrev: second, hasNext: !second };
+    }
+    return base(endpoint, options);
+  });
+  render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
+  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-MOI' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
+  expect(await screen.findByText('Nguyên liệu đã có trong danh mục. Đã chọn để nhập định mức BOM.')).toBeVisible();
+  expect(api.mock.calls.some(([url, options]) => String(url).includes('pageNumber=2') && !options?.method)).toBe(true);
+  expect(api.mock.calls.some(([url, options]) => url === '/ingredients' && options?.method === 'POST')).toBe(false);
+});
+
+it('keeps an uncertain ingredient write from being sent twice and reconciles it by code', async () => {
+  const api = vi.mocked(transport.apiClient);
+  const base = api.getMockImplementation()!;
+  let posted = 0;
+  api.mockImplementation(async (endpoint, options) => {
+    if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=Rau')) return {
+      items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
+    };
+    if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=NL-RAU')) return {
+      items: [{ ingredientId: 'ing-new', ingredientCode: 'NL-RAU', ingredientName: 'Rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: false, isActive: true }],
+      totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false,
+    };
+    if (endpoint === '/ingredients' && options?.method === 'POST') { posted++; throw new transport.ApiError(503, 'Không rõ kết quả'); }
+    return base(endpoint, options);
+  });
+  render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
+  fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
+  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-RAU' } });
+  fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
+  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Kiểm tra kết quả tạo' }));
+  expect(await screen.findByRole('combobox', { name: 'Chọn nguyên liệu' })).toHaveValue('Rau răm');
+  expect(posted).toBe(1);
 });
 
 it('guards dirty Escape and footer close, preserves cancel, and clears confirmed discard', async () => {

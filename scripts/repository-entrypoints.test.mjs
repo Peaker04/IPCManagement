@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import test from 'node:test'
+import { join } from 'node:path'
 
 const yaml = createRequire(import.meta.url)('js-yaml')
 
@@ -41,37 +42,66 @@ test('Verify workflow npm entry points resolve in the selected workspace', () =>
   }
 })
 
-test('ordinary Playwright entry points both exclude the separate MRX campaign', () => {
-  for (const config of ['playwright.config.ts', 'frontend/playwright.config.ts']) {
-    const source = readFileSync(config, 'utf8')
-    assert.match(source, /testIgnore:\s*\[\s*['"]\*\*\/e2e-mrx\/\*\*['"]\s*\]/, config)
+test('npm test aliases reference existing test files, configs and commands', () => {
+  const packages = ['', 'frontend'].map(dir => ({
+    dir, scripts: JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).scripts,
+  }))
+  const missing = []
+  for (const pkg of packages) {
+    for (const [name, command] of Object.entries(pkg.scripts)) {
+      if (!/^(?:test:|verify(?::|$))/.test(name)) continue
+      for (const segment of command.split(/\s+&&\s+/)) {
+        const owner = /(?:^|\s)(?:-w|--workspace)\s+frontend(?:\s|$)/.test(segment)
+          ? packages[1] : pkg
+        const alias = segment.match(/^npm run ([\w:-]+)/)?.[1]
+        if (alias && !Object.hasOwn(owner.scripts, alias)) missing.push(alias)
+        for (const [target] of segment.matchAll(/(?:--config=|(?<![\w/.-])(?:src\/|tests\/))[^\s"']+\.(?:tsx?|mjs|py)\b/g)) {
+          const path = join(owner.dir, target.replace(/^--config=/, ''))
+          if (!existsSync(path)) missing.push(`${name}: ${path}`)
+        }
+      }
+    }
   }
+  assert.deepEqual(missing, [])
 })
 
-for (const name of ['run-universal-worst-case-lifecycle-harness', 'run-mrx-e2e-mutation-test', 'run-mrx-exhaustive-scenarios-test', 'run-mrx-full-path-lifecycle-test']) {
-  test(`${name} fails closed without acquiring any runtime or database capability`, () => {
-    const path = `scripts/${name}.mjs`
-    const source = readFileSync(path, 'utf8')
-    // Never execute an old runner in the RED phase. These assertions reject it
-    // before spawn, so the regression itself cannot run a historical campaign.
-    assert.match(source, /Retired runner/)
-    assert.doesNotMatch(source, /\bimport\b|\brequire\s*\(|DROP DATABASE|CREATE DATABASE|\bfetch\s*\(|\bspawn\s*\(/)
-    const result = spawnSync(process.execPath, [path], { encoding: 'utf8', timeout: 5000 })
-    assert.equal(result.status, 1)
-    assert.match(result.stderr, /Retired runner/)
-    assert.equal(result.stdout, '')
-  })
+test('ordinary Playwright shares frontend defaults and excludes the MRX campaign', () => {
+  const root = readFileSync('playwright.config.ts', 'utf8')
+  const frontend = readFileSync('frontend/playwright.config.ts', 'utf8')
+  assert.match(root, /from ['"]\.\/frontend\/playwright\.config['"]/)
+  assert.match(frontend, /testIgnore:\s*\[\s*['"]\*\*\/e2e-mrx\/\*\*['"]\s*\]/)
+})
+
+const retired = {
+  'mrx-db': [
+    'run-universal-worst-case-lifecycle-harness', 'run-mrx-e2e-mutation-test',
+    'run-mrx-exhaustive-scenarios-test', 'run-mrx-full-path-lifecycle-test',
+    'run-mrx-live-e2e-mutation-lifecycle',
+  ],
+  visual: [
+    'capture-mrx-screenshots', 'capture-all-mrx-nooks', 'capture-all-canonical-routes',
+    'audit-mrx-responsive-deep', 'audit-mrx-matrix-responsive-deep', 'expert-fe-deep-audit',
+    'inspect-ui-reality-live', 'f12-dev-tools-audit', 'inspect-ui-reality',
+    'measure-route-5layers', 'audit-route-states', 'verify-batch1-live-browser',
+    'verify-mrx-matrix-and-modal-live', 'verify-mrx-operational-recovery-live',
+  ],
 }
 
-for (const name of ['capture-mrx-screenshots', 'capture-all-mrx-nooks', 'capture-all-canonical-routes', 'audit-mrx-responsive-deep', 'audit-mrx-matrix-responsive-deep', 'expert-fe-deep-audit', 'inspect-ui-reality-live', 'f12-dev-tools-audit', 'inspect-ui-reality', 'measure-route-5layers', 'audit-route-states']) {
-  test(`${name} cannot silently start an obsolete visual audit`, () => {
-    const path = `scripts/${name}.mjs`
-    const source = readFileSync(path, 'utf8')
-    assert.match(source, /Retired visual audit/)
-    assert.doesNotMatch(source, /\bimport\b|\brequire\s*\(|\bfetch\s*\(|chromium\.launch|localStorage/)
-    const result = spawnSync(process.execPath, [path], { encoding: 'utf8', timeout: 5000 })
+test('retired entry points have no runtime capability and fail closed', () => {
+  // Never spawn a historical runner. Check every source before running either family.
+  for (const [kind, names] of Object.entries(retired)) {
+    for (const name of names) {
+      assert.equal(readFileSync(`scripts/${name}.mjs`, 'utf8').replace(/\r\n/g, '\n').trim(),
+        `import { retiredRunner } from './retired-runner.mjs';
+retiredRunner('${kind}');`, name)
+    }
+  }
+  const owner = readFileSync('scripts/retired-runner.mjs', 'utf8').trim()
+  assert.match(owner, /^export function retiredRunner\(kind\) \{\s+throw new Error\(kind === 'mrx-db'\s+\? '[^'\r\n]+'\s+: '[^'\r\n]+'\);\s+\}$/)
+  for (const [kind, names] of Object.entries(retired)) {
+    const result = spawnSync(process.execPath, [`scripts/${names[0]}.mjs`], { encoding: 'utf8', timeout: 5000 })
     assert.equal(result.status, 1)
-    assert.match(result.stderr, /Retired visual audit/)
+    assert.match(result.stderr, kind === 'mrx-db' ? /Retired runner.*Invoke-MrxDisposableEvidence/ : /Retired visual audit.*frontend\/tests\/browser/)
     assert.equal(result.stdout, '')
-  })
-}
+  }
+})

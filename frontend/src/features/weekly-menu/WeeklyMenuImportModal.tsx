@@ -27,6 +27,7 @@ interface WeeklyMenuImportModalProps {
   initialScopeIntent?: 'current-week' | 'new-week';
   currentWeekStartDate?: string;
   mrxActorRole?: 'ADMIN' | 'MANAGER' | 'COORDINATOR' | 'WAREHOUSE';
+  blockedScope?: { customerId: string; weekStartDate: string };
   onImportSuccess: (scope?: { customerId: string; weekStartDate: string }) => void;
 }
 
@@ -39,10 +40,11 @@ export function WeeklyMenuImportModal({
   initialScopeIntent,
   currentWeekStartDate = '',
   mrxActorRole,
+  blockedScope,
   onImportSuccess,
 }: WeeklyMenuImportModalProps) {
   const { tiers, isLoading: isLoadingTiers, error: tierError, retry: retryTiers } = useSupportedPriceTiers(isOpen);
-  const imports = useWeeklyMenuImportItems({ customerId: initialCustomerId || customers[0]?.customerId || '', weekStartDate: initialWeekStartDate, scopeIntent: initialScopeIntent }, tierError || isLoadingTiers ? [] : tiers);
+  const imports = useWeeklyMenuImportItems({ customerId: initialCustomerId || customers[0]?.customerId || '', weekStartDate: initialWeekStartDate, scopeIntent: initialScopeIntent }, tierError || isLoadingTiers ? [] : tiers, blockedScope);
   const [selectedItemId, setSelectedItemId] = useState('');
   const item = imports.items.find(candidate => candidate.id === selectedItemId) ?? imports.items[0];
   const selectedCustomerId = item.customerId;
@@ -270,6 +272,10 @@ export function WeeklyMenuImportModal({
 
         {(error || (activeModalTab === 'upload' && (imports.error || item.error))) && (
           <InlineBanner variant="error">{error || imports.error || item.error}</InlineBanner>
+        )}
+        {activeModalTab === 'upload' && blockedScope?.customerId === item.customerId
+          && blockedScope.weekStartDate === item.weekStartDate && (
+          <InlineBanner variant="warning">Lô tuần này đã chốt. Hãy chọn tuần khác hoặc đóng cửa sổ để chỉnh sửa món.</InlineBanner>
         )}
 
         {activeModalTab === 'history' ? (

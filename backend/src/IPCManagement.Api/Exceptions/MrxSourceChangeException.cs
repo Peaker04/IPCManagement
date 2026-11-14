@@ -8,6 +8,7 @@ public static class MrxErrorCodes
     public const string DayLocked = "MRX_DAY_LOCKED";
     public const string SourceStale = "MRX_SOURCE_STALE";
     public const string BatchCompleted = "MRX_BATCH_COMPLETED";
+    public const string ReimportClosed = "MRX_REIMPORT_CLOSED";
     public const string ServingsSplitRequired = "MRX_SERVINGS_SPLIT_REQUIRED";
     public const string BomMissing = "MRX_BOM_MISSING";
 }

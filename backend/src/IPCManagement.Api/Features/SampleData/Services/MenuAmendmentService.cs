@@ -223,6 +223,9 @@ internal sealed class MenuAmendmentService(
     public Task<MenuAmendmentResultDto> SubmitMrxAsync(CreateMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
         => CreateMrxCoordinator().SubmitMrxAsync(request, actorUserId, cancellationToken);
 
+    internal Task<MenuAmendmentResultDto> SubmitMrxReimportAsync(CreateMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
+        => CreateMrxCoordinator().SubmitMrxAsync(request, actorUserId, cancellationToken, "REIMPORT");
+
     public async Task<MenuAmendmentResultDto> ReviewAsync(string amendmentId, ReviewMenuAmendmentRequest request, string? actorUserId, CancellationToken cancellationToken = default)
     {
         var id = GuidHelper.ParseGuidString(amendmentId) ?? throw new ArgumentException("Mã yêu cầu thay đổi không hợp lệ.");

@@ -29,6 +29,22 @@ export interface IngredientItem {
   isActive: boolean;
 }
 
+export interface UnitItem {
+  unitId: string;
+  unitCode: string;
+  unitName: string;
+  baseUnitCode: string | null;
+  convertRateToBase: number;
+}
+
+export interface CreateIngredientInput {
+  ingredientCode: string;
+  ingredientName: string;
+  unitId: string;
+  isFreshDaily: boolean;
+  referencePrice: number;
+}
+
 export interface DishItem {
   dishId: string;
   dishCode: string;
@@ -81,6 +97,13 @@ function buildPagedQuery(params?: PagedQueryParams): string {
 }
 
 export const adminApi = {
+  getUnits(): Promise<UnitItem[]> {
+    return apiClient<UnitItem[]>('/Units');
+  },
+
+  createIngredient(input: CreateIngredientInput): Promise<IngredientItem> {
+    return apiClient<IngredientItem>('/ingredients', { method: 'POST', body: JSON.stringify(input) });
+  },
   async getIngredients(params?: PagedQueryParams, signal?: AbortSignal): Promise<PagedResult<IngredientItem>> {
     const qs = buildPagedQuery(params);
     const resp = await apiClient<{
@@ -144,6 +167,17 @@ export const adminApi = {
       hasPrev,
       hasNext,
     };
+  },
+
+  async findActiveIngredientByNameAndUnit(name: string, unitId: string): Promise<IngredientItem | undefined> {
+    const key = name.trim().toLocaleLowerCase('vi-VN');
+    const matches: IngredientItem[] = [];
+    for (let pageNumber = 1; ; pageNumber++) {
+      const result = await adminApi.getIngredients({ pageNumber, pageSize: 100, searchKeyword: name.trim() });
+      matches.push(...result.items.filter(item => item.isActive && item.unitId === unitId && item.ingredientName.trim().toLocaleLowerCase('vi-VN') === key));
+      if (matches.length > 1) throw new Error(`Có nhiều nguyên liệu cùng tên và đơn vị (${matches.map(item => item.ingredientCode).join(', ')}). Hãy chọn đúng mã trong danh mục.`);
+      if (!result.hasNext || result.pageNumber !== pageNumber) return matches[0];
+    }
   },
 
   async getDish(dishId: string): Promise<DishItem> {

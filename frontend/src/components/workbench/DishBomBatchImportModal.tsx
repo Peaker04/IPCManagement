@@ -14,6 +14,8 @@ import { downloadAuthenticatedFile } from '../../utils/fileDownload';
 import type { CustomerOption } from '../../types';
 
 import { useSupportedPriceTiers } from '../../hooks/useSupportedPriceTiers';
+import { VietnameseDateInput } from '../ui/vietnamese-date-input';
+import { todayInBusinessTimezone, isIsoDate } from '../../utils/dates';
 
 export interface DishBomBatchImportModalProps {
   isOpen: boolean;
@@ -23,6 +25,8 @@ export interface DishBomBatchImportModalProps {
   initialCustomerId?: string;
   initialTemplateType?: 'missing' | 'by-dish';
   missingDishesDiagnostics?: readonly string[] | string[];
+  mrxWeekStartDate?: string;
+  mrxMenuVersionId?: string;
 }
 
 export function DishBomBatchImportModal({
@@ -33,6 +37,8 @@ export function DishBomBatchImportModal({
   initialCustomerId = '',
   initialTemplateType = 'by-dish',
   missingDishesDiagnostics,
+  mrxWeekStartDate,
+  mrxMenuVersionId,
 }: DishBomBatchImportModalProps) {
   const isMissingMode = initialTemplateType === 'missing' || Boolean(missingDishesDiagnostics && missingDishesDiagnostics.length > 0);
   const { tiers, isLoading: isLoadingTiers, error: tierError, retry: retryTiers } = useSupportedPriceTiers(isOpen);
@@ -40,9 +46,14 @@ export function DishBomBatchImportModal({
   const selectedPriceTier = chosenPriceTier ?? tiers[0] ?? 0;
   const hasUsableTier = !isLoadingTiers && !tierError && tiers.includes(selectedPriceTier);
   const [scopeCustomer, setScopeCustomer] = useState<string>(initialCustomerId || 'GLOBAL');
+  const [effectiveDate, setEffectiveDate] = useState(() => todayInBusinessTimezone());
+  const [dateError, setDateError] = useState<string | null>(null);
+  const isCurrentMrxScope = Boolean(mrxWeekStartDate && mrxMenuVersionId && initialCustomerId && scopeCustomer === initialCustomerId);
+  const generalDateReady = !dateError && isIsoDate(effectiveDate);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<BomImportPreviewResult | null>(null);
+  const [previewPage, setPreviewPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
@@ -72,6 +83,7 @@ export function DishBomBatchImportModal({
   const invalidatePreview = () => {
     previewRequest.current += 1;
     setPreview(null);
+    setPreviewPage(1);
     setFeedback(null);
     setIsLoading(false);
   };
@@ -90,12 +102,14 @@ export function DishBomBatchImportModal({
   };
 
   const handleDownloadTemplate = async (templateType: 'missing' | 'by-dish' = 'by-dish') => {
-    if (!hasUsableTier || isDownloading || isCommitting || isLoadingCustomers || customerError) return;
+    const contextual = templateType === 'missing' && isCurrentMrxScope;
+    if (!hasUsableTier || isDownloading || isCommitting || isLoadingCustomers || customerError || (!contextual && !generalDateReady)) return;
     setIsDownloading(true);
     setFeedback(null);
     try {
       const custId = scopeCustomer !== 'GLOBAL' ? scopeCustomer : undefined;
-      const url = bomApi.getBomTemplateUrl(selectedPriceTier, custId, templateType);
+      const url = bomApi.getBomTemplateUrl(selectedPriceTier, custId, contextual ? 'mrx-missing' : templateType,
+        contextual ? { weekStartDate: mrxWeekStartDate, menuVersionId: mrxMenuVersionId } : { effectiveDate });
       await downloadAuthenticatedFile(url);
     } catch (cause) { setFeedback({ type: 'error', message: cause instanceof Error ? cause.message : 'Không thể tải mẫu định lượng. Vui lòng thử lại.' }); }
     finally { setIsDownloading(false); }
@@ -162,6 +176,10 @@ export function DishBomBatchImportModal({
     }
   };
 
+  const previewRows = preview?.errorRows ? preview.rows.filter(row => row.errors.length > 0) : preview?.rows ?? [];
+  const previewPageCount = Math.max(1, Math.ceil(previewRows.length / 50));
+  const visiblePreviewRows = previewRows.slice((previewPage - 1) * 50, previewPage * 50);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -199,6 +217,12 @@ export function DishBomBatchImportModal({
       }
     >
       <div className="space-y-4 text-xs text-slate-700">
+        {isMissingMode && <InlineBanner variant="info" title="Bổ sung BOM hàng loạt">
+          Tải file các món thiếu BOM, điền nguyên liệu và định lượng/suất. Với nguyên liệu mới, để trống mã nguyên liệu, nhập tên và đơn vị; bản xem trước sẽ báo mã dự kiến tạo. Sửa file rồi tải lên lại để xem trước trước khi xác nhận. Sau khi nhập, quay lại kiểm tra nguồn MRX; không cần nhập lại file thực đơn.
+        </InlineBanner>}
+        {scopeCustomer !== 'GLOBAL' && <InlineBanner variant="info" title="BOM riêng của khách hàng">
+          Khi có BOM riêng, hệ thống dùng toàn bộ công thức của khách hàng thay cho công thức dùng chung. Nếu cần điều chỉnh một nguyên liệu, hãy tải file toàn danh mục theo phạm vi và giữ các nguyên liệu còn lại trong file nhập.
+        </InlineBanner>}
         {isLoadingTiers && <p role="status" className="sr-only">Đang tải mốc giá BOM…</p>}
         {tierError && <InlineBanner variant="error" actionLabel="Tải lại mốc giá" onAction={() => void retryTiers()}>{tierError.message}</InlineBanner>}
         {customerError && <InlineBanner variant="error" actionLabel="Tải lại khách hàng" onAction={() => { setIsLoadingCustomers(true); setCustomerRetry((value) => value + 1); }}>{customerError.message}</InlineBanner>}
@@ -287,11 +311,18 @@ export function DishBomBatchImportModal({
               className="block w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-white file:text-slate-700 file:border file:border-slate-300 hover:file:bg-slate-50 cursor-pointer border border-slate-200 rounded p-1 bg-white"
             />
           </div>
+          <div className="space-y-1">
+            <label htmlFor="bom-template-effective-date" className="block font-semibold text-slate-700">Ngày xét BOM toàn danh mục</label>
+            <VietnameseDateInput id="bom-template-effective-date" aria-label="Ngày xét BOM toàn danh mục" value={effectiveDate}
+              onChange={value => { setEffectiveDate(value); setDateError(null); }} onValidationChange={setDateError} error={Boolean(dateError)} />
+            <p>Áp dụng khi tải file danh mục. File thiếu BOM của tuần MRX dùng ngày phục vụ của tuần đang xem.</p>
+            {dateError && <InlineBanner variant="error">{dateError}</InlineBanner>}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={!hasUsableTier || isDownloading || isCommitting || isLoadingCustomers || Boolean(customerError)} onClick={() => void handleDownloadTemplate('missing')}>
-              <Download size={14} aria-hidden="true" />Tải file Excel các món thiếu BOM
+            <Button type="button" variant="outline" size="sm" disabled={!hasUsableTier || isDownloading || isCommitting || isLoadingCustomers || Boolean(customerError) || (!isCurrentMrxScope && !generalDateReady)} onClick={() => void handleDownloadTemplate('missing')}>
+              <Download size={14} aria-hidden="true" />{isCurrentMrxScope ? 'Tải Excel món thiếu của tuần MRX' : 'Tải Excel món thiếu theo phạm vi'}
             </Button>
-            <Button type="button" variant="ghost" size="sm" disabled={!hasUsableTier || isDownloading || isCommitting || isLoadingCustomers || Boolean(customerError)} onClick={() => void handleDownloadTemplate('by-dish')}>Tải file mẫu toàn bộ</Button>
+            <Button type="button" variant="ghost" size="sm" disabled={!hasUsableTier || isDownloading || isCommitting || isLoadingCustomers || Boolean(customerError) || !generalDateReady} onClick={() => void handleDownloadTemplate('by-dish')}>Tải file toàn danh mục theo phạm vi</Button>
           </div>
         </div>
 
@@ -311,6 +342,7 @@ export function DishBomBatchImportModal({
             <p className="text-xs text-slate-700">
               <Num value={preview.validRows} /> dòng hợp lệ · <Num value={preview.errorRows} /> dòng lỗi · <Num value={preview.totalRows} /> dòng đã kiểm tra
             </p>
+            {preview.errorRows > 0 && <p className="text-xs">Đang hiển thị các dòng lỗi để sửa trong file rồi xem trước lại.</p>}
 
             {preview.warnings?.length > 0 && (
               <div className="p-2.5 bg-amber-50 rounded border border-amber-200 text-amber-900">
@@ -323,37 +355,48 @@ export function DishBomBatchImportModal({
               </div>
             )}
 
-            {preview.rows?.length > 0 && (
-              <div className="overflow-x-auto border border-slate-200 rounded">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 sticky top-0">
+            {preview.rows?.length > 0 && (<>
+              <div data-testid="bom-preview-viewport" className="max-h-72 overflow-auto border border-slate-200 rounded">
+                <table className="w-full min-w-[960px] table-fixed text-left text-xs border-collapse">
+                  <thead className="border-b border-slate-200 text-slate-600">
                     <tr>
-                      <th className="py-2 px-2.5 w-12 text-center">Dòng</th>
-                      <th className="py-2 px-2.5 w-24">Mã món</th>
-                      <th className="py-2 px-2.5">Tên món</th>
-                      <th className="py-2 px-2.5 w-24">Mã NL</th>
-                      <th className="py-2 px-2.5">Tên nguyên liệu</th>
-                      <th className="py-2 px-2 text-center w-14">ĐVT</th>
-                      <th className="py-2 px-2.5 text-right w-24">Định mức</th>
+                      <th scope="col" className="sticky top-0 left-0 z-30 w-12 min-w-12 max-w-12 bg-slate-50 py-2 px-2.5 text-center">Dòng</th>
+                      <th scope="col" className="sticky top-0 left-12 z-30 w-24 bg-slate-50 border-r border-slate-200 py-2 px-2.5">Mã món</th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 py-2 px-2.5">Tên món</th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 py-2 px-2.5 w-32">Mã NL</th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 py-2 px-2.5">Tên nguyên liệu</th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 py-2 px-2 text-center w-14">ĐVT</th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 py-2 px-2.5 text-right w-24">Định mức</th>
+                      <th scope="col" className="sticky top-0 z-20 bg-slate-50 py-2 px-2.5">Kết quả kiểm tra</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {preview.rows.slice(0, 50).map((row) => (
-                      <tr key={row.rowNumber} className="h-10 hover:bg-slate-50">
-                        <td className="py-1.5 px-2.5 font-mono text-center text-slate-400">{row.rowNumber}</td>
-                        <td className="py-1.5 px-2.5 font-mono font-medium">{row.dishCode}</td>
-                        <td className="py-1.5 px-2.5 font-medium text-slate-900 truncate max-w-36">{row.dishName}</td>
-                        <td className="py-1.5 px-2.5 font-mono"><IdentifierText value={row.ingredientCode} /></td>
-                        <td className="py-1.5 px-2.5 text-slate-700 truncate max-w-36">{row.ingredientName}</td>
+                    {visiblePreviewRows.map((row) => (
+                      <tr key={row.rowNumber} className="group h-10 hover:bg-slate-50">
+                        <td className="sticky left-0 z-10 w-12 min-w-12 max-w-12 bg-white group-hover:bg-slate-50 py-1.5 px-2.5 font-mono text-center text-slate-400">{row.rowNumber}</td>
+                        <td className="sticky left-12 z-10 w-24 bg-white group-hover:bg-slate-50 border-r border-slate-200 py-1.5 px-2.5 font-mono font-medium">{row.dishCode}</td>
+                        <td className="py-1.5 px-2.5 font-medium text-slate-900 max-w-36"><span className="block truncate" title={row.dishName}>{row.dishName}</span></td>
+                        <td className="py-1.5 px-2.5 font-mono w-32"><IdentifierText value={row.ingredientCode} displayValue={row.ingredientCode.length > 11 ? `${row.ingredientCode.slice(0, 6)}…${row.ingredientCode.slice(-4)}` : row.ingredientCode} title={row.ingredientCode} className="whitespace-nowrap" /></td>
+                        <td className="py-1.5 px-2.5 text-slate-700 max-w-36"><span className="block truncate" title={row.ingredientName}>{row.ingredientName}</span></td>
                         <td className="py-1.5 px-2 text-center font-mono">{row.unitCode}</td>
                         <td className="py-1.5 px-2.5 text-right font-mono font-bold text-slate-900">
                           <Num value={row.grossQtyPerServing} format="quantity" decimals={6} />
+                        </td>
+                        <td className="py-1.5 px-2.5">
+                          <span>{row.errors.length ? 'Lỗi' : row.warnings.length ? 'Cảnh báo' : 'Hợp lệ'}</span>
+                          {[...row.errors, ...row.warnings].length > 0 && <ul className="list-disc pl-4">{[...row.errors, ...row.warnings].map((message, index) => <li key={index}>{message}</li>)}</ul>}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+              {previewPageCount > 1 && <div className="flex items-center justify-end gap-2">
+                <Button type="button" variant="outline" size="sm" disabled={previewPage === 1} onClick={() => setPreviewPage(page => page - 1)}>Trang trước</Button>
+                <span>Trang {previewPage}/{previewPageCount}</span>
+                <Button type="button" variant="outline" size="sm" disabled={previewPage === previewPageCount} onClick={() => setPreviewPage(page => page + 1)}>Trang sau</Button>
+              </div>}
+              </>
             )}
           </div>
         )}

@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 
 export default defineConfig({
-  testDir: './tests',
+  testDir: fileURLToPath(new URL('./tests', import.meta.url)),
   testMatch: '**/*.spec.ts',
   testIgnore: ['**/e2e-mrx/**'],
   workers: 1,
@@ -27,6 +28,7 @@ export default defineConfig({
     },
   ],
   webServer: {
+    cwd: fileURLToPath(new URL('.', import.meta.url)),
     command: 'npm run dev -- --host 127.0.0.1',
     url: 'http://127.0.0.1:5173/login',
     env: {

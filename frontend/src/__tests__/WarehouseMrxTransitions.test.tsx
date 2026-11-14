@@ -1,30 +1,17 @@
+import { renderWarehouse } from '../test/renderWarehouse';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { MrxSupplementalIssueModal } from '../features/warehouse/MrxSupplementalIssueModal';
 import { WarehousePage } from '../features/warehouse/WarehousePage';
 import { AuthProvider } from '../store/authContext';
-import { isRouteEligible } from '../routes/navigationEligibility';
-import { CANONICAL_ROUTES } from '../routes/routeRegistry';
 import { warehouseApi } from '../api/warehouseApi';
 import { systemApi } from '../api/systemApi';
 import { serverStateCache } from '../store/serverStateCache';
 import { MrxBatchDishesModal } from '../components/workbench/MrxBatchDishesModal';
 import { mrxApi } from '../api/mrxApi';
 import { MOCK_WAREHOUSES, MOCK_ISSUES, MOCK_RECEIPTS } from '../test/fixtures';
-
-function renderWarehouse(initialEntry = '/warehouse') {
-  return render(
-    <AuthProvider resolveEligibility={(user, mode, pathname, search) => isRouteEligible(CANONICAL_ROUTES, pathname, search, user, mode)}>
-      <MemoryRouter initialEntries={[initialEntry]}>
-        <Routes>
-          <Route path="/warehouse" element={<WarehousePage />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthProvider>
-  );
-}
 
 describe('Warehouse MRX transitions', () => {
   afterEach(() => vi.restoreAllMocks());

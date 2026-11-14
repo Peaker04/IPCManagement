@@ -15,6 +15,7 @@ function renderMealOrders() {
       <MemoryRouter initialEntries={['/meal-orders']}>
         <Routes>
           <Route path="/meal-orders" element={<MealOrdersPage />} />
+          <Route path="/admin-data" element={<h1>Quản trị khách hàng</h1>} />
         </Routes>
       </MemoryRouter>
     </AuthProvider>
@@ -85,6 +86,17 @@ describe('Meal Orders Feature (FR-COORD — Behavioral Audit)', () => {
 
     expect(await screen.findByText('Chưa có kế hoạch suất ăn')).toBeInTheDocument();
     expect(screen.getByText('Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn.')).toBeInTheDocument();
+  });
+
+  it('opens customer administration from the missing-customers state', async () => {
+    vi.spyOn(weeklyMenuApi, 'getCustomers').mockResolvedValue([]);
+
+    renderMealOrders();
+    expect(await screen.findByText('Chưa có dữ liệu Khách hàng')).toBeInTheDocument();
+    expect(coordinationApi.getOrders).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Đi đến thiết lập: Khách hàng & Hợp đồng' }));
+    expect(await screen.findByRole('heading', { name: 'Quản trị khách hàng' })).toBeInTheDocument();
   });
 
   // Kịch bản 4: Error Handling & Retry

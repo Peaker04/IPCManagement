@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOperationalRecovery, executeSafeMutation } from '../../hooks/useOperationalRecovery';
 import { WorkspaceHeader } from '../../components/workbench/WorkspaceHeader';
 import { TelemetrySubbar } from '../../components/workbench/TelemetrySubbar';
@@ -23,6 +24,8 @@ const SHIFT_TABS = [
   { id: 'AFTERNOON', label: 'Chiều' },
 ];
 
+const CUSTOMERS_ROUTE = '/admin-data?view=customers';
+
 interface MealOrdersSnapshot {
   customerCode: string;
   serviceDate: string;
@@ -31,6 +34,7 @@ interface MealOrdersSnapshot {
 }
 
 export function MealOrdersPage() {
+  const navigate = useNavigate();
   const snapshot = serverStateCache.get<MealOrdersSnapshot>('snapshot:meal_orders')?.data;
   const cachedCustomers = getCachedArray<CustomerOption>('catalog_customers');
   const [customers, setCustomers] = useState<CustomerOption[]>(() => cachedCustomers ?? []);
@@ -66,7 +70,7 @@ export function MealOrdersPage() {
     fetcher,
     initialFilters: { customerCode, serviceDate, shiftName },
     defaultFilters: { customerCode: customers[0]?.customerCode || '', serviceDate: todayInBusinessTimezone(), shiftName: 'MORNING' },
-    prerequisiteRoute: '/admin-data?view=customers',
+    prerequisiteRoute: CUSTOMERS_ROUTE,
     prerequisiteLabel: 'Khách hàng & Hợp đồng',
   });
 
@@ -288,11 +292,12 @@ export function MealOrdersPage() {
         isEmpty={!isLoading && !isFetching && hasCustomersLoaded && (!data || data.orders.length === 0 || customers.length === 0)}
         emptyScenario={customers.length === 0 ? 'prerequisite-blocked' : 'filter-empty'}
         prerequisiteLabel="Khách hàng & Hợp đồng"
-        onNavigatePrerequisite={() => { window.location.href = '/admin-data?view=customers'; }}
-        onResetFilters={() => {
-          setShiftName('MORNING');
-          if (customers.length > 0) setCustomerCode(customers[0].customerCode);
-        }}
+        onAction={customers.length === 0
+          ? () => navigate(CUSTOMERS_ROUTE)
+          : () => {
+            setShiftName('MORNING');
+            setCustomerCode(customers[0].customerCode);
+          }}
         contextDomain="coordination"
         emptyTitle={customers.length === 0 ? 'Chưa có dữ liệu Khách hàng' : 'Chưa có kế hoạch suất ăn'}
         emptyDescription={customers.length === 0 ? 'Hệ thống chưa có khách hàng nào. Vui lòng tạo khách hàng trước.' : 'Chưa có kế hoạch suất ăn được chốt cho khách hàng, ngày và ca đã chọn.'}

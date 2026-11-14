@@ -65,15 +65,19 @@ export function useMrxBatchWorkspace() {
     scopeId: customerId,
     isCatalogLoading: !cachedCustomers && customers.length === 0,
     queryFn: async () => {
-      try {
-        const [sourceResult, batchPage] = await Promise.all([
-          mrxApi.getWeeklySource(customerId, weekStartDate),
-          mrxApi.getBatchPage({ customerId, weekStartDate, pageSize: 1 }).catch(() => null),
-        ]);
+      const [sourceResult, batchPage] = await Promise.all([
+        mrxApi.getWeeklySource(customerId, weekStartDate).catch((cause: unknown) => {
+          const is404 = (cause && typeof cause === 'object' && 'status' in cause && Number((cause as { status?: unknown }).status) === 404) ||
+            (cause instanceof Error && cause.message.includes('404'));
+          if (is404) return null;
+          throw cause;
+        }),
+        mrxApi.getBatchPage({ customerId, weekStartDate, pageSize: 1 }),
+      ]);
         serverStateCache.set(`mrx_inspection_source_${customerId}_${weekStartDate}`, sourceResult);
         let loadedBatch: MrxBatch | null = null;
         if (batchPage && batchPage.items.length > 0) {
-          loadedBatch = await mrxApi.getBatch(batchPage.items[0].batchId).catch(() => null);
+          loadedBatch = await mrxApi.getBatch(batchPage.items[0].batchId);
         }
         const isPub = sourceResult?.menuVersionStatus === 'PUBLISHED' || sourceResult?.menuVersionStatus === 'ACTIVE';
         const nextPreviewKey = `mrx_preview_${customerId}_${weekStartDate}`;
@@ -87,14 +91,6 @@ export function useMrxBatchWorkspace() {
           }
         }
         return { customerId, weekStartDate, source: sourceResult, batch: loadedBatch };
-      } catch (cause: unknown) {
-        const is404 = (cause && typeof cause === 'object' && 'status' in cause && Number((cause as { status?: unknown }).status) === 404) ||
-          (cause instanceof Error && cause.message.includes('404'));
-        if (is404) {
-          return { customerId, weekStartDate, source: null, batch: null };
-        }
-        throw cause;
-      }
     },
     isDatasetEmpty: (res) => !res || (!res.source && !res.batch),
     emptyTitle: 'Chưa có nguồn thực đơn đã phát hành',

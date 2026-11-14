@@ -53,8 +53,16 @@ describe('DishBomBatchImportModal Component Tests (Rule TA-2 & TA-4)', () => {
     expect(await screen.findByRole('radio', { name: /25.000 ₫/ })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /30.000 ₫/ })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /34.000 ₫/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tải file Excel các món thiếu BOM' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Tải file mẫu toàn bộ' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải Excel món thiếu theo phạm vi' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tải file toàn danh mục theo phạm vi' })).toBeInTheDocument();
+  });
+
+  it('explains that a customer recipe replaces the full shared recipe', async () => {
+    render(<DishBomBatchImportModal isOpen onClose={vi.fn()} initialCustomerId="c-1" initialPriceTier={25000} />);
+
+    expect(await screen.findByRole('option', { name: /AMANN/ })).toBeInTheDocument();
+    expect(screen.getByText('BOM riêng của khách hàng')).toBeVisible();
+    expect(screen.getByText(/toàn bộ công thức của khách hàng thay cho công thức dùng chung/)).toBeVisible();
   });
 
   it('toggles price tiers and previews excel import file', async () => {
@@ -78,6 +86,7 @@ describe('DishBomBatchImportModal Component Tests (Rule TA-2 & TA-4)', () => {
           grossQtyPerServing: 0.000123,
           wasteRatePercent: 5,
           effectiveFrom: '2026-01-01',
+          status: 'valid', action: 'create', errors: [], warnings: [],
         },
       ],
       warnings: [],
@@ -126,6 +135,7 @@ describe('DishBomBatchImportModal Component Tests (Rule TA-2 & TA-4)', () => {
     expect(screen.queryByRole('button', { name: 'Xác nhận nhập BOM hàng loạt' })).not.toBeInTheDocument();
     expect(screen.queryByText('Thịt kho tàu')).not.toBeInTheDocument();
   });
+
 
   it('shows customer-load failure and retries without treating it as a successful global catalog', async () => {
     vi.mocked(weeklyMenuApi.getCustomers).mockRejectedValueOnce(new Error('Không thể tải khách hàng'));
