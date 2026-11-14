@@ -5015,6 +5015,29 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "EffectiveDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "WeekStartDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "MenuVersionId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -31250,6 +31273,10 @@
         ],
         "type": "object",
         "properties": {
+          "sourceChangeMode": {
+            "type": "string",
+            "nullable": true
+          },
           "menuAmendmentId": {
             "type": "string"
           },
