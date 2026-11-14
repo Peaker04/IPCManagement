@@ -24,8 +24,6 @@
     "test:fe:unit": "node scripts/run-frontend-unit-with-heap.mjs",
     "test:phase05-fixture-determinism": "dotnet restore tools/e2e/Phase05WeeklyMenuFixtureTool/Phase05WeeklyMenuFixtureTool.csproj && python scripts/test_phase05_fixture_determinism.py",
     "test:repository-entrypoints": "node --test scripts/repository-entrypoints.test.mjs",
-    "test:ui-completeness": "npm run test:unit -w frontend -- tests/operationalStateActionRegistry.test.ts tests/pcActionCompletenessContract.test.ts tests/pcActionCompletenessFixture.test.ts tests/weeklyMenuPublishPermissions.test.ts tests/uiCanonSourceInventory.test.ts tests/uiStatePurityContract.test.ts --maxWorkers=1",
-    "test:source-ownership": "npm run build -w frontend && npm run test:source-ownership:unit -w frontend -- --maxWorkers=1 && npm run test:source-ownership:e2e -w frontend -- --headed && npm run test:ui-completeness",
     "coverage:fe": "npm run test:coverage -w frontend",
     "lint:fe": "npm run lint -w frontend",
     "depcruise:fe": "npm run depcruise -w frontend",

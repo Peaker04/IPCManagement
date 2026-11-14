@@ -21,7 +21,7 @@ interface ImportItem extends ImportScope {
   draftMatch: { status: 'loading' | 'matched' | 'ambiguous' | 'none' | 'error'; items: WeeklyMenuImportHistoryItem[]; totalCount: number; error?: string } | null;
 }
 
-export function useWeeklyMenuImportItems(initial: Omit<ImportScope, 'priceTierAmount'> & { scopeIntent?: 'current-week' | 'new-week' }, tiers: number[]) {
+export function useWeeklyMenuImportItems(initial: Omit<ImportScope, 'priceTierAmount'> & { scopeIntent?: 'current-week' | 'new-week' }, tiers: number[], blockedScope?: Omit<ImportScope, 'priceTierAmount'>) {
   const newItem = (file: File | null = null, initialScope = initial): ImportItem => ({
     ...initialScope, id: crypto.randomUUID(), file, priceTierAmount: null, revision: 0,
     dateError: null, preview: null, isPreviewing: false, error: null,
@@ -42,6 +42,18 @@ export function useWeeklyMenuImportItems(initial: Omit<ImportScope, 'priceTierAm
 
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const replace = useCallback((next: ImportItem[]) => { current.current = next; setItems(next); }, []);
+  const blockedCustomerId = blockedScope?.customerId;
+  const blockedWeekStartDate = blockedScope?.weekStartDate;
+  useEffect(() => {
+    if (!blockedCustomerId || !blockedWeekStartDate) return;
+    if (!current.current.some(item => item.weekMode === 'current' && item.customerId === blockedCustomerId
+      && item.weekStartDate === blockedWeekStartDate)) return;
+    replace(current.current.map(item => item.weekMode === 'current' && item.customerId === blockedCustomerId
+      && item.weekStartDate === blockedWeekStartDate
+      ? { ...item, weekMode: 'manual', weekStartDate: '', revision: item.revision + 1, preview: null,
+        error: 'Lô tuần đang xem đã chốt. Hãy chọn tuần khác hoặc đóng cửa sổ để chỉnh sửa món.' }
+      : item));
+  }, [blockedCustomerId, blockedWeekStartDate, replace]);
   useEffect(() => {
     for (const candidate of current.current) {
       if (candidate.weekMode !== 'auto' || candidate.draftMatch || !candidate.file || !candidate.customerId
@@ -84,7 +96,8 @@ export function useWeeklyMenuImportItems(initial: Omit<ImportScope, 'priceTierAm
     }));
   };
   const setScopeIntent = (id: string, intent: 'current-week' | 'new-week', scope: Omit<ImportScope, 'priceTierAmount'>) => {
-    if (!canEdit() || (intent === 'current-week' && (!scope.customerId || !isWeekStartDate(scope.weekStartDate)))) return;
+    if (!canEdit() || (intent === 'current-week' && (!scope.customerId || !isWeekStartDate(scope.weekStartDate)
+      || (scope.customerId === blockedScope?.customerId && scope.weekStartDate === blockedScope.weekStartDate)))) return;
     replace(current.current.map(item => item.id === id ? { ...item,
       customerId: intent === 'current-week' ? scope.customerId : item.customerId,
       weekStartDate: intent === 'current-week' ? scope.weekStartDate : '',
@@ -99,7 +112,8 @@ export function useWeeklyMenuImportItems(initial: Omit<ImportScope, 'priceTierAm
   };
   const canEdit = () => !busy.current && !acceptedCommit.current;
   const validScope = (item: ImportItem) => Boolean(item.file?.name.toLowerCase().endsWith('.xlsx') && item.customerId && !item.dateError
-    && item.weekMode !== 'auto' && isWeekStartDate(item.weekStartDate) && item.priceTierAmount !== null && tiers.includes(item.priceTierAmount));
+    && item.weekMode !== 'auto' && isWeekStartDate(item.weekStartDate) && item.priceTierAmount !== null && tiers.includes(item.priceTierAmount)
+    && !(item.customerId === blockedScope?.customerId && item.weekStartDate === blockedScope.weekStartDate));
   const validPreview = (item: ImportItem) => validScope(item) && Boolean(item.preview?.previewToken)
     && Boolean(item.preview?.previewExpiresAt && Date.parse(item.preview.previewExpiresAt) > Date.now())
     && !item.preview?.validation.hasCriticalErrors && item.preview?.validation.isValid === true

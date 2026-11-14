@@ -252,6 +252,9 @@ public class BomTemplateQueryDto
     public bool IncludeCurrent { get; set; } = true;
 
     public string TemplateType { get; set; } = "missing";
+    public DateOnly? EffectiveDate { get; set; }
+    public DateOnly? WeekStartDate { get; set; }
+    public string? MenuVersionId { get; set; }
 }
 
 public class BomImportPreviewRequestDto

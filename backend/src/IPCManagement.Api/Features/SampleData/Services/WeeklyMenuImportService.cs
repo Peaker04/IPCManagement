@@ -244,16 +244,6 @@ internal sealed class WeeklyMenuImportService(
             prepared.PriceTierAmount,
             WeeklyMenuWorkbookParser.ParserVersion);
 
-        var lockedConflicts = analysis.Outcomes
-            .Where(item => item.Outcome == "LOCKED_CONFLICT")
-            .Select(item => item.ServiceDate)
-            .ToList();
-        if (lockedConflicts.Count > 0)
-            throw new MrxSourceChangeException(
-                MrxErrorCodes.DayLocked,
-                StatusCodes.Status409Conflict,
-                "Các ngày đã xuất kho có nội dung khác file import nên không thể import lại.",
-                lockedConflicts);
         if (analysis.HasUnsupportedStructureChange)
             throw new BusinessRuleException("Import lại MRX chỉ hỗ trợ thay món tại các slot hiện có; không thêm hoặc xóa slot.");
 
@@ -322,7 +312,7 @@ internal sealed class WeeklyMenuImportService(
                         transactionRunner,
                         operationContext: operationContext,
                         mrxGateway: sourceChangeGateway)
-                    .SubmitMrxAsync(request, actorUserId, cancellationToken);
+                    .SubmitMrxReimportAsync(request, actorUserId, cancellationToken);
             }
             else
             {
@@ -355,6 +345,10 @@ internal sealed class WeeklyMenuImportService(
         if (batches.Count > 1)
             throw new BusinessRuleException("Tuần có nhiều lô đối soát; không xác định được lô nhận import lại.");
         var batch = batches[0];
+        if (batch.Status != "DRAFT" || await context.Inventoryissues.AsNoTracking()
+                .AnyAsync(issue => issue.ReconciliationBatchId == batch.BatchId, cancellationToken))
+            throw new MrxSourceChangeException(MrxErrorCodes.ReimportClosed, StatusCodes.Status409Conflict,
+                "Lô đối soát đã chốt hoặc bắt đầu xuất kho. Không thể import lại tuần này; hãy dùng Chỉnh sửa món cho ngày còn mở.");
         var schedules = await context.Menuschedules.AsNoTracking()
             .Include(item => item.Menu).ThenInclude(menu => menu.Menuitems)
             .Where(item => item.CustomerId == customer.CustomerId && item.WeekStartDate == plan.WeekStartDate
@@ -384,6 +378,8 @@ internal sealed class WeeklyMenuImportService(
             SlotKey(item.ServiceDate, item.DbShiftName, item.VariantKey, item.Slot),
             item.ServiceDate, item.DbShiftName, $"{item.VariantKey}-{item.Slot}", GuidHelper.ParseGuidString(item.DishId)))
             .ToDictionary(item => item.Key, StringComparer.OrdinalIgnoreCase);
+        if (imported.Values.Any(item => item.DishId is null))
+            throw new BusinessRuleException("Import lại MRX có lô đối soát không hỗ trợ món chưa có trong danh mục. Vui lòng tạo món và BOM trước khi import lại.");
         var allKeys = current.Keys.Union(imported.Keys, StringComparer.OrdinalIgnoreCase).ToList();
         var changedKeys = allKeys.Where(key =>
             !current.TryGetValue(key, out var oldSlot) || !imported.TryGetValue(key, out var newSlot)

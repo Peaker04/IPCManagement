@@ -475,10 +475,17 @@ test('BROWSER_FIXTURE: customer-only form, dish-name inspection and six-day prep
       : path === '/api/ingredients' ? { items: [{ ingredientId: 'ingredient-1', ingredientCode: 'NL01', ingredientName: 'Sườn heo', unitId: 'kg', unitName: 'kg', isActive: true, referencePrice: 100000 }], totalCount: 1, pageNumber: 1, pageSize: 200, totalPages: 1, hasPrev: false, hasNext: false }
       : path === '/api/coordination/customers' ? []
       : path === '/api/Dishes/bom-price-tiers' ? [25000, 30000, 34000]
+      : path === '/api/Dishes/bom-import/preview' ? {
+        generatedAt: '2026-11-14T00:00:00Z', priceTier: 25000, bomScope: 'global',
+        totalRows: 60, validRows: 60, errorRows: 0, warningRows: 0, canCommit: true, warnings: [],
+        rows: Array.from({ length: 60 }, (_, index) => ({ rowNumber: index + 2, dishCode: `MON${String(index + 1).padStart(2, '0')}`, dishName: 'Cơm sườn nướng', ingredientCode: index === 0 ? 'ING-NGUYENLIEUEXCELMWG27MNB' : 'NL01',
+          ingredientName: index === 0 ? 'Nguyên liệu Excel cần đọc rõ khi xem trước' : 'Sườn heo', unitCode: 'KG', grossQtyPerServing: 0.123456, wasteRatePercent: 0,
+          effectiveFrom: '2026-11-16', status: 'valid', action: 'create', errors: [], warnings: [] })),
+      }
       : path === '/api/Dishes/dish-1/bom' ? [{ bomId: 'bom-1', dishId: 'dish-1', dishCode: 'MON01', dishName: 'Cơm sườn nướng', ingredientId: 'ingredient-1', ingredientCode: 'NL01', ingredientName: 'Sườn heo', unitId: 'kg', unitCode: 'kg', unitName: 'kg', priceTierAmount: 25000, bomScope: 'global', grossQtyPerServing: 0.123456, wasteRatePercent: 0, bomStatus: 'PUBLISHED', bomStatusLabel: 'Đã phát hành', effectiveFrom: '2026-01-01', referencePrice: 100000 },
         { bomId: 'bom-30', dishId: 'dish-1', dishCode: 'MON01', dishName: 'Cơm sườn nướng', ingredientId: 'ingredient-1', ingredientCode: 'NL01', ingredientName: 'Sườn heo', unitId: 'kg', unitCode: 'kg', unitName: 'kg', priceTierAmount: 30000, bomScope: 'global', grossQtyPerServing: 0.25, wasteRatePercent: 0, bomStatus: 'PUBLISHED', bomStatusLabel: 'Đã phát hành', effectiveFrom: '2026-01-01', referencePrice: 100000 } ]
       : path === '/api/reconciliation/preparation' ? { serviceDate: '2026-11-16', batches: [], aggregatedLines: [] } : null;
-    if (route.request().method() !== 'GET' || data === null) {
+    if ((route.request().method() !== 'GET' && !(path === '/api/Dishes/bom-import/preview' && route.request().method() === 'POST')) || data === null) {
       unexpected.push(`${route.request().method()} ${path}`);
       return route.fulfill({ status: 503, json: { success: false, message: 'Unexpected seven-item fixture request.' } });
     }
@@ -531,6 +538,49 @@ test('BROWSER_FIXTURE: customer-only form, dish-name inspection and six-day prep
     await page.getByRole('combobox', { name: 'Lọc mốc giá BOM' }).selectOption('30000');
     await expect(page.getByRole('row', { name: /Cơm sườn nướng/ })).toContainText('1 nguyên liệu');
     await page.screenshot({ path: test.info().outputPath(`BROWSER_FIXTURE-bom-overview-${viewport.width}.png`) });
+    await page.getByRole('button', { name: 'Nhập BOM Excel' }).click();
+    const importDialog = page.getByRole('dialog', { name: 'Nhập định mức BOM hàng loạt từ file Excel' });
+    await importDialog.getByLabel('Chọn file Excel định mức BOM').setInputFiles({
+      name: 'fixture-bom.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from('browser fixture'),
+    });
+    await importDialog.getByRole('button', { name: 'Xem trước' }).click();
+    const previewViewport = importDialog.getByTestId('bom-preview-viewport');
+    const longCodeCell = previewViewport.locator('tbody tr').first().locator('td').nth(3);
+    expect(await longCodeCell.evaluate(cell => cell.querySelector('button')!.getBoundingClientRect().right - cell.getBoundingClientRect().right)).toBeLessThanOrEqual(1);
+    await expect(longCodeCell.getByRole('button', { name: 'Sao chép ING-NGUYENLIEUEXCELMWG27MNB' })).toHaveAttribute('title', 'ING-NGUYENLIEUEXCELMWG27MNB');
+    const dishCodeCell = importDialog.getByRole('cell', { name: 'MON01' });
+    await expect(dishCodeCell).toBeVisible();
+    const beforeScroll = await dishCodeCell.boundingBox();
+    await previewViewport.evaluate(element => { element.scrollLeft = 300; });
+    expect(await previewViewport.evaluate(element => element.scrollLeft)).toBeGreaterThan(0);
+    const afterScroll = await dishCodeCell.boundingBox();
+    expect(Math.abs(afterScroll!.x - beforeScroll!.x)).toBeLessThanOrEqual(1);
+    const codeHeader = importDialog.getByRole('columnheader', { name: 'Mã món' });
+    const headerBeforeScroll = await codeHeader.boundingBox();
+    await previewViewport.evaluate(element => { element.scrollTop = 240; });
+    expect(await previewViewport.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+    const headerAfterScroll = await codeHeader.boundingBox();
+    expect(Math.abs(headerAfterScroll!.y - headerBeforeScroll!.y)).toBeLessThanOrEqual(1);
+    expect(await codeHeader.evaluate(element => {
+      const rect = element.getBoundingClientRect();
+      return document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)?.closest('th') === element;
+    })).toBe(true);
+    await page.screenshot({ path: test.info().outputPath(`BROWSER_FIXTURE-bom-preview-scrolled-${viewport.width}.png`) });
+    if (viewport.width === 1440) {
+      // 720 CSS px approximates a 1440 px desktop at 200% browser zoom.
+      await page.setViewportSize({ width: 720, height: 450 });
+      const dialogBounds = await importDialog.boundingBox();
+      expect(dialogBounds).not.toBeNull();
+      expect(dialogBounds!.x).toBeGreaterThanOrEqual(0);
+      expect(dialogBounds!.x + dialogBounds!.width).toBeLessThanOrEqual(720);
+      await expect(importDialog.getByRole('button', { name: 'Xác nhận nhập BOM hàng loạt', exact: true })).toBeVisible();
+      await page.screenshot({ path: test.info().outputPath('BROWSER_FIXTURE-bom-preview-effective-200-percent.png') });
+      await importDialog.getByText(/Kết quả phân tích định mức BOM/).scrollIntoViewIfNeeded();
+      await expect(previewViewport).toBeVisible();
+      await page.screenshot({ path: test.info().outputPath('BROWSER_FIXTURE-bom-preview-effective-200-percent-scrolled.png') });
+      await page.setViewportSize(viewport);
+    }
+    await importDialog.getByRole('button', { name: 'Đóng', exact: true }).click();
     await page.getByRole('button', { name: 'Chỉnh sửa BOM', exact: true }).click();
     const bomEdit = page.getByRole('dialog', { name: 'Định mức BOM: Cơm sườn nướng', exact: true });
     await expect(bomEdit.getByRole('radio', { name: '30.000 ₫', exact: true })).toHaveAttribute('aria-checked', 'true');

@@ -69,7 +69,7 @@ public static class DishBomPolicy
         return normalized switch
         {
             "by-dish" => "all",
-            "missing" or "blank" or "all" or "dish" => normalized,
+            "missing" or "mrx-missing" or "blank" or "all" or "dish" => normalized,
             _ => "missing"
         };
     }

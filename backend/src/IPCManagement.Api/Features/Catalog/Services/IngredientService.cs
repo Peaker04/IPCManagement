@@ -7,6 +7,8 @@ using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Shared.Contracts;
 
 using IPCManagement.Api.Exceptions;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 
 namespace IPCManagement.Api.Features.Catalog.Services;
 
@@ -14,13 +16,19 @@ public class IngredientService : IIngredientService
 {
     private readonly IIngredientRepository _ingredientRepo;
     private readonly IOperationalWarehouseResolver _operationalWarehouseResolver;
+    private readonly IpcManagementContext _context;
+    private readonly IEfTransactionRunner _transactionRunner;
 
     public IngredientService(
         IIngredientRepository ingredientRepo,
-        IOperationalWarehouseResolver operationalWarehouseResolver)
+        IOperationalWarehouseResolver operationalWarehouseResolver,
+        IpcManagementContext context,
+        IEfTransactionRunner transactionRunner)
     {
         _ingredientRepo = ingredientRepo;
         _operationalWarehouseResolver = operationalWarehouseResolver;
+        _context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<PagedResponseDto<IngredientDto>> GetPagedAsync(PagedRequestDto request)
@@ -46,27 +54,34 @@ public class IngredientService : IIngredientService
 
     public async Task<IngredientDto> CreateAsync(CreateIngredientRequest dto)
     {
-        // Kiểm tra trùng code
-        if (await _ingredientRepo.IsCodeExistsAsync(dto.IngredientCode))
-            throw new BusinessRuleException($"Mã nguyên liệu '{dto.IngredientCode}' đã tồn tại.");
-
         var unitBytes      = GuidHelper.ParseGuidString(dto.UnitId)
             ?? throw new ArgumentException("UnitId không hợp lệ.");
-        var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
-
-        var entity = new Ingredient
+        var ingredientId = GuidHelper.NewId();
+        var entity = await _transactionRunner.ExecuteAsync(async token =>
         {
-            IngredientId   = GuidHelper.NewId(),
-            IngredientCode = dto.IngredientCode.Trim(),
-            IngredientName = dto.IngredientName.Trim(),
-            IsFreshDaily   = dto.IsFreshDaily,
-            ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice),
-            UnitId         = unitBytes,
-            WarehouseId    = warehouseBytes,
-            IsActive       = true
-        };
-
-        await _ingredientRepo.AddAsync(entity);
+            await IngredientUnitLock.AcquireAsync(_context, unitBytes, token);
+            if (await _ingredientRepo.IsCodeExistsAsync(dto.IngredientCode))
+                throw new BusinessRuleException($"Mã nguyên liệu '{dto.IngredientCode}' đã tồn tại.");
+            await RejectDuplicateNameAndUnitAsync(dto.IngredientName, unitBytes);
+            var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
+            var created = new Ingredient
+            {
+                IngredientId = ingredientId,
+                IngredientCode = dto.IngredientCode.Trim(),
+                IngredientName = dto.IngredientName.Trim(),
+                IsFreshDaily = dto.IsFreshDaily,
+                ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice),
+                UnitId = unitBytes,
+                WarehouseId = warehouseBytes,
+                IsActive = true
+            };
+            await _ingredientRepo.AddAsync(created);
+            return created;
+        }, async token =>
+        {
+            var persisted = await _ingredientRepo.FindByCodeAsync(dto.IngredientCode.Trim());
+            return persisted is not null && persisted.IngredientId.AsSpan().SequenceEqual(ingredientId);
+        });
         return IngredientMapper.MapToDto(entity);
     }
 
@@ -74,23 +89,39 @@ public class IngredientService : IIngredientService
     {
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return null;
-
-        var entity = await _ingredientRepo.GetByIdAsync(bytes);
-        if (entity is null) return null;
-
-        if (dto.IngredientName is not null) entity.IngredientName = dto.IngredientName.Trim();
-        if (dto.IsFreshDaily   is not null) entity.IsFreshDaily   = dto.IsFreshDaily.Value;
-        if (dto.ReferencePrice is not null) entity.ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice.Value);
-        if (dto.IsActive       is not null) entity.IsActive       = dto.IsActive.Value;
-
-        if (dto.UnitId is not null)
+        var entity = await _transactionRunner.ExecuteAsync(async token =>
         {
-            entity.UnitId = GuidHelper.ParseGuidString(dto.UnitId)
-                ?? throw new ArgumentException("UnitId không hợp lệ.");
-        }
-        entity.WarehouseId = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
+            var current = await _ingredientRepo.GetByIdAsync(bytes);
+            if (current is null) return null;
+            if (dto.IsActive != false && (dto.IngredientName is not null || dto.UnitId is not null || current.IsActive == false))
+            {
+                var proposedUnit = dto.UnitId is null ? current.UnitId : GuidHelper.ParseGuidString(dto.UnitId)
+                    ?? throw new ArgumentException("UnitId không hợp lệ.");
+                await IngredientUnitLock.AcquireAsync(_context, proposedUnit, token);
+                await RejectDuplicateNameAndUnitAsync(dto.IngredientName ?? current.IngredientName, proposedUnit, current.IngredientId);
+            }
 
-        await _ingredientRepo.UpdateAsync(entity);
+            if (dto.IngredientName is not null) current.IngredientName = dto.IngredientName.Trim();
+            if (dto.IsFreshDaily is not null) current.IsFreshDaily = dto.IsFreshDaily.Value;
+            if (dto.ReferencePrice is not null) current.ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice.Value);
+            if (dto.IsActive is not null) current.IsActive = dto.IsActive.Value;
+            if (dto.UnitId is not null)
+                current.UnitId = GuidHelper.ParseGuidString(dto.UnitId)
+                    ?? throw new ArgumentException("UnitId không hợp lệ.");
+            current.WarehouseId = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
+            await _ingredientRepo.UpdateAsync(current);
+            return current;
+        }, async token =>
+        {
+            var persisted = await _ingredientRepo.GetByIdAsync(bytes);
+            return persisted is not null
+                && (dto.IngredientName is null || persisted.IngredientName == dto.IngredientName.Trim())
+                && (dto.UnitId is null || persisted.UnitId.AsSpan().SequenceEqual(GuidHelper.ParseGuidString(dto.UnitId)))
+                && (dto.IsActive is null || persisted.IsActive == dto.IsActive)
+                && (dto.IsFreshDaily is null || persisted.IsFreshDaily == dto.IsFreshDaily)
+                && (dto.ReferencePrice is null || persisted.ReferencePrice == DecimalPolicy.RoundMoney(dto.ReferencePrice.Value));
+        });
+        if (entity is null) return null;
         return IngredientMapper.MapToDto(entity);
     }
 
@@ -118,6 +149,17 @@ public class IngredientService : IIngredientService
         if (!suppliedId.AsSpan().SequenceEqual(canonicalId))
             throw new BusinessRuleException("Kho trên yêu cầu không khớp kho vận hành của hệ thống.");
         return canonicalId;
+    }
+
+    private async Task RejectDuplicateNameAndUnitAsync(string name, byte[] unitId, byte[]? excludeId = null)
+    {
+        var normalizedName = name.Trim();
+        var matches = await _ingredientRepo.GetActiveByUnitAsync(unitId);
+        var duplicate = matches.FirstOrDefault(item =>
+            (excludeId is null || !item.IngredientId.AsSpan().SequenceEqual(excludeId)) &&
+            string.Equals(item.IngredientName.Trim(), normalizedName, StringComparison.OrdinalIgnoreCase));
+        if (duplicate is not null)
+            throw new BusinessRuleException($"Nguyên liệu '{normalizedName}' cùng đơn vị đã tồn tại với mã '{duplicate.IngredientCode}'. Hãy dùng nguyên liệu hiện có.");
     }
 
 }

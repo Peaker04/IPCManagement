@@ -121,7 +121,7 @@ export function MrxBatchHeaderBranch({
               disabled={isSubmitting || isPending || Boolean(importDisabledReason)}
               title={importDisabledReason}
               onClick={onOpenImport}
-            >{!isPending && batch?.status === 'COMPLETED' ? 'Nhập thực đơn mới' : 'Nhập Excel'}</Button>
+            >{!isPending && batch && batch.status !== 'DRAFT' ? 'Nhập thực đơn mới' : 'Nhập Excel'}</Button>
           )}
           {primaryAction && (
             <ActionGuard

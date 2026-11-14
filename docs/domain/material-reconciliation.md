@@ -56,13 +56,13 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 ### 2.1. Sửa nguồn trực tiếp và số suất tách Mặn/Chay
 
 - **BR-MRX-EDIT-1 — Vai trò:** Admin/Quản lý áp dụng trực tiếp với lý do bắt buộc; Điều phối gửi yêu cầu để Admin/Quản lý duyệt hoặc từ chối, trong đó từ chối bắt buộc lý do; Thủ kho và Bếp trưởng không sửa nguồn.
-- **BR-MRX-EDIT-2 — Đối tượng sửa:** món theo ngày × ca × slot, số suất Mặn/Chay theo căn tin × ngày × ca và import lại file thực đơn tuần.
+- **BR-MRX-EDIT-2 — Đối tượng sửa:** món theo ngày × ca × slot, số suất Mặn/Chay theo căn tin × ngày × ca và import lại file thực đơn tuần khi chưa có lô READY. Lô DRAFT chỉ nhận import lại nếu chưa có phiếu xuất; từ READY trở đi dùng sửa nguồn trực tiếp/yêu cầu duyệt cho ngày còn mở.
 - Import thực đơn đã commit lưu snapshot nguồn chuẩn hóa theo từng `MenuVersion` (customer/week/tier → ngày/ca/slot → exact dish identity/source order). Rollback chỉ gỡ projection vận hành DRAFT và chuyển version sang `ROLLED_BACK`; snapshot vẫn truy vấn được từ lịch sử nhưng không bao giờ trở lại nguồn tuần active. Version legacy thiếu snapshot phải hiển thị **không có bằng chứng**, không suy diễn từ version khác hoặc projection hiện tại.
 - Snapshot của version amendment/reimport chỉ được chốt sau khi thay đổi món đã áp dụng lên projection của version mới; snapshot cũ là immutable evidence và không bị rewrite bởi lần import sau.
 - **BR-MRX-EDIT-3 — Khóa ngày:** ngày có ít nhất một `InventoryIssue` cùng lô và `IssueDate` bị khóa; không sửa món/số suất và không sinh giao dịch bù do thay đổi nguồn. `COMPLETED` khóa toàn bộ; `DRAFT|READY|TRANSFERRED|IN_PROGRESS` vẫn cho sửa ngày chưa khóa.
 - **BR-MRX-EDIT-4 — Atomic:** một yêu cầu chạm bất kỳ ngày khóa nào bị từ chối toàn bộ và trả danh sách ngày khóa; không partial persistence.
 - **BR-MRX-EDIT-5 — Đồng bộ:** trong một transaction, ngày mở cập nhật phiên bản thực đơn, số suất, daily/weekly material projection và frozen cooking contributor; ngày khóa giữ nguyên.
-- **BR-MRX-EDIT-6 — Một đường sửa:** khi căn tin × tuần đã có lô, MRX chặn `quick-servings` và `bulk-update`; direct edit, approved request và reimport đều đi qua `MrxSourceChangeApplier`.
+- **BR-MRX-EDIT-6 — Một đường sửa:** khi căn tin × tuần đã có lô, MRX chặn `quick-servings` và `bulk-update`; direct edit, approved request và reimport hợp lệ đều đi qua `MrxSourceChangeApplier`. Import lại được đánh dấu xuyên suốt yêu cầu chờ duyệt để cổng DRAFT/READY vẫn áp dụng lúc phê duyệt.
 - **BR-MRX-EDIT-7 — Đóng băng theo ngày:** giá trị của ngày bất biến kể từ issue đầu tiên của ngày đó, không phải từ lúc toàn lô vào `READY`.
 - **BR-MRX-EDIT-8 — Lịch sử:** mỗi lần áp dụng giữ revision actor/role/apply mode/reason/time và delta trước/sau theo ngày × nguyên liệu; dữ liệu append-only.
 - Trạm Kho `/warehouse?view=mrx-issues` chỉ tra cứu lịch sử delta, bao gồm `SOURCE_CHANGE/APPLIED` và dữ liệu tương thích `SUPPLEMENTAL_ISSUE|RETURN_REQUIRED`; không mời tạo/nhận phiếu trả hoặc xuất bổ sung từ delta cũ. Lịch sử phân trang theo tổng của server và không loại bản ghi chỉ vì không còn liên kết daily projection. API danh sách giữ mặc định `PENDING` cho consumer tương thích, UI lịch sử đọc `Status=ALL`.
@@ -75,6 +75,7 @@ Daily-line identity and date-scoped initial/supplemental rules above govern new-
 - BOM sở hữu định lượng theo suất, không sở hữu số suất, giá mua thực tế hoặc cost nhập tay.
 - Template Excel hiện hành ưu tiên vùng nhập: `Tên món` khóa; `Nguyên liệu chính`, `Đơn vị`, `Định lượng/suất`, `Hao hụt (%)`, `Ghi chú`; metadata hệ thống nằm ở cột ẩn/khóa.
 - Dropdown nguyên liệu lấy danh mục active nhưng vẫn cho nhập nguyên liệu mới; dropdown đơn vị hiển thị tiếng Việt và ánh xạ về `UnitCode`. Parser tiếp tục nhận header/mã đơn vị cũ.
+- Khi nhiều món trong cùng file BOM dùng một nguyên liệu mới (mã để trống, cùng tên và đơn vị), preview/commit dùng một mã nguyên liệu và một bản ghi danh mục cho tất cả dòng BOM. Mã tự sinh không đụng mã nguyên liệu đã ngừng dùng; nếu mã bị dùng bởi nguyên liệu khác trong lúc nhập, commit báo lỗi để xem trước lại. Màn MRX xóa preview định lượng cũ sau khi nhập BOM thành công; người dùng kiểm tra lại nguồn, không nhập lại file thực đơn.
 - Giá vốn được tính từ `GrossQtyPerServing × Ingredient.ReferencePrice`; mức 25k/30k/34k là price-tier chọn phiên bản BOM, không phải giá nguyên liệu. Nguyên liệu mới có reference price 0 cho đến khi được cập nhật bằng authority chính thức; không trình bày giá vốn 0 như kết quả đầy đủ nếu thiếu giá.
 
 ### 4. Preview, commit và đóng băng

@@ -77,6 +77,10 @@ export interface BomImportPreviewRow {
   grossQtyPerServing: number;
   wasteRatePercent: number;
   effectiveFrom: string;
+  status: string;
+  action: string;
+  errors: string[];
+  warnings: string[];
 }
 
 export interface BomImportPreviewResult {
@@ -104,12 +108,15 @@ export const bomApi = {
   getSupportedPriceTiers(): Promise<number[]> {
     return apiClient<number[]>('/Dishes/bom-price-tiers');
   },
-  getBomTemplateUrl(priceTier: number, customerId?: string, templateType = 'by-dish'): string {
+  getBomTemplateUrl(priceTier: number, customerId?: string, templateType = 'by-dish', scope?: { effectiveDate?: string; weekStartDate?: string; menuVersionId?: string }): string {
     const query = new URLSearchParams({
       TemplateType: templateType,
       PriceTier: String(priceTier),
     });
     if (customerId) query.set('CustomerId', customerId);
+    if (scope?.effectiveDate) query.set('EffectiveDate', scope.effectiveDate);
+    if (scope?.weekStartDate) query.set('WeekStartDate', scope.weekStartDate);
+    if (scope?.menuVersionId) query.set('MenuVersionId', scope.menuVersionId);
     return `/api/Dishes/bom-template?${query.toString()}`;
   },
 

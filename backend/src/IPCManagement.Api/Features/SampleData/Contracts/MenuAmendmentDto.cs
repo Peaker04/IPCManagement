@@ -51,6 +51,7 @@ public sealed record MrxMaterialImpactDto(
 
 public sealed class MenuAmendmentResultDto
 {
+    public string? SourceChangeMode { get; set; }
     public string MenuAmendmentId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public bool RequiresReconciliation { get; set; }

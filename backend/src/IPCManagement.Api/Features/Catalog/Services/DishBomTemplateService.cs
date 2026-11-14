@@ -25,9 +25,51 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
         var templateType = DishBomPolicy.NormalizeTemplateType(query.TemplateType, dishId is not null);
         var customerCode = await ResolveCustomerCodeAsync(customerId, cancellationToken);
         var rows = new List<IReadOnlyList<string>>();
-        var today = ServiceCalendar.Today();
+        var today = query.EffectiveDate ?? ServiceCalendar.Today();
 
-        if (templateType != "blank")
+        if (templateType == "mrx-missing")
+        {
+            if (customerId is null || query.WeekStartDate is null || string.IsNullOrWhiteSpace(query.MenuVersionId))
+                throw new ArgumentException("Cần khách hàng, tuần và phiên bản thực đơn để tải BOM thiếu của MRX.");
+            var versionId = GuidHelper.ParseGuidString(query.MenuVersionId)
+                ?? throw new ArgumentException("Phiên bản thực đơn không hợp lệ.");
+            var schedules = await _context.Menuschedules.AsNoTracking()
+                .Where(item => item.CustomerId == customerId && item.WeekStartDate == query.WeekStartDate &&
+                    item.MenuVersionId == versionId && item.MenuPrice == priceTier)
+                .Select(item => new { item.MenuId, item.ServiceDate })
+                .ToListAsync(cancellationToken);
+            if (schedules.Count == 0)
+                throw new ArgumentException("Không có lịch thực đơn thuộc khách hàng, tuần, phiên bản và mức giá đã chọn.");
+            var menuIds = schedules.Select(item => item.MenuId).ToList();
+            var menuItems = await _context.Menuitems.AsNoTracking()
+                .Where(item => menuIds.Contains(item.MenuId))
+                .Select(item => new { item.MenuId, item.DishId })
+                .ToListAsync(cancellationToken);
+            var dishIds = menuItems.Select(item => item.DishId).ToList();
+            var scheduledDishes = await _context.Dishes.AsNoTracking()
+                .Include(dish => dish.Dishboms).ThenInclude(bom => bom.Ingredient)
+                .Include(dish => dish.Dishboms).ThenInclude(bom => bom.Unit)
+                .Where(dish => dishIds.Contains(dish.DishId) && (dish.IsActive ?? true))
+                .AsSplitQuery().ToListAsync(cancellationToken);
+            foreach (var dish in scheduledDishes.OrderBy(item => item.DishCode))
+            {
+                var dates = schedules.Where(schedule => menuItems.Any(item => item.MenuId.SequenceEqual(schedule.MenuId) && item.DishId.SequenceEqual(dish.DishId)))
+                    .Select(schedule => schedule.ServiceDate).Distinct().OrderBy(date => date).ToList();
+                var missingDates = dates.Where(date => BomSelectionResolver.Resolve(dish.Dishboms, customerId, priceTier, date).Count == 0).ToList();
+                for (var index = 0; index < missingDates.Count;)
+                {
+                    var first = missingDates[index];
+                    var last = first;
+                    while (++index < missingDates.Count && missingDates[index].DayNumber == last.DayNumber + 1)
+                        last = missingDates[index];
+                    AddBlankBomRows(rows, dish, priceTier, customerCode,
+                        first.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        last.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+                }
+            }
+        }
+
+        if (templateType != "blank" && templateType != "mrx-missing")
         {
             var dishesQuery = _context.Dishes
                 .AsNoTracking()
@@ -50,13 +92,10 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
             foreach (var dish in dishes)
             {
                 var currentLines = query.IncludeCurrent
-                    ? dish.Dishboms
-                        .Where(line => line.PriceTierAmount == priceTier)
-                        .Where(line => DishBomPolicy.MatchesCustomerScope(line.CustomerId, customerId))
-                        .Where(DishBomPolicy.IsPublished)
-                        .Where(line => line.EffectiveFrom <= today && (line.EffectiveTo is null || line.EffectiveTo >= today))
-                        .OrderBy(line => line.Ingredient.IngredientName)
-                        .ToList()
+                    ? (customerId is null
+                        ? dish.Dishboms.Where(line => line.CustomerId is null && line.PriceTierAmount == priceTier && DishBomPolicy.IsPublished(line) && line.EffectiveFrom <= today && (line.EffectiveTo is null || line.EffectiveTo >= today)).ToList()
+                        : BomSelectionResolver.Resolve(dish.Dishboms, customerId, priceTier, today).ToList())
+                        .OrderBy(line => line.Ingredient.IngredientName).ToList()
                     : [];
 
                 if (templateType == "missing" && currentLines.Count > 0)
@@ -108,8 +147,8 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
             .ToList();
 
         var scope = customerCode is null ? "Dùng chung" : $"Khách hàng {customerCode}";
-        var scopeLabel = templateType switch { "missing" => "CacMonThieu", "dish" => "TheoMon", "blank" => "Trong", _ => "ToanBo" };
-        var scopeDescription = templateType switch { "missing" => "Các món thiếu định lượng", "dish" => "Theo món", "blank" => "Mẫu trống", _ => "Toàn bộ món" };
+        var scopeLabel = templateType switch { "missing" => "CacMonThieu", "mrx-missing" => "CacMonThieuMRX", "dish" => "TheoMon", "blank" => "Trong", _ => "ToanBo" };
+        var scopeDescription = templateType switch { "missing" => "Các món thiếu định lượng", "mrx-missing" => "Các món thiếu BOM trong tuần MRX", "dish" => "Theo món", "blank" => "Mẫu trống", _ => "Toàn bộ món" };
         var content = BomTemplateWorkbookBuilder.Build(
             priceTier,
             $"{scope} / {scopeDescription}",
@@ -138,7 +177,8 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
         Dish dish,
         decimal priceTier,
         string? customerCode,
-        string effectiveFrom)
+        string effectiveFrom,
+        string? effectiveTo = null)
     {
         for (var index = 0; index < BlankBomRowsPerDish; index++)
         {
@@ -152,7 +192,7 @@ public sealed class DishBomTemplateService : IDishBomTemplateService
                 string.Empty,
                 string.Empty,
                 effectiveFrom,
-                string.Empty,
+                effectiveTo ?? string.Empty,
                 DishBomPolicy.Published,
                 string.Empty
             ]);
