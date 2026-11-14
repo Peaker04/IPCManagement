@@ -20,6 +20,7 @@ export function MrxDeltaHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
+      className="mrx-scope-header"
       title="Lịch sử thay đổi nguồn"
       breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
       contextSelectors={filters}
