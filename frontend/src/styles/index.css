@@ -273,7 +273,15 @@
 .mrx-tools-subbar > div { min-width: 0; }
 .mrx-tools-subbar > div:last-child { justify-content: space-between; }
 .mrx-tools-subbar .mrx-metadata-slot { width: auto; }
-@container (min-width: 1400px) {
+@container (min-width: 1200px) {
+  .mrx-scope-header--compact {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+  }
+  .mrx-scope-header--compact [data-slot="header-scope"] { grid-column: 2; grid-row: 1; }
+  .mrx-scope-header--compact [data-slot="header-command-region"] { grid-column: 3; grid-row: 1; }
+}
+@container (min-width: 1500px) {
   .mrx-scope-header {
     grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-rows: auto;

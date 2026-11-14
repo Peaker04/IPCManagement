@@ -85,7 +85,7 @@ export function ReconciliationHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className="mrx-scope-header"
+      className={activeReportTab === 'completed' ? 'mrx-scope-header mrx-scope-header--compact' : 'mrx-scope-header'}
       title="Đối soát nguyên liệu"
       breadcrumb="Đối soát MRX · Bàn điều khiển Giám sát"
       contextSelectors={

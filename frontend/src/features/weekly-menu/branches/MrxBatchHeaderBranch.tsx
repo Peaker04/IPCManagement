@@ -59,7 +59,7 @@ export function MrxBatchHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className="mrx-scope-header"
+      className="mrx-scope-header mrx-scope-header--compact"
       title={source && !batch ? 'Hoàn thiện nguồn tuần' : 'Chuẩn bị lô đối soát'}
       breadcrumb="Đối soát MRX · Trạm Điều phối"
       contextSelectors={

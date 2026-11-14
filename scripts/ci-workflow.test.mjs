@@ -46,11 +46,11 @@ test('aggregate rejects failure, cancellation, skip, missing or unknown result',
   }
 })
 
-test('Verify and CodeQL cover both branches eligible for Git deployment', () => {
+test('only main is eligible for Git deployment while Verify and CodeQL cover main and dev', () => {
   const vercel = JSON.parse(readFileSync('vercel.json', 'utf8'))
   const branches = ['main', 'dev']
-  assert.equal(vercel.git.deploymentEnabled, false,
-    'Use scalar false: a wildcard object can leave slash-containing branches unmatched and enabled')
+  assert.deepEqual(vercel.git.deploymentEnabled, { '**': false, main: true },
+    'Disable every branch, including names with slashes; the explicit main rule enables Production')
   for (const workflow of [verify, codeql]) {
     for (const branch of branches) {
       assert.ok(workflow.on.push.branches.includes(branch), `push ${branch}`)

@@ -4,7 +4,10 @@
   "buildCommand": "npm run build:fe",
   "outputDirectory": "frontend/dist",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "**": false,
+      "main": true
+    }
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://ipcmanagement.onrender.com/api/$1" },
