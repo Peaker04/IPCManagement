@@ -21,6 +21,7 @@ export interface SearchableComboboxProps {
   disabled?: boolean;
   className?: string;
   maxVisibleOptions?: number;
+  listInFlow?: boolean;
 }
 
 import { normalizeSearchText as removeDiacritics } from '../../utils/search';
@@ -36,6 +37,7 @@ export function SearchableCombobox({
   disabled = false,
   className,
   maxVisibleOptions = 15,
+  listInFlow = false,
 }: SearchableComboboxProps) {
   const generatedId = useId();
   const id = explicitId || generatedId;
@@ -121,7 +123,7 @@ export function SearchableCombobox({
   return (
     <div
       ref={containerRef}
-      className={twMerge(clsx('relative inline-flex items-center w-full', className))}
+      className={twMerge(clsx('relative inline-flex w-full', listInFlow ? 'flex-col' : 'items-center', className))}
     >
       <div className="relative w-full flex items-center">
         <input
@@ -178,7 +180,8 @@ export function SearchableCombobox({
         <div
           id={`${id}-listbox`}
           role="listbox"
-          className="ui-popup-enter absolute left-0 top-full mt-1 w-full min-w-[240px] max-h-60 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg z-50 py-1 text-xs"
+          className={clsx('ui-popup-enter mt-1 w-full max-h-60 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg py-1 text-xs',
+            listInFlow ? '' : 'absolute left-0 top-full min-w-[240px] z-50')}
         >
           {filteredOptions.length === 0 ? (
             <div className="p-3 text-center text-slate-500 italic">
@@ -195,7 +198,8 @@ export function SearchableCombobox({
                   role="option"
                   aria-selected={isSelected}
                   onMouseEnter={() => setActiveValue(opt.value)}
-                  onClick={() => handleSelect(opt.value)}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={(event) => { event.preventDefault(); handleSelect(opt.value); }}
                   className={clsx(
                     'px-3 py-1.5 flex items-center justify-between cursor-pointer transition-colors',
                     isSelected ? 'bg-blue-50 text-blue-900 font-semibold' : isActive ? 'bg-slate-50 text-slate-800' : 'hover:bg-slate-50 text-slate-800'

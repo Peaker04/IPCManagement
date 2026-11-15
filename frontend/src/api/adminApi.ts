@@ -17,6 +17,7 @@ export interface PagedQueryParams {
 }
 
 export interface IngredientItem {
+  preparationGroupCode?: string;
   ingredientId: string;
   ingredientCode: string;
   ingredientName: string;
@@ -38,9 +39,16 @@ export interface UnitItem {
 }
 
 export interface CreateIngredientInput {
-  ingredientCode: string;
+  preparationGroupCode?: string;
   ingredientName: string;
   unitId: string;
+  isFreshDaily: boolean;
+  referencePrice: number;
+}
+
+export interface UpdateIngredientInput {
+  preparationGroupCode?: string;
+  ingredientName?: string;
   isFreshDaily: boolean;
   referencePrice: number;
 }
@@ -65,6 +73,7 @@ export interface ApprovalRuleItem {
 }
 
 export interface RawIngredient {
+  preparationGroupCode?: string;
   ingredientId: string;
   ingredientCode: string;
   ingredientName: string;
@@ -104,6 +113,12 @@ export const adminApi = {
   createIngredient(input: CreateIngredientInput): Promise<IngredientItem> {
     return apiClient<IngredientItem>('/ingredients', { method: 'POST', body: JSON.stringify(input) });
   },
+  getIngredient(id: string): Promise<IngredientItem> {
+    return apiClient<IngredientItem>(`/ingredients/${encodeURIComponent(id)}`);
+  },
+  updateIngredient(id: string, input: UpdateIngredientInput): Promise<IngredientItem> {
+    return apiClient<IngredientItem>(`/ingredients/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(input) });
+  },
   async getIngredients(params?: PagedQueryParams, signal?: AbortSignal): Promise<PagedResult<IngredientItem>> {
     const qs = buildPagedQuery(params);
     const resp = await apiClient<{
@@ -122,6 +137,7 @@ export const adminApi = {
           ingredientId: i.ingredientId,
           ingredientCode: i.ingredientCode,
           ingredientName: i.ingredientName,
+          preparationGroupCode: i.preparationGroupCode,
           unitId: i.unitId,
           unitName: i.unitName || '—',
           warehouseId: i.warehouseId,
@@ -152,6 +168,7 @@ export const adminApi = {
         ingredientId: i.ingredientId,
         ingredientCode: i.ingredientCode,
         ingredientName: i.ingredientName,
+          preparationGroupCode: i.preparationGroupCode,
         unitId: i.unitId,
         unitName: i.unitName || '—',
         warehouseId: i.warehouseId,

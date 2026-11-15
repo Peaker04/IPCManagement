@@ -5,6 +5,7 @@ namespace IPCManagement.Api.Features.Catalog.Contracts;
 /// <summary>Response DTO — trả ra ngoài client.</summary>
 public class IngredientDto
 {
+    public string PreparationGroupCode { get; set; } = "UNCLASSIFIED";
     public string  IngredientId   { get; set; } = string.Empty;
     public string  IngredientCode { get; set; } = string.Empty;
     public string  IngredientName { get; set; } = string.Empty;
@@ -20,9 +21,9 @@ public class IngredientDto
 /// <summary>Request DTO — tạo mới nguyên liệu.</summary>
 public class CreateIngredientRequest
 {
-    [Required]
+    public string PreparationGroupCode { get; set; } = "UNCLASSIFIED";
     [MaxLength(50)]
-    public string  IngredientCode { get; set; } = string.Empty;
+    public string? IngredientCode { get; set; }
 
     [Required]
     [MaxLength(200)]
@@ -42,6 +43,7 @@ public class CreateIngredientRequest
 /// <summary>Request DTO — cập nhật nguyên liệu.</summary>
 public class UpdateIngredientRequest
 {
+    public string? PreparationGroupCode { get; set; }
     [MaxLength(200)]
     public string? IngredientName { get; set; }
 

@@ -82,6 +82,25 @@ public sealed record ReconciliationSourceDeltaQueueItemDto(
     string Status,
     long Version,
     DateTime CreatedAt);
+public sealed class ReconciliationSourceHistoryPageQuery : PagedRequestDto
+{
+    public string? CustomerCode { get; set; }
+    public string? BatchId { get; set; }
+    public DateOnly? ServiceDate { get; set; }
+}
+public sealed record ReconciliationSourceHistoryEventDto(
+    string EventId, string CustomerCode, string CustomerName, DateOnly WeekStartDate,
+    DateTime OccurredAt, string ActorName, string Status, string ApprovalStatus,
+    string ChangeRoute, string Reason, int AffectedLineCount);
+public sealed record ReconciliationSourceHistoryMaterialDto(
+    DateOnly ServiceDate, string IngredientCode, string IngredientName, string UnitName,
+    decimal PreviousQuantity, decimal NewQuantity, decimal DeltaQuantity, bool IsApplied);
+public sealed record ReconciliationSourceHistoryRevisionDto(string RevisionId, string BatchId, long RevisionNumber, DateTime AppliedAt);
+public sealed record ReconciliationSourceHistoryDetailDto(
+    ReconciliationSourceHistoryEventDto Event, string? RequesterName, DateTime? RequestedAt,
+    string? ReviewerName, DateTime? ReviewedAt, string? ExecutorName, DateTime? ExecutedAt,
+    IReadOnlyList<ReconciliationSourceHistoryRevisionDto> Revisions,
+    PagedResponseDto<ReconciliationSourceHistoryMaterialDto> Materials);
 public sealed record PreviewQuantityImportRequest(string MenuVersionId, string? SourceLabel);
 public sealed record CommitQuantityImportRequest(string Token, string ContentFingerprint, string? SourceLabel);
 public sealed record QuantityImportMaterialContributionDto(string DishBomId, string IngredientId, string IngredientCode, string IngredientName, decimal GrossQuantityPerServing, string SourceUnitId, string SourceUnitName, decimal RequiredQuantity, string CanonicalUnitId, string CanonicalUnitName);
@@ -252,7 +271,12 @@ public sealed record ReconciliationPreparationSummaryRowDto(
     string CanonicalUnitId,
     string CanonicalUnitName,
     IReadOnlyDictionary<string, decimal> CustomerQuantities,
-    decimal TotalQuantity);
+    decimal TotalQuantity)
+{
+    public string? SupplierId { get; init; }
+    public string? SupplierCode { get; init; }
+    public string PreparationGroupCode { get; init; } = "UNCLASSIFIED";
+}
 
 public sealed record ReconciliationPreparationDetailRowDto(
     string CustomerId,
@@ -269,7 +293,12 @@ public sealed record ReconciliationPreparationDetailRowDto(
     decimal Quantity,
     string Classification,
     string IssueStatus,
-    string SupplierName);
+    string SupplierName)
+{
+    public string? SupplierId { get; init; }
+    public string? SupplierCode { get; init; }
+    public string PreparationGroupCode { get; init; } = "UNCLASSIFIED";
+}
 
 public sealed record ReconciliationPreparationMenuRowDto(
     string CustomerId, string CustomerName, string BatchId, DateOnly ServiceDate,

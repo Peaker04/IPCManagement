@@ -660,7 +660,7 @@ public class InventoryIssueServiceTests
                 isActive INTEGER DEFAULT 1
             );
 
-            CREATE TABLE ingredients (
+            CREATE TABLE ingredients (preparationGroupCode TEXT NOT NULL DEFAULT 'UNCLASSIFIED',
                 ingredientId BLOB PRIMARY KEY,
                 ingredientCode TEXT,
                 ingredientName TEXT,

@@ -18,7 +18,7 @@ namespace IPCManagement.Api.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .UseCollation("utf8mb4_unicode_ci")
-                .HasAnnotation("ProductVersion", "9.0.20")
+                .HasAnnotation("ProductVersion", "9.0.23")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
@@ -941,6 +941,14 @@ namespace IPCManagement.Api.Migrations
                     b.Property<bool>("IsFreshDaily")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("isFreshDaily");
+
+                    b.Property<string>("PreparationGroupCode")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasDefaultValue("UNCLASSIFIED")
+                        .HasColumnName("preparationGroupCode");
 
                     b.Property<decimal>("ReferencePrice")
                         .HasPrecision(18, 2)

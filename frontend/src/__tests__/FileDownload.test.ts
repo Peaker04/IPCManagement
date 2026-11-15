@@ -20,7 +20,7 @@ it.each([
     } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
     if (path !== '/api/report/xlsx') throw new Error(`Unexpected download request ${path}`);
     if (refresh && new Headers(init?.headers).get('Authorization') === 'Bearer download-old') return new Response('', { status: 401 });
-    return new Response('workbook-bytes', { headers: { 'Content-Disposition': disposition } });
+    return new Response('workbook-bytes', { headers: { 'Content-Disposition': disposition, 'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } });
   });
   const create = vi.fn((bytes: Blob) => { expect(bytes.size).toBe(14); return 'blob:unit-test'; });
   const revoke = vi.fn();
@@ -47,4 +47,11 @@ it('reports HTTP failure instead of opening an unauthenticated fallback or prete
   const open = vi.spyOn(window, 'open').mockImplementation(() => null);
   await expect(downloadAuthenticatedFile('/api/report/xlsx', 'bao-cao.xlsx')).rejects.toThrow(/403/);
   expect(open).not.toHaveBeenCalled();
+});
+
+it.each(['text/html', 'application/json', 'text/plain'])('rejects a successful %s response instead of saving it as XLSX', async contentType => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('not a workbook', { status: 200, headers: { 'Content-Type': contentType } }));
+  const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  await expect(downloadAuthenticatedFile('/api/report/xlsx', 'bao-cao.xlsx')).rejects.toThrow('không trả về tệp Excel');
+  expect(click).not.toHaveBeenCalled();
 });

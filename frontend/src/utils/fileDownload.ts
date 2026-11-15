@@ -5,6 +5,9 @@ export async function downloadAuthenticatedFile(url: string, filename?: string):
   const response = await authenticatedFetch(url);
   const token = localStorage.getItem('ipc_v3_token');
   if (!response.ok) throw new Error(`Không thể tải tệp (HTTP ${response.status}). Vui lòng thử lại.`);
+  const contentType = response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
+  if (contentType !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' && contentType !== 'application/octet-stream')
+    throw new Error('Máy chủ không trả về tệp Excel hợp lệ. Vui lòng tải lại và thử lại.');
   const blob = await response.blob();
   if (localStorage.getItem('ipc_v3_token') !== token) throw new ApiError(401, 'Phiên đăng nhập đã thay đổi. Vui lòng tải lại dữ liệu.', undefined, 'SESSION_CHANGED');
   const objectUrl = URL.createObjectURL(blob);

@@ -1015,8 +1015,8 @@ public sealed class Phase30InactiveReconciliationOwnerTests
             };
         }
 
-        // Two nullable frozen conversion scalars join the full persisted snapshot; no cells are excluded.
-        private const string ExpectedScalarSchemaHash = "7252037DF0B588ABB8D47066D008AB48D68DB0031A75CC08A90B10E14E7A0020";
+        // Ingredient.PreparationGroupCode is included in the full persisted snapshot and reconstruction; no cells are excluded.
+        private const string ExpectedScalarSchemaHash = "380AF27D240558719764DD118BE7B0E2267B4618498CFCF40975C66F8626B5D8";
 
         private sealed record EntityMapping(IEntityType Entity, string Table, StoreObjectIdentifier Store);
 
