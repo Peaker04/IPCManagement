@@ -20,13 +20,12 @@ export function MrxDeltaHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className="mrx-scope-header"
+      className="mrx-scope-header mrx-source-header"
       title="Lịch sử thay đổi nguồn"
       breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
       contextSelectors={filters}
       actions={
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500 whitespace-nowrap">Chỉ đọc</span>
           <Button
             variant="outline"
             size="default"

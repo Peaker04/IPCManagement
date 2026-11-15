@@ -146,6 +146,22 @@ test(`@G6-Direct-Source-Edit ${schedule}: source correction preserves issued dat
   await adminPage.getByRole('button', { name: 'Xác nhận áp dụng', exact: true }).click();
   await expect(adminPage.getByText('Đã áp dụng thay đổi nguồn.', { exact: true })).toBeVisible();
   expect(frozen()).toEqual(originalFrozen);
+  const historyRows = dbVerifier.query<{ total: string }>(`SELECT COUNT(*) AS total FROM reconciliationsourcedeltas WHERE BatchId=UNHEX('${batchHex}');`);
+  expect(Number(historyRows[0].total)).toBeGreaterThan(0);
+  const historyPage = await adminPage.context().newPage();
+  try {
+    await historyPage.goto(`/warehouse?view=mrx-issues&batchId=${batchId}`);
+    const eventList = historyPage.getByRole('list', { name: 'Các lần thay đổi nguồn' });
+    await expect(eventList.getByRole('listitem').first()).toBeVisible();
+    await expect(eventList.getByText('Đã áp dụng').first()).toBeVisible();
+    await historyPage.screenshot({ path: path.join(evidence, 'source-history-visible.png'), fullPage: true });
+    await eventList.getByRole('button', { name: /Xem chi tiết thay đổi nguồn/ }).first().click();
+    await expect(historyPage.getByRole('dialog').getByText('Thay đổi định lượng đã áp dụng')).toBeVisible();
+    await expect(historyPage.getByRole('list', { name: 'Định lượng nguyên liệu trước và sau' }).getByRole('listitem').first()).toBeVisible();
+    await historyPage.screenshot({ path: path.join(evidence, 'source-history-detail.png'), fullPage: true });
+  } finally {
+    await historyPage.close();
+  }
   await adminPage.reload();
   await expect(savoryInput(adminPage, 2)).toHaveValue(changed);
   await respectApiBudget(adminPage);

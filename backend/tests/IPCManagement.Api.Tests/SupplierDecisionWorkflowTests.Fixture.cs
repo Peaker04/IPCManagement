@@ -269,7 +269,7 @@ public partial class SupplierDecisionWorkflowTests
                 approvedBy BLOB NULL,
                 approvedAt TEXT NULL
             );
-            CREATE TABLE ingredients (
+            CREATE TABLE ingredients (preparationGroupCode TEXT NOT NULL DEFAULT 'UNCLASSIFIED',
                 ingredientId BLOB PRIMARY KEY,
                 ingredientCode TEXT NOT NULL,
                 ingredientName TEXT NOT NULL,

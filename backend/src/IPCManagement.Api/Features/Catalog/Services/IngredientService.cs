@@ -54,21 +54,27 @@ public class IngredientService : IIngredientService
 
     public async Task<IngredientDto> CreateAsync(CreateIngredientRequest dto)
     {
+        if (string.IsNullOrWhiteSpace(dto.PreparationGroupCode) || !PreparationSupplyGroups.Labels.ContainsKey(dto.PreparationGroupCode))
+            throw new BusinessRuleException("Nhóm cung ứng nguyên liệu không hợp lệ.");
         var unitBytes      = GuidHelper.ParseGuidString(dto.UnitId)
             ?? throw new ArgumentException("UnitId không hợp lệ.");
         var ingredientId = GuidHelper.NewId();
+        var ingredientCode = string.IsNullOrWhiteSpace(dto.IngredientCode)
+            ? ($"ING-{GuidHelper.ToGuid(ingredientId):N}")[..20].ToUpperInvariant()
+            : dto.IngredientCode.Trim();
         var entity = await _transactionRunner.ExecuteAsync(async token =>
         {
             await IngredientUnitLock.AcquireAsync(_context, unitBytes, token);
-            if (await _ingredientRepo.IsCodeExistsAsync(dto.IngredientCode))
-                throw new BusinessRuleException($"Mã nguyên liệu '{dto.IngredientCode}' đã tồn tại.");
+            if (await _ingredientRepo.IsCodeExistsAsync(ingredientCode))
+                throw new BusinessRuleException($"Mã nguyên liệu '{ingredientCode}' đã tồn tại.");
             await RejectDuplicateNameAndUnitAsync(dto.IngredientName, unitBytes);
             var warehouseBytes = await ResolveCanonicalWarehouseAsync(dto.WarehouseId);
             var created = new Ingredient
             {
                 IngredientId = ingredientId,
-                IngredientCode = dto.IngredientCode.Trim(),
+                IngredientCode = ingredientCode,
                 IngredientName = dto.IngredientName.Trim(),
+                PreparationGroupCode = dto.PreparationGroupCode,
                 IsFreshDaily = dto.IsFreshDaily,
                 ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice),
                 UnitId = unitBytes,
@@ -79,7 +85,7 @@ public class IngredientService : IIngredientService
             return created;
         }, async token =>
         {
-            var persisted = await _ingredientRepo.FindByCodeAsync(dto.IngredientCode.Trim());
+            var persisted = await _ingredientRepo.FindByCodeAsync(ingredientCode);
             return persisted is not null && persisted.IngredientId.AsSpan().SequenceEqual(ingredientId);
         });
         return IngredientMapper.MapToDto(entity);
@@ -87,6 +93,8 @@ public class IngredientService : IIngredientService
 
     public async Task<IngredientDto?> UpdateAsync(string id, UpdateIngredientRequest dto)
     {
+        if (dto.PreparationGroupCode is not null && !PreparationSupplyGroups.Labels.ContainsKey(dto.PreparationGroupCode))
+            throw new BusinessRuleException("Nhóm cung ứng nguyên liệu không hợp lệ.");
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return null;
         var entity = await _transactionRunner.ExecuteAsync(async token =>
@@ -102,6 +110,7 @@ public class IngredientService : IIngredientService
             }
 
             if (dto.IngredientName is not null) current.IngredientName = dto.IngredientName.Trim();
+            if (dto.PreparationGroupCode is not null) current.PreparationGroupCode = dto.PreparationGroupCode;
             if (dto.IsFreshDaily is not null) current.IsFreshDaily = dto.IsFreshDaily.Value;
             if (dto.ReferencePrice is not null) current.ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice.Value);
             if (dto.IsActive is not null) current.IsActive = dto.IsActive.Value;
@@ -115,6 +124,7 @@ public class IngredientService : IIngredientService
         {
             var persisted = await _ingredientRepo.GetByIdAsync(bytes);
             return persisted is not null
+                && (dto.PreparationGroupCode is null || persisted.PreparationGroupCode == dto.PreparationGroupCode)
                 && (dto.IngredientName is null || persisted.IngredientName == dto.IngredientName.Trim())
                 && (dto.UnitId is null || persisted.UnitId.AsSpan().SequenceEqual(GuidHelper.ParseGuidString(dto.UnitId)))
                 && (dto.IsActive is null || persisted.IsActive == dto.IsActive)

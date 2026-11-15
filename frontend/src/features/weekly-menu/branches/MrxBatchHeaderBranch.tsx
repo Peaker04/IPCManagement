@@ -59,12 +59,12 @@ export function MrxBatchHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className="mrx-scope-header mrx-scope-header--compact"
+      className="mrx-scope-header"
       title={source && !batch ? 'Hoàn thiện nguồn tuần' : 'Chuẩn bị lô đối soát'}
       breadcrumb="Đối soát MRX · Trạm Điều phối"
       contextSelectors={
         <>
-          <div className="w-44 shrink-0 sm:w-52">
+          <div className="mrx-customer-selector w-44 shrink-0 sm:w-52">
           <Select
             aria-label="Chọn khách hàng MRX"
             options={customers.map((item) => ({

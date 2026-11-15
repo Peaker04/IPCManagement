@@ -740,7 +740,7 @@ public partial class PurchaseHistoryReconciliationTests
                 CREATE TABLE warehouses (
                     warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL,
                     warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT NULL);
-                CREATE TABLE ingredients (
+                CREATE TABLE ingredients (preparationGroupCode TEXT NOT NULL DEFAULT 'UNCLASSIFIED',
                     ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL,
                     ingredientName TEXT NOT NULL, unitId BLOB NOT NULL, warehouseId BLOB NOT NULL,
                     referencePrice NUMERIC NOT NULL, isFreshDaily INTEGER NOT NULL, isActive INTEGER NULL);

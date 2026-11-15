@@ -18,6 +18,7 @@ public partial class Ingredient
     public decimal ReferencePrice { get; set; }
 
     public bool IsFreshDaily { get; set; }
+    public string PreparationGroupCode { get; set; } = "UNCLASSIFIED";
 
     public bool? IsActive { get; set; }
 

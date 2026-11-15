@@ -9,12 +9,13 @@ import { TelemetrySubbar } from '../../../components/workbench/TelemetrySubbar';
 import { DataGrid, type ColumnDef } from '../../../components/workbench/DataGrid';
 import { StateBoundary } from '../../../components/workbench/StateBoundary';
 import { Button } from '../../../components/ui/button';
+import { Select } from '../../../components/ui/select';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
 import { Num } from '../../../components/ui/num';
 import { IdentifierText } from '../../../components/ui/identifier-text';
 import { Modal } from '../../../components/ui/modal';
-import { Select } from '../../../components/ui/select';
+import { SearchableCombobox } from '../../../components/ui/searchable-combobox';
 import { InlineBanner } from '../../../components/ui/inline-banner';
 import { ActionGuard } from '../../../components/ui/action-guard';
 import { ApiError } from '../../../api/client';
@@ -58,9 +59,10 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
   const [createPending, setCreatePending] = useState(false);
   const [createUnknown, setCreateUnknown] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [editingIngredient, setEditingIngredient] = useState<IngredientItem | null>(null);
   const [unitError, setUnitError] = useState<string | null>(null);
   const [units, setUnits] = useState<Awaited<ReturnType<typeof adminApi.getUnits>>>([]);
-  const [newCode, setNewCode] = useState('');
+  const [newGroup, setNewGroup] = useState('UNCLASSIFIED');
   const [newName, setNewName] = useState('');
   const [newUnitId, setNewUnitId] = useState('');
   const [newReferencePrice, setNewReferencePrice] = useState('0');
@@ -93,24 +95,45 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
   const { data: queryResult, stateProps, refetch: loadData } = catalogQuery;
 
   const openCreate = async () => {
+    setNewGroup('UNCLASSIFIED');
+    setEditingIngredient(null);
+    setNewName(''); setNewUnitId(''); setNewReferencePrice('0'); setNewFreshDaily(false);
+    setCreateError(null); setCreateUnknown(false);
     setCreateOpen(true);
     setUnitError(null);
     try { setUnits(await adminApi.getUnits()); }
     catch (cause) { setUnitError(cause instanceof Error ? cause.message : 'Không tải được đơn vị tính.'); }
   };
 
+  const openEdit = (ingredient: IngredientItem) => {
+    setNewGroup(ingredient.preparationGroupCode || 'UNCLASSIFIED');
+    setEditingIngredient(ingredient);
+    setNewName(ingredient.ingredientName);
+    setNewUnitId(ingredient.unitId);
+    setNewReferencePrice(String(ingredient.referencePrice));
+    setNewFreshDaily(Boolean(ingredient.isFreshDaily));
+    setCreateError(null); setCreateUnknown(false); setUnitError(null);
+    setCreateOpen(true);
+  };
+
   const checkUnknownIngredient = async () => {
     setCreatePending(true);
     try {
-      const result = await adminApi.getIngredients({ searchKeyword: newCode.trim(), pageSize: 100 });
-      const existing = result.items.find(item => item.ingredientCode.toLocaleLowerCase('vi-VN') === newCode.trim().toLocaleLowerCase('vi-VN'));
+      const existing = editingIngredient
+        ? await adminApi.getIngredient(editingIngredient.ingredientId)
+        : await adminApi.findActiveIngredientByNameAndUnit(newName, newUnitId);
       if (existing) {
-        setCreateOpen(false);
-        setCreateUnknown(false);
-        void loadData(true);
+        if (!editingIngredient || (existing.ingredientName === newName.trim() && (existing.preparationGroupCode || 'UNCLASSIFIED') === newGroup && existing.referencePrice === Number(newReferencePrice) && Boolean(existing.isFreshDaily) === newFreshDaily)) {
+          setCreateOpen(false);
+          setCreateUnknown(false);
+          setSearchKeyword(existing.ingredientCode);
+        } else {
+          setCreateUnknown(false);
+          setCreateError('Thay đổi chưa xuất hiện trong danh mục. Kiểm tra thông tin rồi lưu lại nếu cần.');
+        }
       } else {
         setCreateUnknown(false);
-        setCreateError('Chưa tìm thấy mã trong danh mục. Kiểm tra thông tin rồi lưu lại nếu cần.');
+        setCreateError('Chưa tìm thấy nguyên liệu cùng tên và đơn vị. Kiểm tra thông tin rồi lưu lại nếu cần.');
       }
     } catch (cause) { setCreateError(cause instanceof Error ? cause.message : 'Không kiểm tra được danh mục.'); }
     finally { setCreatePending(false); }
@@ -118,27 +141,34 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
 
   const submitIngredient = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (createPending || createUnknown || !newCode.trim() || !newName.trim() || !newUnitId || unitError) return;
+    if (createPending || createUnknown || !newName.trim() || !newUnitId || (!editingIngredient && unitError)) return;
     const price = Number(newReferencePrice);
     if (!Number.isFinite(price) || price < 0) { setCreateError('Giá tham chiếu phải lớn hơn hoặc bằng 0.'); return; }
     setCreatePending(true);
     setCreateError(null);
     let writeAttempted = false;
     try {
-      if (await adminApi.findActiveIngredientByNameAndUnit(newName, newUnitId)) {
+      const duplicate = !editingIngredient || newName.trim() !== editingIngredient.ingredientName
+        ? await adminApi.findActiveIngredientByNameAndUnit(newName, newUnitId)
+        : null;
+      if (duplicate && duplicate.ingredientId !== editingIngredient?.ingredientId) {
         setCreateError('Nguyên liệu cùng tên và đơn vị đã có trong danh mục. Hãy tìm và dùng bản ghi hiện có.');
         return;
       }
       writeAttempted = true;
-      const created = await adminApi.createIngredient({ ingredientCode: newCode.trim(), ingredientName: newName.trim(), unitId: newUnitId, referencePrice: price, isFreshDaily: newFreshDaily });
+      const saved = editingIngredient
+        ? await adminApi.updateIngredient(editingIngredient.ingredientId, { ...(newName.trim() !== editingIngredient.ingredientName ? { ingredientName: newName.trim() } : {}), referencePrice: price, isFreshDaily: newFreshDaily, ...(newGroup !== (editingIngredient?.preparationGroupCode || 'UNCLASSIFIED') ? { preparationGroupCode: newGroup } : {}) })
+        : await adminApi.createIngredient({ ingredientName: newName.trim(), unitId: newUnitId, referencePrice: price, isFreshDaily: newFreshDaily, ...(newGroup !== 'UNCLASSIFIED' ? { preparationGroupCode: newGroup } : {}) });
       setCreateOpen(false);
-      setNewCode(''); setNewName(''); setNewUnitId(''); setNewReferencePrice('0'); setNewFreshDaily(false);
-      if (keyword === created.ingredientCode) void loadData(true);
-      else setSearchKeyword(created.ingredientCode);
+      setNewGroup('UNCLASSIFIED');
+    setEditingIngredient(null);
+      setNewName(''); setNewUnitId(''); setNewReferencePrice('0'); setNewFreshDaily(false);
+      if (keyword === saved.ingredientCode) void loadData(true);
+      else setSearchKeyword(saved.ingredientCode);
     } catch (cause) {
       const unknown = writeAttempted && (!(cause instanceof ApiError) || cause.status >= 500 || cause.code === 'SESSION_CHANGED');
       if (unknown) setCreateUnknown(true);
-      setCreateError(unknown ? 'Chưa xác định kết quả tạo nguyên liệu. Tìm theo mã trong danh mục trước khi thử lại.' : cause instanceof Error ? cause.message : 'Không kiểm tra được danh mục nguyên liệu.');
+      setCreateError(unknown ? 'Chưa xác định kết quả lưu nguyên liệu. Kiểm tra bản ghi trước khi thử lại.' : cause instanceof Error ? cause.message : 'Không kiểm tra được danh mục nguyên liệu.');
     } finally { setCreatePending(false); }
   };
 
@@ -218,6 +248,16 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
           {row.isActive ? 'Đang áp dụng' : 'Tạm khóa'}
         </Badge>
       ),
+    },
+    {
+      id: 'actions',
+      header: 'Thao tác',
+      width: '8%',
+      minWidth: '72px',
+      align: 'center',
+      cell: (row) => <ActionGuard capabilityId="CAT.INGREDIENT.UPDATE" roles={['Admin', 'ADMIN', 'Manager', 'MANAGER', 'Quản lý']}>
+        <Button variant="outline" size="xs" aria-label={`Sửa nguyên liệu ${row.ingredientName}`} onClick={() => openEdit(row)}>Sửa</Button>
+      </ActionGuard>,
     },
   ];
 
@@ -389,18 +429,47 @@ export function AdminCatalogBranch({ activeView }: AdminCatalogBranchProps) {
         onPageChange={setPageNumber}
         onPageSizeChange={setPageSize}
       />
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} closeDisabled={createPending} isDirty={Boolean(newCode || newName || newUnitId)} title="Thêm nguyên liệu" description="Tạo bản ghi danh mục để dùng trong BOM của món ăn." footer={requestClose => <Button variant="outline" onClick={requestClose} disabled={createPending}>Đóng</Button>}>
-        <form onSubmit={submitIngredient} className="space-y-3">
+      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} closeDisabled={createPending}
+        isDirty={editingIngredient
+          ? newGroup !== (editingIngredient.preparationGroupCode || 'UNCLASSIFIED') || newName !== editingIngredient.ingredientName || newReferencePrice !== String(editingIngredient.referencePrice) || newFreshDaily !== Boolean(editingIngredient.isFreshDaily)
+          : Boolean(newGroup !== 'UNCLASSIFIED' || newName || newUnitId || newFreshDaily || newReferencePrice !== '0')}
+        title={editingIngredient ? 'Sửa nguyên liệu' : 'Thêm nguyên liệu'}
+        description={editingIngredient ? 'Cập nhật thông tin danh mục; mã và đơn vị được giữ nguyên.' : 'Tạo nguyên liệu để sử dụng trong định mức BOM.'}
+        footer={requestClose => <>
+          <Button variant="outline" onClick={requestClose} disabled={createPending}>Hủy</Button>
+          <Button type="submit" form="catalog-ingredient-form" disabled={createPending || createUnknown || Boolean(unitError) || !newName.trim() || !newUnitId}>
+            {createPending ? 'Đang lưu…' : editingIngredient ? 'Lưu thay đổi' : 'Thêm nguyên liệu'}
+          </Button>
+        </>}>
+        <form id="catalog-ingredient-form" onSubmit={submitIngredient} className="space-y-4">
           {unitError && <InlineBanner variant="error" actionLabel="Tải lại đơn vị" onAction={() => void openCreate()}>{unitError}</InlineBanner>}
           {createError && <InlineBanner variant="error">{createError}</InlineBanner>}
-          {createUnknown && <Button type="button" variant="outline" onClick={() => void checkUnknownIngredient()} disabled={createPending}>Kiểm tra kết quả tạo</Button>}
-          <label className="block text-xs font-medium">Mã nguyên liệu<Input aria-label="Mã nguyên liệu" value={newCode} maxLength={50} onChange={event => setNewCode(event.target.value)} required disabled={createPending || createUnknown} /></label>
-          <label className="block text-xs font-medium">Tên nguyên liệu<Input aria-label="Tên nguyên liệu" value={newName} maxLength={200} onChange={event => setNewName(event.target.value)} required disabled={createPending || createUnknown} /></label>
-          <label className="block text-xs font-medium">Đơn vị tính<Select aria-label="Đơn vị tính nguyên liệu" value={newUnitId} onChange={event => setNewUnitId(event.target.value)} options={[{ value: '', label: 'Chọn đơn vị' }, ...units.map(unit => ({ value: unit.unitId, label: `${unit.unitName} (${unit.unitCode})` }))]} required disabled={createPending || createUnknown || Boolean(unitError)} /></label>
-          <label className="block text-xs font-medium">Giá tham chiếu<Input aria-label="Giá tham chiếu" type="number" min="0" step="0.01" value={newReferencePrice} onChange={event => setNewReferencePrice(event.target.value)} required disabled={createPending || createUnknown} /></label>
+          {createUnknown && <Button type="button" variant="outline" onClick={() => void checkUnknownIngredient()} disabled={createPending}>Kiểm tra kết quả lưu</Button>}
+          {editingIngredient && <div className="flex items-center gap-2 text-xs"><span>Mã nguyên liệu:</span><IdentifierText value={editingIngredient.ingredientCode} /></div>}
+          <label className="block space-y-1 text-xs font-medium">Tên nguyên liệu
+            <Input aria-label="Tên nguyên liệu" value={newName} maxLength={200} onChange={event => setNewName(event.target.value)} required disabled={createPending || createUnknown} />
+          </label>
+          {editingIngredient ? <label className="block space-y-1 text-xs font-medium">Đơn vị tính<Input aria-label="Đơn vị tính nguyên liệu" value={editingIngredient.unitName} readOnly disabled /></label>
+            : <label className="block space-y-1 text-xs font-medium">Đơn vị tính
+              <SearchableCombobox aria-label="Đơn vị tính nguyên liệu" value={newUnitId} onChange={setNewUnitId} options={units.map(unit => ({ value: unit.unitId, label: unit.unitName }))} placeholder="Tìm và chọn đơn vị" maxVisibleOptions={5} listInFlow disabled={createPending || createUnknown || Boolean(unitError)} />
+            </label>}
+          <label className="block space-y-1 text-xs font-medium">Nhóm cung ứng
+            <Select aria-label="Nhóm cung ứng" value={newGroup} onChange={event => setNewGroup(event.target.value)} disabled={createPending || createUnknown} options={[
+              { value: 'UNCLASSIFIED', label: 'Chưa phân nhóm' }, { value: 'PRODUCE', label: 'Rau củ quả' },
+              { value: 'FRESH_MEAT', label: 'Thịt tươi' }, { value: 'FRESH_SEAFOOD', label: 'Thủy hải sản' },
+              { value: 'FROZEN', label: 'Đông lạnh' }, { value: 'SEASONING', label: 'Gia vị' },
+              { value: 'RICE', label: 'Gạo' }, { value: 'NOODLES', label: 'Bún, mỳ & phở' },
+              { value: 'EGGS', label: 'Trứng' }, { value: 'DAIRY', label: 'Sữa & chế phẩm' },
+              { value: 'BAKERY', label: 'Bánh' }, { value: 'BEVERAGES', label: 'Nước giải khát' },
+              { value: 'PACKAGING', label: 'Bao bì' }, { value: 'ICE', label: 'Nước đá' },
+              { value: 'OTHER', label: 'Khác' },
+            ]} />
+          </label>
+          <label className="block space-y-1 text-xs font-medium">Giá tham chiếu
+            <Input aria-label="Giá tham chiếu" type="number" min="0" step="0.01" value={newReferencePrice} onChange={event => setNewReferencePrice(event.target.value)} required disabled={createPending || createUnknown} />
+          </label>
           <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={newFreshDaily} onChange={event => setNewFreshDaily(event.target.checked)} disabled={createPending || createUnknown} />Nguyên liệu tươi nhập hằng ngày</label>
-          <p className="text-xs">Giá tham chiếu bằng 0 sẽ làm giá vốn BOM chưa đầy đủ cho đến khi cập nhật giá.</p>
-          <Button type="submit" disabled={createPending || createUnknown || Boolean(unitError) || !newCode.trim() || !newName.trim() || !newUnitId}>{createPending ? 'Đang lưu…' : 'Lưu nguyên liệu'}</Button>
+          <p className="text-xs">Giá tham chiếu bằng 0 khiến giá vốn BOM chưa đầy đủ cho đến khi cập nhật giá.</p>
         </form>
       </Modal>
     </WorkspaceFrame.Root>

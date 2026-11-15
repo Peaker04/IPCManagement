@@ -24,7 +24,7 @@ export function MrxPrepHeaderBranch({ activeDate, scopeLocked, customerSelector,
     return { serviceDate: date.toISOString().slice(0, 10), lines: [] };
   });
   return <>
-    <WorkspaceHeader responsive title="Chuẩn bị nguyên liệu đa khách hàng" breadcrumb="Đối soát MRX · Kho nguyên liệu"
+    <WorkspaceHeader responsive className="mrx-prep-header" title="Chuẩn bị nguyên liệu đa khách hàng" breadcrumb="Đối soát MRX · Kho nguyên liệu"
       contextSelectors={<>
         <VietnameseDateInput aria-label="Tuần chuẩn bị" value={weekStart} disabled={scopeLocked}
           onChange={date => onScopeChange(weekStartFor(date), wholeWeek)} className="h-9 w-40 font-mono text-sm" />
