@@ -129,16 +129,47 @@ describe('AdminDataPage — Conformance & Behavioral Audit', () => {
     });
     renderPage('/admin-data?view=ingredients&q=Gạo');
     fireEvent.click(await screen.findByRole('button', { name: 'Thêm nguyên liệu' }));
-    await screen.findByRole('option', { name: 'Kilôgam (KG)' });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu' }), { target: { value: 'NL-RAU-RAM' } });
+    expect(screen.queryByRole('textbox', { name: 'Mã nguyên liệu' })).not.toBeInTheDocument();
     fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu' }), { target: { value: 'Rau răm' } });
-    fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị tính nguyên liệu' }), { target: { value: '00000000-0000-0000-0000-000000000010' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
+    fireEvent.focus(screen.getByRole('combobox', { name: 'Đơn vị tính nguyên liệu' }));
+    fireEvent.click(await screen.findByRole('option', { name: 'Kilôgam' }));
+    fireEvent.click(screen.getByRole('dialog').querySelector('button[type="submit"]') as HTMLElement);
     await waitFor(() => expect(vi.mocked(transport.apiClient).mock.calls.some(([url, options]) => url === '/ingredients' && options?.method === 'POST')).toBe(true));
     const body = vi.mocked(transport.apiClient).mock.calls.find(([url, options]) => url === '/ingredients' && options?.method === 'POST')?.[1]?.body;
-    expect(JSON.parse(String(body))).toMatchObject({ ingredientCode: 'NL-RAU-RAM', ingredientName: 'Rau răm', unitId: '00000000-0000-0000-0000-000000000010', referencePrice: 0 });
+    expect(JSON.parse(String(body))).toMatchObject({ ingredientName: 'Rau răm', unitId: '00000000-0000-0000-0000-000000000010', referencePrice: 0 });
+    expect(JSON.parse(String(body))).not.toHaveProperty('ingredientCode');
     await waitFor(() => expect(screen.getByRole('searchbox', { name: 'Tìm kiếm danh mục' })).toHaveValue('NL-RAU-RAM'));
     expect(await screen.findByText('Rau răm')).toBeVisible();
+  });
+
+  it('edits an existing ingredient without changing its generated code or unit', async () => {
+    const existing = mockIngredientsPage1.items[0];
+    const updated = { ...existing, ingredientName: 'Gạo tẻ ST25 mới', referencePrice: 30000, preparationGroupCode: 'RICE' };
+    ingredientResponse.mockImplementation(async params => params?.searchKeyword === existing.ingredientCode
+      ? { ...mockIngredientsPage1, items: [updated], totalCount: 1 }
+      : mockIngredientsPage1);
+    const originalApi = vi.mocked(transport.apiClient).getMockImplementation()!;
+    vi.mocked(transport.apiClient).mockImplementation(async <T,>(endpoint: string, options?: RequestInit): Promise<T> => {
+      if (endpoint === `/ingredients/${existing.ingredientId}` && options?.method === 'PUT') return updated as T;
+      return originalApi(endpoint, options) as Promise<T>;
+    });
+    renderPage('/admin-data?view=ingredients');
+    fireEvent.click(await screen.findByRole('button', { name: 'Sửa nguyên liệu Gạo tẻ ST25' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent(existing.ingredientCode);
+    expect(screen.getByRole('textbox', { name: 'Đơn vị tính nguyên liệu' })).toBeDisabled();
+    for (const label of ['Gạo', 'Bún, mỳ & phở', 'Trứng', 'Sữa & chế phẩm', 'Bánh', 'Nước giải khát', 'Bao bì', 'Nước đá']) {
+      expect(screen.getByRole('option', { name: label })).toBeInTheDocument();
+    }
+    fireEvent.change(screen.getByRole('combobox', { name: 'Nhóm cung ứng' }), { target: { value: 'RICE' } });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu' }), { target: { value: updated.ingredientName } });
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Giá tham chiếu' }), { target: { value: '30000' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Lưu thay đổi' }));
+    await waitFor(() => expect(vi.mocked(transport.apiClient).mock.calls.some(([url, options]) => url === `/ingredients/${existing.ingredientId}` && options?.method === 'PUT')).toBe(true));
+    const body = vi.mocked(transport.apiClient).mock.calls.find(([url, options]) => url === `/ingredients/${existing.ingredientId}` && options?.method === 'PUT')?.[1]?.body;
+    expect(JSON.parse(String(body))).toMatchObject({ ingredientName: updated.ingredientName, referencePrice: 30000, preparationGroupCode: 'RICE' });
+    expect(JSON.parse(String(body))).not.toHaveProperty('ingredientCode');
+    expect(JSON.parse(String(body))).not.toHaveProperty('unitId');
+    expect(await screen.findByText(updated.ingredientName)).toBeVisible();
   });
 
   it('does not offer catalog creation to a read-only role', async () => {
@@ -147,6 +178,7 @@ describe('AdminDataPage — Conformance & Behavioral Audit', () => {
     renderPage('/admin-data?view=ingredients');
     expect(await screen.findByText('Gạo tẻ ST25')).toBeVisible();
     expect(screen.queryByRole('button', { name: 'Thêm nguyên liệu' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sửa nguyên liệu Gạo tẻ ST25' })).not.toBeInTheDocument();
   });
 
   it('debounces server search, resets page atomically and keeps actual rows while applying criteria', async () => {

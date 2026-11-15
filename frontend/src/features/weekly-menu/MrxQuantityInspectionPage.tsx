@@ -27,9 +27,9 @@ function MaterialsTable({ rows }: { rows: readonly MrxMaterialInspection[] }) {
   const [selectedKey, setSelectedKey] = useState('');
   const selected = rows.find(row => materialKey(row) === selectedKey);
   const columns: ColumnDef<MrxMaterialInspection>[] = [
-    { id: 'name', header: 'Nguyên liệu', width: '55%', cell: row => <div><span className="whitespace-normal break-words">{row.ingredientName}</span><div><IdentifierText value={row.ingredientCode} /></div></div> },
-    { id: 'unit', header: 'ĐVT', width: '15%', cell: row => row.canonicalUnitName || 'Chưa rõ đơn vị' },
-    { id: 'required', header: 'Lượng cần', width: '30%', align: 'right', cell: row => <Num value={row.requiredQuantity} format="plain" decimals={6} /> },
+    { id: 'name', header: 'Nguyên liệu', width: '48%', cell: row => <div><span className="whitespace-normal break-words">{row.ingredientName}</span><div><IdentifierText value={row.ingredientCode} /></div></div> },
+    { id: 'unit', header: 'ĐVT', width: '24%', minWidth: '120px', cell: row => <span className="whitespace-normal break-words">{row.canonicalUnitName || 'Chưa rõ đơn vị'}</span> },
+    { id: 'required', header: 'Lượng cần', width: '28%', align: 'right', cell: row => <Num value={row.requiredQuantity} format="plain" decimals={6} /> },
   ];
   type Contribution = MrxMaterialInspection['contributions'][number];
   const details: ColumnDef<Contribution>[] = [
@@ -42,7 +42,7 @@ function MaterialsTable({ rows }: { rows: readonly MrxMaterialInspection[] }) {
   return <SplitView
     masterWidthClass="w-full lg:w-5/12"
     hasActiveDetail={Boolean(selected)} onBackToMaster={() => setSelectedKey('')}
-    master={<DataGrid data={rows} columns={columns} keyExtractor={materialKey} onRowClick={row => setSelectedKey(materialKey(row))} selectedKey={selectedKey} minWidth="min-w-[400px]" emptyMessage="Không có nguyên liệu phù hợp" />}
+    master={<DataGrid data={rows} columns={columns} keyExtractor={materialKey} onRowClick={row => setSelectedKey(materialKey(row))} selectedKey={selectedKey} minWidth="min-w-[500px]" emptyMessage="Không có nguyên liệu phù hợp" />}
     detail={<div className="flex-1 min-h-0 flex flex-col"><h2 className="h-10 px-4 py-2 text-sm font-semibold border-b border-slate-200 bg-slate-50 flex items-center shrink-0">{selected ? `Nguồn tính · ${selected.ingredientName}` : 'Nguồn tính chi tiết'}</h2>{selected ? <DataGrid data={selected.contributions} columns={details} keyExtractor={(row, index) => `${row.quantityPlanLineId}:${row.material.dishBomId}:${index}`} minWidth="min-w-[790px]" /> : <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-8 text-center"><div aria-hidden="true" className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center mb-3 text-slate-400"><Boxes size={22} strokeWidth={1.75} /></div><p className="text-sm text-slate-500">Chọn nguyên liệu để xem từng ngày, món và định mức nguồn.</p></div>}</div>}
   />;
 }

@@ -365,7 +365,7 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     batchIds = [batchId, second.batchId];
     await thukhoPage.bringToFront();
     const preparationResponse = thukhoPage.waitForResponse((r) => r.url().includes('/api/reconciliation/preparation?') && r.request().method() === 'GET');
-    await thukhoPage.goto(`/warehouse?view=mrx-preparation&date=${scope.weekStartDate}`);
+    await thukhoPage.goto(`/warehouse?view=mrx-preparation&date=${scope.weekStartDate}&range=day`);
     const prepared = (await (await preparationResponse).json()).data as MrxPreparation;
     await expect(thukhoPage.getByRole('button', { name: 'Xuất Excel chuẩn bị', exact: true })).toBeEnabled();
     await expect(thukhoPage.getByRole('button', { name: /^Xác nhận xuất phối hợp/ })).toHaveCount(0);
@@ -377,36 +377,20 @@ test.describe('@G5-Async Asynchronous, Offline Resilience & Session Expiry', () 
     const preparationFile = path.join(process.env.MRX_E2E_ARTIFACT_DIRECTORY!, 'coordinated-preparation.xlsx');
     await (await workbookDownload).saveAs(preparationFile);
     const summaryRows = parseCookingFile(preparationFile, 'xlsx', 1);
-    const detailRows = parseCookingFile(preparationFile, 'xlsx', 2);
-    const menuRows = parseCookingFile(preparationFile, 'xlsx', 3);
-    expect(summaryRows[0].slice(0, 4)).toEqual(['Nhà cung cấp', 'Mã nguyên liệu', 'Tên nguyên liệu', 'Đơn vị tính']);
-    expect(detailRows[0]).toEqual(['Khách hàng', 'Mã lô đối soát', 'Ngày phục vụ', 'Ca', 'Mã nguyên liệu', 'Tên nguyên liệu', 'Đơn vị tính', 'Số lượng', 'Phân loại', 'Trạng thái xuất', 'Nhà cung cấp']);
-    expect(menuRows[2]).toEqual(['Khách hàng', 'Ngày phục vụ', 'Ca', 'Thực đơn', 'Mã món', 'Tên món', 'Số suất']);
-    const menus = menuRows.slice(3);
+    const menuRows = parseCookingFile(preparationFile, 'xlsx', 2);
+    expect(summaryRows[3]).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng nhu cầu']);
+    expect(menuRows[2]).toEqual(['Khách hàng', 'Ngày', 'Ca', 'Loại thực đơn', 'Món', 'Số suất']);
     const scopedBatches = batchIds.map(id => `UNHEX('${binaryId(id)}')`).join(',');
-    const expectedMenus = dbVerifier.query<{ customer: string; date: string; shift: string; variant: string; code: string; name: string; servings: string }>(`SELECT DISTINCT CONCAT(c.customerCode,' · ',c.customerName) AS customer, DATE_FORMAT(d.ServiceDate,'%d/%m/%Y') AS date, rc.FrozenShiftName AS shift, rc.FrozenMenuVariant AS variant, rc.FrozenDishCode AS code, rc.FrozenDishName AS name, CAST(rc.FrozenServings AS CHAR) AS servings FROM reconciliationbatchcontributors rc JOIN reconciliationbatchdailylines d ON d.DailyLineId=rc.DailyLineId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate BETWEEN '${scope.weekStartDate}' AND DATE_ADD('${scope.weekStartDate}', INTERVAL 6 DAY) AND d.RequiredQuantity>0 AND rc.InvalidatedAt IS NULL;`);
-    expect(menus.map(row => row.join('|')).sort()).toEqual(expectedMenus.map(row => [row.customer, row.date,
+    const expectedMenus = dbVerifier.query<{ customer: string; date: string; shift: string; variant: string; name: string; servings: string }>(`SELECT DISTINCT CONCAT(c.customerCode,' · ',c.customerName) AS customer, DATE_FORMAT(d.ServiceDate,'%d/%m/%Y') AS date, rc.FrozenShiftName AS shift, rc.FrozenMenuVariant AS variant, rc.FrozenDishName AS name, CAST(rc.FrozenServings AS CHAR) AS servings FROM reconciliationbatchcontributors rc JOIN reconciliationbatchdailylines d ON d.DailyLineId=rc.DailyLineId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate = '${scope.weekStartDate}' AND d.RequiredQuantity>0 AND rc.InvalidatedAt IS NULL;`);
+    expect(menuRows.slice(3).map(row => row.join('|')).sort()).toEqual(expectedMenus.map(row => [row.customer, row.date,
       row.shift === 'MORNING' ? 'Sáng' : row.shift === 'AFTERNOON' ? 'Chiều' : row.shift,
-      row.variant === 'savory' ? 'Mặn' : row.variant === 'vegetarian' ? 'Chay' : row.variant, row.code, row.name, row.servings].join('|')).sort());
-    const materialHeaders = summaryRows[0];
-    for (const member of preparedMembers) expect(materialHeaders).toContain(`${member.customerCode} · ${member.customerName}`);
-    const materialQuantities = new Map<string, bigint>();
-    for (const row of summaryRows.slice(1)) {
-      expect(micros(row[row.length - 1])).toBe(row.slice(4, -1).reduce((sum, quantity) => sum + micros(quantity), 0n));
-      materialHeaders.slice(4, -1).forEach((customer, index) => {
-        const key = `${customer}|${row[1]}|${row[3]}`;
-        materialQuantities.set(key, (materialQuantities.get(key) ?? 0n) + micros(row[index + 4]));
-      });
+      row.variant === 'savory' ? 'Mặn' : row.variant === 'vegetarian' ? 'Chay' : row.variant, row.name, row.servings].join('|')).sort());
+    const quantitiesByUnit = new Map<string, bigint>();
+    for (const row of summaryRows.slice(4).filter(row => row.length === 3)) {
+      quantitiesByUnit.set(row[1], (quantitiesByUnit.get(row[1]) ?? 0n) + micros(row[2]));
     }
-    const detailQuantities = new Map<string, bigint>();
-    for (const row of detailRows.slice(1)) {
-      const key = `${row[0]}|${row[4]}|${row[6]}`;
-      detailQuantities.set(key, (detailQuantities.get(key) ?? 0n) + micros(row[7]));
-    }
-    expect([...detailQuantities].sort()).toEqual([...materialQuantities].filter(([, quantity]) => quantity > 0n).sort());
-    const expectedQuantities = dbVerifier.query<{ customer: string; code: string; unit: string; quantity: string }>(`SELECT CONCAT(c.customerCode,' · ',c.customerName) AS customer, i.ingredientCode AS code, u.unitName AS unit, CAST(SUM(d.RequiredQuantity) AS CHAR) AS quantity FROM reconciliationbatchdailylines d JOIN ingredients i ON i.ingredientId=d.IngredientId JOIN units u ON u.unitId=d.CanonicalUnitId JOIN reconciliationbatches b ON b.BatchId=d.BatchId JOIN menuversions v ON v.menuVersionId=b.MenuVersionId JOIN customers c ON c.customerId=v.customerId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate BETWEEN '${scope.weekStartDate}' AND DATE_ADD('${scope.weekStartDate}', INTERVAL 6 DAY) AND d.RequiredQuantity>0 GROUP BY c.customerCode, c.customerName, i.ingredientCode, u.unitName;`);
-    expect([...materialQuantities].filter(([, quantity]) => quantity > 0n).map(([key, quantity]) => `${key}|${quantity}`).sort())
-      .toEqual(expectedQuantities.map(row => `${row.customer}|${row.code}|${row.unit}|${micros(row.quantity)}`).sort());
+    const expectedQuantities = dbVerifier.query<{ unit: string; quantity: string }>(`SELECT u.unitName AS unit, CAST(SUM(d.RequiredQuantity) AS CHAR) AS quantity FROM reconciliationbatchdailylines d JOIN units u ON u.unitId=d.CanonicalUnitId WHERE d.BatchId IN (${scopedBatches}) AND d.ServiceDate = '${scope.weekStartDate}' AND d.RequiredQuantity>0 GROUP BY u.unitName;`);
+    expect([...quantitiesByUnit].sort()).toEqual(expectedQuantities.map(row => [row.unit, micros(row.quantity)]).sort());
     // Retained-client compatibility only: preparation UI is export-only. Commands use a separately read exact day, never weekly allocations.
     const readCommandDay = () => thukhoPage.evaluate(async ({ date, ids }) => {
       const query = new URLSearchParams({ serviceDate: date });

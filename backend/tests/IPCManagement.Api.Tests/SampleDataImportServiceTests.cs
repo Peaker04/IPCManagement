@@ -226,6 +226,13 @@ public class SampleDataImportServiceTests
             .Select(item => item.SupplierId)
             .ToListAsync();
 
+        var firstIngredients = await context.Ingredients.OrderBy(item => item.IngredientCode).ToListAsync();
+        firstIngredients.Should().NotBeEmpty();
+        firstIngredients.Should().OnlyContain(item => item.PreparationGroupCode == "UNCLASSIFIED");
+        var retainedIngredientId = firstIngredients[0].IngredientId.ToArray();
+        firstIngredients[0].PreparationGroupCode = "FROZEN";
+        await context.SaveChangesAsync();
+
         context.ChangeTracker.Clear();
         await service.ImportAsync(request);
         context.ChangeTracker.Clear();
@@ -235,6 +242,10 @@ public class SampleDataImportServiceTests
         suppliers.Select(item => Convert.ToBase64String(item.SupplierId))
             .Should().BeEquivalentTo(firstSupplierIds.Select(Convert.ToBase64String));
         suppliers.Should().NotContain(item => item.SupplierCode.EndsWith("-2", StringComparison.OrdinalIgnoreCase));
+        var retained = await context.Ingredients.AsNoTracking().SingleAsync(item => item.IngredientId == retainedIngredientId);
+        retained.PreparationGroupCode.Should().Be("FROZEN");
+        (await context.Ingredients.CountAsync()).Should().Be(firstIngredients.Count);
+        (await context.Supplierquotations.CountAsync()).Should().Be(0, "BOM Supplier labels must not create purchasing quotations");
     }
 
     [Fact]

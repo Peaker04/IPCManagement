@@ -161,8 +161,8 @@ describe('Warehouse MRX transitions', () => {
       reasonRequired: false,
       capabilities: { navigation: [], pageTabs: {} },
     });
-    let resolvePage2 = (() => {}) as (val: Awaited<ReturnType<typeof mrxApi.getSourceDeltas>>) => void;
-    vi.spyOn(mrxApi, 'getSourceDeltas').mockImplementation((page) => {
+    let resolvePage2 = (() => {}) as (val: Awaited<ReturnType<typeof mrxApi.getSourceHistory>>) => void;
+    vi.spyOn(mrxApi, 'getSourceHistory').mockImplementation((page) => {
       if (page === 2) {
         return new Promise((resolve) => {
           resolvePage2 = resolve;
@@ -170,22 +170,10 @@ describe('Warehouse MRX transitions', () => {
       }
       return Promise.resolve({
         items: [{
-          sourceDeltaId: 'd-1',
-          batchId: 'b-1',
-          sourceRevisionId: 'rev-1',
-          serviceDate: '2026-10-19',
-          ingredientId: 'i-1',
-          ingredientCode: 'GAO',
-          ingredientName: 'Gạo ST25',
-          canonicalUnitId: 'u-1',
-          canonicalUnitName: 'kg',
-          previousRequiredQuantity: 10,
-          newRequiredQuantity: 15,
-          deltaQuantity: 5,
-          workKind: 'SOURCE_CHANGE',
-          status: 'APPLIED',
-          version: 1,
-          createdAt: '2026-10-19T08:00:00Z',
+          eventId: 'amendment:1', customerCode: 'GAO', customerName: 'Gạo ST25',
+          weekStartDate: '2026-10-19', occurredAt: '2026-10-19T08:00:00Z',
+          actorName: 'Quản lý', status: 'EXECUTED', approvalStatus: 'APPROVED',
+          changeRoute: 'APPROVED', reason: 'Đổi định lượng', affectedLineCount: 1,
         }],
         totalCount: 30,
         pageNumber: 1,
@@ -197,13 +185,13 @@ describe('Warehouse MRX transitions', () => {
     });
 
     renderWarehouse('/warehouse?view=mrx-issues');
-    expect(await screen.findByText('Gạo ST25')).toBeInTheDocument();
+    expect(await screen.findByText('GAO · Gạo ST25')).toBeInTheDocument();
     const pager = screen.getByRole('navigation', { name: 'Phân trang lịch sử thay đổi nguồn' });
     expect(pager).toHaveTextContent('30 kết quả');
 
     await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
     expect(pager).toHaveTextContent('30 kết quả');
-    expect(screen.getByText('Gạo ST25')).toBeVisible();
+    expect(screen.getByText('GAO · Gạo ST25')).toBeVisible();
     expect(screen.getByRole('button', { name: 'Trang sau' })).toBeDisabled();
 
     resolvePage2({
@@ -315,8 +303,8 @@ describe('Warehouse MRX transitions', () => {
       reasonRequired: false,
       capabilities: { navigation: [], pageTabs: {} },
     });
-    let resolveDeltas!: (val: Awaited<ReturnType<typeof mrxApi.getSourceDeltas>>) => void;
-    vi.spyOn(mrxApi, 'getSourceDeltas').mockReturnValueOnce(new Promise((r) => { resolveDeltas = r; }));
+    let resolveDeltas!: (val: Awaited<ReturnType<typeof mrxApi.getSourceHistory>>) => void;
+    vi.spyOn(mrxApi, 'getSourceHistory').mockReturnValueOnce(new Promise((r) => { resolveDeltas = r; }));
 
     renderWarehouse('/warehouse?view=mrx-issues');
     expect(screen.getByRole('navigation', { name: 'Phân trang lịch sử thay đổi nguồn' })).toBeInTheDocument();
@@ -571,7 +559,7 @@ describe('Warehouse MRX transitions', () => {
       capabilities: { navigation: [], pageTabs: {} },
     });
     serverStateCache.clearAll();
-    vi.spyOn(mrxApi, 'getSourceDeltas').mockResolvedValue({
+    vi.spyOn(mrxApi, 'getSourceHistory').mockResolvedValue({
       items: [],
       totalCount: 0,
       pageNumber: 1,

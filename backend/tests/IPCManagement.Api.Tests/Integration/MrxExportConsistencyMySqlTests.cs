@@ -209,7 +209,7 @@ public sealed class MrxExportConsistencyMySqlTests
 
     private static double Now() => Stopwatch.GetTimestamp() * 1000d / Stopwatch.Frequency;
     private static string Number(decimal value) => value.ToString("F6", CultureInfo.InvariantCulture);
-    private sealed record Input(byte[] ScheduleId, DateOnly Date, string Ingredient, string UnitId, string UnitName, string Dish, string Shift,
+    private sealed record Input(byte[] ScheduleId, DateOnly Date, string Ingredient, string IngredientName, string UnitId, string UnitName, string Dish, string DishName, string Shift,
         string Variant, int Servings, decimal Raw, decimal BomRate, decimal CanonicalRate);
     private static async Task<List<Input>> Inputs(IpcManagementContext context, byte[] batch, CancellationToken token)
     {
@@ -217,8 +217,8 @@ public sealed class MrxExportConsistencyMySqlTests
             .Include(item => item.BatchLine).ThenInclude(item => item.Ingredient).Include(item => item.BatchLine).ThenInclude(item => item.CanonicalUnit)
             .Where(item => item.BatchLine.BatchId == batch && item.InvalidatedAt == null).ToListAsync(token);
         Assert.NotEmpty(rows);
-        return rows.Select(item => new Input(item.MenuScheduleId, item.DailyLine!.ServiceDate, item.BatchLine.Ingredient.IngredientCode,
-            GuidHelper.ToGuidString(item.BatchLine.CanonicalUnitId), item.BatchLine.CanonicalUnit.UnitName, item.FrozenDishCode!, item.FrozenShiftName!, item.FrozenMenuVariant!,
+        return rows.Select(item => new Input(item.MenuScheduleId, item.DailyLine!.ServiceDate, item.BatchLine.Ingredient.IngredientCode, item.BatchLine.Ingredient.IngredientName,
+            GuidHelper.ToGuidString(item.BatchLine.CanonicalUnitId), item.BatchLine.CanonicalUnit.UnitName, item.FrozenDishCode!, item.FrozenDishName!, item.FrozenShiftName!, item.FrozenMenuVariant!,
             item.FrozenServings!.Value, item.FrozenBomQuantityPerServing!.Value, item.FrozenBomUnitToBaseRate!.Value, item.FrozenCanonicalUnitToBaseRate!.Value)).ToList();
     }
     private static string[] Quantities(List<Input> inputs) => inputs.GroupBy(item => $"{item.Date:yyyyMMdd}|{item.Ingredient}|{item.UnitId}")
@@ -235,12 +235,15 @@ public sealed class MrxExportConsistencyMySqlTests
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         using var stream = zip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
         var rows = XDocument.Load(stream).Descendants(ns + "row").Select(row => row.Elements(ns + "c").Select(cell => cell.Value).ToArray()).ToArray();
-        var dishCodes = inputs.Select(item => item.Dish).ToHashSet();
-        Assert.Equal(Menus(inputs), rows.Where(row => row.Length == 7 && dishCodes.Contains(row[4])).Select(row => $"{row[1]}|{row[2]}|{row[3]}|{row[4]}|{row[6]}").Order().ToArray());
-        foreach (var group in inputs.GroupBy(item => new { item.Ingredient, item.UnitName }))
+        using var menuStream = zip.GetEntry("xl/worksheets/sheet2.xml")!.Open();
+        var menuRows = XDocument.Load(menuStream).Descendants(ns + "row").Select(row => row.Elements(ns + "c").Select(cell => cell.Value).ToArray()).ToArray();
+        Assert.Null(zip.GetEntry("xl/worksheets/sheet3.xml"));
+        var exportedMenus = inputs.Select(item => $"{item.Date:dd/MM/yyyy}|{(item.Shift == "MORNING" ? "Sáng" : "Chiều")}|{(item.Variant == "savory" ? "Mặn" : "Chay")}|{item.DishName}|{item.Servings}").Distinct().Order().ToArray();
+        Assert.Equal(exportedMenus, menuRows.Skip(3).Select(row => string.Join("|", row.Skip(1))).Order().ToArray());
+        foreach (var group in inputs.GroupBy(item => new { item.IngredientName, item.UnitName }))
         {
             var total = group.Sum(item => decimal.Round(item.Raw * item.Servings * item.BomRate / item.CanonicalRate, 6, MidpointRounding.AwayFromZero));
-            var material = Assert.Single(rows, row => row.Length >= 5 && row[0] == group.Key.Ingredient && row[2] == group.Key.UnitName);
+            var material = Assert.Single(rows, row => row.Length == 3 && row[0] == group.Key.IngredientName && row[1] == group.Key.UnitName);
             Assert.Equal(total, decimal.Parse(material[^1], CultureInfo.InvariantCulture));
         }
     }

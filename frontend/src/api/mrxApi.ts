@@ -145,6 +145,10 @@ export type MrxIssuePage = Schema['InventoryIssueDtoPagedResponseDto'];
 export type MrxIssueCreated = Schema['InventoryIssueCreatedDto'];
 export type MrxSourceDelta = Schema['ReconciliationSourceDeltaQueueItemDto'];
 export type MrxSourceDeltaPage = Schema['ReconciliationSourceDeltaQueueItemDtoPagedResponseDto'];
+export type MrxSourceHistoryEvent = Schema['ReconciliationSourceHistoryEventDto'];
+export type MrxSourceHistoryMaterial = Schema['ReconciliationSourceHistoryMaterialDto'];
+export type MrxSourceHistoryDetail = Schema['ReconciliationSourceHistoryDetailDto'];
+export type MrxSourceHistoryPage = Schema['ReconciliationSourceHistoryEventDtoPagedResponseDto'];
 export type CreateMrxReturnRequest = Schema['CreateInventoryReturnRequest'];
 export type MrxReturnCreated = Schema['InventoryReturnCreatedDto'];
 export type ConfirmMrxReturnRequest = Schema['ConfirmInventoryReturnReceiptRequest'];
@@ -347,6 +351,16 @@ export const mrxApi = {
     if (filters.serviceDate) query.set('ServiceDate', filters.serviceDate);
     return apiClient<MrxSourceDeltaPage>(`/reconciliation/source-deltas?${query}`);
   },
+
+  getSourceHistory: (pageNumber = 1, pageSize = 25, filters: { customerCode?: string; batchId?: string; serviceDate?: string } = {}) => {
+    const query = new URLSearchParams({ PageNumber: String(pageNumber), PageSize: String(pageSize) });
+    if (filters.customerCode) query.set('CustomerCode', filters.customerCode);
+    if (filters.batchId) query.set('BatchId', filters.batchId);
+    if (filters.serviceDate) query.set('ServiceDate', filters.serviceDate);
+    return apiClient<MrxSourceHistoryPage>(`/reconciliation/source-history?${query}`);
+  },
+  getSourceHistoryDetail: (eventId: string, pageNumber = 1, pageSize = 25) =>
+    apiClient<MrxSourceHistoryDetail>(`/reconciliation/source-history/${encodeURIComponent(eventId)}?PageNumber=${pageNumber}&PageSize=${pageSize}`),
 
   createReturn: (request: CreateMrxReturnRequest) =>
     withMrxInvalidation(apiClient<MrxReturnCreated>('/inventory-returns', { method: 'POST', body: JSON.stringify(request) })),

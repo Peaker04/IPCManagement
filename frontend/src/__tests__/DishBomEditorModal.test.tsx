@@ -1,5 +1,5 @@
 import { it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { DishBomEditorModal } from '../components/workbench/DishBomEditorModal';
 import type { DishBomLine } from '../api/bomApi';
 import * as transport from '../api/client';
@@ -70,16 +70,22 @@ it('creates a missing catalog ingredient, then retains its selection after a sep
   const api = vi.mocked(transport.apiClient);
   const base = api.getMockImplementation()!;
   api.mockImplementation(async (endpoint, options) => {
+    if (endpoint === '/Units') return [
+      { unitId: 'unit-kg', unitCode: 'KG', unitName: 'Kilôgam', baseUnitCode: null, convertRateToBase: 1 },
+      ...Array.from({ length: 19 }, (_, index) => ({ unitId: `00000000-0000-0000-0000-${String(index + 2).padStart(12, '0')}`, unitCode: `DV${index + 2}`, unitName: `Đơn vị ${index + 2}`, baseUnitCode: null, convertRateToBase: 1 })),
+    ];
     if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=Rau')) return { items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false };
     if (endpoint === '/ingredients' && options?.method === 'POST') return { ingredientId: 'ing-new', ingredientCode: 'NL-RAU-RAM', ingredientName: 'Rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: true, isActive: true };
     return base(endpoint, options);
   });
   render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
   fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
-  expect(await screen.findByRole('option', { name: 'Kilôgam (KG)' })).toBeVisible();
-  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-RAU-RAM' } });
+  fireEvent.focus(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }));
+  await screen.findByRole('option', { name: 'Kilôgam' });
+  expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(5);
+  fireEvent.click(await screen.findByRole('option', { name: 'Kilôgam' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
+  expect(screen.queryByRole('textbox', { name: 'Mã nguyên liệu mới' })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
   await waitFor(() => expect(api.mock.calls.filter(([url]) => String(url).includes('ingredients')).map(([url, options]) => `${options?.method ?? 'GET'} ${url}`)).toContain('POST /ingredients'));
   expect(await screen.findByRole('combobox', { name: 'Chọn nguyên liệu' })).toHaveValue('Rau răm');
@@ -102,10 +108,9 @@ it('reuses an existing ingredient with the same name and unit instead of creatin
   });
   render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
   fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
-  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
-  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-MOI' } });
+  fireEvent.focus(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Kilôgam' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
   fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
   expect(await screen.findByText('Nguyên liệu đã có trong danh mục. Đã chọn để nhập định mức BOM.')).toBeVisible();
   expect(screen.getByRole('combobox', { name: 'Chọn nguyên liệu' })).toHaveValue('Rau răm');
@@ -126,10 +131,9 @@ it('does not silently select the first of two active ingredients with the same c
   });
   render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
   fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
-  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
-  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-RAU-C' } });
+  fireEvent.focus(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Kilôgam' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'RAU RĂM' } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
   fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
   expect(await screen.findByText(/nhiều nguyên liệu cùng tên và đơn vị/i)).toBeVisible();
   expect(api.mock.calls.some(([url, options]) => url === '/ingredients' && options?.method === 'POST')).toBe(false);
@@ -167,23 +171,23 @@ it('checks every matching catalog page before creating an ingredient with an exi
   });
   render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
   fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
-  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
-  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-MOI' } });
+  fireEvent.focus(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Kilôgam' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
   fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
   expect(await screen.findByText('Nguyên liệu đã có trong danh mục. Đã chọn để nhập định mức BOM.')).toBeVisible();
   expect(api.mock.calls.some(([url, options]) => String(url).includes('pageNumber=2') && !options?.method)).toBe(true);
   expect(api.mock.calls.some(([url, options]) => url === '/ingredients' && options?.method === 'POST')).toBe(false);
 });
 
-it('keeps an uncertain ingredient write from being sent twice and reconciles it by code', async () => {
+it('keeps an uncertain ingredient write from being sent twice and reconciles it by name and unit', async () => {
   const api = vi.mocked(transport.apiClient);
   const base = api.getMockImplementation()!;
   let posted = 0;
   api.mockImplementation(async (endpoint, options) => {
     if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=Rau')) return {
-      items: [], totalCount: 0, pageNumber: 1, pageSize: 20, totalPages: 0, hasPrev: false, hasNext: false,
+      items: posted > 0 ? [{ ingredientId: 'ing-new', ingredientCode: 'NL-RAU', ingredientName: 'Rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: false, isActive: true }] : [],
+      totalCount: posted > 0 ? 1 : 0, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false,
     };
     if (String(endpoint).startsWith('/ingredients?') && String(endpoint).includes('searchKeyword=NL-RAU')) return {
       items: [{ ingredientId: 'ing-new', ingredientCode: 'NL-RAU', ingredientName: 'Rau răm', unitId: 'unit-kg', unitName: 'Kilôgam', warehouseId: 'warehouse-1', referencePrice: 0, isFreshDaily: false, isActive: true }],
@@ -194,10 +198,9 @@ it('keeps an uncertain ingredient write from being sent twice and reconciles it 
   });
   render(<DishBomEditorModal isOpen onClose={vi.fn()} dish={dish} />);
   fireEvent.click(await screen.findByRole('button', { name: 'Tạo nguyên liệu mới' }));
-  await screen.findByRole('option', { name: 'Kilôgam (KG)' });
-  fireEvent.change(screen.getByRole('textbox', { name: 'Mã nguyên liệu mới' }), { target: { value: 'NL-RAU' } });
+  fireEvent.focus(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }));
+  fireEvent.click(await screen.findByRole('option', { name: 'Kilôgam' }));
   fireEvent.change(screen.getByRole('textbox', { name: 'Tên nguyên liệu mới' }), { target: { value: 'Rau răm' } });
-  fireEvent.change(screen.getByRole('combobox', { name: 'Đơn vị nguyên liệu mới' }), { target: { value: 'unit-kg' } });
   fireEvent.click(screen.getByRole('button', { name: 'Lưu nguyên liệu' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Kiểm tra kết quả tạo' }));
   expect(await screen.findByRole('combobox', { name: 'Chọn nguyên liệu' })).toHaveValue('Rau răm');

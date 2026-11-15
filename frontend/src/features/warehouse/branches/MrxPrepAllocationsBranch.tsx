@@ -30,7 +30,7 @@ export function MrxPrepAllocationsBranch({ wholeWeek, stateBoundaryProps, data, 
     <StateBoundary {...stateBoundaryProps} isEmpty={false}>
       <div className="flex-1 min-h-0 flex flex-col">
         <DataGrid data={visibleLines} columns={columns} keyExtractor={row => `${row.ingredientId}:${row.canonicalUnitId}`}
-          className="[&_tbody_td:first-child]:bg-white [&_tbody_tr:nth-child(even)>td:first-child]:bg-slate-50"
+          className="mrx-prep-summary [&_tbody_td:first-child]:bg-white [&_tbody_tr:nth-child(even)>td:first-child]:bg-slate-50"
           emptyMessage={!data || data.batches.length === 0 ? (stateBoundaryProps.emptyTitle || 'Không có lô đối soát trong phạm vi đã chọn') : activeSelectedBatchIds.length === 0 ? 'Chọn ít nhất một lô để xem nguyên liệu cần chuẩn bị.' : query ? 'Không tìm thấy nguyên liệu trong các lô đã chọn.' : 'Không có nguyên liệu nào cần chuẩn bị cho các lô đã chọn.'} />
       </div>
     </StateBoundary>

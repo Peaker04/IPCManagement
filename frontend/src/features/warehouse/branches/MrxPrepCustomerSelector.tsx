@@ -46,7 +46,7 @@ export function MrxPrepCustomerSelector({ batches, selectedBatchIds, scopeLocked
               <span className="min-w-0 flex-1 break-words">{batch.customerName || batch.customerCode || 'Khách hàng chưa có tên'}
                 {batches.filter(other => other.customerId === batch.customerId).length > 1 && <span className="block text-slate-500">Lô <Num value={batches.indexOf(batch) + 1} /></span>}
               </span>
-              <Badge size="sm" variant={batch.hasExistingIssue ? 'success' : batch.isApplicable ? 'neutral' : 'warning'}>{batch.hasExistingIssue ? 'Đã xuất' : batch.isApplicable ? 'Đã chuyển kho' : batch.batchStatus === 'COMPLETED' ? 'Đã hoàn tất' : 'Chưa chuyển kho'}</Badge>
+              <Badge size="sm" variant={batch.hasExistingIssue ? 'success' : batch.isApplicable ? 'info' : batch.batchStatus === 'COMPLETED' ? 'success' : 'warning'}>{batch.hasExistingIssue ? 'Đã xuất' : batch.isApplicable ? 'Đã chuyển kho' : batch.batchStatus === 'COMPLETED' ? 'Đã hoàn tất' : 'Chưa chuyển kho'}</Badge>
             </label>)}
             {!visible.length && <p role="status" className="p-3 text-xs text-slate-600">Không có khách hàng phù hợp.</p>}
           </fieldset>

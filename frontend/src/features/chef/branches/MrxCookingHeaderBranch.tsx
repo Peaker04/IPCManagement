@@ -51,8 +51,8 @@ export function MrxCookingHeaderBranch({
       actions={actions ? <WorkspaceHeader.Actions>{actions}</WorkspaceHeader.Actions> : undefined}
       contextSelectors={
         <>
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <div className="w-52 xl:w-72 max-w-full">
+          <div className="mrx-batch-group flex flex-wrap items-center gap-2 min-w-0">
+          <div className="mrx-batch-selector w-52 xl:w-72 max-w-full">
             <Select
               aria-label="Chọn lô đối soát nấu"
               options={batchId && !batches.some(batch => batch.batchId === batchId)

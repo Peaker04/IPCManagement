@@ -100,6 +100,7 @@ internal sealed class IngredientConfiguration : IEntityTypeConfiguration<Ingredi
         entity.Property(e => e.IngredientId).HasMaxLength(16).IsFixedLength().HasColumnName("ingredientId");
         entity.Property(e => e.IngredientCode).HasMaxLength(50).HasColumnName("ingredientCode");
         entity.Property(e => e.IngredientName).HasMaxLength(200).HasColumnName("ingredientName");
+        entity.Property(e => e.PreparationGroupCode).HasMaxLength(24).HasDefaultValue("UNCLASSIFIED").HasColumnName("preparationGroupCode");
         entity.Property(e => e.IsActive).IsRequired().HasDefaultValueSql("'1'").HasColumnName("isActive");
         entity.Property(e => e.IsFreshDaily).HasColumnName("isFreshDaily");
         entity.Property(e => e.ReferencePrice).HasPrecision(18, 2).HasColumnName("referencePrice");

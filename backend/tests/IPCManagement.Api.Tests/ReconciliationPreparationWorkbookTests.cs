@@ -21,6 +21,153 @@ namespace IPCManagement.Api.Tests;
 public sealed class ReconciliationPreparationWorkbookTests
 {
     [Fact]
+    public async Task Three_customer_week_keeps_third_only_item_and_routes_supplier_by_service_date()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, a, b, sharedId, litreIngredientId, _, monday) = await SetupWorkbookFixtureAsync(fixture, context, variedUnits: true);
+        var litreUnit = (await context.Ingredients.SingleAsync(i => i.IngredientId == litreIngredientId)).UnitId;
+        var thirdId = GuidHelper.NewId();
+        var versionId = GuidHelper.NewId();
+        var batchId = GuidHelper.NewId();
+        var uniqueId = GuidHelper.NewId();
+        context.Customers.Add(new Customer { CustomerId = thirdId, CustomerCode = "CUST-C", CustomerName = "Khách hàng C", IsActive = true });
+        context.Menuversions.Add(new MenuVersion { MenuVersionId = versionId, CustomerId = thirdId, WeekStartDate = monday, VersionNo = 1, Status = "ACTIVE", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+        context.Ingredients.Add(new Ingredient { IngredientId = uniqueId, IngredientCode = "ING-C-ONLY", IngredientName = "Rau Muống", UnitId = litreUnit, WarehouseId = fixture.WarehouseId, IsActive = true });
+        var quotation = await context.Supplierquotations.SingleAsync(q => q.IngredientId == sharedId);
+        quotation.EffectiveTo = monday;
+        var newSupplier = await context.Suppliers.SingleAsync(s => s.SupplierCode == "SUP-02");
+        context.Supplierquotations.Add(new SupplierQuotation { QuotationId = GuidHelper.NewId(), IngredientId = sharedId, SupplierId = newSupplier.SupplierId,
+            EffectiveFrom = monday.AddDays(1), IsActive = true, UnitPrice = 1m, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow });
+        context.Reconciliationbatches.Add(new ReconciliationBatch { BatchId = batchId, MenuVersionId = versionId, QuantityImportBatchId = GuidHelper.NewId(),
+            Status = "TRANSFERRED", Version = 1, CreatedBy = fixture.UserId, CreatedAt = DateTime.UtcNow,
+            Lines = [CreateBatchLine(batchId, sharedId, fixture.UnitId, monday.AddDays(1), 7m), CreateBatchLine(batchId, uniqueId, litreUnit, monday.AddDays(1), 2.25m)] });
+        await context.SaveChangesAsync();
+        var exporter = new ReconciliationPreparationWorkbookExporter(context);
+        var ids = new[] { a, b, batchId }.Select(GuidHelper.ToGuidString).ToList();
+        var combined = await exporter.GetWorkbookAsync(new() { WeekStartDate = monday, BatchIds = ids });
+        Assert.Equal(3, combined.CustomerColumnDefinitions.Count);
+        Assert.Equal(new[] { ("SUP-01", 10m), ("SUP-02", 7m) }, combined.SummaryRows
+            .Where(r => r.IngredientCode == "ING-SINGLE").OrderBy(r => r.SupplierCode).Select(r => (r.SupplierCode!, r.TotalQuantity)).ToArray());
+        Assert.Equal(2.25m, combined.SummaryRows.Single(r => r.IngredientCode == "ING-C-ONLY").TotalQuantity);
+        using var zip = new ZipArchive(new MemoryStream(PreparationWorkbookBuilder.BuildXlsx(combined, true)));
+        using var sheet = zip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
+        var xml = System.Xml.Linq.XDocument.Load(sheet);
+        Assert.Contains(xml.Descendants(), element => element.Name.LocalName == "t" && element.Value == "Rau Muống (ING-C-ONLY)");
+        Assert.Contains(xml.Descendants(), element => element.Name.LocalName == "t" && element.Value == "Rau Muống (ING-SINGLE)");
+        var reduced = await exporter.GetWorkbookAsync(new() { WeekStartDate = monday, BatchIds = ids.Take(2).ToList() });
+        Assert.DoesNotContain(reduced.SummaryRows, r => r.IngredientCode == "ING-C-ONLY" || r.SupplierCode == "SUP-02");
+    }
+
+    [Fact]
+    public async Task Group_change_preserves_exact_allocations_frozen_lines_and_supplier_references()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, _, _, id, _, _, date) = await SetupWorkbookFixtureAsync(fixture, context);
+        var exporter = new ReconciliationPreparationWorkbookExporter(context);
+        var before = await exporter.GetWorkbookAsync(new() { ServiceDate = date });
+        var dailyBefore = await context.Reconciliationbatchdailylines.AsNoTracking()
+            .Select(l => new { l.DailyLineId, l.IngredientId, l.CanonicalUnitId, l.ServiceDate, l.RequiredQuantity, l.Version }).ToListAsync();
+        var quotes = await context.Supplierquotations.AsNoTracking().Select(q => q.QuotationId).ToListAsync();
+        var ingredient = await context.Ingredients.SingleAsync(i => i.IngredientId == id);
+        ingredient.PreparationGroupCode = "RICE";
+        await context.SaveChangesAsync();
+        var after = await exporter.GetWorkbookAsync(new() { ServiceDate = date });
+        var normalize = (ReconciliationPreparationWorkbookDto document) => document.DetailRows
+            .Select(r => new { r.CustomerId, r.BatchId, r.ServiceDate, r.ShiftName, r.IngredientId, r.CanonicalUnitId, r.Quantity, r.SupplierId, r.SupplierCode })
+            .ToList();
+        normalize(after).Should().BeEquivalentTo(normalize(before));
+        after.MenuRows.Should().BeEquivalentTo(before.MenuRows);
+        after.SummaryRows.Single(r => r.IngredientId == GuidHelper.ToGuidString(id)).PreparationGroupCode.Should().Be("RICE");
+        (await context.Reconciliationbatchdailylines.AsNoTracking()
+            .Select(l => new { l.DailyLineId, l.IngredientId, l.CanonicalUnitId, l.ServiceDate, l.RequiredQuantity, l.Version }).ToListAsync()).Should().BeEquivalentTo(dailyBefore);
+        (await context.Supplierquotations.AsNoTracking().Select(q => q.QuotationId).ToListAsync()).Should().BeEquivalentTo(quotes);
+        using var archive = new ZipArchive(new MemoryStream(PreparationWorkbookBuilder.BuildXlsx(after, true)));
+        using var reader = new StreamReader(archive.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+        (await reader.ReadToEndAsync()).Should().Contain("NHÓM CUNG ỨNG: Gạo");
+    }
+
+    [Theory]
+    [InlineData("expired", "Không có báo giá hiệu lực ngày phục vụ")]
+    [InlineData("future", "Không có báo giá hiệu lực ngày phục vụ")]
+    [InlineData("inactive-quote", "Nhà cung cấp hoặc báo giá ngừng áp dụng")]
+    [InlineData("inactive-supplier", "Nhà cung cấp hoặc báo giá ngừng áp dụng")]
+    public async Task Supplier_resolution_distinguishes_unavailable_quotes_without_changing_quantities(string condition, string expected)
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, _, _, ingredientId, _, _, date) = await SetupWorkbookFixtureAsync(fixture, context);
+        var quote = await context.Supplierquotations.Include(item => item.Supplier).SingleAsync(item => item.IngredientId == ingredientId);
+        if (condition == "expired") quote.EffectiveTo = date.AddDays(-1);
+        if (condition == "future") quote.EffectiveFrom = date.AddDays(1);
+        if (condition == "inactive-quote") quote.IsActive = false;
+        if (condition == "inactive-supplier") quote.Supplier.IsActive = false;
+        await context.SaveChangesAsync();
+        var document = await new ReconciliationPreparationWorkbookExporter(context).GetWorkbookAsync(new() { ServiceDate = date });
+        var row = document.SummaryRows.Single(item => item.IngredientId == GuidHelper.ToGuidString(ingredientId));
+        Assert.Equal(expected, row.SupplierName);
+        Assert.Null(row.SupplierId);
+        Assert.Equal(10m, row.TotalQuantity);
+    }
+    [Fact]
+    public void Workbook_rejects_control_characters_and_preserves_formula_like_names_as_text()
+    {
+        var document = new ReconciliationPreparationWorkbookDto(["C · =1+1"], [], [], 0m, 0m)
+        { CustomerColumnDefinitions = [new("customer", "C", "=1+1")] };
+        using var zip = new ZipArchive(new MemoryStream(PreparationWorkbookBuilder.BuildXlsx(document, true)));
+        using var metadata = new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open());
+        Assert.Contains("_xlnm.Print_Titles", metadata.ReadToEnd());
+        using var sheet = new StreamReader(zip.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+        var xml = System.Xml.Linq.XDocument.Parse(sheet.ReadToEnd());
+        System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        Assert.Empty(xml.Descendants(ns + "f"));
+        Assert.Contains(xml.Descendants(ns + "c"), cell => (string?)cell.Attribute("t") == "inlineStr" && cell.Value == "Khách hàng: C · =1+1");
+        var invalid = document with { CustomerColumns = ["C · bad\u0001"], CustomerColumnDefinitions = [new("customer", "C", "bad\u0001")] };
+        Assert.Throws<IPCManagement.Api.Exceptions.BusinessRuleException>(() => PreparationWorkbookBuilder.BuildXlsx(invalid, true));
+    }
+    [Fact]
+    public async Task Supply_group_uses_explicit_master_and_same_name_suppliers_remain_ambiguous()
+    {
+        await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var (_, _, _, _, ingredientId, _, ambiguousId, date) = await SetupWorkbookFixtureAsync(fixture, context);
+        var suppliers = await context.Suppliers.Where(item => item.SupplierCode == "SUP-01" || item.SupplierCode == "SUP-02").ToListAsync();
+        foreach (var supplier in suppliers) supplier.SupplierName = "Cùng tên";
+        var ingredient = await context.Ingredients.SingleAsync(item => item.IngredientId == ingredientId);
+        ingredient.PreparationGroupCode = "FROZEN";
+        await context.SaveChangesAsync();
+        var exporter = new ReconciliationPreparationWorkbookExporter(context);
+        var document = await exporter.GetWorkbookAsync(new() { ServiceDate = date });
+        var frozen = document.SummaryRows.Single(item => item.IngredientId == GuidHelper.ToGuidString(ingredientId));
+        Assert.Equal("FROZEN", frozen.PreparationGroupCode);
+        Assert.NotNull(frozen.SupplierId);
+        Assert.Equal("SUP-01", frozen.SupplierCode);
+        Assert.Equal("Nhiều nhà cung cấp cùng hiệu lực", document.SummaryRows.Single(item => item.IngredientId == GuidHelper.ToGuidString(ambiguousId)).SupplierName);
+        using var zip = new ZipArchive(new MemoryStream(PreparationWorkbookBuilder.BuildXlsx(document, true)));
+        using var sheet = new StreamReader(zip.GetEntry("xl/worksheets/sheet1.xml")!.Open());
+        var xml = await sheet.ReadToEndAsync();
+        Assert.Contains("NHÓM CUNG ỨNG: Đông lạnh", xml);
+        Assert.Contains("Chưa phân nhóm", xml);
+        Assert.Contains("SUP-01", xml);
+    }
+    [Fact]
+    public void Full_empty_workbook_keeps_two_sheets_and_filter_precedes_merges()
+    {
+        var workbook = new ReconciliationPreparationWorkbookDto([], [], [], 0m, 0m)
+        { ScopeStartDate = new DateOnly(2026, 11, 16), ScopeEndDate = new DateOnly(2026, 11, 21) };
+        using var zip = new ZipArchive(new MemoryStream(PreparationWorkbookBuilder.BuildXlsx(workbook, true)));
+        System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        using var metadata = zip.GetEntry("xl/workbook.xml")!.Open();
+        var sheets = System.Xml.Linq.XDocument.Load(metadata).Descendants(ns + "sheet").ToArray();
+        Assert.Equal(new[] { "Nhu cầu nguyên liệu", "Thực đơn cho bếp" }, sheets.Select(item => (string?)item.Attribute("name")));
+        Assert.Null(zip.GetEntry("xl/worksheets/sheet3.xml"));
+        using var menu = zip.GetEntry("xl/worksheets/sheet2.xml")!.Open();
+        var elements = System.Xml.Linq.XDocument.Load(menu).Root!.Elements().Select(item => item.Name.LocalName).ToList();
+        Assert.True(elements.IndexOf("autoFilter") < elements.IndexOf("mergeCells"));
+        Assert.True(elements.IndexOf("mergeCells") < elements.IndexOf("pageMargins"));
+    }
+    [Fact]
     public async Task Source_delta_history_filters_customer_code_before_paging()
     {
         await using var fixture = await WorkflowGenerationTests.WorkflowFixture.CreateAsync();
@@ -201,11 +348,11 @@ public sealed class ReconciliationPreparationWorkbookTests
         using var sheet = zip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
         System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         var xml = System.Xml.Linq.XDocument.Load(sheet);
-        Assert.Contains(xml.Descendants(ns + "t"), cell => cell.Value == "AA · Trùng tên");
-        Assert.Contains(xml.Descendants(ns + "t"), cell => cell.Value == "BB · Trùng tên");
-        var row = Assert.Single(xml.Descendants(ns + "row"), item => item.Elements(ns + "c").Any(cell => cell.Value == "ING-SINGLE"));
-        var quantities = row.Elements(ns + "c").Skip(4).ToArray();
-        Assert.Equal(new[] { "2.5", "3", "5.5" }, quantities.Select(cell => cell.Element(ns + "v")!.Value));
+        Assert.Contains(xml.Descendants(ns + "t"), cell => includeMenus ? cell.Value.Contains("AA · Trùng tên") : cell.Value == "AA · Trùng tên");
+        Assert.Contains(xml.Descendants(ns + "t"), cell => includeMenus ? cell.Value.Contains("BB · Trùng tên") : cell.Value == "BB · Trùng tên");
+        var row = Assert.Single(xml.Descendants(ns + "row"), item => item.Elements(ns + "c").Any(cell => cell.Value == (includeMenus ? "Rau Muống" : "ING-SINGLE")));
+        var quantities = row.Elements(ns + "c").Skip(includeMenus ? 2 : 4).ToArray();
+        Assert.Equal(includeMenus ? new[] { "5.5" } : new[] { "2.5", "3", "5.5" }, quantities.Select(cell => cell.Element(ns + "v")!.Value));
         Assert.All(quantities, cell => Assert.Equal("n", (string?)cell.Attribute("t")));
     }
 
@@ -238,7 +385,7 @@ public sealed class ReconciliationPreparationWorkbookTests
 
         // 3. Ambiguous suppliers ingredient -> "Chưa xác định nhà cung cấp"
         var ambSummary = result.SummaryRows.Single(r => r.IngredientId == GuidHelper.ToGuidString(ingAmbiguous));
-        ambSummary.SupplierName.Should().Be("Chưa xác định nhà cung cấp");
+        ambSummary.SupplierName.Should().Be("Nhiều nhà cung cấp cùng hiệu lực");
         ambSummary.TotalQuantity.Should().Be(5m); // 2 + 3
 
         // Parity
@@ -348,13 +495,13 @@ public sealed class ReconciliationPreparationWorkbookTests
             using var sheetStream = zip.GetEntry("xl/worksheets/sheet1.xml")!.Open();
             System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
             var xml = System.Xml.Linq.XDocument.Load(sheetStream);
-            xml.Descendants(ns + "t").Select(t => t.Value).Should().Contain(["CUS · Customer", "CUST-B · Khách hàng B"]);
-            using var menuStream = zip.GetEntry("xl/worksheets/sheet3.xml")!.Open();
+            xml.Descendants(ns + "t").Select(t => t.Value).Should().Contain("Khách hàng: CUS · Customer; CUST-B · Khách hàng B");
+            using var menuStream = zip.GetEntry("xl/worksheets/sheet2.xml")!.Open();
             var menuXml = System.Xml.Linq.XDocument.Load(menuStream);
             menuXml.Descendants(ns + "t").Select(t => t.Value).Should().Contain(["Món Khách A", "Món Khách B"]);
-            var matRow = Assert.Single(xml.Descendants(ns + "row"), r => r.Elements(ns + "c").Any(c => c.Value == "ING-SINGLE"));
-            var numericCells = matRow.Elements(ns + "c").Skip(4).ToArray();
-            numericCells.Select(c => c.Element(ns + "v")!.Value).Should().Equal("2.5", "0", "2.5");
+            var matRow = Assert.Single(xml.Descendants(ns + "row"), r => r.Elements(ns + "c").Any(c => c.Value == "Rau Muống"));
+            var numericCells = matRow.Elements(ns + "c").Skip(2).ToArray();
+            numericCells.Select(c => c.Element(ns + "v")!.Value).Should().Equal("2.5");
         }
 
         var unmatchedSupplierQuery = new ReconciliationPreparationWorkbookQuery
@@ -400,7 +547,7 @@ public sealed class ReconciliationPreparationWorkbookTests
 
         using var workbookReader = new StreamReader(zip.GetEntry("xl/workbook.xml")!.Open(), Encoding.UTF8);
         var workbookXml = await workbookReader.ReadToEndAsync();
-        workbookXml.Should().Contain("Tổng hợp chuẩn bị");
+        workbookXml.Should().Contain("Chuẩn bị nguyên liệu");
         workbookXml.Should().Contain("Chi tiết phân bổ");
 
         // Confidentiality check: Prices and secrets must not be in the XML!
@@ -529,18 +676,18 @@ public sealed class ReconciliationPreparationWorkbookTests
         workbook.SummaryRows.Single(row => row.IngredientId == GuidHelper.ToGuidString(ingredientId)).TotalQuantity.Should().Be(5.123456m);
         using var stream = new MemoryStream(await service.ExportWorkbookXlsxAsync(query));
         using var zip = new ZipArchive(stream, ZipArchiveMode.Read);
-        zip.GetEntry("xl/worksheets/sheet2.xml").Should().NotBeNull("allocation detail must remain inspectable when a menu is included");
-        zip.GetEntry("xl/worksheets/sheet3.xml").Should().NotBeNull("menu evidence must have its own sheet");
+        zip.GetEntry("xl/worksheets/sheet3.xml").Should().BeNull("full preparation has exactly two sheets");
+        zip.GetEntry("xl/worksheets/sheet2.xml").Should().NotBeNull("menu evidence must have its own sheet");
         using var summaryReader = new StreamReader(zip.GetEntry("xl/worksheets/sheet1.xml")!.Open());
         var summaryXml = await summaryReader.ReadToEndAsync();
         using var detailReader = new StreamReader(zip.GetEntry("xl/worksheets/sheet2.xml")!.Open());
         var detailXml = await detailReader.ReadToEndAsync();
-        using var menuReader = new StreamReader(zip.GetEntry("xl/worksheets/sheet3.xml")!.Open());
+        using var menuReader = new StreamReader(zip.GetEntry("xl/worksheets/sheet2.xml")!.Open());
         var xml = await menuReader.ReadToEndAsync();
         xml.Should().Contain("Món đóng băng").And.Contain("Món Thứ Bảy").And.Contain("Chiều");
-        summaryXml.Should().Contain("ING-SINGLE").And.Contain("5.123456");
-        detailXml.Should().Contain("ING-SINGLE").And.Contain("Chiều");
-        summaryXml.Should().Contain("<autoFilter");
+        summaryXml.Should().Contain("Rau Muống").And.Contain("5.123456");
+        detailXml.Should().Contain("Món đóng băng").And.Contain("Chiều");
+        summaryXml.Should().Contain("NHÀ CUNG CẤP:");
         detailXml.Should().Contain("<autoFilter");
         xml.Should().Contain("<autoFilter");
         System.Xml.Linq.XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -548,7 +695,7 @@ public sealed class ReconciliationPreparationWorkbookTests
         var menuRows = rows.Where(row => row.Value.Contains("Món đóng băng") || row.Value.Contains("Món Thứ Bảy")).ToArray();
         menuRows.Should().HaveCount(2);
         menuRows.Select(row => row.Elements(ns + "c").Last().Element(ns + "v")!.Value).Should().Equal("100", "50");
-        var materialRow = System.Xml.Linq.XDocument.Parse(summaryXml).Descendants(ns + "row").Single(row => row.Elements(ns + "c").Any(cell => cell.Value == "ING-SINGLE"));
+        var materialRow = System.Xml.Linq.XDocument.Parse(summaryXml).Descendants(ns + "row").Single(row => row.Elements(ns + "c").Any(cell => cell.Value == "Rau Muống"));
         materialRow.Elements(ns + "c").Last().Element(ns + "v")!.Value.Should().Be("5.123456");
         var dailyQuery = new ReconciliationPreparationWorkbookQuery { ServiceDate = monday, BatchIds = query.BatchIds, IncludeMenus = true, IsSupplemental = false };
         var dayWorkbook = await service.GetWorkbookAsync(dailyQuery);

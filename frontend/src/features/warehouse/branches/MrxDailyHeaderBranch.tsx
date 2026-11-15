@@ -71,8 +71,8 @@ export function MrxDailyHeaderBranch({
       breadcrumb="Đối soát MRX · Trạm Kho nguyên liệu"
       contextSelectors={
         <>
-          <div className="flex flex-wrap items-center gap-2 min-w-0">
-          <div className="w-72 max-w-full shrink-0">
+          <div className="mrx-batch-group flex flex-wrap items-center gap-2 min-w-0">
+          <div className="mrx-batch-selector w-72 max-w-full shrink-0">
           <Select
             aria-label="Chọn lô đối soát xuất kho"
             options={activeBatchId && !batches.some((batch) => batch.batchId === activeBatchId)

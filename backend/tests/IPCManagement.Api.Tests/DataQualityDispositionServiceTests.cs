@@ -235,7 +235,7 @@ public sealed class DataQualityDispositionServiceTests
                     passwordHash TEXT NOT NULL, roleId BLOB NOT NULL, isActive INTEGER NOT NULL, createdAt TEXT NOT NULL);
                 CREATE TABLE units (unitId BLOB PRIMARY KEY, unitCode TEXT NOT NULL UNIQUE, unitName TEXT NOT NULL,
                     baseUnitCode TEXT NULL, convertRateToBase NUMERIC NOT NULL);
-                CREATE TABLE ingredients (ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL UNIQUE,
+                CREATE TABLE ingredients (preparationGroupCode TEXT NOT NULL DEFAULT 'UNCLASSIFIED',ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL UNIQUE,
                     ingredientName TEXT NOT NULL, unitId BLOB NOT NULL, warehouseId BLOB NOT NULL,
                     referencePrice NUMERIC NOT NULL, isFreshDaily INTEGER NOT NULL, isActive INTEGER NOT NULL);
                 CREATE TABLE unitnormalizationreviews (reviewId BLOB PRIMARY KEY, ingredientId BLOB NOT NULL,

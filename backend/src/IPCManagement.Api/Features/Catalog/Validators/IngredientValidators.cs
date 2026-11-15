@@ -8,7 +8,6 @@ public class CreateIngredientDtoValidator : AbstractValidator<CreateIngredientRe
     public CreateIngredientDtoValidator()
     {
         RuleFor(x => x.IngredientCode)
-            .NotEmpty().WithMessage("Mã nguyên liệu không được để trống.")
             .MaximumLength(50).WithMessage("Mã nguyên liệu không vượt quá 50 ký tự.");
 
         RuleFor(x => x.IngredientName)

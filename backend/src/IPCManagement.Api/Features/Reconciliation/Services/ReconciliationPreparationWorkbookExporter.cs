@@ -93,17 +93,23 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         var ingredientIds = dailyLines.Select(d => d.IngredientId).Distinct(ByteArrayComparer.Instance).ToList();
         var quotations = await context.Supplierquotations.AsNoTracking()
             .Include(sq => sq.Supplier)
-            .Where(sq => ingredientIds.Contains(sq.IngredientId) && (sq.IsActive == null || sq.IsActive == true) && (sq.Supplier.IsActive == null || sq.Supplier.IsActive == true))
+            .Where(sq => ingredientIds.Contains(sq.IngredientId))
             .ToListAsync(token);
 
-        string ResolveSupplierName(byte[] ingredientId, DateOnly serviceDate)
+        (string Name, string? Id, string? Code) ResolveSupplier(byte[] ingredientId, DateOnly serviceDate)
         {
-            var matching = quotations.Where(q => q.IngredientId.SequenceEqual(ingredientId)
-                && q.EffectiveFrom <= serviceDate
+            var candidates = quotations.Where(q => q.IngredientId.SequenceEqual(ingredientId)).ToList();
+            var active = candidates.Where(q => q.IsActive != false && q.Supplier.IsActive != false).ToList();
+            var matching = active.Where(q =>
+                q.EffectiveFrom <= serviceDate
                 && (q.EffectiveTo == null || q.EffectiveTo >= serviceDate)).ToList();
 
-            var distinctSuppliers = matching.Select(q => q.Supplier.SupplierName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-            return distinctSuppliers.Count == 1 ? distinctSuppliers[0] : "Chưa xác định nhà cung cấp";
+            var distinctSuppliers = matching.Select(q => q.Supplier).DistinctBy(supplier => Convert.ToHexString(supplier.SupplierId)).ToList();
+            return distinctSuppliers.Count == 1 ? (distinctSuppliers[0].SupplierName, GuidHelper.ToGuidString(distinctSuppliers[0].SupplierId), distinctSuppliers[0].SupplierCode)
+                : (distinctSuppliers.Count > 1 ? "Nhiều nhà cung cấp cùng hiệu lực"
+                    : candidates.Count == 0 ? "Chưa xác định nhà cung cấp"
+                    : active.Count == 0 ? "Nhà cung cấp hoặc báo giá ngừng áp dụng"
+                    : "Không có báo giá hiệu lực ngày phục vụ", null, null);
         }
 
         var detailRows = new List<ReconciliationPreparationDetailRowDto>();
@@ -117,7 +123,8 @@ public sealed class ReconciliationPreparationWorkbookExporter(
             var mvHex = Convert.ToHexString(batch.MenuVersionId);
             menuVersions.TryGetValue(mvHex, out var menuVersion);
 
-            var supplier = ResolveSupplierName(daily.IngredientId, daily.ServiceDate);
+            var resolvedSupplier = ResolveSupplier(daily.IngredientId, daily.ServiceDate);
+            var supplier = resolvedSupplier.Name;
             if (!string.IsNullOrWhiteSpace(query.SupplierName) && !string.Equals(supplier, query.SupplierName.Trim(), StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -154,7 +161,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                 daily.RequiredQuantity,
                 "Xuất ban đầu",
                 issueStatus,
-                supplier));
+                supplier) { SupplierId = resolvedSupplier.Id, SupplierCode = resolvedSupplier.Code, PreparationGroupCode = daily.BatchLine.Ingredient.PreparationGroupCode });
         }
 
         if (query.IsSupplemental != false)
@@ -181,7 +188,8 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                 var mvHex = Convert.ToHexString(batch.MenuVersionId);
                 menuVersions.TryGetValue(mvHex, out var menuVersion);
 
-                var supplier = ResolveSupplierName(delta.IngredientId, delta.ServiceDate);
+                var resolvedSupplier = ResolveSupplier(delta.IngredientId, delta.ServiceDate);
+                var supplier = resolvedSupplier.Name;
                 if (!string.IsNullOrWhiteSpace(query.SupplierName) && !string.Equals(supplier, query.SupplierName.Trim(), StringComparison.OrdinalIgnoreCase))
                 {
                     continue;
@@ -205,7 +213,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                     delta.DeltaQuantity,
                     "Xuất bổ sung",
                     issueStatus,
-                    supplier));
+                    supplier) { SupplierId = resolvedSupplier.Id, SupplierCode = resolvedSupplier.Code, PreparationGroupCode = delta.DailyLine?.BatchLine?.Ingredient?.PreparationGroupCode ?? "UNCLASSIFIED" });
             }
         }
 
@@ -268,7 +276,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         var customerColumns = customerDefinitions.Select(customer => $"{customer.CustomerCode} · {customer.CustomerName}").ToList();
 
         var summaryRows = detailRows
-            .GroupBy(d => new { d.SupplierName, d.IngredientId, d.CanonicalUnitId })
+            .GroupBy(d => new { d.SupplierId, d.SupplierName, d.PreparationGroupCode, d.IngredientId, d.CanonicalUnitId })
             .Select(g =>
             {
                 var first = g.First();
@@ -285,7 +293,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
                     first.CanonicalUnitId,
                     first.CanonicalUnitName,
                     customerQtys,
-                    totalQty);
+                    totalQty) { SupplierId = first.SupplierId, SupplierCode = first.SupplierCode, PreparationGroupCode = first.PreparationGroupCode };
             })
             .OrderBy(s => s.SupplierName)
             .ThenBy(s => s.IngredientName)
@@ -309,7 +317,7 @@ public sealed class ReconciliationPreparationWorkbookExporter(
         CancellationToken token = default)
     {
         var workbook = await GetWorkbookAsync(query, token);
-        return PreparationWorkbookBuilder.BuildXlsx(workbook);
+        return PreparationWorkbookBuilder.BuildXlsx(workbook, query.IncludeMenus);
     }
 
     private void EnsureReconciliationMode()

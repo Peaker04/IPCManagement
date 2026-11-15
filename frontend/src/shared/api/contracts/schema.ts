@@ -8296,6 +8296,94 @@ export interface paths {
         readonly patch?: never;
         readonly trace?: never;
     };
+    readonly "/api/reconciliation/source-history": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly BatchId?: string;
+                    readonly CustomerCode?: string;
+                    readonly PageNumber?: number;
+                    readonly PageSize?: number;
+                    readonly SearchKeyword?: string;
+                    readonly ServiceDate?: string;
+                    readonly SortBy?: string;
+                    readonly SortDesc?: boolean;
+                };
+                readonly header?: never;
+                readonly path?: never;
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
+    readonly "/api/reconciliation/source-history/{eventId}": {
+        readonly parameters: {
+            readonly query?: never;
+            readonly header?: never;
+            readonly path?: never;
+            readonly cookie?: never;
+        };
+        readonly get: {
+            readonly parameters: {
+                readonly query?: {
+                    readonly pageNumber?: number;
+                    readonly pageSize?: number;
+                };
+                readonly header?: never;
+                readonly path: {
+                    readonly eventId: string;
+                };
+                readonly cookie?: never;
+            };
+            readonly requestBody?: never;
+            readonly responses: {
+                /** @description OK */
+                readonly 200: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ReconciliationSourceHistoryDetailDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ReconciliationSourceHistoryDetailDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ReconciliationSourceHistoryDetailDtoApiResponse"];
+                    };
+                };
+            };
+        };
+        readonly put?: never;
+        readonly post?: never;
+        readonly delete?: never;
+        readonly options?: never;
+        readonly head?: never;
+        readonly patch?: never;
+        readonly trace?: never;
+    };
     readonly "/api/reconciliation/weekly-menu": {
         readonly parameters: {
             readonly query?: never;
@@ -13766,9 +13854,10 @@ export interface components {
             readonly username: string;
         };
         readonly CreateIngredientRequest: {
-            readonly ingredientCode: string;
+            readonly ingredientCode?: string | null;
             readonly ingredientName: string;
             readonly isFreshDaily: boolean;
+            readonly preparationGroupCode: string;
             /** Format: double */
             readonly referencePrice: number;
             readonly unitId: string;
@@ -14616,6 +14705,7 @@ export interface components {
             readonly isActive?: boolean | null;
             readonly isFreshDaily: boolean;
             readonly materialrequestlines: readonly components["schemas"]["MaterialRequestLine"][];
+            readonly preparationGroupCode: string;
             readonly purchaseorderlines: readonly components["schemas"]["PurchaseOrderLine"][];
             readonly purchaserequestlines: readonly components["schemas"]["PurchaseRequestLine"][];
             /** Format: double */
@@ -14761,6 +14851,7 @@ export interface components {
             readonly ingredientName: string;
             readonly isActive: boolean;
             readonly isFreshDaily?: boolean | null;
+            readonly preparationGroupCode: string;
             /** Format: double */
             readonly referencePrice: number;
             readonly unitId: string;
@@ -18023,11 +18114,14 @@ export interface components {
             readonly ingredientId: string;
             readonly ingredientName: string;
             readonly issueStatus: string;
+            readonly preparationGroupCode: string;
             /** Format: double */
             readonly quantity: number;
             /** Format: date */
             readonly serviceDate: string;
             readonly shiftName: string;
+            readonly supplierCode?: string | null;
+            readonly supplierId?: string | null;
             readonly supplierName: string;
         };
         readonly ReconciliationPreparationDto: {
@@ -18064,6 +18158,9 @@ export interface components {
             readonly ingredientCode: string;
             readonly ingredientId: string;
             readonly ingredientName: string;
+            readonly preparationGroupCode: string;
+            readonly supplierCode?: string | null;
+            readonly supplierId?: string | null;
             readonly supplierName: string;
             /** Format: double */
             readonly totalQuantity: number;
@@ -18210,6 +18307,96 @@ export interface components {
             readonly errors?: unknown;
             readonly message: string;
             readonly success: boolean;
+        };
+        readonly ReconciliationSourceHistoryDetailDto: {
+            readonly event: components["schemas"]["ReconciliationSourceHistoryEventDto"];
+            /** Format: date-time */
+            readonly executedAt?: string | null;
+            readonly executorName?: string | null;
+            readonly materials: components["schemas"]["ReconciliationSourceHistoryMaterialDtoPagedResponseDto"];
+            /** Format: date-time */
+            readonly requestedAt?: string | null;
+            readonly requesterName?: string | null;
+            /** Format: date-time */
+            readonly reviewedAt?: string | null;
+            readonly reviewerName?: string | null;
+            readonly revisions: readonly components["schemas"]["ReconciliationSourceHistoryRevisionDto"][];
+        };
+        readonly ReconciliationSourceHistoryDetailDtoApiResponse: {
+            readonly data?: components["schemas"]["ReconciliationSourceHistoryDetailDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ReconciliationSourceHistoryEventDto: {
+            readonly actorName: string;
+            /** Format: int32 */
+            readonly affectedLineCount: number;
+            readonly approvalStatus: string;
+            readonly changeRoute: string;
+            readonly customerCode: string;
+            readonly customerName: string;
+            readonly eventId: string;
+            /** Format: date-time */
+            readonly occurredAt: string;
+            readonly reason: string;
+            readonly status: string;
+            /** Format: date */
+            readonly weekStartDate: string;
+        };
+        readonly ReconciliationSourceHistoryEventDtoPagedResponseDto: {
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["ReconciliationSourceHistoryEventDto"][];
+            /** Format: int32 */
+            readonly pageNumber: number;
+            /** Format: int32 */
+            readonly pageSize: number;
+            /** Format: int32 */
+            readonly totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+        };
+        readonly ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse: {
+            readonly data?: components["schemas"]["ReconciliationSourceHistoryEventDtoPagedResponseDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ReconciliationSourceHistoryMaterialDto: {
+            /** Format: double */
+            readonly deltaQuantity: number;
+            readonly ingredientCode: string;
+            readonly ingredientName: string;
+            readonly isApplied: boolean;
+            /** Format: double */
+            readonly newQuantity: number;
+            /** Format: double */
+            readonly previousQuantity: number;
+            /** Format: date */
+            readonly serviceDate: string;
+            readonly unitName: string;
+        };
+        readonly ReconciliationSourceHistoryMaterialDtoPagedResponseDto: {
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["ReconciliationSourceHistoryMaterialDto"][];
+            /** Format: int32 */
+            readonly pageNumber: number;
+            /** Format: int32 */
+            readonly pageSize: number;
+            /** Format: int32 */
+            readonly totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+        };
+        readonly ReconciliationSourceHistoryRevisionDto: {
+            /** Format: date-time */
+            readonly appliedAt: string;
+            readonly batchId: string;
+            readonly revisionId: string;
+            /** Format: int64 */
+            readonly revisionNumber: number;
         };
         readonly ReconciliationSourceRevision: {
             /** Format: date-time */
@@ -19391,6 +19578,7 @@ export interface components {
             readonly ingredientName?: string | null;
             readonly isActive?: boolean | null;
             readonly isFreshDaily?: boolean | null;
+            readonly preparationGroupCode?: string | null;
             /** Format: double */
             readonly referencePrice?: number | null;
             readonly unitId?: string | null;

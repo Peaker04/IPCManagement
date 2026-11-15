@@ -463,36 +463,54 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(await screen.findByText('v4')).toBeInTheDocument();
   });
 
-  it('reads legacy source deltas without offering new stock commands and pages current applied history', async () => {
-    const delta = { sourceDeltaId: 'delta-1', sourceRevisionId: 'revision-1', batchId: 'batch-1', dailyLineId: 'daily-1', serviceDate: '2026-10-19', ingredientId: 'ingredient-1', ingredientCode: 'GAO', ingredientName: 'Gạo', canonicalUnitId: 'unit-1', canonicalUnitName: 'kg', previousRequiredQuantity: 2, newRequiredQuantity: 2.5, deltaQuantity: 0.5, workKind: 'SUPPLEMENTAL_ISSUE', status: 'PENDING', version: 1, createdAt: '2026-10-20T06:00:00Z' };
-    const read = vi.spyOn(mrxApi, 'getSourceDeltas').mockImplementation(async (page = 1) => ({
-      items: page === 1 ? [delta, { ...delta, sourceDeltaId: 'delta-2', workKind: 'RETURN_REQUIRED', deltaQuantity: -0.75, newRequiredQuantity: 1.25 }]
-        : [{ ...delta, sourceDeltaId: 'delta-3', workKind: 'SOURCE_CHANGE', status: 'APPLIED', ingredientName: 'Cá' }],
+  it('lists source-change events once, opens their material detail, and offers no stock command', async () => {
+    const entry = { eventId: 'amendment:request-1', customerCode: 'ANV', customerName: 'AMANN', weekStartDate: '2026-10-19', occurredAt: '2026-10-20T06:00:00Z', actorName: 'Điều phối', status: 'PENDING_REVIEW', approvalStatus: 'PENDING', changeRoute: 'REQUEST', reason: 'Đổi món', affectedLineCount: 2 };
+    const read = vi.spyOn(mrxApi, 'getSourceHistory').mockImplementation(async (page = 1) => ({
+      items: page === 1 ? [entry] : [{ ...entry, eventId: 'amendment:request-2', status: 'EXECUTED', approvalStatus: 'APPROVED', actorName: 'Quản lý' }],
       totalCount: 26, pageNumber: page, pageSize: 25, totalPages: 2, hasPrev: page === 2, hasNext: page === 1,
     }));
+    const detail = vi.spyOn(mrxApi, 'getSourceHistoryDetail').mockResolvedValue({
+      event: entry, requesterName: 'Điều phối', requestedAt: entry.occurredAt, reviewerName: null, reviewedAt: null,
+      executorName: null, executedAt: null, revisions: [], materials: { items: [{ serviceDate: '2026-10-19', ingredientCode: 'GAO', ingredientName: 'Gạo', unitName: 'kg', previousQuantity: 2, newQuantity: 2.5, deltaQuantity: .5, isApplied: false }], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false },
+    });
     const issue = vi.spyOn(mrxApi, 'createIssue');
     const createReturn = vi.spyOn(mrxApi, 'createReturn');
     const confirm = vi.spyOn(mrxApi, 'confirmReturn');
     renderWarehouse('/warehouse?view=mrx-issues');
-    expect(await screen.findByText('Yêu cầu xuất bổ sung cũ')).toBeInTheDocument();
-    expect(screen.getByText('Yêu cầu hoàn trả cũ')).toBeInTheDocument();
-    expect(screen.queryByText('SUPPLEMENTAL_ISSUE')).not.toBeInTheDocument();
-    expect(screen.queryByText('RETURN_REQUIRED')).not.toBeInTheDocument();
-    expect(screen.getByText(/Chỉ đọc/)).toBeInTheDocument();
+    expect(await screen.findByText('ANV · AMANN')).toBeInTheDocument();
+    expect(screen.getByText('Đang chờ xử lý')).toBeInTheDocument();
+    expect(screen.getByText('Chờ duyệt')).toBeInTheDocument();
+    expect(screen.queryByText('Chỉ đọc')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Mã khách hàng lịch sử nguồn' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Mã lô lịch sử nguồn' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Ngày phục vụ lịch sử nguồn')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Xử lý|Xác nhận/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Xem chi tiết thay đổi nguồn/ }));
+    expect(await screen.findByText('Ảnh hưởng dự kiến · Chưa ghi nhận cập nhật nguồn')).toBeInTheDocument();
+    expect(screen.getByText('Gạo')).toBeInTheDocument();
+    expect(detail).toHaveBeenCalledWith('amendment:request-1', 1);
+    await userEvent.click(screen.getByRole('button', { name: 'Đóng' }));
     await userEvent.click(screen.getByRole('button', { name: 'Trang sau' }));
-    expect(await screen.findByText('Cá')).toBeInTheDocument();
-    expect(screen.getByText('Đã áp dụng')).toBeInTheDocument();
-    expect(screen.getByText('Thay đổi định lượng nguồn')).toBeInTheDocument();
-    expect(screen.queryByText('SOURCE_CHANGE')).not.toBeInTheDocument();
-    expect(read).toHaveBeenLastCalledWith(2, 25, 'ALL');
+    expect(await screen.findByText('Quản lý')).toBeInTheDocument();
+    expect(screen.getByText('Đã thực hiện yêu cầu')).toBeInTheDocument();
+    detail.mockResolvedValueOnce({
+      event: { ...entry, eventId: 'amendment:request-2', status: 'EXECUTED', approvalStatus: 'APPROVED' },
+      requesterName: 'Điều phối', requestedAt: entry.occurredAt, reviewerName: 'Quản lý', reviewedAt: entry.occurredAt,
+      executorName: 'Quản lý', executedAt: entry.occurredAt, revisions: [],
+      materials: { items: [{ serviceDate: '2026-10-19', ingredientCode: 'GAO', ingredientName: 'Gạo', unitName: 'kg', previousQuantity: 2, newQuantity: 2.5, deltaQuantity: .5, isApplied: false }], totalCount: 1, pageNumber: 1, pageSize: 25, totalPages: 1, hasPrev: false, hasNext: false },
+    });
+    await userEvent.click(screen.getByRole('button', { name: /Xem chi tiết thay đổi nguồn/ }));
+    expect(await screen.findByText('Ảnh hưởng dự kiến · Chưa ghi nhận cập nhật nguồn')).toBeInTheDocument();
+    expect(screen.getAllByText('Đã thực hiện yêu cầu')).toHaveLength(2);
+    expect(screen.getAllByText('Đã duyệt')).toHaveLength(2);
+    expect(read).toHaveBeenLastCalledWith(2, 25, { customerCode: '', batchId: '', serviceDate: '' });
     expect(issue).not.toHaveBeenCalled();
     expect(createReturn).not.toHaveBeenCalled();
     expect(confirm).not.toHaveBeenCalled();
   });
 
   it('applies customer, service date and batch filters to source history before paging', async () => {
-    const read = vi.spyOn(mrxApi, 'getSourceDeltas').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasNext: false, hasPrev: false });
+    const read = vi.spyOn(mrxApi, 'getSourceHistory').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasNext: false, hasPrev: false });
     renderWarehouse('/warehouse?view=mrx-issues');
     await screen.findByText('Chưa có lịch sử thay đổi nguồn');
     expect(screen.queryByRole('columnheader', { name: 'Nhu cầu trước' })).not.toBeInTheDocument();
@@ -501,24 +519,25 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     await userEvent.type(screen.getByRole('textbox', { name: 'Mã lô lịch sử nguồn' }), '3b8905a4-53c6-477a-8ec4-43ac10f9b5eb');
     await userEvent.type(screen.getByLabelText('Ngày phục vụ lịch sử nguồn'), '23/11/2026');
     await userEvent.click(screen.getByRole('button', { name: 'Lọc lịch sử nguồn' }));
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, 'ALL', { customerCode: 'ANV', batchId: '3b8905a4-53c6-477a-8ec4-43ac10f9b5eb', serviceDate: '2026-11-23' }));
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: 'ANV', batchId: '3b8905a4-53c6-477a-8ec4-43ac10f9b5eb', serviceDate: '2026-11-23' }));
   });
 
-  it('inherits shared source-history scope and gives explicit URL batch precedence', async () => {
+  it('opens source history unfiltered and applies only explicit URL filters', async () => {
     workspaceSessionStore.setScope({ customerId: 'c-1', customerCode: 'ANV', batchId: 'shared-batch', serviceDate: '2024-11-18' });
-    const read = vi.spyOn(mrxApi, 'getSourceDeltas').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasNext: false, hasPrev: false });
+    const read = vi.spyOn(mrxApi, 'getSourceHistory').mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasNext: false, hasPrev: false });
     const view = renderWarehouse('/warehouse?view=mrx-issues');
-    await waitFor(() => expect(read).toHaveBeenCalledWith(1, 25, 'ALL', { customerCode: 'ANV', batchId: 'shared-batch', serviceDate: '2024-11-18' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Xem tất cả' }));
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, 'ALL'));
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: '', batchId: '', serviceDate: '' }));
+    expect(screen.getByRole('textbox', { name: 'Mã khách hàng lịch sử nguồn' })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: 'Mã lô lịch sử nguồn' })).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Xem tất cả' })).not.toBeInTheDocument();
     view.unmount();
-    renderWarehouse('/warehouse?view=mrx-issues&batchId=url-batch&date=2023-11-20');
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, 'ALL', { customerCode: '', batchId: 'url-batch', serviceDate: '2023-11-20' }));
+    renderWarehouse('/warehouse?view=mrx-issues&customerCode=DAV&batchId=url-batch&date=2023-11-20');
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith(1, 25, { customerCode: 'DAV', batchId: 'url-batch', serviceDate: '2023-11-20' }));
     expect(screen.getByRole('textbox', { name: 'Mã lô lịch sử nguồn' })).toHaveValue('url-batch');
   });
 
   it('retains a source-history read error and retries without showing an empty success', async () => {
-    const read = vi.spyOn(mrxApi, 'getSourceDeltas').mockRejectedValueOnce(new Error('Không tải được lịch sử nguồn')).mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasNext: false, hasPrev: false });
+    const read = vi.spyOn(mrxApi, 'getSourceHistory').mockRejectedValueOnce(new Error('Không tải được lịch sử nguồn')).mockResolvedValue({ items: [], totalCount: 0, pageNumber: 1, pageSize: 25, totalPages: 0, hasNext: false, hasPrev: false });
     renderWarehouse('/warehouse?view=mrx-issues');
     expect(await screen.findByText('Không tải được lịch sử nguồn')).toBeInTheDocument();
     expect(screen.queryByText('Chưa có lịch sử thay đổi nguồn')).not.toBeInTheDocument();
@@ -547,17 +566,23 @@ describe('Warehouse Feature (FR-WH — Kho nguyên liệu & Nhập xuất)', () 
     expect(screen.queryByRole('button', { name: /Xác nhận xuất/ })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Thử lại' }));
     expect(await screen.findByText('Gạo')).toBeVisible();
-    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(['Nguyên liệu', 'Cần chuẩn bị', 'Khách A', 'Khách B']);
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng cần chuẩn bị', 'Khách hàng', 'Thao tác']);
     const row = screen.getByRole('row', { name: /Gạo/ });
-    expect(within(row).getAllByRole('cell').map(cell => cell.textContent?.trim())).toEqual(['Gạo', '7 kg', '5 kg', '2 kg']);
+    expect(within(row).getAllByRole('cell').map(cell => cell.textContent?.trim())).toEqual(['Gạo', 'kg', '7', '2', 'Phân bổ']);
+    await userEvent.click(screen.getByRole('button', { name: 'Phân bổ Gạo' }));
+    const allocationDialog = screen.getByRole('dialog');
+    expect(within(allocationDialog).getByText('Khách A')).toBeVisible();
+    expect(within(allocationDialog).getByText('Khách B')).toBeVisible();
+    expect(within(allocationDialog).getByRole('row', { name: /Khách A/ })).toHaveTextContent('5');
+    await userEvent.click(within(allocationDialog).getByRole('button', { name: 'Đóng' }));
     expect(screen.getByRole('button', { name: 'Xuất Excel chuẩn bị' })).toBeEnabled();
     await userEvent.click(screen.getByRole('button', { name: /Khách hàng:/ }));
     await userEvent.click(screen.getByRole('checkbox', { name: /Khách B/ }));
     expect(screen.getByRole('checkbox', { name: /Khách A/ })).toBeEnabled();
     expect(screen.getByRole('checkbox', { name: /Khách A/ })).toBeChecked();
     await userEvent.keyboard('{Escape}');
-    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(['Nguyên liệu', 'Cần chuẩn bị']);
-    expect(within(screen.getByRole('row', { name: /Gạo/ })).getAllByRole('cell').map(cell => cell.textContent?.trim())).toEqual(['Gạo', '5 kg']);
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(['Nguyên liệu', 'ĐVT', 'Tổng cần chuẩn bị', 'Khách hàng', 'Thao tác']);
+    expect(within(screen.getByRole('row', { name: /Gạo/ })).getAllByRole('cell').map(cell => cell.textContent?.trim())).toEqual(['Gạo', 'kg', '5', '1', 'Phân bổ']);
     expect(screen.queryByRole('button', { name: /Xuất kho|Xác nhận xuất|Trạm xuất/ })).not.toBeInTheDocument();
     expect(read).toHaveBeenLastCalledWith('2026-06-15', undefined, true, expect.any(AbortSignal));
     expect(screen.queryByRole('button', { name: /^CN/ })).not.toBeInTheDocument();

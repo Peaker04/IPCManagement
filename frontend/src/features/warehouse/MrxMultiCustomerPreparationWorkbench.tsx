@@ -6,6 +6,8 @@ import { WorkspaceFrame } from '../../components/workbench/WorkspaceFrame';
 import { downloadAuthenticatedFile } from '../../utils/fileDownload';
 import { isIsoDate, isServiceDate, todayInBusinessTimezone, weekStartFor } from '../../utils/dates';
 import { type ColumnDef } from '../../components/workbench/DataGrid';
+import { Button } from '../../components/ui/button';
+import { MrxPreparationAllocationModal } from './MrxPreparationAllocationModal';
 import { Num } from '../../components/ui/num';
 import { IdentifierText } from '../../components/ui/identifier-text';
 import { useWorkbenchQuery } from '../../hooks/useWorkbenchQuery';
@@ -28,6 +30,7 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
   const scopeDate = wholeWeek ? weekStartFor(activeDate) : activeDate;
   const selectionScope = `${wholeWeek ? 'week' : 'day'}:${scopeDate}`;
   const [selection, setSelection] = useState<{ scope: string; ids: string[] } | null>(null);
+  const [detailSelection, setDetailSelection] = useState<{ scope: string; key: string } | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const preparationQuery = useWorkbenchQuery<MrxPreparation>({
@@ -54,16 +57,12 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
     return { ...line, allocations, filteredRequired: allocations.reduce((sum, allocation) => sum + allocation.requiredQuantity, 0) };
   }).filter(line => line.filteredRequired > 0), [data, activeSelectedBatchIds]);
   const columns = useMemo<ColumnDef<MrxFilteredPreparationLine>[]>(() => [
-    { id: 'ingredient', header: 'Nguyên liệu', width: '320px', cell: line => <div className="min-w-0 py-1 flex flex-wrap items-center gap-x-2"><span className="text-sm font-semibold text-slate-900 break-words">{line.ingredientName}</span>{line.ingredientCode && <IdentifierText value={line.ingredientCode} />}</div> },
-    { id: 'required', header: 'Cần chuẩn bị', width: '200px', align: 'right', cell: line => <Num value={line.filteredRequired} format="plain" decimals={6} suffix={` ${line.canonicalUnitName ?? ''}`} className="font-semibold text-slate-900" /> },
-    ...(activeBatches.length > 1 ? activeBatches.map(batch => ({
-      id: batch.batchId,
-      header: <span className="whitespace-normal break-words line-clamp-2" title={batch.customerName || batch.customerCode || 'Khách hàng'}>{batch.customerCode || batch.customerName || 'Khách hàng'}{activeBatches.filter(other => other.customerId === batch.customerId).length > 1 ? ` · Lô ${activeBatches.indexOf(batch) + 1}` : ''}</span>,
-      width: '200px',
-      align: 'right' as const,
-      cell: (line: MrxFilteredPreparationLine) => <Num value={line.allocations.filter(allocation => allocation.batchId === batch.batchId).reduce((sum, allocation) => sum + allocation.requiredQuantity, 0)} format="plain" decimals={6} suffix={` ${line.canonicalUnitName ?? ''}`} />,
-    })) : []),
-  ], [activeBatches]);
+    { id: 'ingredient', header: 'Nguyên liệu', width: '38%', cell: line => <div className="min-w-0 py-1 flex flex-wrap items-center gap-x-2"><span className="text-sm font-semibold text-slate-900 break-words">{line.ingredientName}</span>{line.ingredientCode && <IdentifierText value={line.ingredientCode} />}</div> },
+    { id: 'unit', header: 'ĐVT', width: '12%', cell: line => line.canonicalUnitName || '—' },
+    { id: 'required', header: 'Tổng cần chuẩn bị', width: '24%', align: 'right', cell: line => <Num value={line.filteredRequired} format="plain" decimals={6} className="font-semibold text-slate-900" /> },
+    { id: 'customers', header: 'Khách hàng', width: '16%', align: 'center', cell: line => new Set(line.allocations.filter(item => item.requiredQuantity > 0).map(item => item.customerId)).size },
+    { id: 'action', header: 'Thao tác', width: '110px', align: 'right', cell: line => <Button variant="outline" size="xs" disabled={!currentData || Boolean(stateProps.error) || stateProps.isFetching} onClick={() => setDetailSelection({ scope: `${selectionScope}:${activeSelectedBatchIds.join(',')}`, key: `${line.ingredientId}:${line.canonicalUnitId}` })} aria-label={`Phân bổ ${line.ingredientName}`}>Phân bổ</Button> },
+  ], [currentData, stateProps.error, stateProps.isFetching, selectionScope, activeSelectedBatchIds]);
   const scopeReady = Boolean(currentData && !stateProps.error && !stateProps.isFetching);
   const canExport = scopeReady && activeBatches.length > 0 && lines.length > 0 && !downloading;
   const toggleBatch = (batchId: string) => {
@@ -84,6 +83,8 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
       setDownloadError(cause instanceof Error ? cause.message : 'Không thể tải Excel chuẩn bị. Vui lòng thử lại.');
     } finally { setDownloading(false); }
   };
+  const detailLine = currentData && !stateProps.error && !stateProps.isFetching && detailSelection?.scope === `${selectionScope}:${activeSelectedBatchIds.join(',')}`
+    ? lines.find(line => `${line.ingredientId}:${line.canonicalUnitId}` === detailSelection.key) ?? null : null;
   return <WorkspaceFrame.Root className="select-text">
     <MrxPrepHeaderBranch activeDate={scopeDate} wholeWeek={wholeWeek} scopeLocked={downloading}
       onScopeChange={(date, week) => {
@@ -105,5 +106,6 @@ export function MrxMultiCustomerPreparationWorkbench({ serviceDate }: MrxMultiCu
         notFoundAsEmpty: false, onRetry: () => void refetch(true),
       }} data={data} activeSelectedBatchIds={activeSelectedBatchIds} filteredAggregatedLines={lines} columns={columns} wholeWeek={wholeWeek} />
     </WorkspaceFrame.Body>
+    <MrxPreparationAllocationModal key={`${selectionScope}:${activeSelectedBatchIds.join(',')}`} line={detailLine} serviceDate={scopeDate} wholeWeek={wholeWeek} onClose={() => setDetailSelection(null)} />
   </WorkspaceFrame.Root>;
 }

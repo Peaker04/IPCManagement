@@ -11,6 +11,7 @@ public static class IngredientMapper
         IngredientId   = GuidHelper.ToGuidString(e.IngredientId),
         IngredientCode = e.IngredientCode,
         IngredientName = e.IngredientName,
+        PreparationGroupCode = e.PreparationGroupCode,
         IsActive       = e.IsActive ?? true,
         IsFreshDaily   = e.IsFreshDaily,
         ReferencePrice = DecimalPolicy.RoundMoney(e.ReferencePrice),

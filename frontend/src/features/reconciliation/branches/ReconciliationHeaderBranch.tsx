@@ -85,7 +85,7 @@ export function ReconciliationHeaderBranch({
   return (
     <WorkspaceHeader
       responsive
-      className={activeReportTab === 'completed' ? 'mrx-scope-header mrx-scope-header--compact' : 'mrx-scope-header'}
+      className="mrx-scope-header mrx-reconciliation-header"
       title="Đối soát nguyên liệu"
       breadcrumb="Đối soát MRX · Bàn điều khiển Giám sát"
       contextSelectors={
@@ -97,7 +97,7 @@ export function ReconciliationHeaderBranch({
           </div>
         ) : (
           <>
-            <div className="w-full sm:w-36 xl:w-44 min-w-0 shrink-0"><Select
+            <div className="mrx-customer-selector w-full sm:w-36 xl:w-44 min-w-0 shrink-0"><Select
               aria-label="Chọn khách hàng đối soát"
               options={customerOptions}
               value={customerCode}
@@ -105,7 +105,7 @@ export function ReconciliationHeaderBranch({
               className="h-9 w-full min-w-0 font-medium text-xs sm:text-sm"
               disabled={customers.length === 0}
             /></div>
-            <div className="w-full sm:w-64 min-w-0 shrink-0"><Select
+            <div className="mrx-batch-selector w-full sm:w-64 min-w-0 shrink-0"><Select
               aria-label="Chọn lô đối soát" value={batchId} className="h-9 w-full min-w-0 text-xs sm:text-sm"
               disabled={catalogLoading || batches.length === 0}
               options={[
@@ -117,10 +117,10 @@ export function ReconciliationHeaderBranch({
                 else { const batch = recentBatches.find(item => item.batchId === event.target.value); if (batch) onSelectBatch(batch); }
               }}
             /></div>
-            <div className="w-28 shrink-0"><Select aria-label="Tháng đối soát" value={month} className="h-9 w-full text-xs sm:text-sm"
+            <div className="mrx-month-selector w-28 shrink-0"><Select aria-label="Tháng đối soát" value={month} className="h-9 w-full text-xs sm:text-sm"
               options={Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: `Tháng ${i + 1}` }))}
               onChange={event => onSelectMonth(`${year}-${event.target.value.padStart(2, '0')}`)} /></div>
-            <div className="w-24 shrink-0"><Select aria-label="Năm đối soát" value={String(year)} className="h-9 w-full text-xs sm:text-sm"
+            <div className="mrx-year-selector w-24 shrink-0"><Select aria-label="Năm đối soát" value={String(year)} className="h-9 w-full text-xs sm:text-sm"
               options={years.map(value => ({ value, label: value }))}
               onChange={event => onSelectMonth(`${event.target.value}-${month.padStart(2, '0')}`)} /></div>
             <WorkspaceHeader.BadgeSlot variant="status">

@@ -10922,6 +10922,153 @@
         }
       }
     },
+    "/api/reconciliation/source-history": {
+      "get": {
+        "tags": [
+          "ReconciliationSourceHistory"
+        ],
+        "parameters": [
+          {
+            "name": "CustomerCode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "BatchId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ServiceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "PageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "SearchKeyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortBy",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SortDesc",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reconciliation/source-history/{eventId}": {
+      "get": {
+        "tags": [
+          "ReconciliationSourceHistory"
+        ],
+        "parameters": [
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNumber",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceHistoryDetailDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceHistoryDetailDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationSourceHistoryDetailDtoApiResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/reconciliation/weekly-menu/edit-scope": {
       "get": {
         "tags": [
@@ -24016,18 +24163,21 @@
       },
       "CreateIngredientRequest": {
         "required": [
-          "ingredientCode",
           "ingredientName",
           "isFreshDaily",
+          "preparationGroupCode",
           "referencePrice",
           "unitId"
         ],
         "type": "object",
         "properties": {
+          "preparationGroupCode": {
+            "type": "string"
+          },
           "ingredientCode": {
             "maxLength": 50,
-            "minLength": 1,
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "ingredientName": {
             "maxLength": 200,
@@ -27080,6 +27230,7 @@
           "inventoryreturnlines",
           "isFreshDaily",
           "materialrequestlines",
+          "preparationGroupCode",
           "purchaseorderlines",
           "purchaserequestlines",
           "referencePrice",
@@ -27118,6 +27269,9 @@
           },
           "isFreshDaily": {
             "type": "boolean"
+          },
+          "preparationGroupCode": {
+            "type": "string"
           },
           "isActive": {
             "type": "boolean",
@@ -27620,12 +27774,16 @@
           "ingredientId",
           "ingredientName",
           "isActive",
+          "preparationGroupCode",
           "referencePrice",
           "unitId",
           "warehouseId"
         ],
         "type": "object",
         "properties": {
+          "preparationGroupCode": {
+            "type": "string"
+          },
           "ingredientId": {
             "type": "string"
           },
@@ -38847,6 +39005,7 @@
           "ingredientId",
           "ingredientName",
           "issueStatus",
+          "preparationGroupCode",
           "quantity",
           "serviceDate",
           "shiftName",
@@ -38899,6 +39058,17 @@
             "type": "string"
           },
           "supplierName": {
+            "type": "string"
+          },
+          "supplierId": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "preparationGroupCode": {
             "type": "string"
           }
         },
@@ -39007,6 +39177,7 @@
           "ingredientCode",
           "ingredientId",
           "ingredientName",
+          "preparationGroupCode",
           "supplierName",
           "totalQuantity"
         ],
@@ -39040,6 +39211,17 @@
           "totalQuantity": {
             "type": "number",
             "format": "double"
+          },
+          "supplierId": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "preparationGroupCode": {
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -39532,6 +39714,317 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryDetailDto": {
+        "required": [
+          "event",
+          "materials",
+          "revisions"
+        ],
+        "type": "object",
+        "properties": {
+          "event": {
+            "$ref": "#/components/schemas/ReconciliationSourceHistoryEventDto"
+          },
+          "requesterName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "reviewerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "executorName": {
+            "type": "string",
+            "nullable": true
+          },
+          "executedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSourceHistoryRevisionDto"
+            }
+          },
+          "materials": {
+            "$ref": "#/components/schemas/ReconciliationSourceHistoryMaterialDtoPagedResponseDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryDetailDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationSourceHistoryDetailDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryEventDto": {
+        "required": [
+          "actorName",
+          "affectedLineCount",
+          "approvalStatus",
+          "changeRoute",
+          "customerCode",
+          "customerName",
+          "eventId",
+          "occurredAt",
+          "reason",
+          "status",
+          "weekStartDate"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "customerCode": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "weekStartDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actorName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "approvalStatus": {
+            "type": "string"
+          },
+          "changeRoute": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "affectedLineCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryEventDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSourceHistoryEventDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryEventDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReconciliationSourceHistoryEventDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryMaterialDto": {
+        "required": [
+          "deltaQuantity",
+          "ingredientCode",
+          "ingredientName",
+          "isApplied",
+          "newQuantity",
+          "previousQuantity",
+          "serviceDate",
+          "unitName"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "ingredientCode": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string"
+          },
+          "previousQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "newQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "deltaQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "isApplied": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryMaterialDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationSourceHistoryMaterialDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReconciliationSourceHistoryRevisionDto": {
+        "required": [
+          "appliedAt",
+          "batchId",
+          "revisionId",
+          "revisionNumber"
+        ],
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "revisionNumber": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "appliedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "additionalProperties": false
@@ -43702,6 +44195,10 @@
       "UpdateIngredientRequest": {
         "type": "object",
         "properties": {
+          "preparationGroupCode": {
+            "type": "string",
+            "nullable": true
+          },
           "ingredientName": {
             "maxLength": 200,
             "type": "string",
@@ -45517,6 +46014,9 @@
     },
     {
       "name": "ReconciliationSourceDeltas"
+    },
+    {
+      "name": "ReconciliationSourceHistory"
     },
     {
       "name": "ReconciliationWeeklyMenu"
